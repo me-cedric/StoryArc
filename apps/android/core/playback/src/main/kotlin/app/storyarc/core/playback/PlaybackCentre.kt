@@ -40,6 +40,13 @@ class PlaybackCentre(
     val playingId: String? get() = source?.publicationId
 
     /**
+     * The publication being played as [SpokenAudio] sees it — the id [playingId] already
+     * answers, with the title a displacement notice names beside it — or null.
+     */
+    val playing: SpokenAudio.Spoken?
+        get() = source?.let { SpokenAudio.Spoken(it.publicationId, it.title) }
+
+    /**
      * Plays a publication, displacing whatever was playing.
      *
      * The order is the requirement: the outgoing position is written, *then* the outgoing

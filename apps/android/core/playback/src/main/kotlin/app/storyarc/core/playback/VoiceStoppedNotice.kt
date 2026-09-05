@@ -26,14 +26,26 @@ package app.storyarc.core.playback
  * remembers to clear it is the shape this exists to avoid: the surface that shows the word is
  * not the surface that armed it, and on a return it is the only one running.
  *
+ * **It names the publication**, because "the voice stopped" is only half a sentence to a
+ * listener who has just opened something else — the book that went quiet is the one thing they
+ * cannot see. The title is the whole of what is carried, and it is also the whole of what makes
+ * the notice pending: a notice with nothing to name has nothing to say. The sentence itself is
+ * [sentence], in its own file, because it needs a `Context` and this does not.
+ *
  * Mirrored in `VoiceStoppedNotice.swift` case for case, and asserted against the same table.
  * Pure, so both suites run it on the host with no session, no engine and no screen.
  */
 @ConsistentCopyVisibility
 data class VoiceStoppedNotice private constructor(
-    /** Whether a listener is still owed the word. */
-    val isPending: Boolean,
+    /**
+     * The publication whose voice stopped, by the title the listener knows it under. Null when
+     * nothing is owed.
+     */
+    val title: String?,
 ) {
+
+    /** Whether a listener is still owed the word. */
+    val isPending: Boolean get() = title != null
 
     /**
      * The notice, given.
@@ -47,15 +59,16 @@ data class VoiceStoppedNotice private constructor(
     companion object {
 
         /** Nothing is owed. The state before anything happened, and after the word was given. */
-        val NONE = VoiceStoppedNotice(isPending = false)
+        val NONE = VoiceStoppedNotice(title = null)
 
         /**
          * The notice a displacement leaves behind.
          *
          * @param aVoice whether what was displaced was the synthesised voice rather than a
          *   narrated file. `false` answers [NONE], which is the second rule above.
+         * @param title what the listener calls the publication that went quiet.
          */
-        fun displacing(aVoice: Boolean): VoiceStoppedNotice =
-            if (aVoice) VoiceStoppedNotice(isPending = true) else NONE
+        fun displacing(aVoice: Boolean, title: String): VoiceStoppedNotice =
+            if (aVoice) VoiceStoppedNotice(title = title) else NONE
     }
 }

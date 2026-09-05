@@ -93,10 +93,17 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
     val book: StateFlow<SpokenBook?> = _book.asStateFlow()
 
     /**
-     * The id of the publication being spoken, or null. This host's half of what
-     * [SpokenAudio] answers for both engines.
+     * The publication being spoken — its id and title — or null. This host's half of what
+     * [SpokenAudio] answers for both engines; the title is what a displacement notice names.
      */
-    override val speaking: String? get() = _book.value?.id
+    override val speaking: SpokenAudio.Spoken?
+        get() = _book.value?.let { SpokenAudio.Spoken(it.id, it.title) }
+
+    /**
+     * A synthesised voice: the one kind whose displacement owes the listener a word. See
+     * [VoiceStoppedNotice] for why a narrator's does not.
+     */
+    override val kind: SpokenAudio.Kind = SpokenAudio.Kind.VOICE
 
     /**
      * Ends the voice because something else is about to speak.
@@ -152,7 +159,9 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
         from: Locator?,
         drawnBy: SpokenSentenceFollower,
     ) {
-        SpokenAudio.shared.silence()
+        // Named, so restarting the book already being spoken is a restart and not a
+        // displacement that would tell the listener their voice stopped while it speaks on.
+        SpokenAudio.shared.silence(toSpeak = book.id)
         val voice = ReadAloudController(
             context = context.applicationContext,
             publication = publication,

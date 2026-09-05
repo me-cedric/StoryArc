@@ -7,10 +7,12 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Two engines, one answer to "may this source start".
+ * Two engines, one answer to "may this source start" — and one word owed when the answer
+ * stopped a voice.
  *
  * `audio-playback`, *Starting a second thing*:
  *
@@ -25,6 +27,12 @@ import org.junit.Test
  * `PlaybackSource` inside the one `PlayerCentre`; here the two engines are still two, and
  * [SpokenAudio] is what makes the rule true across them anyway.
  *
+ * `ebook-reader`, *Opening a different publication*, adds the word: "the listener is told once
+ * that the voice stopped, rather than discovering it by silence". The second half of this
+ * suite pins where that word is armed — only here, only for a voice — the way iOS's
+ * `PlayerDisplacementTests` pins its `PlayerCentre.displace()`. The sentence itself is not
+ * asserted: `VoiceStoppedNoticeTest` owns the value and the surfaces own the drawing.
+ *
  * The cases below are the ones a device cannot easily produce: a voice starting under a
  * narrator, a narrator starting under a voice, and coming back to what is already speaking.
  * No engine, no `Context`, no service — the authority is a class for exactly that reason.
@@ -35,11 +43,13 @@ class SpokenAudioTest {
      * A speaker with nothing behind it.
      *
      * Stands for both: what separates `PlaybackHost` from `ReadAloudHost`, as far as this
-     * authority is concerned, is nothing at all — which is the point being asserted.
+     * authority is concerned, is [kind] and nothing else — which is the point being asserted.
+     * The title a notice would name is looked up from the id, so the tests read as ids.
      */
     private class FakeSpeaker(
         private val name: String,
         private val log: MutableList<String>,
+        override val kind: SpokenAudio.Kind,
         var speakingNow: String? = null,
         /**
          * Whether the teardown takes effect inside the call.
@@ -51,7 +61,8 @@ class SpokenAudioTest {
         private val endsInstantly: Boolean = true,
     ) : SpokenAudio.Speaker {
 
-        override val speaking: String? get() = speakingNow
+        override val speaking: SpokenAudio.Spoken?
+            get() = speakingNow?.let { SpokenAudio.Spoken(it, TITLES[it] ?: it) }
 
         override fun endSpeaking() {
             log += "$name ended $speakingNow"
@@ -61,8 +72,8 @@ class SpokenAudioTest {
 
     private val log = mutableListOf<String>()
 
-    private val narrator = FakeSpeaker("narrator", log)
-    private val voice = FakeSpeaker("voice", log)
+    private val narrator = FakeSpeaker("narrator", log, SpokenAudio.Kind.NARRATOR)
+    private val voice = FakeSpeaker("voice", log, SpokenAudio.Kind.VOICE)
 
     private val audio = SpokenAudio().apply {
         register(narrator)
@@ -177,7 +188,13 @@ class SpokenAudioTest {
      */
     @Test
     fun `registering the same speaker twice adds it once`() {
-        val slow = FakeSpeaker("slow", log, speakingNow = "sea-room", endsInstantly = false)
+        val slow = FakeSpeaker(
+            "slow",
+            log,
+            SpokenAudio.Kind.NARRATOR,
+            speakingNow = "sea-room",
+            endsInstantly = false,
+        )
         audio.register(slow)
         audio.register(slow)
 
@@ -193,7 +210,8 @@ class SpokenAudioTest {
      * can reach: `PlaybackHost` needs a `Context` and a bound service before it can speak.
      * What it pins is that the seam is connected on this side at all — the object the app
      * starts audiobooks through *is* a [SpokenAudio.Speaker], so a voice claiming the audio
-     * has something to displace.
+     * has something to displace — and that it says which kind it is, so a displacement can
+     * tell a narrator from a voice.
      *
      * **The dispatcher is set because touching the object builds its scope.** `PlaybackHost`
      * holds a `CoroutineScope` on `Dispatchers.Main.immediate` for the sleep timer's fade,
@@ -207,8 +225,137 @@ class SpokenAudioTest {
         try {
             val speaker: SpokenAudio.Speaker = PlaybackHost
             assertNull(speaker.speaking)
+            assertEquals(SpokenAudio.Kind.NARRATOR, speaker.kind)
         } finally {
             Dispatchers.resetMain()
         }
+    }
+
+    // MARK: the word a displacement owes
+
+    @Test
+    fun `nothing is owed while nothing has been displaced`() {
+        voice.speakingNow = "the-peregrine"
+        assertEquals(VoiceStoppedNotice.NONE, audio.voiceStopped.value)
+    }
+
+    /** The shelf's seam: a narrated book starting under a voice tells the listener, by name. */
+    @Test
+    fun `displacing a voice owes a word naming the book that went quiet`() {
+        voice.speakingNow = "the-peregrine"
+
+        audio.claim("sea-room", by = narrator)
+
+        assertTrue(audio.voiceStopped.value.isPending)
+        assertEquals("The Peregrine", audio.voiceStopped.value.title)
+    }
+
+    /**
+     * `audio-playback` calls the source "a fact about the file". A narrator that stops when
+     * you open another book is an event a reader already understands.
+     */
+    @Test
+    fun `displacing a narrator owes nothing`() {
+        narrator.speakingNow = "sea-room"
+
+        audio.claim("the-peregrine", by = voice)
+
+        assertEquals(VoiceStoppedNotice.NONE, audio.voiceStopped.value)
+    }
+
+    /** The reader's seam, reached through `ReadAloudHost.begin`, which silences by name. */
+    @Test
+    fun `a begin that silences a voice owes the word too`() {
+        voice.speakingNow = "the-peregrine"
+
+        audio.silence(toSpeak = "sea-room")
+
+        assertEquals("The Peregrine", audio.voiceStopped.value.title)
+    }
+
+    /**
+     * Restarting the publication already being spoken is a restart, not a displacement —
+     * nothing went quiet that the listener is not looking at.
+     */
+    @Test
+    fun `silencing to restart the same publication owes nothing`() {
+        voice.speakingNow = "the-peregrine"
+
+        audio.silence(toSpeak = "the-peregrine")
+
+        assertEquals(listOf("voice ended the-peregrine"), log)
+        assertEquals(VoiceStoppedNotice.NONE, audio.voiceStopped.value)
+    }
+
+    @Test
+    fun `adopting the running session owes nothing`() {
+        voice.speakingNow = "the-peregrine"
+
+        assertEquals(SessionHandover.ADOPT, audio.claim("the-peregrine", by = voice))
+
+        assertEquals(VoiceStoppedNotice.NONE, audio.voiceStopped.value)
+    }
+
+    /**
+     * The listener's own stop, a book running out and audio the platform took all end inside
+     * the host — `ReadAloudHost.end`, `PlaybackHost.stop` — and never pass through this
+     * object. From here they are one shape: a speaker that went silent on its own.
+     */
+    @Test
+    fun `a speaker that goes silent on its own owes nothing`() {
+        voice.speakingNow = "the-peregrine"
+
+        voice.speakingNow = null
+
+        assertNull(audio.speaking)
+        assertEquals(VoiceStoppedNotice.NONE, audio.voiceStopped.value)
+    }
+
+    /**
+     * The surface's half of *once*: what it takes, it spends. A second look — the same screen
+     * redrawn, or a return to it — finds nothing.
+     */
+    @Test
+    fun `taking the notice gives it once and leaves nothing for a second render`() {
+        voice.speakingNow = "the-peregrine"
+        audio.claim("sea-room", by = narrator)
+
+        val shown = audio.takeVoiceStopped()
+
+        assertEquals("The Peregrine", shown.title)
+        assertEquals(VoiceStoppedNotice.NONE, audio.voiceStopped.value)
+        assertEquals(VoiceStoppedNotice.NONE, audio.takeVoiceStopped())
+    }
+
+    /** One word per stopping, not one word ever. */
+    @Test
+    fun `a second displacement arms a second word`() {
+        voice.speakingNow = "the-peregrine"
+        audio.claim("sea-room", by = narrator)
+        audio.takeVoiceStopped()
+
+        voice.speakingNow = "sea-room"
+        audio.claim("the-peregrine", by = narrator)
+
+        assertEquals("Sea Room", audio.voiceStopped.value.title)
+    }
+
+    /**
+     * A narrator displaced while a voice's word is still owed must not take that word away:
+     * only a pending notice is ever written.
+     */
+    @Test
+    fun `a narrator's displacement leaves an unshown voice's word standing`() {
+        voice.speakingNow = "the-peregrine"
+        audio.claim("sea-room", by = narrator)
+        narrator.speakingNow = "sea-room"
+
+        audio.claim("the-peregrine", by = voice)
+
+        assertEquals("The Peregrine", audio.voiceStopped.value.title)
+    }
+
+    private companion object {
+        val TITLES = mapOf("sea-room" to "Sea Room", "the-peregrine" to "The Peregrine")
     }
 }

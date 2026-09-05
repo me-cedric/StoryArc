@@ -76,10 +76,14 @@ object PlaybackHost : SpokenAudio.Speaker {
     }
 
     /**
-     * The id of the publication being narrated, or null. This host's half of what
-     * [SpokenAudio] answers for both.
+     * The publication being narrated — its id and title — or null. This host's half of what
+     * [SpokenAudio] answers for both; the title is what a displacement notice would name,
+     * and for a narrator it never does.
      */
-    override val speaking: String? get() = centre.playingId
+    override val speaking: SpokenAudio.Spoken? get() = centre.playing
+
+    /** A narrated file. Displacing one owes the listener nothing — see [VoiceStoppedNotice]. */
+    override val kind: SpokenAudio.Kind = SpokenAudio.Kind.NARRATOR
 
     /**
      * Ends the narrated session because something else is about to speak.

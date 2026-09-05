@@ -25,4 +25,9 @@
         <item quantity="other">Forward %1$d seconds</item>
     </plurals>
     <string name="playback_browse_root">Audiobooks</string>
+    <!-- Told once when opening another publication stopped the read-aloud voice; names the
+         publication that went quiet. The one new key read-aloud-beyond-the-reader 5.5 allows,
+         by the owner's 2026-09-05 decision. Here rather than in either surface that draws it,
+         because both surfaces depend on this module and neither on the other. -->
+    <string name="playback_voice_stopped">Stopped reading “%1$s” aloud.</string>
 </resources>

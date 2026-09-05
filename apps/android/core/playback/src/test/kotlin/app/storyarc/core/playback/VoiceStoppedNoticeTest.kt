@@ -2,6 +2,7 @@ package app.storyarc.core.playback
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -22,18 +23,22 @@ import org.junit.Test
  * **What is asserted here is the arithmetic, not the sentence.** `once` is the load-bearing
  * word, and it is the only part of this that a screen cannot be trusted with: a flag left
  * standing is shown again on every return, and nothing about that looks wrong in a screenshot.
- * iOS pins the same table in `VoiceStoppedNoticeTests`, case for case.
+ * iOS pins the same table in `VoiceStoppedNoticeTests`, case for case; `SpokenAudioTest` pins
+ * where the value is armed.
  */
 class VoiceStoppedNoticeTest {
 
     @Test
     fun `nothing is owed before anything happens`() {
         assertFalse(VoiceStoppedNotice.NONE.isPending)
+        assertNull(VoiceStoppedNotice.NONE.title)
     }
 
     @Test
-    fun `displacing a voice owes the listener a word`() {
-        assertTrue(VoiceStoppedNotice.displacing(aVoice = true).isPending)
+    fun `displacing a voice owes the listener a word naming the book`() {
+        val owed = VoiceStoppedNotice.displacing(aVoice = true, title = "The Long Field")
+        assertTrue(owed.isPending)
+        assertEquals("The Long Field", owed.title)
     }
 
     /**
@@ -42,8 +47,10 @@ class VoiceStoppedNoticeTest {
      */
     @Test
     fun `displacing a narrated book owes nothing`() {
-        assertEquals(VoiceStoppedNotice.NONE, VoiceStoppedNotice.displacing(aVoice = false))
-        assertFalse(VoiceStoppedNotice.displacing(aVoice = false).isPending)
+        val owed = VoiceStoppedNotice.displacing(aVoice = false, title = "Sea Room")
+        assertEquals(VoiceStoppedNotice.NONE, owed)
+        assertFalse(owed.isPending)
+        assertNull(owed.title)
     }
 
     /**
@@ -53,26 +60,30 @@ class VoiceStoppedNoticeTest {
      */
     @Test
     fun `told once - taking the notice leaves nothing to tell`() {
-        val owed = VoiceStoppedNotice.displacing(aVoice = true)
+        val owed = VoiceStoppedNotice.displacing(aVoice = true, title = "The Long Field")
         assertTrue(owed.isPending)
         assertFalse(owed.taken().isPending)
+        assertNull(owed.taken().title)
     }
 
     @Test
     fun `returning again still finds nothing to tell`() {
-        val given = VoiceStoppedNotice.displacing(aVoice = true).taken()
+        val given = VoiceStoppedNotice.displacing(aVoice = true, title = "The Long Field").taken()
         assertFalse(given.taken().isPending)
         assertEquals(VoiceStoppedNotice.NONE, given.taken().taken())
     }
 
     /**
      * One word per stopping, not one word ever. A listener whose voice is displaced a second
-     * time has a second thing to be told about.
+     * time has a second thing to be told about — and it is about the second book.
      */
     @Test
     fun `a second displacement owes a second word`() {
-        val given = VoiceStoppedNotice.displacing(aVoice = true).taken()
+        val given = VoiceStoppedNotice.displacing(aVoice = true, title = "The Long Field").taken()
         assertFalse(given.isPending)
-        assertTrue(VoiceStoppedNotice.displacing(aVoice = true).isPending)
+        assertEquals(
+            "Harbour Lights 02",
+            VoiceStoppedNotice.displacing(aVoice = true, title = "Harbour Lights 02").title,
+        )
     }
 }
