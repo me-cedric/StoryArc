@@ -166,6 +166,35 @@ says so and names what is left to watch.
       its open items, and this change's delta scopes the scenario to "a different publication
       **while the voice is speaking**", which Android does answer.
 
+      *2026-09-05, later the same day, checked against the tree.* **The Android clause above
+      is closed and the paragraph it sits in is now wrong about the code.**
+      `audiobooks-and-playback` shipped `SpokenAudio` in `:core:playback` — one authority both
+      hosts register with — and `EpubReaderActivity.prepareReadAloud` now asks
+      `SpokenAudio.shared.claim(bookId, by = ReadAloudHost)` rather than
+      `SessionHandover.opening(bookId, ReadAloudHost.book.value?.id)`. `SpokenAudio.speaking`
+      reads across every registered speaker, so a narrated audiobook is visible to a voice
+      about to start and vice versa; `claim` silences what it displaces, **position first**,
+      before it returns. Adopting is guarded at both ends the same way — `isHeldOnlyBy(by)`
+      downgrades an `ADOPT` to a `DISPLACE` when anything else holds the same publication,
+      which is the guard iOS reaches from the other side. `SpokenAudioTest` asserts it without
+      a process. So the sentence *"on Android a narrated audiobook and a spoken EPUB can speak
+      at once"* is no longer true, and neither is the reason given for it: `PlaybackHost` and
+      `ReadAloudHost` are still two engines behind two services — collapsing them is that
+      change's task 6.1 — but they are no longer two *authorities*.
+
+      **The clause this task is still short of is the third, and its owner is the open
+      question.** The vocabulary slice *is* a change now —
+      `docs/openspec/changes/one-vocabulary-in-four-languages/` — so the sentence above about
+      it not existing is stale. But reading its tasks against this: §1–§3 promote **existing**
+      English literals to keys, §4 reconciles keys the two platforms word differently, §5 adds
+      the check that catches a literal. **None of those accepts a sentence that has never been
+      written on either platform**, which is what "the listener is told once that the voice
+      stopped" needs. So the wording is not merely unwritten, it is unowned: 5.5 hands it to a
+      change whose scope, as drafted, does not take it. Nothing is invented here — that is
+      5.5's rule and the standing hazard's — and this stays `[~]` with the gap named rather
+      than papered over. **The owner has to place it**: widen the vocabulary slice by one
+      task, or let this change ship the one key with its four translations against 5.5.
+
 ## Phase 2 — The iOS transport
 
 - [x] **2.1** The docked control in the shell's accessory slot, with the inline
@@ -466,6 +495,40 @@ says so and names what is left to watch.
       make its way back land in the book (3.2). A screenshot pair will show a docked
       bar on iOS and no docked bar on Android, and that is the requirement rather
       than a gap in it.
+
+      *2026-09-05, checked against the tree.* **The conclusion holds and the reason above is
+      now false**, which matters because a tick resting on a false reason is a tick nobody can
+      re-derive. "Material has no persistent accessory slot above a navigation bar" was true
+      when it was written. `audiobooks-and-playback` then built one —
+      `AdaptiveNavigation.kt`'s `aboveNavigation` slot, carrying `CompactPlayerBar` for a
+      narrated audiobook — because `audio-playback` requires a compact bar "above the
+      navigation control". The slot exists on Android, it works, and it is drawn today.
+
+      **So a voice is kept out of it by one thing, and that thing is an accident.** The bar
+      reads `PlaybackHost.nowPlaying`, and `PlaybackHost` drives media3 while a voice lives in
+      `ReadAloudHost` behind Readium. `SpokenAudio` unified the two *authorities* on 2026-09-05
+      and deliberately did not unify the two *engines* — that is `audiobooks-and-playback` task
+      6.1. **On the day 6.1 lands, a read-aloud session starts arriving in `nowPlaying` and
+      this change's requirement is reversed by a merge nobody read as a product change**, with
+      every unit suite, `lint` and both compile gates green throughout. That is exactly the
+      failure this task exists to prevent, arriving from the direction it did not expect.
+
+      **The tick was prose and now has a tripwire.** The task's own verb is *assert*, and until
+      now nothing a build runs did. `apps/android/app/src/test/kotlin/app/storyarc/ReadAloudAddsNoBarTest.kt`
+      holds three claims against source text — `:app` names no read-aloud symbol; the slot
+      above the navigation still composes `CompactPlayerBar` and still reads
+      `PlaybackHost.nowPlaying`, whose failure message is where the 6.1 risk is written down;
+      and `ReadAloudBar` is composed by `EpubReaderOverlays.kt` and nothing else, so the
+      in-reader bar cannot be promoted quietly. Each was **proved able to fail** with a
+      compiling mutation, listed in the file's own header. It is a tripwire and not pixel
+      evidence: 3.1's emulator capture is still what shows a listener the notification and no
+      bar.
+
+      **The requirement itself now conflicts with `audio-playback`'s on Android**, and no
+      artifact says which wins: one asks for a compact bar above the navigation whenever
+      something plays, the other forbids one while a voice speaks. They are reconciled today
+      only by the engine split. `/opsx:verify` should settle it, and the reconciliation is a
+      product decision rather than a wiring one.
 
 ## Phase 4 — The unhappy paths
 
