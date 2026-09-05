@@ -186,7 +186,7 @@ Check for a skip in the result bundle before believing a pass. Appearance is the
 simulator's, not the app's — `--appearance light|dark`, which also suffixes the
 filename so a light and a dark run cannot overwrite each other.
 
-- [ ] 4.1 The source detail screen, both platforms, showing all five fields and **whichever
+- [~] 4.1 The source detail screen, both platforms, showing all five fields and **whichever
       actions that source's state offers** — verify by attaching the screenshots to the change.
       **This asked for all five actions in one frame, and that frame cannot exist.**
       `SourceDiagnosis.of` withholds *Remove downloads* unless the source holds a finished
@@ -218,6 +218,28 @@ filename so a light and a dark run cannot overwrite each other.
       4.2 and say so here.
       Note that the *Downloaded* field was reading `Zero kB` in exactly this frame until
       2026-09-05 — see 2.4. A capture taken before that commit shows the defect.
+
+      **iOS half taken on 2026-09-05**, four frames in
+      `docs/designs/screenshots/source-lifecycle-2026-09-05/`: light and dark, default and
+      `AccessibilityXXXL`. A `testCaptureSettingsSourceDetailAtLargestText` was added, since
+      the largest-text walk this task named did not exist. The frames show **four** actions —
+      *Test connection · Refresh · Free up space · Remove* — with *Reconnect* absent because
+      this catalogue is not answering rather than refusing a credential, which is the reworded
+      task's own point. *Downloaded* reads `0 bytes`, so the fix is visible on the device.
+
+      **The accessibility frames found a defect and it is fixed.** The status read
+      `Not an-swering`, broken across three lines of a value column a few characters wide, with
+      the label alone in the other half of the row — two of the five values being a date and a
+      sentence, the value column always loses. The rows stack at those sizes now, label above
+      value, which is what the system's own Settings does. `SourceDetailSizeTests` pins the
+      branch and the frames prove the fit. Second instance of that shape in one day: the theme
+      presets hyphenated *Original* into `Origi-nal` at the same size for the same reason.
+
+      **Still `[~]`, and precisely: the Android half.** Its route exists and needs a non-empty
+      source list, which the corpus alone does not give — the 17 generated publications carry
+      `origin: EMBEDDED` and belong to no source, so *Your libraries* is empty until one is
+      added. A source holding a finished download is also still owed on both platforms, so
+      *Free up space* is offered against a real figure rather than against `0 bytes`.
 - [ ] 4.2 The reconnect sheet reached from a rejected credential, address filled and secret blank
       **Frames owed: 8** — 4 per platform (light/dark × default/largest). Surface *the add
       sheet re-opened by the source detail screen's `Reconnect` row*; state *address field

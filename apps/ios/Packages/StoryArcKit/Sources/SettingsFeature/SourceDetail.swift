@@ -18,6 +18,7 @@ internal import StoryArcCore
 struct SourceDetail: View {
     @Environment(\.theme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     let source: Source
     let diagnosis: SourceDiagnosis
@@ -120,16 +121,46 @@ struct SourceDetail: View {
         }
     }
 
-    /// A label and its value, on one row. `settings-and-about` puts a setting's current
-    /// value beside its name so it can be read without entering anything.
+    /// A label and its value, beside each other — or stacked, where beside would not fit.
+    ///
+    /// `settings-and-about` puts a setting's current value beside its name so it can be read
+    /// without entering anything. Beside is the right shape until the two stop fitting, and on
+    /// this screen they stop fitting sooner than most: two of the five values are a date and a
+    /// sentence, and *No answer since Sep 5, 2026 at 15:02* already wraps to two lines at the
+    /// default size.
+    ///
+    /// **At the accessibility sizes it wrapped mid-word.** Photographed on 2026-09-05: the
+    /// status read `Not an-swering` across three lines of a column a few characters wide, with
+    /// the label sitting in its own half of an otherwise empty row. A value squeezed into a
+    /// third of the width is not a value beside its name; it is a value hidden behind one.
+    ///
+    /// So the row stacks at those sizes, label above value, both leading-aligned — which is
+    /// what the system's own Settings does with a long value at the same sizes, and what the
+    /// grid of theme presets needed for the same reason on the same day. `isAccessibilitySize`
+    /// rather than `ViewThatFits`: the two layouts differ in alignment as well as in axis, so
+    /// the fallback is a different row rather than the same row narrower, and a reader at those
+    /// sizes should get the same shape on every field rather than a mixture decided per value.
+    @ViewBuilder
     private func field(_ key: LocalizedStringKey, value: Text) -> some View {
-        HStack {
-            Text(key, bundle: .module)
-                .foregroundStyle(theme.palette.textPrimary)
-            Spacer(minLength: StoryArcSpace.md)
-            value
-                .foregroundStyle(theme.palette.textSecondary)
-                .multilineTextAlignment(.trailing)
+        let name = Text(key, bundle: .module).foregroundStyle(theme.palette.textPrimary)
+        Group {
+            if typeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
+                    name
+                    value
+                        .foregroundStyle(theme.palette.textSecondary)
+                        .multilineTextAlignment(.leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                HStack {
+                    name
+                    Spacer(minLength: StoryArcSpace.md)
+                    value
+                        .foregroundStyle(theme.palette.textSecondary)
+                        .multilineTextAlignment(.trailing)
+                }
+            }
         }
         .frame(minHeight: 44)
         .accessibilityElement(children: .combine)

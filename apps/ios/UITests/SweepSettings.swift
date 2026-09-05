@@ -162,6 +162,33 @@ final class SweepSettingsTests: XCTestCase {
         shutter(app, named: "settings-source-detail")
     }
 
+    /// The same page at the largest accessibility text size.
+    ///
+    /// `source-lifecycle` §4.1 asks for this screen at both text sizes and there has never been
+    /// a walk for the larger one. It is the screen with the most to lose: five rows that are
+    /// each a label on the left and a value on the right, and two of the values are a date and
+    /// a sentence — *No answer since Sep 5, 2026 at 15:02* already wraps to two lines at the
+    /// default size, so what it does at `AccessibilityXXXL` is the question.
+    ///
+    /// A method rather than a flag, following `testCaptureSettingsRootAtLargestText`: the
+    /// content size is a launch argument, so it cannot be varied within a run.
+    func testCaptureSettingsSourceDetailAtLargestText() throws {
+        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
+        try open("Your libraries", in: app)
+        let source = try XCTUnwrap(
+            control("StoryArc Test Catalogue", in: app) ?? control("Attic NAS", in: app),
+            "Your libraries lists no catalogue. Cells: "
+                + "\(app.cells.allElementsBoundByIndex.prefix(10).map(\.label))"
+        )
+        source.tap()
+        XCTAssertTrue(
+            app.staticTexts["Status"].waitForExistence(timeout: 5),
+            "The source did not open a page stating its status."
+        )
+        hold(1)
+        shutter(app, named: "settings-source-detail-ax5")
+    }
+
     /// About, under this sweep's own appearance control.
     func testCaptureSettingsAbout() throws {
         let app = sweepLaunch()

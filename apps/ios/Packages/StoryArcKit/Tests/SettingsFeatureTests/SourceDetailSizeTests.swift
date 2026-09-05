@@ -126,4 +126,46 @@ struct SourceDetailSizeTests {
         )
         #expect(zero.first?.isNumber == true, "\(language) rendered zero as \"\(zero)\"")
     }
+    /// The label and its value stack at the accessibility sizes rather than sharing a row.
+    ///
+    /// **Photographed on 2026-09-05, before the fix**: the status read `Not an-swering`, broken
+    /// across three lines of a column a few characters wide, with the label alone in the other
+    /// half of the row. Two of this screen's five values are a date and a sentence, so the value
+    /// column is the one that loses, and a value squeezed into a third of the width is not a
+    /// value beside its name.
+    ///
+    /// **This asserts the branch, and the frame asserts the fit** — the same division this
+    /// suite's own header draws. A host has no window, so what a row does with the width it is
+    /// given is not a thing this process can see; what it can see is that the screen asks the
+    /// question at all. `ios-settings-source-detail-ax5.png` is the other half.
+    ///
+    /// Read from the source rather than the value tree, and that is a weaker test than its
+    /// neighbours on purpose: `field(_:value:)` is private and the branch is a layout choice
+    /// rather than a value, so there is nothing in the built tree to compare. Its weakness is
+    /// exactly why the frame is named above.
+    @Test("The fields stack rather than sharing a row at the accessibility sizes")
+    func fieldsStackWhenTheTextIsLargest() throws {
+        let screen = try source("Sources/SettingsFeature/SourceDetail.swift")
+        #expect(
+            screen.contains("typeSize.isAccessibilitySize"),
+            """
+            The detail rows do not ask the text size, so a label and its value share one row \
+            at every size. At AccessibilityXXXL the value column is a few characters wide and \
+            the status wraps mid-word.
+            """
+        )
+        #expect(
+            screen.contains("@Environment(\\.dynamicTypeSize)"),
+            "The screen cannot ask the text size: it does not read it from the environment."
+        )
+    }
+
+    /// Reaches this package's own source, the way `WhatsNewWiringTests` does.
+    private func source(_ relativePath: String) throws -> String {
+        var directory = URL(fileURLWithPath: #filePath)
+        for _ in 0..<3 { directory = directory.deletingLastPathComponent() }
+        let file = directory.appending(path: relativePath)
+        return try String(contentsOf: file, encoding: .utf8)
+    }
+
 }
