@@ -967,7 +967,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       least one publication attributed to a source that is **down** and not downloaded, which
       the corpus (`origin: EMBEDDED`, no source) cannot produce — the same obstacle 3.2's
       owed frame hits, and the same two-catalogue setup answers both.
-- [ ] **3.4** Section headings in a long library, by series where declared and by
+- [~] **3.4** Section headings in a long library, by series where declared and by
       the sort key otherwise. Screenshot: a library of at least 200 publications.
 
       **The code is done and genuinely mirrored on both platforms. The capture is
@@ -992,6 +992,31 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       and, on either platform, a capture that is on record as being a library of at
       least 200. Nothing in the tree says how many publications any shelf capture
       holds.
+
+      *Verified 2026-09-05 and the code half stands, unusually for this list.* Both
+      thresholds are 12 (`LibrarySections.swift:44`, and `LibrarySections.kt:46` records the
+      mirroring in prose), and both suites hold **19** `@Test` methods — the note's "19 each,
+      one to one" is exact, which is rare enough on this list to be worth confirming rather
+      than assuming. `find` over `docs/designs/screenshots/` returns seven `*section*` frames
+      and every one is `ios-`; there is no Android sectioned shelf anywhere.
+
+      **The 200-publication clause has a blocker nothing on this list had named, and it is
+      the reason nobody has taken the frame.** `scripts/corpus.mjs` builds **17**
+      publications — "a small library of real publications, one per format the app claims to
+      read" — and `android-sweep-2026-09-02/README.md:63` confirms the sweeps ran on exactly
+      those 17. Seventeen is over the sectioning threshold, so the existing iOS frames do
+      show real sections; what no tooling in this repository can currently produce is a
+      library of 200. **Whoever takes this frame has to generate the corpus first**, and that
+      is a script change, not a capture step.
+
+      **Frames owed:**
+      - Android, a sectioned shelf, light and dark, at default and largest text size — the
+        counterpart of the four iOS frames that already exist (4 frames). Reachable on the
+        17-publication corpus today.
+      - Either platform, a shelf **on record** as holding at least 200 publications, with the
+        count stated in the directory's README. Needs `scripts/corpus.mjs` to grow a size
+        argument, or a second script beside it; a frame that does not say how many books are
+        in it cannot answer the clause however long the shelf looks.
 - [x] **3.5** Wire the iOS views that are already written, translated and
       unreachable — recent searches, the cached notice, the scope control in its
       new availability form, and file import from the empty state. No new strings.
