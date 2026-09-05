@@ -90,7 +90,9 @@ final class ReadAloudPlayerTests: XCTestCase {
     /// name, which is why the word is at the top and not beside the bar.
     func testCaptureVoiceStoppedByAnAudiobook() throws {
         let app = try speakAndLeaveTheReader(opening: "Harbour Lights 01")
-        try openPublication(named: "Sea Room", in: app, expectingAPage: false)
+        // *The Peregrine* rather than *Sea Room*: with the shelf filtered to EPUBs and
+        // audiobooks it is the audiobook in the second row, and the shelf is not scrolled.
+        try openPublication(named: "The Peregrine", in: app, expectingAPage: false)
 
         let capsule = app.descendants(matching: .any).matching(identifier: "voice-stopped").firstMatch
         XCTAssertTrue(
@@ -154,10 +156,20 @@ final class ReadAloudPlayerTests: XCTestCase {
     /// - Parameter title: a reflowable EPUB to open by name, or `nil` to let the shared search
     ///   in `EpubWalk` find one — which skips, rather than fails, on a device without any.
     private func speakAndLeaveTheReader(opening title: String? = nil) throws -> XCUIApplication {
-        let app = launch()
+        // **Filtered to the two formats these walks open, and that is what makes them run.**
+        // A cover reached by scrolling does not open under XCUITest: on 2026-09-06, after a
+        // drag that left *Harbour Lights 01* fully visible mid-screen, taps on the cover, on
+        // its caption and on a neighbour with artwork all left the shelf where it was, while
+        // the same covers open when they are visible at launch. Whether a finger does better
+        // is not established here; the frames' README records the finding. With the shelf
+        // filtered to EPUBs and audiobooks, every book these walks name is in the first two
+        // rows, and nothing scrolls.
+        let app: XCUIApplication
         if let title {
+            app = sweepLaunch(formats: ["epub", "audiobook", "audioFolder"])
             try openPublication(named: title, in: app)
         } else {
+            app = launch()
             try openTheEpubReader(in: app)
         }
 

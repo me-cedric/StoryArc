@@ -49,6 +49,9 @@ extension XCTestCase {
     ///     knows — the removal confirmation naming a download is reachable only when a
     ///     download's `sourceID` matches a registered source, and the device's own sources
     ///     have ids no walk can read. `nil` leaves the device's registry alone.
+    ///   - formats: `PublicationFormat` raw values the shelf is filtered to, or none. A walk
+    ///     that opens a book by name uses it to bring that book into the first rows, where no
+    ///     scroll is needed to reach it; this corpus puts its reflowable books in the third.
     ///   - language: a BCP-47 tag for the app's own language override.
     ///   - searchScope: `everywhere` or `onThisDevice`, the search screen's own axis.
     ///   - layout: `grid` or `list`, the shelf's own persisted layout.
@@ -73,6 +76,7 @@ extension XCTestCase {
         natural: Bool = false,
         downloads: String = "[]",
         sources: String? = nil,
+        formats: [String] = [],
         language: String? = nil,
         searchScope: String = "everywhere",
         availability: String = "everywhere",
@@ -86,7 +90,7 @@ extension XCTestCase {
             // The transfer record. `[]` rather than absent, so a queue one walk injected is
             // not still in the frame of the next one.
             "-app.storyarc.downloads", asPlistData(downloads),
-            "-app.storyarc.libraryQuery", asPlistData(queryJSON()),
+            "-app.storyarc.libraryQuery", asPlistData(queryJSON(formats: formats)),
             "-app.storyarc.libraryAvailability", availability,
             "-app.storyarc.searchScope", searchScope,
             "-app.storyarc.libraryDownloadFilter", "either",
@@ -130,10 +134,11 @@ extension XCTestCase {
     /// **It carries no search term and cannot.** `LibraryPreferences.query()` clears `search`
     /// on the way out of storage on purpose. A term reaches a screen by tapping a recent
     /// search — see `SweepSearchTests.run(_:in:)`.
-    private func queryJSON() -> String {
-        """
+    private func queryJSON(formats: [String] = []) -> String {
+        let list = formats.map { "\"\($0)\"" }.joined(separator: ",")
+        return """
         {"publishers":[],"sort":"title","scope":"all","readStates":[],"years":{},\
-        "ascending":true,"tags":[],"search":"","genres":[],"formats":[],"languages":[]}
+        "ascending":true,"tags":[],"search":"","genres":[],"formats":[\(list)],"languages":[]}
         """
     }
 
