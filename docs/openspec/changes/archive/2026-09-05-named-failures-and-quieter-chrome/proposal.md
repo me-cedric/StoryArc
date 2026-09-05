@@ -83,9 +83,16 @@ brief that would have sent somebody to build a second one.
 
 ## Capabilities
 
-- **`library-browsing`** — the failure notice, and the toolbar's shape.
-- **`audio-playback`** — the player's artwork.
-- **`home-screen`** — the hero's content. **It has no main spec**, being introduced by
-  `one-library-three-destinations`, which has not synced; the delta is written and will merge
-  when that change does, the same dependency `quiet-shell-and-search` records for
-  `navigation-shell`.
+- **`library-browsing`** — the failure notice (*What could not be opened*), and the toolbar's
+  shape and the grouping rule, both in *Presentation*.
+- **`native-experience`** — the selection chrome (*Chrome for a mode a reader is in*): a mode
+  that replaces its surface, says how many are chosen and how to leave, shows its actions inert
+  before a first pick, takes each platform's own form, and names every action.
+
+Two findings of the review that started this change were routed to the changes that own their
+capabilities rather than given deltas here, and design.md's routing table names both: the
+player's artwork to `audiobooks-and-playback` (`audio-playback`), and the hero's content to
+`one-library-three-destinations` (`home-screen`, which has no main spec until that change
+syncs). **This section listed those two as this change's own capabilities until 2026-09-05**,
+and left `native-experience` out; the archive would have recorded a proposal that disagreed
+with its own deltas, so it is corrected here rather than carried.

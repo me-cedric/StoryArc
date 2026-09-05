@@ -46,7 +46,9 @@ merge.
 ## The failure notice
 
 **What exists.** A `Group` with `isShowing` and a six-second `dwell`, rendering
-`library.skipped %lld` over the shelf. It is the same on Android. The count comes from the
+`library.skipped %lld` over the shelf. Android's count never had a timer, so the removal
+below is iOS's alone and the rest of this section is both — `SkippedNotice.kt` says so, and
+this sentence read "it is the same on Android" until 2026-09-05. The count comes from the
 scan; the *reasons* exist and are thrown away — `PublicationIndexer` produces
 `IndexError.unsupported(format:)`, `.unreadable(reason:)` and `.contentProtected`, each already
 worded, and the library keeps only the tally.
@@ -108,7 +110,8 @@ from the platforms rather than from taste.
 
 ## Proof
 
-The notice, the toolbar and the hero are all visible changes, so §6 applies. The notice's
+The notice and the toolbar are visible changes, so §6 applies; the hero turned out not to be
+one (see above), and its proof belongs to `one-library-three-destinations`. The notice's
 before is a shelf with a toast over it, which means the capture has to happen **within six
 seconds of a scan that failed** — the fixture corpus has `refused.cb7` and
 `rar4-solid.cbr` for exactly this, and `protected.aax` now too.
