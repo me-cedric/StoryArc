@@ -1188,6 +1188,42 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
         count stated in the directory's README. Needs `scripts/corpus.mjs` to grow a size
         argument, or a second script beside it; a frame that does not say how many books are
         in it cannot answer the clause however long the shelf looks.
+
+      *The blocker is gone, 2026-09-05. `scripts/corpus.mjs` has the size argument, and this
+      task's remaining half is now a capture like every other.*
+
+      ```
+      node scripts/corpus.mjs <target> --count 200
+      node scripts/corpus.mjs --simulator --count 200
+      ```
+
+      The seventeen are unchanged and come first; `--count` adds two-page filler comics after
+      them. **The filler is shaped for this frame rather than merely numerous**, which is the
+      only interesting decision in it: sectioning divides "by series where a publication
+      declares one, and otherwise by the active sort key", so a library of pure standalones
+      would exercise half the rule and a library of pure series the other half. Two thirds of
+      the filler declares a series in runs of six — long enough to be a section rather than a
+      pair — and one third does not. 25 distinct initials, so the headings under a title sort
+      are not all one letter.
+
+      Built and checked: 200 files, 864 KB, in a few seconds. `--count` below 17 is refused
+      rather than silently honoured, because a smaller number would otherwise get seventeen
+      publications and no warning.
+
+      Four cases in `corpus.mjs --self-test` (now 14), and they check the **names** rather
+      than build the library: 183 archives is 183 `zip` processes, and a check that slow is
+      one somebody removes from `pnpm lint` in a hurry. What can go wrong is arithmetic —
+      the count, two files sharing a name, all-series or all-standalone, one initial — and
+      that is what they see. `BASE_COUNT` is asserted against the real directory, so a
+      publication added to the seventeen without it moving fails here rather than leaving
+      every filled corpus one short.
+
+      **What is still owed is the two frames**, and neither has a blocker any more:
+      - Android, a sectioned shelf, light and dark, at default and largest text size (4).
+        Reachable on the 17-publication corpus today, as the note above says.
+      - Either platform on a corpus built with `--count 200`, with the count written into the
+        capture directory's README — the count is the whole of what the clause asks and a
+        long-looking shelf does not state it.
 - [x] **3.5** Wire the iOS views that are already written, translated and
       unreachable — recent searches, the cached notice, the scope control in its
       new availability form, and file import from the empty state. No new strings.
@@ -1640,7 +1676,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       | 6 | Pin to Home / Unpin from Home in a shelf's menu (8), Home with one pinned collection **and** one pinned list (8), one per platform after unpinning (2) | 2.1 | a collection and a reading list, both non-empty |
       | 7 | The filter sheet in its **by-library** form (4) + one with a filter applied (2) + *Clear filters* offered while narrowed (2) | 3.2 | **two OPDS catalogues that attribute publications** — the 17-item corpus attributes none |
       | 8 | A grid with all four combinations of progress and availability (4) | 3.3 | needs one publication on a source that is **down** and not downloaded — same obstacle as 7, same setup answers both |
-      | 9 | An Android sectioned shelf (4); and either platform on record at **200+** publications | 3.4 | the 200 needs `scripts/corpus.mjs` to grow a size argument first — a script change, not a capture |
+      | 9 | An Android sectioned shelf (4); and either platform on record at **200+** publications | 3.4 | `node scripts/corpus.mjs --simulator --count 200` — the script change that blocked this landed 2026-09-05, so both are captures now |
       | 10 | iPad Pro portrait and landscape with the sidebar (4), iPad in **Split View** (1), **Settings on a 13-inch iPad** (1) | 4.1 | the settings frame is the one that says whether 720 is right |
       | 11 | An Android **foldable at half-open**, seam and pane boundary in one frame (1) | 4.2 | a foldable AVD at its half-open posture |
       | 12 | **iOS Home with the shelf filtered to one library**, showing Keep reading still present (2, light and dark) | 2.1 / 3.2 | new, and owed by the fix below |

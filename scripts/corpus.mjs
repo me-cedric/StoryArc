@@ -9,6 +9,18 @@
 //
 // Usage: node scripts/corpus.mjs <directory>
 //        node scripts/corpus.mjs --simulator     (writes into the booted app's Documents)
+//        node scripts/corpus.mjs <target> --count 200   (pad it out to 200 publications)
+//
+// `--count` exists for one requirement and is deliberately not the default. `library-browsing`
+// asks for section headings "in a long library", and the seventeen publications above are a
+// library of one screen: enough to cross the sectioning threshold of twelve, not enough to
+// show what sectioning is *for*. Nothing in this repository could produce a long one, so the
+// frame that task asks for had never been taken and could not be.
+//
+// The seventeen are unchanged and come first. Everything `--count` adds is filler: two-page
+// comics whose only job is to be numerous, named so the shelf sections the way a real library
+// does — runs that declare a series, standalones that do not, and enough initials that the
+// headings under a title sort are not all one letter.
 
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs'
@@ -244,7 +256,61 @@ function pdf(out, { title, pages: count }) {
   writeFileSync(out, body, 'latin1')
 }
 
-function build(root) {
+/** How many publications [build] writes before any filler. Asserted by the self-test. */
+export const BASE_COUNT = 17
+
+/** Words the filler names are built from. Fixed, so two runs produce the same library. */
+const FILLER_SERIES = [
+  'Night Ferry', 'Copper Wake', 'Ember Line', 'Glass Harbour', 'Iron Meridian',
+  'Lantern Fall', 'Oxbow Signal', 'Quarry Light', 'Tallow Coast', 'Verdigris Run',
+]
+const FILLER_SOLO = [
+  'Ashfall', 'Bellwether', 'Cinderpath', 'Dovetail', 'Everlong', 'Fernwood',
+  'Grangemouth', 'Hollowmere', 'Inkwell', 'Junewater', 'Kestrel', 'Loomlight',
+  'Marrowfield', 'Nettleford', 'Overwinter', 'Pennyroyal', 'Reedsmere', 'Stonecrop',
+  'Thornapple', 'Underhill', 'Wanderfall', 'Yarrowgate', 'Zephyrine',
+]
+
+/**
+ * The filler titles, in order, as a pure function of how many are wanted.
+ *
+ * Separate from the writing so the self-test can check the shape of a 200-publication
+ * library without building one: 183 archives is 183 processes, and a check that slow gets
+ * taken out of `pnpm lint` by whoever is next in a hurry.
+ *
+ * **Two thirds series, one third standalone**, which is what makes the frame worth taking.
+ * Sectioning divides "by series where a publication declares one, and otherwise by the
+ * active sort key" — a library of pure standalones exercises only the second half and a
+ * library of pure series only the first, and neither would show the demotion rule where a
+ * series the sort scatters stops being a heading.
+ */
+export function fillerTitles(count) {
+  const titles = []
+  let issued = 0
+  let solo = 0
+  for (let i = 0; i < count; i += 1) {
+    if (i % 3 === 2) {
+      // A running counter rather than arithmetic on `i`, so uniqueness is obvious: the
+      // pair (word, pass) is a bijection with `solo`, and two filler files sharing a name
+      // would be one file and a corpus quietly short of what was asked for.
+      const word = FILLER_SOLO[solo % FILLER_SOLO.length]
+      const pass = Math.floor(solo / FILLER_SOLO.length)
+      titles.push(pass ? `${word} ${pass + 1}` : word)
+      solo += 1
+    } else {
+      // Six issues per series before moving to the next, so a run is long enough to be a
+      // section rather than a pair.
+      const issue = issued % 6 + 1
+      const series = FILLER_SERIES[Math.floor(issued / 6) % FILLER_SERIES.length]
+      const volume = Math.floor(issued / (6 * FILLER_SERIES.length))
+      titles.push(`${series}${volume ? ` v${volume + 1}` : ''} ${String(issue).padStart(2, '0')}`)
+      issued += 1
+    }
+  }
+  return titles
+}
+
+function build(root, { count = BASE_COUNT } = {}) {
   rmSync(root, { recursive: true, force: true })
   mkdirSync(root, { recursive: true })
   const at = (name) => join(root, name)
@@ -323,12 +389,34 @@ function build(root) {
   // notice that had merged two. This one is a ZIP the app reads happily and cannot decrypt.
   zip(at('Locked Vault.cbz'), pages(4, 1), ['-P', 'storyarc'])
 
+  // Filler, and only when asked for. Two pages each: the shelf draws a cover and a count,
+  // and a long library made of eight-page comics is the same screenshot and ten times the
+  // build. Nothing below is meant to be opened.
+  for (const [index, title] of fillerTitles(count - BASE_COUNT).entries()) {
+    zip(at(`${title}.cbz`), pages(2, index))
+  }
+
   return root
 }
 
 const target = process.argv[2]
 if (!target) {
-  console.error('usage: node scripts/corpus.mjs <directory> | --simulator | --self-test')
+  console.error('usage: node scripts/corpus.mjs <directory> | --simulator | --self-test' +
+    ' [--count <n>]')
+  process.exit(2)
+}
+
+/**
+ * How many publications to write, from `--count <n>`.
+ *
+ * Refused below [BASE_COUNT] rather than silently honoured: the seventeen are the point of
+ * this script, and `--count 5` asking for a smaller corpus would get a corpus of seventeen
+ * and no warning.
+ */
+const countFlag = process.argv.indexOf('--count')
+const count = countFlag === -1 ? BASE_COUNT : Number(process.argv[countFlag + 1])
+if (!Number.isInteger(count) || count < BASE_COUNT) {
+  console.error(`--count must be a whole number of at least ${BASE_COUNT}`)
   process.exit(2)
 }
 
@@ -383,6 +471,29 @@ if (target === '--self-test') {
         return bytes.includes(Buffer.from('page-003.jxl')) &&
           bytes.includes(Buffer.from([0xff, 0x0a]))
       }],
+      // `BASE_COUNT` is the number `--count` subtracts from, so a publication added above
+      // without it moving would make every filled corpus one short of what was asked for.
+      ['seventeen without --count', () =>
+        readdirSync(scratch).length === BASE_COUNT],
+
+      // The 200-publication library, checked as names rather than built as files. 183
+      // archives is 183 `zip` processes, and a check that slow is one somebody removes from
+      // `pnpm lint`. What can go wrong here is arithmetic, and arithmetic is what this sees.
+      ['a filled corpus is the size it was asked for', () =>
+        fillerTitles(200 - BASE_COUNT).length === 200 - BASE_COUNT],
+      ['no two filler publications share a name', () => {
+        const titles = fillerTitles(500)
+        return new Set(titles).size === titles.length
+      }],
+      ['a filled corpus declares series and does not only declare series', () => {
+        const titles = fillerTitles(200 - BASE_COUNT)
+        const inSeries = titles.filter((t) => /\s\d\d$/.test(t))
+        // Both halves, because sectioning divides by series where there is one and by the
+        // sort key where there is not. A corpus of all one kind exercises half the rule.
+        return inSeries.length > 0 && inSeries.length < titles.length
+      }],
+      ['the headings under a title sort are not all one letter', () =>
+        new Set(fillerTitles(200 - BASE_COUNT).map((t) => t[0])).size >= 10],
     ]
     const failed = checks.filter(([, holds]) => !holds()).map(([name]) => name)
     if (failed.length) {
@@ -405,5 +516,5 @@ if (target === '--simulator') {
   root = join(container, 'Documents', 'Corpus')
 }
 
-build(resolve(root))
-console.log(`corpus: ${resolve(root)}`)
+build(resolve(root), { count })
+console.log(`corpus: ${resolve(root)} — ${count} publications`)
