@@ -1189,7 +1189,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
 
 ## Phase 5 — First run and the empty path
 
-- [ ] **5.1** **[M1/M2]** The first-run empty state on both platforms: one
+- [x] **5.1** **[M1/M2]** The first-run empty state on both platforms: one
       sentence, one action that opens a comic with no configuration, one plain
       secondary. The four source types move one level down. Screenshot: first
       launch, both platforms, largest text size.
@@ -1217,6 +1217,39 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       Captures exist and include the largest text size:
       `firstrun-2026-08-30/{ios,android}-home-firstrun-{light,dark}.png` and
       `{ios,android}-library-empty-dark-largest.png`.
+
+      *Decided 2026-09-05, and the decision is the second of the two the note offers: **the
+      split is written into the delta**, and Home's secondary is left as it is.*
+
+      **The reasoning, in the order it decided.** First, both platforms already do this and
+      each says why in its own source; two platforms arriving at one behaviour independently
+      is a decision that has already been taken, and re-taking it from a task list is how a
+      considered choice gets undone by somebody with less context than the person who made
+      it. Second — and this is what settled it — **the delta did not actually forbid it**.
+      *Adding the first source* says the four types are "named **only after** that secondary
+      action is taken", which constrains where they may appear and never requires that they
+      appear on every surface; and a folder is one of the four, so Home's secondary does
+      "lead to connecting a library". The shipped behaviour was compliant and unreadably so:
+      anyone checking would have had to re-derive it, which is exactly what this task's
+      earlier note had to do.
+
+      So the change is a clarification rather than a reversal. `specs/sources/spec.md`
+      *Adding the first source* gains two clauses: that the surface naming the four is the
+      **library destination's own empty state**, with the reason — a reader who has not yet
+      seen a shelf has not asked the question the four answer — and that a reader landing on
+      Home still reaches them in one move, because the library is one of the three
+      destinations the navigation control always offers. That second clause is the one that
+      makes the first safe, and it is the one a future reader should check if the destination
+      set ever changes.
+
+      **What would reopen this:** a first-run reader whose only library is a Kavita server
+      landing on Home and not finding their way. The clause above says why that is one tap
+      rather than a dead end; a device would say whether it reads that way. Nothing was
+      changed on screen, so no new capture is owed and the existing four still describe the
+      app.
+
+      `pnpm spec:validate` 25/25 and `node scripts/delta-drop-check.mjs` clean after the
+      edit — the two clauses are additions to a MODIFIED block, so nothing is dropped.
 - [x] **5.2** Every empty state in the three destinations, checked against the
       delta's rule that an empty section is absent rather than rendered empty.
       **Checked, six destination/platform pairs, and every section tests its own

@@ -11,6 +11,8 @@ timestamp of its last successful sync.
 - **THEN** they are shown one sentence in plain language, one primary action that opens a comic from the device with nothing to configure first, and one plain secondary action that leads to connecting a library
 - **AND** the four source types are named only after that secondary action is taken, where choosing between them is the question being asked
 - **AND** the first screen never presents the source types as a list to be understood before the app can be used
+- **AND** the surface that names the four is the library destination's own empty state; the home surface's secondary opens a folder directly, because a reader who has not yet seen a shelf has not yet asked the question the four are an answer to
+- **AND** a reader who arrives on the home surface can still reach the four in one move, because the library destination is one of the three the navigation control always offers
 
 #### Scenario: Reordering sources
 - **WHEN** a reader drags a source into a new position in the source list
