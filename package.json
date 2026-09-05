@@ -34,7 +34,7 @@
     "lint": "pnpm lines:check && pnpm tokens:check && pnpm brand:check && pnpm spec:validate && pnpm spec:guard && pnpm delta:drop && pnpm partial:tasks && pnpm openspec:workflows:check && pnpm tokens:verify && pnpm fixtures:check && pnpm notices:check && pnpm libarchive:pin && pnpm lockfile:ios && pnpm corpus:check && pnpm kavita:check && pnpm opds:check && pnpm strings:ios",
     "lint:ios": "swiftlint lint --strict",
     "lint:android": "node scripts/gradle.mjs lint",
-    "test:ios": "cd apps/ios/Packages/StoryArcKit && swift test",
+    "test:ios": "cd apps/ios/Packages/StoryArcKit && swift test; status=$?; node ../../../../scripts/sweep-test-debris.mjs || true; exit $status",
     "test:ios:epub": "cd apps/ios/Packages/StoryArcEpub && xcodebuild test -scheme StoryArcEpub -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' -collect-test-diagnostics never -quiet",
     "test:android": "node scripts/gradle.mjs test",
     "build:android:tests": "node scripts/gradle.mjs assembleAndroidTest",
@@ -72,7 +72,8 @@
     "lines:selftest": "node scripts/line-cap.mjs --self-test",
     "brand:build": "swift scripts/brand-mark.swift --out .",
     "brand:check": "swift scripts/brand-mark.swift --out . --check",
-    "clean:swift": "node scripts/clean-swift-build.mjs"
+    "clean:swift": "node scripts/clean-swift-build.mjs",
+    "sweep:test-debris": "node scripts/sweep-test-debris.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",

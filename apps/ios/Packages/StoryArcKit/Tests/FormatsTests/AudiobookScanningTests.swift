@@ -26,6 +26,7 @@ struct AudiobookScanningTests {
     @Test("A library folder with one audiobook in it is still a library")
     func oneAudiobookDoesNotSwallowTheLibrary() async throws {
         let library = try scratchFolder()
+        defer { try? FileManager.default.removeItem(at: library) }
         try FileManager.default.copyItem(
             at: corpus.appending(path: "unchaptered.m4a"),
             to: library.appending(path: "Sea Room.m4a")
@@ -48,6 +49,7 @@ struct AudiobookScanningTests {
     @Test("A folder of parts and nothing else is one audiobook")
     func aFolderOfPartsIsOneBook() async throws {
         let library = try scratchFolder()
+        defer { try? FileManager.default.removeItem(at: library) }
         let book = library.appending(path: "The Peregrine")
         try FileManager.default.copyItem(at: corpus.appending(path: "folder-parts"), to: book)
 
@@ -61,6 +63,7 @@ struct AudiobookScanningTests {
     @Test("Two folders are two publications")
     func twoFolders() async throws {
         let library = try scratchFolder()
+        defer { try? FileManager.default.removeItem(at: library) }
         try FileManager.default.copyItem(
             at: corpus.appending(path: "folder-parts"),
             to: library.appending(path: "The Peregrine")
@@ -93,6 +96,7 @@ struct AudiobookScanningTests {
     @Test("A protected audiobook is refused by name rather than dropped in silence")
     func aProtectedAudiobookIsRefusedByName() async throws {
         let library = try scratchFolder()
+        defer { try? FileManager.default.removeItem(at: library) }
         try FileManager.default.copyItem(
             at: corpus.appending(path: "protected.aax"),
             to: library.appending(path: "Sea Room.aax")
@@ -128,6 +132,7 @@ struct AudiobookScanningTests {
     @Test("A locked file beside a folder's parts is not one of its parts")
     func aLockedFileIsNotAPart() async throws {
         let library = try scratchFolder()
+        defer { try? FileManager.default.removeItem(at: library) }
         let book = library.appending(path: "The Peregrine")
         try FileManager.default.copyItem(at: corpus.appending(path: "folder-parts"), to: book)
         try FileManager.default.copyItem(
@@ -141,6 +146,18 @@ struct AudiobookScanningTests {
         #expect(found.first?.pageCount == 3, "three parts — the locked file is not a fourth")
     }
 
+    /// A directory of this test's own, which **the caller must remove**.
+    ///
+    /// Every call site carries `defer { try? FileManager.default.removeItem(at: library) }`,
+    /// and they carry it because nothing used to: 634 `scan-*` directories were sitting in the
+    /// system temp folder, one per test per run since this file was written. A temp directory
+    /// is not free — the system purges `/var/folders/…/T` on its own schedule and not on ours,
+    /// so between purges a machine accumulates them, and a suite that leaks state on disk is a
+    /// suite that will eventually fail for a reason that is not in its own source.
+    ///
+    /// A `defer` per call rather than a shared teardown, because a `struct` suite has no
+    /// `deinit` to hang one on and turning this into a `final class` to get one would change
+    /// how the suite is isolated for a housekeeping reason.
     private func scratchFolder() throws -> URL {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
             .appending(path: "scan-\(UUID().uuidString)")
