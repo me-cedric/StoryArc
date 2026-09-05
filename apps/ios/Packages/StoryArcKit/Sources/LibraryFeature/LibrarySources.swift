@@ -172,8 +172,13 @@ extension LibraryModel {
     ///
     /// The bookmark goes, the folder goes, the secret goes, and the registry keeps a
     /// tombstone — so reading progress survives the thirty days the requirement promises
-    /// rather than being cascaded away. Files on disk are never touched: this removes a
-    /// *library*, not a reader's comics.
+    /// rather than being cascaded away. The downloads are gone by the time this runs: the
+    /// app layer deletes them — files, records and Kavita cards — *before* calling this
+    /// (`StoryArcAppActions.removeSource`), because the registry entry is what attributes a
+    /// download to a source, and this method's own job is the registry, the credential, the
+    /// shelf and the 30-day tombstone. A comment here used to say files on disk are never
+    /// touched, and a reading of it as the whole story called the confirmation dialog right
+    /// when it was promising the opposite of what the button did.
     ///
     /// `credentials` is a parameter rather than something the model holds, matching
     /// ``probeNetworkSources(credentials:pins:)``: the store is a handle to the Keychain and

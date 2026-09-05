@@ -39,7 +39,9 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.ImportedCopies
 import app.storyarc.core.model.SourceConnectionState
+import app.storyarc.core.model.SourceDiagnosis
 import app.storyarc.core.model.SourceKind
+import app.storyarc.core.model.SourceRemovalWording
 
 /**
  * Every configured source, and what can be done to one.
@@ -60,6 +62,13 @@ import app.storyarc.core.model.SourceKind
 internal fun SourcesGroup(
     sources: List<Source>,
     itemCount: (Source) -> Int,
+    /**
+     * Everything the detail screen says about one source, asked of the same function that
+     * screen is given, so the removal confirmation raised here and the one raised there cannot
+     * name different figures for one source. `sources` asks the app to state how many files and
+     * how much space a removal frees; the count of titles alone cannot say either.
+     */
+    diagnose: (Source) -> SourceDiagnosis,
     onRemove: (Source) -> Unit,
     onRename: (Source, String) -> Unit,
     /**
@@ -121,18 +130,12 @@ internal fun SourcesGroup(
         AlertDialog(
             onDismissRequest = { removing = null },
             title = { Text(stringResource(R.string.sources_remove_title, source.displayName)) },
-            // `sources` asks the app to state what removal frees before asking. For a
-            // folder that is nothing, and saying so is the point: a reader must not have to
-            // guess whether this deletes their comics.
-            text = {
-                Text(
-                    pluralStringResource(
-                        R.plurals.sources_remove_body,
-                        itemCount(source),
-                        itemCount(source),
-                    ),
-                )
-            },
+            // `sources` asks the app to state what removal frees before asking: how many files
+            // and how much space. [SourceRemovalWording] picks the sentence from the same
+            // diagnosis the detail screen shows, so a source with downloads is told they go
+            // rather than promised that no files are deleted — which is what this body said
+            // until 2026-09-05, while `SettingsHost` deleted them.
+            text = { Text(removalBody(SourceRemovalWording.of(diagnose(source)))) },
             confirmButton = {
                 TextButton(onClick = {
                     onRemove(source)
@@ -292,6 +295,22 @@ internal fun SourcesGroup(
                     }
                 }
             }
+        }
+
+        // The delete button raises the same confirmation the detail screen does, and the two
+        // standing facts about removal — the downloads go, the reading positions stay thirty
+        // days — have to be readable *before* it, on this surface, at every text size. Not a
+        // sentence in the dialog: iOS's confirmation at the largest text size holds about
+        // seven short lines and does not scroll, which is what moved the thirty days under the
+        // detail screen's actions on 2026-09-05; this surface mirrors the placement so both
+        // platforms say the same thing at the same moment. Only where a row can be removed,
+        // which "On this device" cannot.
+        if (sources.any { it.id != ImportedCopies.SOURCE_ID }) {
+            Text(
+                text = stringResource(R.string.sources_remove_footer),
+                style = MaterialTheme.typography.bodySmall,
+                color = palette.textSecondary,
+            )
         }
     }
 }

@@ -124,6 +124,20 @@ fun SettingsScreen(
     var openSource by remember { mutableStateOf<UUID?>(null) }
     val diagnosed = sources.firstOrNull { it.id == openSource }
 
+    // Everything a source's screen says about it, and everything its removal confirmation
+    // says — asked once, here, so the detail screen and the list's delete button cannot name
+    // different figures for one source. "On this device" is the app's own imported copies,
+    // not a source the reader added, so it is not one they can remove: the same exception
+    // the list makes, asked in the same place so the two cannot disagree.
+    val diagnose: (Source) -> SourceDiagnosis = { source ->
+        SourceDiagnosis.of(
+            source,
+            itemCount = itemCount(source),
+            downloads = downloads.downloads,
+            isRemovable = source.id != ImportedCopies.SOURCE_ID,
+        )
+    }
+
     // `native-experience` asks for predictive back on Android, and the manifest opt-in is
     // only the half the system can do for itself: it draws the way out of the *app*. These
     // three levels are the app's own state, so the preview of one of them leaving is the
@@ -148,15 +162,7 @@ fun SettingsScreen(
         if (diagnosed != null) {
             SourceDetailScreen(
                 source = diagnosed,
-                diagnosis = SourceDiagnosis.of(
-                    diagnosed,
-                    itemCount = itemCount(diagnosed),
-                    downloads = downloads.downloads,
-                    // "On this device" is the app's own imported copies, not a source the
-                    // reader added, so it is not one they can remove. The same exception the
-                    // list makes, asked once so the two cannot disagree.
-                    isRemovable = diagnosed.id != ImportedCopies.SOURCE_ID,
-                ),
+                diagnosis = diagnose(diagnosed),
                 onAction = { onSourceAction(diagnosed, it) },
                 onBack = { openSource = null },
                 modifier = modifier,
@@ -181,6 +187,7 @@ fun SettingsScreen(
                     modifier = modifier,
                     sources = sources,
                     itemCount = itemCount,
+                    diagnose = diagnose,
                     onRemoveSource = onRemoveSource,
                     onRenameSource = onRenameSource,
                     onReorderSource = onReorderSource,
@@ -352,6 +359,7 @@ private fun GroupDetail(
     modifier: Modifier = Modifier,
     sources: List<Source>,
     itemCount: (Source) -> Int,
+    diagnose: (Source) -> SourceDiagnosis,
     onRemoveSource: (Source) -> Unit,
     onRenameSource: (Source, String) -> Unit,
     onReorderSource: (Source, Boolean) -> Unit,
@@ -401,6 +409,7 @@ private fun GroupDetail(
                     SourcesGroup(
                         sources = sources,
                         itemCount = itemCount,
+                        diagnose = diagnose,
                         onRemove = onRemoveSource,
                         onRename = onRenameSource,
                         onOpen = onOpenSource,

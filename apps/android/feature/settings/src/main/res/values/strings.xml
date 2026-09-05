@@ -114,9 +114,15 @@
         <item quantity="other">%1$d titles</item>
     </plurals>
     <plurals name="sources_remove_body">
-        <item quantity="one">This removes %1$d title from your library. No files on your device are deleted, and nothing was downloaded. Your reading positions are kept for 30 days.</item>
-        <item quantity="other">This removes %1$d titles from your library. No files on your device are deleted, and nothing was downloaded. Your reading positions are kept for 30 days.</item>
+        <item quantity="one">This removes %1$d title from your library.</item>
+        <item quantity="other">This removes %1$d titles from your library.</item>
     </plurals>
+    <plurals name="sources_remove_downloads">
+        <item quantity="one">%1$d download</item>
+        <item quantity="other">%1$d downloads</item>
+    </plurals>
+    <string name="sources_remove_body_with_downloads">This removes %1$s and %2$s (%3$s).</string>
+    <string name="sources_remove_footer">Removing a library deletes what you downloaded from it and keeps your reading positions for 30 days.</string>
     <string name="sources_detail_status">Status</string>
     <string name="sources_detail_last_sync">Last updated</string>
     <string name="sources_detail_never">Never</string>

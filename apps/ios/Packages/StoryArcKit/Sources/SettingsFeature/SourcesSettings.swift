@@ -64,24 +64,38 @@ struct SourcesSettings: View {
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textSecondary)
             } else {
-                ForEach(sources) { source in
-                    NavigationLink {
-                        SourceDetail(
-                            source: source,
-                            diagnosis: diagnosis(of: source),
-                            perform: { await perform(source, $0) }
-                        )
-                    } label: {
-                        row(source)
+                Section {
+                    ForEach(sources) { source in
+                        NavigationLink {
+                            SourceDetail(
+                                source: source,
+                                diagnosis: diagnosis(of: source),
+                                perform: { await perform(source, $0) }
+                            )
+                        } label: {
+                            row(source)
+                        }
+                        // Swipe stays. The detail screen is where a source is diagnosed; a
+                        // rename is one word and should not cost a push and a pop.
+                        .swipeActions(edge: .trailing) { actions(for: source) }
                     }
-                    // Swipe stays. The detail screen is where a source is diagnosed; a
-                    // rename is one word and should not cost a push and a pop.
-                    .swipeActions(edge: .trailing) { actions(for: source) }
-                }
-                .onMove { indices, destination in
-                    // One row moves at a time, because the list is not selectable.
-                    guard let index = indices.first else { return }
-                    onReorder(sources[index].id, destination)
+                    .onMove { indices, destination in
+                        // One row moves at a time, because the list is not selectable.
+                        guard let index = indices.first else { return }
+                        onReorder(sources[index].id, destination)
+                    }
+                } footer: {
+                    // The swipe raises the same confirmation the detail screen does, and the
+                    // two standing facts about removal — the downloads go, the reading
+                    // positions stay thirty days — have to be readable *before* it, on this
+                    // surface, at every text size. They cannot be a third sentence in the
+                    // dialog: a `confirmationDialog` at `AccessibilityXXXL` holds about seven
+                    // short lines and does not scroll, which is what moved them under the
+                    // detail screen's actions on 2026-09-05. A section footer wraps freely.
+                    // Only where a row can be removed, which "On this device" cannot.
+                    if sources.contains(where: { $0.id != ImportedCopies.sourceID }) {
+                        Text("sources.remove.footer", bundle: .module)
+                    }
                 }
             }
         }
@@ -150,10 +164,12 @@ struct SourcesSettings: View {
                 Text("sources.remove", bundle: .module)
             }
         } message: { source in
-            // `sources` asks the app to state what removal frees before asking. For a
-            // folder that is nothing, and saying so is the point: a reader must not have to
-            // guess whether this deletes their comics.
-            Text("sources.remove.body \(itemCount(source.id))", bundle: .module)
+            // `sources` asks the app to state what removal frees before asking: how many
+            // files and how much space. The same diagnosis the detail screen is handed, so
+            // this dialog and that one cannot name different figures for one source — and
+            // ``SourceRemovalWording`` picks the sentence, so a source with downloads is
+            // told they go rather than promised that no files are deleted.
+            SourceRemovalBody.text(for: .of(diagnosis(of: source)))
         }
     }
 

@@ -515,9 +515,14 @@ class LibraryViewModel(
     /**
      * Removes a source, its secret, and the folder behind it when it has one.
      *
-     * The permission goes back, the registry keeps a tombstone so reading progress survives
-     * the thirty days the requirement promises, and files on disk are never touched — this
-     * removes a *library*, not a reader's comics.
+     * The permission goes back, and the registry keeps a tombstone so reading progress
+     * survives the thirty days the requirement promises. The downloads are gone by the time
+     * this runs: the app layer deletes them — files, records and Kavita cards — *before*
+     * calling this (`SettingsHost`'s `REMOVE`, through `removeDownloads`), because the
+     * registry entry is what attributes a download to a source, and this method's own job is
+     * the registry, the credential, the shelf and the 30-day tombstone. A comment here used
+     * to say files on disk are never touched, and a reading of it as the whole story called
+     * the confirmation dialog right when it was promising the opposite of what the button did.
      *
      * The secret goes first and unconditionally. `sources` requires removal to take "its
      * stored credentials" with it, and until this nothing in the app had ever called
@@ -639,7 +644,8 @@ class LibraryViewModel(
      * The tombstone rather than a discard, for the reason [unregister] gives: `sources`
      * keeps reading progress for thirty days so re-adding the same server restores where the
      * reader stopped. The publications it contributed go with it and the rest of the shelf
-     * stays.
+     * stays. Its downloads are not this method's to touch and are already gone: the app layer
+     * deleted them before [removeSource] was called, as that method's note says.
      */
     private fun forget(source: Source) {
         _registry.update { it.removing(source.id, System.currentTimeMillis()) }

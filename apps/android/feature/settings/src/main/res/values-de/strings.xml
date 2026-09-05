@@ -109,9 +109,15 @@
         <item quantity="other">%1$d Titel</item>
     </plurals>
     <plurals name="sources_remove_body">
-        <item quantity="one">Damit wird %1$d Titel aus Ihrer Bibliothek entfernt. Auf Ihrem Gerät wird keine Datei gelöscht, und es wurde nichts heruntergeladen. Ihre Lesepositionen bleiben 30 Tage erhalten.</item>
-        <item quantity="other">Damit werden %1$d Titel aus Ihrer Bibliothek entfernt. Auf Ihrem Gerät wird keine Datei gelöscht, und es wurde nichts heruntergeladen. Ihre Lesepositionen bleiben 30 Tage erhalten.</item>
+        <item quantity="one">Damit wird %1$d Titel aus Ihrer Bibliothek entfernt.</item>
+        <item quantity="other">Damit werden %1$d Titel aus Ihrer Bibliothek entfernt.</item>
     </plurals>
+    <plurals name="sources_remove_downloads">
+        <item quantity="one">%1$d Download</item>
+        <item quantity="other">%1$d Downloads</item>
+    </plurals>
+    <string name="sources_remove_body_with_downloads">Damit werden %1$s und %2$s entfernt (%3$s).</string>
+    <string name="sources_remove_footer">Beim Entfernen einer Bibliothek wird gelöscht, was Sie daraus heruntergeladen haben, und Ihre Lesepositionen bleiben 30 Tage erhalten.</string>
     <string name="sources_detail_status">Status</string>
     <string name="sources_detail_last_sync">Zuletzt aktualisiert</string>
     <string name="sources_detail_never">Nie</string>

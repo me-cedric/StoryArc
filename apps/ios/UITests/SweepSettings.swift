@@ -204,14 +204,17 @@ final class SweepSettingsTests: XCTestCase {
             "The source page offers no Remove row, even after scrolling."
         )
         remove.tap()
-        // The body names the count and the retention. Waited for by its opening words rather
-        // than by the dialog's own element, because what the platform calls a confirmation has
-        // changed between releases and the sentence is what the task is about.
+        // The body opens with what the removal does — *This removes* — in both of its states,
+        // and that is what is waited for rather than the dialog's own element, because what
+        // the platform calls a confirmation has changed between releases and the sentence is
+        // what the task is about. Not the thirty days: since 2026-09-05 they are the footer on
+        // the screen beneath, which `staticTexts` would find with the dialog open or closed —
+        // so a wait on them proved nothing about the dialog, and passed here for that reason.
         XCTAssertTrue(
             app.staticTexts.matching(
-                NSPredicate(format: "label CONTAINS %@", "30 days")
+                NSPredicate(format: "label BEGINSWITH %@", "This removes")
             ).firstMatch.waitForExistence(timeout: 5),
-            "Remove raised no confirmation naming the thirty days. On screen: "
+            "Remove raised no confirmation stating what it removes. On screen: "
                 + "\(app.staticTexts.allElementsBoundByIndex.prefix(12).map(\.label))"
         )
         hold(0.5)

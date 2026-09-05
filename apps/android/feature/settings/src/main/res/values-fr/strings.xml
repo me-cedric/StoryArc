@@ -109,9 +109,15 @@
         <item quantity="other">%1$d titres</item>
     </plurals>
     <plurals name="sources_remove_body">
-        <item quantity="one">Cela retire %1$d titre de votre bibliothèque. Aucun fichier de votre appareil n’est supprimé, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours.</item>
-        <item quantity="other">Cela retire %1$d titres de votre bibliothèque. Aucun fichier de votre appareil n’est supprimé, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours.</item>
+        <item quantity="one">Cela retire %1$d titre de votre bibliothèque.</item>
+        <item quantity="other">Cela retire %1$d titres de votre bibliothèque.</item>
     </plurals>
+    <plurals name="sources_remove_downloads">
+        <item quantity="one">%1$d téléchargement</item>
+        <item quantity="other">%1$d téléchargements</item>
+    </plurals>
+    <string name="sources_remove_body_with_downloads">Cela retire %1$s et %2$s (%3$s).</string>
+    <string name="sources_remove_footer">Retirer une bibliothèque supprime ce que vous en avez téléchargé et conserve vos positions de lecture pendant 30 jours.</string>
     <string name="sources_detail_status">État</string>
     <string name="sources_detail_last_sync">Dernière mise à jour</string>
     <string name="sources_detail_never">Jamais</string>

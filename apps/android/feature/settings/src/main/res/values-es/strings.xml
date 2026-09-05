@@ -109,9 +109,15 @@
         <item quantity="other">%1$d títulos</item>
     </plurals>
     <plurals name="sources_remove_body">
-        <item quantity="one">Esto quita %1$d título de tu biblioteca. No se borra ningún archivo de tu dispositivo, y no se ha descargado nada. Tus posiciones de lectura se conservan 30 días.</item>
-        <item quantity="other">Esto quita %1$d títulos de tu biblioteca. No se borra ningún archivo de tu dispositivo, y no se ha descargado nada. Tus posiciones de lectura se conservan 30 días.</item>
+        <item quantity="one">Esto quita %1$d título de tu biblioteca.</item>
+        <item quantity="other">Esto quita %1$d títulos de tu biblioteca.</item>
     </plurals>
+    <plurals name="sources_remove_downloads">
+        <item quantity="one">%1$d descarga</item>
+        <item quantity="other">%1$d descargas</item>
+    </plurals>
+    <string name="sources_remove_body_with_downloads">Esto quita %1$s y %2$s (%3$s).</string>
+    <string name="sources_remove_footer">Quitar una biblioteca borra lo que descargaste de ella y conserva tus posiciones de lectura durante 30 días.</string>
     <string name="sources_detail_status">Estado</string>
     <string name="sources_detail_last_sync">Última actualización</string>
     <string name="sources_detail_never">Nunca</string>

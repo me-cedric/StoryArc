@@ -41,6 +41,7 @@ import app.storyarc.core.model.SourceAction
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceDiagnosis
 import app.storyarc.core.model.SourceFailure
+import app.storyarc.core.model.SourceRemovalWording
 import app.storyarc.core.persistence.ImportedCopies
 
 /**
@@ -83,13 +84,12 @@ internal fun SourceDetailScreen(
                         ),
                     )
                 } else {
-                    Text(
-                        pluralStringResource(
-                            R.plurals.sources_remove_body,
-                            diagnosis.itemCount,
-                            diagnosis.itemCount,
-                        ),
-                    )
+                    // Which sentence, and with what figures, is [SourceRemovalWording]'s answer
+                    // from the same diagnosis the *Downloaded* field was drawn from. The body
+                    // used to say that no files are deleted whatever the source held — false
+                    // for any source with a download, since `SettingsHost` deletes them first
+                    // — and `SourcesGroup`'s delete button asks the same rule the same way.
+                    Text(removalBody(SourceRemovalWording.of(diagnosis)))
                 }
             },
             confirmButton = {
@@ -218,6 +218,22 @@ internal fun SourceDetailScreen(
                         },
                     )
                 }
+            }
+
+            // The two standing facts about removal — the downloads go, the reading positions
+            // stay thirty days — under the actions, read *before* the tap, which is when they
+            // are useful. Not a sentence in the confirmation: iOS's dialog at the largest text
+            // size holds about seven short lines and does not scroll, and lost the thirty days
+            // that way on 2026-09-05; this dialog scrolls, and mirrors the placement anyway so
+            // that a reader is told the same thing at the same moment on both platforms. The
+            // dialog keeps the one sentence with this source's figures in it. Shown whenever
+            // removal is offered, so it is never a surprise in the dialog that follows.
+            if (SourceAction.REMOVE in diagnosis.actions) {
+                Text(
+                    text = stringResource(R.string.sources_remove_footer),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.textSecondary,
+                )
             }
         }
     }
