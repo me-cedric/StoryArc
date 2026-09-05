@@ -72,16 +72,13 @@ class SpokenAudio {
     /** The publication being spoken, whichever engine is speaking it. */
     val speaking: String? get() = speakers.firstNotNullOfOrNull { it.speaking }
 
-    /** What opening [opening] would do to whatever is speaking. Asks; changes nothing. */
-    fun handover(opening: String): SessionHandover =
-        SessionHandover.opening(opening, speaking)
-
     /**
      * Asks the question and acts on the answer, which is what a caller about to start wants.
      *
-     * Returns [SessionHandover.ADOPT] only when [by] is itself already speaking
-     * [publication] and nothing else is speaking at all: **a speaker cannot adopt another
-     * speaker's session.** A reader cannot pick up a narrator's cursor and a narrator has no
+     * What opening a publication *means* stays [SessionHandover.opening]'s, so there is one
+     * copy of that rule and both platforms read it. What this adds is the one thing a value
+     * over two ids cannot know: **which** speaker holds the session, and only that speaker
+     * may adopt it. A reader cannot pick up a narrator's cursor and a narrator has no
      * sentence to hand a reader, so anything else holding the same publication is a
      * displacement like any other. iOS reaches the same guard from the other end —
      * `prepareReadAloud` asks the player for the handover and then re-checks that it is the
@@ -91,13 +88,18 @@ class SpokenAudio {
      * returns, so the caller's next line may make a sound.
      */
     fun claim(publication: String, by: Speaker): SessionHandover {
-        if (by.speaking == publication && speakers.none { it !== by && it.speaking != null }) {
-            return SessionHandover.ADOPT
+        val answer = when (SessionHandover.opening(publication, speaking)) {
+            SessionHandover.NONE -> SessionHandover.NONE
+            SessionHandover.ADOPT ->
+                if (isHeldOnlyBy(by)) SessionHandover.ADOPT else SessionHandover.DISPLACE
+            SessionHandover.DISPLACE -> SessionHandover.DISPLACE
         }
-        if (speaking == null) return SessionHandover.NONE
-        silence()
-        return SessionHandover.DISPLACE
+        if (answer == SessionHandover.DISPLACE) silence()
+        return answer
     }
+
+    private fun isHeldOnlyBy(speaker: Speaker): Boolean =
+        speakers.none { it !== speaker && it.speaking != null }
 
     /**
      * Everything speaking stops, and each writes where it reached first.
