@@ -125,6 +125,12 @@ struct PlayerInterruptionTests {
         #expect(!centre.isRunning)
         #expect(centre.compact == nil, "no controls left for a session nothing can start")
         #expect(recorded.last == .listening(part: 1, partCount: 3, offset: 44, of: 90))
+        // `ebook-reader`'s *The session cannot continue*: the transport goes and the
+        // highlight goes with it. The highlight is withdrawn by `SpokenSource.onSilence`,
+        // which nothing raises but ``PlaybackSource/stop()`` — so audio taken for good has
+        // to reach the source, not only the surface. See the same assertion on the run-out
+        // path in `PlaybackSessionTests`.
+        #expect(source.calls.last == .stop, "the source was left running for a lost session")
     }
 
     // MARK: - The route changes

@@ -79,6 +79,14 @@ struct PlaybackSessionTests {
         #expect(source.calls.last == .stop)
     }
 
+    /// **The stop is the assertion, and it is the one a read-aloud session needs.**
+    /// `ebook-reader` requires the end of a publication to withdraw the spoken highlight,
+    /// and the only signal a source gets for that is ``PlaybackSource/stop()`` —
+    /// `SpokenSource` turns it into `onSilence`, which is what tells `ReadAloudCentre` to
+    /// take the decoration off the page. Every other ending already asserted the stop; the
+    /// two the platform raises rather than the listener did not, so dropping `source.stop()`
+    /// from the run-out path would have left a highlight on the page of a finished book
+    /// with nothing failing. The lost-audio half is `PlayerInterruptionTests`'.
     @Test("A source that runs out ends the session by itself", arguments: SourceKind.allCases)
     func runningOutEnds(_ kind: SourceKind) {
         let centre = PlayerCentre()
@@ -88,6 +96,7 @@ struct PlaybackSessionTests {
 
         #expect(!centre.isRunning)
         #expect(centre.compact == nil)
+        #expect(source.calls.last == .stop, "a book that ran out never told its source to stop")
     }
 
     @Test("Speed reaches the source and is stated as a number", arguments: SourceKind.allCases)

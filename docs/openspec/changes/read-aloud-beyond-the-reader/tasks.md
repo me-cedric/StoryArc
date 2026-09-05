@@ -279,8 +279,39 @@ says so and names what is left to watch.
       Asserted in four mirrored host tests each. **Hearing it happen still wants a
       real call on a device** — `AVAudioSession` interruptions on a simulator are not
       a phone ringing.
-- [ ] **4.3** End of the publication: the voice stops, the highlight is withdrawn,
+- [~] **4.3** End of the publication: the voice stops, the highlight is withdrawn,
       the transport and the media controls both go away.
+
+      **Built on both platforms; one of the three clauses had no guard at all, and it does
+      now.** The chain on iOS is Readium reporting `.stopped` → `SpokenSource.ended` →
+      `PlayerCentre.end()` → `finish` → `source.stop()` → `SpokenSource.onSilence` →
+      `ReadAloudCentre.finish()` → `follower?.withdrawSpokenHighlight()`. The transport goes
+      because `CompactPlayer.of` returns `nil` for an inactive session, and the media
+      controls go because `finish` calls `platform.sessionEnded()`, which clears
+      `MPNowPlayingInfoCenter`. Android's is `ReadAloudController.speakNext` finding no next
+      sentence → `stop()` → the host's collector → `ReadAloudHost.finish` →
+      `withdrawSpokenHighlight()` and `ReadAloudService.dismiss`.
+
+      **The highlight's clause was unasserted on the two endings the platform raises.**
+      `source.stop()` is the *only* signal a source gets that a session is over, and it is
+      what `SpokenSource` turns into `onSilence` — so it is the highlight's whole seam. It
+      was asserted for the listener's own `end()` and for a displacement, and not for the
+      book running out or the audio being taken for good: dropping it from `finish` would
+      have left a decoration on the page of a finished book with `pnpm test:ios` green.
+      Both endings now assert it, in `PlaybackSessionTests.runningOutEnds` and
+      `PlayerInterruptionTests.audioTakenForGood`. **Proved able to fail** per AGENTS.md §5 —
+      `source?.stop()` was removed from `PlayerCentre.finish`, both new assertions failed by
+      name, and the line was put back.
+
+      **Not watched.** That a highlight actually leaves the page at the last sentence is a
+      pixel, and no host test reaches it. Owed: iOS simulator, the reader open on the last
+      resource of a reflowable fixture, read-aloud running to the end — one frame at the
+      moment the voice stops showing no spoken decoration and no accessory above the tab
+      bar, light and dark; and the same walk on an Android emulator with the shade pulled
+      down, showing the media notification gone. Android's teardown is unreachable from a
+      JVM unit test — `ReadAloudHost` and `ReadAloudController` need `Context`,
+      `TextToSpeech` and a Readium `Publication` — so on that side the emulator walk is the
+      only evidence there will be.
 - [x] **4.4** The process is reclaimed mid-session: nothing is left claiming to
       play, and the last recorded position is where the voice actually got to.
 
