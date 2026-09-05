@@ -25,8 +25,43 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 
-/** What the contract says, in one place. */
-const CAP = 800
+/**
+ * What the contract says, per language.
+ *
+ * **One number was wrong, and it was wrong in a way that let a claim be made falsely.** This
+ * counted `.kt` and `.swift` alike against 800 — but SwiftLint enforces **400** on a Swift
+ * file, and three change task lists cited "`lines:check` passes" as evidence for that 400-line
+ * clause. It cannot be: a 500-line Swift file passes this check and fails `swiftlint --strict`,
+ * so the two gates disagreed about the same file and only one of them was being read.
+ *
+ * Swift's is the SwiftLint `file_length` cap, so the two agree by construction rather than by
+ * someone remembering to change both. Kotlin has no equivalent linter rule here, which is why
+ * the contract's own 800 stands for it.
+ */
+const CAPS = { '.swift': 400, '.kt': 800 }
+
+/**
+ * Where SwiftLint's 400 actually applies.
+ *
+ * `.swiftlint.yml` declares `included: [apps/ios]`, so the 400-line `file_length` rule reaches
+ * app source and nothing else. Applying it repo-wide made this check fail on
+ * `scripts/brand-mark.swift` — an 800-line generator SwiftLint has never seen and never will,
+ * where the contract's own 800 is the right number. A cap justified by another gate has to stop
+ * where that gate stops, or it is no longer the same rule.
+ */
+const SWIFTLINT_ROOT = 'apps/ios/'
+
+/**
+ * The cap for a path.
+ *
+ * Anything unrecognised falls back to the contract's 800, which is also where Swift outside
+ * SwiftLint's reach lands.
+ */
+export const capFor = (path) => {
+    const ext = Object.keys(CAPS).find((suffix) => path.endsWith(suffix))
+    if (ext === '.swift' && !path.startsWith(SWIFTLINT_ROOT)) return 800
+    return CAPS[ext] ?? 800
+}
 
 /**
  * What was already over the cap on 2026-08-31, with the length it had that day.
@@ -80,9 +115,10 @@ const lines = (path, root = ROOT) => {
  * Exported and pure over its inputs so the self-test can put every rule through it without
  * a checkout that happens to be in the right state.
  */
-export function verdicts(measured, allowed = ALLOWED, cap = CAP) {
+export function verdicts(measured, allowed = ALLOWED, capOf = capFor) {
     const problems = []
     for (const [path, length] of Object.entries(measured)) {
+        const cap = capOf(path)
         const budget = allowed[path]
         if (budget === undefined) {
             if (length > cap) {
@@ -117,6 +153,20 @@ function selfTest() {
         [{ measured: { a: 901 }, allowed: { a: 900 } }, 1, 'a recorded file that grew fails'],
         [{ measured: { a: 700 }, allowed: { a: 900 } }, 1, 'a recorded file under the cap asks to be delisted'],
         [{ measured: {}, allowed: { a: 900 } }, 1, 'a recorded file that is gone asks to be delisted'],
+        // The case the single cap could not see: 500 lines is fine for Kotlin and is a
+        // SwiftLint failure for Swift, and this script used to pass both.
+        [{ measured: { 'apps/ios/a.swift': 500 }, allowed: {} }, 1, 'a Swift file over 400 fails'],
+        // And only where SwiftLint looks. `included: [apps/ios]` is what makes 400 the number;
+        // a generator script under scripts/ is held to the contract's 800 like anything else.
+        [{ measured: { 'scripts/a.swift': 500 }, allowed: {} }, 0, 'a Swift script outside apps/ios passes at 500'],
+        [{ measured: { 'scripts/a.swift': 900 }, allowed: {} }, 1, 'a Swift script over 800 still fails'],
+        [{ measured: { 'a.kt': 500 }, allowed: {} }, 0, 'a Kotlin file at the same length passes'],
+        [{ measured: { 'apps/ios/a.swift': 399 }, allowed: {} }, 0, 'a Swift file under 400 passes'],
+        [{ measured: { 'a.kt': 900 }, allowed: {} }, 1, 'a Kotlin file over 800 still fails'],
+        // A recorded Swift file is judged against its own record, not against 400 - the
+        // ratchet has to keep working for a language whose cap it is already past.
+        [{ measured: { 'apps/ios/a.swift': 500 }, allowed: { 'apps/ios/a.swift': 500 } }, 0, 'a recorded Swift file at its length passes'],
+        [{ measured: { 'apps/ios/a.swift': 501 }, allowed: { 'apps/ios/a.swift': 500 } }, 1, 'a recorded Swift file that grew fails'],
     ]
     let ok = true
     for (const [{ measured, allowed }, expected, name] of cases) {
@@ -136,7 +186,7 @@ if (mode === '--self-test') selfTest()
 const measured = Object.fromEntries(
     sources()
         .map((path) => [path, lines(path)])
-        .filter(([path, length]) => length > CAP || path in ALLOWED)
+        .filter(([path, length]) => length > capFor(path) || path in ALLOWED)
 )
 
 if (mode === '--list') {
@@ -152,4 +202,7 @@ if (problems.length > 0) {
     for (const problem of problems) console.error(`  ${problem}`)
     process.exit(1)
 }
-console.log(`line cap: ${Object.keys(measured).length} recorded file(s), none grew, nothing new crossed ${CAP}.`)
+console.log(
+    `line cap: ${Object.keys(measured).length} recorded file(s), none grew, ` +
+        `nothing new crossed its language's cap (Swift ${CAPS['.swift']}, Kotlin ${CAPS['.kt']}).`
+)
