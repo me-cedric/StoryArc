@@ -36,10 +36,15 @@ struct SourceDetail: View {
                     field("sources.detail.lastError", value: message(for: failure))
                 }
                 field("sources.detail.items", value: Text("sources.detail \(diagnosis.itemCount)", bundle: .module))
-                field(
-                    "sources.detail.downloaded",
-                    value: Text(diagnosis.downloadedBytes.formatted(.byteCount(style: .file)))
-                )
+                // ``Persistence/DownloadStore/formatted(_:)`` rather than `.byteCount` here,
+                // and the difference is only ever visible at zero — which is every source a
+                // reader has just added. The platform style spells zero out unless told not
+                // to, so this row read *Zero kB* in English and *Zéro ko* in French while
+                // Settings › Downloads, which does use the helper, said *0 bytes* for the
+                // same figure. German and Spanish never showed it, which is why it survived
+                // a reading of the screen. The September sweep wrote the helper for exactly
+                // this and left this call site behind.
+                field("sources.detail.downloaded", value: Text(DownloadStore.formatted(diagnosis.downloadedBytes)))
             } footer: {
                 // `reading-progress`' *Source cannot store progress*: a source with no
                 // progress mechanism keeps positions locally only, "and the source detail
@@ -88,8 +93,13 @@ struct SourceDetail: View {
             // whether this deletes their comics.
             switch action {
             case .removeDownloads:
+                // The same helper as the field above, so the sentence cannot name a
+                // different figure from the row the reader read it on. Reachable at zero
+                // only through a finished download that weighs nothing — ``SourceDiagnosis``
+                // withholds the action when there are none — but a size written two ways one
+                // tap apart is the defect the helper exists to stop, not a rarer one.
                 Text(
-                    "sources.removeDownloads.body \(diagnosis.downloadedBytes.formatted(.byteCount(style: .file)))",
+                    "sources.removeDownloads.body \(DownloadStore.formatted(diagnosis.downloadedBytes))",
                     bundle: .module
                 )
             default:
