@@ -85,12 +85,20 @@ The chrome/content rule on `LocalStoryArcPalette` forbids exactly that, and the 
 own README says so in as many words about `TextButton`s. Those call sites are in
 `:feature:library` and are not fixed here.
 
-**The nav bar's two brand colours** are real and are left. The indigo pill is
+**The nav bar's two brand colours** are real and were left here. The indigo pill is
 `secondaryContainer` (the accent pass's `brand.accentMuted`); the crimson label is `secondary`
 (`brand.secondaryStrong`), which `ShortNavigationBarItemDefaults.colors()` reads for a selected
 label — measured, not assumed. `NaturalTheme.kt` carried a note saying nothing in this app
-reads `colorScheme.secondary`; that was already false, and the note now says so. Making the two
-agree is a palette decision.
+reads `colorScheme.secondary`; that was already false, and the note now says so.
+
+**Decided on 2026-09-06, and it was not a palette decision.** The two poles stay where they
+are — `secondary` feeds many Material families and the identity is built on both — and the
+label moves instead: `accentedItemColours` in `AdaptiveNavigation.kt` gives the bar's and the
+rail's items a selected label of `primary`, which on every brand scheme is `brand.accent`, the
+colour the pill is the muted form of. `design.md` §2 puts tab bars under `brand/accent` and the
+pink under links and chips, and `native-experience` asks that chrome's accent be a single
+colour. The dynamic path follows too, for the same rule. Before and after are in
+[`../android-nav-label-2026-09-06/`](../android-nav-label-2026-09-06/README.md).
 
 ## §6 The reader chrome sits on the text with nothing behind it
 

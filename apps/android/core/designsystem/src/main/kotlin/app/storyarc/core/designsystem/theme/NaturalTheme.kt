@@ -194,15 +194,21 @@ val StoryArcPalette.Companion.NaturalDark: StoryArcPalette get() = naturalDarkPa
  * pairings clear at 5.47 and 5.84.
  *
  * So each variant's `secondary` is the accent it already gates, which flattens the two
- * Material roles onto one value. That flattening turns out to be the *right* answer rather
- * than a free one: `ShortNavigationBarItemDefaults.colors()` reads `secondary` for a
- * selected navigation label — measured, not assumed — so the claim that nothing in this app
- * reads the role was already false when it was written, and it is what leaves the brand
- * schemes drawing a crimson label under a violet pill. Natural's label is its own accent,
- * matching the indicator above it. It keeps the brand change out of Natural the way
- * `design.md` asks. Giving Natural a real second pole means adding a token to `color.json` with a
- * gated pairing, and that is a decision for whoever owns the Natural theme — not one to
- * invent while renaming the brand's.
+ * Material roles onto one value. `ShortNavigationBarItemDefaults.colors()` reads `secondary`
+ * for a selected navigation label — measured, not assumed — so the claim that nothing in
+ * this app reads the role was already false when it was written, and until 2026-09-06 it was
+ * what left the brand schemes drawing a crimson label under a violet pill while Natural's
+ * label happened to match its indicator.
+ *
+ * **That is decided now, and not as a palette decision.** The navigation label follows
+ * `primary` at the one call site that draws the control — `accentedItemColours` in
+ * `navigation/AdaptiveNavigation.kt` — on every scheme, brand, Natural and dynamic alike, per
+ * `design.md` §2's "tab bars belong to `brand/accent`" and `native-experience`'s one-colour
+ * chrome accent. So `secondary` no longer reaches the navigation label anywhere, and the
+ * flattening here is judged on what still reads the role: Material's other `secondary`
+ * families, for which one clay is still the right Natural answer. Giving Natural a real
+ * second pole would still mean a token in `color.json` with a gated pairing, and that stays
+ * with whoever owns the Natural theme — but nothing in the navigation control waits on it.
  */
 internal fun naturalLightScheme(): ColorScheme = lightColorScheme(
     primary = StoryArcColor.Brand.clayStrong,
