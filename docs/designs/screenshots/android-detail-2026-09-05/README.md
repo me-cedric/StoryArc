@@ -1,6 +1,6 @@
 # The publication page said its own name twice — Android, 2026-09-05
 
-Three frames from `storyarc-j6` (1080 × 2400, 411 × 914 dp, `-gpu host`), taken with
+Five frames from `storyarc-j6` (1080 × 2400, 411 × 914 dp, `-gpu host`), taken with
 `scripts/capture-android.mjs` against the `Publication page` and `Publication page > series`
 routes. Condition **A** — the 17 publications `scripts/corpus.mjs` generates, in the app's own
 external files directory, belonging to no source.
@@ -10,6 +10,8 @@ external files directory, belonging to no source.
 | `android-detail-standalone-before.png` | The defect: **Broken Transfer** in the app bar, **Broken Transfer** again beneath it |
 | `android-detail-standalone.png` | After: the title drawn once |
 | `android-detail-series.png` | A publication that really has a series, reading `Tidal Reach #2` |
+| `android-detail-standalone-capped.png` | The same bare page after the hero cap: cover at a third of the room, the page's one line in view |
+| `android-detail-series-capped.png` | The rich page after the cap: *Other issues in this series* above the fold |
 
 ## What the first frame found, and it was not what anyone was looking for
 
@@ -55,12 +57,30 @@ Everything else in the app, and iOS, renders `seriesLine`'s `Ashfall #1`. Going 
 shared rule makes the page agree: `Tidal Reach #2` in the third frame, and
 `DetailAbsencesTest`'s control was updated to assert the new form rather than the old.
 
-## What is still open
+## The hero's share, decided and measured
 
-**The hero's proportions on a degenerate page.** With no subtitle the app bar is shorter, the
-room is larger, and the cover stays pinned at its maximum — the second frame shows the cover
-and its one action filling most of the window above a single *On this device* line. That was
-the question this capture was taken to answer and it needs a decision, not a fix.
+**The cover is capped at a third of the room when the page stacks.** The question the first
+frame was taken to answer — whether the hero takes too much of the window on a publication with
+nothing to say — was decided on 2026-09-05. With no subtitle the app bar is shorter, the room is
+larger, and the cover was pinned at its maximum, so the second frame showed the cover and its one
+action filling most of the window above a single *On this device* line.
+
+`DetailHeroLayout` now caps the stacked cover at `COVER_SHARE_OF_ROOM` (0.33) of the room below
+the app bar. Measured on the frames:
+
+| Frame | Hero height | Share of the room |
+| --- | --- | --- |
+| `android-detail-standalone.png` (before the cap) | 477 dp | 73% |
+| `android-detail-standalone-capped.png` | 316 dp | 49% |
+
+On the rich page, `android-detail-series-capped.png`, *Other issues in this series* now sits
+above the fold where it was below it.
+
+**The cap is on the stacked branch only, and that is a lesson rather than a caveat.** The first
+cut applied it to the cover's ceiling for both branches, which coerced the landscape
+side-by-side cover to 82 dp — a favicon beside a column of text — and six of the layout's tests
+caught it before a frame did. The beside branch keeps its own ceiling; `DetailHeroLayoutTest`
+pins both, and fails by name when the constant is removed.
 
 ## How to retake them
 

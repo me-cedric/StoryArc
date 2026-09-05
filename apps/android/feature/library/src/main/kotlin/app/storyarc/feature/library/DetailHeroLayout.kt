@@ -24,6 +24,27 @@ private val COVER_MINIMUM = 72.dp
  */
 private const val COVER_SHARE_OF_WINDOW = 0.4f
 
+/**
+ * The cover's share of the page's own viewport, which is the cap that binds on a phone.
+ *
+ * **Photographed on 2026-09-05: on a publication with no subtitle the hero took 472 of the
+ * 650 dp a phone has below its bars — 73% of the viewport — before a single line of metadata.**
+ * The window cap above did not bind (0.4 × 914 = 366, clipped to the 360 maximum), so with a
+ * shorter app bar the cover simply sat at its maximum and the page read as a poster with a
+ * button under it.
+ *
+ * A third of the *room* puts the whole hero — cover plus its 144 dp of padding, gap and action
+ * — at about 55% of the viewport on that phone, which is the figure the design review asked
+ * for. It is a share of the room rather than of the window because the room is what the reader
+ * actually has: the window cap could not see that the app bar had got shorter.
+ *
+ * It caps the **cover**, not the hero, so metadata rises above the fold rather than the action
+ * merely moving up with a smaller poster. On a tablet the 360 dp maximum still binds first; in
+ * the two-pane window the room cap takes the cover from 230 to 132 dp and the hero stays
+ * stacked, which is the right call for a 400 dp viewport that also has to show the text.
+ */
+private const val COVER_SHARE_OF_ROOM = 0.33f
+
 /** What the page spends above and below the hero: [PublicationDetailScreen]'s own padding. */
 private val PAGE_PADDING = StoryArcSpace.lg
 
@@ -90,7 +111,18 @@ internal data class DetailHeroLayout(
             val stacked =
                 PAGE_PADDING * 2 + HERO_PADDING * 2 + stackedCover + HERO_GAP + ACTION_HEIGHT
             if (stacked <= room) {
-                return DetailHeroLayout(false, stackedCover, HERO_PADDING)
+                // The room cap applies to the cover the stacked page *draws*, and only there.
+                // It is deliberately not folded into `stackedCover` above: that value is also
+                // the ceiling the side-by-side branch coerces its cover under, and a landscape
+                // phone's room is small enough that a third of it is a favicon — the first cut
+                // of this did exactly that and shrank the beside cover to 82 dp. The decision
+                // of *which* layout is taken is also left on the uncapped figure, so a window
+                // that went beside before still goes beside.
+                return DetailHeroLayout(
+                    false,
+                    minOf(stackedCover, room * COVER_SHARE_OF_ROOM),
+                    HERO_PADDING,
+                )
             }
             val beside = room - PAGE_PADDING * 2 - HERO_PADDING_BESIDE * 2
             return DetailHeroLayout(

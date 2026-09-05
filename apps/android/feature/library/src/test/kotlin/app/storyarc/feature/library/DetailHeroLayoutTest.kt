@@ -40,14 +40,21 @@ class DetailHeroLayoutTest {
     }
 
     @Test
-    fun aPortraitPhoneIsUntouched() {
+    fun aPortraitPhoneLeavesRoomForThePage() {
         // 411 x 914 dp: 914 - 24 - 152 - 88.
         val layout = DetailHeroLayout.of(windowHeight = 914.dp, room = 650.dp)
 
         assertFalse(layout.isSideBySide)
-        // Exactly what it drew before this existed: two fifths of the window, capped —
-        // 914 dp is already tall enough for the cap to be the binding constraint.
-        assertEquals(360.dp, layout.coverHeight)
+        // A third of the room, not the 360 dp cap. This used to assert 360 under the name
+        // "untouched" — and a 360 dp cover on a 650 dp viewport is a hero of 504 dp, 77% of
+        // the page, which is what the 2026-09-05 frame of a bare publication showed. The room
+        // cap is what brings the hero to about 55%.
+        assertEquals(650.dp * 0.33f, layout.coverHeight)
+        // The claim the cap exists for, asserted as the reader experiences it: cover plus the
+        // hero's fixed chrome (16·2 + 24·2 + 24 + 40 = 144 dp) is a little over half the room.
+        val hero = layout.coverHeight + 144.dp
+        assertTrue("hero used $hero of 650.dp", hero <= 650.dp * 0.56f)
+        assertTrue("hero is smaller than the cap asked for", hero >= 650.dp * 0.5f)
     }
 
     @Test
@@ -64,7 +71,10 @@ class DetailHeroLayoutTest {
         val layout = DetailHeroLayout.of(windowHeight = 576.dp, room = 400.dp)
 
         assertFalse(layout.isSideBySide)
-        assertEquals(576.dp * 0.4f, layout.coverHeight)
+        // The room cap binds here too: a third of 400 dp rather than two fifths of 576. A
+        // 132 dp cover in a 400 dp viewport is small, and it still stacks rather than going
+        // side by side, because 132 + 144 fits with room to spare for the text below.
+        assertEquals(400.dp * 0.33f, layout.coverHeight)
     }
 
     @Test
