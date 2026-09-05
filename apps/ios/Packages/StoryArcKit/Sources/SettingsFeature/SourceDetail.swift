@@ -108,27 +108,36 @@ struct SourceDetail: View {
                 Text(Self.label(for: action), bundle: .module)
             }
         } message: { action in
-            // Stated before it is asked, per `sources`: a reader must not have to guess
-            // whether this deletes their comics.
-            switch action {
-            case .removeDownloads:
-                // The same helper as the field above, so the sentence cannot name a
-                // different figure from the row the reader read it on. Reachable at zero
-                // only through a finished download that weighs nothing — ``SourceDiagnosis``
-                // withholds the action when there are none — but a size written two ways one
-                // tap apart is the defect the helper exists to stop, not a rarer one.
-                Text(
-                    "sources.removeDownloads.body \(DownloadStore.formatted(diagnosis.downloadedBytes))",
-                    bundle: .module
-                )
-            default:
-                // Which sentence, and with what figures, is ``SourceRemovalWording``'s answer
-                // from the same diagnosis the *Downloaded* field was drawn from. The body used
-                // to say that no files are deleted whatever the source held — false for any
-                // source with a download, since `StoryArcAppActions.removeSource` deletes them
-                // first — and `SourcesSettings`' swipe asks the same rule the same way.
-                SourceRemovalBody.text(for: .of(diagnosis))
-            }
+            Self.confirmationMessage(for: action, diagnosis: diagnosis)
+        }
+    }
+
+    /// The sentence the confirmation shows, stated before it is asked, per `sources`: a reader
+    /// must not have to guess whether this deletes their comics.
+    ///
+    /// A function the `message:` closure calls rather than the closure's own body, so a test
+    /// can ask it. A `confirmationDialog`'s message is never evaluated while nothing is
+    /// presented, so the value tree `SourceDetailSizeTests` walks does not contain it — and
+    /// on 2026-09-05 reverting the wiring below to the plain body passed every automated test.
+    static func confirmationMessage(for action: SourceAction, diagnosis: SourceDiagnosis) -> Text {
+        switch action {
+        case .removeDownloads:
+            // The same helper as the field above, so the sentence cannot name a different
+            // figure from the row the reader read it on. Reachable at zero only through a
+            // finished download that weighs nothing — ``SourceDiagnosis`` withholds the action
+            // when there are none — but a size written two ways one tap apart is the defect the
+            // helper exists to stop, not a rarer one.
+            return Text(
+                "sources.removeDownloads.body \(DownloadStore.formatted(diagnosis.downloadedBytes))",
+                bundle: .module
+            )
+        default:
+            // Which sentence, and with what figures, is ``SourceRemovalWording``'s answer from
+            // the same diagnosis the *Downloaded* field was drawn from. The body used to say
+            // that no files are deleted whatever the source held — false for any source with a
+            // download, since `StoryArcAppActions.removeSource` deletes them first — and
+            // `SourcesSettings`' swipe asks the same rule the same way.
+            return SourceRemovalBody.text(for: .of(diagnosis))
         }
     }
 

@@ -50,6 +50,11 @@ struct SourceDetailSizeTests {
             perform: { _ in }
         )
 
+        return strings(in: view.body)
+    }
+
+    /// Every `String` reachable from a value, by the walk ``rendered(_:)`` describes.
+    private static func strings(in root: Any) -> Set<String> {
         var found: Set<String> = []
         var seen: Set<ObjectIdentifier> = []
 
@@ -67,7 +72,7 @@ struct SourceDetailSizeTests {
             for child in mirror.children { walk(child.value, depth: depth + 1) }
         }
 
-        walk(view.body, depth: 0)
+        walk(root, depth: 0)
         return found
     }
 
@@ -185,4 +190,25 @@ struct SourceDetailSizeTests {
         )
     }
 
+    /// The dialog's sentence follows the rule: the downloads are named when the source holds
+    /// one and not otherwise, and *Remove downloads* keeps its own sentence.
+    ///
+    /// Asked of the function the `message:` closure calls, because a `confirmationDialog`'s
+    /// message is never in the value tree while nothing is presented — which is how reverting
+    /// the wiring to the plain body passed every automated test on 2026-09-05.
+    @Test("The confirmation names the downloads when the source holds one, and not otherwise")
+    func confirmationFollowsTheRule() {
+        let holding = Self.diagnosis(bytes: 2_048, downloads: 1)
+        let empty = Self.diagnosis(bytes: 0, downloads: 0)
+
+        let with = Self.strings(in: SourceDetail.confirmationMessage(for: .remove, diagnosis: holding))
+        #expect(with.contains { $0.hasPrefix("sources.remove.bodyWithDownloads") })
+
+        let without = Self.strings(in: SourceDetail.confirmationMessage(for: .remove, diagnosis: empty))
+        #expect(without.contains { $0.hasPrefix("sources.remove.body ") })
+        #expect(!without.contains { $0.hasPrefix("sources.remove.bodyWithDownloads") })
+
+        let bytes = Self.strings(in: SourceDetail.confirmationMessage(for: .removeDownloads, diagnosis: holding))
+        #expect(bytes.contains { $0.hasPrefix("sources.removeDownloads.body") })
+    }
 }
