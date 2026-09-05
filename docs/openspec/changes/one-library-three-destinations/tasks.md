@@ -159,7 +159,10 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       `home_resume` — Resume, Fortsetzen, Continuar, Reprendre.
 
       Tests: `HomeHeroProgressWiringTests` gains two cases (iOS), and
-      `HomeHeroResumeWiringTest.kt` is new (Android, 3 cases, reading `HomeCards.kt` and
+      `HomeHeroResumeWiringTest.kt` is new (Android — **5 cases, not the 3 written here**:
+      0b.3 says in its own body that it added two more to this file the same day, and this
+      line was not updated with it. Verified against the tree 2026-09-05. Reading
+      `HomeCards.kt` and
       `HomeScreen.kt` through the module's existing `storyarc.library.projectDir` wiring —
       both files are declared as task inputs so the guard cannot sit UP-TO-DATE while the
       card changes underneath it). All green.
@@ -550,6 +553,22 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       Unticked rather than argued away, with the dependency named so the next reader knows
       what would close it.
 
+      *Half of that dependency is stale, checked 2026-09-05, and the hold survives it.*
+      **Task 5.1 is done and its empty state does carry `AddSourceMenu`** —
+      `LibraryStates.swift:160` is the secondary, `AddSourceMenu.swift:24-36` behind it. So
+      the first of the two places exists. It does not close the hold, because an empty state
+      is only reached by a reader whose library is *empty*, and the clause the toolbar comment
+      actually turns on is a reader with a populated library needing to add a second one.
+
+      **The second place exists too, and cannot yet do the job.** `SettingsFeature` has a
+      *Your libraries* screen — `SourcesSettings.swift`, `SourceDetail.swift` — and it says
+      in its own strings that it is not the way in: *"Folders, shared folders and online
+      libraries. Added from your library for now."* and *"No libraries yet. Add a folder from
+      your library to get started."* Giving it an add control is `source-lifecycle`'s work,
+      and until it has one, `LibraryToolbar.swift`'s add-books item is still the only route.
+      So: one dependency met, one outstanding, hold unchanged — and the reference to 5.1 is
+      corrected here rather than left to send the next reader looking for an open task.
+
       **Frames owed:** iPad **portrait**, Downloads and the on-device shelf with something in
       it — 2 frames, light and dark. Everything else this task named exists.
 - [x] **1.3** Verify against the delta that the destination count does not change
@@ -685,7 +704,34 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       line count: they are the whole of one menu and the order between them is a decision one
       of them explains.
 
+      *The divergence the first audit left open is settled, 2026-09-05, and it was a defect
+      rather than a preference.* That note said "iOS scopes Keep reading by the library's
+      current query and Android does not… Both are local; only one is scoped", and left it
+      as a thing to decide. It is decided by the delta rather than by taste:
+      `library-browsing`'s *Scoping to one source* says the by-library narrowing "narrows
+      what the shelf lists **and nothing else**", and Keep reading is one destination along.
+
+      `LibraryModel.rebuild()` was passing `LibraryIndex.inScope(publications, query.scope)`
+      into `continueReading`, on a comment arguing that "a filter on format has nothing to
+      say about" what a reader is in the middle of — right about format, wrong about the
+      library filter, and written when the continue row still lived on the shelf. **The
+      consequence is the reason this is a defect and not a difference:** Keep reading is
+      absent when it is empty, so a reader who had narrowed the shelf to one library found
+      Home stating they had nothing in progress. A surface that lies by disappearing is also
+      one no screenshot catches — there is nothing in the frame to look wrong.
+
+      It now takes the whole library, which is what Android has always done. `LibraryScope`'s
+      `inScope` has one caller again and its doc comment no longer quotes the requirement
+      this change replaced. See 3.2 for the second half of the same defect.
+
+      Tests: `NarrowingReachTests` in `Tests/LibraryFeatureTests/LibraryNarrowingTests.swift`
+      — three cases, and the middle one is the guard that matters: *the shelf itself is still
+      narrowed*, so the two surfaces cannot be fixed by turning the filter off.
+
       **Frames owed:**
+      - iOS Home with the shelf filtered to one library, showing Keep reading **still
+        present** — light and dark (2 frames). New with the fix above, and the one half of it
+        a camera can see.
       - Both platforms, the shelves screen with a shelf's menu open, showing **Pin to Home**
         above Delete — and a second frame over an already-pinned shelf showing **Unpin from
         Home**, because the one-control-two-labels decision is only visible in the pair.
@@ -940,6 +986,65 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       `LibraryNarrowing.offeredLibraries(in:)` returns nothing unless
       `registry.attributesPublications`, and is empty below two libraries because "a group
       offering *Any library* and the one there is asks a question with a single answer".
+
+      *A third defect was found 2026-09-05, in the half neither audit looked at: what the
+      filter **reaches**.* Both audits above checked that the by-library narrowing is
+      counted and cleared. Neither asked what it narrows — and the requirement's own sentence
+      is mostly about that: it "narrows what the shelf lists and nothing else — **search
+      still covers the whole library**".
+
+      **iOS narrowed the search too, and had done since before the axis flipped.**
+      `LibraryIndex.arrange` applied `inScope` unconditionally, quoting the *old* requirement
+      in a comment beside it — "the view, its search, and its filters apply to that source
+      alone" — which is the sentence this change's delta replaced. `LibraryIndex.grouped`
+      derives from `arrange`, and `grouped` is what the **search destination** draws
+      (`LibrarySearch.swift:90` ← `LibraryModel.matchGroups`). So a reader who had narrowed
+      the shelf to one library and then went to search — a destination of its own, reached
+      from the tab bar — was searching that one library and was told nothing.
+
+      `arrange` now applies the filter only while nothing is being searched for, and
+      `grouped` inherits it by continuing to derive from `arrange` rather than re-deciding.
+      The shelf is still narrowed; that is asserted separately so the fix cannot be mistaken
+      for turning the filter off.
+
+      **The test that should have caught it was vacuous, which is the part worth keeping.**
+      `LibraryScopeTests` held *"A scope narrows the search as well as the shelf"*: it
+      searched for `"o"` and expected `["Bone"]`, under a comment reading "'o' is in Bone and
+      in Maus". Maus has no *o* in it. Bone was the only match whether the scope narrowed the
+      search or not, so the assertion passed either way and would have gone on passing after
+      the fix. It now searches for a title on no source at all, which is the only kind of
+      term that can tell the two behaviours apart. `Grouping obeys the scope` is inverted
+      beside it for the same reason.
+
+      Android was already right on both halves and needed no change.
+
+      *And a fourth, on Android, in the control this task built.* `library-browsing`'s *A
+      control that stands alone carries a name* asks that "every one of them names itself to
+      assistive technology whatever it draws". Every row in the filter menu drew its state
+      and spoke none of it: **which library** the shelf was narrowed to was decidable by eye
+      alone, and so were the download state, the decade, every ticked genre and tag, and —
+      on the group list — which groups were narrowing anything at all, while the chip outside
+      announced *3 filters active* with nothing to say which three.
+
+      The cause is one Compose rule that reads as an optimisation and is not. `Checkbox` and
+      `RadioButton` apply their `triStateToggleable` / `selectable` modifier **only** when
+      handed a non-null callback. Both are handed `null` here, and correctly — the
+      `DropdownMenuItem` around them is the click target, and a second one inside it would be
+      a second stop offering the same value. But with a null callback the indicator
+      contributes *no* semantics at all: not an unchecked state, none. The state now sits on
+      the row that kept the tap. The group's own active tick becomes a `stateDescription`,
+      one new string in four languages (`library_filter_section_active`).
+
+      The same shape was in `LibraryControls.kt`'s sort menu and is fixed with it, though it
+      was the milder case: the chip's label already names the current sort, so a reader could
+      recover it by leaving the menu.
+
+      Test: `FilterMenuStatesAreSpokenTest.kt`, 3 cases, Robolectric — it renders the three
+      row builders and asks the **semantics tree**, rather than reading the source for the
+      word `semantics`, which would pass on a modifier attached to the wrong node. The
+      builders went from `private` to `internal` for that. Confirmed red before the fix.
+      What it does not prove is what TalkBack makes of the tree on a device; that is the
+      pass named in 6.5.
 
       **Frames owed**, and the state each needs, which no capture route currently produces:
       - iOS and Android, the filter sheet open showing the **Which library** section, light
@@ -1368,7 +1473,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
 
 - [x] **6.1** `corepack pnpm spec:validate`. **Green**, 2026-08-31 at `6c931e61`:
       23 items passed, 0 failed, this change among them.
-- [ ] **6.2** iOS: `swiftlint lint --strict`, `swift build`, `swift test`,
+- [x] **6.2** iOS: `swiftlint lint --strict`, `swift build`, `swift test`,
       `pnpm build:ios`. No Swift file over 400 lines.
       **The line-count clause holds today and the four commands were not run in
       this documentation pass.** Not one of the 468 Swift files in `apps/ios` is
@@ -1382,7 +1487,40 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       neither does `check` at `:30`. The 400 is a convention in
       [AGENTS.md](../../../../AGENTS.md), kept by hand, which is why the margin is
       one line.
-- [ ] **6.3** Android: `./gradlew test lint`. No Kotlin file over 800 lines —
+
+      *Run 2026-09-05, all four green, and the paragraph above is stale in the one place it
+      mattered.*
+
+      | Command | Result |
+      | --- | --- |
+      | `swiftlint --strict --no-cache` (repository root) | 0 violations, 0 serious, 671 files |
+      | `swift test` (= `pnpm test:ios`) | 1930 tests in 242 suites passed |
+      | `pnpm build:ios:tests` | 0 errors |
+      | `pnpm build:ios` | 0 errors |
+
+      `swift build` is not run separately: `swift test` builds the package before running it,
+      so a run that reports 1930 passing tests has already answered it.
+
+      **A script does enforce the cap now, and it is not the one this task expected.**
+      `scripts/line-cap.mjs` exists and is the *first* check `pnpm lint` runs
+      (`package.json`: `lint` opens with `pnpm lines:check`). So the "nothing has ever
+      measured it" the note asserts was true when written and stopped being true before this
+      task was read. Two things about it are worth carrying rather than assuming:
+
+      - **Its cap is 800, for Kotlin *and* Swift.** It counts `.kt` and `.swift` alike
+        against one number, so it cannot see a 500-line Swift file — the 400 this task names
+        is still kept by hand, and `lines:check` passing is not evidence for this clause.
+      - **It is a ratchet, not a cliff**: four files already over 800 are recorded with the
+        length they had, and it fails only if one grows or a new file crosses. That is 6.3's
+        subject, not this one's.
+
+      Counted by hand for the clause this task actually asks: **not one Swift file in
+      `apps/ios` is over 400**, at 0 files over. Three sit at exactly 400 —
+      `LibraryFeature/HomeHero.swift`, `Formats/EpubReader.swift` and
+      `Formats/ComicArchive.swift` — so the margin is now zero lines on three files rather
+      than one line on one, and `HomeHero.swift` is this change's own. The next edit to any
+      of the three has to split it.
+- [~] **6.3** Android: `./gradlew test lint`. No Kotlin file over 800 lines —
       `MainActivity.kt` and `LibraryScreen.kt` both start over it.
       **Both files the task named are fixed, and the previous note's replacement
       list was wrong in two ways.** `MainActivity.kt` is 179 lines and
@@ -1423,6 +1561,44 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       **`ReaderScreen.kt` at 1893 is the larger job and belongs to nobody yet.** It
       is not this change's file — the shell, the shelf and the marks never touch it
       — so naming it here is the whole of what this task can honestly do about it.
+
+      *Run 2026-09-05. **The commands are green and the cap clause is not met**, so this is
+      partial rather than ticked — the clause is one sentence and half of it is false.*
+
+      | Command | Result |
+      | --- | --- |
+      | `pnpm test:android` (`gradle test`) | BUILD SUCCESSFUL, every module |
+      | `pnpm lint:android` (`gradle lint`) | BUILD SUCCESSFUL |
+      | `pnpm build:android:tests` (`assembleAndroidTest`) | BUILD SUCCESSFUL |
+
+      **The cap is now measured, which it was not when the table above was written.**
+      `scripts/line-cap.mjs` runs first in `pnpm lint`. It is a **ratchet**: the files
+      already over 800 are recorded with the length they had, and it fails only if one grows
+      or a new file crosses — so `pnpm lint` passing means *nothing got worse*, and never
+      that the clause is met. Its own header gives the reason, and it is the right one: a
+      gate that fails the build until somebody splits `ReaderScreen.kt` is a gate somebody
+      switches off.
+
+      **Counted again 2026-09-05 — four files, not five, and every number in the table above
+      has moved.** `ThemeSheet.kt` has gone under the cap entirely and is no longer a
+      violation.
+
+      | Lines | File | Was |
+      | ---: | --- | ---: |
+      | 1727 | `feature/reader/…/reader/ReaderScreen.kt` | 1893 |
+      | 1642 | `feature/library/…/library/LibraryViewModel.kt` | 1717 |
+      | 1043 | `feature/epubreader/…/epubreader/EpubReaderActivity.kt` | 1051 |
+      | 811 | `feature/reader/…/reader/ReaderViewModel.kt` | 811 |
+
+      Note that `line-cap.mjs` records `LibraryViewModel.kt` at **1690** and the file is now
+      1642, so it is 48 lines under its own recorded length — shrinking is free under the
+      ratchet, and taking it under 800 means deleting its line from that file.
+
+      **What is owed to close this**, unchanged in substance from the paragraphs above and
+      now with the two numbers that matter: `LibraryViewModel.kt` at 1642 is this change's
+      file and is a slice of its own, needing a `LibraryViewModelTest` in front of the split
+      because Kotlin cannot extend a class across files and the seams have to become real
+      collaborators. `ReaderScreen.kt` at 1727 is not this change's file at all.
 - [x] **6.4** `corepack pnpm lint`. **Green**, 2026-08-31 at `6c931e61`, exit 0:
       tokens contrast, `spec:validate`, tokens in sync, the fixture corpus, third-party
       notices, the libarchive pin, the iOS lockfile, the corpus self-test, the Kavita
@@ -1449,6 +1625,39 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       so its 133 captures have to be identified by filename alone. Several of them
       cannot be — `ios-detail-iphone-contrast-*` is read as *increased* contrast by
       convention and nothing in the repository says so.
+
+      *Re-counted 2026-09-05. **The list of six is a list of nineteen**, because 0b landed
+      code on both platforms that day and each of its four tasks owes frames of its own; and
+      item 1 is smaller than it says.*
+
+      | # | Frames | Task | State to reach |
+      | --- | --- | --- | --- |
+      | 1 | iPad **portrait**, Downloads and the on-device shelf, light and dark (2) | 1.2 | landscape per destination already exists in `ios-sweep-2026-09-02/`; only portrait is short, and only for those two |
+      | 2 | The hero's byline and progress bar, both platforms, light/dark × default/largest (8), one over a **pale** cover | 0b.1 | something in progress |
+      | 3 | The **Resume** button, both platforms, light/dark × default/largest (8) + one per platform of a card whose source is away, showing no button (2) | 0b.2 | as above, plus one source down |
+      | 4 | **Finish** and **Next in series**, both platforms (8) + no-next case (2) + after-finishing (2) | 0b.3 | two issues of one series, the first read to its **last page** |
+      | 5 | The fold: Android on `storyarc-j6` and on a **360 × 800 dp** window, iOS iPhone, default text size (3) + one of each at largest (3) | 0b.4 | the 360-wide one is the frame the arithmetic predicts **fails** |
+      | 6 | Pin to Home / Unpin from Home in a shelf's menu (8), Home with one pinned collection **and** one pinned list (8), one per platform after unpinning (2) | 2.1 | a collection and a reading list, both non-empty |
+      | 7 | The filter sheet in its **by-library** form (4) + one with a filter applied (2) + *Clear filters* offered while narrowed (2) | 3.2 | **two OPDS catalogues that attribute publications** — the 17-item corpus attributes none |
+      | 8 | A grid with all four combinations of progress and availability (4) | 3.3 | needs one publication on a source that is **down** and not downloaded — same obstacle as 7, same setup answers both |
+      | 9 | An Android sectioned shelf (4); and either platform on record at **200+** publications | 3.4 | the 200 needs `scripts/corpus.mjs` to grow a size argument first — a script change, not a capture |
+      | 10 | iPad Pro portrait and landscape with the sidebar (4), iPad in **Split View** (1), **Settings on a 13-inch iPad** (1) | 4.1 | the settings frame is the one that says whether 720 is right |
+      | 11 | An Android **foldable at half-open**, seam and pane boundary in one frame (1) | 4.2 | a foldable AVD at its half-open posture |
+      | 12 | **iOS Home with the shelf filtered to one library**, showing Keep reading still present (2, light and dark) | 2.1 / 3.2 | new, and owed by the fix below |
+
+      **Item 12 is this pass's own.** The by-library filter was narrowing Home's Keep reading
+      and the search destination as well as the shelf; both now stop at the shelf. The
+      Keep-reading half is the one a frame can show, and it is a frame of something being
+      *there* — a shelf narrowed to one library with the hero still on Home above it. There
+      is nothing to photograph on the search half beyond results appearing, and nothing at
+      all to photograph for the Android menu-semantics fix in the same pass: it changes what
+      TalkBack says and not one pixel. **Its proof is a TalkBack pass, not a screenshot** —
+      open Filter, enter *Genre*, and hear a ticked row announce itself as ticked.
+
+      **A trap for whoever takes these.** `SweepSources` throws `XCTSkip` when no sources are
+      seeded, so a sweep on a fresh simulator returns green having photographed nothing. Every
+      row above needs its state seeded first, and rows 2 to 5 need it seeded by *reading* —
+      opening a book and turning pages — which no fixture in the tree does for you.
 
 ## Delta merge, 2026-09-04 — not this change's own work
 
