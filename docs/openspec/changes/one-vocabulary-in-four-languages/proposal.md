@@ -26,7 +26,7 @@ the slices that owned the screens.** Counted from the catalogues on 2026-09-05:
 
 | §5 block | Status today |
 | --- | --- |
-| Tier B — 12 rows | **12 of 12** already at the specified replacement, both platforms |
+| Tier B — 12 rows | **12 of 12** already at the specified replacement on iOS; 11 of 12 on Android, where `catalogue_error_http` carries the new wording but dropped the reason phrase the iOS value still has. That one row is in the divergence list below, not outstanding here |
 | Tier A — 29 rows | ~25 at the specified replacement on both; 4 diverged or superseded |
 | The `publication` rename ("the largest single rename in the pass") | **Done.** No iOS catalogue value contains the word; Android's three occurrences are two comments and one key *name* whose value reads *Titles* |
 | "Also in the readers" — 6 rows | 5 of 6 done on both platforms |
