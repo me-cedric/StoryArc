@@ -10,6 +10,9 @@ import XCTest
 ///
 /// Run with `--device` pointed at an iPad. It skips on a compact window rather than filing a
 /// phone's frames under an iPad's name.
+///
+/// The four moves this needs — `landscape()`, `portrait()`, `go(to:in:)` and
+/// `showSidebar(in:)` — are in `IpadWalk.swift`, shared with ``SweepIpadPaneTests``.
 @MainActor
 final class SweepIpadTests: XCTestCase {
 
@@ -119,6 +122,13 @@ final class SweepIpadTests: XCTestCase {
 
     /// A publication page in the detail column, which on an iPad is the page beside the shelf
     /// rather than the page instead of it.
+    ///
+    /// **This docstring was a claim about a layout the app did not have.** It said "the
+    /// detail column" while the shelf was a `NavigationStack` and the page was pushed over it,
+    /// so the walk photographed a page *instead of* the shelf and filed it under a name saying
+    /// beside. Nothing failed, because a screenshot suite asserts what it can reach and this
+    /// one could reach a page either way. The claim is now checked rather than written down —
+    /// see ``SweepIpadPaneTests`` for the case that fails when the shelf goes away.
     func testCaptureIpadDetail() throws {
         let app = try landscape()
         try go(to: "Library", in: app)
@@ -213,90 +223,5 @@ final class SweepIpadTests: XCTestCase {
             app.buttons["Close"].tap()
         }
         hold(2)
-    }
-
-    /// One destination, whatever a sidebar makes of it.
-    ///
-    /// **`destination(_:in:)` cannot see these.** It asks for a `tabBars` button, a button and
-    /// a static text — which is the right set for a phone's tab bar and the wrong one for a
-    /// regular window, where `.sidebarAdaptable` draws the same four entries as rows of a
-    /// `List` and the platform calls them cells. Six iPad walks failed with "no Home" on a
-    /// window whose sidebar had *Home* at the top of it.
-    ///
-    /// `control(_:in:)` already tries cells, and is what `AuditWalk` reaches for when a row is
-    /// a `NavigationLink` rather than a button. The sidebar is asked to open first, because a
-    /// window that starts with it collapsed has no rows to find.
-    private func go(to name: String, in app: XCUIApplication) throws {
-        var entry = sidebarEntry(name, in: app)
-        if entry == nil {
-            try? showSidebar(in: app)
-            hold(1)
-            entry = sidebarEntry(name, in: app)
-        }
-        try XCTUnwrap(
-            entry,
-            "This window offers no way to \(name). Cells: "
-                + "\(app.cells.allElementsBoundByIndex.prefix(12).map(\.label)). Buttons: "
-                + "\(app.buttons.allElementsBoundByIndex.prefix(12).map(\.label))"
-        ).tap()
-        hold(1)
-    }
-
-    /// The sidebar row for a destination, out of everything that carries its name.
-    ///
-    /// **The name is not unique and the first match is not the row.** The sidebar lists the
-    /// four destinations and then a *Library* section header above *Recently added* and
-    /// *Series* — so `app.cells["Library"]` binds to whichever the platform ordered first,
-    /// and `control(_:in:)`, which asks each element type for its subscript, gave up when
-    /// that one was a header nobody can tap. Every match is considered, and the first one a
-    /// finger could reach is the row.
-    private func sidebarEntry(_ name: String, in app: XCUIApplication) -> XCUIElement? {
-        let named = NSPredicate(format: "label == %@", name)
-        for query in [app.cells.matching(named), app.buttons.matching(named)] {
-            _ = query.firstMatch.waitForExistence(timeout: 3)
-            if let hit = query.allElementsBoundByIndex.first(where: \.isHittable) { return hit }
-        }
-        return nil
-    }
-
-    /// Launches in landscape, and refuses to photograph a compact window under an iPad's name.
-    ///
-    /// The orientation is set before the launch so the first frame is already landscape —
-    /// rotating afterwards photographs a layout mid-animation as readily as after it.
-    private func landscape(contentSize: String? = nil, layout: String = "grid") throws -> XCUIApplication {
-        XCUIDevice.shared.orientation = .landscapeLeft
-        let app = sweepLaunch(contentSize: contentSize, layout: layout)
-        hold(2)
-        try XCTSkipUnless(
-            app.frame.width > app.frame.height,
-            "This device is \(Int(app.frame.width))×\(Int(app.frame.height)) — not landscape, "
-                + "so these frames would be filed under a name they do not match."
-        )
-        try XCTSkipUnless(
-            app.frame.width >= 700,
-            "This window is \(Int(app.frame.width)) points wide, which is a compact shell "
-                + "rather than an iPad's. Run this suite with --device pointed at an iPad."
-        )
-        return app
-    }
-
-    /// Reveals the sidebar, whichever control this window draws for it.
-    ///
-    /// A regular window may open with the sidebar already out, or with the tab bar and a
-    /// toggle. Both are the platform's decision rather than the app's, so this takes either
-    /// and says which it found.
-    private func showSidebar(in app: XCUIApplication) throws {
-        if app.buttons["All shelves"].exists { return }
-        let toggle = app.buttons.matching(
-            NSPredicate(format: "identifier CONTAINS[c] %@ OR label CONTAINS[c] %@", "sidebar", "sidebar")
-        ).firstMatch
-        if toggle.waitForExistence(timeout: 5), toggle.isHittable { toggle.tap() }
-        hold(1.5)
-        try XCTSkipUnless(
-            app.buttons["All shelves"].waitForExistence(timeout: 5)
-                || app.staticTexts["Library"].exists,
-            "This window revealed no sidebar. Buttons: "
-                + "\(app.buttons.allElementsBoundByIndex.prefix(25).map(\.label))"
-        )
     }
 }
