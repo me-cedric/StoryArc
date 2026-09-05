@@ -357,6 +357,8 @@
     <string name="home_show_all">Alle ansehen</string>
     <string name="home_away">L\u00e4sst sich gerade nicht \u00f6ffnen</string>
     <string name="home_resume">Fortsetzen</string>
+    <string name="home_finish">Abschließen</string>
+    <string name="home_next_in_series">Nächster Teil</string>
     <string name="home_part_read">Angefangen</string>
     <string name="home_finished_one">Ausgelesen</string>
     <string name="library_open_comic">Comic \u00f6ffnen</string>

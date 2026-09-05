@@ -155,6 +155,11 @@ internal fun HomeDestination(host: AppHost) {
         // rather than a habit.
         onOpen = host.openPage,
         onResume = { publication -> resume(host, publication, isReadableNow(publication)) },
+        // `home-screen`: finishing from the card "removes it from Keep reading by the same
+        // rule that finishing normally does" -- so this is the same call the publication
+        // page and the bulk bar make, and the shelf recomputes from the record afterwards.
+        // No second rule for leaving that row.
+        onFinish = { publication -> host.mark(publication, isRead = true) },
         onShowAll = { section -> showAll(host, section) },
         onOpenFile = { openFile.launch(arrayOf("*/*")) },
         onAddFolder = { pickFolder.launch(null) },

@@ -330,7 +330,7 @@ private fun PublicationPage(
  * Marking read or unread. The app layer owns the secrets a server may ask for, so a screen
  * reports the reader's choice and this is what can carry it across.
  */
-private fun AppHost.mark(publication: Publication, isRead: Boolean) {
+internal fun AppHost.mark(publication: Publication, isRead: Boolean) {
     library.mark(publication, isRead, dependencies.kavitaProgress, dependencies.credentials)
 }
 

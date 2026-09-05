@@ -2540,6 +2540,66 @@
         }
       }
     },
+    "home.finish": {
+      "comment": "The action a Keep reading card offers when a page or less is left. Marks the publication read, which is what removes it from the shelf.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abschließen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminer"
+          }
+        }
+      }
+    },
+    "home.nextInSeries": {
+      "comment": "Offered beside Finish on a Keep reading card, where the library holds the next issue of the same series.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nächster Teil"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next in series"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siguiente de la serie"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suite de la série"
+          }
+        }
+      }
+    },
     "home.pagesLeft %lld": {
       "comment": "How much of a comic is left, on Home's hero card.",
       "extractionState": "manual",

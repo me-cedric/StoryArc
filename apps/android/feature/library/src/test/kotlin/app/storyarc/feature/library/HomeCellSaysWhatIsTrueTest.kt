@@ -59,6 +59,7 @@ class HomeCellSaysWhatIsTrueTest {
                     cover = { _, _ -> null },
                     onOpen = {},
                     onResume = {},
+                    onFinish = {},
                     onShowAll = {},
                     onOpenFile = {},
                     onAddFolder = {},

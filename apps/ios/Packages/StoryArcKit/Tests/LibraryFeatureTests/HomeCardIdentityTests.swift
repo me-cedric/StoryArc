@@ -147,6 +147,40 @@ struct HomeHeroProgressWiringTests {
     func noActionWhereThereIsNoBook() throws {
         // The card stays on the shelf, dimmed — `home-screen` insists on that. What it must
         // not do is offer a button that fails, when the line above already says why.
-        #expect(try heroSource().contains("if isReadable {\n                resumeButton"))
+        #expect(try heroSource().contains("if isReadable {\n                actions"))
+    }
+
+    @Test("A book with a page or less left is offered finishing rather than reopening")
+    func theEndOffersFinishing() throws {
+        // `home-screen`, *A publication with nothing meaningful left*: the card "offers to
+        // finish it — marking it read — and offers the next in its series where there is
+        // one, rather than offering to reopen its last page".
+        let text = try heroSource()
+
+        #expect(text.contains("if isAtTheEnd {"))
+        #expect(text.contains("finishButton"))
+        #expect(text.contains("if let next = nextInSeries { nextButton(next) }"))
+        #expect(text.contains("home.finish"))
+        #expect(text.contains("home.nextInSeries"))
+    }
+
+    @Test("Finishing from the card is the same act as finishing normally")
+    func finishingIsOneAct() throws {
+        // "Choosing to finish it removes it from Keep reading by the same rule that
+        // finishing normally does" — so the card must not write a record of its own. It
+        // calls `mark(_:read:)`, the one path the bulk bar and the reader both use, and the
+        // shelf recomputes from what that wrote.
+        let text = try heroSource()
+
+        #expect(text.contains("await model.mark(publication, read: true)"))
+        #expect(!text.contains("progressStore"))
+    }
+
+    @Test("The next issue comes from the shared index, not from a second ordering")
+    func nextComesFromTheSharedIndex() throws {
+        // Issue numbers are strings — "3.5" and "Annual 1" are both real — and the parsing
+        // of them is asserted against one table on both platforms. A second implementation
+        // of it on this screen is exactly how the two would drift.
+        #expect(try heroSource().contains("LibraryIndex.next(after: publication, in: model.publications)"))
     }
 }

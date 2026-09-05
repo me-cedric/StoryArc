@@ -36,6 +36,18 @@ data class HomeEntry(
     val pagesRemaining: Int?,
     val fraction: Double,
     val state: ReadState = ReadState.UNREAD,
+    /**
+     * Whether a page or less is left, which changes what the hero card offers.
+     *
+     * [HomeShelves.isAtTheEnd]. False by default, so a shelf that has no reason to ask the
+     * question -- every shelf but Keep reading -- is not obliged to answer it.
+     */
+    val isAtTheEnd: Boolean = false,
+    /**
+     * The next issue of the same series, where the library holds one and this entry is at
+     * its end. Null everywhere else, including on every shelf that is not Keep reading.
+     */
+    val nextInSeries: Publication? = null,
 ) {
     val id: String get() = publication.id
 }
@@ -142,9 +154,19 @@ object HomeShelves {
         // Straight through `LibraryIndex`, which both platforms already mirror and whose
         // ordering rule — most recently read first — is asserted in both test suites.
         // Nothing is dropped for being unreachable; that is what `isReadableNow` is for.
+        // Keep reading, and only Keep reading, is asked the end-of-book question. It is the
+        // one shelf whose card offers an action, and `LibraryIndex.next` is a scan of the
+        // library per entry -- cheap over a shelf of six, wasteful over every shelf on the
+        // surface for an answer nothing would draw.
         val keepReading = LibraryIndex
             .continueReading(publications, limit = shelfLength, progress = state)
-            .map(entry)
+            .map { publication ->
+                val atTheEnd = isAtTheEnd(publication, progress(publication))
+                entry(publication).copy(
+                    isAtTheEnd = atTheEnd,
+                    nextInSeries = if (atTheEnd) LibraryIndex.next(publication, publications) else null,
+                )
+            }
 
         return HomeSurface(
             keepReading = keepReading,

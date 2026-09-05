@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -23,6 +25,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -156,6 +159,10 @@ internal fun HomeKeepReadingCard(
     width: Dp,
     /** Opens the book where the reader stopped. Exactly what tapping the card does. */
     onResume: () -> Unit,
+    /** Marks it read, which is what removes it from this shelf. */
+    onFinish: () -> Unit,
+    /** Opens the next issue of the same series, where [HomeEntry.nextInSeries] found one. */
+    onOpenNext: (Publication) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -243,15 +250,42 @@ internal fun HomeKeepReadingCard(
         //
         // Absent when the book cannot be opened. An action that would do nothing is worse
         // than no action, and the line above already says why.
+        //
+        // `home-screen`, *A publication with nothing meaningful left*: with a page or less
+        // to go the card "offers to finish it -- marking it read -- and offers the next in
+        // its series where there is one, rather than offering to reopen its last page".
+        // Reopening the last page is a resume that resumes nothing: the reader turns one
+        // page and the book is done, and the card was the only thing between them and the
+        // next one. Finish keeps the filled emphasis even beside a next issue -- the reader
+        // is on the last page of *this* book, and finishing is what they came to do.
         if (entry.isReadableNow) {
-            Button(onClick = onResume) {
-                Icon(
-                    imageVector = Icons.Filled.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(ButtonDefaults.IconSize),
-                )
-                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                Text(stringResource(R.string.home_resume))
+            Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
+                if (entry.isAtTheEnd) {
+                    Button(onClick = onFinish) {
+                        Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(ButtonDefaults.IconSize),
+                        )
+                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                        Text(stringResource(R.string.home_finish))
+                    }
+                    entry.nextInSeries?.let { next ->
+                        OutlinedButton(onClick = { onOpenNext(next) }) {
+                            Text(stringResource(R.string.home_next_in_series))
+                        }
+                    }
+                } else {
+                    Button(onClick = onResume) {
+                        Icon(
+                            imageVector = Icons.Filled.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(ButtonDefaults.IconSize),
+                        )
+                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                        Text(stringResource(R.string.home_resume))
+                    }
+                }
             }
         }
     }

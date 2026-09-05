@@ -101,6 +101,15 @@ fun HomeScreen(
      * the reader "with no intermediate screen".
      */
     onResume: (Publication) -> Unit,
+    /**
+     * Keep reading's card offered to finish the book, and the reader took it.
+     *
+     * `home-screen`, *A publication with nothing meaningful left*: "choosing to finish it
+     * removes it from Keep reading by the same rule that finishing normally does" — so the
+     * caller marks it read, and this shelf recomputes from the record. There is no second
+     * rule for leaving this row, which is what makes the two ways of finishing one way.
+     */
+    onFinish: (Publication) -> Unit,
     onShowAll: (HomeSection) -> Unit,
     onOpenFile: () -> Unit,
     onAddFolder: () -> Unit,
@@ -145,7 +154,7 @@ fun HomeScreen(
                 return@LazyColumn
             }
 
-            keepReading(surface, cover, onResume, onShowAll)
+            keepReading(surface, cover, onResume, onFinish, onOpen, onShowAll)
 
             shelf(
                 entries = surface.upNext,
@@ -193,6 +202,10 @@ private fun LazyListScope.keepReading(
     cover: suspend (Publication, Int) -> Bitmap?,
     /** Opens the book. The hero is the surface's one resume affordance. */
     onResume: (Publication) -> Unit,
+    /** Marks it read, for a book with a page or less left. */
+    onFinish: (Publication) -> Unit,
+    /** A cover's own page, for the next issue offered beside Finish. */
+    onOpen: (Publication) -> Unit,
     onShowAll: (HomeSection) -> Unit,
 ) {
     if (surface.keepReading.isEmpty()) return
@@ -208,6 +221,8 @@ private fun LazyListScope.keepReading(
                 cover = cover,
                 width = homeHeroWidth(homeWindowWidthDp(), LocalDensity.current.fontScale),
                 onResume = { onResume(entry.publication) },
+                onFinish = { onFinish(entry.publication) },
+                onOpenNext = onOpen,
                 modifier = Modifier
                     .padding(horizontal = StoryArcSpace.gutter)
                     .clickable { onResume(entry.publication) }
@@ -243,6 +258,8 @@ private fun LazyListScope.keepReading(
                 cover = cover,
                 width = width,
                 onResume = { onResume(entry.publication) },
+                onFinish = { onFinish(entry.publication) },
+                onOpenNext = onOpen,
                 modifier = Modifier
                     .maskClip(RoundedCornerShape(StoryArcRadius.xl))
                     .clickable { onResume(entry.publication) }

@@ -223,7 +223,7 @@ private struct HomeHeroCard: View {
             }
 
             if isReadable {
-                resumeButton
+                actions
             }
         }
         .padding(StoryArcSpace.lg)
@@ -239,6 +239,84 @@ private struct HomeHeroCard: View {
 
     /// What this issue belongs to. ``HomeCardIdentity/kicker(of:)``.
     private var kicker: String? { HomeCardIdentity.kicker(of: publication) }
+
+    /// Whether a page or less is left, which changes what the card offers.
+    ///
+    /// ``HomeShelves/isAtTheEnd(of:record:)``.
+    private var isAtTheEnd: Bool {
+        HomeShelves.isAtTheEnd(of: publication, record: model.record(of: publication))
+    }
+
+    /// The next issue in the same series, where the library holds one.
+    ///
+    /// ``LibraryIndex/next(after:in:)`` rather than a second ordering written here: issue
+    /// numbers are strings — "3.5" and "Annual 1" are both real — and the parsing of them is
+    /// asserted against one table on both platforms. A second implementation of it on this
+    /// screen is exactly how the two would drift.
+    private var nextInSeries: Publication? {
+        guard isAtTheEnd else { return nil }
+        return LibraryIndex.next(after: publication, in: model.publications)
+    }
+
+    /// What the card offers, which is not the same thing at the end as in the middle.
+    ///
+    /// `home-screen`, *A publication with nothing meaningful left*: with a page or less to
+    /// go the card "offers to finish it — marking it read — and offers the next in its
+    /// series where there is one, rather than offering to reopen its last page". Reopening
+    /// the last page is a resume that resumes nothing — the reader turns one page and the
+    /// book is done, and the card was the only thing between them and the next one.
+    ///
+    /// **Finish is the prominent one even where there is a next issue.** The reader is on
+    /// the last page of *this* book; finishing is what they came to do, and the next issue
+    /// is the offer that follows it rather than the one that replaces it.
+    @ViewBuilder private var actions: some View {
+        if isAtTheEnd {
+            HStack(spacing: StoryArcSpace.sm) {
+                finishButton
+                if let next = nextInSeries { nextButton(next) }
+            }
+            .padding(.top, StoryArcSpace.xs)
+        } else {
+            resumeButton
+        }
+    }
+
+    /// Marks it read, which is the same act as finishing it normally.
+    ///
+    /// `home-screen`: "choosing to finish it removes it from Keep reading by the same rule
+    /// that finishing normally does" — so this writes the finished flag through
+    /// ``LibraryModel/mark(_:read:)``, the one path the bulk bar and the reader both use,
+    /// and the shelf recomputes from the record. No second rule for leaving this row.
+    private var finishButton: some View {
+        Button {
+            Task { await model.mark(publication, read: true) }
+        } label: {
+            Label(
+                String(localized: "home.finish", bundle: .module, locale: .storyArc),
+                systemImage: "checkmark"
+            )
+            .textRole(.footnote)
+        }
+        .buttonStyle(.glassProminent)
+        .buttonSizing(.fitted)
+        .accessibilityHidden(true)
+    }
+
+    /// The next issue, offered rather than opened for them.
+    private func nextButton(_ next: Publication) -> some View {
+        Button {
+            onOpen(next)
+        } label: {
+            Label(
+                String(localized: "home.nextInSeries", bundle: .module, locale: .storyArc),
+                systemImage: "forward.fill"
+            )
+            .textRole(.footnote)
+        }
+        .buttonStyle(.glass)
+        .buttonSizing(.fitted)
+        .accessibilityHidden(true)
+    }
 
     /// The named action, beside the card that already does the same thing.
     ///

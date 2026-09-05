@@ -373,6 +373,8 @@
     <string name="home_show_all">See all</string>
     <string name="home_away">Can\'t be opened right now</string>
     <string name="home_resume">Resume</string>
+    <string name="home_finish">Finish</string>
+    <string name="home_next_in_series">Next in series</string>
     <string name="home_part_read">Part-read</string>
     <string name="home_finished_one">Finished</string>
     <string name="library_open_comic">Open a comic</string>

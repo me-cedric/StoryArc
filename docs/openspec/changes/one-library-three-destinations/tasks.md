@@ -172,9 +172,62 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
         which grew by `HOME_RESUME_ROW` for it.
       - One frame per platform of a publication whose source is away, showing **no** button
         under the dimmed card.
-- [ ] 0b.3 Both: a publication with a page or less left offers to **finish** it and offers the
+- [~] 0b.3 Both: a publication with a page or less left offers to **finish** it and offers the
       next in its series, rather than offering to reopen its last page. Finishing removes it
       from Keep reading by the same rule finishing normally does.
+
+      **Code landed on both platforms 2026-09-05; the frames are owed.**
+
+      **The rule could not be derived from anything either platform already had, and that
+      was the whole of the work.** iOS's `HomeShelves.remainder` answers `.nothingToSay` to
+      four different situations — never opened, finished, an audiobook, and a book on its
+      last page — and Android's `pagesRemaining` answers null to several. Only one of them
+      is *the reader has finished all but the last page*. A card reading either would have
+      offered to **finish a book nobody had opened**. So `HomeShelves.isAtTheEnd` is a
+      question of its own on both platforms, answering false wherever it cannot honestly
+      answer true: an audiobook, whose unit is not pages and whose *time remaining* is not
+      derivable from what the position carries, and a reflowable book with no declared spine
+      count, where "a page or less" needs a page to be a thing.
+
+      The next issue comes from `LibraryIndex.next` on both platforms — the shared ordering
+      both already mirror, whose issue-number parsing ("3.5" and "Annual 1" are both real) is
+      asserted against one table on each side. A second ordering written on this screen is
+      exactly how the two would drift. Android asks it for Keep reading only: it is a scan of
+      the library per entry, cheap over a shelf of six and wasteful over every shelf on the
+      surface for an answer nothing would draw.
+
+      **Finish is prominent even beside a next issue** — the reader is on the last page of
+      *this* book, and finishing is what they came to do; the next issue follows it rather
+      than replacing it. iOS: `.glassProminent` Finish, `.glass` Next in series. Android:
+      filled `Button` and `OutlinedButton`.
+
+      **One rule for leaving the row, which is the clause easiest to break.** Neither card
+      writes a record. iOS calls `LibraryModel.mark(_:read:)` and Android reports the choice
+      out through a new `onFinish` on `HomeScreen` to `AppHost.mark` — the same call the
+      publication page and the bulk bar already make, which is what makes "the same rule that
+      finishing normally does" true rather than merely claimed. Both platforms have a test
+      asserting the card touches no progress store.
+
+      New strings in all four languages on both platforms: `home.finish` / `home_finish`
+      and `home.nextInSeries` / `home_next_in_series`.
+
+      Tests: `HomeRemainderTests` +6 and `HomeShelvesTest` +4 over the new predicate — each
+      including the never-opened and finished cases, which are the ones that share a spelling
+      with the true case; `HomeCardIdentityTests` +3 and `HomeHeroResumeWiringTest` +2 over
+      the wiring. All green.
+
+      **Frames owed** — this is the state hardest to reach and the frames matter most:
+      - Both platforms, a comic stopped on its **last page**, on Home: light and dark, at
+        default and largest text size (8 frames). What each has to show is *Finish* where
+        *Resume* was, and **Next in series** beside it — so the walk needs two issues of one
+        series in the library, the first read to its last page.
+      - One frame per platform of the same card where the library holds **no** next issue,
+        showing Finish alone rather than a gap where the second button would be.
+      - One frame per platform *after* Finish is taken, showing the publication gone from
+        Keep reading and present under Finished — which is the clause about one rule, seen
+        rather than asserted.
+      - Route: on Android, `pnpm capture:android Home` after a walk that opens the first
+        issue and pages to its end; on iOS the equivalent walk before the shutter.
 - [ ] 0b.4 Both: the next section's heading is visible without scrolling on a phone at the
       default text size, while the card stays the surface's one emphasis.
 - [ ] 0b.5 Both: captures before and after, at default and largest text size.

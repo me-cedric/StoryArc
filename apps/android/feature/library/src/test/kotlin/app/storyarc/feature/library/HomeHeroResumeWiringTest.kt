@@ -71,6 +71,45 @@ class HomeHeroResumeWiringTest {
     }
 
     @Test
+    fun `a book with a page or less left is offered finishing rather than reopening`() {
+        // `home-screen`, *A publication with nothing meaningful left*: the card "offers to
+        // finish it — marking it read — and offers the next in its series where there is
+        // one, rather than offering to reopen its last page".
+        assertTrue(
+            "The card offers no way to finish a book it has nothing left to resume.",
+            cards.contains("Button(onClick = onFinish)"),
+        )
+        assertTrue(
+            "Finish is offered unconditionally, or Resume is not withdrawn for it.",
+            cards.contains("if (entry.isAtTheEnd) {"),
+        )
+        assertTrue(
+            "The next issue is not offered beside it.",
+            cards.contains("entry.nextInSeries?.let { next ->"),
+        )
+        assertTrue(
+            "Neither of the two new actions is named.",
+            cards.contains("R.string.home_finish") && cards.contains("R.string.home_next_in_series"),
+        )
+    }
+
+    @Test
+    fun `finishing from the card is the same act as finishing normally`() {
+        // "Choosing to finish it removes it from Keep reading by the same rule that
+        // finishing normally does" — so the card must not write its own record. It reports
+        // the choice, and the app layer makes the one call the publication page and the
+        // bulk bar already make.
+        assertTrue(
+            "The card decides for itself what finishing means — there must be one rule.",
+            !cards.contains("progressStore") && !cards.contains("isFinished ="),
+        )
+        assertTrue(
+            "HomeScreen does not pass the choice out; the card has nowhere to report it.",
+            screen.contains("onFinish = { onFinish(entry.publication) }"),
+        )
+    }
+
+    @Test
     fun `the button and the tap are the same call`() {
         // Two routes to one book that could one day disagree about which page it opens at is
         // exactly what the scenario's "the two do the same thing" forbids. Both are
@@ -92,7 +131,7 @@ class HomeHeroResumeWiringTest {
         assertTrue(
             "The resume button is drawn unconditionally — a publication that cannot be" +
                 " opened would be offered a button that fails.",
-            cards.contains("if (entry.isReadableNow) {\n            Button(onClick = onResume)"),
+            cards.contains("if (entry.isReadableNow) {\n            Row("),
         )
     }
 }

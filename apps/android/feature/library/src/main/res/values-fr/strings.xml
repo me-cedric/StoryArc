@@ -359,6 +359,8 @@
     <string name="home_show_all">Tout voir</string>
     <string name="home_away">Impossible \u00e0 ouvrir pour l\u2019instant</string>
     <string name="home_resume">Reprendre</string>
+    <string name="home_finish">Terminer</string>
+    <string name="home_next_in_series">Suite de la série</string>
     <string name="home_part_read">Commenc\u00e9</string>
     <string name="home_finished_one">Termin\u00e9</string>
     <string name="library_open_comic">Ouvrir une BD</string>
