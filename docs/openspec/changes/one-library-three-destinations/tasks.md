@@ -597,7 +597,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
 
 ## Phase 2 — What the destinations hold
 
-- [ ] **2.1** **[E1/E2] Home**, both platforms: Keep reading, Up next, recently
+- [~] **2.1** **[E1/E2] Home**, both platforms: Keep reading, Up next, recently
       added, pinned shelves, finished. Assembled from local history alone.
       Screenshot: all three degradations — carousel, single card, and Home as the
       empty state.
@@ -631,6 +631,72 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       `ios-home-iphone-hero-solo-light.png` and `android-home-one-card-light.png`
       (single card), `ios-home-iphone-empty-light.png` and
       `android-home-first-run-dark.png` (Home as the empty state).
+
+      *Pinned shelves built on both platforms, 2026-09-05. The fifth section exists; its
+      frames do not.*
+
+      **A pin is a key held beside the shelves, not a flag on one, and that is the whole
+      design.** `home-screen` requires unpinning to leave "the collection or the list"
+      untouched. An `isPinned` field would have to survive a server pull, which rewrites a
+      server-backed shelf wholesale — so pinning a Kavita reading list and then syncing would
+      either lose the pin or make the pull's overwrite conditional, and a shelf's own record
+      would end up carrying a fact about the home screen. Held apart, the clause is true
+      because unpinning never touches a collection. `StoryArcCore/PinnedShelves.swift` and
+      `core/model/PinnedShelves.kt` are the mirrored types.
+
+      **The stored tokens are identical on the two platforms** — `collection:<uuid>` and
+      `list:<uuid>`, spelled in words so a stored pin is readable and so reordering the cases
+      cannot repoint one. The containers differ and only the containers: iOS joins them into
+      one `@AppStorage` scalar, Android puts the set in `SharedPreferences`, which takes one
+      natively. A token this version cannot parse is **dropped, not guessed** — an unreadable
+      pin costs one shelf the reader can put back, a guessed one pins something they never
+      chose.
+
+      Pinning is one context-menu item that reads the state it is in, above *Delete* on both
+      platforms. Home draws a section per pinned shelf between recently added and finished,
+      which is the order *The rest of the home surface* enumerates. A **collection is filtered
+      out of the library and a reading list is walked**, so a list's own order survives —
+      which is the entire difference between the two types, made concrete on this surface. A
+      shelf resolving to nothing is not drawn, and that is not only an emptied collection: one
+      whose members live on a source no scan has reached resolves to nothing too, and a
+      heading over no covers is the surface looking like it is waiting.
+
+      **Two gaps, both deliberate and both named rather than papered over.**
+      *Server-backed shelves cannot be pinned.* A `ServerShelf` is fetched per visit and
+      identified by its server's own numbering, where `ShelfPin` is a `UUID` — for the reason
+      `ShelfKey` exists, that two Kavita servers number their reading lists from one. A third
+      case carrying a `ShelfKey` would need the home surface to resolve it by **asking a
+      server**, which *The home surface never waits on a source* forbids outright. Closing it
+      properly means caching a server shelf's membership locally first.
+      *A pinned heading carries no arrow*, unlike every other shelf on Home. *Every shelf
+      leads somewhere exhaustive* asks a heading to lead to "the full list in the library,
+      filtered to match the shelf" — and a collection is not a library filter but a shelf with
+      a screen of its own, so a filtered library would show a different set under the same
+      name. The way through is the shelf's own screen, one destination along.
+
+      Tests: `PinnedShelvesTests.swift` and `PinnedShelvesTest.kt`, 8 cases each and case for
+      case — ordering, stability within each group, the round trip, the kind being part of the
+      key, and the unreadable token. `HomeShelvesTest.kt` gains 5 over the resolved surface
+      and is 31. `swiftlint` clean at 670 files; `pnpm test:ios` 1926; Android `lint test`
+      green.
+
+      **`ShelvesView.swift` passed its 400-line cap when the pin went in**, so the two
+      context-menu actions moved to `ShelfRowActions.swift` — a seam rather than a cut at the
+      line count: they are the whole of one menu and the order between them is a decision one
+      of them explains.
+
+      **Frames owed:**
+      - Both platforms, the shelves screen with a shelf's menu open, showing **Pin to Home**
+        above Delete — and a second frame over an already-pinned shelf showing **Unpin from
+        Home**, because the one-control-two-labels decision is only visible in the pair.
+        Light and dark (8 frames).
+      - Both platforms, Home with one pinned collection **and** one pinned reading list, so
+        the two orderings can be compared against the shelves they came from. Light and dark,
+        at default and largest text size (8 frames). The list is the interesting one: its
+        covers must be in the list's order, not the library's.
+      - One frame per platform after unpinning, showing the section gone from Home **and** the
+        collection unchanged on the shelves screen — the clause about altering nothing, seen
+        rather than asserted.
 - [x] **2.2** Test that Home renders complete and unchanged with every source
       unreachable, and that no shelf appears, reorders or grows when a slow source
       answers. This is the property most likely to regress silently, so it is a
