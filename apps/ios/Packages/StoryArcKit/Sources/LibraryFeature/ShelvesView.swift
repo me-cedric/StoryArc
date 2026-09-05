@@ -23,6 +23,17 @@ public struct ShelvesView: View {
     @State private var creating: Kind?
     @State private var draftName = ""
 
+    /// Which shelves the reader has asked to see on the home surface.
+    ///
+    /// `@AppStorage` of one scalar, the way availability and the download filter are stored
+    /// — see ``PinnedShelves/stored``. Not on ``LibraryModel``, and not in `ShelvesStore`:
+    /// `home-screen` requires unpinning to leave "the collection or the list" untouched, and
+    /// a pin that lived in the same record as the shelf would be one careless `map` away
+    /// from breaking that.
+    /// Internal rather than private: ``ShelfRowActions`` writes it, and an extension in
+    /// another file cannot see a private stored property.
+    @AppStorage(PinnedShelves.storageKey) var pinnedShelves = ""
+
     /// Every Kavita server's own collections and reading lists, once asked for.
     ///
     /// Fetched here rather than per row: the spec wants a server's collections "alongside
@@ -173,7 +184,10 @@ public struct ShelvesView: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .contextMenu { deleteButton { deleting = ShelfDeletion(collection) } }
+                        .contextMenu {
+                            pinButton(.collection(collection.id))
+                            deleteButton { deleting = ShelfDeletion(collection) }
+                        }
                     }
                     ForEach(server) { shelf in
                         NavigationLink {
@@ -228,7 +242,10 @@ public struct ShelvesView: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .contextMenu { deleteButton { deleting = ShelfDeletion(list) } }
+                        .contextMenu {
+                            pinButton(.list(list.id))
+                            deleteButton { deleting = ShelfDeletion(list) }
+                        }
                     }
                     ForEach(server) { shelf in
                         NavigationLink {
@@ -310,17 +327,6 @@ public struct ShelvesView: View {
             tiles: [],
             pending: pending
         )
-    }
-
-    @ViewBuilder
-    private func deleteButton(_ action: @escaping () -> Void) -> some View {
-        Button(role: .destructive, action: action) {
-            Label {
-                Text("shelves.delete", bundle: .module)
-            } icon: {
-                Image(systemName: "trash")
-            }
-        }
     }
 
     @ViewBuilder

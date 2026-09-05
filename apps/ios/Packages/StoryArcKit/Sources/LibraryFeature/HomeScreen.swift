@@ -44,6 +44,11 @@ public struct HomeScreen: View {
     /// with nothing configured lands on first.
     @State private var picking: LocalPick?
 
+    /// Which shelves the reader asked to see here. Written by ``ShelvesView``, read here —
+    /// one scalar in the same `UserDefaults` as the library's other choices, and deliberately
+    /// not a field on ``LibraryModel``: see ``PinnedShelves``.
+    @AppStorage(PinnedShelves.storageKey) private var pinnedShelves = ""
+
     public init(
         model: LibraryModel,
         onOpen: @escaping (Publication, URL) -> Void = { _, _ in },
@@ -137,6 +142,8 @@ public struct HomeScreen: View {
                 if !upNext.isEmpty { upNextSection }
                 if !recentlyAdded.isEmpty { recentlyAddedSection }
 
+                pinnedSections
+
                 shelvesLink
 
                 if !finished.isEmpty {
@@ -195,6 +202,59 @@ public struct HomeScreen: View {
         } content: {
             HomeShelfRow(publications: recentlyAdded, model: model)
         }
+    }
+
+    /// The shelves the reader asked to see here, one section each.
+    ///
+    /// `home-screen`, *Pinned shelves*: a pinned collection or reading list "appears on the
+    /// home surface as a shelf of its own", and *The rest of the home surface* fixes where —
+    /// "recently added publications, the reader's pinned shelves, and what they have
+    /// finished", in that order. So these sit between recently added and finished.
+    ///
+    /// **A shelf with nothing in it is not drawn**, per *A shelf that would be empty*, and
+    /// that is not only about a collection the reader emptied: a pinned shelf whose members
+    /// are all on a source that has not been scanned yet resolves to nothing, and a heading
+    /// over no covers would be the surface waiting on something — which is the one thing this
+    /// screen must never look like it is doing.
+    ///
+    /// A pin whose shelf has been deleted resolves to nothing too, and is simply absent. The
+    /// stored pin is left alone rather than tidied up: writing to storage while drawing is
+    /// how a redraw becomes a write, and an orphan token costs one lookup that already fails.
+    @ViewBuilder
+    private var pinnedSections: some View {
+        let pinned = PinnedShelves(stored: pinnedShelves)
+        ForEach(pinnedCollections(pinned), id: \.id) { collection in
+            let publications = model.publications.filter { collection.members.contains($0.id) }
+            if !publications.isEmpty {
+                HomeSection(title: Text(verbatim: collection.name)) {
+                    HomeMore(title: Text(verbatim: collection.name), publications: publications, model: model)
+                } content: {
+                    HomeShelfRow(publications: publications, model: model)
+                }
+            }
+        }
+        ForEach(pinnedLists(pinned), id: \.id) { list in
+            // A reading list keeps its own order, which is the whole difference between the
+            // two types — so the entries are walked rather than the library filtered.
+            let publications = list.entries.compactMap { entry in
+                model.publications.first { $0.id == entry }
+            }
+            if !publications.isEmpty {
+                HomeSection(title: Text(verbatim: list.name)) {
+                    HomeMore(title: Text(verbatim: list.name), publications: publications, model: model)
+                } content: {
+                    HomeShelfRow(publications: publications, model: model)
+                }
+            }
+        }
+    }
+
+    private func pinnedCollections(_ pinned: PinnedShelves) -> [PublicationCollection] {
+        model.shelves.collections.filter { pinned.contains(.collection($0.id)) }
+    }
+
+    private func pinnedLists(_ pinned: PinnedShelves) -> [ReadingList] {
+        model.shelves.lists.filter { pinned.contains(.list($0.id)) }
     }
 
     /// Collections and reading lists, which the library's toolbar used to hold.

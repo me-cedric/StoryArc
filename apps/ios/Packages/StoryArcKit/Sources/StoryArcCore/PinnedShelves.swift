@@ -98,4 +98,16 @@ public struct PinnedShelves: Sendable, Equatable {
     /// Where the choice is written down. Its own key, in the same `UserDefaults` everything
     /// else on this screen uses, so nothing has to be migrated to add it.
     public static let storageKey = "app.storyarc.pinnedShelves"
+
+    /// The whole set as one scalar, because `@AppStorage` stores scalars.
+    ///
+    /// Space-separated: a token is a word and a UUID, neither of which can contain a space,
+    /// so the separator cannot appear inside a value. Android stores the same tokens as a
+    /// `Set<String>`, which its preferences take natively — the container differs and the
+    /// tokens do not, which is the half that has to match.
+    public var stored: String { tokens.joined(separator: " ") }
+
+    public init(stored: String) {
+        self.init(tokens: stored.split(separator: " ").map(String.init))
+    }
 }

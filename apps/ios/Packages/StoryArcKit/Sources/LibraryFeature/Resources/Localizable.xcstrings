@@ -2708,6 +2708,36 @@
         }
       }
     },
+    "home.pinned": {
+      "comment": "Heading over the pinned collections and reading lists on the home surface.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Angeheftet"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pinned"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fijado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Épinglé"
+          }
+        }
+      }
+    },
     "home.recentlyAdded": {
       "comment": "Home shelf: what arrived most recently.",
       "extractionState": "manual",
@@ -8347,6 +8377,36 @@
         }
       }
     },
+    "shelves.pin": {
+      "comment": "Context-menu action on a collection or reading list: put it on the home surface as a shelf of its own.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An Start anheften"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pin to Home"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fijar en Inicio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Épingler à l’accueil"
+          }
+        }
+      }
+    },
     "shelves.promote": {
       "extractionState": "manual",
       "localizations": {
@@ -8932,6 +8992,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Étagères"
+          }
+        }
+      }
+    },
+    "shelves.unpin": {
+      "comment": "The same control on a shelf that is already pinned. Removes the shelf from the home surface and alters neither the collection nor the list.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Von Start lösen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unpin from Home"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No fijar en Inicio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ne plus épingler"
           }
         }
       }
