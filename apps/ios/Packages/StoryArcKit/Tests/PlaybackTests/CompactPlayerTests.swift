@@ -15,8 +15,14 @@ import Testing
 /// assertable from here. The half that *is* assertable is the one that broke before: an
 /// accessory whose builder returns nothing still draws an empty glass capsule and takes the
 /// height, so absence has to be the shell not opening the slot — which is what ``nil``
-/// below is for. `App/PlayerDock.swift` and `AppShell` carry the other half, and §6's
-/// captures are its proof.
+/// below is for.
+///
+/// The other half is the shell's, and it now has a guard of its own:
+/// `ShellWiringTests.theSlotIsWithheldWhenNothingPlays` fails if `AppShell` applies
+/// `tabViewBottomAccessory` without `isEnabled:`, which is the only spelling that withholds
+/// the height rather than only the bar. (The view is `PlayerFeature/PlayerDock.swift`, not
+/// `App/PlayerDock.swift` as this comment used to say — it moved into the package with
+/// `audiobooks-and-playback`.) §6's captures are still the proof that a device agrees.
 @MainActor
 struct CompactPlayerTests {
 

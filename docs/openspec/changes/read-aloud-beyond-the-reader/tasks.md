@@ -25,7 +25,9 @@ says so and names what is left to watch.
       simulator-only until someone runs it on hardware.
 
       **The declarations are all in the tree and nobody has heard the result.** What the
-      assumption needed is present: `project.yml:90` declares `UIBackgroundModes: audio`;
+      assumption needed is present: `project.yml` declares `UIBackgroundModes: audio` (line 96
+      on 2026-09-05 — it was 90 when this note was written, and the floor comment above it
+      moved the number, which is why the key is named rather than the line);
       `PlaybackAudioSession.activate()` sets category `.playback` with mode `.spokenAudio`,
       which is what keeps a book talking through a screen lock; and the session claims it
       through `PlayerCentre.begin` → `platform.sessionBegan()`, reached from a read-aloud
@@ -377,6 +379,24 @@ says so and names what is left to watch.
       hear the four elements in turn; and start a session with VoiceOver focused on a shelf
       cover and confirm the cursor does not move. Also owed: the same three with Full Keyboard
       Access on, because the delta names the keyboard and a switch beside the screen reader.
+
+      *2026-09-05, later the same day.* **The source-text facts are not proof and were also
+      not guarded, which are two different problems.** The task is right to refuse them as
+      evidence for a tick; nothing followed from that about letting them be deleted silently.
+      "No `accessibilityFocused`" is held by an absence, and adding one is a two-word edit that
+      reads as a *courtesy* — announce the bar when it appears — that compiles, passes every
+      suite, `swiftlint --strict` and both build gates, and moves a screen-reader user's cursor
+      off the page they were reading every time a book starts speaking. Nothing in the
+      repository would have failed.
+      `StoryArcKit/Tests/PlayerFeatureTests/PlayerDockFocusTests.swift` now fails on any of six
+      focus-moving symbols in `PlayerDock.swift`, and — paired, so that stripping the
+      accessibility out does not satisfy the negative by leaving nothing to focus — on the
+      absence of the containment, `player.back`, `player.open` or `accessibilityValue`. Both
+      halves **proved able to fail**, mutations named in the file's header.
+
+      **The tick still waits on the walk.** A tripwire says a modifier is declared; it cannot
+      say what VoiceOver read out, whether the bar is in the reading order, or where the cursor
+      went. The four owed observations above are unchanged.
 - [~] **2.5** Screenshot at the largest text size, where a compact transport
       truncates first.
 
