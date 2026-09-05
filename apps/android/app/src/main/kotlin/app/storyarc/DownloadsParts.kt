@@ -49,7 +49,6 @@ import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.Publication
-import app.storyarc.core.persistence.ImportedCopies
 
 /** The proportions of a comic cover, near enough for every publisher. */
 private const val COVER_ASPECT = 2f / 3f
@@ -300,11 +299,14 @@ internal fun DownloadQueueRow(
 }
 
 /**
- * Confirmed, because it deletes bytes.
+ * Confirmed, because it deletes bytes — and worded for the act, because they are three acts.
  *
  * `offline-downloads` says the app "never deletes a download without asking", and although
  * that sentence is about the low-storage case, a reader's own long press deserves the same
  * courtesy.
+ *
+ * Which question is being asked is [DownloadQueueRemoval]'s, and its tests pin the ordering.
+ * Only the words are here, because the strings are in this module.
  */
 @Composable
 internal fun RemoveDownloadDialog(
@@ -312,36 +314,43 @@ internal fun RemoveDownloadDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    val context = LocalContext.current
+    val question = DownloadQueueRemoval.of(download)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.downloads_remove_title)) },
-        text = {
-            // `local-library` asks for more of this sentence than a download needs. Deleting
-            // an imported copy "confirms, naming the title and the space to be freed, and
-            // states that the original file elsewhere is untouched" — the last clause
-            // because an import is the one row here with an original somewhere, and a reader
-            // must not have to guess whether the app is about to reach outside itself.
-            Text(
-                if (ImportedCopies.isImported(download)) {
-                    stringResource(
-                        R.string.downloads_remove_body_imported,
-                        download.title,
-                        Formatter.formatShortFileSize(context, download.downloadedBytes),
-                    )
-                } else {
-                    stringResource(R.string.downloads_remove_body, download.title)
-                },
-            )
-        },
+        title = { Text(stringResource(question.titleRes)) },
+        text = { Text(removalSentence(question, download)) },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text(stringResource(R.string.downloads_remove)) }
+            TextButton(onClick = onConfirm) { Text(stringResource(question.confirmRes)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.downloads_cancel)) }
         },
     )
 }
+
+/** The promise each of the three acts makes, in the reader's words. */
+@Composable
+private fun removalSentence(question: DownloadQueueRemoval, download: Download): String =
+    when (question) {
+        // Nothing of this one is on the device yet, so neither half of the removal sentence
+        // is true of it: there is no copy to delete, and there is no reading position to
+        // keep in a publication nobody has opened. What is true is that the transfer stops
+        // and can be started again.
+        DownloadQueueRemoval.STOPPING ->
+            stringResource(R.string.downloads_stop_body, download.title)
+        // `local-library` asks for more of this sentence than a download needs. Deleting an
+        // imported copy "confirms, naming the title and the space to be freed, and states
+        // that the original file elsewhere is untouched" — the last clause because an import
+        // is the one row here with an original somewhere, and a reader must not have to
+        // guess whether the app is about to reach outside itself.
+        DownloadQueueRemoval.REMOVING_IMPORT -> stringResource(
+            R.string.downloads_remove_body_imported,
+            download.title,
+            Formatter.formatShortFileSize(LocalContext.current, download.downloadedBytes),
+        )
+        DownloadQueueRemoval.REMOVING ->
+            stringResource(R.string.downloads_remove_body, download.title)
+    }
 
 /** Why this one is not moving, in the reader's terms. */
 private val Download.Pause.explanationRes: Int

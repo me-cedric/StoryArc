@@ -37,6 +37,10 @@
     <string name="downloads_remove_body">Dies l\u00f6scht die Kopie von %1$s auf diesem Ger\u00e4t. Ihre Leseposition bleibt erhalten, und es kann erneut heruntergeladen werden.</string>
     <string name="downloads_remove_body_imported">Dies l\u00f6scht die von StoryArc aufbewahrte Kopie von %1$s und gibt %2$s frei. Die Originaldatei anderswo auf Ihrem Ger\u00e4t bleibt unber\u00fchrt.</string>
     <string name="downloads_remove_action">Download von %1$s entfernen</string>
+
+    <string name="downloads_stop_title">Diesen Download stoppen?</string>
+    <string name="downloads_stop_body">Dies stoppt die \u00dcbertragung von %1$s. Nichts davon bleibt auf diesem Ger\u00e4t, und er kann erneut heruntergeladen werden.</string>
+    <string name="downloads_stop_confirm">Download stoppen</string>
     <plurals name="downloads_failed">
         <item quantity="one">Nach %2$d Versuch fehlgeschlagen: %1$s</item>
         <item quantity="other">Nach %2$d Versuchen fehlgeschlagen: %1$s</item>

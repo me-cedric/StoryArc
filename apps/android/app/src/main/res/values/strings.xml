@@ -113,6 +113,15 @@
     <string name="downloads_remove_body">This deletes the copy of %1$s on this device. Your reading position is kept, and it can be downloaded again.</string>
     <string name="downloads_remove_body_imported">This deletes the copy of %1$s that StoryArc keeps, freeing %2$s. The original file elsewhere on your device is not touched.</string>
     <string name="downloads_remove_action">Remove the download of %1$s</string>
+
+    <!-- Stopping a transfer and removing a copy are different promises, so they are
+         different sentences. `DownloadQueueRemoval` chooses between them; iOS carries the
+         same four keys. Nothing of an unfinished transfer is on the device, and a
+         publication nobody has opened has no reading position, so neither half of the
+         removal sentence above is true of one. -->
+    <string name="downloads_stop_title">Stop this download?</string>
+    <string name="downloads_stop_body">This stops the transfer of %1$s. Nothing of it is kept on this device, and it can be downloaded again.</string>
+    <string name="downloads_stop_confirm">Stop download</string>
     <!-- Three attempts is the ceiling `offline-downloads` sets, so one of them is a
          real case and reads wrong as "1 attempts". -->
     <plurals name="downloads_failed">

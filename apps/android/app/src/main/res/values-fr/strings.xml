@@ -37,6 +37,10 @@
     <string name="downloads_remove_body">Cela supprime la copie de %1$s sur cet appareil. Votre position de lecture est conserv\u00e9e, et il peut \u00eatre t\u00e9l\u00e9charg\u00e9 \u00e0 nouveau.</string>
     <string name="downloads_remove_body_imported">Cela supprime la copie de %1$s conserv\u00e9e par StoryArc et lib\u00e8re %2$s. Le fichier d\u2019origine ailleurs sur votre appareil n\u2019est pas touch\u00e9.</string>
     <string name="downloads_remove_action">Supprimer le t\u00e9l\u00e9chargement de %1$s</string>
+
+    <string name="downloads_stop_title">Arr\u00eater ce t\u00e9l\u00e9chargement ?</string>
+    <string name="downloads_stop_body">Cela arr\u00eate le transfert de %1$s. Rien n\u2019en est conserv\u00e9 sur cet appareil, et il peut \u00eatre t\u00e9l\u00e9charg\u00e9 \u00e0 nouveau.</string>
+    <string name="downloads_stop_confirm">Arr\u00eater le t\u00e9l\u00e9chargement</string>
     <plurals name="downloads_failed">
         <item quantity="one">\u00c9chec apr\u00e8s %2$d tentative : %1$s</item>
         <item quantity="many">\u00c9chec apr\u00e8s %2$d tentatives : %1$s</item>
