@@ -63,8 +63,13 @@ public final class DownloadQueue {
         self.store = store
         self.credential = credential
         library = store?.library() ?? DownloadLibrary()
+        // So a retry pressed on a screen that owns no queue can reach this one while it is
+        // alive — see `DownloadQueueRetry.swift`.
+        remember()
         // Anything that was mid-flight when the app died comes back queued, so the pump
-        // picks it up rather than leaving it stuck at "in progress" for ever.
+        // picks it up rather than leaving it stuck at "in progress" for ever. A record the
+        // Downloads screen put back in the queue while no queue was alive is picked up here
+        // for the same reason and by the same line.
         pump()
         transfers.onOrphan { [weak self] name, file in
             Task { @MainActor in await self?.adopt(name, from: file) }
