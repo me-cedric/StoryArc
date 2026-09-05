@@ -181,8 +181,7 @@ struct SourceDetailSizeTests {
         let strings = Self.rendered(Self.diagnosis(bytes: 0, downloads: 0))
         #expect(
             strings.contains("sources.remove.footer"),
-            "the actions section carries no retention footer, so the thirty days are back in a "
-                + "dialog that cannot show them at the largest text size"
+            "the actions carry no retention footer, so the thirty days are back in a dialog that truncates them"
         )
     }
 
