@@ -227,7 +227,10 @@ struct LibraryRestoreTests {
         let old = documents.appending(path: "before")
         let new = documents.appending(path: "after")
         try FileManager.default.createDirectory(at: old, withIntermediateDirectories: true)
-        try FileManager.default.copyItem(at: try file(named: "image-pages.pdf"), to: old.appending(path: "image-pages.pdf"))
+        try FileManager.default.copyItem(
+            at: try file(named: "image-pages.pdf"),
+            to: old.appending(path: "image-pages.pdf")
+        )
 
         let bookmarks = FolderBookmarks(defaults: try store().defaults)
         let cache = LibraryCache(directory: documents)
