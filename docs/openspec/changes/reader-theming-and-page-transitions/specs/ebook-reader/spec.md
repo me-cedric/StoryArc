@@ -10,6 +10,7 @@ without leaving the page.
 #### Scenario: Typography controls
 - **WHEN** a user opens the theme sheet
 - **THEN** font size, font family, bold text, line spacing, character spacing, word spacing, paragraph spacing, margins, text alignment, background colour and brightness are all adjustable
+- **AND** each change is reflected in the page behind the sheet as it is made
 - **AND** a live preview showing a chapter title and body text reflects each change as it is made
 
 #### Scenario: One sheet, two depths
@@ -63,12 +64,13 @@ first. A reader who wants a preset SHALL NOT pass an axis to reach it.
 - **AND** brightness is adjustable within the reader without leaving it
 
 #### Scenario: Theme follows appearance
-- **WHEN** the app appearance is set to follow the system and the system switches to dark
-- **THEN** the reading theme switches between the user's chosen light and dark reading themes, not to an arbitrary default
+- **WHEN** the reader has turned on the setting that links app appearance to reading theme, and the system switches to dark while a publication is open
+- **THEN** the reading theme switches, then and there rather than at the next open, between the light and dark reading themes the reader chose as their pair, not to an arbitrary default
+- **AND** with that setting off the reading theme is untouched, per [`reading-themes`](../reading-themes/spec.md)
 
 #### Scenario: Themes are named, not numbered
 - **WHEN** the preset grid is shown
-- **THEN** each preset is rendered as its own swatch, previewing its background and typeface with the letters "Aa" and its name
+- **THEN** each preset is rendered as its own swatch, showing its name and a specimen of real letterforms in its own background, text colour, face and weight — the letters "Aa" and its name
 - **AND** the active preset is visibly selected, and a preset deviated from is marked as modified rather than silently shown as active
 
 > **The scenarios below arrived from a sibling change and are carried, not written

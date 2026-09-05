@@ -1,25 +1,57 @@
 {
     "collisions": {
-        "library-browsing → \"Presentation\"": {
+        "library-browsing \u2192 \"Presentation\"": {
             "order": [
                 "named-failures-and-quieter-chrome",
                 "one-library-three-destinations"
             ],
             "reason": "named-failures adds three grouping and naming scenarios to a requirement one-library-three-destinations rewrites wholesale. Found by this check on 2026-09-04, and it is the same class that cost this repository six carried scenarios once already. one-library's block now carries named-failures' clause and its three scenarios, so it is a strict superset and syncing it second publishes rather than deletes them. Drains when one-library-three-destinations syncs."
         },
-        "native-experience → \"Dynamic colour\"": {
+        "native-experience \u2192 \"Dynamic colour\"": {
             "order": [
                 "brand-identity-and-app-icons",
                 "publication-detail"
             ],
             "reason": "brand-identity-and-app-icons changes one scenario of this requirement - that the chrome accent is a single colour and the pink-to-violet arc belongs to the identity - and carries the other two unchanged. publication-detail rewrites the same requirement richer. The chrome-accent clause was added to publication-detail's block so the later sync keeps it. Drains when publication-detail syncs."
         },
-        "native-experience → \"Adaptive layout\"": {
+        "native-experience \u2192 \"Adaptive layout\"": {
             "order": [
                 "reader-theming-and-page-transitions",
                 "one-library-three-destinations"
             ],
             "reason": "reader-theming's block is already a subset of one-library-three-destinations', which adds two scenarios about reaching destinations and a window too small for a layout. Nothing needed merging; the order is recorded because no tool can infer it and syncing one-library first would leave reader-theming's later sync deleting those two scenarios."
+        }
+    },
+    "one-library-three-destinations/library-browsing": {
+        "Unified library": {
+            "bullets": {
+                "Default view": [
+                    "each shows its source only when more than one source is configured"
+                ],
+                "Scoping to one source": [
+                    "the view, its search, and its filters apply to that source alone",
+                    "the scope persists until changed"
+                ]
+            },
+            "reason": "Both are reversed on purpose, and the delta says the opposite in the same scenario. The shelf used to name a publication's source when more than one was configured; this change's whole premise is one library, so nothing on the shelf states which source a publication came from. And scoping is replaced by filtering: the delta says in as many words that a source is offered 'as a filter \u2026 and not as a scope the view is in', which is why 'the scope persists until changed' cannot be carried - there is no scope left to persist. Drains when one-library-three-destinations syncs."
+        },
+        "Search": {
+            "bullets": {
+                "Mixed local and server search": [
+                    "server results and local results are merged into one ranked list, each labelled with its source"
+                ]
+            },
+            "reason": "Superseded by a more precise clause in the same scenario rather than dropped. The delta keeps the merging and refines the labelling: each result names the library that supplied it 'but only where more than one place could have answered', because where only one place could answer every row would carry the same words. Carrying the old sentence beside the new one would publish two rules for the same label. Drains when one-library-three-destinations syncs."
+        }
+    },
+    "one-library-three-destinations/sources": {
+        "Source registry": {
+            "bullets": {
+                "Adding the first source": [
+                    "offers to open a local file or folder without configuring anything, so the app is usable in under ten seconds"
+                ]
+            },
+            "reason": "Rewritten longer, not removed. The delta replaces one sentence with five that say what the first screen shows, what the primary and secondary actions do, where the four source types are named and where they are not. The 'under ten seconds' figure goes with it: it was a target rather than an observable behaviour, and every requirement here is meant to be user-observable. Drains when one-library-three-destinations syncs."
         }
     }
 }

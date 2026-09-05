@@ -66,10 +66,20 @@ function requirements(text, section = null) {
         } else if (line.startsWith('### Requirement:')) {
             if (section && heading !== section) { name = null; continue }
             name = line.split(':').slice(1).join(':').trim()
-            found[name] = { scenarios: [], prose: [], shalls: [] }
+            found[name] = { scenarios: [], bullets: {}, prose: [], shalls: [] }
         } else if (name) {
             if (line.startsWith('#### Scenario:')) {
-                found[name].scenarios.push(line.split(':').slice(1).join(':').trim())
+                const title = line.split(':').slice(1).join(':').trim()
+                found[name].scenarios.push(title)
+                found[name].bullets[title] = []
+            } else if (OBLIGATION.test(line)) {
+                // Belongs to the scenario most recently opened. A bullet before any scenario
+                // heading has no scenario to be compared within, and there are none in this
+                // repository.
+                const current = found[name].scenarios.at(-1)
+                if (current) {
+                    found[name].bullets[current].push(clause(line.replace(OBLIGATION, '')))
+                }
             } else if (isProse(line)) {
                 found[name].prose.push(line)
             }
@@ -183,6 +193,22 @@ const contentWords = (sentence) =>
  * A tighter threshold would fill `.delta-drops.json` with permission slips for comma changes,
  * and a file nobody can read is a file nobody reviews.
  */
+/**
+ * A bullet that promises something, as opposed to one that says when.
+ *
+ * `shallSentences` already ends with `.filter((s) => s.includes('shall'))` — this file has
+ * always compared only text that carries an *obligation*, never every sentence. Bullets do not
+ * say SHALL; Gherkin's `THEN` and `AND` are the bullet-level marker for the same thing, and a
+ * `WHEN` states the circumstance a requirement applies under. Re-framing a circumstance is what
+ * a MODIFIED delta is *for*, and nothing is promised to a reader by a WHEN.
+ *
+ * Measured before it was chosen: comparing **every** bullet flags eleven rows across the
+ * corpus, and five are pure noise — every one of them a trigger renamed while the obligation
+ * beneath it was carried intact, three scoring at or below 0.50 on three or four content words,
+ * where no threshold separates them from a real drop. Filtering by role takes that to zero.
+ */
+const OBLIGATION = /^-\s*\*\*(THEN|AND)\*\*\s*/
+
 const SURVIVAL = 0.6
 
 /**
@@ -256,6 +282,34 @@ function audit(root, allowlist) {
                         `${where} → "${name}" would drop ${droppedScenarios.length} scenario(s) `
                         + `on archive: ${droppedScenarios.map((s) => `"${s}"`).join(', ')}. `
                         + 'A MODIFIED requirement replaces the whole block.'
+                    )
+                }
+                // **The bullets inside a scenario the delta *does* carry.**
+                //
+                // A MODIFIED block replaces the whole requirement, so a bullet the delta leaves
+                // out is deleted on merge exactly as a whole scenario is — and the name check
+                // above cannot see it, because the name matched. That is not hypothetical: on
+                // 2026-09-05 `native-experience`'s *Tablet and large screens* lost "with the
+                // content area showing the continue row and the cover grid", unnoted and
+                // unreplaced, and this gate passed.
+                //
+                // Scenario-scoped rather than requirement-scoped: a bullet whose words survive
+                // in a *different* scenario has still been moved out of the one that promised
+                // it. A scenario the delta drops entirely is skipped here, because the check
+                // above already reports it and reporting it twice is what `isProse`'s own
+                // comment warns against.
+                for (const title of target.scenarios) {
+                    if (!entry.scenarios.includes(title) || okScenarios.has(title)) continue
+                    const okBullets = new Set((allowance.bullets?.[title] ?? []).map(clause))
+                    const carried = (entry.bullets[title] ?? []).join(' ')
+                    const dropped = (target.bullets[title] ?? [])
+                        .filter((b) => !survives(carried, b) && !okBullets.has(b))
+                    if (!dropped.length) continue
+                    problems.push(
+                        `${where} → "${name}" / "${title}" would drop ${dropped.length} `
+                        + `bullet(s) on archive:\n      ${dropped.join('\n      ')}\n`
+                        + '      A MODIFIED requirement replaces the whole block. Carry the '
+                        + `bullet, or record the removal in ${ALLOWLIST} with its reason.`
                     )
                 }
                 const okClauses = new Set((allowance.shalls ?? []).map(clause))
@@ -409,6 +463,11 @@ if (process.argv.includes('--self-test')) {
         '- **WHEN** unable',
         '- **THEN** it says so',
         '',
+        '#### Scenario: It reports',
+        '- **WHEN** it has finished',
+        '- **THEN** it names what it did',
+        '- **AND** it says how long the work took, in whole seconds',
+        '',
     ].join('\n')
     const complete = [
         '## MODIFIED Requirements',
@@ -427,6 +486,11 @@ if (process.argv.includes('--self-test')) {
         '- **WHEN** unable',
         '- **THEN** it says so',
         '',
+        '#### Scenario: It reports',
+        '- **WHEN** it has finished',
+        '- **THEN** it names what it did',
+        '- **AND** it says how long the work took, in whole seconds',
+        '',
     ].join('\n')
 
     const run = (deltaBody, allowlist = {}) => {
@@ -440,6 +504,79 @@ if (process.argv.includes('--self-test')) {
     }
 
     cases.push(['a complete MODIFIED block passes', run(complete).length === 0])
+    // **The bullets inside a scenario the delta keeps.** The name matches, so every check
+    // above passes, and the clause is deleted on merge regardless — which is exactly how
+    // `native-experience` lost "with the content area showing the continue row and the cover
+    // grid" on 2026-09-05 with this gate green.
+    const withoutTheAnd = complete.replace(
+        '- **AND** it says how long the work took, in whole seconds\n',
+        ''
+    )
+    cases.push([
+        'a bullet dropped from a scenario the delta keeps fails',
+        run(withoutTheAnd).some(
+            (p) => p.includes('would drop 1 bullet') && p.includes('how long the work took')
+        ),
+    ])
+    // The other half, and the one that decides whether anyone leaves the gate switched on: a
+    // reworded obligation is not a removal. Same promise, different words, above SURVIVAL.
+    cases.push([
+        'a reworded bullet passes',
+        run(
+            complete.replace(
+                'it says how long the work took, in whole seconds',
+                'it says how long the work took, counted in whole seconds'
+            )
+        ).length === 0,
+    ])
+    // The role filter. A `WHEN` states the circumstance a requirement applies under, and
+    // re-framing one is what a MODIFIED delta is for — five of the eleven rows a naive
+    // every-bullet comparison flagged on the real corpus were triggers renamed while the
+    // obligation beneath was carried word for word.
+    cases.push([
+        'a rewritten WHEN passes while its obligations are carried',
+        run(complete.replace('- **WHEN** it has finished', '- **WHEN** the work is over')).length === 0,
+    ])
+    // An obligation demoted to a trigger has not survived. Without this the blob would rescue
+    // it, and a promise would quietly become a precondition.
+    cases.push([
+        'an obligation that survives only inside a WHEN still fails',
+        run(
+            withoutTheAnd.replace(
+                '- **WHEN** it has finished',
+                '- **WHEN** it has finished and says how long the work took, in whole seconds'
+            )
+        ).some((p) => p.includes('would drop 1 bullet')),
+    ])
+    cases.push([
+        'a recorded bullet removal passes',
+        run(withoutTheAnd, {
+            'c/thing': {
+                Thing: {
+                    bullets: { 'It reports': ['it says how long the work took, in whole seconds'] },
+                    reason: 'deliberate',
+                },
+            },
+        }).length === 0,
+    ])
+    // Reported once, in the more useful place. A scenario the delta drops entirely is already
+    // named by the scenario check; adding its bullets would be the double-report `isProse`'s
+    // own comment warns against.
+    cases.push([
+        'a scenario dropped whole is reported as a scenario and not again as bullets',
+        (() => {
+            const found = run(
+                complete.replace(
+                    '#### Scenario: It reports\n- **WHEN** it has finished\n'
+                        + '- **THEN** it names what it did\n'
+                        + '- **AND** it says how long the work took, in whole seconds\n',
+                    ''
+                )
+            )
+            return found.some((p) => p.includes('would drop 1 scenario'))
+                && !found.some((p) => p.includes('bullet(s)'))
+        })(),
+    ])
     cases.push([
         'a dropped scenario fails',
         run(complete.replace('#### Scenario: It cannot\n- **WHEN** unable\n- **THEN** it says so\n', ''))
