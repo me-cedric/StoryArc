@@ -704,6 +704,28 @@ them to the count.
       by what is playing (2.4), and the sentence that tells a listener their voice
       stopped because they opened another book (1.4). The second has a surface now —
       this transport — and still no wording.
+
+      *2026-09-05, checked against the tree.* **One of those two is no longer wanted and the
+      other has no owner.** `readaloud.return` is not needed: `audiobooks-and-playback`
+      replaced `ReadAloudDock` with `PlayerDock`, whose way-back row is labelled `player.back`
+      for a publication being read aloud and `player.open` for a narrated file, with the title
+      and chapter demoted to `accessibilityValue`. Both keys resolve in en, fr, de and es and
+      `pnpm lint`'s `strings:ios` passes; asking the vocabulary slice for a third word would
+      add a key nothing draws. The names in the paragraph above are also stale —
+      `ReadAloudDock` is deleted, and the dock's words are `player.*` in `PlayerFeature`'s
+      catalogue rather than `readaloud.*` in `EpubReaderFeature`'s. The reasoning about
+      catalogues is unchanged and still correct about the module it now applies to.
+
+      **The second word is the open question.** `one-vocabulary-in-four-languages` exists now,
+      and reading its tasks: §1–§3 promote **existing** English literals to keys, §4
+      reconciles keys the two platforms word differently, §5 adds the check that catches a
+      literal. None of those takes a sentence that has never been written on either platform,
+      which is what 1.4's "the listener is told once that the voice stopped" needs. So this
+      task's own instruction — hand it to the vocabulary slice — points at a change whose
+      scope, as drafted, does not accept it. **Not resolved here, because resolving it either
+      way is a decision:** widen that change by one task, or let this one ship a single key
+      with four translations against this task's rule. Everything else 5.5 asks for holds —
+      nothing that has landed ships a new string, on either platform.
 - [ ] **5.6** Screenshots complete and referenced in the handoff, including the
       Android notification, which is a screen a reader sees even though it is not
       a screen the app draws.
