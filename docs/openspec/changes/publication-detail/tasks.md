@@ -677,6 +677,61 @@ when a cover was the resume affordance. Whoever syncs should add a
       `ios-detail-iphone-nocover-dark-{top,foot}.png`) and are identified in that folder's new
       README, so iOS owes nothing here.
 
+      ---
+
+      **The frame named above is on the wrong device, 2026-09-05 — and the decision no
+      longer needs one to be taken.**
+
+      **Wrong device.** The frame owed reads "on a tablet at expanded width". The capture
+      that found the defect is `after-2026-08-31/android-detail-from-a-cover-light.png` at
+      **1080 × 2400 px**, which at that emulator's density is a **411 × 914 dp phone in
+      portrait** — and that folder's README introduces it as "the same journey on the
+      emulator", beside the phone captures rather than the two 1600 × 2560 tablet ones. A
+      tablet frame would photograph a window the defect was never reported in. **The frame
+      owed is the phone in portrait**, light, default text size, on a publication with no
+      series, no year, no description and no cover.
+
+      **And the composition is now arithmetic rather than a judgement about a picture.**
+      `DetailHeroLayout` landed on 2026-09-04 in `4a5aac9c` for a *different* defect — a
+      landscape phone at 800 × 360 dp with the primary action below the fold — and it moved
+      the hero's sizing out of the composable into a pure type with its own suite. This case
+      is untouched by it, deliberately: `DetailHeroLayoutTest.aPortraitPhoneIsUntouched`
+      takes the capture's exact window and asserts the 360 dp cover it has always had. So
+      **the degenerate page's proportions can be computed without an emulator**, from
+      `DetailHeroLayout.kt`'s own constants:
+
+      | | dp |
+      | --- | --- |
+      | Cover well | `min(914 × 0.4, COVER_MAXIMUM 360)` = **360** |
+      | Hero container | `HERO_PADDING 24 × 2 + 360 + HERO_GAP 24 + ACTION_HEIGHT 40` = **472** |
+      | Page viewport (`room`) | 914 − status 24 − app bar 152 − navigation 88 = **650** |
+
+      The hero is **472 of 650 dp, 73% of the viewport**, and on the degenerate page it holds
+      a 240 × 360 dp placeholder well with a glyph in it and a 40 dp button. Below it there is
+      the provenance line and nothing at all — no series line, no year, no description, no
+      series shelf. That is the README's "roughly three fifths of the page is empty",
+      recovered as a number.
+
+      **It is worse on the degenerate page than the table shows**, and that is the part the
+      screenshot could not have said. The title and subtitle ride a `LargeFlexibleTopAppBar`,
+      and `DetailSubtitle` returns early when there is nothing to put in it
+      (`DetailHero.kt:210-215`), so this page's bar has no subtitle and is shorter than the
+      152 dp the table assumes. A shorter bar is *more* room, the cover stays pinned at
+      `COVER_MAXIMUM`, and the empty area grows rather than shrinks. **The one window where
+      the placeholder has the least to justify itself is the window that gives it the most
+      space.**
+
+      **What this pass did not do, and why.** It did not choose the layout answer. The
+      candidates the numbers suggest — capping the well below `COVER_MAXIMUM` when there is
+      no bitmap to show, or taking the side-by-side branch on absence rather than only on a
+      short window — both change what a reader sees, and AGENTS.md §6 wants the frame before
+      the claim, not after it. Picking one from the arithmetic alone would be the preview
+      standing in for the proof that this repository has already been bitten by.
+
+      **So this stays a partial, and the two things owed are now separable:** the phone
+      portrait frame above, and the decision it settles. The arithmetic is on record so
+      whoever has a device spends it on looking rather than on measuring.
+
 ## Phase 3 — Provenance and the seam
 
 - [x] **3.1** The provenance projection: the source's user-given name plus the
