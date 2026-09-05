@@ -1,6 +1,8 @@
 package app.storyarc.feature.library
 
+import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.seriesLine
 
 /**
  * The rest of a publication's series, in volume and chapter order.
@@ -55,11 +57,26 @@ internal fun restOfSeries(publication: Publication, library: List<Publication>):
  * One function for the grid caption and the list caption. Two copies of this rule
  * disagreeing would make the layout toggle change what a publication says it is.
  */
-internal fun seriesLine(publication: Publication): String? {
-    val series = publication.series?.takeIf { it.isNotBlank() } ?: return null
-    val line = publication.number?.takeIf { it.isNotBlank() }?.let { "$series #$it" } ?: series
-    return line.takeIf { !it.equals(publication.displayTitle, ignoreCase = true) }
-}
+internal fun seriesLine(publication: Publication): String? = seriesLine(
+    series = publication.series,
+    number = publication.number,
+    title = publication.displayTitle,
+)
+
+/**
+ * The same rule over a catalogue entry, which is not a [Publication] and does not become one
+ * until it has been fetched.
+ *
+ * Most feeds are generated from filenames, so most entries already read `Harbour Lights #1` as
+ * their *title* — and the detail screen drew the series under it with nothing comparing the
+ * two, saying it twice on every such entry. iOS's `SeriesLine.swift` carries the same overload
+ * for the same reason.
+ */
+internal fun seriesLine(entry: OpdsEntry): String? = seriesLine(
+    series = entry.series,
+    number = entry.seriesIndex?.let { "${it.toInt()}" },
+    title = entry.title,
+)
 
 /**
  * An issue number as a number, so #10 follows #9.

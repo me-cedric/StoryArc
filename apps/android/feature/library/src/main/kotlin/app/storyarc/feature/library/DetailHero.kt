@@ -222,9 +222,12 @@ internal fun DetailTitle(publication: Publication) {
 @Composable
 internal fun DetailSubtitle(publication: Publication) {
     val palette = LocalStoryArcPalette.current
+    // `seriesLine` rather than the series field, because a title inferred from a filename is
+    // usually the series and the number joined back together — so `Broken Transfer.cbz` drew
+    // its own name twice, once as the app bar's title and once here. iOS has had that rule
+    // since its catalogue surfaces needed it; Android had it nowhere.
     val parts = listOfNotNull(
-        publication.series?.takeIf { it.isNotBlank() },
-        publication.number?.takeIf { it.isNotBlank() }?.let { "#$it" },
+        seriesLine(publication),
         publication.year?.toString(),
     )
     if (parts.isEmpty()) return

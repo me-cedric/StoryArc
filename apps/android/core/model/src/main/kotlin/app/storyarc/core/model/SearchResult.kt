@@ -75,7 +75,11 @@ data class SearchResult(
         fun held(publication: Publication, kind: MatchKind): SearchResult = SearchResult(
             kind = kind,
             title = publication.displayTitle,
-            detail = publication.series ?: publication.authors.firstOrNull(),
+            // The series only where it says something the title does not — a standalone whose
+            // series was inferred from its own filename would otherwise make the row repeat
+            // itself, title above and title below.
+            detail = seriesLine(series = publication.series, title = publication.displayTitle)
+                ?: publication.authors.firstOrNull(),
             publicationId = publication.id,
         )
     }

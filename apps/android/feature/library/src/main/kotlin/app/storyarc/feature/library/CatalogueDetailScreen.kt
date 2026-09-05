@@ -282,9 +282,14 @@ private fun Headline(entry: OpdsEntry, isDownloaded: Boolean) {
 
         // Written rather than localised: a series name and a number joined by a hash is the
         // same in every language this app speaks.
-        entry.series?.let { series ->
+        //
+        // Through `seriesLine`, which withholds it when it only repeats the title above. Most
+        // feeds are generated from filenames, so most entries already read `Harbour Lights #1`
+        // as their *title* — and this line said it a second time on every one of them. iOS's
+        // `SeriesLine.swift` names this exact case; Android had no equivalent until 2026-09-05.
+        seriesLine(entry)?.let { line ->
             Text(
-                text = entry.seriesIndex?.let { "$series #${it.toInt()}" } ?: series,
+                text = line,
                 style = MaterialTheme.typography.labelMedium,
                 color = palette.textTertiary,
             )

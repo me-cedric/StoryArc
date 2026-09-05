@@ -75,7 +75,12 @@ class DetailAbsencesTest {
         // would pass this test, which is the shape of a check that cannot fail.
         state.value = full
         compose.waitForIdle()
-        compose.onNodeWithText("Ashfall · #1 · 2024").assertExists()
+        // **`Ashfall #1`, not `Ashfall · #1`, and that is a deliberate change.** The page used
+        // to join the series and the number with its own separator, while the grid caption, the
+        // list caption and iOS all render `seriesLine`'s `Ashfall #1`. One publication read two
+        // ways depending on which surface was showing it. The page now goes through the same
+        // rule, which is also what stops it printing a standalone's title twice.
+        compose.onNodeWithText("Ashfall #1 · 2024").assertExists()
     }
 
     @Test
