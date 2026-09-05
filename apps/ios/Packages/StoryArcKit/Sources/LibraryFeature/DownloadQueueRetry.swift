@@ -10,8 +10,10 @@ public import StoryArcCore
 /// and a re-queued record was picked up only when a reader next enqueued something from a
 /// catalogue. iOS's ``reconsider()`` still has none; this is the caller the retry needed.
 ///
-/// Every queue registers itself while it is alive, weakly, and ``retry(_:)`` asks whichever
-/// of them holds the record as failed to resume it. When one does, the transfer starts now.
+/// Every queue registers itself while it is alive, weakly, and ``retry(_:)`` asks the first
+/// of them that holds the record as failed to resume it — and only that one, because two
+/// catalogue pages can be alive at once over the same store. When one does, the transfer
+/// starts now.
 /// When none is alive, the store's `queued` record stands, and the next queue built reads it
 /// in its `init` and pumps — which is how every record that was mid-flight when the app died
 /// comes back. `DownloadQueueRetryTests` proves both ends.
@@ -43,12 +45,16 @@ extension DownloadQueue {
     @discardableResult
     public static func retry(_ id: Download.ID) -> Bool {
         live = live.filter { $0.queue != nil }
-        var taken = false
+        // The first queue that holds it, and only that one. Two catalogue pages can be alive
+        // at once — a split view, or a page kept in a navigation stack — and both read the
+        // same store, so both hold the same failed record; resuming it on each would start
+        // two transfers of one download and leak the second's continuation. One tap, one
+        // transfer; the store they share is written by the one that ran it.
         for alive in live {
             guard let queue = alive.queue, case .failed = queue.library[id]?.state else { continue }
             queue.resume(id)
-            taken = true
+            return true
         }
-        return taken
+        return false
     }
 }

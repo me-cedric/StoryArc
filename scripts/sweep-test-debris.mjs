@@ -44,11 +44,14 @@ const SUITE_PREFIXES = [
     'cards-',
     'test-',
     'downloads-',
+    'download-retry-',
     'storyarc-',
 ]
 
 /** Scratch-directory prefixes the host tests create under the temp folder. */
-const FOLDER_PREFIXES = ['scan-', 'handed-', 'restore-', 'documents-', 'downloads-', 'storyarc-']
+const FOLDER_PREFIXES = [
+    'scan-', 'handed-', 'restore-', 'documents-', 'downloads-', 'download-retry-', 'storyarc-',
+]
 
 /** A UUID with or without its hyphens, which is what every one of these names ends in. */
 const UUID_TAIL = /[0-9A-Fa-f]{8}-?(?:[0-9A-Fa-f]{4}-?){3}[0-9A-Fa-f]{12}$/

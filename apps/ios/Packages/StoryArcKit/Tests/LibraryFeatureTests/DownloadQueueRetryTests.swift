@@ -124,4 +124,21 @@ struct DownloadQueueRetryTests {
         #expect(DownloadQueue.retry(id) == false)
         #expect(queue.library[id]?.state == .paused(.waitingForWiFi))
     }
+
+    /// Two catalogue pages alive at once — a split view, a page kept in a navigation stack —
+    /// both read the store and both hold the record as failed. One tap is one transfer: the
+    /// first queue takes it and the second is left as it was, rather than both starting the
+    /// same bytes and one continuation never being resumed.
+    @Test("Two live queues holding the same failed record start one transfer, not two")
+    func twoLiveQueues() throws {
+        let id = "twice-\(UUID().uuidString)"
+        let store = try store(holding: Self.failed, id: id)
+        let first = queue(over: store)
+        let second = queue(over: store)
+
+        #expect(DownloadQueue.retry(id) == true)
+
+        let running = [first, second].filter { $0.library[id]?.state == .running }
+        #expect(running.count == 1)
+    }
 }

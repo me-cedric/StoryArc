@@ -10397,35 +10397,6 @@
         }
       }
     },
-    "source.remove.body %lld": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Damit werden %lld Titel aus Ihrer Bibliothek entfernt. Auf Ihrem Gerät wird keine Datei gelöscht, und es wurde nichts heruntergeladen. Ihre Lesepositionen bleiben 30 Tage erhalten."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This removes %lld titles from your library. No files on your device are deleted, and nothing was downloaded. Your reading positions are kept for 30 days."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Esto quita %lld títulos de tu biblioteca. No se borra ningún archivo de tu dispositivo, y no se ha descargado nada. Tus posiciones de lectura se conservan 30 días."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cela retire %lld titres de votre bibliothèque. Aucun fichier de votre appareil n’est supprimé, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours."
-          }
-        }
-      }
-    },
     "source.remove.title %@": {
       "extractionState": "manual",
       "localizations": {
