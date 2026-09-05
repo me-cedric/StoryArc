@@ -189,55 +189,40 @@ public struct LibraryView: View {
     /// list mid-selection and should not lose what they picked.
     @State var selection = LibrarySelection()
 
-    public var body: some View {
-        NavigationStack {
-            libraryColumn
-                .navigationDestination(item: $browsing) { id in
-                    if let source = model.registry[id] { browser(for: source) }
-                }
-        }
-        // The shelf, asked for by name.
-        .onChange(of: showLibrary) { _, _ in browsing = nil }
-        // `local-library`, both halves, through one presentation: a folder picked here is
-        // reachable again after a restart — the security-scoped bookmark in the model — and a
-        // file brought in from elsewhere is copied into storage the app owns, with a refusal
-        // that names it.
-        //
-        // **One, because two did not work.** This was a `.fileImporter` for folders and a
-        // `.importingPublications` for files, stacked on this same view, and SwiftUI presented
-        // only the lower of the two. *Add a folder* therefore opened nothing on a device while
-        // *Open a file* worked, which is the shape the 2026-09-02 sweep photographed by
-        // failing to. ``LocalPickerTests`` counts the presentations so it cannot come back.
-        .pickingLocalLibrary(into: model, pick: $picking)
-        .sheet(isPresented: $isAddingCatalogue) {
-            CatalogueSheet(connection: catalogue) { model.add($0) }
-        }
-        .sheet(isPresented: $isAddingKavita) {
-            KavitaSheet(connection: kavita) { model.add($0) }
-        }
-        .sheet(isPresented: $isAddingShare) {
-            SmbSheet(connection: smb) { model.add($0) }
-        }
-    }
-
-    /// The way in to one source, wherever it is being shown from.
+    /// Which column a collapsed window opens on — see ``LibraryView/container``.
     ///
-    /// Not reachable from the shelf any more, and deliberately so: a configured server is
-    /// not a place to go. It is reached from search, which is the tier `library-browsing`
-    /// calls *reachable* — everything a server has that the app has not cached.
-    func browser(for source: Source) -> some View {
-        SourceBrowser(
-            source: source,
-            pins: pins,
-            credentials: credentials,
-            kavitaProgress: kavitaProgress,
-            lists: model.serverLists,
-            onOpen: onOpen,
-            // Carried in so the server is asked the question the reader already typed,
-            // rather than being opened at its list of libraries with an empty field.
-            searching: serverSearch,
-            onRetry: { await model.test(source) }
-        )
+    /// A phone, and an iPad in Slide Over, collapse the split into one stack, and the platform
+    /// picks which column is on top of it. Left to the platform that is "the last column that
+    /// displays useful information", and the detail column always has a sentence in it, so the
+    /// answer could be the empty pane. This says the shelf. The binding is two-way: choosing a
+    /// cover moves it to `.detail`, and going back moves it home.
+    @State var compactColumn: NavigationSplitViewColumn = .sidebar
+
+    public var body: some View {
+        container
+            // The shelf, asked for by name.
+            .onChange(of: showLibrary) { _, _ in browsing = nil }
+            // `local-library`, both halves, through one presentation: a folder picked here is
+            // reachable again after a restart — the security-scoped bookmark in the model —
+            // and a file brought in from elsewhere is copied into storage the app owns, with
+            // a refusal that names it.
+            //
+            // **One, because two did not work.** This was a `.fileImporter` for folders and a
+            // `.importingPublications` for files, stacked on this same view, and SwiftUI
+            // presented only the lower of the two. *Add a folder* therefore opened nothing on
+            // a device while *Open a file* worked, which is the shape the 2026-09-02 sweep
+            // photographed by failing to. ``LocalPickerTests`` counts the presentations so it
+            // cannot come back.
+            .pickingLocalLibrary(into: model, pick: $picking)
+            .sheet(isPresented: $isAddingCatalogue) {
+                CatalogueSheet(connection: catalogue) { model.add($0) }
+            }
+            .sheet(isPresented: $isAddingKavita) {
+                KavitaSheet(connection: kavita) { model.add($0) }
+            }
+            .sheet(isPresented: $isAddingShare) {
+                SmbSheet(connection: smb) { model.add($0) }
+            }
     }
 
     /// The library itself: the grid or the list, and the chrome that belongs to it.
@@ -258,14 +243,12 @@ public struct LibraryView: View {
     }
 
     private var shelf: some View {
+        // `publicationPages(in:onOpen:)` used to be attached here. It is registered by
+        // ``LibraryView/container`` instead, once per branch — because *which* navigation
+        // container holds the registration is the whole of what makes a cover open a pane
+        // rather than push a page, and this file must not be able to answer that question
+        // twice. See `LibraryPanes.swift`.
         searching(content)
-            // Once, at the root of this stack, for every cover on all three of its surfaces:
-            // the shelf, the on-device set, and the results of a search. The page opens
-            // inside the destination the reader was already on, so going back lands on the
-            // shelf with its scroll position, its filters and its selection intact — which is
-            // what `publication-detail` asks for and what a sheet or a separate stack would
-            // have cost.
-            .publicationPages(in: model, onOpen: onOpen)
             // The title becomes the selection state while one is running, which is the
             // first of the three things Photos, Files and Mail all do and StoryApp did
             // none of: with the count in the navigation bar, no bottom bar has to carry a

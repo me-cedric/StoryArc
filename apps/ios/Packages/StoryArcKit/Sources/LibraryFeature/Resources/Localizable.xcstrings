@@ -2083,6 +2083,36 @@
         }
       }
     },
+    "detail.empty": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wählen Sie ein Cover, um zu sehen, was es ist und woher es kommt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a cover to see what it is and where it came from."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige una portada para ver qué es y de dónde viene."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez une couverture pour voir ce que c’est et d’où cela vient."
+          }
+        }
+      },
+      "comment": "The second pane, before a publication has been chosen. Android carries the same sentence as detail_pane_empty."
+    },
     "detail.gone": {
       "extractionState": "manual",
       "localizations": {

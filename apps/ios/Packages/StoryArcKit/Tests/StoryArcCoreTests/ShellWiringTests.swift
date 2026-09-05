@@ -99,6 +99,40 @@ struct ShellWiringTests {
         )
     }
 
+    /// The phone's shell, pinned by the change that gave the iPad a second pane.
+    ///
+    /// `publication-detail`'s split lives inside the Library destination and touches nothing
+    /// here — but "the shell is untouched" is a claim, and a claim about a file is worth one
+    /// assertion about that file. `native-experience` states the mechanism as a requirement,
+    /// not a preference: iOS "presents it as a tab bar that adapts into a sidebar in a wide
+    /// window". A `NavigationSplitView` promoted to this file would satisfy the four-tab
+    /// tests above by deleting them and satisfy nothing else.
+    ///
+    /// The accessory line is checked without its argument, because
+    /// `tabViewBottomAccessory(isEnabled:)` is iOS 26.1 and the availability branch around it
+    /// is expected to be deleted when the floor moves. What must survive that deletion is the
+    /// slot.
+    @Test(
+        "The phone keeps its tab bar, its minimise behaviour and the player's slot",
+        arguments: [
+            ".tabViewStyle(.sidebarAdaptable)",
+            ".tabBarMinimizeBehavior(.onScrollDown)",
+            "tabViewBottomAccessory",
+        ]
+    )
+    func theShellKeepsItsChrome(modifier: String) throws {
+        let lines = try shellSourceLines()
+        #expect(
+            lines.contains { $0.hasPrefix(".") && $0.contains(modifier) }
+                || lines.contains { $0.contains("content.\(modifier)") },
+            """
+            AppShell.swift no longer applies \(modifier). A phone's shell is not this \
+            change's to move: the tab bar, the way it recedes as covers scroll, and the slot \
+            the player docks in are three separate requirements and this file holds all three.
+            """
+        )
+    }
+
     @Test("Four tabs, one per destination")
     func fourTabs() throws {
         let tabs = tabDeclarations(in: try shellSourceLines())

@@ -130,19 +130,37 @@ private struct PublicationDestination: View {
     }
 }
 
-// `PublicationDetailPlaceholder` used to be here: the sentence `publication-detail` asks a
-// second pane to show "before a publication has been chosen". It is gone rather than wired,
-// because **iOS has no second pane to put it in.**
-//
-// The shell is a `TabView` with `.sidebarAdaptable`, not a `NavigationSplitView` — see
-// ``AppShell`` and ``LibraryView``, which both say why: the platform draws the same three
-// destinations as a tab bar on a phone and as a sidebar on an iPad, and a split view inside
-// one of them would be a second, disagreeing navigation. Each sidebar row is its own
-// `NavigationStack`, and a row is always selected, so there is no moment at which a pane is
-// waiting for a publication to be chosen. A placeholder for a state the platform layout
-// cannot reach is not a placeholder; it is a fourth piece of dead code behind a change whose
-// whole problem was dead code.
-//
-// The scenario is not met, and the tasks file says so rather than this file pretending
-// otherwise. Whoever gives iOS a real split — `publication-detail` task 4.1 — writes the
-// sentence back with the pane it belongs to.
+/// What the detail column says before a publication has been chosen.
+///
+/// **This was deleted on 2026-08-31 and is back with the pane it belongs to.** The tombstone
+/// that stood here was right at the time and is worth keeping in one sentence: iOS had no
+/// second pane, every sidebar row was its own `NavigationStack`, a row was always selected,
+/// and so no state existed in which a pane waited for a cover. A placeholder for an
+/// unreachable state is dead code, and this change's own problem was dead code.
+///
+/// What changed is the shelf, not the shell. ``LibraryView`` composes the Library destination
+/// as a two-column `NavigationSplitView` — see ``LibraryView/container`` for why that is not
+/// the "second, disagreeing navigation" the tombstone feared — so the detail column now has a
+/// documented empty state and `publication-detail`'s *pane before anything is chosen* has
+/// somewhere to be met.
+///
+/// **`detail.empty` is restored rather than written.** The same key, the same four
+/// translations, still word for word what Android's `detail_pane_empty` says — so nothing
+/// this pane shows is a new string for a translator to answer for.
+///
+/// A `ContentUnavailableView` rather than a centred `Text`, because the platform already
+/// draws this shape and a reader has seen it in Mail and Notes: it is the pane saying it is
+/// waiting, not the pane having failed.
+struct PublicationDetailPlaceholder: View {
+    var body: some View {
+        ContentUnavailableView {
+            Label {
+                Text("library.title", bundle: .module)
+            } icon: {
+                Image(systemName: "books.vertical")
+            }
+        } description: {
+            Text("detail.empty", bundle: .module)
+        }
+    }
+}
