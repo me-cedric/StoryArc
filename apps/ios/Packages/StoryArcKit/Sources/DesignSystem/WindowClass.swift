@@ -39,4 +39,20 @@ public enum StoryArcWindowClass: Sendable, Hashable, CaseIterable {
 
     /// Whether this window gets the platform's split navigation rather than a stack.
     public var showsSidebar: Bool { self == .expanded }
+
+    /// The widest a column of reading matter is set, whatever the window can afford.
+    ///
+    /// `ui-revamp-2026-08.md:456` asks for it by name. A 13-inch iPad hands a list the whole
+    /// window, and a settings row or a paragraph of description set 1,300 points wide is one
+    /// the eye loses its place in on the way back to the left margin — the measure, in the
+    /// typographic sense. Covers are exempt: a grid gets *more columns* from a wide window,
+    /// not longer lines, which is why this caps content and never the shelf.
+    ///
+    /// **Moved here from `LibraryFeature.SidebarLayout` on 2026-09-05**, which is where its
+    /// own comment said it belonged — "beside ``sidebarWidthThreshold``", left in the wrong
+    /// module because that slice did not own this file. This slice does. It had to move
+    /// before Settings could take it at all: `SettingsFeature` depends on `DesignSystem` and
+    /// not on `LibraryFeature`, so for as long as the constant lived over there the one
+    /// screen that most needed it was the one screen that could not name it.
+    public static let maxContentWidth: CGFloat = 720
 }

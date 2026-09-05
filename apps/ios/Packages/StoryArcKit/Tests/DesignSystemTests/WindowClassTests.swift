@@ -71,4 +71,15 @@ struct WindowClassTests {
         #expect(StoryArcWindowClass.allCases.count == 2)
         #expect(StoryArcWindowClass.allCases.filter(\.showsSidebar) == [.expanded])
     }
+
+    @Test("The measure is capped above the width that earns a sidebar")
+    func theMeasureIsWiderThanTheThreshold() {
+        // Both numbers are layout constants and a test cannot see a rendered line length, so
+        // what is pinned is the **relationship**, which is the part that can go wrong
+        // silently: a cap at or below `sidebarWidthThreshold` would clamp content in the
+        // narrowest window that has a sidebar at all, and the first sign of it would be a
+        // screenshot nobody was looking at.
+        #expect(StoryArcWindowClass.maxContentWidth > StoryArcWindowClass.sidebarWidthThreshold)
+        #expect(StoryArcWindowClass.maxContentWidth == 720)
+    }
 }

@@ -1046,7 +1046,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
 
 ## Phase 4 — Large screens
 
-- [ ] **4.1** **[K1]** iPad: the sidebar's sections and shelves, with no source
+- [~] **4.1** **[K1]** iPad: the sidebar's sections and shelves, with no source
       entry; shelves touching the leading and trailing edges; the settings measure
       capped. Screenshot: iPad Pro portrait and landscape, and in Split View.
 
@@ -1077,6 +1077,39 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       View are all owed; the iPad shots that do exist
       (`after-2026-08-30/ios-ipad-sidebar-sections-*.png`) are portrait only and
       were taken for the sidebar rather than for this.
+
+      *The settings measure is done, 2026-09-05, and closing it needed one move before the
+      one line.* `SettingsFeature` depends on `DesignSystem` and **not** on `LibraryFeature`,
+      so for as long as `maxContentWidth` lived in `LibrarySidebar.swift` the one screen that
+      most needed it was the one screen that could not name it — which is why a "one-line
+      miss" had gone four call sites without being fixed. `SidebarLayout`'s own comment had
+      already written the answer down: it lives there "only because this slice does not own
+      that file; it belongs beside `StoryArcWindowClass.sidebarWidthThreshold`, and the
+      handoff says so". **This slice does own it**, so it moved:
+      `DesignSystem/WindowClass.swift` now holds `StoryArcWindowClass.maxContentWidth = 720`
+      and `SidebarLayout.maxContentWidth` reads it, so the four existing call sites keep
+      reading as layout and the app still has one number.
+
+      `SettingsView.swift:181-182` takes it — capped, then re-expanded to centre, because a
+      list pinned to the leading edge of a 13-inch window with 600 points of nothing beside
+      it reads as a layout that failed rather than one that chose. Two modifiers rather than
+      a size-class branch: a phone never reaches the cap, so both are inert there.
+
+      Test: `WindowClassTests` gains *"The measure is capped above the width that earns a
+      sidebar"*. A host test cannot see a rendered line length, so what it pins is the
+      **relationship** — a cap at or below `sidebarWidthThreshold` would clamp content in the
+      narrowest window that has a sidebar at all, and the first sign of it would be a
+      screenshot nobody was looking at. 7 tests in that file now. Green.
+
+      **Frames owed** — all four clauses in one pass, and the last is now the interesting one:
+      - iPad Pro **portrait** and **landscape**, the library with the sidebar out, light and
+        dark (4 frames): the sections, the shelves capped at eight with *All shelves* below
+        them, no source entry anywhere, and the horizontal rows running under the sidebar to
+        both edges.
+      - iPad in **Split View**, one narrow slot: the sidebar gone and the shelf reflowed.
+      - **Settings open on a 13-inch iPad**, which is the frame this pass earned and the only
+        one that can show whether 720 is the right number. Before/after would be ideal;
+        after alone still answers the clause.
 - [ ] **4.2** **[K2]** Android: Material's five breakpoints replacing the
       two-valued window class, the collapsed and expanded rail, and the two-pane
       scaffold. Screenshot: compact, medium and expanded, and a foldable half-open.

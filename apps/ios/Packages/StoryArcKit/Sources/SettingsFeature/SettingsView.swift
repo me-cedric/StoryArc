@@ -166,6 +166,20 @@ public struct SettingsView: View {
             } message: {
                 Text("settings.reset.body", bundle: .module)
             }
+            // The measure, capped. `ui-revamp-2026-08.md:456` asks for it by name, and this
+            // is the screen it was written about: a 13-inch iPad hands this list the whole
+            // window, and a settings row whose label sits at the left margin and whose value
+            // sits 1,300 points away is one a reader has to track across. The number is
+            // ``StoryArcWindowClass/maxContentWidth``, the same one the sidebar's own
+            // content, the home surface and the publication page already take — so the app
+            // has one measure and not four.
+            //
+            // Centred, because a list pinned to the leading edge of a wide window with 600
+            // points of nothing beside it reads as a layout that failed rather than one that
+            // chose. Inert on a phone, which never reaches the cap, so this is one modifier
+            // rather than a size-class branch.
+            .frame(maxWidth: StoryArcWindowClass.maxContentWidth)
+            .frame(maxWidth: .infinity)
             .navigationTitle(Text("settings.title", bundle: .module))
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {

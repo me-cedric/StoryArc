@@ -45,7 +45,11 @@ public enum SidebarEntry: Hashable, Sendable {
 /// file; it belongs beside ``StoryArcWindowClass/sidebarWidthThreshold``, and the handoff
 /// says so.
 enum SidebarLayout {
-    static let maxContentWidth: CGFloat = 720
+    /// ``StoryArcWindowClass/maxContentWidth``, which is where this now lives — beside the
+    /// threshold it belongs next to, and inside the module `SettingsFeature` can reach.
+    /// Kept as a name here so the four call sites in this module still read as layout rather
+    /// than as a window class, and so that one number remains one number.
+    static let maxContentWidth: CGFloat = StoryArcWindowClass.maxContentWidth
 }
 
 /// The iPad sidebar's own rows: library sections, then the reader's shelves.
