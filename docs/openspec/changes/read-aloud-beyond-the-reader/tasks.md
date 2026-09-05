@@ -246,6 +246,35 @@ says so and names what is left to watch.
       plus `PlaybackSessionTests.endingWithdraws`. The `if` is still in `AppShell` and not
       inside the bar, for the reason this note gave.
 
+      *2026-09-05, later the same day — the branch is deleted and the floor answers the
+      requirement.* **`AppShell` no longer carries an `#available`, and the empty capsule is
+      gone from every device the app installs on.** The floor moved 26.0 → 26.1 in
+      `apps/ios/project.yml` for this one API, so `tabViewBottomAccessory(isEnabled:)` is
+      reachable unconditionally; the `else` that kept the capsule had no reader left and was
+      removed. `PlaybackAccessory.body` is now one line. That also restores
+      [ADR-0003](../../../decisions/0003-platform-floors.md)'s own stated consequence — *"iOS:
+      no `if #available` branches for design"* — which had been untrue of this app only for
+      as long as the slot needed the branch.
+
+      **The paragraph above is now wrong about the `if` on the way in, and it matters.** There
+      is no `if` in `AppShell` any more: absence is the `isEnabled:` argument, and
+      `PlayerDock.body`'s `if let bar = centre.compact` is the *second* gate, inside the bar.
+      Both are needed and they answer different halves — `isEnabled:` is what stops the
+      platform reserving the space, and the `if let` is what stops an active-but-unrenderable
+      session drawing a half-bar. The note's original reasoning ("the slot is never handed a
+      view to decide about") is what `isEnabled:` now does properly.
+
+      **Nothing in the type system tells the two calls apart**, which is how the empty capsule
+      shipped in the first place, so the revert now has a guard:
+      `ShellWiringTests.theSlotIsWithheldWhenNothingPlays` reads `AppShell.swift`'s code lines
+      — comments filtered, the same precision `tabDeclarations(in:)` uses, because this file's
+      prose quotes both spellings — and fails if the slot is applied without `isEnabled:`, if
+      it is applied more than once, or if an `#available` branch returns. **Proved able to
+      fail** per AGENTS.md §5: reverting the line to
+      `content.tabViewBottomAccessory { if isPlaying { bar } }` failed it by name with the
+      offending line quoted, and the line was put back. It is a source-text tripwire and not
+      pixel evidence — the screenshot below is still owed and this does not stand in for it.
+
       **One thing Phase 2's bodies claim that the shipped bar does not do.** 2.1 says the
       transport "carries the four verbs the lock screen carries", and the delta's *Controlling
       it without going back* asks for pause, resume, **skip a sentence** and end. `PlayerDock`
@@ -257,9 +286,29 @@ says so and names what is left to watch.
       `audiobooks-and-playback`'s file and its documented product decision, so it is recorded
       here rather than reversed from this change. `/opsx:verify` should settle it.
 
+      *Settled, and not by widening the bar.* The owner's decision on 2026-09-05 was to
+      **describe what shipped**: the bar carries pause, resume and end, and every other
+      control of the session — sentence skip included — is one step away in the full player.
+      The delta's *Controlling it without going back* now says exactly that, and the clause
+      that still binds is the second one: reaching skip must stay **one step**, so a later
+      change cannot bury it.
+
+      **One case the delta's new wording does not survive, found reading `PlayerDock` against
+      it.** The chevron into the full player is drawn under `if bar.wayBack == .publication,
+      !isInline` — so in the **inline** placement, which is the tab bar minimised on scroll
+      down, a read-aloud session's bar has no way into the player at all. Its title row goes
+      to the publication. So while the bar is inline, sentence skip is not one step from the
+      transport; it is one step through the book, which is the thing "rather than by finding
+      the publication again" exists to exclude. Not reversed here for the same reason the
+      paragraph above was not: it is `PlayerDock`'s own width argument in
+      `audiobooks-and-playback`'s file, and a third glyph in a strip four destinations wide is
+      the trade that change already refused. **Recorded for `/opsx:verify`**, which is where a
+      reading of the delta against the shipped bar belongs.
+
       **Owed:** the shell on each of the four destinations with no session and with one, light
-      and dark, on a 26.1 simulator — the pair proves the `isEnabled:` branch — and one 26.0
-      frame showing the capsule that the floor still costs.
+      and dark — the pair is what proves `isEnabled:` withholds the height rather than only
+      the bar. No 26.0 frame is owed any more: the floor is 26.1 and there is no second code
+      path to photograph.
 - [~] **2.4** Accessibility: reachable in the reading order, labelled per action,
       and it does not take focus when it appears. Verified with the screen reader
       on, not by reading the code.

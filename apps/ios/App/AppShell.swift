@@ -274,11 +274,17 @@ struct AppShell: View {
 /// The comment left behind said this was the outcome to watch for and named the remedy,
 /// which is the only reason this took one capture rather than an afternoon.
 ///
-/// `tabViewBottomAccessory(isEnabled:)` is that remedy and it is **iOS 26.1** against this
-/// app's 26.0 floor ([ADR-0003](../../docs/decisions/0003-platform-floors.md)), so it costs
-/// the availability branch below — the app's only one. On 26.0 the empty capsule remains:
-/// the old behaviour, not a new defect, and the honest cost of a floor set before the API
-/// existed. Delete the branch when the floor moves.
+/// `tabViewBottomAccessory(isEnabled:)` is that remedy, and it is the *only* thing that
+/// makes `read-aloud-beyond-the-reader`'s "no transport is present anywhere in the app, and
+/// no space is reserved for one" true. It is **iOS 26.1**, and until 2026-09-05 this file
+/// carried the app's only `#available` branch because the floor was 26.0 — below it the
+/// empty capsule remained and the requirement was unmet on the floor itself.
+///
+/// **The floor moved to 26.1 for this API** (`project.yml`, and the reason is written
+/// there), so the branch is gone and the `else` it guarded is unreachable on every device
+/// the app installs on. What that restores is [ADR-0003](../../docs/decisions/0003-platform-floors.md)'s
+/// own consequence — *"iOS: no `if #available` branches for design"* — which had been true
+/// of this app until the slot needed one.
 private struct PlaybackAccessory: ViewModifier {
     let isPlaying: Bool
     /// Passed through to the bar, which sets it. The presentation it drives is attached to the
@@ -287,13 +293,7 @@ private struct PlaybackAccessory: ViewModifier {
     let onReturn: (Publication, URL) -> Void
 
     func body(content: Content) -> some View {
-        if #available(iOS 26.1, *) {
-            content.tabViewBottomAccessory(isEnabled: isPlaying) { bar }
-        } else {
-            content.tabViewBottomAccessory {
-                if isPlaying { bar }
-            }
-        }
+        content.tabViewBottomAccessory(isEnabled: isPlaying) { bar }
     }
 
     /// One slot, one bar, and one session behind it.

@@ -108,10 +108,9 @@ struct ShellWiringTests {
     /// window". A `NavigationSplitView` promoted to this file would satisfy the four-tab
     /// tests above by deleting them and satisfy nothing else.
     ///
-    /// The accessory line is checked without its argument, because
-    /// `tabViewBottomAccessory(isEnabled:)` is iOS 26.1 and the availability branch around it
-    /// is expected to be deleted when the floor moves. What must survive that deletion is the
-    /// slot.
+    /// The accessory line is checked without its argument, because that argument is a
+    /// separate requirement with a test of its own — ``theSlotIsWithheldWhenNothingPlays``.
+    /// What this one pins is that the slot exists at all.
     @Test(
         "The phone keeps its tab bar, its minimise behaviour and the player's slot",
         arguments: [
@@ -129,6 +128,63 @@ struct ShellWiringTests {
             AppShell.swift no longer applies \(modifier). A phone's shell is not this \
             change's to move: the tab bar, the way it recedes as covers scroll, and the slot \
             the player docks in are three separate requirements and this file holds all three.
+            """
+        )
+    }
+
+    /// The slot is *withheld* when nothing plays, not merely handed an empty builder.
+    ///
+    /// **This is the one shell line a screenshot has already caught once.**
+    /// `read-aloud-beyond-the-reader` asks that when no session is running "no transport is
+    /// present anywhere in the app, **and no space is reserved for one**". The first attempt
+    /// wrote `tabViewBottomAccessory { if isPlaying { bar } }`, on the reasoning that an
+    /// empty builder leaves the slot nothing to make room for. A capture of the library with
+    /// no session disproved it: the platform draws the glass capsule regardless, so every
+    /// destination lost that much height to an empty pill. `AppShell.swift`'s own comment
+    /// carries the account.
+    ///
+    /// Nothing in the type system distinguishes the two calls — both compile, both run, and
+    /// the difference is a strip of glass on a device — so reverting to the empty-builder
+    /// form would pass ``theShellKeepsItsChrome`` above, `swift test`, `swiftlint --strict`
+    /// and `xcodebuild build` while silently reserving the space again. Hence a guard on the
+    /// argument itself.
+    ///
+    /// **What this is not.** It reads source text, so it proves the modifier is *declared*
+    /// and never what a device draws — the pixel evidence is `read-aloud-beyond-the-reader`
+    /// task 2.3's screenshot pair and this does not replace it. It is a tripwire against a
+    /// silent revert, which is the failure that actually happened.
+    ///
+    /// The availability branch this used to need is gone: the iOS floor moved to 26.1 for
+    /// this API (`project.yml`), so `isEnabled:` is reachable on every device the app
+    /// installs on and the `else` that kept the capsule has no reader left.
+    @Test("The player's slot is withheld when nothing plays, not handed an empty builder")
+    func theSlotIsWithheldWhenNothingPlays() throws {
+        // Code only. This file's prose quotes both spellings of the call at length — for the
+        // same reason it quotes `Tab(role: .search)` — and a naive search would fail on the
+        // account of the defect while the defect itself went unnoticed. Same precision as
+        // ``tabDeclarations(in:)``.
+        let code = try shellSourceLines().filter { !$0.hasPrefix("//") }
+
+        let applications = code.filter { $0.contains("tabViewBottomAccessory") }
+        #expect(
+            applications.count == 1
+                && applications.allSatisfy { $0.contains("tabViewBottomAccessory(isEnabled:") },
+            """
+            AppShell.swift no longer applies tabViewBottomAccessory(isEnabled:) exactly once. \
+            An empty builder is not an absent accessory — the platform draws the glass \
+            capsule anyway, so every destination loses that height with nothing playing and \
+            read-aloud-beyond-the-reader's "no space is reserved for one" is unmet. \
+            Found: \(applications)
+            """
+        )
+
+        let branches = code.filter { $0.contains("#available(iOS") }
+        #expect(
+            branches.isEmpty,
+            """
+            AppShell.swift declares an availability branch again: \(branches). The floor \
+            moved to 26.1 precisely so this file needs none — ADR-0003's consequence is \
+            "no if #available branches for design", and this file was the app's only one.
             """
         )
     }
