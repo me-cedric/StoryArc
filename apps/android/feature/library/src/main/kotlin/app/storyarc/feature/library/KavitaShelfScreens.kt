@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -36,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.grid.rememberCoverColumns
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcColor
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -81,7 +81,7 @@ fun KavitaCollectionScreen(
         topBar = { ShelfBar(title, onBack) },
     ) { insets ->
         LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 140.dp),
+            columns = rememberCoverColumns(),
             contentPadding = PaddingValues(StoryArcSpace.gutter),
             horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md),

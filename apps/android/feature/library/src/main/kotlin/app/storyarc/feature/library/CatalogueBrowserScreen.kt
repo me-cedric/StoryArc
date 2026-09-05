@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -50,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.catalogue.CatalogueAcquisition
 import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.catalogue.OpdsFacet
+import app.storyarc.core.designsystem.grid.rememberCoverColumns
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -183,7 +183,7 @@ fun CatalogueBrowserScreen(
                 },
             )
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 140.dp),
+                columns = rememberCoverColumns(),
                 contentPadding = PaddingValues(StoryArcSpace.gutter),
                 horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
                 verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),

@@ -40,7 +40,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.grid.steppedForFontScale
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -86,9 +88,13 @@ internal fun CoverList(
     groups: List<MatchGroup> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
-    val thumbnailWidth = 44.dp
     val density = LocalDensity.current
-    val maxPixelSize = remember(density) { with(density) { thumbnailWidth.roundToPx() } }
+    // 44 dp at an ordinary text size and 62 past it: this was the one thumbnail in the app
+    // that read neither the cover ladder nor its step — `design.md` §4.
+    val thumbnailWidth = listThumbnailWidth(density.fontScale)
+    val maxPixelSize = remember(density, thumbnailWidth) {
+        with(density) { thumbnailWidth.roundToPx() }
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -125,6 +131,19 @@ internal fun CoverList(
         }
     }
 }
+
+/** How wide a row's thumbnail is at an ordinary text size. */
+private val THUMBNAIL_WIDTH = 44.dp
+
+/**
+ * How wide a row's thumbnail is, for this reader: 44 dp, or 62 past the ordinary range.
+ *
+ * The same accessibility step the cover ladder takes. A list is scanned by title, and the
+ * title steps with the font; a thumbnail that did not would shrink against it until it read
+ * as a swatch beside a paragraph. Pure, so `CoverLadderStepTest` can assert it without a list.
+ */
+internal fun listThumbnailWidth(fontScale: Float): Dp =
+    THUMBNAIL_WIDTH.steppedForFontScale(fontScale)
 
 @Composable
 @OptIn(ExperimentalFoundationApi::class)

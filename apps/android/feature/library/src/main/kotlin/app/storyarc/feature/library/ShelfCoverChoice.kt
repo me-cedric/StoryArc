@@ -19,13 +19,17 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.grid.BoundedAdaptive
+import app.storyarc.core.designsystem.grid.steppedForFontScale
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -133,11 +137,19 @@ internal fun ShelfCoverPicker(
                 .padding(top = StoryArcSpace.hair, bottom = StoryArcSpace.md),
         )
 
+        // The reader's text size is the second input to a cover's width here as everywhere
+        // else — `design.md` §4. The sheet read neither, so it held 92 dp covers while the
+        // shelf lattice behind it stepped to 210.
+        val fontScale = LocalDensity.current.fontScale
+        val optionMaximum = coverOptionMaximumWidth(fontScale)
         LazyVerticalGrid(
             // Narrower than the shelf lattice: these are single covers rather than composites
             // of four, so they stay legible small, and a collection of forty is a wall to scan
-            // rather than a list to page through.
-            columns = BoundedAdaptive(OPTION_MINIMUM_WIDTH, OPTION_MAXIMUM_WIDTH),
+            // rather than a list to page through. A floor of its own, below the ladder's, for
+            // that reason — and the ladder's step, which is the part it had missed.
+            columns = remember(fontScale) {
+                BoundedAdaptive(coverOptionMinimumWidth(fontScale), optionMaximum)
+            },
             // Bounded by what the sheet has left rather than by a height picked out of the air,
             // and not filled, so a collection of two does not leave half a sheet of nothing.
             modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
@@ -154,6 +166,7 @@ internal fun ShelfCoverPicker(
                     ?.let { member -> publications.firstOrNull { it.id == member.id } }
                 CoverOption(
                     viewModel = viewModel,
+                    width = optionMaximum,
                     tiles = when (option) {
                         ShelfCoverOption.Composite -> CompositeCover.tiles(unchosen)
                         is ShelfCoverOption.Member -> listOf(option.id)
@@ -182,11 +195,25 @@ internal fun ShelfCoverPicker(
     }
 }
 
-/** The narrowest a single cover in the picker still reads as one. */
+/** The narrowest a single cover in the picker still reads as one, at an ordinary text size. */
 private val OPTION_MINIMUM_WIDTH = 92.dp
 
 /** And the widest, so a tablet gets more of them rather than enormous ones. */
 private val OPTION_MAXIMUM_WIDTH = 140.dp
+
+/**
+ * The picker's floor, one accessibility step wider past the ordinary range: 92 → 129.
+ *
+ * Its own floor rather than the ladder's — single covers in a wall to scan — but the ladder's
+ * step, because a caption cramped under a 92 dp cover at font scale 2.0 is the defect
+ * `coverMinimumWidth` steps for. Pure, so `CoverLadderStepTest` can assert it without a sheet.
+ */
+internal fun coverOptionMinimumWidth(fontScale: Float): Dp =
+    OPTION_MINIMUM_WIDTH.steppedForFontScale(fontScale)
+
+/** The picker's cap, stepping with its floor so the wider columns are filled: 140 → 196. */
+internal fun coverOptionMaximumWidth(fontScale: Float): Dp =
+    OPTION_MAXIMUM_WIDTH.steppedForFontScale(fontScale)
 
 /** How thick the ring around the chosen cover is, so it reads as chosen and not as bordered. */
 private val CHOSEN_RING = 3.dp
@@ -204,6 +231,7 @@ private fun CoverOption(
     caption: String,
     isChosen: Boolean,
     isPickable: Boolean,
+    width: Dp,
     onPick: () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -213,7 +241,7 @@ private fun CoverOption(
             .selectable(selected = isChosen, enabled = isPickable, onClick = onPick),
     ) {
         Box {
-            ShelfCover(tiles = tiles, viewModel = viewModel, width = OPTION_MAXIMUM_WIDTH)
+            ShelfCover(tiles = tiles, viewModel = viewModel, width = width)
             if (isChosen) {
                 Box(
                     Modifier

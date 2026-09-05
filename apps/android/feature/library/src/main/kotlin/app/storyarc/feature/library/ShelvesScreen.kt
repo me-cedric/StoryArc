@@ -31,13 +31,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.grid.BoundedAdaptive
+import app.storyarc.core.designsystem.grid.steppedForFontScale
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.kavita.KavitaClient
@@ -196,11 +199,20 @@ fun ShelvesScreen(
     ) { insets ->
         val finished = viewModel.finishedPublications()
 
+        // The lattice's own floor and cap, one accessibility step wider past the ordinary
+        // range — `design.md` §4. A shelf of four covers wants a wider floor than one cover
+        // does; it does not want to be the one grid in the app that ignores the text size.
+        val fontScale = LocalDensity.current.fontScale
         LazyVerticalGrid(
             // Both bounds for the reason `CoverGrid` gives, and a wider minimum than a
             // publication's: a shelf is a composite of four covers, and four covers below
             // about 150 dp stop being four covers.
-            columns = BoundedAdaptive(SHELF_MINIMUM_WIDTH, SHELF_MAXIMUM_WIDTH),
+            columns = remember(fontScale) {
+                BoundedAdaptive(
+                    shelfLatticeMinimumWidth(fontScale),
+                    shelfLatticeMaximumWidth(fontScale),
+                )
+            },
             modifier = Modifier.fillMaxSize().padding(insets),
             contentPadding = PaddingValues(StoryArcSpace.gutter),
             horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),
@@ -358,11 +370,25 @@ fun ShelvesScreen(
     }
 }
 
-/** The narrowest a composite of four covers still reads as four covers. */
+/** The narrowest a composite of four covers still reads as four, at an ordinary text size. */
 private val SHELF_MINIMUM_WIDTH = 150.dp
 
 /** And the widest, so a tablet gets more shelves rather than enormous ones. */
 private val SHELF_MAXIMUM_WIDTH = 220.dp
+
+/**
+ * The lattice's floor, one accessibility step wider past the ordinary range: 150 → 210.
+ *
+ * A floor of its own, because four covers below about 150 dp stop being four covers; the
+ * ladder's step, because the caption under a shelf card is the same caption that cramps under
+ * a cover. Pure, so `CoverLadderStepTest` can assert it without a screen.
+ */
+internal fun shelfLatticeMinimumWidth(fontScale: Float): Dp =
+    SHELF_MINIMUM_WIDTH.steppedForFontScale(fontScale)
+
+/** The lattice's cap, stepping with its floor so the wider columns are filled: 220 → 308. */
+internal fun shelfLatticeMaximumWidth(fontScale: Float): Dp =
+    SHELF_MAXIMUM_WIDTH.steppedForFontScale(fontScale)
 
 /**
  * A section's name and the one sentence that says what its shelves are.

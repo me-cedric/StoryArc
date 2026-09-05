@@ -18,14 +18,17 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.catalogue.OpdsClient
 import app.storyarc.core.catalogue.OpdsCredential
 import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.catalogue.OpdsGroup
 import app.storyarc.core.catalogue.OpdsSection
+import app.storyarc.core.designsystem.grid.steppedForFontScale
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -81,6 +84,10 @@ internal fun CatalogueGroupSection(
         }
 
         if (group.publications.isNotEmpty()) {
+            // A sample's cover keeps a width of its own — this is a row, not a grid, like the
+            // continue-reading run — and steps with the reader's text size as every cover
+            // does; `design.md` §4.
+            val cellWidth = catalogueGroupCoverWidth(LocalDensity.current.fontScale)
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
                 contentPadding = PaddingValues(vertical = StoryArcSpace.hair),
@@ -94,13 +101,28 @@ internal fun CatalogueGroupSection(
                         onSelect = { onSelect(entry) },
                         onDownload = { onDownload(entry) },
                         onRemove = { onRemove(entry) },
-                        modifier = Modifier.width(140.dp),
+                        modifier = Modifier.width(cellWidth),
                     )
                 }
             }
         }
     }
 }
+
+/** How wide a cover in a group's row is at an ordinary text size. */
+private val GROUP_COVER_WIDTH = 140.dp
+
+/**
+ * How wide a cover in a group's row is, for this reader: 140 dp, or 196 past the ordinary
+ * range.
+ *
+ * A width of its own, as every horizontal run of covers in the app has, and the ladder's
+ * step, which this row had missed: the catalogue's grid one tap away widened at an
+ * accessibility text size and its front-page samples did not. Pure, so `CoverLadderStepTest`
+ * can assert it without a feed.
+ */
+internal fun catalogueGroupCoverWidth(fontScale: Float): Dp =
+    GROUP_COVER_WIDTH.steppedForFontScale(fontScale)
 
 /** A section, with its count where the feed gave one. */
 @Composable

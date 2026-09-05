@@ -289,39 +289,37 @@ looks like a music player.
   reading their call sites, because no test of the function can see who declined
   to call it. It enforces it for *those two only*, and names them — the surfaces
   in the table below are the ones it does not reach.
-- **Five surfaces on Android read the accessibility step. Eight do not.** The
-  five: the library grid and the downloads shelf (`rememberCoverColumns`), the
-  library's continue-reading row (`128.dp.steppedForFontScale`), Home's plain
-  shelf runs (`coverMinimumWidth` × 1.25) and Home's Keep reading card (its own
-  200 / 240 / 280 dp tiers, the shared step). The eight, in full — this is the
+- **Every cover surface on Android reads the accessibility step, as of
+  2026-09-06.** Five always did: the library grid and the downloads shelf
+  (`rememberCoverColumns`), the library's continue-reading row
+  (`128.dp.steppedForFontScale`), Home's plain shelf runs (`coverMinimumWidth`
+  × 1.25) and Home's Keep reading card (its own 200 / 240 / 280 dp tiers, the
+  shared step). Eight did not, and the 2026-09-05 review tabulated them — the
   whole list and not a sample, found by grepping `apps/android`'s main sources
   for `GridCells.`, `BoundedAdaptive(`, `.width(` and `widthIn(`, and reading
-  every hit:
+  every hit. Each row now says what it does instead:
 
-  | File | What it states | Whose covers |
-  | --- | --- | --- |
-  | `CatalogueBrowserScreen.kt` | `GridCells.Adaptive(minSize = 140.dp)` | a remote catalogue's |
-  | `KavitaBrowserScreen.kt` | `GridCells.Adaptive(minSize = 140.dp)` | a Kavita server's |
-  | `KavitaShelfScreens.kt` | `GridCells.Adaptive(minSize = 140.dp)` | a Kavita server's |
-  | `CatalogueGroups.kt` | `Modifier.width(140.dp)` | a remote catalogue's |
-  | `ShelfCoverChoice.kt` | `BoundedAdaptive(92.dp, 140.dp)` | **the reader's own** |
-  | `DetailSeriesShelf.kt` | `108.dp` | **the reader's own** |
-  | `ShelvesScreen.kt` | `BoundedAdaptive(150.dp, 220.dp)` | a shelf's four-cover lattice |
-  | `CoverList.kt` | `44.dp` row thumbnail | **the reader's own** |
+  | File | Stated on 2026-09-05 | States now | Whose covers |
+  | --- | --- | --- | --- |
+  | `CatalogueBrowserScreen.kt` | `GridCells.Adaptive(minSize = 140.dp)` | `rememberCoverColumns()` — the ladder, both bounds, the step | a remote catalogue's |
+  | `KavitaBrowserScreen.kt` | `GridCells.Adaptive(minSize = 140.dp)` | `rememberCoverColumns()` | a Kavita server's |
+  | `KavitaShelfScreens.kt` | `GridCells.Adaptive(minSize = 140.dp)` | `rememberCoverColumns()` | a Kavita server's |
+  | `CatalogueGroups.kt` | `Modifier.width(140.dp)` | `catalogueGroupCoverWidth(fontScale)`: 140 → 196 | a remote catalogue's |
+  | `ShelfCoverChoice.kt` | `BoundedAdaptive(92.dp, 140.dp)` | `coverOptionMinimumWidth` / `coverOptionMaximumWidth`: 92 / 140 → 129 / 196 | **the reader's own** |
+  | `DetailSeriesShelf.kt` | `108.dp` | `seriesCellWidth(fontScale)`: 108 → 151 | **the reader's own** |
+  | `ShelvesScreen.kt` | `BoundedAdaptive(150.dp, 220.dp)` | `shelfLatticeMinimumWidth` / `shelfLatticeMaximumWidth`: 150 / 220 → 210 / 308 | a shelf's four-cover lattice |
+  | `CoverList.kt` | `44.dp` row thumbnail | `listThumbnailWidth(fontScale)`: 44 → 62 | **the reader's own** |
 
-  None of the eight reads the font scale at all, so none of them widens when the
-  reader turns text size up and the library grid beside them does; the four
-  `140.dp` ones are also a number that is none of 104 / 132 / 158, and the three
-  `GridCells.Adaptive` ones have no maximum.
-  The first four browse a *remote* source rather than the reader's library,
-  which is the scope line that kept them out of the sweep — a scope line, not a
-  reason. The last four have no such excuse: they are the reader's own covers
-  and they are simply not done. `ShelvesScreen`'s lattice may genuinely want a
-  floor of its own, being four covers rather than one; it should still step.
-  Bringing any of them onto the rule changes what a reader sees and owes an
-  emulator screenshot. The reader's page thumbnails (`ThumbnailStrip.kt`,
-  `GridCells.Adaptive(88.dp)`) are deliberately not on this list: they are
-  pages, not covers.
+  The three remote grids are full-width surfaces with their own `Scaffold`, so
+  the window *is* the shelf and `rememberCoverColumns()` is the right shape for
+  them; nothing in their source gave a scope reason for 140, so none is recorded
+  here. The other five keep a width of their own, and each says why in its
+  KDoc — a row of samples, a wall of single covers, a sidebar of one series, a
+  lattice of four, a thumbnail beside a title — and every one of them now takes
+  the ladder's step at the ladder's boundary. `:feature:library`'s
+  `CoverLadderStepTest` asserts the five figures at 1.0, 1.29, 1.3 and 2.0.
+  The reader's page thumbnails (`ThumbnailStrip.kt`, `GridCells.Adaptive(88.dp)`)
+  are deliberately not on this list: they are pages, not covers.
 - **Neither cover grid spaces its columns with the token named for that gap.**
   `layout.json` defined `coverGap` 14 for it, and both grids use `md` 12 — the
   library grid already did, and the Downloads shelf was moved onto `md` to match

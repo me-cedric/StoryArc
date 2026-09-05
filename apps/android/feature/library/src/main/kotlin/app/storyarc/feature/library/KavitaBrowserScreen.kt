@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -39,6 +38,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.grid.rememberCoverColumns
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.kavita.KavitaAddress
@@ -259,7 +259,7 @@ fun KavitaBrowserScreen(
             }
 
             is KavitaLevel.Series -> LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 140.dp),
+                columns = rememberCoverColumns(),
                 contentPadding = edges,
                 horizontalArrangement =
                     androidx.compose.foundation.layout.Arrangement.spacedBy(StoryArcSpace.md),

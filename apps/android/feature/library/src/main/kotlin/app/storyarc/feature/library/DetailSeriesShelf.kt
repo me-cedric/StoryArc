@@ -24,23 +24,37 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.cover.CoverlessWell
+import app.storyarc.core.designsystem.grid.steppedForFontScale
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcColor
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Publication
 
-/** How wide a cell on this shelf is. Narrower than the library's, because it is a sidebar of one series. */
+/**
+ * How wide a cell on this shelf is at an ordinary text size. Narrower than the library's,
+ * because it is a sidebar of one series.
+ */
 private val SERIES_CELL_WIDTH = 108.dp
 
-/** Enough pixels for a cell this size on the densest screen the app runs on. */
-private const val SERIES_COVER_PIXELS = 400
+/**
+ * How wide a cell on this shelf is, for this reader: 108 dp, or 151 past the ordinary range.
+ *
+ * The same accessibility step the cover ladder takes, for the reason [homeHeroWidth] gives —
+ * a cell that kept its ordinary width while the grid a tap away widened would be the one
+ * shelf on the page still truncating `#12` under its caption. Pure, so `CoverLadderStepTest`
+ * can assert the arithmetic without a page.
+ */
+internal fun seriesCellWidth(fontScale: Float): Dp =
+    SERIES_CELL_WIDTH.steppedForFontScale(fontScale)
 
 /**
  * The rest of the series, as a shelf that behaves like every other shelf.
@@ -63,6 +77,12 @@ internal fun DetailSeriesShelf(
     val palette = LocalStoryArcPalette.current
     val finished = viewModel.finishedPublications()
     val kept = viewModel.keptOffline()
+    val density = LocalDensity.current
+    val cellWidth = seriesCellWidth(density.fontScale)
+    // Decoded at the size it is drawn, as the library grid does, rather than at a pixel
+    // count picked for the ordinary width: a 151 dp cell on a dense screen is a 600 px
+    // cover, and 400 px of it would be visibly soft.
+    val coverPixels = remember(density, cellWidth) { with(density) { cellWidth.roundToPx() } }
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -81,6 +101,8 @@ internal fun DetailSeriesShelf(
                 DetailSeriesCell(
                     publication = publication,
                     viewModel = viewModel,
+                    width = cellWidth,
+                    coverPixels = coverPixels,
                     isFinished = publication.id in finished,
                     isOnDevice = publication.id in kept,
                     onOpen = onOpen,
@@ -102,6 +124,8 @@ internal fun DetailSeriesShelf(
 private fun DetailSeriesCell(
     publication: Publication,
     viewModel: LibraryViewModel,
+    width: Dp,
+    coverPixels: Int,
     isFinished: Boolean,
     isOnDevice: Boolean,
     onOpen: (Publication) -> Unit,
@@ -109,7 +133,7 @@ private fun DetailSeriesCell(
     val palette = LocalStoryArcPalette.current
     var cover by remember(publication.id) { mutableStateOf<Bitmap?>(null) }
     LaunchedEffect(publication.id) {
-        cover = viewModel.cover(publication, SERIES_COVER_PIXELS)
+        cover = viewModel.cover(publication, coverPixels)
     }
 
     val fraction = viewModel.readFraction(publication)
@@ -122,7 +146,7 @@ private fun DetailSeriesCell(
 
     Column(
         modifier = Modifier
-            .width(SERIES_CELL_WIDTH)
+            .width(width)
             .semantics {
                 contentDescription = listOfNotNull(
                     publication.displayTitle,
