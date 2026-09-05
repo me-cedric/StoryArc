@@ -571,6 +571,25 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
 
       **Frames owed:** iPad **portrait**, Downloads and the on-device shelf with something in
       it — 2 frames, light and dark. Everything else this task named exists.
+
+      *The shell was re-read on 2026-09-05 by the pass that gave the iPad a second pane, and
+      not one line of it moved.* That is now a checked claim rather than a sentence in a
+      handoff: `ShellWiringTests` gains *"The phone keeps its tab bar, its minimise behaviour
+      and the player's slot"*, which asserts `.tabViewStyle(.sidebarAdaptable)`,
+      `.tabBarMinimizeBehavior(.onScrollDown)` and `tabViewBottomAccessory` are all still
+      applied in `AppShell.swift`. It was proved able to fail by deleting the first of the
+      three and watching it name that modifier. The accessory is matched without its argument
+      on purpose — `tabViewBottomAccessory(isEnabled:)` is iOS 26.1 and the availability branch
+      around it is meant to be deleted when the floor moves; what must survive that deletion is
+      the slot.
+
+      **The pane was built inside the destination rather than the shell**, and the reason is
+      this change's own `native-experience` delta: *The two platforms reach the same
+      destinations differently* says iOS "presents it as a tab bar that adapts into a sidebar
+      in a wide window", so a `NavigationSplitView` here — or a hybrid that is a split on iPad
+      and tabs on iPhone — would each stop satisfying that requirement on exactly the device
+      the work is for. `LibraryPanes.swift` carries the argument. **No frame is added to this
+      task by it**; the split's own frames are on `publication-detail` task 4.1.
 - [x] **1.3** Verify against the delta that the destination count does not change
       when a source is added, renamed, reordered or removed. A test with nine
       configured sources, on both platforms.
@@ -1413,6 +1432,34 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       two-pane window on iOS to narrow. The clause has nothing to act on there until
       `publication-detail` task 4.3 builds one. Left unticked rather than ticked on one
       platform, per this list's own rule.
+
+      *iOS has a two-pane window as of 2026-09-05, so the clause has something to act on —
+      and the property it asks for is now the platform's rather than the app's.* The Library
+      destination is a two-column `NavigationSplitView` (`LibraryPanes.swift`, built here
+      because this change owns the shell; `publication-detail` task 4.1 carries the argument
+      and the frames). **One container, never two chosen by width**, and that is the decision
+      this clause forced: a branch on the size class would have rebuilt the whole subtree the
+      moment an iPad left Split View, which loses the grid's scroll position — and *A layout
+      the window is too small for* requires widening to restore the second pane "without
+      losing position". The platform's own collapse keeps the promise instead: below the
+      regular size class the split becomes one stack, a cover pushes, and back returns to the
+      shelf.
+
+      So the iOS half is **argued rather than asserted**, which is the weaker of the two
+      states Android is in. A host test cannot narrow a window — `swift test` runs with no
+      window at all — and `PublicationPaneTests` can only pin that the composition is a single
+      split rather than a size-class branch, which it does by reading the source for
+      `if surface == .shelf` and one `NavigationSplitView`. **The frame is owed and it is a
+      sequence of three**, the same shape this task already specifies for Android, at the
+      default text size, light:
+
+      1. An iPad in Split View at a wide slot, a publication chosen, both panes drawn.
+      2. The slot dragged narrow — the page fills it, and the shelf is gone.
+      3. Widened again — both panes, **with the same publication still shown**.
+
+      Walk: manual. Split View needs the app switcher and a drag between two apps, and
+      `XCUIApplication` has no vocabulary for either; `SweepIpadPanes.swift` says so rather
+      than faking it. Still unticked, and now for a different reason: not unmeetable, unwatched.
 
 ## Phase 5 — First run and the empty path
 

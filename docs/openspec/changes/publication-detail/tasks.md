@@ -1085,7 +1085,7 @@ when a cover was the resume affordance. Whoever syncs should add a
 
 ## Phase 4 — Large screens
 
-- [ ] **4.1** iPad: the page as the split's detail column, with the hero art
+- [~] **4.1** iPad: the page as the split's detail column, with the hero art
       carrying under the floating sidebar. Screenshot portrait, landscape and Split
       View.
 
@@ -1120,6 +1120,55 @@ when a cover was the resume affordance. Whoever syncs should add a
       whether the hero art reads as carrying under the sidebar in a `TabView` rather than in a
       split, which is the one thing `backgroundExtensionEffect` here has never been watched
       doing.
+
+      ---
+
+      **The detail column exists, built inside `one-library-three-destinations` on 2026-09-05
+      because that change owns the shell. Captures-only now.**
+
+      **The shell was not replaced, and that was the decision rather than a shortcut.**
+      `native-experience`'s *The two platforms reach the same destinations differently* states
+      the mechanism as a requirement — iOS "presents it as a tab bar that adapts into a sidebar
+      in a wide window" — so a `NavigationSplitView` promoted to `AppShell.swift`, and a hybrid
+      that is a split on iPad and tabs on iPhone, each stop satisfying that sentence on exactly
+      the device this task is about. The split is **inside the Library destination**, which is
+      what this change's own delta names: "the page appears beside **the library**".
+      `LibraryPanes.swift` carries the argument and the two rejected shapes.
+
+      The tombstone at `PublicationRoute.swift` feared "a second, disagreeing navigation". A
+      list and its detail are not a second destination set: nothing in the new file names a
+      destination, and the shell's three are unchanged and unchanged in number.
+      `ShellWiringTests` now pins the tab bar, the minimise behaviour and the player's slot, so
+      "the phone is untouched" is a checked claim rather than a sentence in a handoff.
+
+      **What makes it work is where one line sits.** A `NavigationLink(value:)` resolves
+      against the nearest enclosing container declaring a `navigationDestination` for its type.
+      The leading column declares none and the detail column declares `PublicationRoute`, so a
+      cover falls through to the split — the documented behaviour of `NavigationSplitView`,
+      "tapping a `NavigationLink` that appears in an earlier column sets the view that the
+      stack displays over its root view". Registered in **both** and the leading column wins,
+      the page pushes over the shelf, the second pane never draws, and `swift build`,
+      `swiftlint --strict` and `xcodebuild build` all stay green. `PublicationPaneTests` fails
+      on that mutation, and the mutation was run.
+
+      **What has not been watched.** None of it. There was no simulator in this pass, and the
+      collapse behaviour on a phone — a two-column split becoming one stack, with
+      `preferredCompactColumn` deciding which column is on top — is the half most likely to be
+      wrong in a way only a device shows. **Frames owed, and the walk for each:**
+
+      - iPad **landscape**, a publication chosen, the shelf still beside it —
+        `SweepIpadPaneTests.testCaptureIpadPageBesideTheShelf`, which asserts a second cover is
+        still hittable, because a frame of a page is the same picture whether it was pushed or
+        put in a pane.
+      - iPad **portrait**, both panes — `testCaptureIpadEmptyPanePortrait`. An 11-inch iPad is
+        834 points wide in portrait, which is a *regular* size class, so the split does not
+        collapse and a phone's worth of shelf and a phone's worth of page share the window.
+        This is the frame that says whether 320 is the right floor for the shelf column.
+      - The **hero under the sidebar**, which is this task's own clause and still unwatched:
+        `testCaptureIpadDetail`, now that the page is in a column rather than over the shelf.
+      - **Split View beside another app** — manual. It needs the app switcher and a drag
+        between two apps, which `XCUIApplication` has no vocabulary for. `SweepIpadPanes.swift`
+        says so rather than faking it.
 - [~] **4.2** Android: the detail pane, with predictive back animated by the
       scaffold. Screenshot expanded width, and the narrow-then-widen path.
 
@@ -1244,6 +1293,26 @@ when a cover was the resume affordance. Whoever syncs should add a
       split column writes it back with the pane it belongs to. Until then the
       delta's *pane before anything is chosen* scenario is met on Android and unmet
       on iOS, and this note is where that is written down.
+
+      ---
+
+      **Met on iOS too, 2026-09-05, and 4.1 is what closed it.** The Library destination is a
+      two-column `NavigationSplitView`, so there is a second pane, and
+      `PublicationDetailPlaceholder` is its root — restored to `PublicationRoute.swift` where
+      the tombstone stood, and `detail.empty` restored to `Localizable.xcstrings` with the four
+      translations it had. **No new string ships**: the sentence is still, word for word, what
+      Android's `detail_pane_empty` says in all four locales, which is what the deletion note
+      said it had been.
+
+      `PublicationPaneTests` pins that the detail column's root *is* the sentence. The clause
+      is "one sentence rather than showing an arbitrary publication or an empty rectangle", and
+      a pane rooted on a publication would satisfy every other gate in the repository.
+
+      **This tick means the code exists and something asserts it. Nobody has watched it.** The
+      frame is `SweepIpadPaneTests.testCaptureIpadEmptyPane`, landscape and portrait, listed
+      under 4.1 with the rest of what that task owes.
+      `after-2026-08-31/android-tablet-empty-pane-light.png` is the frame it has to read as the
+      same answer to.
 
 ## Phase 5 — Gates
 
