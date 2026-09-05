@@ -336,11 +336,20 @@ public final class LibraryModel {
     func rebuild() {
         visible = LibraryIndex.arrange(publications, query: query) { self.state(of: $0) }
         matchGroups = LibraryIndex.grouped(publications, query: query) { self.state(of: $0) }
-        // Narrowed to the scope, not to the whole query: the row is what the reader was in
-        // the middle of, and a filter on format has nothing to say about that.
-        continueReading = LibraryIndex.continueReading(
-            LibraryIndex.inScope(publications, query.scope)
-        ) { self.state(of: $0) }
+        // The whole library, narrowed by nothing. This used to apply `query.scope`, on the
+        // argument that "a filter on format has nothing to say about" what a reader is in
+        // the middle of — which was right about format and wrong about the library filter,
+        // and it was written when the continue row lived on the shelf.
+        //
+        // Keep reading is the **home** destination's now. `library-browsing` says the
+        // by-library filter "narrows what the shelf lists and nothing else", and the shelf
+        // is one destination along; `home-screen` builds this surface from reading history
+        // and never from the library's controls. Narrowing it meant a reader who filtered
+        // the shelf to one library found Home quietly missing the book they were reading —
+        // an empty Keep reading reads as *nothing in progress*, which is the one thing it
+        // must never say falsely. Android has never narrowed it, and this is the two
+        // platforms agreeing rather than iOS being changed for its own sake.
+        continueReading = LibraryIndex.continueReading(publications) { self.state(of: $0) }
     }
 
     private func state(of publication: Publication) -> LibraryIndex.Progress {

@@ -49,10 +49,22 @@ public enum LibraryIndex {
     ) -> [Publication] {
         let term = query.search.trimmingCharacters(in: .whitespaces).lowercased()
 
-        // Narrowed to the scope before anything else is asked. `library-browsing`: with a
-        // single source selected "the view, its search, and its filters apply to that
-        // source alone", so nothing outside it should ever reach a filter to be judged.
-        let kept = inScope(publications, query.scope).filter { publication in
+        // Narrowed to the by-library filter **only while nothing is being searched for**.
+        //
+        // This used to narrow unconditionally, quoting `library-browsing`'s old *Scoping to
+        // one source*: "the view, its search, and its filters apply to that source alone".
+        // `one-library-three-destinations` replaced that sentence. Narrowing to one library
+        // is a filter now rather than a scope the view is in, and the requirement says what
+        // it may reach: it "narrows what the shelf lists and nothing else — **search still
+        // covers the whole library**".
+        //
+        // So the filter applies to the listing and stands down for a query. That is what
+        // makes search a destination rather than a view of the shelf: a reader who narrowed
+        // the shelf to one library yesterday and searches for a title today is asking the
+        // library a question, not asking that one library. ``grouped(_:query:locale:progress:)``
+        // inherits this by deriving from here, which is why the rule lives in one place.
+        let searchable = term.isEmpty ? inScope(publications, query.scope) : publications
+        let kept = searchable.filter { publication in
             keeps(publication, query: query, state: progress(publication).state)
                 && (term.isEmpty || rank(publication, matching: term) != nil)
         }

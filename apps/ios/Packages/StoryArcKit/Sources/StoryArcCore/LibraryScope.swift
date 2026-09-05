@@ -79,13 +79,17 @@ public enum LibraryScope: Sendable, Equatable, Hashable, Codable {
 }
 
 extension LibraryIndex {
-    /// The publications one scope shows, before any filter or search.
+    /// The publications the by-library filter leaves on the shelf, before any other filter.
     ///
-    /// Separate from ``arrange(_:query:locale:progress:)`` because the continue-reading row
-    /// needs the same narrowing and none of the rest: `library-browsing` requires a scope
-    /// to apply to "the view, its search, and its filters", and a shortcut row that offered
-    /// a publication from a source the reader has scoped away is a row that leads out of
-    /// the library they asked for.
+    /// **Its second caller has gone, and the reason is worth keeping.** This was separate
+    /// from ``arrange(_:query:locale:progress:)`` so the continue-reading row could take the
+    /// same narrowing and none of the rest, on the old `library-browsing` sentence requiring
+    /// a scope to apply to "the view, its search, and its filters".
+    /// `one-library-three-destinations` replaced that sentence and moved the row: narrowing
+    /// to one library is a filter that "narrows what the shelf lists and nothing else", and
+    /// Keep reading belongs to the home destination. So the row takes the whole library and
+    /// this is the shelf listing's alone — used by `arrange` while nothing is being searched
+    /// for, and by nothing else.
     public static func inScope(
         _ publications: [Publication],
         _ scope: LibraryScope

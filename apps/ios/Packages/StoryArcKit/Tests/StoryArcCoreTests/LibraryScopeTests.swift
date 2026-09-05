@@ -67,11 +67,28 @@ struct LibraryScopeTests {
         #expect(titles(LibraryIndex.arrange(mixedLibrary, query: query, locale: english)) == ["Bone"])
     }
 
-    @Test("A scope narrows the search as well as the shelf")
-    func scopeNarrowsSearch() {
-        // "o" is in Bone and in Maus... and only Bone is on the server.
-        let query = LibraryQuery(search: "o", scope: .source(Self.server))
-        #expect(titles(LibraryIndex.arrange(mixedLibrary, query: query, locale: english)) == ["Bone"])
+    @Test("A scope narrows the shelf and stands down for a search")
+    func scopeLeavesSearchAlone() {
+        // This asserted the opposite until 2026-09-05, quoting `library-browsing`'s old
+        // *Scoping to one source*: "the view, its search, and its filters apply to that
+        // source alone". `one-library-three-destinations` replaced that requirement — the
+        // by-library narrowing "narrows what the shelf lists and nothing else — search
+        // still covers the whole library" — and the code had never followed it.
+        //
+        // **And the case it used to make was vacuous, which is why it never caught this.**
+        // It searched for "o" and expected `["Bone"]`, on a comment reading "'o' is in Bone
+        // and in Maus" — Maus has no "o" in it. Bone was the only match either way, so the
+        // assertion held whether the scope narrowed the search or not.
+        //
+        // "Maus" is the term that can tell them apart: it belongs to no source, so under
+        // the old rule a shelf narrowed to the server answered nothing at all.
+        let query = LibraryQuery(search: "Maus", scope: .source(Self.server))
+        #expect(titles(LibraryIndex.arrange(mixedLibrary, query: query, locale: english)) == ["Maus"])
+
+        // And the shelf underneath it is still narrowed: the filter did not stop applying,
+        // it stopped applying to the question being asked.
+        let unsearched = LibraryQuery(scope: .source(Self.server))
+        #expect(titles(LibraryIndex.arrange(mixedLibrary, query: unsearched, locale: english)) == ["Bone"])
     }
 
     @Test("A publication no source claims belongs only to the whole library")
@@ -193,15 +210,19 @@ struct LibraryScopeTests {
         #expect(LibraryIndex.grouped(mixedLibrary, query: LibraryQuery(), locale: english).isEmpty)
     }
 
-    @Test("Grouping obeys the scope, because it groups what the shelf already shows")
-    func groupedRespectsScope() {
+    @Test("Grouping covers the whole library, because a shelf filter is not a search filter")
+    func groupedIgnoresScope() {
+        // The inverse of what this asserted until 2026-09-05, and for the same reason as
+        // `scopeLeavesSearchAlone` above: grouping derives from `arrange`, so the rule that
+        // the by-library filter stands down for a query is inherited here rather than
+        // re-decided. Both books match "bone"; one is on the server, one in a folder.
         let library = [
             publication("Bone", source: Self.folder),
             publication("Bone Sharps", source: Self.server),
         ]
         let query = LibraryQuery(search: "bone", scope: .source(Self.server))
         let groups = LibraryIndex.grouped(library, query: query, locale: english)
-        #expect(groups.flatMap { titles($0.publications) } == ["Bone Sharps"])
+        #expect(Set(groups.flatMap { titles($0.publications) }) == ["Bone", "Bone Sharps"])
     }
 
     @Test("The library spans every source until it is narrowed to one")

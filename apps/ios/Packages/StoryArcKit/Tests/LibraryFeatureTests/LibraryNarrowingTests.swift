@@ -203,3 +203,86 @@ struct NarrowingRuleTests {
         #expect(once.cleared() == once)
     }
 }
+
+/// What the by-library filter reaches, and the two surfaces it must not.
+///
+/// *Scoping to one source* is one sentence and does most of its work in a subordinate
+/// clause: the filter "narrows what the shelf lists **and nothing else** — search still
+/// covers the whole library". Both halves were broken until 2026-09-05, and neither was
+/// visible from the library screen a reader was looking at.
+///
+/// The narrowing was written when it was a *scope*, against the requirement this change
+/// replaced — "the view, its search, and its filters apply to that source alone" — and the
+/// code went on obeying the old sentence after the delta stopped saying it. So it reached
+/// `LibraryIndex.grouped`, which is what the search destination draws, and it reached
+/// ``LibraryModel/continueReading``, which is what the *home* destination draws.
+///
+/// The second was the worse of the two. Keep reading is absent when it is empty, so a
+/// reader who had filtered the shelf to one library found Home saying they had nothing in
+/// progress — and a surface that states a falsehood by disappearing is not one a screenshot
+/// catches either, because there is nothing in the frame to look wrong.
+@Suite("What the by-library filter reaches")
+@MainActor
+struct NarrowingReachTests {
+
+    private let elsewhere = UUID()
+
+    /// One part-read publication belonging to no source, and a filter narrowed to a library
+    /// that is not it. Nothing here is *in* the narrowed set, which is the point: under the
+    /// old rule every assertion below came back empty.
+    private func model(scopedTo scope: LibraryScope) -> LibraryModel {
+        let publication = Publication(
+            identity: PublicationIdentity(normalizedPath: "/Saga/1.cbz"),
+            format: .cbz,
+            displayTitle: "Saga #1",
+            series: "Saga",
+            number: "1",
+            origin: .inferred
+        )
+
+        let model = LibraryModel()
+        model.publications = [publication]
+        model.locations[publication.id] = URL(filePath: "/library/\(publication.id).cbz")
+        model.progress = [
+            publication.id: ReadingProgress(
+                identity: publication.identity,
+                position: .page(index: 4, of: 20),
+                updatedAt: Date(timeIntervalSince1970: 500)
+            ),
+        ]
+        model.query.scope = scope
+        model.rebuild()
+        return model
+    }
+
+    @Test("Keep reading is the whole library, whatever the shelf is filtered to")
+    func keepReadingIgnoresTheFilter() {
+        let whole = model(scopedTo: .allSources)
+        let narrowed = model(scopedTo: .source(elsewhere))
+
+        // Unchanged either side, rather than merely non-empty: an equality is what says the
+        // filter never reached it, where a count could pass on a library that happened to
+        // leave something inside the narrowed set.
+        #expect(narrowed.continueReading.map(\.id) == whole.continueReading.map(\.id))
+        #expect(!narrowed.continueReading.isEmpty)
+    }
+
+    @Test("The shelf itself is still narrowed, so the filter has not stopped working")
+    func theShelfIsStillNarrowed() {
+        // The guard against fixing the two surfaces by turning the filter off. The
+        // publication belongs to no source, so narrowing to one empties the shelf.
+        #expect(model(scopedTo: .source(elsewhere)).visible.isEmpty)
+        #expect(!model(scopedTo: .allSources).visible.isEmpty)
+    }
+
+    @Test("A search covers the whole library while the shelf is filtered to one")
+    func searchIgnoresTheFilter() {
+        let narrowed = model(scopedTo: .source(elsewhere))
+        narrowed.query.search = "Saga"
+        narrowed.rebuild()
+
+        // What the search destination draws. Empty here until 2026-09-05, on a library the
+        // reader could see the book in.
+        #expect(narrowed.matchGroups.flatMap { $0.publications.map(\.displayTitle) } == ["Saga #1"])
+    }
+}
