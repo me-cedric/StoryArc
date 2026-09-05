@@ -22,7 +22,9 @@ for something the change has since decided against is left unticked with the
 decision cited, never ticked and never dropped. **A `[~]` is a third state**: the code and
 its tests have landed and a named capture has not. `pnpm partial:tasks` counts all three,
 because `openspec-guard` counts only the first two and would otherwise call this change
-archivable. **Twelve of twenty-three are ticked, eight are partial, three are open.**
+archivable. **Twelve of twenty-three are ticked, nine are partial, two are open**, which is what
+`pnpm partial:tasks` counts. The previous wording said eight and three; task 4.1 moved from
+open to partial when the iPad detail column landed.
 
 **Audited against `main` at `6c931e61`, 2026-08-31**, with `path:line` evidence
 read from the source rather than from any note. Two ticks were **withdrawn** in
@@ -36,6 +38,16 @@ was done. Those corrections are in the tasks themselves, because a note that is 
 the code costs more than a missing tick. What could not be done is the photography: every
 frame this change owes is now named by surface, state, appearance and walk, in its own task
 and again on 5.5's list, which is how §6 is discharged by a pass that has no device.
+
+**Worked again on 2026-09-05, later, on `main` at `d904df10` and again with no device.** Three
+things had moved under the notes and are corrected in place: the iPad detail column exists
+(4.1 and 4.3, built inside `one-library-three-destinations`, which owns the shell); the
+vocabulary slice exists and has accepted this page's 31 strings in writing (3.5, whose "there
+is nowhere to hand them" sentence was the premise that expired); and Android's fix for a page
+printing a standalone's title twice had **two untreated iOS twins**, both found by auditing the
+rule rather than the screen — the search row and the series shelf. Both are fixed and
+mutation-proved; see 2.4. **No tick moved.** Everything still partial is partial for the same
+reason it was this morning: a frame nobody has taken.
 
 **Re-verified a second time on 2026-09-05, again with no device, on `main` at `863c49a5`.**
 The point of the pass was to distrust the notes: the previous one had corrected five of them
@@ -639,7 +651,8 @@ when a cover was the resume affordance. Whoever syncs should add a
       than a placeholder — and the Android capture says the composition does not
       hold up.** iOS: no cover `DetailHero.swift:68-83` (a `surfaceRaised` well with
       the format glyph, and the title stated underneath rather than scaled into the
-      well); no series `:120`, whose rule at `SeriesLine.swift:28-33` also drops a
+      well); no series `:120`, whose rule — `StoryArcCore/SeriesLine.swift` since
+      2026-09-05, `LibraryFeature/SeriesLine.swift` before that — also drops a
       series that merely repeats the title; no author or year `:127` guarded by
       `:146-151`; no description `PublicationDetailView.swift:122`; and the wash
       itself absent when there is no cover (`:172`). Android: `DetailHero.kt:152-172`,
@@ -698,6 +711,39 @@ when a cover was the resume affordance. Whoever syncs should add a
       here, which is how the page came to give an **audiobook** a book — `book.closed` was
       hard-coded. So the page's branch *is* the shared well now, and it still never draws the
       title into it, which is the half of the old note that still stands.
+
+      **The series rule audited across the change, 2026-09-05, after Android fixed the page's
+      own version of it in `7dbd89b0`.** That commit's finding is the one this task is about
+      from the other side: a title inferred from a filename is usually the series and the
+      number joined back together, so `Broken Transfer.cbz` carries a series *equal to its own
+      title* — an absence wearing a value. The question was whether the rule holds everywhere
+      this change draws a series under a title. Three answers, and two of them were no.
+
+      1. **The page itself: yes, on both.** `DetailHero.swift:115` has called
+         `seriesLine(for:)` since it was written, which is why the defect was photographed on
+         Android and not on iOS. Verified rather than assumed.
+      2. **The search row: no, on iOS — the twin.** `SearchResult.init(_:kind:)` took
+         `publication.series ?? authors.first` with nothing compared to anything, so a
+         standalone answered a search with its own title above and below, and the `??` never
+         reached the author. Fixed the way Android fixed it: the rule moved to `StoryArcCore`
+         because `SearchResult` is a model type that cannot see `LibraryFeature`, which is the
+         same module boundary that put Android's copy in `core/model`. Nine cases, mutation-proved.
+      3. **The series shelf: no, on iOS — a second whitespace split.** Android's
+         `restOfSeries` trims both sides of the series comparison; `DetailSeriesShelf.rest`
+         compared raw, so `<Series>Bone </Series>` on one issue and `<Series>Bone</Series>` on
+         the next drew one shelf on Android and two on iOS, and a series of nothing but spaces
+         was a name every publication carrying one joined together. This is **the same
+         whitespace-versus-empty divergence** as the description rule above, in a third place:
+         iOS tested emptiness where Android tested blankness, three times, and the frame that
+         caught the first two never went near the third. Two cases, mutation-proved.
+
+      **One found and deliberately not fixed.** `RemoteSearch` builds a catalogue row's detail
+      line from `entry.series` with the same missing comparison — `RemoteSearch.swift:94` and
+      `RemoteSearch.kt:107`. It is **symmetric across the platforms rather than a divergence**,
+      it draws rows this change's own task 2.3 rules out of leading to the page, and choosing
+      between the bare series and the composed `"<series> #<index>"` line is a wording decision
+      that carries a capture. It belongs to the catalogue's own surface. Named here so it is
+      not found a third time.
 
       **What keeps this at a partial is the layout decision and the capture that would settle
       it, and neither is a test.** The frame owed: **Android, the degenerate page on a tablet
@@ -1059,16 +1105,41 @@ when a cover was the resume affordance. Whoever syncs should add a
       `values`, `values-fr`, `values-de` and `values-es`, and every iOS key carries
       `de`, `en`, `es`, `fr`.
 
-      **There is nowhere to hand them, and that is why this task cannot be closed by
-      handing them anywhere.** The vocabulary slice is
-      [`ui-revamp-2026-08.md`](../../../designs/ui-revamp-2026-08.md) §5, sequenced at
-      §7 as slice **A**; `docs/openspec/changes/` holds eight changes and none of them is
-      it. The slice's own note says it is atomic or it is broken — five `.xcstrings` and
-      twenty `strings.xml` in one pass — so opening it as a side effect of this task
-      would be the half-finished vocabulary pass that note forbids. **The task therefore
-      stays open with the decision cited**, per this file's own rule for a task the
-      change has decided against, and the 31 keys are the slice's inheritance rather than
-      this change's debt to repay.
+      ~~**There is nowhere to hand them, and that is why this task cannot be closed by
+      handing them anywhere.**~~ **False since 2026-09-05, and corrected here rather than
+      left to be read as still true.** When that sentence was written,
+      `docs/openspec/changes/` held eight changes and none of them was the vocabulary
+      slice, so the paragraph argued that opening one as a side effect of this task would
+      be the half-finished pass the slice's own note forbids. That argument was sound and
+      its premise has expired.
+
+      **The slice exists: [`one-vocabulary-in-four-languages`](../one-vocabulary-in-four-languages/proposal.md)**,
+      an open change with a proposal, a `localization` delta, a design and 31 tasks. It is
+      [`ui-revamp-2026-08.md`](../../../designs/ui-revamp-2026-08.md) §5, slice **A** of
+      §7, opened whole rather than as a fragment — which is what that note asked for.
+
+      **And it has already accepted this handoff in writing.** Its proposal's *What
+      changes* names the reconciliation as its own work — "the publication page's
+      availability, refusal and 'this one is gone' vocabulary, which the two apps model
+      differently — iOS composes two clauses, Android ships four whole sentences — and
+      which [`publication-detail`](../publication-detail/tasks.md) task 3.5 hands here
+      explicitly." Its *Sequencing* paragraph puts that reconciliation **after this change
+      archives**, because `publication-detail` is not yet a capability under
+      `docs/openspec/specs/`. So the ordering is settled from the other side and needs
+      nothing from here.
+
+      **Do not open a second one, and do not spend that slice's budget here.** The two
+      string models this task found — iOS composing two clauses with a comma against
+      Android's four whole sentences plus a wrapper — are exactly what that change is for,
+      and reconciling them in this one would be the fragment its own note forbids.
+
+      **The task still does not tick, and the reason has changed.** Its constraint is "no
+      new user-facing string ships from this change", and 31 did. That cannot be
+      un-shipped by handing them on. What the handoff discharges is the task's *second*
+      sentence — "hand it to the vocabulary slice rather than adding it here" — which now
+      has a recipient that has accepted. So this stays open with the decision cited, per
+      this file's own rule for a task the change has decided against, and the 31 keys are
+      that slice's inheritance rather than this change's debt to repay.
 
       **One thing checked while counting, because it is the failure `pnpm lint` cannot
       see.** `strings:ios` checks that every *key* resolves in four languages; it cannot
@@ -1473,7 +1544,7 @@ when a cover was the resume affordance. Whoever syncs should add a
       control that makes a neutral page evidence rather than a coincidence; and a section
       saying what `a836e8a2` did *not* record about the five Android detail captures.
 
-      **The list, nine frames or sequences, seven of them still owed as they were:**
+      **The list, eleven frames or sequences, nine of them still owed:**
 
       1. **The three states of the page** — a downloaded local publication, a cached remote
          one, one whose source is unreachable — light and dark, both platforms. Tasks 2.1 and
@@ -1504,6 +1575,27 @@ when a cover was the resume affordance. Whoever syncs should add a
          download a chapter, open its page.
       9. **Still nothing on either platform at the largest text size for this page except
          iOS's `-ax5-` pair**, which predates most of what the page now draws.
+
+      **Two more added 2026-09-05, and both are this pass's own debt** — the series-rule
+      audit under task 2.4 changed two sentences a reader can see on iOS, so AGENTS.md §6
+      binds them the way it bound 3.2's fix. Neither exception applies: nothing is behind a
+      flag, and the frames are the opposite of byte-identical.
+
+      10. **A search row for a standalone, iOS**, light and dark at the default text size.
+          `Broken Transfer.cbz` is the fixture — it is in `--help/` already and it is the one
+          the Android frame caught. The row has to read `Broken Transfer` above and its
+          **author** beneath, where it used to read `Broken Transfer` twice. Walk: Library ▸
+          the search field ▸ type `Broken`. A frame of the row alone is enough; this is a
+          caption, not a path.
+      11. **The series shelf on the page, iOS**, one frame, light, default text size, for a
+          run whose issues do not all spell their series identically. It has to show the whole
+          run rather than the half that matched exactly. This one needs a fixture that does not
+          exist yet: `--help/` has `Tidal Reach 01..03.cbz`, and settling this frame means
+          giving one of them a `ComicInfo.xml` with a trailing space in `<Series>`. **Name that
+          in the capture's README rather than in the picture** — a shelf with three covers on
+          it looks the same whether or not the bug was ever there, so the control is the
+          before-frame taken on the same fixture with the trim reverted, exactly as the
+          increased-contrast pair under 1.4 is read.
 
       **What a device-less pass could do instead, and did:** every frame above is now named to
       the point where taking it is mechanical — which surface, which state, which appearance,
