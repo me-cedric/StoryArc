@@ -488,7 +488,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       cannot be ticked. Screenshots in
       `docs/designs/screenshots/after-2026-08-30/android-shell-*.png`, plus the
       tablet rail in `after-2026-08-31/android-tablet-rail-home-light.png`.
-- [ ] **1.2** **[D] iOS shell.** `TabView` with three `Tab`s, a **fourth destination for
+- [~] **1.2** **[D] iOS shell.** `TabView` with three `Tab`s, a **fourth destination for
       search**, `.tabViewStyle(.sidebarAdaptable)` and the minimize behaviour, around the
       existing library view. Settings and add-source leave the library toolbar.
       Screenshot: each destination, iPhone and iPad, portrait and landscape.
@@ -518,11 +518,40 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       to later slices. That is a defensible hold, and it is still half a clause
       unmet.
 
-      **The landscape captures are owed.** Every iPad PNG in
-      `after-2026-08-30/` is 2064 × 2752 — portrait, all sixteen of them. iPhone
-      light, dark and largest-text are all present
-      (`ios-shell-iphone-{home,home-dark,library-light,library-dark,downloads-dark,search-dark,library-ax5-light}.png`).
-      What is missing is one landscape pass per destination on iPad.
+      **The landscape captures were owed when that was written and are not any more.** The
+      paragraph above described `after-2026-08-30/` and stopped there: every iPad PNG in
+      *that* directory is 2064 × 2752, portrait, all sixteen of them, and the count is right.
+      But `ios-sweep-2026-09-02/` — taken two days later, and its README says so in its own
+      first paragraph, *"an iPad Pro 11-inch in landscape"* — holds **2420 × 1668** frames of
+      every one of the four destinations: `ios-ipad-home`, `ios-ipad-library`,
+      `ios-ipad-downloads` and `ios-ipad-search`, each with a `-dark` twin, plus the sidebar,
+      the list layout, the detail page, the comic reader and an `ax5` pass. That is the
+      landscape pass per destination the clause asked for. `ipad-hero-2026-09-04/` adds two
+      more landscape frames and one explicit portrait one.
+
+      **What is actually missing is two portrait frames.** iPad portrait covers *home* and
+      *library* (`after-2026-08-30/ios-shell-ipad-{home,library-light,library-dark}.png` and
+      `ipad-hero-2026-09-04/ios-ipad-home-in-progress-portrait.png`) and covers neither
+      **Downloads** nor **Search** — search having become a destination after that directory
+      was filled, so its captures are on `quiet-shell-and-search`'s own list rather than
+      missing from anyone's. iPhone light, dark and largest-text are all present, as the note
+      above says.
+
+      *Verified against the tree 2026-09-05*, `Tab` values at `AppShell.swift:137`, `:147`,
+      `:157` and `:172` — four of them, the fourth being the search **destination**, not the
+      role — with `.tabViewStyle(.sidebarAdaptable)` at `:183` and
+      `.tabBarMinimizeBehavior(.onScrollDown)` at `:184`. The line numbers in the paragraphs
+      above have drifted by roughly sixty lines; the facts they assert have not.
+
+      **The add-source hold still holds, and it now has a task number attached.** Both places
+      the direction moves it to are still unbuilt: the rebuilt empty state is **task 5.1**,
+      open on this list, and Settings' connected-libraries screen is `source-lifecycle`'s.
+      Moving it before either exists would take the only way to add a library out of the app.
+      Unticked rather than argued away, with the dependency named so the next reader knows
+      what would close it.
+
+      **Frames owed:** iPad **portrait**, Downloads and the on-device shelf with something in
+      it — 2 frames, light and dark. Everything else this task named exists.
 - [x] **1.3** Verify against the delta that the destination count does not change
       when a source is added, renamed, reordered or removed. A test with nine
       configured sources, on both platforms.
