@@ -257,19 +257,26 @@ looks like a music player.
 - Manga volumes and EPUB covers vary. The cell crops to a consistent shape and
   **letterboxes onto `surfaceSunken` rather than distorting art.**
 - Minimum cover width scales by size class: 104 / 132 / 158 pt.
-- **The two platforms measure different things, and this is not yet a decided
-  divergence.** iOS passes the *shelf's* own width
-  (`coverMinimumWidth(shelfWidth:textSize:)`); Android passes the *window's*
-  (`rememberCoverColumns`), because 600 and 840 are Material's window size-class
-  breakpoints and a content pane measured against them reads a 900 dp window
-  behind a navigation rail as a medium one. The cost is visible: on a 1067 dp
-  tablet the Android library sits in the list pane of a `ListDetailPaneScaffold`,
-  reads the whole window, and takes the 158 pt tier: a pane with under 328 pt of
-  content room then fits a single 168 pt cover, where the same pane measured on
-  its own width would take the 132 pt tier and fit two. Register #4 carries 600
-  and 840 — it is the *pane count* it ties them to, not the cover width, and
-  iOS's own 900 pt cover threshold (`confidentShelfWidth`) is in no register at
-  all. Not a licence to copy the shape — a thing to settle.
+- **Both platforms measure the shelf. Decided on 2026-09-06.** iOS has always
+  passed the *shelf's* own width (`coverMinimumWidth(shelfWidth:textSize:)`).
+  Android's library grid has measured its pane since `9c1b50b9`
+  (`ShelfColumns.of(maxWidth, fontScale)`, pinned by `ShelfColumnsTest`), after
+  a 1067 dp tablet read the whole window from inside the list pane of a
+  `ListDetailPaneScaffold`, took the 158 pt tier, and fitted one 168 pt cover in
+  a pane with under 328 pt of room — where the pane's own width takes the 104 pt
+  tier and fits two. `rememberCoverColumns()` stays, as the window-shaped
+  convenience for a shelf that *is* the window: Downloads and the three
+  remote-browse grids, where the two widths are one number. The thresholds keep
+  one meaning each. 600 and 840 sort a *shelf* into its tier; the *pane count*
+  is `StoryArcWindowClass.showsTwoPanes`, true at 840, and register #4 ties the
+  breakpoints to that count and not to any cover. `:app`'s
+  `ShelvesAskOneRuleTest` holds the shape by name: a shelf drawn inside a pane
+  asks its own width and never the window's, and a full-width shelf asks the
+  window. **Still open, recorded rather than resolved:** the wide tier's
+  threshold. Android takes 158 at a shelf of 840 dp; iOS takes it at 900 pt
+  (`confidentShelfWidth`), and that 900 is in no register. Neither number moves
+  until the two are compared on one tablet — a thing to settle, not a licence to
+  copy either.
 - **A maximum as well as a minimum, always.** A lower bound on its own lets a
   narrow window stretch one cover edge to edge. Android caps at 168 pt; iOS
   derives 1.6 × the minimum, because SwiftUI's `adaptive(minimum:maximum:)`
@@ -280,15 +287,19 @@ looks like a music player.
   step; the artwork is the interface and does not shrink to make room for
   words. The boundary is font scale 1.3, where Android's ordinary Font size
   slider stops and where `DynamicTypeSize.isAccessibilitySize` becomes true.
-- **The two full shelves of the reader's own publications ask one function; they
-  do not restate the ladder.** The library grid and the downloads destination,
-  and the rule they ask lives in `:core:designsystem/grid/CoverColumns.kt` on
-  Android and `LibraryFeature/CoverGrid.swift` on iOS. Both apps had already
-  shipped the downloads shelf carrying a copy that laid the same window out
-  differently. `:app`'s `ShelvesAskOneRuleTest` enforces this for those two by
-  reading their call sites, because no test of the function can see who declined
-  to call it. It enforces it for *those two only*, and names them — the surfaces
-  in the table below are the ones it does not reach.
+- **Every full shelf of covers asks one function; none restates the ladder.**
+  The library grid and the downloads destination were the first two, and the
+  rule they ask lives in `:core:designsystem/grid/CoverColumns.kt` on Android
+  and `LibraryFeature/CoverGrid.swift` on iOS. Both apps had already shipped the
+  downloads shelf carrying a copy that laid the same window out differently.
+  `:app`'s `ShelvesAskOneRuleTest` enforces this by reading the call sites,
+  because no test of the function can see who declined to call it. It names
+  five shelves and sorts them by the room each is drawn in: the library grid is
+  the one shelf drawn inside a pane and must ask its own width
+  (`ShelfColumns.of`); Downloads and the three remote-browse grids are always
+  full-width and ask the window (`rememberCoverColumns()`). The row-, sheet- and
+  thumbnail-shaped surfaces in the table below are outside its reach and are
+  pinned by arithmetic instead.
 - **Every cover surface on Android reads the accessibility step, as of
   2026-09-06.** Five always did: the library grid and the downloads shelf
   (`rememberCoverColumns`), the library's continue-reading row

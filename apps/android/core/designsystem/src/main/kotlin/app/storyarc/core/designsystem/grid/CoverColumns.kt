@@ -118,22 +118,26 @@ fun Dp.steppedForFontScale(fontScale: Float): Dp =
 /**
  * The bounds a cover shelf lays its columns out between, in this window, for this reader.
  *
- * Every shelf in the app asks this and no shelf answers it for itself — that is the whole
- * point of the function existing. The library shelf and the Downloads shelf are two views of
- * one library, and a reader who turns their text size up should not find that one of them
- * reflowed and the other did not.
+ * Every shelf that *is* the window asks this, and no shelf answers it for itself — that is
+ * the whole point of the function existing. The Downloads shelf and the remote-browse grids
+ * are full-width surfaces, and a reader who turns their text size up should not find that
+ * one of them reflowed and another did not.
  *
- * What is shared is the *rule*, not the answer. Two shelves asking this can still show
- * different column counts, and on a tablet they do: the library renders inside the list pane
- * of a `ListDetailPaneScaffold` — a measured ~340 dp of a 1067 dp window — while Downloads is
- * a single full-width surface. Same minimum, same maximum, different room to spend them in.
+ * What is shared is the *rule*, not the answer, and not every shelf hands the rule the same
+ * width. The library grid is drawn inside the list pane of a `ListDetailPaneScaffold` on a
+ * tablet — a measured ~360 dp of a 1067 dp window — and asks `ShelfColumns.of(maxWidth,
+ * fontScale)` in `:feature:library`, which passes the *pane's* width to [coverMinimumWidth]
+ * and [coverMaximumWidth]. Asking the window from inside that pane took the 158 dp tier and
+ * drew one 168 dp cover with 170 dp of pane beside it; `9c1b50b9` fixed it and
+ * `ShelfColumnsTest` pins it.
  *
- * The *window's* width is what is measured, rather than the shelf's own: 600 and 840 are
- * Material's window size-class breakpoints, so measuring a content pane against them would
- * read a 900 dp window behind a navigation rail as a medium one. iOS's
- * `coverMinimumWidth(shelfWidth:textSize:)` measures the shelf instead, and that — not the
- * breakpoint values — is the real divergence between the two platforms here. It is also why
- * the library pane takes the 158 dp tier a 340 dp pane has no use for; see `design.md` §4.
+ * So this function reads the *window's* width because, for its callers, the window is the
+ * shelf. Both platforms measure the shelf — iOS as `coverMinimumWidth(shelfWidth:textSize:)`,
+ * Android here or through `ShelfColumns` — and 600 and 840 sort a *shelf* into its tier. The
+ * window-size-class reading of the same two numbers belongs to the pane count
+ * (`StoryArcWindowClass.showsTwoPanes`, true at 840) and to no cover. What still differs
+ * between the platforms is the wide tier's threshold — 840 dp here, 900 pt on iOS — and
+ * `design.md` §4 records that as open.
  *
  * Both bounds, not just the minimum: [androidx.compose.foundation.lazy.grid.GridCells.Adaptive]
  * has no maximum, so a narrow window stretches its single column to the full width and one

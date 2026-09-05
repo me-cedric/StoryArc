@@ -2,6 +2,7 @@ package app.storyarc
 
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -25,54 +26,92 @@ import org.junit.Test
  * task, which is what makes "it fails the moment a shelf stops asking" true on an incremental
  * run and not only on a clean one.
  *
- * What it deliberately does **not** assert is that the two shelves show the same number of
+ * What it deliberately does **not** assert is that the shelves show the same number of
  * columns. They cannot, and a test saying so would be asserting something untrue of the app:
  * on a tablet the library renders inside the list pane of a `ListDetailPaneScaffold` while
  * Downloads is a full-width surface, so the same bounds are spent in very different rooms.
- * They no longer *measure* the same thing either — see the first test. What is shared is the rule.
+ * They do not *measure* the same thing either, and the second test insists on exactly that.
+ * What is shared is the rule.
  */
 class ShelvesAskOneRuleTest {
 
     /**
-     * The two full grids of the reader's own publications, and the whole of *that* list.
+     * Every full shelf of covers that fills its window, and the whole of *that* list.
      *
-     * Both were written against `design.md` §4 and one of them held a copy of it. This is not
-     * every cover in the app and must not be read as one: eight further surfaces state widths
-     * of their own and take no accessibility step — `CatalogueBrowserScreen`,
-     * `KavitaBrowserScreen`, `KavitaShelfScreens`, `CatalogueGroups`, `ShelfCoverChoice`,
-     * `DetailSeriesShelf`, `ShelvesScreen` and `CoverList`. `design.md` §4 tabulates all
-     * eight with what each states and how the list was arrived at. They are a live gap, not
-     * one this file pretends is closed, and adding one here without converting it would fail
-     * rather than pass.
+     * `rememberCoverColumns` reads the **window**, which is the honest width for a surface
+     * that fills it: for these four the window's width and the shelf's are one number.
+     * `DownloadsDestination` was the one that held a copy of the ladder; the three
+     * remote-browse grids drew `GridCells.Adaptive(140.dp)` — no ladder, no cap, no step —
+     * until 2026-09-06, and are allowed here by name now that they ask the rule.
+     *
+     * This is not every cover in the app and must not be read as one. Five surfaces keep a
+     * width of their own — `CatalogueGroups`, `ShelfCoverChoice`, `DetailSeriesShelf`,
+     * `ShelvesScreen` and `CoverList` — because they are rows, sheets and thumbnails rather
+     * than full shelves; `:feature:library`'s `CoverLadderStepTest` pins their accessibility
+     * step by arithmetic, and `design.md` §4 tabulates all of them.
      */
-    private val shelves = listOf(
+    private val fullWidthShelves = listOf(
         "app/src/main/kotlin/app/storyarc/DownloadsDestination.kt",
+        "feature/library/src/main/kotlin/app/storyarc/feature/library/CatalogueBrowserScreen.kt",
+        "feature/library/src/main/kotlin/app/storyarc/feature/library/KavitaBrowserScreen.kt",
+        "feature/library/src/main/kotlin/app/storyarc/feature/library/KavitaShelfScreens.kt",
+    )
+
+    /**
+     * The one shelf ever drawn inside a pane: the library grid, in the list pane of a
+     * `ListDetailPaneScaffold` on a tablet.
+     *
+     * A shelf drawn inside a pane wants the pane. Asking the window there took the widest
+     * tier and drew one cover across a 360 dp list pane with 170 dp of it left empty — see
+     * `ShelfColumns`, which hands the shelf's own width to the same two bound functions.
+     */
+    private val panedShelves = listOf(
         "feature/library/src/main/kotlin/app/storyarc/feature/library/CoverGrid.kt",
     )
+
+    private val shelves: List<String> get() = fullWidthShelves + panedShelves
 
     /** Where the library shelf's own bounds are assembled. */
     private val bounds =
         listOf("feature/library/src/main/kotlin/app/storyarc/feature/library/ShelfColumns.kt")
 
     /**
-     * Two shapes, and the second is why there are two.
+     * A shelf that fills the window asks the window.
      *
-     * `rememberCoverColumns` reads the **window**, which is what a full-width surface wants.
-     * A shelf drawn inside a pane wants the pane, and asking the window there took the widest
-     * tier and drew one cover across a 360 dp list pane with 170 dp of it left empty — see
-     * `ShelfColumns`, which passes the shelf's own width to the same two bound functions.
-     * What is pinned is that a shelf asks the design system for both bounds, whichever width
-     * it hands them; what is still forbidden is a shelf answering for itself.
+     * Both shapes ask the design system for both bounds; what is forbidden is a shelf
+     * answering for itself. This half pins the window-shaped shape to the shelves that are
+     * entitled to it.
      */
     @Test
-    fun `every publication shelf asks the shared rule for its columns`() {
-        for (shelf in shelves) {
-            val source = read(shelf)
-            val asksTheWindow = source.contains("columns = rememberCoverColumns()")
-            val asksItsOwnWidth = source.contains("ShelfColumns.of(")
+    fun `a full-width shelf asks the window for its columns`() {
+        for (shelf in fullWidthShelves) {
             assertTrue(
                 "$shelf lays covers out without asking the shared bounds",
-                asksTheWindow || asksItsOwnWidth,
+                read(shelf).contains("columns = rememberCoverColumns()"),
+            )
+        }
+    }
+
+    /**
+     * And a shelf drawn inside a pane asks its own width, never the window's.
+     *
+     * This test used to accept either shape for every shelf, which would have let the library
+     * grid go back to reading the window and still pass. `9c1b50b9` made it measure the pane
+     * and `ShelfColumnsTest` pins the arithmetic; this pins the call site from both sides —
+     * the pane's width has to be asked, and the window's must not be, by name.
+     */
+    @Test
+    fun `a shelf drawn inside a pane asks its own width and never the window's`() {
+        for (shelf in panedShelves) {
+            val source = read(shelf)
+            assertTrue(
+                "$shelf is drawn inside a pane and does not ask ShelfColumns for its own width",
+                source.contains("ShelfColumns.of("),
+            )
+            assertFalse(
+                "$shelf is drawn inside a pane and asks the window's width — the 1280 dp" +
+                    " tablet that drew one cover across a 360 dp list pane, back again",
+                source.contains("rememberCoverColumns()"),
             )
         }
     }
