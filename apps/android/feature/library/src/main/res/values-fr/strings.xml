@@ -69,6 +69,7 @@
     <string name="library_filter_decade_label">Années %1$d</string>
     <string name="library_filter_back">Retour à tous les filtres</string>
     <string name="library_filter_clear">Effacer les filtres</string>
+    <string name="library_filter_section_active">Actif</string>
     <plurals name="library_filter_active">
         <item quantity="one">%1$d filtre actif</item>
         <item quantity="other">%1$d filtres actifs</item>

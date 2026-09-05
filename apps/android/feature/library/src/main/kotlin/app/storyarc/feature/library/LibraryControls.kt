@@ -25,6 +25,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.LibraryLayout
@@ -159,8 +163,17 @@ private fun SortChip(query: LibraryQuery, onChange: (LibraryQuery) -> Unit) {
             label = { Text(sortChipLabel(query.sort)) },
         )
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            // Each row states which one it is, because the dot cannot. A `RadioButton` with
+            // a null `onClick` applies no `selectable` modifier and so carries no selected
+            // state into the semantics tree — the same hole `LibraryFilterMenu`'s
+            // `ChosenItem` had, and here the chip's own label at least names the current
+            // sort, so a reader could recover it by leaving the menu.
             LibrarySort.entries.forEach { sort ->
                 DropdownMenuItem(
+                    modifier = Modifier.semantics {
+                        role = Role.RadioButton
+                        selected = query.sort == sort
+                    },
                     text = { Text(stringResource(sort.labelRes)) },
                     leadingIcon = { RadioButton(selected = query.sort == sort, onClick = null) },
                     onClick = { onChange(query.copy(sort = sort)) },
@@ -172,6 +185,10 @@ private fun SortChip(query: LibraryQuery, onChange: (LibraryQuery) -> Unit) {
                 false to R.string.library_sort_descending,
             ).forEach { (ascending, label) ->
                 DropdownMenuItem(
+                    modifier = Modifier.semantics {
+                        role = Role.RadioButton
+                        selected = query.ascending == ascending
+                    },
                     text = { Text(stringResource(label)) },
                     leadingIcon = {
                         RadioButton(selected = query.ascending == ascending, onClick = null)

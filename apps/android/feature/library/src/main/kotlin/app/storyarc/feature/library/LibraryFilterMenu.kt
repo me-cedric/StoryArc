@@ -18,8 +18,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibraryScope
 import app.storyarc.core.model.ReadState
@@ -323,10 +331,25 @@ private fun DecadeValues(
     }
 }
 
-/** A group, and whether the reader has set any of it. */
+/**
+ * A group, and whether the reader has set any of it.
+ *
+ * **The tick is spoken as well as drawn, and it was not until 2026-09-05.** The comment
+ * below has always said the tick is the only thing distinguishing a narrowing group from an
+ * untouched one — and it was drawn with a null `contentDescription` on a row carrying no
+ * state of its own, so it was the only thing for a *sighted* reader and nothing at all for
+ * anybody else. A screen reader heard "Genre", "Tag", "Format" identically while the chip
+ * outside announced three filters active, with no way to find which three.
+ *
+ * `stateDescription` rather than a description on the icon: TalkBack reads it as part of the
+ * row, where an icon's own label is a second thing to land on, and the tick is a fact about
+ * the group rather than an object beside it. It stays null on the icon for that reason.
+ */
 @Composable
-private fun SectionItem(label: String, isActive: Boolean, onClick: () -> Unit) {
+internal fun SectionItem(label: String, isActive: Boolean, onClick: () -> Unit) {
+    val active = stringResource(R.string.library_filter_section_active)
     DropdownMenuItem(
+        modifier = Modifier.semantics { if (isActive) stateDescription = active },
         text = { Text(label) },
         // The tick is the only thing that says a collapsed group is narrowing the
         // view. Without it the badge would report three active filters and the menu
@@ -359,18 +382,43 @@ private fun BackItem(section: FilterSection, onBack: () -> Unit) {
     HorizontalDivider()
 }
 
+/**
+ * One value in a group that takes several, ticked or not.
+ *
+ * **The row carries the state, because the box cannot.** A `Checkbox` handed a null
+ * `onCheckedChange` is an indicator and not a control: Material applies `triStateToggleable`
+ * only when there is something to call, so with no callback the box contributes *no*
+ * semantics at all — not an unchecked state, none. The null is right, since the row is the
+ * click target and a second one inside it would be a second stop offering the same value.
+ * What was missing is the state moving up to the row that kept the tap.
+ */
 @Composable
-private fun CheckedItem(label: String, checked: Boolean, onToggle: () -> Unit) {
+internal fun CheckedItem(label: String, checked: Boolean, onToggle: () -> Unit) {
     DropdownMenuItem(
+        modifier = Modifier.semantics {
+            role = Role.Checkbox
+            toggleableState = ToggleableState(checked)
+        },
         text = { Text(label) },
         leadingIcon = { Checkbox(checked = checked, onCheckedChange = null) },
         onClick = onToggle,
     )
 }
 
+/**
+ * One value in a group that takes exactly one.
+ *
+ * The same hole as [CheckedItem] and the same fix: `RadioButton(onClick = null)` applies no
+ * `selectable` modifier, so which library, which download state and which decade the shelf
+ * is narrowed to were all decidable by eye alone.
+ */
 @Composable
-private fun ChosenItem(label: String, chosen: Boolean, onChoose: () -> Unit) {
+internal fun ChosenItem(label: String, chosen: Boolean, onChoose: () -> Unit) {
     DropdownMenuItem(
+        modifier = Modifier.semantics {
+            role = Role.RadioButton
+            selected = chosen
+        },
         text = { Text(label) },
         leadingIcon = { RadioButton(selected = chosen, onClick = null) },
         onClick = onChoose,
