@@ -631,7 +631,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       `ios-home-iphone-hero-solo-light.png` and `android-home-one-card-light.png`
       (single card), `ios-home-iphone-empty-light.png` and
       `android-home-first-run-dark.png` (Home as the empty state).
-- [ ] **2.2** Test that Home renders complete and unchanged with every source
+- [x] **2.2** Test that Home renders complete and unchanged with every source
       unreachable, and that no shelf appears, reorders or grows when a slow source
       answers. This is the property most likely to regress silently, so it is a
       test rather than an inspection.
@@ -650,6 +650,42 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       late and re-checks that no shelf appeared, reordered or grew. The property is
       argued in a KDoc (`HomeShelves.kt:51-53`) and by the construction of the
       `remember`, which is exactly the kind of proof this task exists to replace.
+
+      *Done, 2026-09-05. Both halves, on both platforms.*
+      `feature/library/…/HomeOfflineTest.kt` is new — 5 tests, mirroring
+      `HomeOfflineTests.swift` fixture for fixture, and comparing the **whole surface**
+      flattened to one list of keyed ids rather than shelf by shelf, so a comparison cannot
+      miss a shelf someone adds later. `HomeOfflineTests.swift` gains the slow-source case.
+
+      **The slow-source clause turned out to be two different claims, and only saying so
+      makes either of them worth asserting.** On Android `isReadableOffline` branches on the
+      source's kind and state, so the property is real work: the test assembles the same
+      library at three points along a source coming back — nothing readable, some readable,
+      everything readable — and requires the flattened surface to be identical at all three.
+      On iOS it is true for a much stronger reason, and the test now says so:
+      `LibraryModel.isReadableNow` is `publication.isOpenable && location(of:) != nil` and
+      **never reads the registry at all**. A publication with no file of its own is dimmed
+      whatever its library is doing, and one with a file is offered whatever its library is
+      doing.
+
+      **A first draft of the iOS test asserted the opposite and failed, which is how that was
+      found.** It expected an attributed publication to become readable when its source
+      connected. It does not, and no clause requires it to — `home-screen` dims what is "not
+      downloaded **and** whose source cannot be reached", and iOS answers the first half
+      only. Recorded rather than quietly adjusted, because two platforms agreeing on what a
+      reader sees by two different routes is the sort of thing a later change breaks on one
+      side without anything noticing.
+
+      **The existing iOS test would have passed vacuously if reused as it stood**, and that
+      is worth writing down too: `model(withEverythingUnreachable:)` configures a source and
+      attributes no publication to it, so its "up" and "down" models differ in the registry
+      and in nothing any shelf can see. The new case builds its own fixture with the issues
+      attributed to the source and the third held only by it, and asserts the three
+      registries genuinely differ before asserting that nothing downstream moved. A test of
+      an absence has to be able to fail.
+
+      Commands: `swift test --filter HomeOfflineTests` (5 passed) and
+      `:feature:library:testDebugUnitTest --tests '*HomeOfflineTest*'` (5 passed).
 - [x] **2.3** **[I1/I2] The on-device destination**, both platforms. Downloads
       content leaves the settings modal; the queue becomes a pinned section that is
       absent when nothing is in flight; storage limits and network policy stay in
