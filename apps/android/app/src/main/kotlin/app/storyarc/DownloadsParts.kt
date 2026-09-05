@@ -191,6 +191,18 @@ internal fun OnDeviceCover(
  * and resume belong to the running `DownloadQueue`, which lives with the browser that
  * started the transfer — a button here would write "paused" into the record while the bytes
  * kept arriving. A control that lies is worse than one that is missing.
+ *
+ * **Except on a failure, where the verb was wrong.** A transfer that has already stopped
+ * cannot be stopped, and this row's only control was *Stop* — under a line reading "Failed
+ * after 3 attempts". `offline-downloads` asks a failed download for "a plain-language reason
+ * and a retry action", and the reason was here without the action. So a failed row offers
+ * *Retry* first and *Remove download* beside it, which is the rule
+ * `:feature:library`'s `DownloadBanner` already followed one screen away.
+ *
+ * **Failed only, not paused.** The banner folds the two together because it sits beside a
+ * live `DownloadQueue` and can call `resume`. This screen cannot: a row paused for Wi-Fi or
+ * for space would be re-queued and would pause again on the next pump, which is a control
+ * that lies about what it did.
  */
 @Composable
 internal fun DownloadQueueRow(
@@ -198,13 +210,22 @@ internal fun DownloadQueueRow(
     canReorder: Boolean,
     onReorder: (Boolean) -> Unit,
     onStop: () -> Unit,
+    /** Puts a failed transfer back in the queue. Never called for any other state. */
+    onRetry: () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
+    val hasFailed = download.state is Download.State.Failed
     // At the accessibility font scales the title and its three controls cannot share a
     // line: the title is squeezed to a couple of characters while *Stop* takes half the
     // row. Above the threshold the row becomes two. iOS makes the same split at
     // `dynamicTypeSize.isAccessibilitySize`.
-    val isStacked = LocalDensity.current.fontScale >= 1.5f
+    //
+    // A failed row splits at every scale, because it carries two word-length buttons rather
+    // than one and *Remove download* is four times the width of *Stop* in every language
+    // this app speaks. It is the tallest row on the screen anyway — the reason and the
+    // attempt count sit under it — so the second line costs nothing it was not already
+    // spending.
+    val isStacked = hasFailed || LocalDensity.current.fontScale >= 1.5f
 
     Column(
         modifier = Modifier
@@ -247,7 +268,13 @@ internal fun DownloadQueueRow(
                     )
                 }
             }
-            TextButton(onClick = onStop) { Text(stringResource(R.string.downloads_stop)) }
+            if (hasFailed) {
+                // Retry first, because it is the thing a reader opened this screen to do.
+                TextButton(onClick = onRetry) { Text(stringResource(R.string.downloads_retry)) }
+                TextButton(onClick = onStop) { Text(stringResource(R.string.downloads_remove)) }
+            } else {
+                TextButton(onClick = onStop) { Text(stringResource(R.string.downloads_stop)) }
+            }
         }
 
         if (isStacked) {
@@ -261,10 +288,9 @@ internal fun DownloadQueueRow(
         }
 
         when (val state = download.state) {
-            // The reason, in the reader's words, and how many times it was tried.
-            // `offline-downloads` requires "a plain-language reason and a retry action"; the
-            // retry belongs to the running queue, which is why the count is shown rather
-            // than hidden behind a button that cannot reach it.
+            // The reason, in the reader's words, and how many times it was tried — the
+            // "plain-language reason" half of `offline-downloads`' Failure scenario. The
+            // "retry action" half is the button above, which this line used to stand in for.
             is Download.State.Failed -> Text(
                 text = pluralStringResource(
                     R.plurals.downloads_failed,
@@ -299,7 +325,7 @@ internal fun DownloadQueueRow(
 }
 
 /**
- * Confirmed, because it deletes bytes — and worded for the act, because they are three acts.
+ * Confirmed, because it deletes bytes — and worded for the act, because they are four acts.
  *
  * `offline-downloads` says the app "never deletes a download without asking", and although
  * that sentence is about the low-storage case, a reader's own long press deserves the same
@@ -328,7 +354,7 @@ internal fun RemoveDownloadDialog(
     )
 }
 
-/** The promise each of the three acts makes, in the reader's words. */
+/** The promise each of the four acts makes, in the reader's words. */
 @Composable
 private fun removalSentence(question: DownloadQueueRemoval, download: Download): String =
     when (question) {
@@ -338,6 +364,9 @@ private fun removalSentence(question: DownloadQueueRemoval, download: Download):
         // and can be started again.
         DownloadQueueRemoval.STOPPING ->
             stringResource(R.string.downloads_stop_body, download.title)
+        // The same absence, without the claim that anything is being interrupted.
+        DownloadQueueRemoval.DISCARDING ->
+            stringResource(R.string.downloads_remove_body_unfinished, download.title)
         // `local-library` asks for more of this sentence than a download needs. Deleting an
         // imported copy "confirms, naming the title and the space to be freed, and states
         // that the original file elsewhere is untouched" — the last clause because an import

@@ -15,7 +15,9 @@ import org.junit.Test
  * transfer with no copy on the device and no reading position to keep. One string doing two
  * jobs, and both sentences of it false in the case the September sweep photographed.
  *
- * iOS's `DownloadQueueRemovalTests` is this suite, case for case.
+ * iOS's `DownloadQueueRemovalTests` is this suite, case for case, minus [DISCARDING] — which
+ * exists here because this platform's queue row offers *Remove* on a failed transfer and
+ * iOS's does not.
  */
 class DownloadQueueRemovalTest {
 
@@ -28,7 +30,6 @@ class DownloadQueueRemovalTest {
             Download.State.Paused(Download.Pause.BY_READER),
             Download.State.Paused(Download.Pause.WAITING_FOR_WIFI),
             Download.State.Paused(Download.Pause.OUT_OF_SPACE),
-            Download.State.Failed(reason = "The server did not answer in time.", attempts = 3),
         )
         moving.forEach { state ->
             assertEquals(
@@ -37,6 +38,20 @@ class DownloadQueueRemovalTest {
                 DownloadQueueRemoval.of(download(state)),
             )
         }
+    }
+
+    /**
+     * And one that stopped by itself is neither.
+     *
+     * "This stops the transfer" is as untrue of a failed download as the removal sentence is
+     * of a running one — the transfer stopped three attempts ago. The row offers *Remove*
+     * here rather than *Stop*, so the question has to be a removal that promises nothing
+     * about a copy.
+     */
+    @Test
+    fun `a failed transfer is discarded, not stopped`() {
+        val failed = Download.State.Failed(reason = "The server did not answer in time.", attempts = 3)
+        assertEquals(DownloadQueueRemoval.DISCARDING, DownloadQueueRemoval.of(download(failed)))
     }
 
     /** A finished download is the case the old string was actually written for. */

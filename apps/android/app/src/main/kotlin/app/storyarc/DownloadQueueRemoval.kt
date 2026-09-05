@@ -19,8 +19,12 @@ import app.storyarc.core.persistence.ImportedCopies
  * deliberately rather than inherited. This is where the telling apart happens, and the
  * ordering below is what its tests pin.
  *
- * It is iOS's `DownloadQueueRemoval`, member for member; that file's header carries the
- * same reasoning and its tests carry the same cases.
+ * **It is iOS's `DownloadQueueRemoval` with one member more.** iOS tells three cases apart —
+ * stop, remove, remove import — because its queue row offers only *Stop*. This row offers
+ * *Remove* on a failed transfer, which is a fourth question: the transfer has already
+ * stopped, so "this stops the transfer" would be as untrue as the sentence this whole file
+ * exists to correct. iOS's queue row has the same gap and is untouched here; this change is
+ * Android-only by its brief.
  */
 internal enum class DownloadQueueRemoval {
 
@@ -29,6 +33,13 @@ internal enum class DownloadQueueRemoval {
      * only that the transfer stops and can be started again.
      */
     STOPPING,
+
+    /**
+     * Stopped by itself and being cleared out of the queue. The reader pressed *Remove* and
+     * not *Stop*, so the question is a removal — of a download that never landed, which is
+     * why it cannot borrow [REMOVING]'s sentence about a copy and a reading position.
+     */
+    DISCARDING,
 
     /**
      * On the device, fetched from a source. The copy goes and the reading position stays,
@@ -49,7 +60,7 @@ internal enum class DownloadQueueRemoval {
     val titleRes: Int
         get() = when (this) {
             STOPPING -> R.string.downloads_stop_title
-            REMOVING, REMOVING_IMPORT -> R.string.downloads_remove_title
+            DISCARDING, REMOVING, REMOVING_IMPORT -> R.string.downloads_remove_title
         }
 
     /**
@@ -62,7 +73,7 @@ internal enum class DownloadQueueRemoval {
     val confirmRes: Int
         get() = when (this) {
             STOPPING -> R.string.downloads_stop_confirm
-            REMOVING, REMOVING_IMPORT -> R.string.downloads_remove
+            DISCARDING, REMOVING, REMOVING_IMPORT -> R.string.downloads_remove
         }
 
     companion object {
@@ -70,19 +81,20 @@ internal enum class DownloadQueueRemoval {
         /**
          * What this download's confirmation is about.
          *
-         * **Landed first, imported second.** An import is written into the record as
-         * `Queued` and marked finished on the next line, so a record caught between the two
-         * is an import that has not landed — and the import sentence would promise to free a
-         * size the reader never had. Asking whether it has arrived before asking where it
-         * came from is what keeps that impossible.
+         * **Landed first, then failed, then where it came from.** An import is written into
+         * the record as `Queued` and marked finished on the next line, so a record caught
+         * between the two is an import that has not landed — and the import sentence would
+         * promise to free a size the reader never had. Asking whether it has arrived before
+         * asking anything else is what keeps that impossible.
+         *
+         * A paused download is a [STOPPING], not a [DISCARDING]: its row still offers *Stop*
+         * rather than *Remove*, for the reason [DownloadQueueRow] gives.
          */
-        fun of(download: Download): DownloadQueueRemoval =
-            if (!download.state.isFinished) {
-                STOPPING
-            } else if (ImportedCopies.isImported(download)) {
-                REMOVING_IMPORT
-            } else {
-                REMOVING
-            }
+        fun of(download: Download): DownloadQueueRemoval = when {
+            download.state.isFinished ->
+                if (ImportedCopies.isImported(download)) REMOVING_IMPORT else REMOVING
+            download.state is Download.State.Failed -> DISCARDING
+            else -> STOPPING
+        }
     }
 }

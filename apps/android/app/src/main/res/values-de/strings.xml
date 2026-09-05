@@ -41,6 +41,8 @@
     <string name="downloads_stop_title">Diesen Download stoppen?</string>
     <string name="downloads_stop_body">Dies stoppt die \u00dcbertragung von %1$s. Nichts davon bleibt auf diesem Ger\u00e4t, und er kann erneut heruntergeladen werden.</string>
     <string name="downloads_stop_confirm">Download stoppen</string>
+    <string name="downloads_remove_body_unfinished">Nichts von %1$s ist auf diesem Ger\u00e4t angekommen. Er verl\u00e4sst die Warteschlange, und er kann erneut heruntergeladen werden.</string>
+    <string name="downloads_retry">Erneut</string>
     <plurals name="downloads_failed">
         <item quantity="one">Nach %2$d Versuch fehlgeschlagen: %1$s</item>
         <item quantity="other">Nach %2$d Versuchen fehlgeschlagen: %1$s</item>

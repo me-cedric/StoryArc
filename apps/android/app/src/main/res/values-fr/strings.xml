@@ -41,6 +41,8 @@
     <string name="downloads_stop_title">Arr\u00eater ce t\u00e9l\u00e9chargement ?</string>
     <string name="downloads_stop_body">Cela arr\u00eate le transfert de %1$s. Rien n\u2019en est conserv\u00e9 sur cet appareil, et il peut \u00eatre t\u00e9l\u00e9charg\u00e9 \u00e0 nouveau.</string>
     <string name="downloads_stop_confirm">Arr\u00eater le t\u00e9l\u00e9chargement</string>
+    <string name="downloads_remove_body_unfinished">Rien de %1$s n\u2019est arriv\u00e9 sur cet appareil. Il quitte la file d\u2019attente, et il peut \u00eatre t\u00e9l\u00e9charg\u00e9 \u00e0 nouveau.</string>
+    <string name="downloads_retry">R\u00e9essayer</string>
     <plurals name="downloads_failed">
         <item quantity="one">\u00c9chec apr\u00e8s %2$d tentative : %1$s</item>
         <item quantity="many">\u00c9chec apr\u00e8s %2$d tentatives : %1$s</item>

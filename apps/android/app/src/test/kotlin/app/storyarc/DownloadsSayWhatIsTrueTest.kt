@@ -17,12 +17,16 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * What the Downloads destination's confirmation told a reader that was not true.
+ * The two things the Downloads destination told a reader that were not true.
  *
- * *Stop*, on a row still arriving, put up *Remove this download?* — "This deletes the copy of
- * Harbour Lights 03 on this device. Your reading position is kept, and it can be downloaded
- * again." There is no copy on the device and there is no reading position. Both halves of the
- * sentence were false.
+ * **The confirmation.** *Stop*, on a row still arriving, put up *Remove this download?* —
+ * "This deletes the copy of Harbour Lights 03 on this device. Your reading position is kept,
+ * and it can be downloaded again." There is no copy on the device and there is no reading
+ * position. Both halves of the sentence were false.
+ *
+ * **The control.** A transfer that had already failed offered one action, and it was *Stop*.
+ * `offline-downloads` asks a failed download for "a plain-language reason and a retry
+ * action"; the row had the reason and no action but the wrong verb.
  *
  * [DownloadQueueRemovalTest] pins which question is asked. This pins that the screen asks it
  * — a pure type with no caller draws nothing, and the defect was in what was drawn.
@@ -58,6 +62,17 @@ class DownloadsSayWhatIsTrueTest {
         compose.onNodeWithText(string(R.string.downloads_remove_body, TITLE)).assertDoesNotExist()
     }
 
+    /** A failed transfer is removed rather than stopped: it stopped by itself. */
+    @Test
+    fun `removing a failed transfer promises nothing about a copy`() {
+        showDialog(download(FAILED))
+
+        compose.onNodeWithText(string(R.string.downloads_remove_title)).assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.downloads_remove_body_unfinished, TITLE))
+            .assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.downloads_stop_body, TITLE)).assertDoesNotExist()
+    }
+
     /** The case the old string was actually written for, unchanged. */
     @Test
     fun `removing a finished download still says the copy goes and the place stays`() {
@@ -78,8 +93,45 @@ class DownloadsSayWhatIsTrueTest {
         compose.onNodeWithText(TITLE, substring = true).assertIsDisplayed()
     }
 
+    /**
+     * The second defect: *Stop* was the only verb a failed row had, and it is the wrong one.
+     *
+     * `:feature:library`'s `DownloadBanner` already followed the rule one screen away — a
+     * failed download offers a retry, one that is moving offers a stop — and the queue row
+     * did not.
+     */
+    @Test
+    fun `a failed row offers a retry and a removal, and never a stop`() {
+        showRow(download(FAILED))
+
+        compose.onNodeWithText(string(R.string.downloads_retry)).assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.downloads_remove)).assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.downloads_stop)).assertDoesNotExist()
+    }
+
+    /** And a transfer that is moving keeps the verb that fits it. */
+    @Test
+    fun `a running row offers a stop and no retry`() {
+        showRow(download(Download.State.Running))
+
+        compose.onNodeWithText(string(R.string.downloads_stop)).assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.downloads_retry)).assertDoesNotExist()
+    }
+
     private fun showDialog(download: Download) = compose.setContent {
         StoryArcTheme { RemoveDownloadDialog(download = download, onDismiss = {}, onConfirm = {}) }
+    }
+
+    private fun showRow(download: Download) = compose.setContent {
+        StoryArcTheme {
+            DownloadQueueRow(
+                download = download,
+                canReorder = false,
+                onReorder = {},
+                onStop = {},
+                onRetry = {},
+            )
+        }
     }
 
     private fun string(id: Int, vararg args: Any): String =
@@ -102,5 +154,6 @@ class DownloadsSayWhatIsTrueTest {
     private companion object {
         /** The title the September sweep photographed the wrong sentence about. */
         const val TITLE = "Harbour Lights 03"
+        val FAILED = Download.State.Failed(reason = "The server did not answer in time.", attempts = 3)
     }
 }

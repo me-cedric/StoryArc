@@ -151,6 +151,21 @@ internal fun DownloadsDestination(host: AppHost) {
                             host.dependencies.downloads.save(host.downloads.value)
                         },
                         onStop = { removing = one },
+                        // The record goes back in the queue, which is `DownloadQueue.resume`
+                        // minus the pump — and the pump is the one part this screen cannot
+                        // reach. `Download.remote` carries the address, the media type and
+                        // the name, so no catalogue entry is needed to fetch one again; what
+                        // is needed is a queue, and the only one the app builds belongs to a
+                        // catalogue page. So a retry from here rejoins the queue and is
+                        // carried out when that queue next runs, exactly as every other
+                        // queued row on this screen is. Written the same way as the reorder
+                        // above, and for the same reason: this destination edits the record,
+                        // and the record is the download store's.
+                        onRetry = {
+                            host.downloads.value = host.downloads.value
+                                .marking(one.id, Download.State.Queued)
+                            host.dependencies.downloads.save(host.downloads.value)
+                        },
                     )
                 }
             }

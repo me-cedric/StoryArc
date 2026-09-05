@@ -122,6 +122,12 @@
     <string name="downloads_stop_title">Stop this download?</string>
     <string name="downloads_stop_body">This stops the transfer of %1$s. Nothing of it is kept on this device, and it can be downloaded again.</string>
     <string name="downloads_stop_confirm">Stop download</string>
+    <!-- A failed transfer has already stopped, so it is removed rather than stopped, and
+         the sentence says what a reader gets back: nothing, because nothing arrived. -->
+    <string name="downloads_remove_body_unfinished">Nothing of %1$s reached this device. It leaves the queue, and it can be downloaded again.</string>
+    <!-- The app layer's own copy, for the reason the block above says: the queue row is
+         drawn here, and `:feature:library`'s banner is a different screen. -->
+    <string name="downloads_retry">Retry</string>
     <!-- Three attempts is the ceiling `offline-downloads` sets, so one of them is a
          real case and reads wrong as "1 attempts". -->
     <plurals name="downloads_failed">

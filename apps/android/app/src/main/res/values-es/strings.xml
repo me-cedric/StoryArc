@@ -41,6 +41,8 @@
     <string name="downloads_stop_title">\u00bfDetener esta descarga?</string>
     <string name="downloads_stop_body">Esto detiene la transferencia de %1$s. No se conserva nada en este dispositivo, y se puede descargar otra vez.</string>
     <string name="downloads_stop_confirm">Detener la descarga</string>
+    <string name="downloads_remove_body_unfinished">No lleg\u00f3 nada de %1$s a este dispositivo. Sale de la cola, y se puede descargar otra vez.</string>
+    <string name="downloads_retry">Reintentar</string>
     <plurals name="downloads_failed">
         <item quantity="one">Fall\u00f3 tras %2$d intento: %1$s</item>
         <item quantity="many">Fall\u00f3 tras %2$d intentos: %1$s</item>
