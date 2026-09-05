@@ -285,10 +285,30 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
         behind it at all.
       - One of each at the largest text size, where no fold claim is made and what is being
         checked is that no caption is clipped.
-- [ ] 0b.5 Both: captures before and after, at default and largest text size.
+- [~] 0b.5 Both: captures before and after, at default and largest text size.
       **Android needs no new hero** — it has one, first on the surface, conditional on something
       being in progress exactly as iOS is. The review reported it missing because the device had
       nothing in progress. Do not build a second one.
+
+      **That warning is still correct, re-checked against the tree 2026-09-05, and no second
+      hero was built.** `HomeScreen.kt`: `keepReading(...)` is the first call inside the
+      `LazyColumn` after the first-run branch, and it returns immediately when
+      `surface.keepReading` is empty — so the hero is first when there is one and absent when
+      there is not, which is the same shape iOS's `HomeHero` has. Every change in 0b.1 to 0b.4
+      went into the card that already existed.
+
+      **This task cannot be ticked by this pass**, because it is the captures and this agent
+      has no device — the parent owns the simulator and the emulator. Every frame owed is
+      named under the task that owes it: 0b.1 (byline and progress, 8 + a light-cover case),
+      0b.2 (the resume button, 8 + 2 unreadable cases), 0b.3 (Finish and Next in series, 8 +
+      2 no-next cases + 2 after-finishing cases), 0b.4 (the fold, 2 + 2 at the largest text
+      size). **The before set already exists** — `docs/designs/screenshots/after-2026-08-30/`
+      holds `ios-shell-iphone-home*.png` and the Android shell frames — so "before and after"
+      needs only the after half, taken on the same two devices.
+
+      Two things every one of those walks needs and none of them gets by launching the app:
+      **something in progress** (or Keep reading is absent and the review's mistake repeats),
+      and, for 0b.3, **two issues of one series with the first read to its last page**.
 
 ## Phase 0 — Answer before building
 
