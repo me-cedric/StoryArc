@@ -129,12 +129,30 @@ technical, and each item's fallback is in `design.md`.
       A footnote on the method, because it nearly produced a false alarm: `grep -c`
       counts *lines*, and the whole preferences blob is one line. It looked for a
       moment as though a stored preference had been overwritten. It had not.
-- [ ] **0.5** Procedural paper grain: prototype on both platforms and judge
+- [~] **0.5** Procedural paper grain: prototype on both platforms and judge
       whether it reads as paper. If not, price a bundled tiling texture. **Built,
       not judged.** The shader exists on both platforms and is wired to the page —
       see 5.4, which carries the three parameters and how confident each is. What
       remains is the half this task is actually about: looking at it. A bundled
       tiling texture stays the fallback if the answer is that it reads as digital.
+
+      **Judged on iOS on 2026-09-05: it reads as paper, and the fallback is not needed.** Two
+      frames in `docs/designs/screenshots/ios-paper-grain-2026-09-05/`, differing in one launch
+      argument, so the difference between them *is* the texture. Over the page region: 64% of
+      pixels modulated but gently — 36% untouched, 22% by one level out of 255, 14% by two —
+      with a mean signed delta of R −1.61, G −1.86, B −2.00, so the grain darkens and takes
+      about a quarter more blue than red. That warm bias is what separates paper from sensor
+      noise; a symmetric shader would show three equal means. Speckle runs are a median 2 px
+      with a 14 px tail at 3×, roughly 0.7 pt — fibre-scale, and the spread is the second
+      octave at 2.17× beating against the first rather than one hash.
+
+      **`[~]` rather than `[x]`, because the task says *both platforms*.** Android's
+      `android-grain-1to1-light.png` from the 2026-09-02 sweep has never been measured against
+      a Natural-off twin, and the shader being one texture expressed twice is a reason to
+      expect the numbers to match rather than a measurement that they do. Also unjudged: dark
+      appearance, a real display — one or two levels out of 255 is exactly where a panel's own
+      gamma and dithering could take it away — and the two refusals, which have no launch
+      argument to reach them.
 - [x] **0.6** Record the spike outcomes as an ADR — the curl decision is exactly
       the kind of thing that gets re-litigated in six months without one.
       **Done**: [ADR-0009](../../../decisions/0009-page-curl-as-a-fragment-shader.md).

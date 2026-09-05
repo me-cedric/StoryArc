@@ -206,4 +206,51 @@ struct LibraryRestoreTests {
         #expect(model.folders.first?.resolvingSymlinksInPath().path
             == library.resolvingSymlinksInPath().path)
     }
+    /// A cached shelf whose files have moved does not double the library.
+    ///
+    /// **The regression this pins put every publication on the shelf twice**, photographed on
+    /// 2026-09-05: once with its cover, and once as a format placeholder whose page read "This
+    /// cannot be opened until it is on this device" for a file that was on the device. The
+    /// snapshot records absolute paths; on iOS a path into the app's own container dies when
+    /// the container's UUID changes on reinstall, while every file survives. The scan then
+    /// re-finds the books at their new paths and `adopt(_:from:)` cannot tell they are the
+    /// same ones, because `PublicationIdentity.matches` falls back to `normalizedPath` when a
+    /// local file has neither a server id nor a content digest — which is the ordinary case.
+    ///
+    /// Simulated the way it actually happens: a snapshot written for a folder, the folder
+    /// moved, and the model restored and rescanned against the new location. Every test in
+    /// the repository passed while the shelf was doubled, which is why this one exists.
+    @Test("A cached shelf whose files have moved does not double the library")
+    @MainActor
+    func aMovedLibraryIsNotRestoredTwice() async throws {
+        let documents = try documents()
+        let old = documents.appending(path: "before")
+        let new = documents.appending(path: "after")
+        try FileManager.default.createDirectory(at: old, withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: try file(named: "image-pages.pdf"), to: old.appending(path: "image-pages.pdf"))
+
+        let bookmarks = FolderBookmarks(defaults: try store().defaults)
+        let cache = LibraryCache(directory: documents)
+
+        // A session that walked the folder where it used to be, and wrote the snapshot.
+        let first = LibraryModel(bookmarks: bookmarks, documents: old, cache: cache)
+        await first.rescan()
+        #expect(first.publications.count == 1, "the first walk did not find the fixture")
+
+        // The same library, at a path that no longer resolves — a reinstall, in one move.
+        try FileManager.default.moveItem(at: old, to: new)
+
+        let second = LibraryModel(bookmarks: bookmarks, documents: new, cache: cache)
+        second.restoreCachedLibrary()
+        await second.rescan()
+        #expect(
+            second.publications.count == 1,
+            """
+            The shelf holds \(second.publications.count) rows for one publication. A cached \
+            row whose file has moved was restored beside the one the scan found, and the \
+            reader sees the same book twice — the second of them unopenable.
+            """
+        )
+    }
+
 }
