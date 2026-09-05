@@ -120,7 +120,7 @@ says so and names what is left to watch.
       compiled, through `xcodebuild build-for-testing`, which builds the test target
       without booting anything. **Running it is the first thing to do with a
       simulator.**
-- [ ] **1.4** One session at a time: opening another publication ends the current
+- [~] **1.4** One session at a time: opening another publication ends the current
       one at a sentence boundary, records the position, and says so once.
 
       **Two of the three landed; the third needs a word this change may not ship.**
@@ -142,6 +142,29 @@ says so and names what is left to watch.
       *Phase 2:* the surface exists now. `ReadAloudDock` is where a listener would be
       told, and it is the right place — they are looking at the navigation, not at a
       book. Still no wording, so still not ticked.
+
+      *2026-09-05, checked against the tree rather than against the note above.* **The
+      surface is real and its name in this task is wrong.** `ReadAloudDock` no longer
+      exists — `audiobooks-and-playback` deleted it in `8991d439` and put one compact bar in
+      the accessory slot for both a narrator and a voice. The place a listener would be told
+      is `PlayerDock` in `StoryArcKit/Sources/PlayerFeature`, which that change owns. Nothing
+      about the argument moves: it is still the right surface, there is still no wording, and
+      5.5 still sends the sentence to the vocabulary slice, which is not yet a change in
+      `docs/openspec/changes/`.
+
+      **The other two clauses hold on both platforms, and one of them holds less widely on
+      Android than the tick above implies.** iOS asks `PlayerCentre.handover(opening:)`, which
+      knows about *both* kinds of session, so opening an EPUB while an audiobook is narrated
+      displaces it too. Android asks
+      `SessionHandover.opening(bookId, ReadAloudHost.book.value?.id)` in
+      `EpubReaderActivity.prepareReadAloud`, which sees only the voice: `ReadAloudHost` and
+      `PlaybackHost` are two independent sessions there, and `PlaybackHost`'s own KDoc says
+      so — "read-aloud has its own engine and its own host today, and the seam that lets it
+      become a second `PlayerSource` is `start`". So on Android a narrated audiobook and a
+      spoken EPUB can speak at once. That is `audiobooks-and-playback`'s to close, not this
+      change's: `STATUS.md` already lists "read-aloud does not drive the player yet" as one of
+      its open items, and this change's delta scopes the scenario to "a different publication
+      **while the voice is speaking**", which Android does answer.
 
 ## Phase 2 — The iOS transport
 
