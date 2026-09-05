@@ -14,10 +14,15 @@ public import StoryArcCore
 /// and it differs in what is listed and what chrome is put on top — never in the cell,
 /// the grid or the way in to a reader.
 ///
-/// It no longer builds its own split navigation. The shell above it is a `TabView` with
-/// `.sidebarAdaptable`, so the platform draws the tab bar on a phone and the sidebar on
-/// an iPad from the *same* three destinations; a `NavigationSplitView` here would be a
-/// second, disagreeing navigation inside one of them.
+/// **This comment said a `NavigationSplitView` here "would be a second, disagreeing
+/// navigation", and the Library destination is now composed as one.** The half that was
+/// right is unchanged and is why the *shell* is still a `TabView` with `.sidebarAdaptable`:
+/// the platform draws the tab bar on a phone and the sidebar on an iPad from the *same*
+/// three destinations, and a split around those would be a second destination set to keep in
+/// step. The half that was wrong conflated a destination set with a layout. A list and its
+/// detail name no destinations at all, which is what lets the shelf have one without the
+/// shell having two. ``LibraryView/container`` in `LibraryPanes.swift` carries the argument
+/// and the two shapes it refuses.
 public struct LibraryView: View {
     // The state below is internal rather than private because `content` and its empty
     // states live in `LibraryContent.swift`, and `private` does not reach across a file.
