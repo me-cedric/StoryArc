@@ -37,6 +37,39 @@ the code costs more than a missing tick. What could not be done is the photograp
 frame this change owes is now named by surface, state, appearance and walk, in its own task
 and again on 5.5's list, which is how §6 is discharged by a pass that has no device.
 
+**Re-verified a second time on 2026-09-05, again with no device, on `main` at `863c49a5`.**
+The point of the pass was to distrust the notes: the previous one had corrected five of them
+in a single sitting, which is a rate that says the next reader should check rather than
+believe. **All eight partials were re-read against the source and all eight are
+code-complete** — every claim the notes make about the tree is true today, and the outstanding
+half of each is a capture. Spot evidence for the newest and therefore least corroborated
+claims: `detail_action_refused` survives only as the tombstone comment at
+`DetailActions.kt:121`; `downloadControl` is defined at `DetailActions.kt:173`, decided once
+at `PublicationDetailScreen.kt:183` and asserted five times in `DetailActionsTest.kt`;
+`PredictiveBackHost` has two call sites (`AppShell.kt:348`, `SettingsScreen.kt:136`);
+`isBesideList` reaches the screen from `AppPanes.kt:128`; `LibraryViewModel.sourceName` is
+gone, with no `fun sourceName` anywhere in `apps/android`; iOS's four covers are
+unconditional `NavigationLink`s (`CoverCell.swift:63`, `CoverList.swift:113`,
+`HomeRow.swift:125`, `ShelfDetail.swift:208`) with `isOpenable` surviving only as a spoken
+trait; `PublicationProvenance.alsoHolding` exists at `PublicationProvenance.swift:138` and is
+called at `PublicationDetailView.swift:149`; and the delta's fourth clause on one-of-two
+accessibility settings is at `specs/publication-detail/spec.md:152`.
+
+**Two notes were wrong, and both are corrected in their own tasks rather than here** — 3.5's
+string count, which added iOS's total to Android's own and got 33 for what is 35 present and
+31 this change's, and 2.4's owed frame, which named a tablet for a defect photographed on a
+phone. **Neither is a code defect**, which is the difference between this pass and the last
+one: the tree is ahead of its notes no longer, and what remains is photography and one layout
+decision.
+
+**The two standing hazards were checked against this change's files and neither applies.** No
+`Picker` is drawn on this page on either platform — the menu-styled pickers in
+`LibraryFilterMenu`, `ListOrder` and `LibraryBrowsingControls` belong to
+`one-library-three-destinations` — and no user-facing sentence here is an English literal.
+The second is recorded in full under task 3.5, because `pnpm lint`'s `strings:ios` checks that
+every key resolves in four languages and is structurally unable to see a sentence that never
+became a key.
+
 ---
 
 ## ✅ Settled: the spec amendment this change needed is now declared
@@ -1357,8 +1390,11 @@ when a cover was the resume affordance. Whoever syncs should add a
          a detail column at all, which is the shell's business.
       6. **The narrow-then-widen path on Android**, a sequence of three: two panes, narrowed,
          widened again *with the same publication still shown*. Task 4.2.
-      7. **A capture of the degenerate page that holds up.** Task 2.4 — the one that exists
-         shows that it does not, and the layout decision comes before the frame.
+      7. **A capture of the degenerate page that holds up**, and it is a **phone in
+         portrait** rather than the tablet this list and task 2.4 both used to name — the
+         capture that found the defect is a 411 x 914 dp phone. Task 2.4, where the
+         proportions are now computed from `DetailHeroLayout`'s own constants rather than
+         judged from the picture, so the frame settles the decision instead of measuring it.
       8. **New, and this pass's own debt: the provenance line on a downloaded server
          publication**, light and dark. Task 3.2's fix changed that sentence from *From
          ‹server›* to *On this device · also elsewhere in your library*, which is a change a
