@@ -281,6 +281,17 @@ export const ROUTES = [
     ['Player > chapters', [NAMES.library, 'Audiobook folder|, M4B', NAMES.read, '@swipe-up', '@swipe-up']],
     ['Player > compact bar', [NAMES.library, 'Audiobook folder|, M4B', NAMES.read, named('player_play'), NAMES.home]],
 
+    // --- The word a displaced voice owes ---------------------------------------------
+    // `ebook-reader`, *Opening a different publication*: "the listener is told once that the
+    // voice stopped, rather than discovering it by silence". The voice is started on
+    // `Harbour Lights 01` from the reader's menu, the reader is left with Back while the voice
+    // carries on, and a second reflowable EPUB — or the audiobook — is opened over it. The
+    // word is a `Snackbar` of Material's short duration, so the opening tap is a `!` step and
+    // the shutter follows it inside that dwell; the EPUB route waits once more because the
+    // book has to be parsed before the reader knows it displaced anything.
+    ['EPUB reader > voice stopped', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('readaloud_start'), '@back', 'Harbour Lights 02', '!' + NAMES.read, '!@wait']],
+    ['Player > voice stopped', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('readaloud_start'), '@back', 'Audiobook folder|, M4B', '!' + NAMES.read]],
+
     // --- Reachable only once a source list is not empty ------------------------------
     ['Settings > source detail', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Audiobooks']],
 ]
