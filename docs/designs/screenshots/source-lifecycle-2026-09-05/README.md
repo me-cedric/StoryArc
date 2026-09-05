@@ -1,6 +1,6 @@
 # The source detail screen — iOS, 2026-09-05
 
-`source-lifecycle` §4.1's and §4.3's iOS halves. Six frames from `StoryArc-iPhone17Pro`
+`source-lifecycle` §4.1's, §4.3's and §4.6's iOS halves. Twelve frames from `StoryArc-iPhone17Pro`
 (402 pt), taken with `scripts/capture-ios.mjs`.
 
 | Frame | Task | Appearance | Text size |
@@ -11,6 +11,12 @@
 | `ios-settings-source-detail-ax5-dark.png` | §4.1 | dark | `AccessibilityXXXL` |
 | `ios-source-unreachable-detail.png` | §4.3 | light | default |
 | `ios-source-unreachable-detail-dark.png` | §4.3 | dark | default |
+| `ios-settings-source-remove.png` | §4.6 | light | default |
+| `ios-settings-source-remove-dark.png` | §4.6 | dark | default |
+| `ios-settings-source-remove-ax5.png` | §4.6 | light | `AccessibilityXXXL` |
+| `ios-settings-source-remove-ax5-scrolled.png` | §4.6 | light | `AccessibilityXXXL`, after a swipe |
+| `ios-settings-source-remove-ax5-dark.png` | §4.6 | dark | `AccessibilityXXXL` |
+| `ios-settings-source-remove-ax5-scrolled-dark.png` | §4.6 | dark | `AccessibilityXXXL`, after a swipe |
 
 Surface: *Settings › Your libraries › one source*. The walk opens `StoryArc Test Catalogue`
 and falls back to `Attic NAS`; **which of the two it lands on varies between runs**, so the
@@ -104,6 +110,38 @@ not scroll either. Presentation is not the lever.
 days"`, and that assertion **passes at AX5**: the message is one label in the accessibility
 tree, so VoiceOver reads it in full. A guard asserting existence would have called this screen
 correct while a sighted reader could not see the sentence at all.
+
+### Fixed the same day: the thirty days moved onto the screen
+
+The frames named above are now the **retaken** set, shot after the fix. The retention
+sentence left the dialog and became a footer under the actions — `sources.remove.footer`,
+*"Removing a library keeps your reading positions for 30 days."*, in four languages — shown
+whenever *Remove* is offered. `ios-settings-source-detail.png` shows it under the red row at
+the default size, and `SourceDetailSizeTests/retentionIsAFooter` pins that it is there.
+
+Why a footer and not a shorter dialog: a footer wraps freely at every text size, and it is read
+*before* the reader taps Remove, which is when the fact is useful. The dialog keeps the sentences
+that answer "what does this do right now"; the footer answers "and what about my place", which
+is a fact about removal rather than about this press of the button.
+
+**What the AX5 frame shows now, honestly.** `ios-settings-source-remove-ax5.png` reads *"This
+removes 0 titles from your library. No files"* — the body is two sentences instead of three and
+still stops at the same word, because a `confirmationDialog` at that size holds about seven
+short lines and the first sentence is six of them. What is cut is now the reassurance that no
+files are deleted, not the retention; the retention is on the screen beneath. The `-scrolled`
+twin is still identical, for the reason given above.
+
+**A finding the fix turned up, and it is bigger than the wording.** `sources`' scenario
+*Removing a source* says the app "states how many downloaded files and how much disk space will
+be freed before asking" and "on confirmation removes the source, its cached metadata, its stored
+credentials, **and its downloads**". Neither platform does: `LibraryModel.remove` and
+`LibraryViewModel.removeSource` both say in their own comments that files on disk are never
+touched, and the dialog's *"nothing was downloaded"* is a sentence that is only true at zero.
+Worse, both Downloads screens list *shelf publications* that are on the device — so a removed
+source's downloads leave the shelf, leave the Downloads screen, and stay on disk as bytes nothing
+lists and only the total counts. That is a spec-versus-implementation gap on a destructive
+action, owned by the removal path rather than by this dialog, and it is recorded here so the
+dialog is not rewritten twice.
 
 ## Two walks that could not run, and why
 

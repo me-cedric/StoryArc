@@ -341,6 +341,18 @@ filename so a light and a dark run cannot overwrite each other.
       onto the screen as a footer under the actions, where it wraps freely and is read *before*
       the reader ever taps Remove, leaving the dialog a short question.
 
+      **Decided and done on 2026-09-05: the footer.** `sources.remove.footer` sits under the
+      actions in four languages, the dialog body is two sentences, `SourceDetailSizeTests/
+      retentionIsAFooter` pins the footer, and the eight frames were retaken. The AX5 dialog now
+      stops at *"No files"* with the retention read on the screen beneath it, before the tap.
+
+      **The retake found the larger defect, and it is the removal path's.** `sources`' *Removing
+      a source* says removal states the bytes it frees and takes the source's downloads with it.
+      Neither platform deletes them, both Downloads screens list shelf publications only, and
+      the dialog's *"nothing was downloaded"* is true only at zero — so a removed source's
+      downloads become bytes on disk that nothing lists. Recorded in the frames' README; the
+      dialog is not rewritten until that is settled, so it is not rewritten twice.
+
       **One thing the frames caught that a test could not.** The walk asserts the sentence by
       `staticTexts … CONTAINS "30 days"` and that assertion **passes at AX5**: the whole message
       is one label in the accessibility tree, so VoiceOver reads it in full while a sighted

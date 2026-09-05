@@ -168,4 +168,22 @@ struct SourceDetailSizeTests {
         return try String(contentsOf: file, encoding: .utf8)
     }
 
+    /// The thirty-day retention sentence is on the screen, under the actions.
+    ///
+    /// It used to be the third sentence of the removal confirmation, and at the largest text
+    /// size that confirmation stopped at "No files" with no way to scroll to the rest — so the
+    /// one fact a reader most needs before a destructive action was the one they could not
+    /// reach. It is a footer now, read before the tap. This asserts the footer is in the built
+    /// tree whenever removal is offered; `ios-settings-source-remove-ax5.png` and its
+    /// siblings are what prove it fits.
+    @Test("Removal's retention sentence is a footer under the actions, not a line in the dialog")
+    func retentionIsAFooter() {
+        let strings = Self.rendered(Self.diagnosis(bytes: 0, downloads: 0))
+        #expect(
+            strings.contains("sources.remove.footer"),
+            "the actions section carries no retention footer, so the thirty days are back in a "
+                + "dialog that cannot show them at the largest text size"
+        )
+    }
+
 }

@@ -74,6 +74,23 @@ struct SourceDetail: View {
                     }
                     .disabled(isWorking)
                 }
+            } footer: {
+                // **The thirty days live here now, not in the confirmation.** The sentence
+                // used to be the last of three in the removal dialog's body, and at
+                // `AccessibilityXXXL` the body stopped at "No files" — photographed on
+                // 2026-09-05, with a `-scrolled` twin proving the rest could not be reached,
+                // because a confirmation's message does not scroll. An `alert` was tried and
+                // does not scroll either; presentation was not the lever, the length was.
+                //
+                // A footer under the actions wraps freely at every text size and is read
+                // *before* the reader taps Remove, which is when the fact is useful. The
+                // dialog keeps the two sentences that answer "what does this do right now";
+                // this one answers "and what about my place", which is a fact about removal
+                // rather than about this press of the button. Shown whenever removal is
+                // offered, so it is never a surprise in the dialog that follows.
+                if diagnosis.actions.contains(.remove) {
+                    Text("sources.remove.footer", bundle: .module)
+                }
             }
         }
         .navigationTitle(source.displayName)
