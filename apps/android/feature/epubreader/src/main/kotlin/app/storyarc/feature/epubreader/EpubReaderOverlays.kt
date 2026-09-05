@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -144,6 +145,10 @@ private fun VoiceStoppedWord(spokenAudio: SpokenAudio, snackbars: SnackbarHostSt
     LaunchedEffect(owed) {
         if (!owed.isPending) return@LaunchedEffect
         val sentence = spokenAudio.takeVoiceStopped().sentence(context) ?: return@LaunchedEffect
-        scope.launch { snackbars.showSnackbar(sentence) }
+        // Long rather than Material's default. The surface this lands on is still being built
+        // when the word starts — an EPUB is parsed after its overlay composes, a player draws
+        // its transport a beat after it opens — and a Short snackbar was gone before the first
+        // page drew: photographed on 2026-09-06 as a page with no word on it, twice.
+        scope.launch { snackbars.showSnackbar(sentence, duration = SnackbarDuration.Long) }
     }
 }
