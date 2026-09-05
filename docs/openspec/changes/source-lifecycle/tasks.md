@@ -254,7 +254,7 @@ filename so a light and a dark run cannot overwrite each other.
       actually refused. `Attic NAS` points at a host that is not running, which yields
       *unreachable*, not *unauthorized* — those are different states and only the second
       offers `Reconnect`. A fixture holding an `unauthorized` source is the prerequisite.
-- [ ] 4.3 The "cannot be reached" notice for an unreachable server, with the "downloads stay readable" line and the try-again action. **Capture a control beside it** — a reachable source at the same moment — so the picture proves the state and not merely that the screen exists
+- [~] 4.3 The "cannot be reached" notice for an unreachable server, with the "downloads stay readable" line and the try-again action. **Capture a control beside it** — a reachable source at the same moment — so the picture proves the state and not merely that the screen exists
       **Frames owed: 8, plus the control.** Surface *the source detail screen of an
       unreachable source*; state *`Not answering` with `No answer since …`*; light and dark,
       default and largest.
@@ -270,6 +270,26 @@ filename so a light and a dark run cannot overwrite each other.
       unreachable source is **grey, never red**. A grey row proves nothing beside no other
       row; the reachable source at the same appearance is what makes it evidence.
       No largest-text variant exists for either walk.
+
+      **iOS detail frames taken on 2026-09-05**, light and dark, in
+      `docs/designs/screenshots/source-lifecycle-2026-09-05/`. **The claim is measured rather
+      than asserted, and the control turned out to belong inside the frame**: sampling the most
+      saturated pixel of each region gives the status value *Not answering* at **0.112**
+      saturation, *Test connection* at 0.679, and *Remove* at **0.780**. Red is present in the
+      same frame, so the grey is a choice and not the absence of red from the palette — which a
+      second frame of a reachable source could not have shown, since it would only have shown a
+      different grey.
+
+      **Two things this task asked for could not be taken, and neither is a harness fault.**
+      `testCaptureAwayNotice` **skipped** twice — `0 passed, 0 failed, 1 skipped` — because the
+      library-wide sentence appears only when *nothing* a reader added can be reached, and the
+      simulator's shelf is full of local files. And the "reachable source" control does not
+      exist on this device: `StoryArc Test Catalogue` is *Not answering* too, so the two frames
+      are two unreachable sources rather than a contrast pair.
+
+      **Still owed:** the away notice from a device whose only sources are remote and all
+      unreachable; the largest-text variant of both walks; and the Android half, which has no
+      route for this state at all.
 - [ ] 4.4 Pull-to-refresh on iOS, mid-gesture and after completion
       **Frames owed: 4** — iOS only, mid-gesture and settled, light and dark. Largest text is
       not meaningful for a spinner and can be declared out of scope here, in writing.

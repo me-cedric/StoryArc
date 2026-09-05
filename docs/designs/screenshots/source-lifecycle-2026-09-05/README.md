@@ -1,14 +1,16 @@
 # The source detail screen — iOS, 2026-09-05
 
-`source-lifecycle` §4.1's iOS half. Four frames from `StoryArc-iPhone17Pro` (402 pt), taken
-with `scripts/capture-ios.mjs` against `SweepSettingsTests`.
+`source-lifecycle` §4.1's and §4.3's iOS halves. Six frames from `StoryArc-iPhone17Pro`
+(402 pt), taken with `scripts/capture-ios.mjs`.
 
-| Frame | Appearance | Text size |
-| --- | --- | --- |
-| `ios-settings-source-detail.png` | light | default |
-| `ios-settings-source-detail-dark.png` | dark | default |
-| `ios-settings-source-detail-ax5.png` | light | `AccessibilityXXXL` |
-| `ios-settings-source-detail-ax5-dark.png` | dark | `AccessibilityXXXL` |
+| Frame | Task | Appearance | Text size |
+| --- | --- | --- | --- |
+| `ios-settings-source-detail.png` | §4.1 | light | default |
+| `ios-settings-source-detail-dark.png` | §4.1 | dark | default |
+| `ios-settings-source-detail-ax5.png` | §4.1 | light | `AccessibilityXXXL` |
+| `ios-settings-source-detail-ax5-dark.png` | §4.1 | dark | `AccessibilityXXXL` |
+| `ios-source-unreachable-detail.png` | §4.3 | light | default |
+| `ios-source-unreachable-detail-dark.png` | §4.3 | dark | default |
 
 Surface: *Settings › Your libraries › one source*. The walk opens `StoryArc Test Catalogue`
 and falls back to `Attic NAS`; **which of the two it lands on varies between runs**, so the
@@ -51,9 +53,49 @@ It is the second instance of the same shape found on one day — the reader's th
 hyphenated *Original* into `Origi-nal` at the same text size, for the same reason: a fixed
 layout whose narrow half holds the text that grows.
 
-## Still owed for §4.1
+## §4.3, and the "grey, never red" claim is now measured
 
-**The Android half**: `pnpm capture:android "Settings > source detail" --out <file> [--dark]
+`ios-source-unreachable-detail.png` and its dark twin are the unreachable source's detail
+screen — *Attic NAS*, status **Not answering**, *Last error: No answer since Sep 5, 2026 at
+15:20*.
+
+`AGENTS.md`'s second non-negotiable is that an unreachable source is **grey, never red**. The
+task asked for a reachable source photographed beside it as the control, on the argument that a
+grey row proves nothing without one. **The better control turned out to be inside the frame.**
+Sampling the most saturated pixel of each region:
+
+| Region | Most saturated pixel | Saturation |
+| --- | --- | --- |
+| Status value, *Not answering* | `rgb(89,84,79)` | **0.112** |
+| Action, *Test connection* | `rgb(138,77,240)` | 0.679 |
+| Action, *Remove* | `rgb(255,56,60)` | **0.780** |
+
+Red is present in the same frame at 0.78, the brand accent at 0.68, and the away status sits at
+0.11 — so the grey is a **choice**, not the absence of red from the palette. A second frame of a
+reachable source could not have shown that; it would only have shown a different grey.
+
+*Remove* being the one red thing is also right: it is the destructive action, and it is the only
+one.
+
+## Two walks that could not run, and why
+
+**`SweepSourcesTests/testCaptureAwayNotice` skips on this device, honestly.** The library-wide
+sentence — *"None of the places you added can be reached right now. Anything already on this
+device is still here to read."* — appears only when **nothing** a reader added can be reached,
+and the simulator's shelf is full of local files, so the library is never away. It reported `1
+test case(s): 0 passed, 0 failed, 1 skipped` twice. Worth stating plainly because a skipped walk
+exits 0: **read the run summary, not the exit code.** The state it needs is a device whose only
+sources are remote and all unreachable.
+
+**The "reachable source" control does not exist on this device either.** Both
+`ios-settings-source-detail.png` and the unreachable frames show a source that is *Not
+answering* — `StoryArc Test Catalogue` points at nothing running, exactly as `Attic NAS` does.
+So the two frames are two unreachable sources rather than a contrast pair, and the measurement
+above is what carries §4.3 instead.
+
+## Still owed
+
+**The Android half of §4.1**: `pnpm capture:android "Settings > source detail" --out <file> [--dark]
 [--font-scale 2.0]`. The route exists and needs a non-empty source list, which the corpus alone
 does not give — the 17 generated publications carry `origin: EMBEDDED` and belong to no source,
 so *Your libraries* is legitimately empty until one is added.
@@ -64,10 +106,12 @@ against a non-zero figure rather than against `0 bytes`.
 ## How to retake them
 
 ```bash
+O=docs/designs/screenshots/source-lifecycle-2026-09-05
 for appearance in light dark; do
-  for walk in testCaptureSettingsSourceDetail testCaptureSettingsSourceDetailAtLargestText; do
-    node scripts/capture-ios.mjs --out docs/designs/screenshots/source-lifecycle-2026-09-05 \
-      --only "SweepSettingsTests/$walk" --appearance $appearance
+  for walk in SweepSettingsTests/testCaptureSettingsSourceDetail \
+              SweepSettingsTests/testCaptureSettingsSourceDetailAtLargestText \
+              SweepSourcesTests/testCaptureUnreachableSourceDetail; do
+    node scripts/capture-ios.mjs --out $O --only "$walk" --appearance $appearance
   done
 done
 ```
