@@ -214,7 +214,7 @@ public enum StoryArcSpace {
     public static let huge: CGFloat = 64
     public static let gutter: CGFloat = 20
     public static let section: CGFloat = 32
-    public static let coverGap: CGFloat = 14
+    public static let rowCoverGap: CGFloat = 14
 }
 
 public enum StoryArcRadius {

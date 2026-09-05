@@ -73,7 +73,7 @@ struct OnDeviceShelf: View {
                         .adaptive(minimum: minimumWidth, maximum: maximumWidth),
                         // `md`, which is what both of the library's grids use between
                         // columns and what `CoverMinimumWidthTests` counts columns with.
-                        // This shelf used `coverGap`, two points wider, so the same rule
+                        // This shelf used `rowCoverGap` (then named `coverGap`), two points wider, so the same rule
                         // asked on the same window could still hand the two screens
                         // different columns.
                         spacing: StoryArcSpace.md,

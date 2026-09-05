@@ -236,7 +236,7 @@ Garamond's role without adding a distinct one.
 ## 4. Spacing and rhythm
 
 4 pt base grid. `hair` 2 → `huge` 64, plus `gutter` 20, `section` 32,
-`coverGap` 14.
+`rowCoverGap` 14 (named `coverGap` until 2026-09-05).
 
 **Spacing is deliberately uneven.** A cover grid breathes at `xl`; the metadata
 stack under a title tightens to `xs` so title, series and year read as one
@@ -323,9 +323,14 @@ looks like a music player.
   `GridCells.Adaptive(88.dp)`) are deliberately not on this list: they are
   pages, not covers.
 - **Neither cover grid spaces its columns with the token named for that gap.**
-  `layout.json` defines `coverGap` 14 for it, and both grids use `md` 12 — the
+  `layout.json` defined `coverGap` 14 for it, and both grids use `md` 12 — the
   library grid already did, and the Downloads shelf was moved onto `md` to match
-  its sibling rather than both being moved onto `coverGap`. What still calls
+  its sibling rather than both being moved onto the token. **Decided on 2026-09-05: the
+  token is renamed `rowCoverGap`, and the grids stay on `md`.** A design review named the
+  split as undocumented drift and offered two ways out — move both grids onto the 14 or
+  rename the token for what actually uses it. Renaming changes no pixel: both grids have
+  drawn at 12 since they were written, every horizontal run draws at 14, and a token named
+  for a job nothing does is the drift. What still calls
   `coverGap` is the two horizontal runs: Home's plain shelves and a publication
   page's series shelf. So the token now means "the gap in a row of covers" and
   `md` means "the gap in a grid of them", which nothing says out loud and nobody

@@ -28,7 +28,7 @@ struct DetailSeriesShelf: View {
                 .padding(.horizontal, StoryArcSpace.gutter)
 
             ScrollView(.horizontal) {
-                LazyHStack(alignment: .top, spacing: StoryArcSpace.coverGap) {
+                LazyHStack(alignment: .top, spacing: StoryArcSpace.rowCoverGap) {
                     ForEach(publications) { publication in
                         DetailSeriesEntry(publication: publication, model: model)
                     }

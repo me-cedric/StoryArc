@@ -218,7 +218,7 @@ object StoryArcSpace {
     val huge = 64.dp
     val gutter = 20.dp
     val section = 32.dp
-    val coverGap = 14.dp
+    val rowCoverGap = 14.dp
 }
 
 object StoryArcRadius {

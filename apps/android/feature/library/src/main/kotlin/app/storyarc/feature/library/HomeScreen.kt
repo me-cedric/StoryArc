@@ -416,7 +416,7 @@ private fun HomeCoverRun(
     val width = homeShelfCoverWidth(homeWindowWidthDp(), LocalDensity.current.fontScale)
     LazyRow(
         contentPadding = PaddingValues(horizontal = StoryArcSpace.gutter),
-        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.coverGap),
+        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.rowCoverGap),
         modifier = Modifier.fillMaxWidth(),
     ) {
         items(entries, key = { it.id }) { entry ->

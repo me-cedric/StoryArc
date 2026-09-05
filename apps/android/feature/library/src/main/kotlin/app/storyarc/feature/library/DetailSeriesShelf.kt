@@ -74,7 +74,7 @@ internal fun DetailSeriesShelf(
             color = palette.textPrimary,
         )
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.coverGap),
+            horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.rowCoverGap),
             contentPadding = PaddingValues(end = StoryArcSpace.sm),
         ) {
             items(publications, key = { it.id }) { publication ->

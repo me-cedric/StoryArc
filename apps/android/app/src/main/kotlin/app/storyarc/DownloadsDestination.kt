@@ -115,9 +115,12 @@ internal fun DownloadsDestination(host: AppHost) {
             //
             // The spacing below matches the library grid's for the same reason — two shelves
             // of one library that answer the same window differently read as two apps — and
-            // that means `md` 12, not the `coverGap` 14 the tokens define for exactly this
-            // gap. This shelf used `coverGap` and was moved *off* it, because the grid it has
-            // to match had already drifted onto `md`. `coverGap` keeps two callers, both
+            // that means `md` 12, not the `rowCoverGap` 14 the tokens define for a horizontal
+            // run. This shelf used it and was moved *off* it, because the grid it has to match
+            // had already drifted onto `md`. The token was renamed from `coverGap` on
+            // 2026-09-05 to say what it is actually used for — a design review found both cover
+            // grids on `md` while a token named for the job sat unused by them, which is drift
+            // with no note. `rowCoverGap` keeps its callers, all of them horizontal runs, both
             // horizontal runs rather than grids: Home's shelves and a publication page's
             // series shelf. Which of the two spacings is right is open, and written down in
             // `design.md` §4 rather than left silent — a token dropped without a word is the

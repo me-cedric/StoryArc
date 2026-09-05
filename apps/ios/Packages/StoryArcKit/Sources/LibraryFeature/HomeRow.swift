@@ -74,7 +74,7 @@ struct HomeShelfRow: View {
 
     var body: some View {
         ScrollView(.horizontal) {
-            LazyHStack(alignment: .top, spacing: StoryArcSpace.coverGap) {
+            LazyHStack(alignment: .top, spacing: StoryArcSpace.rowCoverGap) {
                 ForEach(publications) { publication in
                     HomeShelfCard(
                         publication: publication,
