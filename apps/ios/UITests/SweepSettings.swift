@@ -184,11 +184,84 @@ final class SweepSettingsTests: XCTestCase {
         )
     }
 
-    private func captureRemovalConfirmation(contentSize: String?, named name: String) throws {
-        let app = sweepLaunch(contentSize: contentSize)
+    /// The confirmation for a source that holds a download, which is the sentence that names
+    /// what removal deletes — and the one the device's own sources can never show, because
+    /// none of them has fetched anything.
+    ///
+    /// The registry and the record are injected together: a download belongs to a source by
+    /// `sourceID`, so the walk registers a catalogue whose id it chose and hands the store one
+    /// finished download carrying that id. `SourceDiagnosis` then counts it exactly as it
+    /// counts a real one, and the dialog reads *This removes 0 titles and 1 download (2.1 MB)*.
+    /// Zero titles, because the injected catalogue has no publications on this device; the
+    /// figure that matters here is the other one.
+    func testCaptureSourceRemovalConfirmationWithDownloads() throws {
+        try captureRemovalConfirmation(
+            contentSize: nil,
+            named: "settings-source-remove-downloads",
+            holding: .aDownload
+        )
+    }
+
+    /// The same sentence at the largest accessibility text size, where a confirmation holds
+    /// about seven short lines and the size is the last thing in it. If the frame cuts the
+    /// figure, the sentence is too long, and this is the walk that would show it.
+    func testCaptureSourceRemovalConfirmationWithDownloadsAtLargestText() throws {
+        try captureRemovalConfirmation(
+            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
+            named: "settings-source-remove-downloads-ax5",
+            holding: .aDownload
+        )
+    }
+
+    /// What the removal walk finds on the device: its own sources, or an injected one.
+    private enum Holding {
+        case theDeviceSources
+        case aDownload
+
+        /// A catalogue with an id this file chose, so the download below can name it.
+        static let catalogueID = "5B1D3E2A-7C4F-4A0B-9E2D-1F6A8C3B7D90"
+
+        var sources: String? {
+            switch self {
+            case .theDeviceSources: nil
+            case .aDownload:
+                """
+                {"sources":[{"id":"\(Self.catalogueID)","displayName":"Harbour OPDS",\
+                "kind":"opdsCatalog","locator":"https://example.invalid/opds"}],"tombstones":[]}
+                """
+            }
+        }
+
+        var downloads: String {
+            switch self {
+            case .theDeviceSources: "[]"
+            case .aDownload:
+                """
+                [{"id":"sweep-landed","sourceID":"\(Self.catalogueID)","title":"Harbour Lights 03",\
+                "remote":"https://example.invalid/hl03.epub","mediaType":"application/epub+zip",\
+                "expectedBytes":2100000,"downloadedBytes":2100000,"isFinished":true,\
+                "attempts":1,"verificationFailures":0}]
+                """
+            }
+        }
+
+        var sourceNames: [String] {
+            switch self {
+            case .theDeviceSources: ["StoryArc Test Catalogue", "Attic NAS"]
+            case .aDownload: ["Harbour OPDS"]
+            }
+        }
+    }
+
+    private func captureRemovalConfirmation(
+        contentSize: String?,
+        named name: String,
+        holding: Holding = .theDeviceSources
+    ) throws {
+        let app = sweepLaunch(contentSize: contentSize, downloads: holding.downloads, sources: holding.sources)
         try open("Your libraries", in: app)
         let source = try XCTUnwrap(
-            control("StoryArc Test Catalogue", in: app) ?? control("Attic NAS", in: app),
+            holding.sourceNames.lazy.compactMap { self.control($0, in: app) }.first,
             "Your libraries lists no catalogue. Cells: "
                 + "\(app.cells.allElementsBoundByIndex.prefix(10).map(\.label))"
         )
@@ -217,6 +290,17 @@ final class SweepSettingsTests: XCTestCase {
             "Remove raised no confirmation stating what it removes. On screen: "
                 + "\(app.staticTexts.allElementsBoundByIndex.prefix(12).map(\.label))"
         )
+        if case .aDownload = holding {
+            // The branch, not merely the dialog: a body that stayed on the titles-only sentence
+            // would pass the wait above and photograph the wrong claim.
+            XCTAssertTrue(
+                app.staticTexts.matching(
+                    NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", "This removes", "download")
+                ).firstMatch.exists,
+                "The source holds a download and the confirmation did not name it. On screen: "
+                    + "\(app.staticTexts.allElementsBoundByIndex.prefix(12).map(\.label))"
+            )
+        }
         hold(0.5)
         shutter(app, named: name)
 

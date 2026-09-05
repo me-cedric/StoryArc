@@ -1,6 +1,6 @@
 # The source detail screen — iOS, 2026-09-05
 
-`source-lifecycle` §4.1's, §4.3's and §4.6's iOS halves. Twelve frames from `StoryArc-iPhone17Pro`
+`source-lifecycle` §4.1's, §4.3's and §4.6's iOS halves. Fifteen frames from `StoryArc-iPhone17Pro`
 (402 pt), taken with `scripts/capture-ios.mjs`.
 
 | Frame | Task | Appearance | Text size |
@@ -17,6 +17,9 @@
 | `ios-settings-source-remove-ax5-scrolled.png` | §4.6 | light | `AccessibilityXXXL`, after a swipe |
 | `ios-settings-source-remove-ax5-dark.png` | §4.6 | dark | `AccessibilityXXXL` |
 | `ios-settings-source-remove-ax5-scrolled-dark.png` | §4.6 | dark | `AccessibilityXXXL`, after a swipe |
+| `ios-settings-source-remove-downloads.png` | §4.6 | light | default, a source holding a download |
+| `ios-settings-source-remove-downloads-ax5.png` | §4.6 | light | `AccessibilityXXXL`, a source holding a download |
+| `ios-settings-source-remove-downloads-ax5-scrolled.png` | §4.6 | light | `AccessibilityXXXL`, after a swipe |
 
 Surface: *Settings › Your libraries › one source*. The walk opens `StoryArc Test Catalogue`
 and falls back to `Attic NAS`; **which of the two it lands on varies between runs**, so the
@@ -186,6 +189,24 @@ at the default and the largest text size and writes both to
 copied. They are a rendering of the real composable with the shipped strings, not a device
 frame: no system bars, no real font, no Material You. The footer wraps inside the gutters at
 both sizes and the four-locale fit is asserted by the same suite.
+
+### The download sentence, photographed after all
+
+The device's own sources have fetched nothing, so the sentence that names a download could not
+be photographed on them — and the ids of those sources are not something a walk can read, so no
+download record could be attributed to one. `app.storyarc.sources` turned out to be a
+`UserDefaults` key like `app.storyarc.downloads`, so the walk injects both: a catalogue whose id
+it chose, *Harbour OPDS*, and one finished download carrying that id. `SourceDiagnosis` counts it
+exactly as it counts a real one.
+
+`ios-settings-source-remove-downloads.png` reads *"This removes 0 titles and 1 download (2,1
+MB)."* under a *Downloaded* row reading `2,1 MB` — the same helper, the same figure, the decimal
+comma the device's region asks for. **At `AccessibilityXXXL` the whole sentence is in the
+dialog**, eight lines ending in *MB).*, with the figure intact; the `-scrolled` twin is identical,
+as before, and nothing now needs the scroll. Zero titles because the injected catalogue has no
+publications on this device; the figure that matters here is the other one. The walk asserts the
+branch, not merely the dialog — a body that stayed on the titles-only sentence would have passed
+a wait on *"This removes"* and photographed the wrong claim.
 
 ## Two walks that could not run, and why
 

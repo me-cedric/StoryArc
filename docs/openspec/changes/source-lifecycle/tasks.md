@@ -373,6 +373,14 @@ filename so a light and a dark run cannot overwrite each other.
       note here said neither platform deletes them; it had read the model layer's comment as
       the whole story and was wrong. The body is rewritten once, with the bytes in it.
 
+      **The download sentence is photographed too (2026-09-06).** The walk injects a registry
+      with a catalogue whose id it chose and one finished download carrying that id — both are
+      `UserDefaults` keys the sweep already passes — so the dialog reads *This removes 0 titles
+      and 1 download (2,1 MB)* at the default size and, at `AccessibilityXXXL`, in eight lines
+      with the figure intact. Three more frames in the same folder. The iOS half of this task is
+      complete; the Android half is a Robolectric rendering, with the device frame still owed for
+      want of a registered source on the emulator.
+
       **One thing the frames caught that a test could not.** The walk asserts the sentence by
       `staticTexts … CONTAINS "30 days"` and that assertion **passes at AX5**: the whole message
       is one label in the accessibility tree, so VoiceOver reads it in full while a sighted

@@ -45,6 +45,10 @@ extension XCTestCase {
     ///     without a transfer record. Nothing on this device has one, and a queue
     ///     photographed by starting a real download would need a server, a network and a
     ///     file that takes long enough to photograph.
+    ///   - sources: a `StoredRegistry` JSON object, for a walk that needs a source whose id it
+    ///     knows — the removal confirmation naming a download is reachable only when a
+    ///     download's `sourceID` matches a registered source, and the device's own sources
+    ///     have ids no walk can read. `nil` leaves the device's registry alone.
     ///   - language: a BCP-47 tag for the app's own language override.
     ///   - searchScope: `everywhere` or `onThisDevice`, the search screen's own axis.
     ///   - layout: `grid` or `list`, the shelf's own persisted layout.
@@ -68,6 +72,7 @@ extension XCTestCase {
         appearance: String = "system",
         natural: Bool = false,
         downloads: String = "[]",
+        sources: String? = nil,
         language: String? = nil,
         searchScope: String = "everywhere",
         availability: String = "everywhere",
@@ -106,6 +111,9 @@ extension XCTestCase {
             // gated on the recents being empty as well as the suggestions.
             "-app.storyarc.librarySearches", recents,
         ]
+        if let sources {
+            app.launchArguments += ["-app.storyarc.sources", asPlistData(sources)]
+        }
         if let contentSize {
             app.launchArguments += ["-UIPreferredContentSizeCategoryName", contentSize]
         }
