@@ -210,7 +210,7 @@ says so and names what is left to watch.
       the accessory belongs to the `TabView`, so it survives a push inside a tab, and
       the reader's `fullScreenCover` belongs to the window's root, so it covers
       whatever the listener had descended to. Neither is a new mechanism.
-- [ ] **2.3** It appears when a session starts, goes when it ends, and reserves no
+- [~] **2.3** It appears when a session starts, goes when it ends, and reserves no
       space when absent. Screenshot: with a session and without, on each
       destination.
 
@@ -227,7 +227,40 @@ says so and names what is left to watch.
       before this change: the tab bar must be the same height.** If it is not, the
       answer is `tabViewBottomAccessory(isEnabled:)`, which is iOS 26.1 against a
       26.0 floor and would cost an availability branch — `AppShell` carries the note.
-- [ ] **2.4** Accessibility: reachable in the reading order, labelled per action,
+
+      *2026-09-05, checked against the tree.* **That screenshot was taken, it said the
+      platform does reserve the slot, and the remedy is in the tree.** Not by this change:
+      `audiobooks-and-playback` hit the same slot with the same question and
+      `AppShell.PlaybackAccessory`'s own comment records the result — an empty builder still
+      draws the glass capsule, so every destination lost that much height, and
+      `tabViewBottomAccessory(isEnabled:)` is now applied behind `#available(iOS 26.1, *)`,
+      the app's only availability branch. **On the 26.0 floor the empty capsule remains**, and
+      that is a stated cost rather than a fixed defect — the delta says "no space is reserved
+      for one", so a 26.0 device does not meet it and the branch is the honest half-answer.
+
+      **Three names in the paragraph above are stale.** `ReadAloudTransport.of(_:speaking:)`
+      is now `CompactPlayer.of(_:playing:)` in `StoryArcKit/Sources/Playback`, and it holds
+      the same rule — `nil` for an inactive session, whoever ended it. The five tests are
+      `CompactPlayerTests` (*"Nothing playing is no bar at all, not an empty one"*, *"Every
+      ending withdraws the bar"* over both source kinds, *"A paused session keeps its bar"*)
+      plus `PlaybackSessionTests.endingWithdraws`. The `if` is still in `AppShell` and not
+      inside the bar, for the reason this note gave.
+
+      **One thing Phase 2's bodies claim that the shipped bar does not do.** 2.1 says the
+      transport "carries the four verbs the lock screen carries", and the delta's *Controlling
+      it without going back* asks for pause, resume, **skip a sentence** and end. `PlayerDock`
+      carries play/pause, stop, and — for a publication being read aloud — a chevron into the
+      full player. **There is no skip control on the bar**, and its own comment says why: the
+      minimised tab bar is four destinations wide, and skipping was left to the lock screen
+      and the full player. Whether that meets "without opening the publication first" is a
+      reading — the full player is not the publication — and it is
+      `audiobooks-and-playback`'s file and its documented product decision, so it is recorded
+      here rather than reversed from this change. `/opsx:verify` should settle it.
+
+      **Owed:** the shell on each of the four destinations with no session and with one, light
+      and dark, on a 26.1 simulator — the pair proves the `isEnabled:` branch — and one 26.0
+      frame showing the capsule that the floor still costs.
+- [~] **2.4** Accessibility: reachable in the reading order, labelled per action,
       and it does not take focus when it appears. Verified with the screen reader
       on, not by reading the code.
 
@@ -246,7 +279,27 @@ says so and names what is left to watch.
       *"Read aloud, Sea Room, Chapter Two, button"*, which is what the platform's own
       mini players read and is short of the delta's *"each of its actions is labelled
       by what it does"*.
-- [ ] **2.5** Screenshot at the largest text size, where a compact transport
+
+      *2026-09-05, checked against the tree.* **That gap is closed, and not by asking the
+      vocabulary slice.** `audiobooks-and-playback` replaced `ReadAloudDock` with one
+      `PlayerDock`, and its way-back row is labelled by what it does — `player.back` for a
+      publication being read aloud, `player.open` for a narrated file that has no reader to
+      go back to — with the title and chapter demoted to `accessibilityValue`, so VoiceOver
+      reads the outcome first and what is playing second. `player.back` resolves in en, fr,
+      de and es; `node scripts/ios-strings.mjs` passes. No `readaloud.return` is needed and
+      the vocabulary slice should not be asked for one.
+
+      The rest of the paragraph above still holds against `PlayerDock`: one
+      `accessibilityElement(children: .contain)` group labelled `player.nowPlaying`, each
+      control labelled from its own key, a 44pt target on every glyph, and no
+      `accessibilityFocused` and no screen-changed announcement anywhere in the file — the
+      absence being the requirement. **Every one of those is a source-text fact, which is
+      exactly what this task refuses to accept as proof.** What is owed is a VoiceOver walk on
+      a simulator: swipe into the bar from the tab bar and confirm it is in the reading order;
+      hear the four elements in turn; and start a session with VoiceOver focused on a shelf
+      cover and confirm the cursor does not move. Also owed: the same three with Full Keyboard
+      Access on, because the delta names the keyboard and a switch beside the screen reader.
+- [~] **2.5** Screenshot at the largest text size, where a compact transport
       truncates first.
 
       **The words scale and the glyphs do not.** The control row is capped at
@@ -256,6 +309,21 @@ says so and names what is left to watch.
       until the title was three characters and an ellipsis would be worse for the
       reader who chose that size than for anyone else. **Unwatched: this is the
       screenshot that shows whether the trade lands.**
+
+      *2026-09-05, checked against the tree.* **The trade survived the two bars becoming
+      one, in the same three lines.** `PlayerDock.controls(_:)` caps its row at
+      `.dynamicTypeSize(...DynamicTypeSize.xxLarge)` and the title stack is `lineLimit(1)`
+      with `.truncationMode(.tail)`; the chapter is dropped entirely in the inline placement.
+      `audio-playback` adds the clause that makes the truncation defensible rather than
+      merely tidy — the accessory's height is the system's, so lifting the limit would clip a
+      line mid-letter rather than grow the bar, and the text the tail eats is announced in
+      full through `accessibilityValue`.
+
+      **Owed:** the shell with a read-aloud session at `AX5` / the largest content size,
+      light and dark, in both accessory placements — expanded above the tab bar, and inline
+      after a scroll-down has minimised it — with a publication whose title is long enough to
+      truncate. The inline frame is the one that matters: it is where a title, a chapter, a
+      play button and a stop button compete for a strip four destinations wide.
 
 ## Phase 3 — Android, which adds no bar
 
