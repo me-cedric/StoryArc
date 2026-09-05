@@ -46,6 +46,21 @@ defensible, and the sheet scrolls. It is recorded because nobody has decided it.
 scrolls to the grid rather than resizing the sheet, so these frames show what a reader would
 actually see after one swipe.
 
+## A third finding: one of the two theme-sheet walks cannot reach the sheet at this size
+
+`ScreenshotTests.testCaptureThemeSheetAtLargestText` **fails** at `AccessibilityXXXL`, in both
+appearances, with `XCTAssertTrue failed - the reader revealed no menu to open`. Its sibling
+`SweepEpubReaderTests.testCaptureEpubThemePresetsAtLargestText` — the walk that took the frames
+above — reaches the same sheet at the same text size in the same run.
+
+So the sheet is reachable and the app is not at fault; the older walk is. Left failing rather
+than quietly repaired, because which of the two is wrong is worth deciding rather than
+patching: they photograph the same surface from two files, and the sweep's version already
+asserts more before its shutter.
+
+That is why `reader-theming-and-page-transitions` §7.4 stays `[~]` — the **sheet** at the
+largest size is still unphotographed on iOS, even though the **presets** at that size now are.
+
 ## How to retake them
 
 ```bash
