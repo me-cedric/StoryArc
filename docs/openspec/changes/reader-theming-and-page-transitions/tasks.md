@@ -24,6 +24,17 @@
 > **No task here is affected**: nothing this change builds changed, and the carried
 > scenarios are already implemented by the changes that wrote them.
 
+> **Its `ebook-reader` delta moved again on 2026-09-05, and again no task changed.** The
+> delta-drop gate learnt that day to compare a scenario's clauses and not only its name
+> (`2434461e`), and found three scenarios in this delta that had kept their titles while
+> dropping a clause the main spec holds. The three were reworded to carry the clause:
+> *Typography controls* says each change is reflected in the page behind the sheet (task 3.6,
+> the live preview through the real renderer); *Theme follows appearance* says the switch
+> happens then and there, only with the linking setting on (task 5.5); *Themes are named, not
+> numbered* says a swatch shows a specimen of real letterforms in its own colours (tasks 3.3
+> and 3.7). All three tasks are ticked and built what the restored clauses describe, so this
+> note is what the guard's stale flag is asking for and nothing below moves.
+
 Ordered so the risky unknowns are answered before anything is built on them. The
 four product questions are decided — see `proposal.md`. What Phase 0 answers is
 technical, and each item's fallback is in `design.md`.
