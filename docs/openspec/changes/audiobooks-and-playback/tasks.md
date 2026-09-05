@@ -1143,6 +1143,30 @@ creep — see [`design.md`](design.md).
       is still only true of a narrated book. The remaining work is unchanged: a second
       `PlayerSource` over the speech engine, and one service behind both.
 
+      **2026-09-05, later: a requirement that used to forbid this on Android has been reversed,
+      and this task now closes a gap rather than opening one.** `ebook-reader`'s *The transport
+      on Android* ended "no docked bar is added inside the app" while a voice speaks.
+      `read-aloud-beyond-the-reader` task 3.3 asserted that absence and, on 2026-09-05, noticed
+      what it implied: the two engines are the **only** thing keeping a voice out of the slot,
+      so the day this task collapses them a read-aloud session starts arriving in a bar one
+      requirement forbade — reversing it by a merge nobody read as a product change, with every
+      gate green. The owner settled it before that could happen: **read-aloud gets the bar.**
+      The amended delta carries the reasoning; the short form is that the clause was written
+      when the voice had no bar to appear in, so it encoded an implementation accident rather
+      than an intent about readers.
+
+      **What that changes for this task.** Nothing in the work, and everything in how its
+      landing reads. The Android half of 6.1 is now the thing that makes Android *comply* with
+      `ebook-reader` as well as with `audio-playback` — the amended *The transport on Android*
+      asks for the compact bar **and** the media notification, and the requirement's prose
+      forbids only a *second* bar, so the notification stays exactly as it is. The tripwire
+      that would have fired is gone: `ReadAloudAddsNoBarTest` is now `OneCompactBarTest`, which
+      asserts that the shell composes **exactly one** `CompactPlayerBar` and that the reader's
+      own `ReadAloudBar` is never promoted out of the reader. Neither claim obstructs this
+      task; both outlive it. Its former assertion that the slot reads `PlaybackHost.nowPlaying`
+      — the line this task has to change — was deleted with the reversal, so nothing here has
+      to delete a test to do its job.
+
       **What a listener has to do on a device, because this defect is audible and not
       visible.** Nothing below can be photographed; §6's proof is discharged by naming the
       walk. It needs the corpus's `chaptered.m4b` (six seconds) and any reflowable EPUB in

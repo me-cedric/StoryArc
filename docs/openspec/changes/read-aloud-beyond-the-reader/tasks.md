@@ -423,7 +423,11 @@ says so and names what is left to watch.
       truncate. The inline frame is the one that matters: it is where a title, a chapter, a
       play button and a stop button compete for a strip four destinations wide.
 
-## Phase 3 — Android, which adds no bar
+## Phase 3 — Android's transport
+
+> **This phase was called "Android, which adds no bar" until 2026-09-05.** The owner reversed
+> that clause; the amended `ebook-reader` delta carries the reasoning. Android's transport is
+> now the compact bar **and** the media notification, and 3.3 below is the task that changed.
 
 - [~] **3.1** Confirm the notification and lock-screen controls are correct while
       the app is foregrounded with no reader on screen — not only while
@@ -495,9 +499,19 @@ says so and names what is left to watch.
       and confirm both land on the sentence the voice is on rather than at the top of the
       chapter — then press back once and confirm the library is underneath. One frame per
       landing.
-- [x] **3.3** Explicitly assert that no in-app docked bar is added, and record why
-      in the handoff, so the divergence is not read as an omission and "fixed"
-      later.
+- [~] **3.3** Explicitly assert that the app docks **one** compact bar and that the
+      voice takes it rather than being given a second one, and record why in the
+      handoff, so neither the sharing nor the single bar is read as an accident and
+      "fixed" later.
+
+      > **This task read "assert that no in-app docked bar is added" until 2026-09-05, and it
+      > was ticked.** The owner reversed the clause it asserted; the reasoning is in the
+      > amended `ebook-reader` delta rather than repeated here. The paragraphs below are kept
+      > in the order they were written, because the last one is what put the decision in front
+      > of the owner, and a reader who sees only the answer cannot re-derive it. **The
+      > resolution is the final paragraph.** The tick came off: the amended requirement is met
+      > on iOS and is not met on Android, and a task list that says otherwise is a claim rather
+      > than a record.
 
       **Asserted: no in-app docked bar is added on Android, and none should be.**
       `ReadAloudBar.kt` exists and stays exactly where it is — in-reader chrome, on
@@ -549,6 +563,46 @@ says so and names what is left to watch.
       something plays, the other forbids one while a voice speaks. They are reconciled today
       only by the engine split. `/opsx:verify` should settle it, and the reconciliation is a
       product decision rather than a wiring one.
+
+      *2026-09-05, the owner settled it: **read-aloud gets the bar.*** The forbidding clause
+      was written when the voice had no bar to appear in, so it encoded an implementation
+      accident rather than an intent about readers — the full argument is in the amended
+      delta's own note, where a reader of the spec will find it. *The transport on Android*
+      now asks for the compact bar **and** the media notification; the requirement's prose
+      forbids only a *second* bar.
+
+      **The conflict was inside `ebook-reader`, not between it and `audio-playback`**, and
+      that is worth stating because it changes what the amendment had to touch. Both changes'
+      `ebook-reader` deltas already require, in *Starting playback*, that "the player's
+      compact bar appears" when read-aloud starts — so the forbidding clause in *The transport
+      on Android* contradicted a scenario two requirements above it in the same file, and
+      `audio-playback` only ever required the bar. Android today therefore satisfies *The
+      transport on Android* and violates *Starting playback*, `audio-playback`'s *The compact
+      bar* and its *Both sources look the same*. Reversing the one clause makes four
+      requirements agree instead of three disagreeing.
+
+      **What the tripwire became.** `ReadAloudAddsNoBarTest` is now `OneCompactBarTest`, in
+      the same directory, and its header carries what it used to guard and why that changed.
+      Two of its three claims survive the reversal with new reasons — the shell composes
+      **exactly one** `CompactPlayerBar`, and `ReadAloudBar` stays in-reader chrome composed
+      only by `EpubReaderOverlays.kt` — because promoting the reader's own bar into the shell
+      would be the *second* transport the amended requirement forbids by name. The third,
+      which asserted that the slot still reads `PlaybackHost.nowPlaying`, is **deleted**: that
+      line is now where read-aloud must *start* appearing, so the assertion guarded the defect.
+      The old list of four forbidden symbols is narrowed to `ReadAloudBar` alone, because the
+      shell taking an interest in the voice is no longer forbidden — feeding one bar from a
+      surface that spans both engines may well require it, and a test that blocked the
+      compliant implementation would be the old rule wearing a new name. All three assertions
+      were proved able to fail by compiling mutations actually run; the file lists them.
+
+      **What is left, and who owns it.** Android does not yet meet the amended requirement:
+      the bar still reads `PlaybackHost.nowPlaying`, so a voice does not reach it.
+      `SpokenAudio` unified the two *authorities* and deliberately not the two *engines* — its
+      `Speaker` interface is two members wide on purpose, and widening it to carry a
+      now-playing surface is the collapse `audiobooks-and-playback` **task 6.1** owns. That is
+      why this is `[~]` and not `[x]`, and why nothing was wired here: doing it in this change
+      would be 6.1's work in 6.1's file, and the two would conflict. iOS already complies —
+      read-aloud drives `PlayerCentre` and `PlayerDock` carries it (that change's task 4.2).
 
 ## Phase 4 — The unhappy paths
 
