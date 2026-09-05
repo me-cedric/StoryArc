@@ -8,10 +8,26 @@ platform SHALL express the destination set defined in
 [`navigation-shell`](../navigation-shell/spec.md) with its own system
 navigation, rather than with a translation of the other platform's.
 
+> **The scenarios below keep every clause the main spec already holds.** A MODIFIED
+> requirement replaces the whole block, so a clause this delta does not carry is a clause
+> archiving deletes. `pnpm delta:drop` cannot see that: it compares scenarios by **name** and
+> `SHALL` sentences in the requirement's prose, and says so in its own header — a bullet
+> dropped inside a scenario that kept its name passes the check. Read against
+> `specs/native-experience/spec.md` by hand, 2026-09-05, which is how the content-area clause
+> in *Tablet and large screens* was found missing and restored below.
+>
+> **One clause is deliberately not carried word for word, and this is the record of it.**
+> *Split View, Slide Over and multi-window* said "the **sidebar** collapses to an **overlay**".
+> This requirement's own prose now forbids expressing one platform's navigation as a
+> translation of the other's, and neither platform's compact form is an overlay sidebar: iOS
+> reverts to its tab bar and Android to its bar. The normative half — *rather than being
+> truncated* — is carried unchanged; only the name of the form it collapses to is generalised.
+
 #### Scenario: Tablet and large screens
 - **WHEN** the app runs on an iPad or an Android tablet
 - **THEN** it uses a multi-column layout with persistent navigation alongside the content, not a stretched phone layout
 - **AND** that navigation carries the same three destinations as the phone, plus sections of the library and the reader's shelves
+- **AND** the content area shows the destination the reader is in and nothing else — the home surface's continue row, or the library's cover grid — which is the structure a reader on that platform already knows, now split across two destinations rather than stacked in one pane
 - **AND** it never carries one entry per configured source, however many are configured
 
 #### Scenario: The two platforms reach the same destinations differently
