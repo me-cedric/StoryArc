@@ -234,6 +234,48 @@ class PlaybackSessionTest {
         assertNull(centre.nowPlaying)
     }
 
+    /**
+     * A book that runs out is torn down exactly as one the listener ended.
+     *
+     * **The two endings used to differ, and only one of them was the one the spec
+     * describes.** [PlaybackCentre.publish] recorded the position and dropped an idle
+     * source without ever calling [PlayerSource.stop], while [PlaybackCentre.stop] did —
+     * so a listener's stop emptied the engine and a book reaching its own last second did
+     * not. On the narrated path that leaves `AudiobookSource.stop`'s three lines undone:
+     * the `Player.Listener` is never removed from a `MediaController` that lives as long
+     * as the process, and `player.stop()` and `player.clearMediaItems()` never run, so the
+     * finished playlist stays loaded in the thing media3 draws its notification from.
+     *
+     * iOS has never had the gap: `PlayerCentre.finish` is the one teardown and it calls
+     * `source.stop()`, which for a spoken source is the only signal that withdraws the
+     * highlight. Android will need that same call the moment read-aloud becomes a
+     * [PlayerSource] here (task 6.1), and a teardown that is right only for one of the two
+     * endings is a teardown that would have been wrong for the other.
+     */
+    @Test
+    fun `a book that ends by itself is stopped, exactly as one the listener ended`() {
+        val log = mutableListOf<String>()
+        val source = FakeSource(
+            publicationId = "sea-room",
+            title = "Sea Room",
+            parts = listOf(PlaybackPart("One", PlaybackDuration.Known(120_000))),
+            log = log,
+        )
+        val centre = PlaybackCentre(
+            record = { ending, at -> log += "recorded ${ending.publicationId}@${at.offsetMillis}" },
+        )
+        centre.start(source)
+        centre.seek(PlaybackPosition(partIndex = 0, offsetMillis = 119_000))
+        log.clear()
+
+        source.reachEnd()
+
+        // The position first, then the engine let go. The same order, and the same two
+        // entries, that displacing a book produces above.
+        assertEquals(listOf("recorded sea-room@119000", "stopped sea-room"), log)
+        assertNull(centre.nowPlaying)
+    }
+
     // MARK: 5.2 — the interval a skip moves
 
     /**

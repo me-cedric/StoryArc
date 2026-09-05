@@ -143,16 +143,25 @@ class PlaybackCentre(
      * reports the end of the last item, and the speech engine reports running out of
      * words, and neither of them is a listener pressing stop. `audio-playback` wants the
      * same thing of both — the controls go away — so the surface is dropped here.
+     *
+     * **Through [recordAndRelease], because the teardown is the same teardown.** This used
+     * to record the position and detach the callbacks inline and never call
+     * [PlayerSource.stop], so a book that ran out left its engine exactly as it was: on the
+     * narrated path the `Player.Listener` stayed on a `MediaController` that lives as long
+     * as the process, and neither `player.stop()` nor `player.clearMediaItems()` ran, so the
+     * finished playlist stayed loaded in the thing media3 draws its notification from. A
+     * listener's own stop did all three. Two endings, one of them incomplete, and nothing
+     * said which. iOS's `PlayerCentre.finish` has always been the one teardown for all
+     * three endings — and for a spoken source `stop()` is the *only* signal that withdraws
+     * the highlight, which is what this would have cost the moment read-aloud becomes a
+     * second [PlayerSource] here.
      */
     private fun publish() {
         val source = source
         val next = when {
             source == null -> null
             !source.session.isActive -> {
-                record(source, source.position)
-                source.onChange = null
-                source.onInterruptionEnd = null
-                this.source = null
+                recordAndRelease(source)
                 null
             }
             else -> NowPlaying.of(source)
