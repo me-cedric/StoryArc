@@ -131,6 +131,9 @@ internal fun HostedScreen(
                 onOpenCollection = { id -> host.navigate { push(Screen.Collection(id)) } },
                 onOpenList = { id -> host.navigate { push(Screen.ReadingList(id)) } },
                 onBack = back,
+                // Where a pin is written down. The same store the library's own axis and
+                // filters use, so one launch reads one file -- see `LibraryPreferences`.
+                preferences = dependencies.libraryPreferences,
                 servers = registry.sources.mapNotNull {
                     KavitaPage.of(it, dependencies.credentials)
                 },

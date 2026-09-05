@@ -1,10 +1,13 @@
 package app.storyarc.feature.library
 
 import app.storyarc.core.model.LibraryIndex
+import app.storyarc.core.model.PinnedShelves
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadState
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.model.ShelfPin
+import app.storyarc.core.model.Shelves
 import kotlin.math.roundToInt
 
 /**
@@ -66,6 +69,25 @@ enum class HomeFinishedPeriod { THIS_WEEK, THIS_MONTH, EARLIER }
 data class HomeFinishedGroup(val period: HomeFinishedPeriod, val entries: List<HomeEntry>)
 
 /**
+ * One pinned collection or reading list, resolved to what the home surface can draw.
+ *
+ * Carries its own name because that is the heading -- the shelf is the reader's, so no string
+ * resource can name it -- and its own entries because a reading list keeps an order and a
+ * collection does not, and that difference has to survive the trip to this screen.
+ *
+ * A shelf that resolves to nothing is not built at all, per *A shelf that would be empty*.
+ * That is not only about a collection the reader emptied: a pinned shelf whose members live
+ * on a source no scan has reached yet resolves to nothing too, and a heading over no covers
+ * would be the surface looking like it was waiting for something -- the one thing it must
+ * never look like it is doing.
+ */
+data class HomePinnedShelf(
+    val pin: ShelfPin,
+    val name: String,
+    val entries: List<HomeEntry>,
+)
+
+/**
  * Everything the home surface draws, assembled and ready.
  *
  * A value rather than a set of flows: `home-screen` requires the surface to "render
@@ -80,6 +102,14 @@ data class HomeSurface(
     val keepReading: List<HomeEntry> = emptyList(),
     val upNext: List<HomeEntry> = emptyList(),
     val recentlyAdded: List<HomeEntry> = emptyList(),
+    /**
+     * The collections and reading lists the reader pinned, one shelf each.
+     *
+     * `home-screen`, *The rest of the home surface*, fixes where they go: "recently added
+     * publications, the reader's pinned shelves, and what they have finished", in that order.
+     * Empty rather than absent when nothing is pinned, like every other list here.
+     */
+    val pinned: List<HomePinnedShelf> = emptyList(),
     val finished: List<HomeFinishedGroup> = emptyList(),
 ) {
     /**
@@ -147,6 +177,10 @@ object HomeShelves {
         isReadableNow: (Publication) -> Boolean,
         nowEpochMillis: Long,
         shelfLength: Int = SHELF_LENGTH,
+        /** The reader's own groupings, so the pinned ones can be resolved. */
+        shelves: Shelves = Shelves(),
+        /** Which of them they asked to see here. */
+        pinned: PinnedShelves = PinnedShelves(),
     ): HomeSurface {
         val state: (Publication) -> LibraryIndex.Progress = { LibraryIndex.Progress.of(progress(it)) }
         val entry: (Publication) -> HomeEntry = { entryOf(it, progress, isReadableNow) }
@@ -172,9 +206,55 @@ object HomeShelves {
             keepReading = keepReading,
             upNext = upNext(publications, state, shelfLength).map(entry),
             recentlyAdded = recentlyAdded(publications, shelfLength).map(entry),
+            pinned = pinnedShelves(publications, shelves, pinned, entry),
             finished = finished(publications, progress, nowEpochMillis, shelfLength)
                 .map { (period, group) -> HomeFinishedGroup(period, group.map(entry)) },
         )
+    }
+
+    /**
+     * The pinned collections and lists, resolved against the library.
+     *
+     * Collections first and then lists, which is the order the shelves screen shows them in
+     * -- a reader who pinned two things should meet them here in the order they met them
+     * there. Within each, `PinnedShelves.ordering` is *not* asked: it puts pinned ahead of
+     * unpinned, and everything here is pinned already. The reader's own order is what the two
+     * lists arrive in.
+     *
+     * **A collection is filtered out of the library and a reading list is walked**, and that
+     * is the whole difference between the two types made concrete: a list's order carries
+     * meaning, so its entries decide the order, and a member it names that the library does
+     * not hold is skipped rather than left as a hole.
+     */
+    private fun pinnedShelves(
+        publications: List<Publication>,
+        shelves: Shelves,
+        pinned: PinnedShelves,
+        entry: (Publication) -> HomeEntry,
+    ): List<HomePinnedShelf> {
+        if (pinned.isEmpty) return emptyList()
+        val byId = publications.associateBy { it.id }
+
+        val collections = shelves.collections
+            .filter { ShelfPin.Collection(it.id) in pinned }
+            .map { collection ->
+                HomePinnedShelf(
+                    pin = ShelfPin.Collection(collection.id),
+                    name = collection.name,
+                    entries = publications.filter { it.id in collection.members }.map(entry),
+                )
+            }
+        val lists = shelves.lists
+            .filter { ShelfPin.ReadingListPin(it.id) in pinned }
+            .map { list ->
+                HomePinnedShelf(
+                    pin = ShelfPin.ReadingListPin(list.id),
+                    name = list.name,
+                    entries = list.entries.mapNotNull { byId[it] }.map(entry),
+                )
+            }
+
+        return (collections + lists).filter { it.entries.isNotEmpty() }
     }
 
     /**

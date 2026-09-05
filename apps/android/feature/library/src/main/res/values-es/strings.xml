@@ -167,6 +167,8 @@
     <string name="shelves_create">Crear</string>
     <string name="shelves_cancel">Cancelar</string>
     <string name="shelves_delete">Eliminar %1$s</string>
+    <string name="shelves_pin">Fijar en Inicio</string>
+    <string name="shelves_unpin">No fijar en Inicio</string>
     <string name="shelves_delete_confirm">Eliminar</string>
     <string name="shelves_delete_title">¿Eliminar «%1$s»?</string>
     <string name="shelves_delete_collection_body">Los libros y cómics que contiene siguen en tu biblioteca. Solo desaparece la colección.</string>

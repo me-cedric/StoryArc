@@ -48,6 +48,7 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
         private const val LAYOUT = "layout"
         private const val RECENT_SEARCHES = "recentSearches"
         private const val AVAILABILITY = "availability"
+        private const val PINNED_SHELVES = "pinnedShelves"
         private const val SEARCH_SCOPE = "searchScope"
         private const val DOWNLOAD_FILTER = "downloadFilter"
 
@@ -171,6 +172,29 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
 
     fun saveAvailability(choice: String) {
         preferences.edit().putString(AVAILABILITY, choice).apply()
+    }
+
+    /**
+     * The shelves the reader pinned to the home surface, as `PinnedShelves` tokens.
+     *
+     * Tokens rather than a parsed value, for the reason [availability] gives about names: the
+     * meaning lives in `:core:model`, and this module does not decide what a token means. A
+     * token this version cannot read is dropped by `PinnedShelves.of`, not here.
+     *
+     * A `Set<String>`, which `SharedPreferences` takes natively. iOS stores the identical
+     * tokens joined into one scalar because `@AppStorage` stores scalars — the container
+     * differs and the tokens do not, which is the half that has to match.
+     *
+     * **The returned set is defensively copied.** `getStringSet` documents that the instance
+     * it hands back must not be modified and that its contents are undefined after a write;
+     * the caller here builds a value type out of it and would be within its rights to keep
+     * the reference.
+     */
+    fun pinnedShelves(): Set<String> =
+        preferences.getStringSet(PINNED_SHELVES, null)?.toSet() ?: emptySet()
+
+    fun savePinnedShelves(tokens: Collection<String>) {
+        preferences.edit().putStringSet(PINNED_SHELVES, tokens.toSet()).apply()
     }
 
     /**

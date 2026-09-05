@@ -174,6 +174,8 @@ fun HomeScreen(
                 onShowAll = onShowAll,
             )
 
+            pinnedShelves(surface, cover, onOpen)
+
             finished(surface, cover, onOpen, onShowAll)
         }
     }
@@ -274,6 +276,57 @@ private fun LazyListScope.shelf(
     if (entries.isEmpty()) return
     item { HomeHeading(heading) { onShowAll(section) } }
     item { HomeCoverRun(entries = entries, cover = cover, onOpen = onOpen) }
+}
+
+/**
+ * The reader's pinned collections and reading lists, one shelf each.
+ *
+ * `home-screen`, *Pinned shelves*: a pinned shelf "appears on the home surface as a shelf of
+ * its own", and *The rest of the home surface* puts them between recently added and finished.
+ *
+ * **No heading arrow, unlike every other shelf here.** `Every shelf leads somewhere
+ * exhaustive` asks a heading to lead "to the full list in the library, filtered to match the
+ * shelf" -- and a collection is not a library filter, it is a shelf with a screen of its own.
+ * Sending the reader to a filtered library would show them a different set under the same
+ * name. The way through is the shelf's own screen, one destination along, which is where they
+ * pinned it from. Named here so the difference reads as a decision rather than an omission.
+ *
+ * `key` is the pin's token: stable across a rename, unique across the two kinds, and already
+ * the string the choice is stored as.
+ */
+private fun LazyListScope.pinnedShelves(
+    surface: HomeSurface,
+    cover: suspend (Publication, Int) -> Bitmap?,
+    onOpen: (Publication) -> Unit,
+) {
+    surface.pinned.forEach { shelf ->
+        item(key = "pinned-${shelf.pin.token}") {
+            Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
+                HomeShelfName(shelf.name)
+                HomeCoverRun(entries = shelf.entries, cover = cover, onOpen = onOpen)
+            }
+        }
+    }
+}
+
+/**
+ * A heading that is the reader's own words rather than one of ours.
+ *
+ * The same size and weight as [HomeHeading] so a pinned shelf reads as a peer of the ones
+ * around it, and without the arrow for the reason above.
+ */
+@Composable
+private fun HomeShelfName(name: String) {
+    Text(
+        text = name,
+        style = MaterialTheme.typography.titleLarge,
+        color = LocalStoryArcPalette.current.textPrimary,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.sm),
+    )
 }
 
 /**

@@ -176,6 +176,8 @@
     <string name="shelves_create">Create</string>
     <string name="shelves_cancel">Cancel</string>
     <string name="shelves_delete">Delete %1$s</string>
+    <string name="shelves_pin">Pin to Home</string>
+    <string name="shelves_unpin">Unpin from Home</string>
     <string name="shelves_delete_confirm">Delete</string>
     <string name="shelves_delete_title">Delete “%1$s”?</string>
     <string name="shelves_delete_collection_body">The books and comics in it stay in your library. Only the collection goes.</string>

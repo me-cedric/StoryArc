@@ -16,6 +16,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibrarySort
+import app.storyarc.core.model.PinnedShelves
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadState
 import app.storyarc.core.model.ReadingProgress
@@ -108,12 +109,20 @@ internal fun HomeDestination(host: AppHost) {
     // `locations` is part of the library's answer and is not a key here, so the surface is
     // keyed on the registry and on the publication list that a scan replaces. A scan that
     // resolves where a publication lives publishes a new list, which is what re-runs this.
-    val surface: HomeSurface = remember(publications, progress, onDevice, registry) {
+    // The reader's own groupings, and which of them they asked to see here. Read from the
+    // same store `ShelvesScreen` writes through on every pin, so a pin taken one destination
+    // along is on this surface the moment the reader comes back.
+    val shelves by host.library.shelves.collectAsStateWithLifecycle()
+    val pinned = PinnedShelves.of(host.dependencies.libraryPreferences.pinnedShelves())
+
+    val surface: HomeSurface = remember(publications, progress, onDevice, registry, shelves, pinned) {
         HomeShelves.assemble(
             publications = publications,
             progress = { progress[it.id] },
             isReadableNow = isReadableNow,
             nowEpochMillis = System.currentTimeMillis(),
+            shelves = shelves,
+            pinned = pinned,
         )
     }
 

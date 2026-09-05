@@ -1,11 +1,16 @@
 package app.storyarc.feature.library
 
 import app.storyarc.core.model.MetadataOrigin
+import app.storyarc.core.model.PinnedShelves
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.PublicationCollection
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.model.ReadingList
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.model.ShelfPin
+import app.storyarc.core.model.Shelves
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -338,17 +343,93 @@ class HomeShelvesTest {
         assertFalse(HomeShelves.isAtTheEnd(uncounted, record(uncounted)))
     }
 
+    // Pinned shelves
+
+    @Test
+    fun `a pinned collection becomes a shelf of its own, between recently added and finished`() {
+        val one = publication("Ashfall")
+        val two = publication("Brine")
+        val collection = PublicationCollection(name = "For bedtime", members = setOf(one.id))
+        val shelves = Shelves(collections = listOf(collection))
+        val pinned = PinnedShelves().toggling(ShelfPin.Collection(collection.id))
+
+        val surface = assemble(listOf(one, two), shelves = shelves, pins = pinned)
+
+        assertEquals(1, surface.pinned.size)
+        assertEquals("For bedtime", surface.pinned.single().name)
+        assertEquals(listOf(one.id), surface.pinned.single().entries.map { it.id })
+    }
+
+    @Test
+    fun `an unpinned shelf contributes nothing, which is what unpinning has to mean`() {
+        val one = publication("Ashfall")
+        val collection = PublicationCollection(name = "For bedtime", members = setOf(one.id))
+        val shelves = Shelves(collections = listOf(collection))
+
+        // The same shelves, no pins. `home-screen`: unpinning "removes the shelf without
+        // altering the collection or the list" -- so the collection is untouched either way,
+        // which is the assertion below the obvious one.
+        val surface = assemble(listOf(one), shelves = shelves, pins = PinnedShelves())
+
+        assertTrue(surface.pinned.isEmpty())
+        assertEquals(setOf(one.id), shelves.collections.single().members)
+    }
+
+    @Test
+    fun `a reading list keeps its own order, which a collection has none of`() {
+        // The whole difference between the two types, made concrete on this surface: a list's
+        // entries decide the order, and a collection is filtered out of the library in the
+        // library's order.
+        val first = publication("Ashfall")
+        val second = publication("Brine")
+        val list = ReadingList(name = "Crossover", entries = listOf(second.id, first.id))
+        val shelves = Shelves(lists = listOf(list))
+        val pinned = PinnedShelves().toggling(ShelfPin.ReadingListPin(list.id))
+
+        val surface = assemble(listOf(first, second), shelves = shelves, pins = pinned)
+
+        assertEquals(listOf(second.id, first.id), surface.pinned.single().entries.map { it.id })
+    }
+
+    @Test
+    fun `a pinned shelf the library cannot fill is absent rather than an empty heading`() {
+        // Not only a collection the reader emptied: a shelf whose members live on a source no
+        // scan has reached resolves to nothing too, and a heading over no covers would be the
+        // surface looking like it was waiting for something.
+        val absent = PublicationCollection(name = "On the server", members = setOf("nothing-here"))
+        val shelves = Shelves(collections = listOf(absent))
+        val pinned = PinnedShelves().toggling(ShelfPin.Collection(absent.id))
+
+        assertTrue(assemble(listOf(publication("Ashfall")), shelves = shelves, pins = pinned).pinned.isEmpty())
+    }
+
+    @Test
+    fun `a list entry the library does not hold is skipped rather than left as a hole`() {
+        val held = publication("Ashfall")
+        val list = ReadingList(name = "Crossover", entries = listOf("missing", held.id, "also-missing"))
+        val shelves = Shelves(lists = listOf(list))
+        val pinned = PinnedShelves().toggling(ShelfPin.ReadingListPin(list.id))
+
+        val surface = assemble(listOf(held), shelves = shelves, pins = pinned)
+
+        assertEquals(listOf(held.id), surface.pinned.single().entries.map { it.id })
+    }
+
     // Fixtures
 
     private fun assemble(
         publications: List<Publication>,
         progress: Map<String, ReadingProgress> = emptyMap(),
         readable: (Publication) -> Boolean = { true },
+        shelves: Shelves = Shelves(),
+        pins: PinnedShelves = PinnedShelves(),
     ) = HomeShelves.assemble(
         publications = publications,
         progress = { progress[it.id] },
         isReadableNow = readable,
         nowEpochMillis = now,
+        shelves = shelves,
+        pinned = pins,
     )
 
     private fun publication(

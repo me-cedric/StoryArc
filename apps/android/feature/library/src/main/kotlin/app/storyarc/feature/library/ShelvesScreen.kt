@@ -41,12 +41,15 @@ import app.storyarc.core.designsystem.grid.BoundedAdaptive
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.kavita.KavitaClient
+import app.storyarc.core.model.PinnedShelves
 import app.storyarc.core.model.PublicationCollection
 import app.storyarc.core.model.ReadingList
 import app.storyarc.core.model.ShelfEditQueue
 import app.storyarc.core.model.ShelfOrigin
+import app.storyarc.core.model.ShelfPin
 import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.KavitaProgressStore
+import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.persistence.ShelfEditStore
 import java.util.UUID
 
@@ -75,10 +78,33 @@ fun ShelvesScreen(
     servers: List<KavitaPage> = emptyList(),
     onOpenServerCollection: (KavitaPage, Int, String) -> Unit = { _, _, _ -> },
     onOpenServerList: (KavitaPage, Int, String) -> Unit = { _, _, _ -> },
+    /** Where a pin is written down. Null in a preview and in a test that does not care. */
+    preferences: LibraryPreferences? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     val shelves by viewModel.shelves.collectAsStateWithLifecycle()
     val registry by viewModel.registry.collectAsStateWithLifecycle()
+
+    // Which shelves the reader put on the home surface. Held here and written through on
+    // every change rather than on the way out: this screen has no moment it could call the
+    // way out, for the reason `LibraryScreen` gives about its own choices.
+    //
+    // Beside the shelves rather than inside them -- `home-screen` requires unpinning to leave
+    // "the collection or the list" untouched, and a pin stored in a shelf's own record would
+    // be one server pull away from breaking that. `PinnedShelves` argues it at length.
+    // `remember` and not `rememberSaveable`: every change is written through below, so the
+    // store is the source of truth and a re-initialisation after process death reads the
+    // truth rather than a stale copy of it. A saver would be a second answer to the same
+    // question -- which is the failure `LibraryScreen`'s availability note describes from
+    // the other side, where the saver earns its place by carrying a choice the store has not
+    // been asked for yet.
+    var pinned by remember(preferences) {
+        mutableStateOf(PinnedShelves.of(preferences?.pinnedShelves().orEmpty()))
+    }
+    val togglePin: (ShelfPin) -> Unit = { pin ->
+        pinned = pinned.toggling(pin)
+        preferences?.savePinnedShelves(pinned.tokens)
+    }
 
     // Fetched here rather than per row: `collections-and-reading-lists` wants a server's
     // collections "alongside local ones", which means inside the same two sections, and a
@@ -202,6 +228,8 @@ fun ShelvesScreen(
                         tiles = shelfTiles(collection),
                         onOpen = { onOpenCollection(collection.id) },
                         onDelete = { deleting = ShelfDeletion.of(collection) },
+                        isPinned = ShelfPin.Collection(collection.id) in pinned,
+                        onTogglePin = { togglePin(ShelfPin.Collection(collection.id)) },
                     )
                 }
                 items(serverCollections, key = { "c-${it.server.id}-${it.id}" }) { shelf ->
@@ -234,6 +262,8 @@ fun ShelvesScreen(
                         onOpen = { onOpenList(list.id) },
                         progress = shelfFraction(list, finished),
                         onDelete = { deleting = ShelfDeletion.of(list) },
+                        isPinned = ShelfPin.ReadingListPin(list.id) in pinned,
+                        onTogglePin = { togglePin(ShelfPin.ReadingListPin(list.id)) },
                     )
                 }
                 items(serverLists, key = { "l-${it.server.id}-${it.id}" }) { shelf ->

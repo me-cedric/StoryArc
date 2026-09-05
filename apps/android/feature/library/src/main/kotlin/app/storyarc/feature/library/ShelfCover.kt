@@ -180,17 +180,31 @@ internal fun ShelfCard(
     pending: Int = 0,
     /** Null for a shelf this device does not own, where deleting is the library's business. */
     onDelete: (() -> Unit)? = null,
+    /**
+     * Whether this shelf is already on the home surface, or null for one that cannot be
+     * pinned at all.
+     *
+     * Null for every server-backed shelf, and that is a gap rather than a decision: a
+     * `ServerShelf` is fetched per visit and identified by its server's own numbering, where
+     * [app.storyarc.core.model.ShelfPin] is a `UUID` -- and a home surface that resolved such
+     * a pin would have to ask a server, which `home-screen` forbids outright. Named in
+     * `one-library-three-destinations` task 2.1 rather than papered over.
+     */
+    isPinned: Boolean? = null,
+    /** Puts it on the home surface, or takes it off. */
+    onTogglePin: () -> Unit = {},
 ) {
     val palette = LocalStoryArcPalette.current
     var menuOpen by remember { mutableStateOf(false) }
     val deleteLabel = stringResource(R.string.shelves_delete, title)
+    val hasMenu = onDelete != null || isPinned != null
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .combinedClickable(
                 onClick = onOpen,
-                onLongClick = if (onDelete == null) null else { { menuOpen = true } },
+                onLongClick = if (!hasMenu) null else { { menuOpen = true } },
                 onLongClickLabel = deleteLabel,
             ),
     ) {
@@ -219,15 +233,38 @@ internal fun ShelfCard(
                 }
             }
 
-            if (onDelete != null) {
+            if (hasMenu) {
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    DropdownMenuItem(
-                        text = { Text(deleteLabel) },
-                        onClick = {
-                            menuOpen = false
-                            onDelete()
-                        },
-                    )
+                    // Above Delete, because a menu puts its destructive item last and an
+                    // ordinary action above it -- and because pinning is the one a reader
+                    // will reach for repeatedly and deleting is the one they should aim at.
+                    //
+                    // One item that reads the state it is in, not two: a menu carrying both
+                    // Pin and Unpin makes a reader read both to find out which applies.
+                    if (isPinned != null) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    stringResource(
+                                        if (isPinned) R.string.shelves_unpin else R.string.shelves_pin,
+                                    ),
+                                )
+                            },
+                            onClick = {
+                                menuOpen = false
+                                onTogglePin()
+                            },
+                        )
+                    }
+                    if (onDelete != null) {
+                        DropdownMenuItem(
+                            text = { Text(deleteLabel) },
+                            onClick = {
+                                menuOpen = false
+                                onDelete()
+                            },
+                        )
+                    }
                 }
             }
         }
