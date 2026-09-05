@@ -131,17 +131,21 @@ short lines and the first sentence is six of them. What is cut is now the reassu
 files are deleted, not the retention; the retention is on the screen beneath. The `-scrolled`
 twin is still identical, for the reason given above.
 
-**A finding the fix turned up, and it is bigger than the wording.** `sources`' scenario
-*Removing a source* says the app "states how many downloaded files and how much disk space will
-be freed before asking" and "on confirmation removes the source, its cached metadata, its stored
-credentials, **and its downloads**". Neither platform does: `LibraryModel.remove` and
-`LibraryViewModel.removeSource` both say in their own comments that files on disk are never
-touched, and the dialog's *"nothing was downloaded"* is a sentence that is only true at zero.
-Worse, both Downloads screens list *shelf publications* that are on the device — so a removed
-source's downloads leave the shelf, leave the Downloads screen, and stay on disk as bytes nothing
-lists and only the total counts. That is a spec-versus-implementation gap on a destructive
-action, owned by the removal path rather than by this dialog, and it is recorded here so the
-dialog is not rewritten twice.
+**A finding the fix turned up, and it is about the words, not the bytes.** `sources`'
+scenario *Removing a source* says the app "states how many downloaded files and how much disk
+space will be freed before asking" and on confirmation removes the source "and its downloads".
+The bytes half holds on both platforms, one layer above where a first reading of this looked:
+`StoryArcAppActions.removeSource` and Android's `SettingsHost` both call `removeDownloads` —
+files, records and Kavita cards — *before* the model forgets the source, and the model methods'
+own comments ("files on disk are never touched") describe only their own layer. An earlier
+version of this paragraph read those comments as the whole story and said neither platform
+deletes anything; that was wrong, and it is corrected here rather than quietly.
+
+What does not hold is the sentence the reader is shown. The body says *"No files on your device
+are deleted, and nothing was downloaded"* — true only for a source with no downloads, and for one
+with 400 MB of them it says the opposite of what the button then does. The count of files and the
+space freed are stated nowhere before the tap. A destructive action described as harmless is worse
+than a truncated one, and it is recorded here so the body is rewritten once, with the bytes in it.
 
 ## Two walks that could not run, and why
 

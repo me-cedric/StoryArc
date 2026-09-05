@@ -346,12 +346,14 @@ filename so a light and a dark run cannot overwrite each other.
       retentionIsAFooter` pins the footer, and the eight frames were retaken. The AX5 dialog now
       stops at *"No files"* with the retention read on the screen beneath it, before the tap.
 
-      **The retake found the larger defect, and it is the removal path's.** `sources`' *Removing
-      a source* says removal states the bytes it frees and takes the source's downloads with it.
-      Neither platform deletes them, both Downloads screens list shelf publications only, and
-      the dialog's *"nothing was downloaded"* is true only at zero — so a removed source's
-      downloads become bytes on disk that nothing lists. Recorded in the frames' README; the
-      dialog is not rewritten until that is settled, so it is not rewritten twice.
+      **The retake found the larger defect, and it is the dialog's.** Both apps already delete
+      a source's downloads on removal — `StoryArcAppActions.removeSource` and `SettingsHost`'s
+      `REMOVE` call `removeDownloads` before the model forgets the source — while the body the
+      reader confirms against says *"No files on your device are deleted, and nothing was
+      downloaded"*: true only at zero downloads, the opposite of the truth otherwise, and the
+      spec's "how much disk space will be freed" is stated nowhere before the tap. An earlier
+      note here said neither platform deletes them; it had read the model layer's comment as
+      the whole story and was wrong. The body is rewritten once, with the bytes in it.
 
       **One thing the frames caught that a test could not.** The walk asserts the sentence by
       `staticTexts … CONTAINS "30 days"` and that assertion **passes at AX5**: the whole message
