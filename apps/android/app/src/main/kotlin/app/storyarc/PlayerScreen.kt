@@ -30,13 +30,20 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -45,6 +52,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.control.StoryArcSliderTrack
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.playback.NowPlaying
@@ -54,6 +62,9 @@ import app.storyarc.core.playback.SkipDirection
 import app.storyarc.core.playback.SkipIntervals
 import app.storyarc.core.playback.SleepAfter
 import app.storyarc.core.playback.SleepTimer
+import app.storyarc.core.playback.SpokenAudio
+import app.storyarc.core.playback.sentence
+import kotlinx.coroutines.launch
 
 /**
  * The full player: what is playing, where it is, and everything a listener of a book needs.
@@ -87,8 +98,17 @@ internal fun PlayerScreen(
     modifier: Modifier = Modifier,
     intervals: SkipIntervals = SkipIntervals.DEFAULT,
     onIntervals: (SkipIntervals) -> Unit = {},
+    /**
+     * The authority that arms the word a displaced voice owes. The app's one, except in a test
+     * — a parameter rather than a read of the singleton inside, so a test can arm it.
+     */
+    spokenAudio: SpokenAudio = SpokenAudio.shared,
 ) {
     val palette = LocalStoryArcPalette.current
+    // `ebook-reader`, *Opening a different publication*: an audiobook opened while a voice was
+    // speaking lands here, so here is where the listener is told once that the voice stopped.
+    val snackbars = remember { SnackbarHostState() }
+    VoiceStoppedWord(spokenAudio, snackbars)
     // A `Scaffold` with a top bar, like every other screen a reader comes back from. It is
     // also what supplies the status-bar inset: the first draft was a bare `Column` and the
     // publication's title sat under the clock, which a screenshot caught and no unit test
@@ -96,6 +116,7 @@ internal fun PlayerScreen(
     Scaffold(
         modifier = modifier,
         containerColor = palette.surfaceCanvas,
+        snackbarHost = { SnackbarHost(snackbars) },
         topBar = {
             TopAppBar(
                 title = { Text(playing.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
@@ -516,6 +537,40 @@ internal fun PlayerFinishedScreen(onBack: () -> Unit, modifier: Modifier = Modif
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         TextButton(onClick = onBack) { Text(stringResource(R.string.player_back)) }
+    }
+}
+
+/**
+ * Shows the word a displaced voice owes, once, as a snackbar — and takes it by showing it.
+ *
+ * **Told once is the take.** [SpokenAudio.takeVoiceStopped] spends the notice the moment this
+ * screen reads it, so a second composition — the same player redrawn, or a return to it — finds
+ * nothing. A `Snackbar` because that is this codebase's word for a brief, non-modal notice that
+ * leaves on its own; Material's host also marks it a polite live region, which is what has
+ * TalkBack say the sentence once.
+ *
+ * **Collected with the lifecycle, and that is load-bearing.** Two screens can be composed at
+ * the same moment a voice is displaced — the EPUB activity behind, this player in front — and
+ * only the one the listener is looking at may take the word. `collectAsStateWithLifecycle`
+ * stops collecting below `STARTED`, so a stopped activity never sees the notice pending.
+ *
+ * The snackbar is shown from a scope of its own rather than inside the effect: taking the
+ * notice changes the collected value, which would restart an effect keyed on it and cancel the
+ * very snackbar it had just begun to show.
+ *
+ * `EpubReaderOverlays.kt` carries the same effect over the page, because a feature module and
+ * the app module cannot share a composable without one depending on the other; the rule behind
+ * both is `VoiceStoppedNotice`, in `:core:playback`, and asserted there.
+ */
+@Composable
+private fun VoiceStoppedWord(spokenAudio: SpokenAudio, snackbars: SnackbarHostState) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val owed by spokenAudio.voiceStopped.collectAsStateWithLifecycle()
+    LaunchedEffect(owed) {
+        if (!owed.isPending) return@LaunchedEffect
+        val sentence = spokenAudio.takeVoiceStopped().sentence(context) ?: return@LaunchedEffect
+        scope.launch { snackbars.showSnackbar(sentence) }
     }
 }
 
