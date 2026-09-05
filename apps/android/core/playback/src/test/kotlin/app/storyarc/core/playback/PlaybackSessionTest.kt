@@ -221,6 +221,64 @@ class PlaybackSessionTest {
         assertNull(centre.nowPlaying)
     }
 
+    /**
+     * An interruption arriving between the two, which is the case a device cannot stage.
+     *
+     * A phone call silences the narrated book; the listener puts the phone down and starts
+     * reading a different book aloud; only then does the call end and the platform offer the
+     * audio back. Two things have to hold for that to be one session rather than two.
+     *
+     * **A book an interruption silenced is still the book being played.** [playingId] is what
+     * `SpokenAudio` asks before it lets anything start, so a paused book that answered
+     * *nothing is playing* would be a book a voice could begin speaking on top of — and the
+     * listener would get both back the moment the call ended.
+     *
+     * **And ending the interruption afterwards brings nothing back.** `audio-playback`: the
+     * displaced publication "is not resumed automatically". The centre detaches
+     * `onInterruptionEnd` before it stops an outgoing source, so the late callback that the
+     * platform will make on its own schedule reaches an engine nothing is listening to.
+     */
+    @Test
+    fun `a book an interruption silenced is still playing, and is displaced rather than resumed`() {
+        val log = mutableListOf<String>()
+        val interrupted = FakeSource(
+            publicationId = "sea-room",
+            title = "Sea Room",
+            parts = listOf(PlaybackPart("One", PlaybackDuration.Known(120_000))),
+            log = log,
+        )
+        val centre = PlaybackCentre(
+            record = { source, at -> log += "recorded ${source.publicationId}@${at.offsetMillis}" },
+        )
+        centre.start(interrupted)
+        centre.seek(PlaybackPosition(partIndex = 0, offsetMillis = 42_000))
+        interrupted.interrupt()
+
+        assertFalse(centre.nowPlaying!!.isPlaying)
+        assertTrue(centre.nowPlaying!!.isActive)
+        assertEquals("sea-room", centre.playingId)
+
+        log.clear()
+        centre.start(
+            FakeSource(
+                publicationId = "the-peregrine",
+                title = "The Peregrine",
+                parts = listOf(PlaybackPart("One", PlaybackDuration.Known(120_000))),
+                log = log,
+            ),
+        )
+
+        assertEquals(
+            listOf("recorded sea-room@42000", "stopped sea-room", "played the-peregrine"),
+            log,
+        )
+        // The call ends now, and the first book's engine reports it the way `AudiobookSource`
+        // does: through the field the centre set. The session took the field with it.
+        assertNull(interrupted.onInterruptionEnd)
+        interrupted.onInterruptionEnd?.invoke(true)
+        assertEquals("the-peregrine", centre.nowPlaying!!.publicationId)
+    }
+
     @Test
     fun `reaching the end takes the surface away`() {
         // `audio-playback`, by way of `ebook-reader`: at the end "the highlight is
@@ -502,6 +560,12 @@ private class FakeSource(
     /** The book ran out of words. */
     fun reachEnd() {
         session = session.stopped()
+        onChange?.invoke()
+    }
+
+    /** Something took the audio for a moment. Silent, and not the listener's doing. */
+    fun interrupt() {
+        session = session.interrupted()
         onChange?.invoke()
     }
 }

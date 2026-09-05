@@ -57,6 +57,7 @@ import app.storyarc.core.persistence.SettingsStore
 import app.storyarc.core.persistence.chosenLanguage
 import app.storyarc.core.persistence.speaking
 import app.storyarc.core.playback.SessionHandover
+import app.storyarc.core.playback.SpokenAudio
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -837,13 +838,19 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * which needs the parsed publication.
      */
     private fun prepareReadAloud(publication: Publication) {
-        val handover = SessionHandover.opening(bookId, ReadAloudHost.book.value?.id)
-
-        // One book at a time. `ebook-reader`: opening a different publication "ends the
-        // session at a sentence boundary and the position it reached is recorded before the
-        // new publication opens" — and the sentence locator the voice is on *is* a sentence
-        // boundary, which is what makes ending here honest rather than abrupt.
-        if (handover == SessionHandover.DISPLACE) ReadAloudHost.end()
+        // One book at a time, and one authority answering for both engines. `ebook-reader`:
+        // opening a different publication "ends the session at a sentence boundary and the
+        // position it reached is recorded before the new publication opens" — and the
+        // sentence locator the voice is on *is* a sentence boundary, which is what makes
+        // ending here honest rather than abrupt.
+        //
+        // **This used to ask `ReadAloudHost` about itself**, which sees only the voice, so
+        // opening an EPUB while an audiobook was being narrated displaced nothing and the
+        // reader could then start a second thing speaking. `audio-playback` allows one
+        // session, not one per kind. iOS asks its `PlayerCentre` the same question for the
+        // same reason, and adopting is guarded the same way at both ends: only the speaker
+        // holding a session can pick it up.
+        val handover = SpokenAudio.shared.claim(bookId, by = ReadAloudHost)
 
         canReadAloud.value = SpokenSentences.isSpeakable(publication)
         if (!canReadAloud.value) return

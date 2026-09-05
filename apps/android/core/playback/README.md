@@ -23,6 +23,7 @@ intended.
 | `PlaybackSession.kt` | The state table: who silenced the audio, and what the end of an interruption does |
 | `PlaybackFocus.kt` | media3's focus signals read as those states |
 | `PlaybackCentre.kt` | The one session object. Displaces, records, publishes |
+| `SpokenAudio.kt` | The one authority on what is speaking, whichever engine is behind it. `Speaker`, and the handover both hosts ask |
 | `PlaybackHost.kt` | The process-wide singleton the app observes, and the `MediaController` behind it |
 | `PlaybackService.kt` | `MediaLibraryService`: the foreground service, the notification, resumption, the browse tree |
 | `PlaybackMemory.kt` | What was playing, on disk, for a service the system started without the app |
@@ -33,7 +34,8 @@ intended.
 
 | Entry point | For |
 | --- | --- |
-| `PlaybackHost.start(context, book, from, speed, chapterWord)` | Play a publication, displacing whatever was playing |
+| `PlaybackHost.start(context, book, from, speed, chapterWord)` | Play a publication, displacing whatever was speaking — narrated **or** spoken. Returns without touching the audio when that publication is already the one playing |
+| `SpokenAudio.shared.claim(publication, by)` / `.silence()` | What a caller about to make a sound asks. `:feature:epubreader`'s `ReadAloudHost` is the second `Speaker` |
 | `PlaybackHost.nowPlaying: StateFlow<NowPlaying?>` | What every surface draws. Null when nothing plays — and the compact bar is **absent** then, not empty |
 | `PlaybackHost.toggle / seek / seekToPart / setSpeed / stop` | The transport |
 | `PlaybackHost.skip(direction)` | Moves by the configured interval, crossing a part boundary |
@@ -75,6 +77,28 @@ agreeing is the app's job.
 The decoder lives in the service, not here, which is what lets a book carry on when the app's
 process is trimmed to the service alone. `AudiobookSource` holds a `Player` — a
 `MediaController` is one — so the same code drives the audio from either side of that boundary.
+
+## The two engines, and the one rule over them
+
+Read-aloud is not a `PlayerSource` yet — that is `audiobooks-and-playback` task 6.1 — so the
+app runs two speech engines behind two foreground services. `audio-playback` allows one
+session between them, and `SpokenAudio` is what makes that true without merging them:
+
+```
+PlaybackHost ──┐                                    ┌── ReadAloudHost
+ (media3)      ├──► SpokenAudio.shared ◄────────────┤   (Readium TTS, :feature:epubreader)
+               │    claim / silence / handover      │
+      start ───┘                                    └─── begin
+```
+
+Both hosts are a `SpokenAudio.Speaker`; each registers from its own initialiser, which is safe
+because an `object` is initialised on first access and starting a session *is* an access. iOS
+needs no such object: its voice is already a second `PlaybackSource` inside the one
+`PlayerCentre`, so the centre is the authority there. The guarantee is the same on both
+platforms; the shape is each platform's, which is ADR-0001.
+
+Nor could the centre hold both here: `:feature:epubreader` depends on `:core:playback` and
+never the reverse, so the thing that owns the voice cannot be the thing that arbitrates.
 
 ## Tests
 

@@ -122,6 +122,11 @@ dependencies {
     implementation(libs.readium.navigator)
 
     testImplementation(libs.junit)
+    // `ReadAloudHost` holds a scope on `Dispatchers.Main.immediate`, so touching the object
+    // at all needs a main dispatcher a plain JVM test does not have. See
+    // `ReadAloudSessionTest`, which asserts that the voice is one of the speakers
+    // `SpokenAudio` arbitrates.
+    testImplementation(libs.kotlinx.coroutines.test)
     // The theme sheet's accessibility semantics are only observable through a
     // composition. `uiautomator dump` reports a Compose slider as an unnamed
     // SeekBar whatever its semantics say, so it cannot answer the question this

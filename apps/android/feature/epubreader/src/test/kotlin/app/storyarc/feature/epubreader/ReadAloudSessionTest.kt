@@ -5,8 +5,15 @@ import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.playback.PauseCause
 import app.storyarc.core.playback.PlaybackSession
 import app.storyarc.core.playback.PlaybackState
+import app.storyarc.core.playback.SpokenAudio
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -39,6 +46,33 @@ class ReadAloudSessionTest {
         assertTrue(speaking.isPlaying)
         assertEquals(PlaybackState.PLAYING, speaking.state)
         assertEquals(PauseCause.LISTENER, speaking.pausedByListener().pausedBy)
+    }
+
+    /**
+     * The voice is one of the speakers the app's one authority arbitrates.
+     *
+     * A typed assignment, for the reason above and one more: `ReadAloudHost` needs a
+     * `Context`, a Readium `Publication` and a foreground service before it can say a word,
+     * so a host test cannot make it speak. What this pins is the half that could silently
+     * not be there — that the object the reader starts speech through *is* a
+     * [SpokenAudio.Speaker], so a narrated audiobook claiming the audio has something to
+     * displace. Until it was, `EpubReaderActivity` asked this object about itself and a
+     * narrator and a voice could speak at once. `:core:playback`'s `SpokenAudioTest` holds
+     * the same assertion for `PlaybackHost` and the whole of the rule between them.
+     *
+     * The dispatcher is set because touching the object builds its scope, and a plain JVM
+     * test has no main looper for `Dispatchers.Main.immediate` to resolve against.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `the voice is one of the speakers the one authority arbitrates`() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        try {
+            val speaker: SpokenAudio.Speaker = ReadAloudHost
+            assertNull(speaker.speaking)
+        } finally {
+            Dispatchers.resetMain()
+        }
     }
 
     @Test

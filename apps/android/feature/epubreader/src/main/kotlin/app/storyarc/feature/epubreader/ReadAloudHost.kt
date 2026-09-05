@@ -5,6 +5,7 @@ import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.TotalProgression
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.playback.PlaybackSession
+import app.storyarc.core.playback.SpokenAudio
 import java.lang.ref.WeakReference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,9 +56,18 @@ internal interface SpokenSentenceFollower {
  * the highlight or the page: those need a navigator, so an activity that happens to be on
  * screen registers as a [SpokenSentenceFollower] and is let go without a word when it goes.
  *
- * iOS's `ReadAloudCentre` is the same object with the same three jobs.
+ * **One session in the app, not one per engine.** `audio-playback` allows exactly one thing
+ * to speak — "two books speaking at once is never what was meant" — and until this object
+ * was a [SpokenAudio.Speaker] that rule was enforced one engine at a time: this host knew
+ * about voices and `PlaybackHost` knew about narrated files, and neither knew about the
+ * other, so a narrated audiobook and a spoken EPUB could speak together. [begin] now silences
+ * everything through the one authority, and `EpubReaderActivity` asks that authority rather
+ * than asking this object about itself.
+ *
+ * iOS's `ReadAloudCentre` is the same object with the same three jobs, and needs no such
+ * arbiter: its voice is already a second `PlaybackSource` inside the one `PlayerCentre`.
  */
-internal object ReadAloudHost {
+internal object ReadAloudHost : SpokenAudio.Speaker {
 
     /**
      * The scope the session's own work runs in.
@@ -81,6 +91,27 @@ internal object ReadAloudHost {
      * "is there a transport at all".
      */
     val book: StateFlow<SpokenBook?> = _book.asStateFlow()
+
+    /**
+     * The id of the publication being spoken, or null. This host's half of what
+     * [SpokenAudio] answers for both engines.
+     */
+    override val speaking: String? get() = _book.value?.id
+
+    /**
+     * Ends the voice because something else is about to speak.
+     *
+     * [end] rather than a teardown of its own: a session displaced by a narrated book and a
+     * session the listener stopped are the same ending, and the position needs no writing
+     * here because [sentenceSpoken] has already written every sentence as it was said.
+     */
+    override fun endSpeaking() = end()
+
+    init {
+        // From the initialiser, which runs on the first access to this object — and starting
+        // to speak *is* an access, so a host that has not registered has never spoken.
+        SpokenAudio.shared.register(this)
+    }
 
     private var controller: ReadAloudController? = null
     private var position: SpokenPosition? = null
@@ -106,6 +137,12 @@ internal object ReadAloudHost {
      * Everything the session needs afterwards is passed in here, because after this call
      * the activity is free to be destroyed: the publication to walk, where to write the
      * position, and what to say about the book. The follower is the one thing allowed to go.
+     *
+     * **It silences the app rather than itself.** This used to call [end], which reaches only
+     * the voice — so pressing *read aloud* while an audiobook was being narrated left two
+     * things speaking. [SpokenAudio.silence] reaches both, and each writes where it reached
+     * before it stops, which is what `audio-playback` asks for by name. iOS's
+     * `PlayerCentre.begin` ends the outgoing session the same way and for the same reason.
      */
     fun begin(
         context: Context,
@@ -115,7 +152,7 @@ internal object ReadAloudHost {
         from: Locator?,
         drawnBy: SpokenSentenceFollower,
     ) {
-        end()
+        SpokenAudio.shared.silence()
         val voice = ReadAloudController(
             context = context.applicationContext,
             publication = publication,

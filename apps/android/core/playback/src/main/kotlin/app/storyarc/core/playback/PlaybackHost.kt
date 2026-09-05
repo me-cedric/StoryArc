@@ -23,16 +23,21 @@ import kotlinx.coroutines.launch
  *
  * An `object`, because a process-wide singleton is the only lifetime longer than every
  * screen, and because `audio-playback` allows exactly one session: "two books speaking at
- * once is never what was meant". `ReadAloudHost` is the same shape for the same reason, and
- * this is where the two will meet — read-aloud has its own engine and its own host today,
- * and the seam that lets it become a second [PlayerSource] is [start].
+ * once is never what was meant". `ReadAloudHost` is the same shape for the same reason.
+ *
+ * **Where the two meet is [SpokenAudio], and it is not here.** Read-aloud still has its own
+ * engine and its own host — becoming a second [PlayerSource] is task 6.1 — so until then the
+ * two sessions are arbitrated rather than merged: both hosts are [SpokenAudio.Speaker]s, and
+ * [start] asks that one authority whether it may make a sound. iOS needs no such object
+ * because its voice is already a source of the single `PlayerCentre`; the guarantee is the
+ * same on both, the shape is each platform's.
  *
  * **What it owns and what it does not.** It owns the connection to [PlaybackService] and
  * the [PlaybackCentre] that drives whatever is playing. It does not own the audio: the
  * service does, which is what lets a book carry on when the app's process is trimmed to
  * the service alone.
  */
-object PlaybackHost {
+object PlaybackHost : SpokenAudio.Speaker {
 
     private val _nowPlaying = MutableStateFlow<NowPlaying?>(null)
 
@@ -70,8 +75,26 @@ object PlaybackHost {
         }
     }
 
-    /** The id of the publication being played, or null. Feeds `SessionHandover.opening`. */
-    val playingId: String? get() = centre.playingId
+    /**
+     * The id of the publication being narrated, or null. This host's half of what
+     * [SpokenAudio] answers for both.
+     */
+    override val speaking: String? get() = centre.playingId
+
+    /**
+     * Ends the narrated session because something else is about to speak.
+     *
+     * [stop] rather than a teardown of its own, deliberately: a session displaced by a voice
+     * and a session the listener closed are the same ending, and giving the first a shorter
+     * one is how a sleep timer outlives the book it was counting down.
+     */
+    override fun endSpeaking() = stop()
+
+    init {
+        // From the initialiser, which runs on the first access to this object — and starting
+        // a book *is* an access, so a host that has not registered has never played.
+        SpokenAudio.shared.register(this)
+    }
 
     private var controller: MediaController? = null
     private var current: AudiobookSource? = null
@@ -96,11 +119,20 @@ object PlaybackHost {
     private var countdown: Job? = null
 
     /**
-     * Plays a narrated audiobook, displacing whatever was playing.
+     * Plays a narrated audiobook, displacing whatever was speaking — of either kind.
      *
      * The controller is built on the first call and kept: connecting is asynchronous — it
      * binds to a service — and doing it per book would put a bind between the listener's
      * press and the first sound.
+     *
+     * **The first line is the seam.** [PlaybackCentre.start] displaces what *it* holds,
+     * which is only ever a narrated file; asking [SpokenAudio] instead reaches the voice as
+     * well, so tapping an audiobook while an EPUB is being read aloud stops the voice and
+     * writes where it reached, rather than adding a second thing to listen to. It also
+     * answers the question iOS's `listen` asks and this did not: tapping the cover of the
+     * book already playing keeps the session instead of restarting the audio, which
+     * `audio-playback` requires by name — "opening it never restarts, reloads or
+     * repositions the audio".
      */
     fun start(
         context: Context,
@@ -109,6 +141,8 @@ object PlaybackHost {
         speed: PlaybackSpeed = PlaybackSpeed.NORMAL,
         chapterWord: String = "Chapter",
     ) {
+        if (SpokenAudio.shared.claim(book.id, by = this) == SessionHandover.ADOPT) return
+
         memory = PlaybackMemory.open(context).also {
             it.remember(book, from?.partIndex ?: 0, from?.offsetMillis ?: 0)
         }
