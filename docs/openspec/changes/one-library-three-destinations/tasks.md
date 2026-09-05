@@ -802,7 +802,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       **One correction to the audit above, carried from 0.3**: the iOS projection is in
       `Sources/LibraryFeature/LibraryAvailability.swift`, not `ScopeMenu.swift` — no file by
       that name exists in the package.
-- [ ] **3.2** **[G1/G2]** The library's primary scope becomes availability. The
+- [~] **3.2** **[G1/G2]** The library's primary scope becomes availability. The
       by-library filter lands in the same commit as the removal of the source
       scope, so no reader loses per-source browse between one build and the next.
       Screenshot: everywhere, on-this-device, and the filter sheet.
@@ -840,6 +840,51 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       `android-library-on-device.png` cover on-this-device, and the ordinary shelf
       covers everywhere. **The filter sheet in its by-library form is captured on
       neither platform** — that is the one this task still owes.
+
+      *Re-audited 2026-09-05: **both defects above have been fixed** since that was written,
+      each by a change of its own, and neither note was updated.*
+
+      **iOS.** `LibraryNarrowing.swift` is the answer, and its own opening paragraphs quote
+      this task's complaint back almost word for word — "iOS met none of the three for the
+      library narrowing". `LibraryNarrowing.activeCount` counts the library scope
+      (`isScoped ? 1 : 0`) alongside the query's seven facets and the download group, and
+      `cleared(includingSearch:)` sets `query.scope = .allSources` **and** returns
+      availability to `.everywhere`. Both are wired, not merely written:
+      `LibraryFilterMenu.swift:85` and `:98` draw the badge from `activeCount`, `:115` clears
+      through `cleared()`, and `LibraryContent.swift:87-91` uses the same rule for the
+      narrowed-to-nothing state with `includingSearch: true`. The clause the task cites —
+      "clearing filters restores the whole library, so there is no state a reader can be left
+      in without noticing" — is met.
+
+      **Android.** `LibraryScreen.kt:212` is still `rememberSaveable`, and that is no longer
+      the whole story: it now reads `LibraryAvailability.named(preferences?.availability())`,
+      and `chooseAvailability` writes through `preferences.saveAvailability(choice.name)` on
+      every change. `core/persistence/…/LibraryPreferences.kt:170` and `:172` are the store.
+      Its KDoc argues the pairing explicitly and correctly — the saver carries the choice
+      through a rotation or a mid-session process death with no disk read, the store carries
+      it across a launch, and losing either is visible. **The axis survives a cold start.**
+      Note also that the choice is written as the reader makes it rather than on the way out,
+      for a reason worth keeping: this screen has no moment it could call the way out.
+
+      **What is still owed is the one thing the note got right: the by-library filter sheet,
+      on neither platform.** And the re-audit found *why* it is missing, which is more useful
+      than the fact. `android-sweep-2026-09-02/README.md:63` says it in as many words: the
+      17-publication corpus carries `origin: EMBEDDED` and **belongs to no source**, "which is
+      why … the filter menu offers no 'Which library' section". iOS has the same gate —
+      `LibraryNarrowing.offeredLibraries(in:)` returns nothing unless
+      `registry.attributesPublications`, and is empty below two libraries because "a group
+      offering *Any library* and the one there is asks a question with a single answer".
+
+      **Frames owed**, and the state each needs, which no capture route currently produces:
+      - iOS and Android, the filter sheet open showing the **Which library** section, light
+        and dark (4 frames). Needs **two or more configured sources that actually attribute
+        publications** — not the corpus, which attributes none. The shortest route is two
+        OPDS catalogues from the mock server, both connected, then open the filter control.
+      - One frame per platform with a library filter **applied**, showing the filter control
+        counting it — the assertion `activeCount` makes, seen rather than read.
+      - One frame per platform of *Clear filters* offered while the shelf is narrowed to one
+        library, which is the exact state the requirement forbids leaving a reader in without
+        a way out.
 - [ ] **3.3** The on-device mark on a cover, and dimming for a publication that is
       neither downloaded nor reachable — with the accessibility label carrying the
       fact, not the opacity. Screenshot: a grid with all four combinations of
