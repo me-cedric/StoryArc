@@ -758,7 +758,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
 
 ## Phase 3 — The availability axis
 
-- [ ] **3.1** The availability projection, both platforms, with the host tests
+- [x] **3.1** The availability projection, both platforms, with the host tests
       from 0.3 extended to the whole library.
 
       **Android has the library-wide projection as a pure function with a test over
@@ -776,6 +776,32 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       `narrowedTo` is the shape — and assert it over a list. Until then the property
       the delta cares about, that widening restores the library without re-scanning,
       is asserted on one platform only.
+
+      *Done, 2026-09-05, by exactly the route the note names.*
+      `LibraryAvailability.narrowing(_:location:)` is the seam — a method over a list,
+      mirroring Android's `narrowedTo`, taking the location lookup as a closure so the model
+      does not have to be built to call it. `LibraryContent.shown` now calls it from **both**
+      of its narrowing branches: the `.shelf` case, which used to inline
+      `filter { availability.keeps(...) }`, and the `.onDevice` case, which used to inline
+      `location(of:)?.isFileURL == true` — the same predicate spelled a second way, one
+      `switch` away from the enum that owns it.
+
+      **`everywhere` returns the list rather than filtering it**, and that is deliberate
+      rather than an optimisation: widening is meant to hand back what it was given, and an
+      identity that allocates a copy is an invitation for someone to make it do more later.
+      "Without re-scanning anything" is the clause, and the only honest way to show it from a
+      host test is that the order a caller set comes back untouched — which is what the new
+      test asserts.
+
+      Tests: `LibraryAvailabilityTests` gains 3 cases over a **list** — widening restores the
+      shelf in its original order, a publication the app has no location for at all is not on
+      this device (a `nil` is easiest to let slip through a list operation), and an empty
+      shelf narrows to an empty shelf rather than to the whole library. 15 tests in the file
+      now, up from 12. Green.
+
+      **One correction to the audit above, carried from 0.3**: the iOS projection is in
+      `Sources/LibraryFeature/LibraryAvailability.swift`, not `ScopeMenu.swift` — no file by
+      that name exists in the package.
 - [ ] **3.2** **[G1/G2]** The library's primary scope becomes availability. The
       by-library filter lands in the same commit as the removal of the source
       scope, so no reader loses per-source browse between one build and the next.

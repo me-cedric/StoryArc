@@ -38,6 +38,59 @@ struct LibraryAvailabilityTests {
         #expect(LibraryAvailability.allCases.first == .everywhere)
     }
 
+    @Test("Widening restores the whole shelf in the order it was in")
+    func wideningRestoresTheShelf() {
+        // The property this axis exists for, and until 2026-09-05 it was asserted on Android
+        // only — `narrowedTo` is a function over a list there, and iOS's narrowing lived
+        // inside a computed `var` on a `View` extension where no host test could reach it.
+        // Task 3.1's seam is `narrowing(_:location:)`, and this is what it was cut for.
+        let here = publication(named: "Here")
+        let away = publication(named: "Away")
+        let alsoHere = publication(named: "Also here")
+        let shelf = [away, here, alsoHere]
+        let location: (Publication) -> URL? = { item in
+            item.id == away.id
+                ? URL(string: "https://example.org/a.cbz")
+                : URL(fileURLWithPath: "/comics/\(item.id).cbz")
+        }
+
+        let narrowed = LibraryAvailability.onThisDevice.narrowing(shelf, location: location)
+        #expect(narrowed.map(\.displayTitle) == ["Here", "Also here"])
+
+        // Widened: the same list, in the order it was handed over. Not re-sorted, not
+        // re-scanned, not re-fetched — the requirement says "without re-scanning anything",
+        // and the only honest way to show that from a host test is that the order a caller
+        // set comes back untouched.
+        let widened = LibraryAvailability.everywhere.narrowing(shelf, location: location)
+        #expect(widened.map(\.displayTitle) == ["Away", "Here", "Also here"])
+    }
+
+    @Test("A publication the app has no location for at all is not on this device")
+    func nowhereIsNotHere() {
+        // A row that reached the shelf from a server's metadata and has never been
+        // downloaded. `keeps(nil)` says so one publication at a time; this says it over a
+        // list, which is where a `nil` is easiest to let slip through a `compactMap`.
+        let shelf = [publication(named: "Ghost")]
+
+        #expect(LibraryAvailability.onThisDevice.narrowing(shelf) { _ in nil }.isEmpty)
+        #expect(LibraryAvailability.everywhere.narrowing(shelf) { _ in nil }.count == 1)
+    }
+
+    @Test("Narrowing an empty shelf is an empty shelf, not a crash and not the whole library")
+    func nothingNarrowsToNothing() {
+        #expect(LibraryAvailability.onThisDevice.narrowing([]) { _ in nil }.isEmpty)
+        #expect(LibraryAvailability.everywhere.narrowing([]) { _ in nil }.isEmpty)
+    }
+
+    private func publication(named title: String) -> Publication {
+        Publication(
+            identity: PublicationIdentity(normalizedPath: "/comics/\(title).cbz"),
+            format: .cbz,
+            displayTitle: title,
+            origin: .inferred
+        )
+    }
+
     @Test("The stored value is a name, so a reordered enum cannot change what it means")
     func storedByName() {
         #expect(LibraryAvailability.everywhere.rawValue == "everywhere")

@@ -48,6 +48,33 @@ enum LibraryAvailability: String, CaseIterable, Sendable {
         }
     }
 
+    /// The shelf as this axis leaves it.
+    ///
+    /// A free function over a list, mirroring Android's
+    /// `List<Publication>.narrowedTo(availability, registry)`, and the reason it exists is
+    /// that the property `library-browsing` actually cares about is a property of the
+    /// **list** — "widening it again restores the full library without re-scanning
+    /// anything" — and until 2026-09-05 that could not be asserted on iOS at all. The
+    /// narrowing lived inside a computed `var` on a `View` extension, where no host test
+    /// target can reach it, so the eleven cases beside this asked the question one
+    /// publication at a time.
+    ///
+    /// One pass and no re-sort: applied over a list the model has already ordered, so
+    /// narrowing and widening cost a filter each and the order a reader set survives both.
+    /// Nothing is fetched, nothing is scanned, and no source is asked — `location` is a
+    /// lookup the model already holds.
+    func narrowing(
+        _ publications: [Publication],
+        location: (Publication) -> URL?
+    ) -> [Publication] {
+        switch self {
+        // Not `filter { true }`: widening is meant to hand back the same list, and an
+        // identity that allocates a copy is an invitation for someone to make it do more.
+        case .everywhere: publications
+        case .onThisDevice: publications.filter { keeps(location($0)) }
+        }
+    }
+
     /// Where the choice is written down. Its own key beside `LibraryPreferences`' keys, in
     /// the same `UserDefaults`, so nothing has to be migrated to add it.
     static let storageKey = "app.storyarc.libraryAvailability"

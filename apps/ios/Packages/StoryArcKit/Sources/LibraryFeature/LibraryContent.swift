@@ -24,13 +24,14 @@ extension LibraryView {
         // Left alone by both of the narrowings below. This destination *is* a predicate —
         // `offline-downloads` promises it "is complete and fully functional" with no network
         // — and a library filter that emptied it would break the one promise it makes.
-        case .onDevice: model.visible.filter { model.location(of: $0)?.isFileURL == true }
+        case .onDevice:
+            LibraryAvailability.onThisDevice.narrowing(model.visible, location: model.location(of:))
         // The shelf's primary axis, applied here rather than inside the query: it narrows
         // what this surface lists and nothing else, which is what keeps it from becoming the
         // mode `library-browsing` removed origin for being.
         case .shelf:
             downloads.narrow(
-                model.visible.filter { availability.keeps(model.location(of: $0)) },
+                availability.narrowing(model.visible, location: model.location(of:)),
                 isDownloaded: model.isOnDevice
             )
         // The download group narrows search too, because it is a filter and the other seven
