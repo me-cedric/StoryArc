@@ -885,7 +885,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       - One frame per platform of *Clear filters* offered while the shelf is narrowed to one
         library, which is the exact state the requirement forbids leaving a reader in without
         a way out.
-- [ ] **3.3** The on-device mark on a cover, and dimming for a publication that is
+- [~] **3.3** The on-device mark on a cover, and dimming for a publication that is
       neither downloaded nor reachable — with the accessibility label carrying the
       fact, not the opacity. Screenshot: a grid with all four combinations of
       progress and availability.
@@ -926,6 +926,47 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       `after-2026-08-30/ios-shelf-two-marks-dark.png` shows the mark; a grid with
       all four combinations of progress and availability, on either platform, is not
       in the tree.
+
+      *Re-audited 2026-09-05: **every code complaint above has been answered**, and the
+      whole of the iOS paragraph has to be withdrawn.* All four things it names as missing
+      are present:
+
+      1. **The dim is on the cell, not on one shelf.** `CoverCell.swift:169` is
+         `.opacity(isReachableNow ? 1 : LibraryMarks.awayOpacity)`, so every grid draws it
+         at every length — the twelve-item sectioning threshold no longer decides whether a
+         reader can see that a book is away. `SectionedShelf.swift:33` records the move in
+         its own words: the parameter "used to be handed in here, and this shelf was its only
+         caller", which is the defect the note describes, fixed at the source.
+      2. **The list has both.** `CoverList.swift:185` draws `OnDeviceMark()` and `:191` the
+         same `awayOpacity`. The list is no longer the one surface where a reader cannot tell
+         a downloaded book from an unreachable one.
+      3. **The fact is in the label, which is what the task asked for.**
+         `LibraryMarks.spoken(_:isOnDevice:isReadableNow:)` appends *downloaded* and, last,
+         *unavailable*, and both cells build their `accessibilityLabel` through it —
+         `CoverCell.swift:285` and `CoverList.swift:242-251`. `CoverCell.swift:262` names the
+         `accessibilityHint` it replaced and why: VoiceOver announces a hint last, and a
+         reader who has turned hints off never hears it at all.
+      4. **The wording is shared rather than re-invented**, taking
+         `catalogue.entry.downloaded` and `library.cell.unavailable` — already translated into
+         all four languages — and joining them the way Android's `contentDescription` does,
+         exception last.
+
+      The two deliberate divergences the note records still stand and are still in Android's
+      KDoc: *Connecting* counts as answering, and a picked folder whose grant the system
+      withdrew dims its files though their path is local.
+
+      **What is left is the capture, and it is exactly the one the note names.** No frame
+      anywhere in `docs/designs/screenshots/` shows all four combinations, and nothing in any
+      README claims to.
+
+      **Frames owed:** one grid per platform, light and dark (4 frames), holding all four of
+      — part-read and on the device, part-read and away, unread and on the device, unread and
+      away — with a legend in the directory's README saying which cell is which, because the
+      whole point of the frame is that the four are distinguishable and a frame nobody can
+      decode proves nothing. The state is not reachable from the corpus alone: it needs at
+      least one publication attributed to a source that is **down** and not downloaded, which
+      the corpus (`origin: EMBEDDED`, no source) cannot produce — the same obstacle 3.2's
+      owed frame hits, and the same two-catalogue setup answers both.
 - [ ] **3.4** Section headings in a long library, by series where declared and by
       the sort key otherwise. Screenshot: a library of at least 200 publications.
 
