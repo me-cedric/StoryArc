@@ -82,7 +82,15 @@ extension SearchResult {
         self.init(
             kind: kind,
             title: publication.displayTitle,
-            detail: publication.series ?? publication.authors.first,
+            // The series only where it says something the title does not. A standalone whose
+            // series was inferred from its own filename — `Broken Transfer.cbz` has a series
+            // equal to its own title — would otherwise make the row repeat itself, title
+            // above and title below, and fall through to neither the series nor the author.
+            // The bare series rather than the composed line, because that is what the row
+            // has always drawn; `seriesLine(for:)`'s composed overload belongs to the
+            // captions that draw a number.
+            detail: seriesLine(series: publication.series, title: publication.displayTitle)
+                ?? publication.authors.first,
             publicationID: publication.id
         )
     }
