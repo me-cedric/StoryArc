@@ -19,6 +19,7 @@ struct ThemeSheet: View {
     @Environment(\.theme) var theme
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     let model: EpubReaderModel
 
@@ -97,11 +98,40 @@ struct ThemeSheet: View {
         .controlSize(.large)
     }
 
-    /// Three by two, each card in its own colours.
+    /// How many preset cards sit in a row at a given text size.
+    ///
+    /// A function rather than an expression inside the grid, so a host test can ask it. There
+    /// is no simulator in this repository's unit loop, and the defect this encodes — *Original*
+    /// wrapping to `Origi-` over `nal` at `AccessibilityXXXL` — is invisible to every test that
+    /// reads source text rather than pixels. The arithmetic is assertable even where the
+    /// rendering is not.
+    static func presetColumns(for typeSize: DynamicTypeSize) -> Int {
+        typeSize.isAccessibilitySize ? 1 : 3
+    }
+
+    /// Three by two, each card in its own colours — and one column at the accessibility sizes.
     ///
     /// `ebook-reader`: the grid previews "each preset in its own colours — six
     /// samples, not six labels". A swatch that took the app's palette would be six
     /// identical cards with different words on them.
+    ///
+    /// **The column count is not fixed, and it used to be.** Three columns leave a card about
+    /// 170 pt wide on a 402 pt phone, which holds every preset's name at the ordinary text
+    /// sizes and holds none of them at the accessibility ones: photographed at
+    /// `AccessibilityXXXL` on 2026-09-05, *Original* wrapped mid-word and drew as `Origi-`
+    /// over `nal`. A card is the one control in the app whose label may not shrink to fit —
+    /// the whole point of the grid is that each name is drawn in its own typeface at its own
+    /// weight, so shrinking it would be showing the reader the wrong typeface.
+    ///
+    /// One column rather than two at those sizes, because two still leaves ~170 pt and the
+    /// name needs about 250 pt: two columns would move the wrap without preventing it. Six
+    /// cards in one column is a longer scroll, which is the trade the accessibility sizes
+    /// make everywhere else in this app.
+    ///
+    /// The neighbouring `PageColourSection` grids use `.adaptive(minimum:)` for the same job,
+    /// and this one cannot: a swatch is square and interchangeable, so any number per row is
+    /// as good as any other, while these cards must be *equal* width or the samples stop
+    /// being comparable — which is what a fixed count gives and `.adaptive` does not.
     private var presets: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
             Text("theme.presets", bundle: .module)
@@ -111,7 +141,10 @@ struct ThemeSheet: View {
                 .accessibilityAddTraits(.isHeader)
 
             LazyVGrid(
-                columns: Array(repeating: GridItem(spacing: StoryArcSpace.sm), count: 3),
+                columns: Array(
+                    repeating: GridItem(spacing: StoryArcSpace.sm),
+                    count: Self.presetColumns(for: typeSize)
+                ),
                 spacing: StoryArcSpace.sm
             ) {
                 ForEach(ThemePreset.allCases, id: \.self) { preset in

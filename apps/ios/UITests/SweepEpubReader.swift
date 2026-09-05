@@ -59,6 +59,34 @@ final class SweepEpubReaderTests: XCTestCase {
         shutter(app, named: "epub-theme-presets")
     }
 
+    /// The six presets at the largest accessibility text size.
+    ///
+    /// `reader-theming-and-page-transitions` §7.4 asks for the sheet and all six presets "in
+    /// light and dark, at default and largest text size", and it is the largest that has never
+    /// been photographed on iOS — the sweep took the presets at the default size only, so the
+    /// question the task is really asking has stood unanswered.
+    ///
+    /// The question: each preset tile draws its own name **in its own typeface and its own
+    /// colours**, which is the whole point of the grid, and a tile is therefore the one control
+    /// in the app whose label cannot be allowed to shrink to fit. At `AccessibilityXXXL` a
+    /// six-tile grid either reflows to fewer columns, scrolls, or clips — and only a device
+    /// says which.
+    func testCaptureEpubThemePresetsAtLargestText() throws {
+        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
+        try openThemeSheet(in: app)
+        hold(1.5)
+        // **The grid is below the fold at this text size, and the first version of this walk
+        // photographed the fold.** At `AccessibilityXXXL` the sheet opens on *Preview* with
+        // *Themes* only beginning to appear at the bottom edge — so a frame taken on arrival
+        // shows the sheet and not the six tiles the task is asking about. Scrolled to them
+        // rather than resized: the detent is the sheet's own business and a reader reaches the
+        // grid by scrolling, so this photographs what a reader would actually see.
+        let sheet = app.scrollViews.firstMatch
+        if sheet.exists { sheet.swipeUp(velocity: .slow) } else { app.swipeUp(velocity: .slow) }
+        hold(1)
+        shutter(app, named: "epub-theme-presets-ax5")
+    }
+
     /// The axes screen: typeface, text size, line spacing, paragraph spacing, word and
     /// character spacing, margins, alignment, hyphenation and bold text.
     ///

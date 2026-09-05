@@ -1194,9 +1194,33 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 
       These three are re-run on every commit rather than at the end, which is why they
       are ticked here — `pnpm check` runs all of them.
-- [ ] **7.4** **Visual proof.** Simulator and emulator screenshots of the theme
+- [~] **7.4** **Visual proof.** Simulator and emulator screenshots of the theme
       sheet and all six presets, in light and dark, at default and largest text
-      size. A `#Preview` is not proof. **Android done; iOS blocked on a device.**
+      size. A `#Preview` is not proof. **Android done. iOS: the default size was taken by the
+      sweep of 2026-09-02, and the largest size on 2026-09-05 — which found a defect.**
+
+      `docs/designs/screenshots/ios-theme-presets-2026-09-05/`, light and dark, with the
+      before frame beside them. The grid was `count: 3` at *every* text size, which leaves each
+      card about 170 pt on a 402 pt phone: at `AccessibilityXXXL` *Original* wrapped mid-word
+      and drew as `Origi-` over `nal`. A preset card is the one control here whose label may
+      not shrink to fit — the grid's whole purpose is that each name appears in its own
+      typeface at its own weight, so shrinking it would show the reader the wrong typeface.
+      It is one column at the accessibility sizes now; two would have moved the wrap rather
+      than prevented it, since two still leave ~170 pt against a name needing ~250 pt.
+      `ThemePresetGridTests` pins the rule at all twelve `DynamicTypeSize` values — the
+      ordinary half matters as much, because a rule answering 1 everywhere would fix the defect
+      and throw the layout away for everyone who has not raised their text size.
+
+      **Recorded, not decided**: at that text size the presets sit *below the fold* — the sheet
+      opens on Preview with Themes only beginning to appear — so a reader scrolls to reach the
+      grid. Defensible, since the preview is what a preset changes and the sheet scrolls, but
+      nobody has chosen it.
+
+      **Still owed, which is why this is `[~]` and not `[x]`**: the iOS theme *sheet* itself at
+      the largest text size in dark — `ScreenshotTests.testCaptureThemeSheetAtLargestText`
+      exists and has not been run into a committed folder — and the Android pair at the largest
+      text size, whose four frames predate the reflow question entirely and may have the same
+      defect on that platform's own grid.
 
       Four captures in `docs/designs/screenshots`, from a booted emulator:
       `android-theme-sheet-{light,dark}.png` and
