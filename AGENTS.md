@@ -104,6 +104,17 @@ what it looks like for the first hour, and it cost an agent that hour on 2026-09
 rebuilds from scratch. Distinct from `pnpm clean:builds`, which reclaims disk from worktrees
 that are **gone** and is safe to run mid-wave.
 
+**`swift build` warns that `PageCurl.metal` is unhandled, and that warning is correct and
+harmless.** SwiftPM does not process `.metal` files in a target's sources, so it says so on
+every host build. Xcode does: a built app carries
+`StoryArcKit_ReaderFeature.bundle/default.metallib` holding `pageCurl`, and
+`StoryArcEpub_EpubReaderFeature.bundle/default.metallib` holding `paperGrain` — checked on
+2026-09-05 with `strings` over both. `ShaderLibrary.bundle(.module)` finds them there.
+**Do not silence it by declaring the file a resource**: `.process`/`.copy` would put the
+*source* in the bundle instead of a compiled library, and the curl would stop rendering with
+no warning at all. The right reading is that the host build never uses the shader and Xcode's
+does.
+
 **Run `swiftlint` from the repository root, and nowhere else.** `.swiftlint.yml` is at the
 root and SwiftLint looks for it in the *working directory*, not upwards from the files it is
 given. A run from `apps/ios` finds no config, falls back to SwiftLint's own defaults, and lints
