@@ -105,11 +105,18 @@ value class PinnedShelves(private val pins: Set<ShelfPin> = emptySet()) {
         shelves.filter { pin(it) in pins } + shelves.filterNot { pin(it) in pins }
 
     companion object {
-        /**
-         * Where the choice is written down. Its own key, beside the other library
-         * preferences, so nothing has to be migrated to add it.
-         */
-        const val STORAGE_KEY = "app.storyarc.pinnedShelves"
+        // `STORAGE_KEY = "app.storyarc.pinnedShelves"` was here, mirroring iOS's
+        // `PinnedShelves.storageKey`, and **nothing on this platform ever read it**. The
+        // pins live in `LibraryPreferences` under its own private `"pinnedShelves"`, inside
+        // the `"app.storyarc.library"` preferences file that holds the rest of the shelf's
+        // choices — which is what this constant's own doc comment described ("beside the
+        // other library preferences") and not what it held.
+        //
+        // Its only reader was a test asserting its spelling, so the constant was pinned,
+        // green, and wrong: a reader asking where a pin is stored found an authoritative
+        // answer that named no key the app writes. Deleted rather than wired, because
+        // wiring it would migrate a key for a feature shipped this week to gain nothing.
+        // iOS keeps its own, where `@AppStorage` genuinely needs a name to bind to.
 
         /** Read back from stored tokens, dropping any this version cannot parse. */
         fun of(tokens: Collection<String>): PinnedShelves =

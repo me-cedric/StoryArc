@@ -94,7 +94,9 @@ class PinnedShelvesTest {
         // Sorted, so two runs that pinned the same shelves write the same value and a diff of
         // a preferences file is readable.
         assertEquals(pinned.tokens.sorted(), pinned.tokens)
-        assertEquals("app.storyarc.pinnedShelves", PinnedShelves.STORAGE_KEY)
+        // The line that asserted `PinnedShelves.STORAGE_KEY` went with the constant: no code
+        // on this platform read it, so this test held a spelling nobody wrote. Where the
+        // pins actually go is `LibraryPreferences`, and its own tests are what pin that.
     }
 
     @Test
