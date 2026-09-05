@@ -1292,6 +1292,39 @@ when a cover was the resume affordance. Whoever syncs should add a
       **The composition clause still holds after this wave.** The page gained
       `DetailAbsences.swift` at 45 lines and `DetailMainColumn.swift` gave up two to it;
       nothing is near the 400-line cap.
+
+      ---
+
+      **The three failures above are gone, and the cause was found rather than waited out —
+      re-run 2026-09-05 on `main` at `863c49a5`.**
+
+      | Command | Result |
+      | --- | --- |
+      | `swiftlint --strict --no-cache` | **passed** — 0 violations in **671** files. Nine more files than the 662 of the previous run, which is the repository growing; a mis-scoped run after a `cd` reports hundreds more and hundreds of violations, so the size of the jump is the diagnostic and not the number |
+      | `pnpm test:ios` | **passed**, exit 0 — **1927** tests in 241 suites, **0 issues**, *Library restore* among the suites that passed |
+      | `pnpm lint` | **passed**, exit 0 — including `partial:tasks`, `delta:drop`, `strings:ios`, `lines:check` and `openspec:workflows:check` |
+      | `pnpm spec:validate` | **passed** — 25 items, 0 failed |
+      | `pnpm spec:guard` | **passed** with 3 warnings, none of them this change's |
+
+      **The note above called the trigger "machine state outside the repository" and stopped
+      there. `863c49a5` names it.** A model built with a default `LibraryCache()` wrote a
+      snapshot into the machine's *real* caches directory, and any later suite that restored
+      read it — so the failing set was exactly the two `LibraryRestoreTests` cases, and they
+      recovered on their own with no source change because the suites that scan had been given
+      a cache of their own earlier the same day. It was reproduced deliberately, by planting a
+      `library.json` in `~/Library/Caches` and reverting the isolation, rather than inferred.
+
+      **The debris that made the machine unlike a clean one is swept now**, after the suite
+      rather than inside it, conservatively — a name needs both a known prefix and a UUID tail
+      before anything is removed, and the sweep never changes the exit code, so a red run stays
+      red. This run's own line was `removed 78 defaults suite(s) and 2 scratch folder(s)`.
+      **That output is expected and is not a failure.**
+
+      So the previous note's warning — "worth knowing before the next gate run reads it as a
+      regression" — is discharged: there is nothing left to misread. The entry is kept because
+      the method is the reusable part, and it is the same one AGENTS.md draws from the
+      data-protection incident: when a symptom is intermittent, a fix that appears to work once
+      has proved nothing, so change one variable and keep the trial that isolates it.
 - [x] **5.3** Android: `./gradlew test lint`, 800-line cap.
       **This change's own file is inside the cap and the commands were not run
       here.** `feature/library/…/PublicationDetailScreen.kt` is 492 lines,
