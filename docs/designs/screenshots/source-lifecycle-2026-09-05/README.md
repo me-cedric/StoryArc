@@ -77,6 +77,34 @@ reachable source could not have shown that; it would only have shown a different
 *Remove* being the one red thing is also right: it is the destructive action, and it is the only
 one.
 
+## §4.6, and the truncation the task predicted
+
+Six more frames: `ios-settings-source-remove{,-dark}.png` at the default size, and
+`ios-settings-source-remove-ax5{,-dark}.png` with `-scrolled` twins at `AccessibilityXXXL`.
+
+At the default size the confirmation reads in full: *"This removes 0 titles from your library.
+No files on your device are deleted, and nothing was downloaded. Your reading positions are kept
+for 30 days."*
+
+**At the largest text size it stops at "No files".** The thirty-day sentence — what happens to a
+reader's reading positions — is not on screen at all, on a destructive action. The task said in
+its own words that *a confirmation dialog is where truncation costs a reader their library*, and
+this is that.
+
+**The `-scrolled` frames are the point.** A still cannot tell a scrollable clip from a hard
+truncation, so the walk swipes and shoots again. **The two frames are identical.** A
+`confirmationDialog`'s message does not scroll, so the sentence is unreachable rather than
+merely off-screen.
+
+An `alert` was tried and reverted. It fixes two smaller things — the title and the destructive
+button stop hyphenating into *Re-move*, and a *Cancel* becomes visible — but its message does
+not scroll either. Presentation is not the lever.
+
+**What a test would have said.** The walk asserts the sentence with `staticTexts … CONTAINS "30
+days"`, and that assertion **passes at AX5**: the message is one label in the accessibility
+tree, so VoiceOver reads it in full. A guard asserting existence would have called this screen
+correct while a sighted reader could not see the sentence at all.
+
 ## Two walks that could not run, and why
 
 **`SweepSourcesTests/testCaptureAwayNotice` skips on this device, honestly.** The library-wide

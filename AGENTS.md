@@ -235,7 +235,7 @@ the whole config fails to parse, and the CLI's answer is the misleading
 
 | Platform | Minimum | Target |
 | --- | --- | --- |
-| iOS | 26.0 | latest SDK |
+| iOS | 26.1 | latest SDK |
 | Android | API 31 (Android 12) | API 37 |
 
 iOS has **no compatibility shims** — Liquid Glass is used directly. Android has

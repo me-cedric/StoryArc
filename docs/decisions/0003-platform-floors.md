@@ -69,7 +69,7 @@ pins, refuses to be consumed by a project compiling against anything lower.
 
 | Platform | Minimum | Target | Reason for the floor |
 | --- | --- | --- | --- |
-| iOS | **26.0** | latest SDK | Liquid Glass is an OS-level material. There is no honest fallback. |
+| iOS | **26.1** | latest SDK | Liquid Glass is an OS-level material. There is no honest fallback. The floor moved 26.0 → 26.1 on 2026-09-05; see below. |
 | Android | **API 31** (Android 12) | **API 37** | Dynamic colour. Below API 31 there is no wallpaper-derived scheme. |
 
 The floors are asymmetric on purpose. They are set by what each platform
@@ -105,4 +105,23 @@ actually requires, not by a wish for them to match.
   platform behaviour these floors buy.
 - Related decisions: [ADR-0001](0001-independent-native-cores.md) makes an
   asymmetric floor possible, because neither app constrains the other.
-- Contract: `AGENTS.md` §2 — iOS floor 26.0, Android floor API 31, target 37.
+- Contract: `AGENTS.md` §2 — iOS floor 26.1, Android floor API 31, target 37.
+
+## The iOS floor moved to 26.1 on 2026-09-05
+
+One API, and the requirement it was holding up.
+`SwiftUI.View.tabViewBottomAccessory(isEnabled:)` arrived in 26.1. Below it the shell reserves
+an empty capsule above the tab bar even with nothing playing, so
+`read-aloud-beyond-the-reader`'s "no space is reserved for one" was unmet **on the floor
+itself** — not on some older device the project had chosen to drop, but on the exact version
+this ADR named as the minimum.
+
+The alternative was an `#available` branch, and one shipped for a while. It was deleted the
+same day the floor moved, because a second code path through the shell that exists for one
+point release is the kind of branch that outlives its reason: nothing in the type system tells
+`tabViewBottomAccessory { }` from `tabViewBottomAccessory(isEnabled:) { }`, which is how the
+empty capsule shipped in the first place. `ShellWiringTests` now fails on a missing
+`isEnabled:`, on a second application, and on a returning `#available`.
+
+A point release is a small and shrinking audience cost, and the reasoning that set the floor at
+26.0 — that Liquid Glass has no honest fallback — is unchanged by moving within the same major.

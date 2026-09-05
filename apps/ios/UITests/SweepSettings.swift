@@ -162,6 +162,78 @@ final class SweepSettingsTests: XCTestCase {
         shutter(app, named: "settings-source-detail")
     }
 
+    /// The removal confirmation, raised from the source detail screen's *Remove* row.
+    ///
+    /// `source-lifecycle` §4.6. Both strings have to be legible: the count of titles the
+    /// removal affects, and the sentence about the thirty days a reader has to change their
+    /// mind. A confirmation dialog is where truncation costs a reader their library, which is
+    /// why the largest-text pair is not optional for this one.
+    ///
+    /// Nothing is confirmed. The shutter fires on the dialog and the walk ends, so the source
+    /// survives for the next walk in the same run — a walk that removed it would leave every
+    /// walk after it photographing an empty *Your libraries*.
+    func testCaptureSourceRemovalConfirmation() throws {
+        try captureRemovalConfirmation(contentSize: nil, named: "settings-source-remove")
+    }
+
+    /// The same dialog at the largest accessibility text size.
+    func testCaptureSourceRemovalConfirmationAtLargestText() throws {
+        try captureRemovalConfirmation(
+            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
+            named: "settings-source-remove-ax5"
+        )
+    }
+
+    private func captureRemovalConfirmation(contentSize: String?, named name: String) throws {
+        let app = sweepLaunch(contentSize: contentSize)
+        try open("Your libraries", in: app)
+        let source = try XCTUnwrap(
+            control("StoryArc Test Catalogue", in: app) ?? control("Attic NAS", in: app),
+            "Your libraries lists no catalogue. Cells: "
+                + "\(app.cells.allElementsBoundByIndex.prefix(10).map(\.label))"
+        )
+        source.tap()
+        // Scrolled to first, because at the accessibility sizes it is below the fold — five
+        // fields that each became two lines put the actions off the bottom of the screen, and
+        // the first version of this walk failed there with "offers no Remove row" while
+        // passing at the default size. `testCaptureSettingsResetConfirmation` scrolls for the
+        // same reason.
+        _ = scrollTo(app.buttons["Remove"], in: app, swipes: 4)
+        let remove = try XCTUnwrap(
+            hittable("Remove", in: app, timeout: 8),
+            "The source page offers no Remove row, even after scrolling."
+        )
+        remove.tap()
+        // The body names the count and the retention. Waited for by its opening words rather
+        // than by the dialog's own element, because what the platform calls a confirmation has
+        // changed between releases and the sentence is what the task is about.
+        XCTAssertTrue(
+            app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS %@", "30 days")
+            ).firstMatch.waitForExistence(timeout: 5),
+            "Remove raised no confirmation naming the thirty days. On screen: "
+                + "\(app.staticTexts.allElementsBoundByIndex.prefix(12).map(\.label))"
+        )
+        hold(0.5)
+        shutter(app, named: name)
+
+        // **The second frame is what turns "clipped" into "unreachable".** At the accessibility
+        // sizes the message outgrows the confirmation and stops mid-sentence — the first frame
+        // ends at *"No files"* — and a still cannot tell a scrollable clip from a hard
+        // truncation. So the walk swipes and shoots again: the two frames are **identical**,
+        // which is the finding. The retention sentence cannot be reached by scrolling.
+        //
+        // The assertion above still passes at this size, and that is worth knowing rather than
+        // hiding: `staticTexts` reads the accessibility tree, where the whole message exists as
+        // one label. VoiceOver reads it in full. A sighted reader at `AccessibilityXXXL` cannot
+        // see it at all. A test that asserted only existence would have called this screen
+        // correct.
+        guard contentSize != nil else { return }
+        app.swipeUp(velocity: .slow)
+        hold(0.5)
+        shutter(app, named: "\(name)-scrolled")
+    }
+
     /// The same page at the largest accessibility text size.
     ///
     /// `source-lifecycle` §4.1 asks for this screen at both text sizes and there has never been

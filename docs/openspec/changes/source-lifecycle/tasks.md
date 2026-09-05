@@ -307,7 +307,7 @@ filename so a light and a dark run cannot overwrite each other.
       two registered sources. Confirm against `SourcePrecedenceTests` which pair the rule
       actually ranks before building the fixture — registry position wins, and an
       unattributed find ties with a removed source for last.
-- [ ] 4.6 The removal confirmation showing the title count and the 30-day sentence
+- [~] 4.6 The removal confirmation showing the title count and the 30-day sentence
       **Frames owed: 8** — 4 per platform. Surface *the removal confirmation dialog raised
       from the source detail screen's `Remove` row*; state *a source with a non-zero title
       count*, so the count in `sources.remove.body %lld` is a real number and not `0`.
@@ -318,6 +318,37 @@ filename so a light and a dark run cannot overwrite each other.
       **Both strings must be legible in the frame** — the count and the 30-day retention
       sentence — which is the reason the largest-text pair is not optional here: a
       confirmation dialog is where truncation costs a reader their library.
+
+      **iOS taken on 2026-09-05, and the task's own warning was right.** Six frames in
+      `docs/designs/screenshots/source-lifecycle-2026-09-05/`. At the default size both strings
+      read cleanly. **At `AccessibilityXXXL` the body stops at "No files" and the thirty-day
+      retention sentence is not on screen at all** — the sentence that tells a reader what
+      happens to their reading positions, missing from the confirmation for a destructive
+      action.
+
+      **It is not a clip a reader can scroll past.** The walk swipes and shoots a second frame,
+      and the two are identical: `-ax5.png` and `-ax5-scrolled.png` match. A
+      `confirmationDialog`'s message does not scroll.
+
+      **An `alert` was tried and reverted, which is worth recording so nobody tries it twice.**
+      It fixes two smaller things — the title and the destructive button stop hyphenating into
+      *Re-move*, and a *Cancel* becomes visible — but its message does not scroll either, so
+      the sentence stays unreachable. Presentation is not the lever; the sentence is too long
+      for any alert at that size.
+
+      **The remaining fix is a content decision and is the owner's**, because it changes copy
+      in four languages: either shorten `sources.remove.body`, or move the retention sentence
+      onto the screen as a footer under the actions, where it wraps freely and is read *before*
+      the reader ever taps Remove, leaving the dialog a short question.
+
+      **One thing the frames caught that a test could not.** The walk asserts the sentence by
+      `staticTexts … CONTAINS "30 days"` and that assertion **passes at AX5**: the whole message
+      is one label in the accessibility tree, so VoiceOver reads it in full while a sighted
+      reader cannot see it. A guard asserting only existence would have called this screen
+      correct.
+
+      **Still owed:** a source with a non-zero title count — this catalogue holds none, so the
+      count reads `0 titles` rather than a real number — and the Android half.
 
 ## 5. The honest limit in the cached indicator
 
