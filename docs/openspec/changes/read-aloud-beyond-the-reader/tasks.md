@@ -420,8 +420,38 @@ says so and names what is left to watch.
 
 ## Phase 4 — The unhappy paths
 
-- [ ] **4.1** Audio taken by a call and given back: the voice resumes; a pause the
+- [~] **4.1** Audio taken by a call and given back: the voice resumes; a pause the
       listener made is never undone.
+
+      **Both clauses are built and asserted on both platforms; neither has been heard.**
+      This is 4.2's sibling and it landed with it, on the same table: `PlaybackSession`
+      carries the *cause* of a pause, `interrupted()` refuses to overwrite a pause the
+      listener made, `pausedByListener()` converts the other way so that reaching for pause
+      *during* a call is a decision the call's ending cannot undo, and
+      `interruptionEnded(mayResume:)` resumes only when the platform says so **and** the
+      pause was the interruption's.
+
+      The production wiring is complete on both sides and reaches that table rather than
+      branching beside it. iOS: `PlaybackAudioSession` observes
+      `AVAudioSession.interruptionNotification`, reads `.shouldResume` out of the options
+      bitmask, and routes `.ended` through `PlayerCentre.endingInterruption(mayResume:)`'s
+      three outcomes. Android: `ReadAloudController.focusListener` maps
+      `AUDIOFOCUS_LOSS_TRANSIENT` and `..._CAN_DUCK` to an interruption's pause — the focus
+      request sets `setWillPauseWhenDucked(true)`, so a duck is deliberately a pause here —
+      and `AUDIOFOCUS_GAIN` and `AUDIOFOCUS_LOSS` to the same three outcomes.
+
+      Asserted host-side on both: `PlayerInterruptionTests`' *"Audio given back carries on by
+      itself"*, *"A pause the listener made is never undone"* and *"A pause made during an
+      interruption is the listener's"*, each over both source kinds, mirrored in
+      `PlaybackSessionTest`'s *"an interruption that may resume gives the audio back"* and
+      *"a pause the listener made is never undone by an interruption ending"*.
+
+      **What a host test cannot be is a phone ringing.** An `AVAudioSession` interruption on
+      a simulator is not a call, and an emulator's audio focus is not one either. Owed on
+      hardware, both platforms: start read-aloud, take a call, hang up, and hear the voice
+      carry on by itself; then start it, press pause, take a call, hang up, and hear that it
+      stays silent. Nothing to photograph — this one is heard, not seen, and the handoff
+      should say so rather than attaching a frame that proves nothing.
 - [x] **4.2** Audio taken for good: the session ends, the position is recorded,
       the transport goes.
 
