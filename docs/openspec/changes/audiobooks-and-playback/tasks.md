@@ -57,6 +57,57 @@ creep — see [`design.md`](design.md).
       the test asserts the **order** rather than the effects — mutation-checked by moving
       the record after the stop, which fails it. iOS half outstanding.
 
+      **2026-09-05: this tick was true of one engine at a time, and that is not what the
+      requirement says.** A verification pass found it. `PlaybackCentre.start` displaces
+      whatever *it* holds, which is only ever a narrated file, and
+      `EpubReaderActivity.prepareReadAloud` asked
+      `SessionHandover.opening(bookId, ReadAloudHost.book.value?.id)`, which sees only the
+      voice. Neither host knew the other existed, so **a narrated audiobook and a spoken EPUB
+      could speak at the same time** — the one thing "two books speaking at once is never
+      what was meant" forbids by name. iOS cannot reach that state because read-aloud is
+      already a second `PlaybackSource` inside its one `PlayerCentre`, and `prepareReadAloud`
+      there asks the *player* rather than the voice.
+
+      **`SpokenAudio` in `:core:playback` is the seam, and the guarantee is mirrored rather
+      than the code.** One authority both hosts register with as a `Speaker` and ask before
+      they make a sound: it answers the handover across engines, ends what it displaces —
+      position first — and grants `ADOPT` only to the speaker that already holds the session,
+      which is the guard iOS reaches from the other end by re-checking `ReadAloudCentre`
+      after the player has answered. `PlaybackHost.start` and `ReadAloudHost.begin` both go
+      through it, so no call site can forget.
+
+      **A separate object here and a method on the centre there, deliberately.** The two
+      engines are still two on Android — media3 `MediaController` over a `MediaLibraryService`
+      for the narrator, Readium TTS over a second `mediaPlayback` service for the voice — and
+      merging them is 6.1, not this. Nor could the centre arbitrate: `:feature:epubreader`
+      depends on `:core:playback` and never the reverse, so the module that owns the voice
+      cannot be the module that decides. ADR-0001 forbids shared UI, not a shared rule.
+
+      **It also answers a question `start` never did.** Tapping the cover of the audiobook
+      already playing used to fall straight through to `PlaybackCentre.start`, which stopped
+      the source and prepared it again — audible as the book restarting, and `audio-playback`
+      requires opening the player to "never restart, reload or reposition the audio". iOS's
+      `listen` has always guarded that with `handover(opening:) != .adopt`. It does now here.
+
+      `SpokenAudioTest` holds the rule: a voice starting under a narrator, a narrator starting
+      under a voice, coming back to what a speaker holds, one speaker refusing to adopt
+      another's session, and both together being silenced. Every case mutation-checked, each
+      failing by name — the displacement cases by deleting `claim`'s `silence()`, the adopt
+      guard by granting adopt to any holder of the id, `silence`'s filter by asking a silent
+      speaker to stop, and the registration's de-duplication by removing it. That last one was
+      **vacuous when first written** and is recorded because it is exactly §5's trap: the fake
+      went silent inside its own teardown, so a doubly-registered speaker was asked twice and
+      the second ask did nothing. It takes a speaker whose teardown is not instantaneous to
+      tell the two apart, and the test uses one now.
+
+      `PlaybackSessionTest` gains the interruption case a device cannot stage: a book an
+      interruption silenced is still the book being played — so a voice cannot start on top of
+      it — and the call ending after that book was displaced brings nothing back.
+      Mutation-checked by making `playingId` forget an interruption-silenced book, which is
+      the plausible version of the bug.
+
+      **Nothing here has been heard.** The listening walk is under 6.1.
+
 ## 2. Audiobooks open
 
 - [x] 2.1 Both: format-detection tests for M4B, MP3, FLAC and Ogg from **contents**
@@ -1084,6 +1135,39 @@ creep — see [`design.md`](design.md).
       reflowable position a voice writes) where they are.
       No test asserts the outliving — it is a process fact, and proving it needs the
       instrumented pass §9 still owes.
+      **2026-09-05: the seam exists, and it is not the rewiring.** `SpokenAudio` makes one
+      authority answer "may this source start" for both engines, so the two can no longer
+      speak together — see 1.3, which is where that defect belonged. Read-aloud still has its
+      own engine, its own service and its own notification, so this task's own clause —
+      leaving the reader leaves the voice running **and the shared compact bar carries it** —
+      is still only true of a narrated book. The remaining work is unchanged: a second
+      `PlayerSource` over the speech engine, and one service behind both.
+
+      **What a listener has to do on a device, because this defect is audible and not
+      visible.** Nothing below can be photographed; §6's proof is discharged by naming the
+      walk. It needs the corpus's `chaptered.m4b` (six seconds) and any reflowable EPUB in
+      the library, and a second phone to call from.
+
+      1. Tap the audiobook on the shelf. The player opens and the narrator starts. One media
+         notification in the shade, naming the book.
+      2. Go back to the shelf. The compact bar carries the narration and it is still audible.
+      3. Tap the EPUB. **The narrator must stop as the reader opens**, and its notification
+         must go with it.
+      4. Open the reader's menu, choose *Read aloud*, and listen through a whole sentence.
+         **There must be exactly one voice.** Two talking over one another is the defect.
+      5. Reopen the audiobook. **The voice must stop before the narrator's first word**, and
+         the shade must swap one notification for the other rather than show two.
+      6. Let the audiobook run about a minute to a line you would recognise, leave the
+         player, and tap the *same* cover again. **The audio must not stutter, restart or
+         jump** — before 1.3's fix that tap re-prepared the file and the book started again.
+      7. Let `chaptered.m4b` play to its end without touching anything. **Silence, then look
+         at the shade: the media notification must be gone** and the compact bar absent.
+         Start another audiobook straight afterwards and check the shade's transport drives
+         the new book, not the finished one — that is 6.3's correction.
+      8. Start the audiobook and have the second phone call this one. The narration stops.
+         **While it is still silenced and before hanging up**, open the EPUB and start
+         read-aloud. Then end the call. **Only the voice may be speaking**; the audiobook
+         must not come back.
       **iOS done, and photographed for both sources.** Read-aloud drives this player now (4.2),
       so leaving the reader leaves the voice running and the shared bar carries it; the bar's
       row is *Back to the book* for a spoken session, which is the one action back.
@@ -1145,6 +1229,22 @@ creep — see [`design.md`](design.md).
       **Not watched on either platform.** Android's evidence is a logcat trace of the corpus's
       six-second fixture playing itself out, iOS's is three host tests. Nobody has sat through
       the end of a book on a device and seen the shade and the bar go.
+      **2026-09-05: and the Android half above was two thirds true.** The bar does go — that
+      is what the logcat trace showed — but `PlaybackCentre.publish` recorded the position and
+      detached the callbacks of a source that had gone idle and **never called `stop()` on
+      it**, where `PlaybackCentre.stop` did. So a book that ran out left `AudiobookSource.stop`
+      undone: the `Player.Listener` stayed attached to a `MediaController` that lives as long
+      as the process — one leaked per finished book — and neither `player.stop()` nor
+      `player.clearMediaItems()` ran, so the finished playlist stayed loaded in the very
+      player media3 draws its notification from. Two endings a listener cannot tell apart, one
+      of them incomplete, and the trace that "proved" this clause watched the other one.
+      Routed through the single teardown now, and `PlaybackSessionTest` asserts the two
+      endings produce the same two entries in the same order; it was written first and failed
+      by name. iOS never had the gap — `PlayerCentre.finish` is the one teardown for all three
+      endings, and for a spoken source `source.stop()` is the *only* signal that withdraws the
+      highlight, which is what this would have cost Android the moment read-aloud becomes a
+      `PlayerSource` (6.1). **Still not heard**: step 7 of 6.1's walk is what would confirm the
+      shade actually goes.
 
 ## 7. Position
 
