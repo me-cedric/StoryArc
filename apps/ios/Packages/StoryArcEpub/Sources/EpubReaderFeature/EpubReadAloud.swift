@@ -105,7 +105,13 @@ extension EpubReaderModel {
         // boundary, which is what makes ending here honest rather than abrupt. It is asked of
         // the player now, so opening an EPUB while an *audiobook* is playing displaces that
         // too: `audio-playback` allows one session, not one per kind.
-        if handover == .displace { PlayerCentre.shared.end() }
+        if handover == .displace {
+            PlayerCentre.shared.displace()
+            // Taken in the same run of the main actor that displaced, so the shell behind this
+            // cover never sees a pending word, and a return to this book finds nothing to say.
+            // `ebook-reader`: the listener is told *once*. ``VoiceStoppedBanner`` says it.
+            voiceStopped = PlayerCentre.shared.takeVoiceStopped()
+        }
 
         // The voice, built beside the synthesizer and handed to it: Readium's engine holds
         // its delegate weakly, so it has to be owned from here until the session takes it.

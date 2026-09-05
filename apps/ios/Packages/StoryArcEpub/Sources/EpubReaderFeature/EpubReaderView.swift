@@ -5,6 +5,7 @@ internal import UIKit
 
 internal import DesignSystem
 public import Persistence
+internal import Playback
 public import StoryArcCore
 
 /// A reflowable book, open.
@@ -310,6 +311,14 @@ public struct EpubReaderView: View {
     private var transientOverlays: some View {
         VStack {
             Spacer()
+
+            // The word owed for a voice this book's opening stopped — above the return offer,
+            // because it is about what just happened somewhere else, and it leaves on its own.
+            // `ebook-reader`: told once. See ``VoiceStoppedBanner``.
+            if let sentence = model.voiceStopped.sentence {
+                VoiceStoppedBanner(sentence: sentence) { model.voiceStopped = model.voiceStopped.taken() }
+                    .padding(.bottom, StoryArcSpace.sm)
+            }
 
             // Offered after any long jump, taken once, and never re-armed by its own use —
             // see ``EpubReaderModel/returnToWhereTheyWere()``. Above the transport because it

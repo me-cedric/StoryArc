@@ -192,6 +192,10 @@ struct AppShell: View {
                 onReturn: onOpen
             )
         )
+        // The word a displaced voice owes, when the displacement happened from the shelf:
+        // `listen(to:at:)` presents no screen, so this is what the listener is looking at. A
+        // reader that displaced takes the word itself, in the same run — see `prepareReadAloud`.
+        .voiceStoppedNotice(from: .shared)
         // The player itself, hosted here rather than in the accessory above.
         //
         // `audio-playback` asks that opening the player "never restarts, reloads or

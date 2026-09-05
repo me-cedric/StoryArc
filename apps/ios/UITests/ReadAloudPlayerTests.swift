@@ -52,7 +52,82 @@ final class ReadAloudPlayerTests: XCTestCase {
         attach(app.screenshot(), named: "read-aloud-full-player")
     }
 
+    /// The reader that stopped the voice, saying so over its page.
+    ///
+    /// `ebook-reader`, *Opening a different publication*: "the listener is told once that the
+    /// voice stopped, rather than discovering it by silence". The voice is started on whichever
+    /// reflowable EPUB the shared walk finds, the reader is closed with the voice carrying on,
+    /// and a **different** reflowable EPUB is opened by name — so what this photographs is the
+    /// new book's page with `VoiceStoppedBanner` over it, naming the old one.
+    ///
+    /// It waits for the banner itself rather than for the web view: the word is armed as the
+    /// book opens and leaves six seconds later, and a walk that first waited twenty seconds for
+    /// a page could photograph a page the word had already left.
+    func testCaptureVoiceStoppedByAnotherBook() throws {
+        let app = try speakAndLeaveTheReader()
+        let spoken = app.buttons["Back to the book"].firstMatch.value as? String ?? ""
+        let other = ["The Long Field", "Harbour Lights 02", "Harbour Lights 01"]
+            .first { !spoken.contains($0) }
+        try openPublication(named: try XCTUnwrap(other), in: app)
+
+        let banner = app.descendants(matching: .any).matching(identifier: "voice-stopped").firstMatch
+        XCTAssertTrue(
+            banner.waitForExistence(timeout: 20),
+            "Opening \(other ?? "another book") over the voice showed no word that the voice "
+                + "stopped. Static texts: \(app.staticTexts.allElementsBoundByIndex.map(\.label))"
+        )
+        settle(0.5)
+        attach(app.screenshot(), named: "voice-stopped-in-reader")
+    }
+
+    /// The shelf, saying so when an audiobook started from it stopped the voice.
+    ///
+    /// `listen(to:at:)` presents no screen — the compact bar is the surface a listener gets — so
+    /// the word lands on the shell, over whatever the listener was looking at, as
+    /// `VoiceStoppedCapsule`. The bar below it has already started saying the *new* book's
+    /// name, which is why the word is at the top and not beside the bar.
+    func testCaptureVoiceStoppedByAnAudiobook() throws {
+        let app = try speakAndLeaveTheReader()
+        try openPublication(named: "Sea Room", in: app, expectingAPage: false)
+
+        let capsule = app.descendants(matching: .any).matching(identifier: "voice-stopped").firstMatch
+        XCTAssertTrue(
+            capsule.waitForExistence(timeout: 20),
+            "Starting an audiobook over the voice showed no word that the voice stopped. "
+                + "Static texts: \(app.staticTexts.allElementsBoundByIndex.map(\.label))"
+        )
+        settle(0.5)
+        attach(app.screenshot(), named: "voice-stopped-on-shelf")
+    }
+
     // MARK: - The walk
+
+    /// Opens one publication by name from the shelf, scrolling to find it.
+    ///
+    /// The same walk `SweepEpubReader.openReflowable` makes, with the proof made optional: an
+    /// audiobook opens no page, and `AudiobookWalk` waits for the bar instead — which here is
+    /// already up for the voice, so it proves nothing. The word itself is the proof the two
+    /// captures above wait for.
+    private func openPublication(named title: String, in app: XCUIApplication, expectingAPage: Bool = true) throws {
+        try showTheShelf(in: app)
+        let wanted = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title))
+        var cover: XCUIElement?
+        for _ in 0..<8 where cover == nil {
+            cover = wanted.allElementsBoundByIndex.first(where: \.isHittable)
+            if cover == nil { app.swipeUp() }
+        }
+        try XCTUnwrap(cover, "No cover called \(title) on this device's shelf.").tap()
+        XCTAssertTrue(
+            app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 8),
+            "The page for \(title) offered no way to open it."
+        )
+        try XCTUnwrap(
+            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable)
+        ).tap()
+        if expectingAPage {
+            XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 20), "\(title) opened no page.")
+        }
+    }
 
     /// Opens an EPUB, starts reading it aloud, and closes the reader.
     private func speakAndLeaveTheReader() throws -> XCUIApplication {
