@@ -242,14 +242,7 @@ private fun LazyListScope.keepReading(
             contentPadding = PaddingValues(horizontal = StoryArcSpace.gutter),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(
-                    (width - StoryArcSpace.md * 2) * HOME_COVER_ASPECT +
-                        // Six, not five: title (2) + byline (1) + the wavy indicator +
-                        // what is left (2). The byline arrived on 2026-09-05 and a height
-                        // budget that did not move with it would clip the last line at
-                        // exactly the text sizes it matters most at.
-                        homeCaptionHeight(lines = 6) + StoryArcSpace.xxl + HOME_RESUME_ROW,
-                ),
+                .height(homeHeroBlockHeight(width, LocalDensity.current.fontScale)),
         ) { index ->
             val entry = surface.keepReading[index]
             val label = homeRemainingText(entry)

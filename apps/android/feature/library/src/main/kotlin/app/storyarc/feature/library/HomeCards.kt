@@ -77,7 +77,46 @@ internal val HOME_RESUME_ROW: Dp = 40.dp + StoryArcSpace.md
  */
 @Composable
 internal fun homeCaptionHeight(lines: Int): Dp =
-    with(LocalDensity.current) { (lines * 22).sp.toDp() } + StoryArcSpace.md
+    homeCaptionHeight(lines, LocalDensity.current.fontScale)
+
+/**
+ * The same number, arithmetic rather than composed.
+ *
+ * `sp.toDp()` is `value * fontScale` and nothing else, so the composable above is this
+ * function plus a lookup. Split because `home-screen`'s *The hero does not crowd out the
+ * rest of the surface* is a claim about a **height**, and a height that can only be reached
+ * from inside a composition can only be checked on a device. `HomeHeroHeightTest` checks it
+ * on the JVM; the device still owes the screenshot, which is what proves the arithmetic was
+ * measuring the right thing.
+ */
+internal fun homeCaptionHeight(lines: Int, fontScale: Float): Dp =
+    (lines * CAPTION_LINE_SP * fontScale).dp + StoryArcSpace.md
+
+/** A caption line, in `sp`. Material's body line height, near enough for a budget. */
+private const val CAPTION_LINE_SP = 22
+
+/**
+ * How tall the whole Keep reading block is, before anything is laid out.
+ *
+ * The carousel has to state a height, and `home-screen`'s *The hero does not crowd out the
+ * rest of the surface* is a claim about this number: on a phone at the default text size
+ * "the next section's heading is visible without scrolling, so a reader can see that the
+ * surface continues", while the card "stays large enough to be the surface's one emphasis".
+ *
+ * Six caption lines — title (2), byline (1), the wavy indicator, and what is left (2) —
+ * plus the art, the container's own bottom padding, and the resume row.
+ *
+ * The two callers are the carousel, which needs it to lay out, and `HomeHeroHeightTest`,
+ * which needs it to be a number a JVM can see. Both asking the same function is the point:
+ * a test that recomputed the sum would be asserting its own arithmetic.
+ */
+internal fun homeHeroBlockHeight(width: Dp, fontScale: Float): Dp {
+    val art = width - StoryArcSpace.md * 2
+    return art * HOME_COVER_ASPECT +
+        homeCaptionHeight(lines = 6, fontScale = fontScale) +
+        StoryArcSpace.xxl +
+        HOME_RESUME_ROW
+}
 
 /**
  * One cover, letterboxed rather than cropped, decoded when the card appears.

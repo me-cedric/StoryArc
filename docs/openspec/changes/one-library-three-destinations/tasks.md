@@ -228,8 +228,63 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
         rather than asserted.
       - Route: on Android, `pnpm capture:android Home` after a walk that opens the first
         issue and pages to its end; on iOS the equivalent walk before the shutter.
-- [ ] 0b.4 Both: the next section's heading is visible without scrolling on a phone at the
+- [~] 0b.4 Both: the next section's heading is visible without scrolling on a phone at the
       default text size, while the card stays the surface's one emphasis.
+
+      **This is the one task in 0b that a device has to answer, and the work done here is to
+      turn it into a number a device can be checked against.** Android's hero height was two
+      expressions inline in the carousel's `Modifier.height(...)`; it is now
+      `homeHeroBlockHeight(width, fontScale)`, which the carousel and `HomeHeroHeightTest`
+      both call — a test that recomputed the sum would be asserting its own arithmetic.
+      `homeCaptionHeight` gained a non-composable overload for the same reason: a height that
+      can only be reached from inside a composition can only be checked on a device.
+
+      **The finding, which is the substance of this task.** On the reference emulator —
+      `storyarc-j6`, 1080 × 2400 at 420 dpi, so 411 × 914 dp, the device every Android frame
+      in `docs/designs/screenshots/` is taken on — the hero uses **492 dp of 658**, leaving
+      166 for the next heading. Comfortable. On a **360 × 800 dp phone** the same hero uses
+      492 of 544, leaving **52 dp where a section heading wants about 56**: the heading sits
+      roughly its own height below the fold, and it did **not** before 0b.1 and 0b.2 added the
+      byline (+12) and the resume row (+52) to this card today.
+
+      The chrome model is written out in the test and is the part worth checking: 112 for
+      `MediumFlexibleTopAppBar` expanded, which already includes the status bar it pads
+      itself for; 88 for `ShortNavigationBar`, which is 64 plus the gesture inset it applies
+      itself; 56 for the *Keep reading* heading. **Counting the gesture inset twice** — once
+      on the bar and once as a separate row — is what makes this model look 48 dp more
+      pessimistic than the device, and it is the mistake that made a first draft of the test
+      fail on the reference emulator too.
+
+      **Left unfixed rather than fixed by guesswork, deliberately.** The card cannot give the
+      space back without either clipping its own caption — the six-line budget is already
+      about 6 dp under the worst case of a two-line title beside a two-line remainder — or
+      dropping below `homeHeroWidth`'s 200 dp phone tier, which `design.md` §4 fixes and
+      `HomeCoverWidthTest` pins with its own rationale. Guessing at either from a JVM is how
+      a screenshot comes back contradicting the guess.
+
+      **iOS was not measured and no equivalent guard was written**, because its hero has no
+      stated height to guard: `HomeHero` sizes from `onGeometryChange` and the card is
+      `width * 1.25`, so the number only exists once the window has one. On an iPhone 17 Pro
+      the arithmetic is about 346 × 432 in roughly 780 of room — comfortable — but that is a
+      calculation, not a measurement, and it is written here as a prediction for the frame to
+      confirm rather than as a result.
+
+      Tests: `HomeHeroHeightTest.kt`, 4 cases — the reference phone fits, the card is still
+      at least a third of the room, the small phone's shortfall is pinned so a change that
+      makes it *much* worse fails here rather than on a device three weeks later, and the
+      budget moves with the reader's text size. Green.
+
+      **Frames owed:**
+      - Android, `storyarc-j6`, Home at the default text size, light: the frame has to show
+        the **Up next** heading below the hero. This is the one the arithmetic predicts
+        passes.
+      - Android on a **360 × 800 dp** window — a resized window or a small AVD — same shot.
+        This is the one the arithmetic predicts **fails**, and it is the frame that decides
+        whether anything needs doing.
+      - iOS, iPhone, Home at the default text size, light: same question, no arithmetic
+        behind it at all.
+      - One of each at the largest text size, where no fold claim is made and what is being
+        checked is that no caption is clipped.
 - [ ] 0b.5 Both: captures before and after, at default and largest text size.
       **Android needs no new hero** — it has one, first on the surface, conditional on something
       being in progress exactly as iOS is. The review reported it missing because the device had
