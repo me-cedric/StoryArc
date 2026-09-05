@@ -123,6 +123,10 @@ const NAMES = {
     // cost the two comic-reader routes on the first Spanish walk, and the walk said so by
     // printing the whole alternatives list it could not find.
     read: 'Read|Leer|Lesen|Lire|Continue|Seguir|Weiterlesen|Reprendre', // detail_action_read + detail_action_continue
+    // An audiobook's page says *Listen*, never *Read* — `PrimaryAction.LISTEN`. The player
+    // routes below reached it only while the book was part-listened, because `Continue` is a
+    // substring of *Continue listening*; on a fresh or finished book they stopped at the page.
+    listen: 'Listen|Escuchar|Anhören|Écouter|Continue listening|Weiterhören|Reprendre l’écoute|Continuar escuchando', // detail_action_listen + detail_action_continue_listening
     appearance: 'Appearance|Apariencia|Erscheinungsbild|Apparence',
     reading: 'Reading|Lectura|Lesen|Lecture',
     privacy: 'Privacy|Privacidad|Datenschutz|Confidentialité',
@@ -277,9 +281,9 @@ export const ROUTES = [
     // Android's player is a destination rather than a sheet, on purpose:
     // `named-failures-and-quieter-chrome` section 3.3 records the divergence.
     ['Audiobook page', [NAMES.library, 'Audiobook folder|, M4B']],
-    ['Player', [NAMES.library, 'Audiobook folder|, M4B', NAMES.read]],
-    ['Player > chapters', [NAMES.library, 'Audiobook folder|, M4B', NAMES.read, '@swipe-up', '@swipe-up']],
-    ['Player > compact bar', [NAMES.library, 'Audiobook folder|, M4B', NAMES.read, named('player_play'), NAMES.home]],
+    ['Player', [NAMES.library, 'Audiobook folder|, M4B', NAMES.read + '|' + NAMES.listen]],
+    ['Player > chapters', [NAMES.library, 'Audiobook folder|, M4B', NAMES.read + '|' + NAMES.listen, '@swipe-up', '@swipe-up']],
+    ['Player > compact bar', [NAMES.library, 'Audiobook folder|, M4B', NAMES.read + '|' + NAMES.listen, named('player_play'), NAMES.home]],
 
     // --- The word a displaced voice owes ---------------------------------------------
     // `ebook-reader`, *Opening a different publication*: "the listener is told once that the
@@ -298,7 +302,7 @@ export const ROUTES = [
     // Two Backs, because the reader was opened from the publication's page and the next book
     // is on the shelf behind it.
     ['EPUB reader > voice stopped', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('readaloud_start'), '?=Allow|Autoriser|Zulassen|Permitir', '@back', '@back', 'Harbour Lights 02', '!' + NAMES.read, '!@wait']],
-    ['Player > voice stopped', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('readaloud_start'), '?=Allow|Autoriser|Zulassen|Permitir', '@back', '@back', 'Audiobook folder|, M4B', '!' + NAMES.read]],
+    ['Player > voice stopped', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('readaloud_start'), '?=Allow|Autoriser|Zulassen|Permitir', '@back', '@back', 'Audiobook folder|, M4B', '!' + NAMES.read + '|' + NAMES.listen]],
 
     // --- Reachable only once a source list is not empty ------------------------------
     ['Settings > source detail', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Audiobooks']],

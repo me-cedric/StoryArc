@@ -115,18 +115,24 @@ final class ReadAloudPlayerTests: XCTestCase {
         let wanted = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title))
         var cover: XCUIElement?
         for _ in 0..<8 where cover == nil {
-            // **Hittable is not enough.** A cover in the shelf's last visible row has its centre
-            // under the floating tab bar, and a tap there lands on the bar — the first run of
-            // this walk did exactly that on *Harbour Lights 01*, stayed on the shelf, and
-            // reported a page that offered no way to open it. So the cover has to sit clear of
-            // the bar as well, and one that does not is scrolled up and asked for again.
+            // **Hittable is not enough, and a swipe is too much.** The reflowable books sit in
+            // the shelf's last visible row with their centres under the floating tab bar, so a
+            // hittable cover tapped there taps the bar; a `swipeUp()` then flung the row a whole
+            // screen to the top, under the header and the failure notice, and the tap landed on
+            // those instead. Both photographed the shelf and called it a page that offered no
+            // way to open it. So the cover is taken only with its centre clear of both, and the
+            // shelf is moved a third of a screen at a time by a drag, which does not fling.
+            let clearOfTheHeader: CGFloat = 200
             let clearOfTheBar = app.frame.maxY - 160
-            cover = wanted.allElementsBoundByIndex.first { $0.isHittable && $0.frame.midY < clearOfTheBar }
+            let onScreen = wanted.allElementsBoundByIndex.filter(\.exists)
+            cover = onScreen.first {
+                $0.isHittable && $0.frame.midY > clearOfTheHeader && $0.frame.midY < clearOfTheBar
+            }
             if cover == nil {
-                // And settled before it is asked again: a tap while the shelf is still
-                // decelerating stops the scroll and selects nothing, which is the second way
-                // this walk photographed the shelf and called it a page.
-                app.swipeUp()
+                let tooHigh = onScreen.contains { $0.frame.midY <= clearOfTheHeader && $0.frame.maxY > 0 }
+                let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: tooHigh ? 0.4 : 0.7))
+                let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: tooHigh ? 0.7 : 0.4))
+                from.press(forDuration: 0.1, thenDragTo: to)
                 settle(1)
             }
         }
