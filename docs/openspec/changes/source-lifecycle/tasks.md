@@ -16,6 +16,24 @@ is not archivable yet.
 - [x] 1.3 Secrets in the platform secure store: `SecItem` on iOS, an Android Keystore AES-256-GCM key on Android, one entry per source, the registry holding only an opaque reference — verified by the credential-store tests on each platform
 - [x] 1.4 Removal deletes the stored secret first and unconditionally, by the reference the registry holds, then the downloads — verified by `SourceRemoval` tests on both platforms
 - [x] 1.5 Removal states how many titles it removes and that reading positions are kept for 30 days, before asking — verified by the confirmation strings in both `Localizable.xcstrings` and the Android string resources
+      **Corrected on 2026-09-05, because the statement was false for any source holding a
+      download.** The body read *"No files on your device are deleted, and nothing was
+      downloaded"* whatever the source held, while both apps delete the downloads first
+      (`StoryArcAppActions.removeSource`, `SettingsHost`'s `REMOVE`), and the scenario's "how
+      many downloaded files and how much disk space will be freed" was stated nowhere. One
+      mirrored rule now picks the sentence — `SourceRemovalWording` in `StoryArcCore` and
+      `:core:model`, six cases each, mutation-proved — from the same `SourceDiagnosis` the
+      detail screen draws its *Downloaded* row from: *This removes 3 titles from your library.*
+      when nothing is on disk, *This removes 3 titles and 2 downloads (400 MB).* when something
+      is, the bytes through the same helper as the row. Both list dialogs (`SourcesSettings`'
+      swipe, `SourcesGroup`'s delete button) ask the same rule of the same diagnosis rather than
+      of a title count alone. Each state is one sentence, because the iOS confirmation at the
+      largest text size holds about seven short lines and does not scroll (4.6). The thirty
+      days and the deletion are the footer under the actions on both platforms now — *Removing
+      a library deletes what you downloaded from it and keeps your reading positions for 30
+      days.* — Android's new and pinned by `SourceRemovalFooterTest`, and on the two list
+      surfaces as a section footer (iOS) and supporting text (Android). The model-layer
+      comments that said "files on disk are never touched" now say whose job the deletion is.
 - [x] 1.6 30-day retention as a tombstone plus `collectingExpiredTombstones(as:retention:)`, the moment passed in so a test advances a clock rather than waiting — verified by the clock-advancing cases in `SourceRegistryTest.kt` and its iOS mirror
 
 ## 2. Connection state, diagnosis and cache — built
@@ -363,6 +381,27 @@ filename so a light and a dark run cannot overwrite each other.
 
       **Still owed:** a source with a non-zero title count — this catalogue holds none, so the
       count reads `0 titles` rather than a real number — and the Android half.
+
+      **Rewritten and retaken the same evening: the body says what goes.** The six iOS frames
+      were shot again after 1.5's correction (each run `1 test case(s): 1 passed, 0 failed, 0
+      skipped`). At the default size the dialog is the one sentence *This removes 0 titles from
+      your library.* with the footer — deletion and thirty days — readable under *Remove*
+      beneath it, light and dark. **At `AccessibilityXXXL` the whole sentence now fits**: six
+      lines, *This / removes / 0 titles / from / your / library.*, nothing cut; the `-scrolled`
+      twins are still byte-identical to their originals, which is fine now that nothing needs
+      to scroll. The download sentence cannot be photographed on this device — its sources hold
+      no downloads — and `SourceRemovalWordingTests` / `SourceRemovalWordingTest` are its proof.
+      **The Android device frame is still not taken, and the block is precise**: the
+      `Settings > source detail` route needs a registered source the corpus does not give, and
+      registering an OPDS catalogue through the app against `scripts/opds-server.mjs` was
+      stopped by the emulator itself — `storyarc-j6`, running with `-gpu host` as it should,
+      threw *System UI isn't responding*, then lost its `input` service mid-typing (the address
+      field received `hhttp`), then *StoryArc isn't responding* on the one retry; it was not
+      restarted because another agent may have been using it. A Robolectric
+      `GraphicsMode.NATIVE` rendering of `SourceDetailScreen` with the
+      footer, at the default and the largest text size, is filed instead as
+      `android-settings-source-detail-footer{,-ax}.png`, written by `SourceRemovalFooterTest`.
+      The box stays `[~]`: four of the eight frames are device frames.
 
 ## 5. The honest limit in the cached indicator
 

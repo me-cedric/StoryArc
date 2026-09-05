@@ -147,6 +147,46 @@ with 400 MB of them it says the opposite of what the button then does. The count
 space freed are stated nowhere before the tap. A destructive action described as harmless is worse
 than a truncated one, and it is recorded here so the body is rewritten once, with the bytes in it.
 
+### Rewritten the same evening: the body says what goes
+
+The six `ios-settings-source-remove*` frames are the **second retake**, shot after the body was
+rewritten. One mirrored rule — `SourceRemovalWording`, in `StoryArcCore` and `:core:model` —
+picks one of two one-sentence bodies from the same `SourceDiagnosis` the *Downloaded* row is
+drawn from: *This removes 3 titles from your library.* when nothing is on disk, and *This
+removes 3 titles and 2 downloads (400 MB).* when something is, the bytes through the same helper
+as the row. Both list dialogs ask the same rule of the same diagnosis. The footer now carries
+both standing facts — *Removing a library deletes what you downloaded from it and keeps your
+reading positions for 30 days.* — and Android has the footer too.
+
+**What the frames show.** At the default size, light and dark, the dialog is the one sentence
+and the footer is readable under *Remove* beneath it. **At `AccessibilityXXXL` the whole
+sentence fits**: six lines — *This / removes / 0 titles / from / your / library.* — and nothing
+is cut, where the previous retake stopped at *"No files"*. The `-scrolled` twins are still
+byte-identical to their originals (`md5` checked), which is the same non-scrolling dialog and
+no longer a finding, because nothing is left off-screen to scroll to. The title and the button
+still hyphenate to *Re-move* at that size, as before.
+
+**What the frames cannot show.** The download sentence. Every source on this simulator holds
+no downloads, so the dialog can only ever take the titles-only branch here;
+`SourceRemovalWordingTests` (six cases, mutation-proved — the rule changed to `> 1` failed the
+two one-download cases by name) is that branch's proof, on both platforms.
+
+**The Android device frame, and precisely what blocked it.** `Settings > source detail` needs a
+registered source and the corpus gives none, so the attempt was to register an OPDS catalogue
+through the app against `scripts/opds-server.mjs` on `10.0.2.2:4444`. The sheet opened and the
+address field took focus, and then the emulator — `storyarc-j6`, running with `-gpu host` as
+the AVD needs, so this is not the software-GL failure the memory note describes — threw *System
+UI isn't responding*, lost its `input` service while the address was being typed (`cmd: Can't
+find service: input`; the field held `hhttp`), and on the one retry answered the app's own
+launch with *StoryArc isn't responding*. It was not restarted, because another agent may have
+been using it. **`android-settings-source-detail-footer.png` and `-ax.png` are the record instead**:
+`SourceRemovalFooterTest` composes `SourceDetailScreen` under Robolectric in `GraphicsMode.NATIVE`
+at the default and the largest text size and writes both to
+`apps/android/feature/settings/build/reports/storyarc-captures/`; these are those two files,
+copied. They are a rendering of the real composable with the shipped strings, not a device
+frame: no system bars, no real font, no Material You. The footer wraps inside the gutters at
+both sizes and the four-locale fit is asserted by the same suite.
+
 ## Two walks that could not run, and why
 
 **`SweepSourcesTests/testCaptureAwayNotice` skips on this device, honestly.** The library-wide
@@ -171,7 +211,13 @@ does not give — the 17 generated publications carry `origin: EMBEDDED` and bel
 so *Your libraries* is legitimately empty until one is added.
 
 **A source holding a finished download**, on either platform, so *Free up space* is offered
-against a non-zero figure rather than against `0 bytes`.
+against a non-zero figure rather than against `0 bytes` — and so the removal confirmation's
+download sentence, *This removes N titles and N downloads (size).*, is photographed rather than
+only asserted.
+
+**The Android device frame for §4.6**, once the emulator is healthy: the footer under *Remove*
+on the source detail screen, and the confirmation it raises. The Robolectric renderings above
+stand in until then.
 
 ## How to retake them
 
@@ -180,6 +226,8 @@ O=docs/designs/screenshots/source-lifecycle-2026-09-05
 for appearance in light dark; do
   for walk in SweepSettingsTests/testCaptureSettingsSourceDetail \
               SweepSettingsTests/testCaptureSettingsSourceDetailAtLargestText \
+              SweepSettingsTests/testCaptureSourceRemovalConfirmation \
+              SweepSettingsTests/testCaptureSourceRemovalConfirmationAtLargestText \
               SweepSourcesTests/testCaptureUnreachableSourceDetail; do
     node scripts/capture-ios.mjs --out $O --only "$walk" --appearance $appearance
   done
