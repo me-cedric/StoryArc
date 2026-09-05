@@ -1,12 +1,13 @@
 import XCTest
 
-/// The Downloads destination: the shelf, the queue above it, and the confirmation.
+/// The Downloads destination: the shelf, the queue above it, and the confirmations.
 ///
 /// `ScreenshotTests.testCaptureDownloads` photographs this destination with no transfer in
 /// flight, which is the state it is in on every device nobody has arranged — and
 /// `offline-downloads` spends most of its words on the state that is therefore never
 /// photographed. The queue "listing active, queued and failed items with per-item and global
-/// pause, resume, cancel and reorder" has no picture anywhere in this repository.
+/// pause, resume, cancel and reorder" had no picture anywhere in this repository until the
+/// September sweep.
 ///
 /// **The record is injected, not fetched.** A transfer photographed by starting a real one
 /// needs a server, a network, and a file large enough to still be arriving when the shutter
@@ -14,6 +15,12 @@ import XCTest
 /// keeps its record in `UserDefaults`, and the argument domain outranks the standard one, so
 /// a launch argument hands this screen a queue for one launch and leaves nothing behind. The
 /// same mechanism `ScreenshotTests` uses for `-app.storyarc.whatsNewSeen`.
+///
+/// **The walks here open confirmations and never confirm them, and tap nothing that writes.**
+/// A tap on *Retry* or a confirmed *Remove* would write the standard domain, and the next
+/// ordinary launch on this simulator would show a transfer of *The Peregrine* from
+/// `example.invalid` that nobody queued. What *Retry* does is proved on the host, in
+/// `DownloadQueueRetryTests`; what it looks like is the queued row two rows above it.
 ///
 /// What the injection cannot reach is stated rather than faked: `StoredDownload` encodes
 /// `finished`, `failed` and everything else as `queued`, so *running* and *paused* are not
@@ -47,7 +54,9 @@ final class SweepDownloadsTests: XCTestCase {
     ///
     /// Three rows because one row cannot show what the section is for. A single transfer
     /// looks like a progress bar; three show the order, the reorder controls that only a
-    /// *queued* row carries, and a failure sitting in the same list as a success.
+    /// *queued* row carries, and a failure sitting in the same list as a success — with the
+    /// two controls only a failed row carries, *Retry* and *Remove download*, where the other
+    /// two rows carry *Stop*.
     func testCaptureDownloadQueue() throws {
         let app = sweepLaunch(downloads: Self.queue)
         try showQueue(in: app)
@@ -59,7 +68,7 @@ final class SweepDownloadsTests: XCTestCase {
     ///
     /// `DownloadQueueRow` branches on `dynamicTypeSize.isAccessibilitySize` because "the title
     /// truncates to two characters while *Stop* wraps to two lines". This is the branch, and
-    /// nothing has photographed it.
+    /// nothing had photographed it. The failed row's two buttons stop sharing a line here too.
     func testCaptureDownloadQueueAtLargestText() throws {
         let app = sweepLaunch(
             contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
@@ -68,6 +77,39 @@ final class SweepDownloadsTests: XCTestCase {
         try showQueue(in: app)
         hold(1)
         shutter(app, named: "downloads-queue-ax5")
+    }
+
+    /// The failed row at the largest accessibility text size, scrolled into the frame.
+    ///
+    /// At this size one row fills the screen, so the third row — the failed one — begins a
+    /// screen and a half below the heading and `testCaptureDownloadQueueAtLargestText`
+    /// photographs two Stops and no Retry. This walks down to it. The two buttons stop
+    /// sharing a line here: the pair goes one under the other, and neither label truncates.
+    func testCaptureFailedRowAtLargestText() throws {
+        let app = sweepLaunch(
+            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
+            downloads: Self.queue
+        )
+        try showQueue(in: app)
+        try scrollToFailedRow(in: app, remove: "Remove download")
+        hold(1)
+        shutter(app, named: "downloads-failed-ax5")
+    }
+
+    /// The same, in German, which is the longest of the four languages on this row.
+    ///
+    /// *Download entfernen* on its own is wider than the row at this size, so the label has
+    /// to wrap rather than truncate — a frame in English would not show whether it does.
+    func testCaptureFailedRowAtLargestTextInGerman() throws {
+        let app = sweepLaunch(
+            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
+            downloads: Self.queue,
+            language: "de"
+        )
+        try showQueue(in: app, heading: "Kommt gerade an")
+        try scrollToFailedRow(in: app, remove: "Download entfernen")
+        hold(1)
+        shutter(app, named: "downloads-failed-ax5-de")
     }
 
     /// Stopping one: the confirmation, which is about a transfer rather than about a file.
@@ -93,6 +135,52 @@ final class SweepDownloadsTests: XCTestCase {
         )
         hold(0.5)
         shutter(app, named: "downloads-stop-confirm")
+    }
+
+    /// Removing the one that gave up: the row's controls, and the confirmation that promises
+    /// neither a copy nor a stop.
+    ///
+    /// **The second defect, pinned.** Until 2026-09-05 the failed row's only control was
+    /// *Stop*, under a line reading "Failed after 3 attempts" — a transfer that had already
+    /// stopped, offered a stop and no retry, when `offline-downloads` asks a failed download
+    /// for "a plain-language reason and a retry action". Android fixed its row the same day.
+    /// The row offers *Retry* first and *Remove download* beside it now, and the other two
+    /// rows still offer *Stop*: two Stops on this screen, not three.
+    ///
+    /// Removing it is a fourth question. "This stops the transfer" is as untrue of a failed
+    /// download as the removal sentence is of a running one, so the confirmation says what a
+    /// reader gets back — nothing, because nothing arrived.
+    func testCaptureDownloadDiscardConfirmation() throws {
+        let app = sweepLaunch(downloads: Self.queue)
+        try showQueue(in: app)
+
+        XCTAssertEqual(
+            app.buttons.matching(NSPredicate(format: "label == %@", "Retry")).count, 1,
+            "The failed row offers no Retry, or a row that did not fail offers one."
+        )
+        XCTAssertEqual(
+            app.buttons.matching(NSPredicate(format: "label == %@", "Stop")).count, 2,
+            "A failed transfer is still offered a Stop it cannot stop, or a moving one lost its Stop."
+        )
+
+        try XCTUnwrap(hittable("Remove download", in: app), "The failed row offers no Remove.").tap()
+        XCTAssertTrue(
+            app.staticTexts["Remove this download?"].waitForExistence(timeout: 5),
+            "Remove asked for no confirmation, or asked the stop's question. On screen: "
+                + "\(app.staticTexts.allElementsBoundByIndex.prefix(15).map(\.label))"
+        )
+        XCTAssertTrue(
+            app.staticTexts[
+                "Nothing of The Peregrine reached this device. It leaves the queue, and it can be downloaded again."
+            ].exists,
+            "Removing a failed transfer is confirmed with a sentence about a copy, or about a stop."
+        )
+        XCTAssertFalse(
+            app.staticTexts["Stop this download?"].exists,
+            "Removing a transfer that already stopped is still confirmed as a stop."
+        )
+        hold(0.5)
+        shutter(app, named: "downloads-discard-confirm")
     }
 
     /// The Downloads destination while a book is being spoken, so the docked transport is in
@@ -126,11 +214,34 @@ final class SweepDownloadsTests: XCTestCase {
     /// or not the injection took, so a walk that waited on the scroll view would photograph a
     /// perfectly ordinary Downloads screen under a filename saying *queue*. That is the exact
     /// failure `AuditWalk.swift` argues about, arriving through a launch argument.
-    private func showQueue(in app: XCUIApplication) throws {
+    ///
+    /// The heading is `downloads.inFlight` in whichever language the launch chose; the tab
+    /// and the screen's title are *Downloads* in German as in English, so only this one
+    /// changes.
+    private func showQueue(in app: XCUIApplication, heading: String = "Coming down now") throws {
         try showDownloads(in: app)
         XCTAssertTrue(
-            app.staticTexts["Coming down now"].waitForExistence(timeout: 10),
+            app.staticTexts[heading].waitForExistence(timeout: 10),
             "No transfer queue on this screen — the injected download record was not read."
+        )
+    }
+
+    /// Scrolls the queue until the failed row's second control is on screen.
+    ///
+    /// The *Remove* button rather than the title, because the controls sit under the title
+    /// and a title at the foot of the screen has its buttons below the fold. Named per
+    /// language, because the label is the one thing on this row that is translated. Swiped
+    /// slowly, so a swipe does not carry the row past the top of the screen — the loop
+    /// only ever moves down.
+    private func scrollToFailedRow(in app: XCUIApplication, remove: String) throws {
+        let wanted = app.buttons.matching(NSPredicate(format: "label == %@", remove))
+        for _ in 0..<8 where wanted.allElementsBoundByIndex.first(where: \.isHittable) == nil {
+            app.swipeUp(velocity: .slow)
+        }
+        XCTAssertNotNil(
+            wanted.allElementsBoundByIndex.first(where: \.isHittable),
+            "The failed row's \(remove) never came on screen. On screen: "
+                + "\(app.buttons.allElementsBoundByIndex.prefix(12).map(\.label))"
         )
     }
 
