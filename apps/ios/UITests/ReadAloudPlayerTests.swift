@@ -115,8 +115,20 @@ final class ReadAloudPlayerTests: XCTestCase {
         let wanted = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title))
         var cover: XCUIElement?
         for _ in 0..<8 where cover == nil {
-            cover = wanted.allElementsBoundByIndex.first(where: \.isHittable)
-            if cover == nil { app.swipeUp() }
+            // **Hittable is not enough.** A cover in the shelf's last visible row has its centre
+            // under the floating tab bar, and a tap there lands on the bar — the first run of
+            // this walk did exactly that on *Harbour Lights 01*, stayed on the shelf, and
+            // reported a page that offered no way to open it. So the cover has to sit clear of
+            // the bar as well, and one that does not is scrolled up and asked for again.
+            let clearOfTheBar = app.frame.maxY - 160
+            cover = wanted.allElementsBoundByIndex.first { $0.isHittable && $0.frame.midY < clearOfTheBar }
+            if cover == nil {
+                // And settled before it is asked again: a tap while the shelf is still
+                // decelerating stops the scroll and selects nothing, which is the second way
+                // this walk photographed the shelf and called it a page.
+                app.swipeUp()
+                settle(1)
+            }
         }
         try XCTUnwrap(cover, "No cover called \(title) on this device's shelf.").tap()
         XCTAssertTrue(
