@@ -327,10 +327,32 @@ says so and names what is left to watch.
 
 ## Phase 3 — Android, which adds no bar
 
-- [ ] **3.1** Confirm the notification and lock-screen controls are correct while
+- [~] **3.1** Confirm the notification and lock-screen controls are correct while
       the app is foregrounded with no reader on screen — not only while
       backgrounded. Screenshot the notification in both states.
-- [ ] **3.2** Returning from the notification lands in the publication at the
+
+      **Read end to end; nothing seen.** The state the task asks about is the one 1.1
+      created, and the wiring for it is complete: `ReadAloudHost` is an `object`, so
+      `announce()` still has a controller and a book after `EpubReaderActivity` has been
+      destroyed, and `ReadAloudService.show` picks `startService` over
+      `startForegroundService` once the service is up — which is the API 31 rule the
+      companion's `isRunning` flag exists for. The notification is refreshed on every
+      session change and on every change of the *line*, not of the sentence, so a chapter
+      turning over redraws it and a sentence does not.
+
+      **Two states worth photographing that this task does not name.** A refused
+      `POST_NOTIFICATIONS` is a real state on API 33+: `EpubReaderActivity.startReadAloud`
+      asks and ignores the answer, deliberately, because a refusal takes the shade's copy
+      away and leaves the lock screen's own controls — which come from the `MediaSession` —
+      untouched. And a *paused* session is `setOngoing(false)`, so the notification becomes
+      swipeable and its `deleteIntent` is `ACTION_STOP`: swiping it away ends the session
+      rather than orphaning it.
+
+      **Owed:** four shade captures — speaking and paused, each with the app foregrounded on
+      the library with no reader, and with the app backgrounded — plus one lock screen while
+      speaking, and one shade with notifications refused showing that the lock screen still
+      has its controls.
+- [~] **3.2** Returning from the notification lands in the publication at the
       spoken sentence, not at the app's launch destination.
 
       **Built, and unticked only because nobody has tapped it.**
@@ -354,6 +376,27 @@ says so and names what is left to watch.
       the back stack: a listener who lands in the book from the shade and presses
       back expects their library, not the app disappearing. **What is left is tapping
       it on an emulator**, with the reader closed and with it open.
+
+      *2026-09-05, checked against the tree.* **The plumbing holds, and it has one
+      consequence the note above does not state.** `EpubReaderActivity.intent(context,
+      location, title, series)` takes exactly the three strings the service keeps, and
+      `SpokenBook` carries all three, so the intent can be built with no screen alive. The
+      activity is `launchMode` `standard`, and `TaskStackBuilder.getPendingIntent` puts
+      `FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK` on the launcher intent
+      underneath — so returning from the shade **clears whatever else the listener had open
+      in the app** and rebuilds library-then-reader. That is right for the common case and
+      is the thing an emulator walk should look at hardest: a listener who was three screens
+      deep in Settings loses that stack, silently.
+
+      Two smaller facts checked: a button press carries only its action, and `location` and
+      `series` survive it because `onStartCommand` writes them only when the extra is
+      present; and a service the system restarts with a null intent calls `stopSelf()`, so
+      there is no notification left with a null `contentIntent` to tap.
+
+      **Owed:** tap the notification with the reader already closed, and again with it open,
+      and confirm both land on the sentence the voice is on rather than at the top of the
+      chapter — then press back once and confirm the library is underneath. One frame per
+      landing.
 - [x] **3.3** Explicitly assert that no in-app docked bar is added, and record why
       in the handoff, so the divergence is not read as an omission and "fixed"
       later.
