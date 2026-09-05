@@ -4,13 +4,20 @@
 
 ```
                     docs/openspec/specs/          ← the contract
-                    15 capability specs
+                    17 capability specs
                               │
                  ┌────────────┴────────────┐
                  │                         │
           apps/ios (Swift)         apps/android (Kotlin)
           ─────────────────         ────────────────────
           LibraryFeature            :feature:library
+          ReaderFeature             :feature:reader
+          EpubReaderFeature         :feature:epubreader
+          SettingsFeature           :feature:settings
+          PlayerFeature · Playback  :core:playback
+          Formats · Catalogue       :core:format · :core:catalogue
+          Kavita · Smb              :core:kavita · :core:smb
+          Persistence               :core:persistence
           DesignSystem              :core:designsystem
           StoryArcCore              :core:model
                  │                         │
@@ -34,9 +41,10 @@ boundaries do not.
 | **Domain** | Publications, sources, identity, progress, preferences. No UI, no I/O. | `StoryArcCore` | `:core:model` |
 | **Design system** | Tokens, palette, type roles, theme. | `DesignSystem` | `:core:designsystem` |
 | **Format** | Archive parsing, page extraction, page decoding, PDF rendering. See [format-layer.md](format-layer.md). | `Formats` | `:core:format` |
-| **Source** | Local folder, SMB, OPDS, Kavita connectors. *Not yet built.* | `Sources` (planned) | `:core:source` (planned) |
-| **Persistence** | Progress store, catalogue cache, downloads. Progress built; the rest not. | `Persistence` (SwiftData) | `:core:persistence` (Room) |
-| **Feature** | One module per screen area. | `LibraryFeature`, `ReaderFeature` | `:feature:library`, `:feature:reader` |
+| **Source** | SMB, OPDS and Kavita connectors; the local folder is the library's own. | `Catalogue`, `Kavita`, `Smb` | `:core:catalogue`, `:core:kavita`, `:core:smb` |
+| **Playback** | The audiobook player and the read-aloud session, and one authority on what is speaking. | `Playback` | `:core:playback` |
+| **Persistence** | Every store on disk: settings, reader preferences, sources, downloads, progress, annotations, bookmarks, certificate pins. | `Persistence` | `:core:persistence` (Room) |
+| **Feature** | One module per screen area. | `LibraryFeature`, `ReaderFeature`, `EpubReaderFeature` (its own package, `StoryArcEpub`), `PlayerFeature`, `SettingsFeature` | `:feature:library`, `:feature:reader`, `:feature:epubreader`, `:feature:settings`; the player screen lives in `:app` |
 | **App** | Entry point, navigation host, DI root. | `App/` | `:app` |
 
 ### Rules that hold on both sides
@@ -69,7 +77,7 @@ boundaries do not.
 
 | Problem | Why it is hard | Where it is decided |
 | --- | --- | --- |
-| **Format support** | **Largely settled.** CBR needed a RAR decoder with an OSI-approved licence, which narrowed to libarchive. CB7 is refused by name. The surprise was that most of the work needed no library at all: only RAR *decompression* does. | [ADR-0005](../decisions/0005-format-and-rendering-libraries.md), [VENDORING.md](../../third_party/libarchive/VENDORING.md) |
+| **Format support** | **Largely settled.** CBR needed a RAR decoder with an OSI-approved licence, which narrowed to libarchive. CB7 is refused by name and deferred rather than dropped ([ADR-0013](../decisions/0013-cb7-support.md)). The surprise was that most of the work needed no library at all: only RAR *decompression* does. | [ADR-0005](../decisions/0005-format-and-rendering-libraries.md), [VENDORING.md](../../third_party/libarchive/VENDORING.md) |
 | **Vendored C in two build systems** | One copy of libarchive is compiled by SwiftPM and by CMake. Two copies would drift; two decoders would drift worse. | [VENDORING.md](../../third_party/libarchive/VENDORING.md) |
 | **Untrusted archive parsing** | Four hand-written parsers read attacker-supplied bytes, and libarchive reads them in C. Every length in every header is a lie until checked. | [SECURITY.md](../../SECURITY.md) |
 | **Progress identity** | The same book arrives from three sources under three names. Path-keyed progress treats them as three books. | [ADR-0006](../decisions/0006-progress-storage-and-sync.md) |

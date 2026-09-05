@@ -7,16 +7,14 @@ Native SwiftUI reader for comics, manga and ebooks. iOS 26 and later.
 ```
 apps/ios/
 ├── project.yml                  XcodeGen spec — the Xcode project is generated, not committed
-├── App/                         app target: entry point, appearance wiring, assets
-│   ├── StoryArcApp.swift
-│   └── Resources/Assets.xcassets
-└── Packages/StoryArcKit/        one package, one dependency graph
-    ├── Package.swift
-    ├── Sources/
-    │   ├── DesignSystem/        palette, theme, type roles + generated tokens
-    │   ├── StoryArcCore/        domain: sources, identity, progress, preferences
-    │   └── LibraryFeature/      the library screen and its localised strings
-    └── Tests/
+├── App/                         app target: entry point, the shell and its destinations, assets
+├── UITests/                     XCUITest walks — captures, audits, sweeps; `scripts/capture-ios.mjs` drives them
+└── Packages/
+    ├── StoryArcKit/             one package, one dependency graph: the twelve targets below
+    │   ├── Package.swift
+    │   ├── Sources/
+    │   └── Tests/
+    └── StoryArcEpub/            `EpubReaderFeature` — reflowable EPUB on Readium, kept apart for its dependency tree
 ```
 
 `StoryArc.xcodeproj` is **generated and gitignored**. Never edit it by hand —
@@ -39,9 +37,21 @@ commit the new resolution in the same change.
 
 | Target | Contains | Depends on |
 | --- | --- | --- |
-| `DesignSystem` | `Palette`, `Theme`, `TextRole`, `AppearanceMode`, and `Generated/StoryArcTokens.swift` | — |
-| `StoryArcCore` | `Source`, `PublicationIdentity`, `ReadingProgress`, `ProgressMerge`, reader preferences. **UI-free.** | — |
-| `LibraryFeature` | `LibraryView`, the empty state, source presentation, `Localizable.xcstrings` | `DesignSystem`, `StoryArcCore` |
+| `StoryArcCore` | The domain: `Source`, `PublicationIdentity`, `ReadingProgress`, `ProgressMerge`, `SourceDiagnosis`, `SourceRemovalWording`, `DownloadLibrary`, reader preferences. **UI-free.** | — |
+| `DesignSystem` | `Palette`, `Theme`, `TextRole`, `AppearanceMode`, and `Generated/StoryArcTokens.swift` | `StoryArcCore` |
+| `Playback` | `PlayerCentre`, `PlaybackSession`, `SessionHandover`, `VoiceStoppedNotice`; the audiobook and read-aloud sources behind one player | `StoryArcCore` |
+| `Formats` | Reading the bytes: the ZIP, TAR and RAR readers, `PublicationIndexer`, audiobook parts | `StoryArcCore`, `Playback`, `CLibarchive` |
+| `Persistence` | Every store on disk: settings, reader preferences, sources, downloads, progress, annotations, bookmarks, certificate pins | `StoryArcCore`, `Playback` |
+| `Catalogue` | OPDS: the client, Atom parsing, acquisition | `StoryArcCore` |
+| `Kavita` | A Kavita server: client, address, exchange | `StoryArcCore`, `Catalogue` |
+| `Smb` | A network share on `SMBClient`, behind `RandomAccessSource` ([ADR-0010](../../docs/decisions/0010-smb-clients.md)) | `Formats`, `StoryArcCore`, `SMBClient` |
+| `LibraryFeature` | `LibraryView`, home, search, shelves, the publication page, the download queue's rules, `Localizable.xcstrings` | `DesignSystem`, `StoryArcCore`, `Formats`, `Persistence`, `Catalogue`, `Kavita`, `Smb` |
+| `ReaderFeature` | The comic and PDF reader: paging, the curl, adjustments, chrome | `DesignSystem`, `StoryArcCore`, `Formats`, `Persistence` |
+| `PlayerFeature` | The player dock and the full player | `DesignSystem`, `Playback`, `StoryArcCore` |
+| `SettingsFeature` | Settings and its groups, the source detail screen, the app-icon chooser | `DesignSystem`, `StoryArcCore`, `Persistence`, `StoryArcLicences` |
+
+Dependencies are read from `Package.swift`; this table listed three targets of twelve until
+2026-09-06, which is the §7 breach `apps/android/README.md` records for its own table.
 
 `StoryArcCore` stays free of SwiftUI so the domain is testable on the host with
 no simulator. Presentation for a domain type — an SF Symbol for a source kind, a

@@ -5,7 +5,7 @@ one unusual rule that shapes everything else.
 
 ## The rule: specify before you build
 
-**Every behaviour is written down before it is implemented.** The 15 capability
+**Every behaviour is written down before it is implemented.** The 17 capability
 specs in [`docs/openspec/specs/`](docs/openspec/specs) are the contract both apps are
 built against — they are what keeps two independent codebases from drifting into
 two different products.
