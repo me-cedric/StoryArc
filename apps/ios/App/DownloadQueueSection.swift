@@ -19,11 +19,15 @@ import StoryArcCore
 /// how a downloads screen turns back into the queue inspector this destination exists to
 /// stop being.
 ///
-/// **Stop, reorder, and not yet pause.** The two controls here are the two the app can
-/// honestly offer from this screen: the order and the record are the download store's, and
-/// this writes them. Pause and resume are the running ``LibraryFeature/DownloadQueue``'s,
-/// and that object lives with the catalogue browser that started the transfer — a button
-/// here would write "paused" into the record while the bytes kept arriving. Lifting the
+/// **Stop, reorder, retry — and not yet pause.** Stop and reorder write the record, and the
+/// record is the download store's, so this screen can offer them honestly. Retry, on a row
+/// that has failed, writes the record too — `queued` is what `DownloadQueue.resume` writes,
+/// minus the pump — and then hands the pump to whichever running
+/// ``LibraryFeature/DownloadQueue`` is alive through ``LibraryFeature/DownloadQueue/retry(_:)``;
+/// when none is, the next queue built reads the record and starts it, exactly as it starts
+/// every transfer the app died during. Pause and resume are still not here: that object
+/// lives with the catalogue browser that started the transfer, and a pause written into the
+/// record from this screen would say "paused" while the bytes kept arriving. Lifting the
 /// queue to the app layer is its own change; a control that lies is worse than one that is
 /// missing.
 struct DownloadQueueSection: View {
@@ -37,6 +41,9 @@ struct DownloadQueueSection: View {
 
     /// Takes one out of the queue altogether, confirmed by the caller.
     let onStop: (Download) -> Void
+
+    /// Puts a failed one back in the queue. Called for a failed download and no other.
+    let onRetry: (Download) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.md) {
@@ -53,7 +60,8 @@ struct DownloadQueueSection: View {
                         // started, and the list is short enough that its ends are obvious.
                         canReorder: download.state == .queued,
                         onReorder: { onReorder(download, $0) },
-                        onStop: { onStop(download) }
+                        onStop: { onStop(download) },
+                        onRetry: { onRetry(download) }
                     )
                 }
             }
@@ -62,7 +70,20 @@ struct DownloadQueueSection: View {
     }
 }
 
-/// One transfer: what it is, where it has got to, and the two things a reader can do to it.
+/// One transfer: what it is, where it has got to, and what a reader can do to it.
+///
+/// **Except on a failure, the verb was wrong.** A transfer that has already stopped cannot
+/// be stopped, and this row's only control was *Stop* — under a line reading "Failed after 3
+/// attempts". `offline-downloads` asks a failed download for "a plain-language reason and a
+/// retry action", and the reason was here without the action. So a failed row offers *Retry*
+/// first and *Remove download* beside it, which is the rule ``LibraryFeature/DownloadBanner``
+/// already followed one screen away, and which Android's `DownloadQueueRow` adopted a day
+/// before this one.
+///
+/// **Failed only, not paused.** The banner folds the two together because it sits beside a
+/// live queue and can call `resume`. This screen cannot: a row paused for Wi-Fi or for space
+/// would be re-queued and would pause again on the next pump, which is a control that lies
+/// about what it did.
 private struct DownloadQueueRow: View {
     @Environment(\.theme) private var theme
 
@@ -75,12 +96,24 @@ private struct DownloadQueueRow: View {
     let canReorder: Bool
     let onReorder: (Bool) -> Void
     let onStop: () -> Void
+    let onRetry: () -> Void
+
+    private var hasFailed: Bool {
+        if case .failed = download.state { true } else { false }
+    }
+
+    /// A failed row is two lines at every size, because it carries two word-length buttons
+    /// rather than one and *Remove download* is four times the width of *Stop* in every
+    /// language this app speaks. It is the tallest row on the screen anyway — the reason and
+    /// the attempt count sit under it — so the second line costs nothing it was not already
+    /// spending. Android splits its failed row at every scale for the same reason.
+    private var isStacked: Bool { hasFailed || typeSize.isAccessibilitySize }
 
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
-            if typeSize.isAccessibilitySize {
+            if isStacked {
                 title.lineLimit(3)
-                HStack(spacing: StoryArcSpace.sm) { controls }
+                controls
             } else {
                 HStack(spacing: StoryArcSpace.sm) {
                     title.lineLimit(1)
@@ -101,16 +134,60 @@ private struct DownloadQueueRow: View {
             .foregroundStyle(theme.palette.textPrimary)
     }
 
-    /// Reorder, where there is an order to change, and stop.
+    /// Retry and remove on a failure; reorder, where there is an order to change, and stop
+    /// on everything else.
     @ViewBuilder
     private var controls: some View {
-        if canReorder {
-            reorder(later: false, symbol: "chevron.up")
-            reorder(later: true, symbol: "chevron.down")
-        }
+        if hasFailed {
+            failedControls
+        } else {
+            HStack(spacing: StoryArcSpace.sm) {
+                if canReorder {
+                    reorder(later: false, symbol: "chevron.up")
+                    reorder(later: true, symbol: "chevron.down")
+                }
 
+                Button(role: .destructive, action: onStop) {
+                    Text("downloads.stop").lineLimit(1)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+        }
+    }
+
+    /// *Retry* first, because it is the thing a reader opened this screen to do, and *Remove
+    /// download* beside it — or under it.
+    ///
+    /// Beside it at the ordinary sizes. At the accessibility sizes the two do not share a
+    /// line even without the title: *Download entfernen* on its own is wider than the row at
+    /// AccessibilityXXXL, so the pair goes one under the other and each label is free to
+    /// wrap. Neither is ever truncated to a verb with no object, which is what a `lineLimit`
+    /// would have made of the German.
+    private var failedControls: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: StoryArcSpace.sm) {
+                retry
+                remove
+            }
+            VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
+                retry
+                remove
+            }
+        }
+    }
+
+    private var retry: some View {
+        Button(action: onRetry) {
+            Text("downloads.retry")
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+    }
+
+    private var remove: some View {
         Button(role: .destructive, action: onStop) {
-            Text("downloads.stop").lineLimit(1)
+            Text("downloads.remove")
         }
         .buttonStyle(.bordered)
         .controlSize(.small)
@@ -121,10 +198,9 @@ private struct DownloadQueueRow: View {
     private var state: some View {
         switch download.state {
         case let .failed(reason, attempts):
-            // The reason, in the reader's words, and how many times it was tried.
-            // `offline-downloads` requires "a plain-language reason and a retry action";
-            // the retry belongs to the running queue, which is why the count is shown
-            // rather than hidden behind a button that cannot reach it.
+            // The reason, in the reader's words, and how many times it was tried — the
+            // "plain-language reason" half of `offline-downloads`' Failure scenario. The
+            // "retry action" half is the button above, which this line used to stand in for.
             Text("downloads.failed \(reason) \(attempts)")
                 .textRole(.footnote)
                 .foregroundStyle(StoryArcColor.Status.danger)

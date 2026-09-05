@@ -498,6 +498,36 @@
         }
       }
     },
+    "downloads.remove.body.unfinished %@": {
+      "comment": "Shown before removing a transfer that failed. It has already stopped, so it is removed rather than stopped, and the sentence says what a reader gets back: nothing, because nothing arrived.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nichts von %@ ist auf diesem Gerät angekommen. Er verlässt die Warteschlange, und er kann erneut heruntergeladen werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing of %@ reached this device. It leaves the queue, and it can be downloaded again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No llegó nada de %@ a este dispositivo. Sale de la cola, y se puede descargar otra vez."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien de %@ n’est arrivé sur cet appareil. Il quitte la file d’attente, et il peut être téléchargé à nouveau."
+          }
+        }
+      }
+    },
     "downloads.remove.title": {
       "extractionState": "manual",
       "localizations": {
@@ -553,6 +583,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "« %@ » supprimé de cet appareil. Votre place est conservée."
+          }
+        }
+      }
+    },
+    "downloads.retry": {
+      "comment": "The failed row's first control. The app target's own copy of LibraryFeature's downloads.retry, because the queue row is drawn here and a key looked up in the wrong bundle renders as the key.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reintentar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réessayer"
           }
         }
       }

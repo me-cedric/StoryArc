@@ -55,7 +55,7 @@ struct DownloadsDestination: View {
     /// The download a reader has asked to take off this device, and not yet confirmed.
     @State private var removing: Download?
 
-    /// Which of the three questions the open confirmation is asking.
+    /// Which of the four questions the open confirmation is asking.
     ///
     /// Held beside ``removing`` rather than derived from it inside the alert. Dismissing
     /// sets `removing` to `nil`, and an alert whose words are computed from it would swap
@@ -90,7 +90,8 @@ struct DownloadsDestination: View {
                         DownloadQueueSection(
                             downloads: inFlight,
                             onReorder: reorder,
-                            onStop: ask
+                            onStop: ask,
+                            onRetry: retry
                         )
                     }
 
@@ -144,6 +145,13 @@ struct DownloadsDestination: View {
                 // reading position to keep in a publication nobody has opened. What is true
                 // is that the transfer stops and can be started again.
                 Text("downloads.stop.body \(download.title)")
+            case .discarding:
+                // The same absence, without the claim that anything is being interrupted:
+                // the transfer stopped by itself three attempts ago, and the reader pressed
+                // *Remove*, not *Stop*. What is true is that nothing of it arrived and it
+                // leaves the queue. Android's `downloads_remove_body_unfinished` is this
+                // sentence in the same four languages.
+                Text("downloads.remove.body.unfinished \(download.title)")
             case .removingImport:
                 // `local-library` asks for more of this sentence than a download needs.
                 // Deleting an imported copy "confirms, naming the title and the space to be
@@ -164,8 +172,9 @@ struct DownloadsDestination: View {
 
     /// Puts the question, having first settled which question it is.
     ///
-    /// Both entry points come through here — *Stop* on a transfer and *Remove* on a cover —
-    /// so there is one place where the act and the words for it are decided together.
+    /// Every entry point comes through here — *Stop* on a transfer, *Remove* on a failed one
+    /// and *Remove* on a cover — so there is one place where the act and the words for it are
+    /// decided together.
     /// ``LibraryFeature/DownloadQueueRemoval`` decides; its tests pin the ordering.
     private func ask(_ download: Download) {
         confirmation = DownloadQueueRemoval.confirmation(for: download)
@@ -268,11 +277,12 @@ struct DownloadsDestination: View {
     /// removal to be undoable for the same window as any other, and an already-deleted file
     /// can only be put back by downloading it again — which is not an undo.
     private func remove(_ download: Download) {
-        // A transfer that has not landed has no file to sweep aside and nothing to undo:
-        // the bytes are in a temporary the system owns, and the undo bar's sentence —
-        // "removed from this device. Your place is kept." — would be as untrue here as the
-        // confirmation used to be. Forgetting the record is the whole of stopping it.
-        guard confirmation != .stopping,
+        // A transfer that has not landed — stopped, or failed and discarded — has no file to
+        // sweep aside and nothing to undo: the bytes of a running one are in a temporary the
+        // system owns, and a failed one's were removed when it failed. The undo bar's
+        // sentence — "removed from this device. Your place is kept." — would be as untrue
+        // here as the confirmation used to be. Forgetting the record is the whole of it.
+        guard confirmation.hasLanded,
               let outcome = store.removeAfterFinishing(download.id, from: downloads)
         else {
             // Nothing on disk to move aside — a record whose file the system reclaimed.
@@ -297,6 +307,23 @@ struct DownloadsDestination: View {
         }
     }
 
+    /// Puts a failed transfer back in the queue, and hands the pump to whoever has one.
+    ///
+    /// The record is this destination's to write, as the reorder above is: `queued` is what
+    /// `DownloadQueue.resume` writes, minus the pump — and `Download.remote` carries the
+    /// address, the media type and the name, so no catalogue entry is needed to fetch one
+    /// again. The pump belongs to the running ``LibraryFeature/DownloadQueue``, which lives
+    /// with the catalogue page that started the transfer, so
+    /// ``LibraryFeature/DownloadQueue/retry(_:)`` asks whichever queue is alive to resume this
+    /// one; when none is, the next queue built reads the record and starts it in its `init`.
+    /// `DownloadQueueRetryTests` pins both ends. Either way the row now says *queued* and
+    /// means it: the record is in the queue, and the queue runs it.
+    private func retry(_ download: Download) {
+        downloads = downloads.marking(download.id, as: .queued)
+        store.save(downloads)
+        DownloadQueue.retry(download.id)
+    }
+
     /// Re-reads what is true after a change: the total on disk, and the shelf.
     private func reload() {
         bytesOnDisk = store.bytesOnDisk()
@@ -315,7 +342,17 @@ extension DownloadQueueRemoval.Confirmation {
     var titleKey: LocalizedStringKey {
         switch self {
         case .stopping: "downloads.stop.title"
-        case .removing, .removingImport: "downloads.remove.title"
+        // A discard is a removal in its title and its button and a stop in neither: the
+        // reader pressed *Remove download*, and the question is the one that word asks.
+        case .discarding, .removing, .removingImport: "downloads.remove.title"
+        }
+    }
+
+    /// Whether there is a file on the device to sweep aside — and so an undo to offer.
+    var hasLanded: Bool {
+        switch self {
+        case .stopping, .discarding: false
+        case .removing, .removingImport: true
         }
     }
 
@@ -326,7 +363,7 @@ extension DownloadQueueRemoval.Confirmation {
     var actionKey: LocalizedStringKey {
         switch self {
         case .stopping: "downloads.stop.confirm"
-        case .removing, .removingImport: "downloads.remove"
+        case .discarding, .removing, .removingImport: "downloads.remove"
         }
     }
 }
