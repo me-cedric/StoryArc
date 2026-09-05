@@ -186,7 +186,17 @@ Check for a skip in the result bundle before believing a pass. Appearance is the
 simulator's, not the app's — `--appearance light|dark`, which also suffixes the
 filename so a light and a dark run cannot overwrite each other.
 
-- [ ] 4.1 The source detail screen, both platforms, showing all five fields and the five actions — verify by attaching the screenshots to the change
+- [ ] 4.1 The source detail screen, both platforms, showing all five fields and **whichever
+      actions that source's state offers** — verify by attaching the screenshots to the change.
+      **This asked for all five actions in one frame, and that frame cannot exist.**
+      `SourceDiagnosis.of` withholds *Remove downloads* unless the source holds a finished
+      download, and *Reconnect* unless a credential was refused — and one source cannot be
+      both at once. The task was unsatisfiable as written rather than merely unphotographed,
+      which is why it sat open while everything around it closed. Reworded on 2026-09-05 after
+      the owner chose it over seeding a source that shows all five: a fixture built to satisfy
+      the frame would photograph a state no reader ever meets, and the point of the frame is
+      what a reader sees. The state each frame is taken in is named below, and a frame must
+      say which actions were withheld and why.
       **Frames owed: 8.** Surface *Settings › Your libraries › one source*; state *a
       connected source that has at least one finished download* (see the caveat below);
       appearance light and dark; text size default and largest — per platform.

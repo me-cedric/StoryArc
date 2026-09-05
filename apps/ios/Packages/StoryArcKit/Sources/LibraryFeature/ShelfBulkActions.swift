@@ -1,6 +1,7 @@
 internal import SwiftUI
 
 internal import DesignSystem
+internal import Persistence
 internal import StoryArcCore
 
 /// Acting on a whole collection or reading list at once.
@@ -78,7 +79,7 @@ struct ShelfBulkActions: ViewModifier {
                 Button(role: .cancel) {} label: { Text("shelves.cancel", bundle: .module) }
             } message: {
                 Text(
-                    "library.bulk.download.size \((pending?.bytes ?? 0).formatted(.byteCount(style: .file)))",
+                    "library.bulk.download.size \(DownloadStore.formatted(pending?.bytes ?? 0))",
                     bundle: .module
                 )
             }

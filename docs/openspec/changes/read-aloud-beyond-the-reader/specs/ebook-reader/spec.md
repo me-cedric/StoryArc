@@ -77,8 +77,18 @@ to it — and SHALL offer nothing when no session is running.
 
 #### Scenario: Controlling it without going back
 - **WHEN** a listener uses the transport
-- **THEN** they can pause, resume, skip a sentence and end the session, without opening the publication first
+- **THEN** they can pause, resume and end the session without opening the publication first
+- **AND** every other control of the session, sentence skip included, is reached from the transport in one step rather than by finding the publication again
 - **AND** ending it withdraws the transport immediately
+
+> **This said "pause, resume, skip a sentence and end … without opening the publication
+> first", and skip shipped one tap deeper.** `PlayerDock` carries play/pause, stop and a
+> chevron into the full player, where sentence skip lives — so the action is reachable without
+> going back to the publication, which is what the scenario is *for*, but not on the bar
+> itself. The decision on 2026-09-05 was to describe what shipped rather than widen the bar:
+> the dock's width is already argued for in its own source, and a fourth control there
+> truncates the title sooner on a 402 pt phone. The second clause is the part that still binds
+> — reaching skip must stay one step, so a later change cannot bury it.
 
 #### Scenario: What it says
 - **WHEN** the transport is shown

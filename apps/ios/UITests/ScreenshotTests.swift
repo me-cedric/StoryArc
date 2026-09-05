@@ -232,74 +232,16 @@ final class ScreenshotTests: XCTestCase {
         _ = app.scrollViews.firstMatch.waitForExistence(timeout: 5)
     }
 
-    /// The theme sheet and its six presets, which `reader-theming-and-page-transitions`
-    /// task 7.4 asks for and which has been recorded as impossible on this platform.
-    ///
-    /// That task said "iOS cannot be captured: the simulator accepts no injected input, so the
-    /// reader cannot be reached to open the sheet", and `apps/ios/README.md` records the three
-    /// approaches that were tried. Input was never the obstacle: a UI test injects through
-    /// XCUITest rather than through the Simulator's window.
-    ///
-    /// What the blocker was narrowed to next — "the EPUB reader does not reach a state with
-    /// its own controls" — does not follow either, because that run never established which
-    /// reader it was in. It asked for an EPUB, and a **fixed-layout** EPUB satisfies that and
-    /// is not opened in the reflowable reader at all. Whether the reflowable reader has a
-    /// problem of its own is a thing no run has measured yet.
-    ///
-    /// The sheet lives in the **EPUB** reader, not the comic reader, because a reading theme
-    /// applies to reflowable text. Its control is labelled *Reading* — `theme.title` in
-    /// `EpubReaderFeature`. A fixed-layout EPUB cannot be used for this, and the reason is
-    /// one screen earlier than it looks: `Publication.isReflowable` is false for one, so the
-    /// app opens it in the comic reader, where the reading themes have no control of their
-    /// own. Asking the shelf for "an EPUB" is therefore not enough — see
-    /// ``openTheEpubReader(in:)``, which is what made this capture possible.
-    ///
-    /// All six presets are in one shot deliberately, following the Android captures: the grid
-    /// draws each preset in its own colours *and* its own typeface, and that is the thing worth
-    /// proving. Six separate screenshots would prove less.
-    func testCaptureThemeSheet() throws {
-        try captureThemeSheet(contentSize: nil, named: "theme-sheet")
-    }
-
-    /// The same sheet at the largest accessibility text size, which is the half task 7.4 names
-    /// separately — a specimen is a picture of a typeface in a card of fixed height, and that
-    /// is exactly the shape that clips when the reader's type grows.
-    func testCaptureThemeSheetAtLargestText() throws {
-        try captureThemeSheet(
-            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
-            named: "theme-sheet-largest"
-        )
-    }
-
-    private func captureThemeSheet(contentSize: String?, named name: String) throws {
-        let app = launch(contentSize: contentSize)
-        // Waits for the control itself, not for `otherElements.firstMatch` — that exists on
-        // every screen and returns instantly, so the first version of this walked on while
-        // the publication page was still up, tapped its middle, and reported no theme sheet
-        // on a screen that never had one. And it opens EPUBs until one of them lands in the
-        // reflowable reader **with a page in it**, because a cover cannot say which of the
-        // two readers it opens and the theme control is drawn over the loading spinner as
-        // readily as over a book. A version that stopped at the first EPUB skipped every run
-        // for a day. When no EPUB on the device gets there it still skips, and names every
-        // one it tried and how far each got.
-        try openTheEpubReader(in: app)
-        // Two taps where there used to be one. `quiet-reader` moved the themes control off
-        // the page and into the reader's menu, so reaching the sheet now means revealing
-        // chrome and then choosing a row — and the centre tap is a `coordinate` because the
-        // element under the middle of the page is the web view, whose own tap handling is the
-        // reader's.
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        let menu = app.buttons["Menu"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 5), "the reader revealed no menu to open")
-        menu.tap()
-        let themes = app.buttons["Reading themes"]
-        XCTAssertTrue(themes.waitForExistence(timeout: 5), "the menu offered no reading themes")
-        themes.tap()
-        // The sheet is a presentation; it animates up over the page.
-        _ = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Original")).firstMatch
-            .waitForExistence(timeout: 5)
-        attach(app.screenshot(), named: name)
-    }
+    // **The two theme-sheet walks lived here and have gone.** `SweepEpubReaderTests` reaches
+    // the same sheet through `openThemeSheet(in:)` and photographs it at both the default and
+    // the largest text size — `epub-theme-presets` and `epub-theme-presets-ax5` — so these were
+    // a second walk to the same surface from a second file.
+    //
+    // They were not merely redundant. The largest-size one **failed** at
+    // `AccessibilityXXXL` with "the reader revealed no menu to open", while the sweep's walk
+    // reached the sheet at that size in the same run: two walks to one screen, and the older
+    // one wrong. Keeping a broken duplicate would have meant every future reader of §7.4
+    // deciding again which of the two to believe.
 
     /// The reflowable reader, photographed on arrival and again after a centre tap.
     ///

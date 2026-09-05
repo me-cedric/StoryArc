@@ -1,6 +1,7 @@
 internal import SwiftUI
 
 internal import DesignSystem
+internal import Persistence
 internal import StoryArcCore
 
 /// What can be done to everything the reader has picked.
@@ -106,7 +107,7 @@ struct BulkActionBar: View {
             Button(role: .cancel) {} label: { Text("shelves.cancel", bundle: .module) }
         } message: {
             Text(
-                "library.bulk.download.size \((pending?.bytes ?? 0).formatted(.byteCount(style: .file)))",
+                "library.bulk.download.size \(DownloadStore.formatted(pending?.bytes ?? 0))",
                 bundle: .module
             )
         }

@@ -2,7 +2,13 @@ name: StoryArc
 options:
   bundleIdPrefix: app.storyarc
   deploymentTarget:
-    iOS: "26.0"
+    # 26.1, not 26.0, and the reason is one API. `tabViewBottomAccessory(isEnabled:)` arrived
+    # in 26.1; without it the shell reserves an empty capsule above the tab bar even with
+    # nothing playing, so `read-aloud-beyond-the-reader`'s "no space is reserved for one" was
+    # unmet on the floor itself. A point release is a small and shrinking audience cost, and
+    # the alternative was a second code path through the shell that existed for one release
+    # and would have outlived its reason.
+    iOS: "26.1"
   createIntermediateGroups: true
   groupSortPosition: top
   generateEmptyDirectories: true

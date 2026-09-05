@@ -1211,10 +1211,12 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       ordinary half matters as much, because a rule answering 1 everywhere would fix the defect
       and throw the layout away for everyone who has not raised their text size.
 
-      **Recorded, not decided**: at that text size the presets sit *below the fold* — the sheet
-      opens on Preview with Themes only beginning to appear — so a reader scrolls to reach the
-      grid. Defensible, since the preview is what a preset changes and the sheet scrolls, but
-      nobody has chosen it.
+      **Decided on 2026-09-05: preview first is correct, and it stays.** At that text size the
+      presets sit below the fold — the sheet opens on Preview
+      with Themes only beginning to appear — so a reader scrolls to reach the grid. The
+      preview is the thing a preset changes, so showing it before the choices is the right
+      order, and the sheet scrolls normally; reordering by text size would have meant a second
+      layout to keep true for one size. No code change.
 
       **Still owed, which is why this is `[~]` and not `[x]`**: the iOS theme *sheet* itself at
       the largest text size in dark — `ScreenshotTests.testCaptureThemeSheetAtLargestText`
