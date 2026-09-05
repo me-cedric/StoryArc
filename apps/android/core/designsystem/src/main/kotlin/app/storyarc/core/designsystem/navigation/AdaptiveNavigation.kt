@@ -9,15 +9,19 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationItemColors
 import androidx.compose.material3.NavigationItemIconPosition
 import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarArrangement
 import androidx.compose.material3.ShortNavigationBarItem
+import androidx.compose.material3.ShortNavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.WideNavigationRail
 import androidx.compose.material3.WideNavigationRailState
 import androidx.compose.material3.WideNavigationRailValue
 import androidx.compose.material3.WideNavigationRailItem
+import androidx.compose.material3.WideNavigationRailItemDefaults
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldLayout
@@ -250,6 +254,7 @@ private fun NavigationControl(
                     icon = { Icon(entry.icon, contentDescription = null) },
                     label = { EntryLabel(entry, type.pinsLabelFontScale) },
                     railExpanded = isOpen,
+                    colors = accentedItemColours(WideNavigationRailItemDefaults.colors()),
                 )
             }
         }
@@ -262,11 +267,49 @@ private fun NavigationControl(
                     icon = { Icon(entry.icon, contentDescription = null) },
                     label = { EntryLabel(entry, type.pinsLabelFontScale) },
                     iconPosition = type.barIconPosition,
+                    colors = accentedItemColours(ShortNavigationBarItemDefaults.colors()),
                 )
             }
         }
     }
 }
+
+/**
+ * The colours a bar item or a rail item draws: Material's own, with one slot changed.
+ *
+ * Material reads `secondary` for a selected label drawn *under* the indicator — the bar's
+ * vertical item and the collapsed rail — and `secondaryContainer` for the indicator itself.
+ * On the brand schemes those two roles are the two poles of the identity, deliberately: the
+ * pink is `secondary` because `design.md` §2 gives it to links and informational chips, and
+ * the violet family is the container because the same table gives tab bars to `brand/accent`.
+ * So a selected destination was the pink pole's name over the violet pole's pill — two brand
+ * colours on one control state, sampled on `android-player-2026-09-04` §4 — and
+ * `native-experience`'s *Chrome accent* says the chrome's accent "is a single colour".
+ *
+ * The label follows `primary`, which on every brand scheme is `brand/accent`, the colour the
+ * pill beneath it is the muted form of. Nothing else moves: the indicator, the icon on it and
+ * the label drawn *inside* the pill beside a `Start` icon keep Material's read of the
+ * container pair, because on-container is the right colour for a thing on the container; and
+ * the schemes' `secondary` is untouched, because many Material token families read it and the
+ * two-pole identity stands. The fix is here rather than in the schemes because this is the one
+ * place the control is drawn, and a colour that belongs to one control belongs at its call
+ * site rather than in a role every control shares.
+ *
+ * **Followed on the dynamic-colour path too, on purpose.** Material's default there is the
+ * wallpaper's `secondary`, a different tone from the wallpaper's `primary` that every other
+ * accented control on the same screen draws. The rule is one accent per control state, not
+ * one accent for the brand, so the label reads `primary` whichever scheme supplied it —
+ * Material You keeps its wallpaper, and the label agrees with the pill and the buttons.
+ *
+ * `defaults` is passed in rather than read here because the bar and the rail each have their
+ * own — `ShortNavigationBarItemDefaults.colors()` and `WideNavigationRailItemDefaults.colors()`
+ * — and a helper that chose one would hand the other control the wrong resting tones.
+ * `AccentReachesTheControlsTest` asks this function what it resolves under each brand scheme;
+ * `AdaptiveNavigationTest` asks that both items are given the answer.
+ */
+@Composable
+internal fun accentedItemColours(defaults: NavigationItemColors): NavigationItemColors =
+    defaults.copy(selectedTextColorTopIconPosition = MaterialTheme.colorScheme.primary)
 
 /**
  * The control that opens and closes the rail.

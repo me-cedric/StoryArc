@@ -136,6 +136,27 @@ class AdaptiveNavigationTest {
     }
 
     @Test
+    fun `both controls hand their items the accented colours`() {
+        // `AccentReachesTheControlsTest` proves what `accentedItemColours` resolves
+        // the selected label to. It cannot see whether either item is *given* the result, and
+        // that is the mutation that puts the pink back: delete one `colors =` and every colour
+        // assertion stays green while that control's label reverts to Material's `secondary`.
+        // Each control hands the helper its own defaults, and the assertion names which.
+        assertTrue(
+            "ShortNavigationBarItem no longer draws the accented colours.",
+            source.contains(
+                "colors = accentedItemColours(ShortNavigationBarItemDefaults.colors())",
+            ),
+        )
+        assertTrue(
+            "WideNavigationRailItem no longer draws the accented colours.",
+            source.contains(
+                "colors = accentedItemColours(WideNavigationRailItemDefaults.colors())",
+            ),
+        )
+    }
+
+    @Test
     fun `the bar states no shape of its own`() {
         // Not a style rule — a structural one. `ShortNavigationBar` exposes no `shape`
         // parameter at all on material3 1.5.0-alpha26, verified with `javap` over

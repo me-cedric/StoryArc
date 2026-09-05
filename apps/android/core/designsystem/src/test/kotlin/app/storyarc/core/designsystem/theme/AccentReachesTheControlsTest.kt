@@ -4,12 +4,16 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.NavigationItemColors
 import androidx.compose.material3.ProgressIndicatorDefaults
+import androidx.compose.material3.ShortNavigationBarItemDefaults
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.WideNavigationRailItemDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import app.storyarc.core.designsystem.navigation.accentedItemColours
 import app.storyarc.core.designsystem.tokens.StoryArcColor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -75,6 +79,22 @@ import org.robolectric.annotation.Config
  * Natural is deliberately **not** covered. Its schemes have the identical hole — a clay accent
  * beside Material's lavender containers — and closing it means choosing a clay-family value
  * with a gated pairing, which belongs to whoever owns that theme.
+ *
+ * ## The selected label was a second surface, and it is not a scheme role
+ *
+ * Setting `secondaryContainer` fixed the pill and the icon on it. The **label under the
+ * pill** reads `secondary` — `ShortNavigationBarItemDefaults.colors()` and
+ * `WideNavigationRailItemDefaults.colors()` both do, measured on `android-player-2026-09-04`
+ * §4 — and on the brand schemes `secondary` is the pink pole of the identity, on purpose:
+ * `design.md` §2 gives it to links and informational chips. So a selected destination was one
+ * brand colour's name over the other brand colour's pill, which `native-experience`'s
+ * *Chrome accent* forbids in as many words: chrome's accent "is a single colour".
+ *
+ * The fix is at the one call site that draws the control, not in the schemes — `secondary`
+ * feeds many Material token families and the two-pole decision stands — so the last test here
+ * asks the helper that call site uses, under each brand scheme, what it resolved the label to.
+ * The label drawn *inside* the pill beside a `Start` icon is asserted unchanged for the same
+ * reason the icon is: it sits on the container, and on-container is the right read there.
  */
 @RunWith(RobolectricTestRunner::class)
 // Robolectric ships an image per API level and has none for 37. 34 is inside its range and
@@ -100,6 +120,55 @@ class AccentReachesTheControlsTest {
             assertIsAccentContainer("the navigation indicator", nav.selectedIndicatorColor)
             assertIsOnAccentContainer("the selected navigation icon", nav.selectedIconColor)
         }
+
+    @Test
+    fun `the selected navigation label is the accent, on every brand scheme`() {
+        // One composition, three themes side by side: a compose rule accepts `setContent`
+        // once, and the schemes are siblings rather than a nesting so none inherits another's
+        // roles. Both controls, because each hands the helper its own Material defaults.
+        val drawn = mutableMapOf<String, NavigationItemColors>()
+        compose.setContent {
+            for ((name, scheme) in schemes()) {
+                MaterialExpressiveTheme(colorScheme = scheme) {
+                    drawn["$name bar"] =
+                        accentedItemColours(ShortNavigationBarItemDefaults.colors())
+                    drawn["$name rail"] =
+                        accentedItemColours(WideNavigationRailItemDefaults.colors())
+                }
+            }
+            Text("")
+        }
+        compose.waitForIdle()
+        assertEquals("three schemes, two controls each", 6, drawn.size)
+
+        for ((name, scheme) in schemes()) {
+            for (control in listOf("bar", "rail")) {
+                val colours = drawn.getValue("$name $control")
+                // The accessor the item itself calls, with the icon above the label — the bar
+                // on a phone and the collapsed rail — which is the case whose label sits
+                // *under* the pill and so takes a colour of its own.
+                val label =
+                    colours.textColor(selected = true, enabled = true, isIconPositionTop = true)
+                assertEquals(
+                    "$name $control: the selected label", StoryArcColor.Brand.accent, label,
+                )
+                assertEquals(
+                    "$name $control: the label is the scheme's primary", scheme.primary, label,
+                )
+                assertNotEquals(
+                    "$name $control: the label is still Material's read of secondary",
+                    scheme.secondary,
+                    label,
+                )
+                // Beside a `Start` icon the label is inside the pill, on the container, and
+                // keeps Material's on-container read — the same reason the icon does.
+                assertIsOnAccentContainer(
+                    "$name $control: the label inside the pill",
+                    colours.textColor(selected = true, enabled = true, isIconPositionTop = false),
+                )
+            }
+        }
+    }
 
     @Test
     fun `a slider is the accent at both ends of its travel`() = underBrandDark {
