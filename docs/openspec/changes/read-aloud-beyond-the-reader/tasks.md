@@ -122,8 +122,58 @@ says so and names what is left to watch.
       compiled, through `xcodebuild build-for-testing`, which builds the test target
       without booting anything. **Running it is the first thing to do with a
       simulator.**
-- [~] **1.4** One session at a time: opening another publication ends the current
+- [x] **1.4** One session at a time: opening another publication ends the current
       one at a sentence boundary, records the position, and says so once.
+
+      *2026-09-05, ticked.* **The third clause is built on both platforms, and the tick means
+      what this list says a tick means: the code exists and something asserts it.** The owner
+      placed the sentence on this change the same day — see 5.5 — so "says so once" has a key
+      and a surface.
+
+      *The rule.* `VoiceStoppedNotice` (`Playback/VoiceStoppedNotice.swift`,
+      `core/playback/VoiceStoppedNotice.kt`), a pure value mirrored case for case: only a
+      displacement owes a word, only a *voice* owes one, and the notice is spent by being given.
+      It now carries the displaced publication's title, because "the voice stopped" is half a
+      sentence to a listener looking at something else.
+
+      *The seam.* iOS: `PlayerCentre.displace()` (`Playback/PlayerDisplacement.swift`) is the
+      one ending that arms it, reached from `prepareReadAloud` when a reader opens over a
+      running session and from `begin` when a different book starts; whether the session was a
+      voice is asked of `publication.format.isAudio`, the fact about the file `PlayerWayBack`
+      already decides on. `end()` and `lostAudio()` arm nothing. Android: `SpokenAudio.silence`
+      is the one displacement, and it arms a notice for a `Speaker` whose `kind` is `VOICE` —
+      the interface widened from two members to three so the arbiter can tell — and holds it as
+      a `StateFlow` that outlives every screen.
+
+      *The surface.* Where the displacement lands, which is where the listener is looking. iOS:
+      `VoiceStoppedBanner` over the EPUB reader's page (`EpubReaderFeature`), above the return
+      offer and the transport, and `VoiceStoppedCapsule` at the top of the shell
+      (`PlayerFeature`, attached in `AppShell`) for an audiobook started from the shelf, which
+      presents no screen. Android: a `Snackbar` from `EpubReaderOverlays` and from
+      `PlayerScreen`'s scaffold. Each is brief, non-modal, announced once to VoiceOver or
+      TalkBack, leaves on its own, and **takes** the notice when shown — the EPUB reader in the
+      same run of the main actor that displaced, so the shell behind it never sees a pending
+      word; the Android surfaces with the lifecycle, so a stopped activity cannot spend it.
+
+      *The key.* `player.voice.stopped` in `Playback`'s catalogue and
+      `playback_voice_stopped` in `core/playback`'s four `strings.xml` — the one module both
+      surfaces on each platform can reach — reading *Stopped reading “%@” aloud.* in en, fr
+      (vous), de (Sie) and es (tú).
+
+      *Asserted.* `PlayerDisplacementTests` (13) and `SpokenAudioTest` (19) pin the seam: a
+      displaced voice arms; a displaced narrator, a restart of the same book, an adopt, the
+      listener's stop, a book running out and audio the platform took do not; a second
+      displacement re-arms; a take leaves nothing. `VoiceStoppedWordTest` composes the Android
+      player over a displaced voice and asserts it says the sentence, names the book, leaves
+      the arbiter with nothing, and that a second player finds nothing. Two assertions a side
+      were mutation-proved: inverting the voice-or-narrator question fails the two arming tests
+      by name, and a take that leaves the notice standing fails the once test by name.
+      SwiftUI's taking is not host-tested — `prepareReadAloud` needs Readium — and is covered by
+      the centre's `takeVoiceStopped` test and the capture.
+
+      *Seen.* `ReadAloudPlayerTests.testCaptureVoiceStoppedByAnotherBook` and
+      `testCaptureVoiceStoppedByAnAudiobook`; Android routes `EPUB reader > voice stopped` and
+      `Player > voice stopped`. The frames are referenced in this session's handoff.
 
       **Two of the three landed; the third needs a word this change may not ship.**
       `SessionHandover` answers what opening a publication does to a voice that is
@@ -743,8 +793,31 @@ them to the count.
       :feature:epubreader:testDebugUnitTest`, then the fuller run if anything
       outside that module moved.
 - [ ] **5.4** `corepack pnpm lint`.
-- [ ] **5.5** No new user-facing string ships from this change. If the iOS
+- [x] **5.5** No new user-facing string ships from this change. If the iOS
       transport needs a label, hand it to the vocabulary slice.
+
+      *2026-09-05, decided by the owner and recorded here rather than argued again.* **This
+      change ships exactly one new user-facing key, against this task's rule, and the rule is
+      otherwise held.** The key is `player.voice.stopped` on iOS (`Playback`'s catalogue) and
+      `playback_voice_stopped` on Android (`core/playback`'s four `strings.xml`): *Stopped
+      reading “%@” aloud.*, naming the publication that went quiet, in en, fr, de and es. It is
+      the sentence 1.4's "the listener is told once that the voice stopped" needs and nothing
+      else — no label, no title, no second string on either platform.
+
+      *Why the vocabulary slice could not take it.* `one-vocabulary-in-four-languages`, as
+      drafted, promotes **existing** English literals to keys (§1–§3), reconciles keys the two
+      platforms word differently (§4) and adds the check that catches a literal (§5). None of
+      those has a task for a sentence that has never been written on either platform, so
+      handing this one over would have meant widening that change by a task it did not propose
+      — or leaving `ebook-reader`'s clause with no owner, which is where it sat from the day it
+      was written. The owner chose the smaller deviation: one key here, recorded on the task
+      whose rule it bends.
+
+      *Everything else this task asks for holds.* The transport ships no new string —
+      `PlayerDock`'s words are `player.back` and `player.open` with the title and chapter as
+      `accessibilityValue`, as the paragraph below records — and `node scripts/ios-strings.mjs`
+      passes in all four languages with the new key in place. Ticked on that basis: the rule
+      held for everything but the one sentence the owner placed here by name.
 
       **Held on iOS: the transport ships no new string.** Every word in
       `ReadAloudDock` is an existing `readaloud.*` key or the publication's own
