@@ -1,6 +1,8 @@
 package app.storyarc.feature.library
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -186,6 +188,71 @@ class BulkSelectionChromeTest {
     }
 
     /**
+     * The bar's icons take the scheme's `primary`, which is the wallpaper's when dynamic
+     * colour is on — not the brand's accent by hand.
+     *
+     * `design.md` §7 ranks Material You above the brand outside a publication's context, and
+     * `native-experience`'s *Android dynamic colour* scenario says the scheme "derives from
+     * the user's wallpaper by default". Every `TextButton` in the library already honoured
+     * that, because Material reads `MaterialTheme.colorScheme.primary` for it; every
+     * `IconButton` beside them passed `tint = palette.accent`, which is the brand's violet on
+     * every wallpaper. On the brand path the two routes reach one colour — `brandLightScheme`'s
+     * `primary` *is* `Brand.accent` — so the defect drew nothing wrong until a wallpaper was
+     * applied, and no source-text guard can tell two routes to one colour apart. Pixels can.
+     *
+     * Composed under a scheme whose `primary` is a colour the brand never uses. A green
+     * pixel in the close affordance or in the live download action can only have come from
+     * the scheme; a bar still reading the palette draws the brand's violet and leaves both
+     * counts at nought.
+     */
+    @Test
+    fun `the icons take the scheme's primary and not the brand's accent`() {
+        var stopping = ""
+        var download = ""
+        compose.setContent {
+            StoryArcTheme {
+                stopping = stringResource(R.string.library_select_stop)
+                download = stringResource(R.string.library_bulk_download)
+                MaterialTheme(
+                    colorScheme = MaterialTheme.colorScheme.copy(primary = SCHEME_PRIMARY),
+                ) {
+                    LibrarySelectionTopBar(
+                        selection = picking(2),
+                        onSelectionChange = {},
+                        onAddToShelf = {},
+                        onDownload = {},
+                        onMarkRead = {},
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+
+        for (name in listOf(stopping, download)) {
+            val pixels = compose.onNodeWithContentDescription(name)
+                .captureToImage().toPixelMap()
+            var carrying = 0
+            for (y in 0 until pixels.height) {
+                for (x in 0 until pixels.width) {
+                    if (pixels[x, y].isSchemePrimary()) carrying += 1
+                }
+            }
+            assertTrue(
+                "the control named `$name` carries no pixel of the scheme's primary, so its" +
+                    " icon is tinted by hand and ignores the reader's wallpaper",
+                carrying > 0,
+            )
+        }
+    }
+
+    /**
+     * Whether a pixel is the scheme's `primary`, allowing for the anti-aliasing at a glyph's
+     * edge. The interior of a stroke is the colour exactly; only the edges blend.
+     */
+    private fun Color.isSchemePrimary(): Boolean =
+        red < 0.2f && green > 0.8f && blue < 0.2f
+
+    /**
      * Every control in the bar names itself to assistive technology, whatever it draws.
      *
      * `native-experience` asks that every control be reachable and named; a bare `Icon` with
@@ -220,7 +287,7 @@ class BulkSelectionChromeTest {
             compose.onNodeWithContentDescription(name).assertIsDisplayed()
         }
         // Mark-as-read is not in the bar any more: `PickMark` spends `Icons.Filled.CheckCircle`
-        // at `palette.accent` on every picked cover in the same frame, so a bar action drawn
+        // at the scheme's `primary` on every picked cover in the same frame, so a bar action drawn
         // that way asks one mark to mean *picked* and *mark as read* at once. It is an
         // overflow row now, where its name is drawn rather than merely announced.
         assertTrue("mark-as-read has no name", markRead.isNotBlank())
@@ -270,12 +337,12 @@ class BulkSelectionChromeTest {
      * The mark another control in the same frame already spends is not in the bar.
      *
      * `PickMark` (`CoverGrid.kt`) draws a picked cover as `Icons.Filled.CheckCircle` tinted
-     * `palette.accent`. The selection bar drew its mark-as-read action with the same vector and
-     * the same tint, four rows below dozens of them — one symbol asked to mean *picked* and
-     * *mark as read* in one frame. `native-experience`'s *Every action names itself* refuses a
-     * mark another control in the same frame already uses, whatever it means elsewhere, and a
-     * verification pass caught Android still doing it after iOS had been fixed for the weaker
-     * version of the same collision.
+     * the scheme's `primary`. The selection bar drew its mark-as-read action with the same
+     * vector and the same tint, four rows below dozens of them — one symbol asked to mean
+     * *picked* and *mark as read* in one frame. `native-experience`'s *Every action names
+     * itself* refuses a mark another control in the same frame already uses, whatever it
+     * means elsewhere, and a verification pass caught Android still doing it after iOS had
+     * been fixed for the weaker version of the same collision.
      *
      * Asserted as **absence from the bar plus presence in the menu**, because either alone is
      * satisfiable by the wrong code: dropping the action entirely passes the first, and
@@ -605,6 +672,9 @@ class BulkSelectionChromeTest {
         const val IF = "if ("
         const val ELSE = "else {"
         const val SELECTION = "selection"
+
+        /** Pure green, a `primary` the brand never uses: a pixel of it can only be the scheme's. */
+        val SCHEME_PRIMARY = Color(0xFF00FF00)
     }
 
     /** The two icon actions reach their callbacks, so the bar is wired and not merely drawn. */

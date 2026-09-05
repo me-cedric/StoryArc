@@ -11,6 +11,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,7 +19,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
-import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 
 /**
  * The ways to add a source that exist, behind one button.
@@ -42,14 +42,13 @@ fun AddSourceMenu(
      */
     onImport: () -> Unit = {},
 ) {
-    val palette = LocalStoryArcPalette.current
     var open by remember { mutableStateOf(false) }
 
     IconButton(onClick = { open = true }) {
         Icon(
             imageVector = Icons.Filled.Add,
             contentDescription = stringResource(R.string.library_add_source),
-            tint = palette.accent,
+            tint = MaterialTheme.colorScheme.primary,
         )
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {

@@ -163,7 +163,7 @@ fun SmbBrowserScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.catalogue_back),
-                            tint = palette.accent,
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                 },

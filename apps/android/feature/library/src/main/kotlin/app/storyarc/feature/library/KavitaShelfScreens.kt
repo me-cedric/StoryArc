@@ -168,7 +168,6 @@ fun KavitaListScreen(
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun ShelfBar(title: String, onBack: () -> Unit) {
-    val palette = LocalStoryArcPalette.current
     TopAppBar(
         title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         navigationIcon = {
@@ -176,7 +175,7 @@ private fun ShelfBar(title: String, onBack: () -> Unit) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.catalogue_back),
-                    tint = palette.accent,
+                    tint = MaterialTheme.colorScheme.primary,
                 )
             }
         },

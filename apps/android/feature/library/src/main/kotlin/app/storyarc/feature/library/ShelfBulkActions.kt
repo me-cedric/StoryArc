@@ -76,7 +76,7 @@ internal fun ShelfBulkMenu(
         Icon(
             imageVector = Icons.Filled.MoreVert,
             contentDescription = stringResource(R.string.shelves_bulk),
-            tint = palette.accent,
+            tint = MaterialTheme.colorScheme.primary,
         )
     }
 

@@ -13,6 +13,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -116,7 +117,7 @@ internal fun LibrarySelectionTopBar(
                 Icon(
                     imageVector = Icons.Filled.Close,
                     contentDescription = stringResource(R.string.library_select_stop),
-                    tint = palette.accent,
+                    tint = MaterialTheme.colorScheme.primary,
                 )
             }
         },
@@ -139,7 +140,9 @@ internal fun LibrarySelectionTopBar(
             IconButton(
                 onClick = onDownload,
                 enabled = enabled,
-                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.accent),
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary,
+                ),
             ) {
                 Icon(
                     imageVector = Icons.Filled.Download,
@@ -147,8 +150,8 @@ internal fun LibrarySelectionTopBar(
                 )
             }
             // **Mark-as-read is in the overflow, not the bar, and the reason is one frame
-            // away.** `PickMark` draws a picked cover as `Icons.Filled.CheckCircle` tinted
-            // `palette.accent` — the same vector, the same tint — so a bar action drawn that
+            // away.** `PickMark` draws a picked cover as `Icons.Filled.CheckCircle` tinted the
+            // scheme's `primary` — the same vector, the same tint — so a bar action drawn that
             // way is the picked state's own mark asked to mean something else, four rows
             // below dozens of it. `native-experience`'s *Every action names itself* refuses
             // exactly that: a mark another control in the same frame already uses is not
@@ -188,13 +191,12 @@ private fun SelectionOverflowMenu(
     onAddToShelf: () -> Unit,
     onMarkRead: () -> Unit,
 ) {
-    val palette = LocalStoryArcPalette.current
     var open by remember { mutableStateOf(false) }
 
     IconButton(
         onClick = { open = true },
         enabled = enabled,
-        colors = IconButtonDefaults.iconButtonColors(contentColor = palette.accent),
+        colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary),
     ) {
         Icon(
             imageVector = Icons.Filled.MoreVert,

@@ -137,7 +137,7 @@ fun CatalogueBrowserScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.catalogue_back),
-                            tint = palette.accent,
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                 },
@@ -351,7 +351,7 @@ private fun FacetMenu(facets: List<OpdsFacet>, onChoose: (OpdsFacet) -> Unit) {
         Icon(
             imageVector = Icons.AutoMirrored.Filled.Sort,
             contentDescription = stringResource(R.string.catalogue_facets),
-            tint = palette.accent,
+            tint = MaterialTheme.colorScheme.primary,
         )
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {

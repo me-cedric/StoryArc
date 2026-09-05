@@ -220,14 +220,14 @@ private fun CoverOption(
                         .matchParentSize()
                         .border(
                             CHOSEN_RING,
-                            palette.accent,
+                            MaterialTheme.colorScheme.primary,
                             RoundedCornerShape(StoryArcRadius.sm),
                         ),
                 )
                 Icon(
                     imageVector = Icons.Filled.CheckCircle,
                     contentDescription = null,
-                    tint = palette.accent,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(StoryArcSpace.xs),

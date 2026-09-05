@@ -15,6 +15,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,7 +30,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.model.LibraryQuery
@@ -208,7 +208,6 @@ private fun SortChip(query: LibraryQuery, onChange: (LibraryQuery) -> Unit) {
  */
 @Composable
 private fun LayoutToggle(layout: LibraryLayout, onChange: (LibraryLayout) -> Unit) {
-    val palette = LocalStoryArcPalette.current
     val isGrid = layout == LibraryLayout.GRID
     IconButton(
         onClick = { onChange(if (isGrid) LibraryLayout.LIST else LibraryLayout.GRID) },
@@ -218,7 +217,7 @@ private fun LayoutToggle(layout: LibraryLayout, onChange: (LibraryLayout) -> Uni
             contentDescription = stringResource(
                 if (isGrid) R.string.library_layout_list else R.string.library_layout_grid,
             ),
-            tint = palette.accent,
+            tint = MaterialTheme.colorScheme.primary,
         )
     }
 }

@@ -620,7 +620,7 @@ internal fun PickMark(isPicked: Boolean, modifier: Modifier = Modifier) {
         imageVector = if (isPicked) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
         // Announced by the cell, which already speaks the title this belongs to.
         contentDescription = null,
-        tint = if (isPicked) palette.accent else palette.textTertiary,
+        tint = if (isPicked) MaterialTheme.colorScheme.primary else palette.textTertiary,
         modifier = modifier.padding(StoryArcSpace.xs),
     )
 }

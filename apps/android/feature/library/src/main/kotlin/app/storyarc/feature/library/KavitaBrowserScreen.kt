@@ -182,7 +182,7 @@ fun KavitaBrowserScreen(
                                     R.string.kavita_search_open
                                 },
                             ),
-                            tint = palette.accent,
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                 },
@@ -204,7 +204,7 @@ fun KavitaBrowserScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.catalogue_back),
-                            tint = palette.accent,
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                 },

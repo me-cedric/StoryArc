@@ -10,6 +10,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -109,7 +110,6 @@ private fun LibraryOverflowMenu(
     onOpenShelves: (() -> Unit)?,
     onOpenSettings: (() -> Unit)?,
 ) {
-    val palette = LocalStoryArcPalette.current
     var open by remember { mutableStateOf(false) }
 
     if (onSelect == null && onOpenShelves == null && onOpenSettings == null) return
@@ -118,7 +118,7 @@ private fun LibraryOverflowMenu(
         Icon(
             imageVector = Icons.Filled.MoreVert,
             contentDescription = stringResource(R.string.library_more),
-            tint = palette.accent,
+            tint = MaterialTheme.colorScheme.primary,
         )
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {

@@ -160,7 +160,7 @@ fun ShelvesScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.catalogue_back),
-                            tint = palette.accent,
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                 },
@@ -169,7 +169,7 @@ fun ShelvesScreen(
                         Icon(
                             imageVector = Icons.Filled.Add,
                             contentDescription = stringResource(R.string.shelves_new),
-                            tint = palette.accent,
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {

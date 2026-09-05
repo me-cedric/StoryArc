@@ -97,7 +97,7 @@ fun CollectionDetailScreen(
                         Icon(
                             imageVector = Icons.Filled.GridView,
                             contentDescription = stringResource(R.string.shelves_cover),
-                            tint = palette.accent,
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
@@ -313,7 +313,6 @@ private fun DetailBar(
     onBack: () -> Unit,
     actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
 ) {
-    val palette = LocalStoryArcPalette.current
     TopAppBar(
         title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         navigationIcon = {
@@ -321,7 +320,7 @@ private fun DetailBar(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.catalogue_back),
-                    tint = palette.accent,
+                    tint = MaterialTheme.colorScheme.primary,
                 )
             }
         },
