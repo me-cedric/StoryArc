@@ -18,14 +18,44 @@ says so and names what is left to watch.
 
 ## Phase 0 — Prove the assumption
 
-- [ ] **0.1** iOS: start speech, dismiss the reader, confirm the voice continues
+- [~] **0.1** iOS: start speech, dismiss the reader, confirm the voice continues
       with the audio-session category and background modes the app already
       declares. Deliverable: a yes or no, on a booted simulator and — because
       audio-session behaviour on a simulator is not a device — recorded as
       simulator-only until someone runs it on hardware.
-- [ ] **0.2** Android: confirm the existing foreground service keeps speaking when
+
+      **The declarations are all in the tree and nobody has heard the result.** What the
+      assumption needed is present: `project.yml:90` declares `UIBackgroundModes: audio`;
+      `PlaybackAudioSession.activate()` sets category `.playback` with mode `.spokenAudio`,
+      which is what keeps a book talking through a screen lock; and the session claims it
+      through `PlayerCentre.begin` → `platform.sessionBegan()`, reached from a read-aloud
+      session because `ReadAloudCentre.begin` calls `adoptSystemPlatform()` first. Nothing
+      new was declared for this change, which is what the task asked to confirm.
+
+      **What is still owed is the listening.** Boot a simulator, open a reflowable fixture,
+      press read-aloud, dismiss the reader with the swipe, and confirm the voice carries on
+      and the accessory appears above the tab bar. One frame with the reader gone and the
+      voice running is the evidence; the control is the same shell one second earlier with
+      the reader still over it. Then the same walk on hardware, because an `AVAudioSession`
+      on a simulator is not a phone — the task already says to record the simulator answer
+      as simulator-only.
+- [~] **0.2** Android: confirm the existing foreground service keeps speaking when
       the reader activity is finished while the app stays in the foreground, which
       is a different case from the backgrounding the service was built for.
+
+      **The cause of the old failure is gone and the observation is not made.** 1.1 found
+      what would have failed this: `ReadAloudController` ran on the activity's
+      `lifecycleScope`, so finishing the reader cancelled the walk even though the service
+      lived. It now owns a `SupervisorJob` scope of its own and is held by `ReadAloudHost`,
+      an `object`. The manifest half is unchanged and correct —
+      `feature/epubreader/src/main/AndroidManifest.xml` declares
+      `FOREGROUND_SERVICE_MEDIA_PLAYBACK` and `android:foregroundServiceType="mediaPlayback"`
+      on `.ReadAloudService`.
+
+      **Owed on an emulator:** open a reflowable fixture, start read-aloud, press back out
+      of the reader so the activity finishes while the app stays on the library, and confirm
+      the voice carries on. Two frames: the library with the media notification in the shade
+      and the reader gone, light and dark. `pnpm capture:android --list` names the routes.
 
 ## Phase 1 — Move the ownership
 
