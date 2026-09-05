@@ -1,5 +1,6 @@
 package app.storyarc
 
+import androidx.compose.runtime.saveable.SaverScope
 import app.storyarc.core.designsystem.theme.StoryArcWindowClass
 import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.Publication
@@ -128,5 +129,70 @@ class PaneSplitTest {
         // What stops a tablet reader losing their scroll position the moment they open a
         // cover: both layouts ask the state holder for the same position.
         assertEquals(AppNavigation().select(AppDestination.LIBRARY).stateKey, PaneSplit.listPaneKey)
+    }
+
+    // The resize path -- task 4.3.
+    //
+    // The cases above assert the two ends separately: a narrow window has no split, a wide
+    // one does. Neither of them walks the *sequence*, which is the thing a reader actually
+    // does -- drag a tablet's window narrow with a book open, and drag it back.
+
+    @Test
+    fun `narrowing a two-pane window to one keeps the page the reader was looking at`() {
+        val open = library(page("Bone"))
+
+        val wide = PaneSplit.of(open, StoryArcWindowClass.EXPANDED)
+        val narrow = PaneSplit.of(open, StoryArcWindowClass.COMPACT)
+
+        // Two panes, then one -- and the publication is the same value either side, because
+        // `of` never writes to the navigation it is handed. The page is not "restored" on
+        // the way back; it never left. That is the property, and it is why the split is a
+        // pure read of the width rather than state of its own.
+        assertEquals("Bone", wide?.detail?.publication?.displayTitle)
+        assertNull(narrow)
+        assertEquals(page("Bone"), open.current)
+    }
+
+    @Test
+    fun `widening restores the second pane, with the same page in it`() {
+        val open = library(page("Bone"))
+
+        // Narrow, then wide again. Not `assertNotNull` and a fresh look: the same navigation
+        // value, put through the whole round trip, has to produce a split equal to the one it
+        // started with. A `PaneSplit` that had gone through a copy would compare unequal.
+        val before = PaneSplit.of(open, StoryArcWindowClass.EXPANDED)
+        PaneSplit.of(open, StoryArcWindowClass.COMPACT)
+        val after = PaneSplit.of(open, StoryArcWindowClass.EXPANDED)
+
+        assertEquals(before, after)
+        assertEquals("Bone", after?.detail?.publication?.displayTitle)
+    }
+
+    @Test
+    fun `the resize guarantee rests on the manifest, because the saver drops the path`() {
+        // The one thing that weakens the by-construction argument, asserted rather than left
+        // in a comment. `AppNavigation.Saver` persists the destination's **name** and nothing
+        // else -- a live catalogue page, an open publication and a server address do not
+        // belong in a saved-state bundle, and its own KDoc says so.
+        //
+        // So a resize keeps the open page only because `AndroidManifest.xml`'s
+        // `configChanges` stops the activity being recreated at all. Any configuration change
+        // outside that list rebuilds the activity, the saver runs, and the reader lands on
+        // the Library destination at its root. That is a deliberate trade and a documented
+        // one; what it is not is "the page always survives", and this is where the difference
+        // is written down so a later reader does not conclude the stronger thing from the two
+        // cases above.
+        val open = library(page("Bone"))
+        val saved = with(AppNavigation.Saver) { TestSaverScope.save(open) }
+        val restored = AppNavigation.Saver.restore(requireNotNull(saved))
+
+        assertEquals(AppDestination.LIBRARY, restored?.destination)
+        assertNull("The saver kept the path; this test's premise is now wrong.", restored?.current)
+        assertNull(PaneSplit.of(restored!!, StoryArcWindowClass.EXPANDED)?.detail)
+    }
+
+    /** What a `Saver` is handed at save time. Nothing here consults it. */
+    private object TestSaverScope : SaverScope {
+        override fun canBeSaved(value: Any): Boolean = true
     }
 }

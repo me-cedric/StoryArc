@@ -1136,7 +1136,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       adds the tablet at 1600 × 2560. Nothing in the tree shows a fold at half-open.
       `WindowClassTest.kt:117` argues a fold is an ordinary resize because only the
       width is read, which lowers the risk but is not the capture the task asks for.
-- [ ] **4.3** Verify the resize path: a two-pane window narrowed to one pane keeps
+- [~] **4.3** Verify the resize path: a two-pane window narrowed to one pane keeps
       what the reader was looking at, and widening restores the second pane.
 
       **The property holds by construction on Android and is asserted by no test on
@@ -1156,6 +1156,36 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       the stack, so the guarantee rests entirely on that manifest line; any config
       change outside its list loses the open page. iOS has no pane, so on iOS this
       task is unmeetable until 4.1 gives it one — see `publication-detail` task 4.3.
+
+      *The Android half is done, 2026-09-05, including the caveat.* `PaneSplitTest.kt` gains
+      three cases and now holds 12:
+
+      - **Narrowing keeps the page.** The same `AppNavigation` value is put to `PaneSplit.of`
+        at `EXPANDED` and at `COMPACT`, and the open publication is asserted to be the same
+        value either side — because `of` never writes to the navigation it is handed. The
+        page is not *restored* on the way back; it never left, which is why the split is a
+        pure read of the width rather than state of its own.
+      - **Widening restores it.** The round trip wide → narrow → wide has to produce a
+        `PaneSplit` **equal** to the one it started with, rather than merely a non-null one.
+      - **And the guarantee's one weak point is asserted rather than left in a comment.**
+        `AppNavigation.Saver` is driven for real — saved and restored — and the restored value
+        is required to have the Library destination and a **null** path. So the open page
+        survives a resize only because the manifest stops the activity being recreated at
+        all; any configuration change outside that list rebuilds it and the reader lands at
+        the destination's root. The test says so in its own failure message, so a later reader
+        cannot conclude the stronger thing from the two cases above it.
+
+      **One line-number correction:** the `configChanges` attribute is
+      `AndroidManifest.xml:39`, not `:29`. Its value is
+      `orientation|screenSize|screenLayout|keyboardHidden|uiMode|density|smallestScreenSize`
+      — note that `fontScale` is **not** in it, which agrees with the Saver's own KDoc
+      ("the font size changing is the commonest way to meet this").
+
+      **The iOS half is still unmeetable and 4.1 does not change that**, which is worth
+      correcting: 4.1 gives iPad a **sidebar**, not a list-detail pane, so there is no
+      two-pane window on iOS to narrow. The clause has nothing to act on there until
+      `publication-detail` task 4.3 builds one. Left unticked rather than ticked on one
+      platform, per this list's own rule.
 
 ## Phase 5 — First run and the empty path
 
