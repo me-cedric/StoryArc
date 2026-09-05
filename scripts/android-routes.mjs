@@ -289,8 +289,16 @@ export const ROUTES = [
     // word is a `Snackbar` of Material's short duration, so the opening tap is a `!` step and
     // the shutter follows it inside that dwell; the EPUB route waits once more because the
     // book has to be parsed before the reader knows it displaced anything.
-    ['EPUB reader > voice stopped', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('readaloud_start'), '@back', 'Harbour Lights 02', '!' + NAMES.read, '!@wait']],
-    ['Player > voice stopped', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('readaloud_start'), '@back', 'Audiobook folder|, M4B', '!' + NAMES.read]],
+    //
+    // Starting the voice posts a notification, and the first time a device is asked it puts
+    // up the system's permission dialog over the reader. `?=Allow` answers it when it is
+    // there — exactly the button, not the question that begins with the same word — and is
+    // skipped when the device has already answered. Without it the Back that should leave
+    // the reader dismissed the dialog instead, and the route reported the shelf unreachable.
+    // Two Backs, because the reader was opened from the publication's page and the next book
+    // is on the shelf behind it.
+    ['EPUB reader > voice stopped', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('readaloud_start'), '?=Allow|Autoriser|Zulassen|Permitir', '@back', '@back', 'Harbour Lights 02', '!' + NAMES.read, '!@wait']],
+    ['Player > voice stopped', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('readaloud_start'), '?=Allow|Autoriser|Zulassen|Permitir', '@back', '@back', 'Audiobook folder|, M4B', '!' + NAMES.read]],
 
     // --- Reachable only once a source list is not empty ------------------------------
     ['Settings > source detail', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Audiobooks']],
@@ -298,14 +306,23 @@ export const ROUTES = [
 
 /**
  * The centre of the first node whose text or description contains `needle`, or null.
+ *
+ * `exact` asks for a node whose text or description **is** `needle`, case-insensitively.
+ * A substring is the right default for this app's own controls, whose labels are long and
+ * whose walks name a stable head of them; it is the wrong answer for a system dialog, where
+ * *Allow* is a button and also the first word of the question above it — a substring match
+ * tapped the question, and the Back that followed dismissed the dialog instead of leaving
+ * the screen behind it.
  */
-export function centre(xml, needle) {
+export function centre(xml, needle, exact = false) {
+    const wanted = needle.toLowerCase()
     for (const [tag] of xml.matchAll(/<node\b[^>]*?\/?>/g)) {
         const attrs = Object.fromEntries(
             [...tag.matchAll(/([\w-]+)="([^"]*)"/g)].map(([, key, value]) => [key, value])
         )
-        const name = `${attrs['content-desc'] ?? ''}\0${attrs.text ?? ''}`
-        if (!name.toLowerCase().includes(needle.toLowerCase())) continue
+        const labels = [attrs['content-desc'] ?? '', attrs.text ?? ''].map((label) => label.toLowerCase())
+        const matches = exact ? labels.some((label) => label === wanted) : labels.join('\0').includes(wanted)
+        if (!matches) continue
         const box = /\[(\d+),(\d+)]\[(\d+),(\d+)]/.exec(attrs.bounds ?? '')
         if (box) {
             const [l, t, r, b] = box.slice(1).map(Number)
@@ -480,10 +497,15 @@ export function navigator(sh) {
                 continue
             }
             // `?Name` is a step that may legitimately not be there — a one-time notice, a
-            // control that only appears once something is downloaded. Absent is not a
-            // failure; carrying on and photographing the screen behind it would be.
+            // control that only appears once something is downloaded, a permission dialog
+            // the device has already answered. Absent is not a failure; carrying on and
+            // photographing the screen behind it would be.
             const optional = raw.startsWith('?')
-            const step = optional ? raw.slice(1) : raw
+            const unprefixed = optional ? raw.slice(1) : raw
+            // `=Name` matches a whole label rather than a substring — see `centre`. The two
+            // prefixes compose as `?=Allow`: a system button that may not be there.
+            const exact = unprefixed.startsWith('=')
+            const step = exact ? unprefixed.slice(1) : unprefixed
             // Any one of the alternatives will do, and each is tried against the same
             // tree before scrolling: a page offering *Continue* is not a page missing *Read*.
             const wanted = step.split('|')
@@ -494,7 +516,7 @@ export function navigator(sh) {
             for (let attempt = 0; attempt < (optional ? 1 : 6) && !spot; attempt += 1) {
                 const tree = dump()
                 for (const name of wanted) {
-                    spot = centre(tree, name)
+                    spot = centre(tree, name, exact)
                     if (spot) break
                 }
                 if (!spot && !optional) swipe(at(0.5, SCROLL_FROM), at(0.5, SCROLL_TO))

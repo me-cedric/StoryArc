@@ -63,18 +63,20 @@ final class ReadAloudPlayerTests: XCTestCase {
     /// It waits for the banner itself rather than for the web view: the word is armed as the
     /// book opens and leaves six seconds later, and a walk that first waited twenty seconds for
     /// a page could photograph a page the word had already left.
+    ///
+    /// **Both books are opened by name**, for the reason `SweepEpubReader.openReader` gives:
+    /// the shared search tries the two fixed-layout EPUBs first and spends most of a minute
+    /// learning that neither opens a page. `Harbour Lights 01` and `The Long Field` are the
+    /// corpus's reflowable books, and which one speaks is then known rather than read back.
     func testCaptureVoiceStoppedByAnotherBook() throws {
-        let app = try speakAndLeaveTheReader()
-        let spoken = app.buttons["Back to the book"].firstMatch.value as? String ?? ""
-        let other = ["The Long Field", "Harbour Lights 02", "Harbour Lights 01"]
-            .first { !spoken.contains($0) }
-        try openPublication(named: try XCTUnwrap(other), in: app)
+        let app = try speakAndLeaveTheReader(opening: "Harbour Lights 01")
+        try openPublication(named: "The Long Field", in: app, expectingAPage: false)
 
         let banner = app.descendants(matching: .any).matching(identifier: "voice-stopped").firstMatch
         XCTAssertTrue(
-            banner.waitForExistence(timeout: 20),
-            "Opening \(other ?? "another book") over the voice showed no word that the voice "
-                + "stopped. Static texts: \(app.staticTexts.allElementsBoundByIndex.map(\.label))"
+            banner.waitForExistence(timeout: 30),
+            "Opening The Long Field over the voice showed no word that the voice stopped. "
+                + "Static texts: \(app.staticTexts.allElementsBoundByIndex.map(\.label))"
         )
         settle(0.5)
         attach(app.screenshot(), named: "voice-stopped-in-reader")
@@ -87,12 +89,12 @@ final class ReadAloudPlayerTests: XCTestCase {
     /// `VoiceStoppedCapsule`. The bar below it has already started saying the *new* book's
     /// name, which is why the word is at the top and not beside the bar.
     func testCaptureVoiceStoppedByAnAudiobook() throws {
-        let app = try speakAndLeaveTheReader()
+        let app = try speakAndLeaveTheReader(opening: "Harbour Lights 01")
         try openPublication(named: "Sea Room", in: app, expectingAPage: false)
 
         let capsule = app.descendants(matching: .any).matching(identifier: "voice-stopped").firstMatch
         XCTAssertTrue(
-            capsule.waitForExistence(timeout: 20),
+            capsule.waitForExistence(timeout: 30),
             "Starting an audiobook over the voice showed no word that the voice stopped. "
                 + "Static texts: \(app.staticTexts.allElementsBoundByIndex.map(\.label))"
         )
@@ -130,9 +132,16 @@ final class ReadAloudPlayerTests: XCTestCase {
     }
 
     /// Opens an EPUB, starts reading it aloud, and closes the reader.
-    private func speakAndLeaveTheReader() throws -> XCUIApplication {
+    ///
+    /// - Parameter title: a reflowable EPUB to open by name, or `nil` to let the shared search
+    ///   in `EpubWalk` find one — which skips, rather than fails, on a device without any.
+    private func speakAndLeaveTheReader(opening title: String? = nil) throws -> XCUIApplication {
         let app = launch()
-        try openTheEpubReader(in: app)
+        if let title {
+            try openPublication(named: title, in: app)
+        } else {
+            try openTheEpubReader(in: app)
+        }
 
         // **Already up, on a reader that has just opened, and a tap would take it away.** The
         // same rule `ReaderAuditTests` records: `quiet-reader` gives the chrome a four-second
