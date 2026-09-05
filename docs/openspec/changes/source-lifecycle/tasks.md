@@ -24,6 +24,41 @@ is not archivable yet.
 - [x] 2.2 Connection state never persisted; every source loads as *connecting* — verified by the `SourceStore` round-trip test asserting the state is not read back
 - [x] 2.3 `SourceDiagnosis` producing the five fields and deciding which of the five actions a given source is offered, with no pixels in it — verified by eleven mirrored cases per platform
 - [x] 2.4 The per-source health screen reached by tapping a source in Settings — `SourceDetail.swift` / its Android mirror (**not driven; task 4.1**)
+      **One of the five fields was wrong, and it was wrong in the state 4.1 photographs.**
+      *Downloaded* read **Zero kB** for any source with nothing downloaded — which is every
+      source a reader has just added, and the state the iOS walk for 4.1 arrives in.
+      `ByteCountFormatStyle` spells zero out unless told not to, so the row said `Zero kB` in
+      English and `Zéro ko` in French. **German and Spanish rendered `0 kB` from the same
+      call**, which is why reading the screen never found it: two of the four languages showed
+      a numeral already.
+      **The fix was to stop being the fourth call site.** `Persistence/DownloadStore.formatted(_:)`
+      already exists for exactly this, and its own note records the September sweep finding
+      *Space used — Zero kB* one screen from *Downloads · 0 bytes*, both reading `bytesOnDisk`.
+      That sweep wrote the helper and converted three call sites; this screen's two were not
+      among them. No new catalogue key: the platform renders `0 bytes` / `0 octet` / `0 Byte` /
+      `0 bytes`, verified in all four, so a fifth wording to keep in step with four would be
+      the worse answer. Non-zero output is byte-identical across the four, so only zero moved.
+      **Three cases in `SourceDetailSizeTests`, and they read the built view rather than the
+      file.** A regex over Swift source would be satisfied by the helper's name in a comment —
+      the failure `SourceProgressNoteTests` records at length. Mutation-checked: restoring the
+      bare `.byteCount` fails exactly *A source with nothing downloaded shows a number, not the
+      word zero*, and the failure prints `"Zero kB"` out of the rendered set; the other two stay
+      green. Restored byte for byte (sha256 `6144f7ea…`).
+      **The confirmation body took the same helper and is not covered by that test.** The
+      `message:` closure of a `confirmationDialog(presenting:)` is not evaluated while nothing
+      is presented, so the value-tree walk cannot see it. It is also near-unreachable at zero —
+      `SourceDiagnosis` withholds *Remove downloads* when there are no finished downloads — so
+      what was fixed there is the drift, not a second visible defect.
+      **The same raw call survives in three places this change does not own**, all found by
+      `grep -rn byteCount apps/ios --include='*.swift'`:
+      `LibraryFeature/ShelfBulkActions.swift:81` and `LibraryFeature/BulkActionBar.swift:109`
+      are **live**: both write `(pending?.bytes ?? 0)`, and `KeepOffline.bytesOnDisk(of:)`
+      returns 0 for a publication whose file cannot be measured — its own comment says so — so
+      the bulk-download confirmation reads *"Zero kB will be copied into StoryArc's own
+      storage."* `SettingsFeature/DownloadsSettings.swift:96` is cosmetic only: its ladder
+      starts at 1 GB and cannot render zero. All three are `library-management` / `downloads`
+      surfaces, not `sources`, so they are named here rather than fixed inside this change.
+      Android is unaffected throughout: `Formatter.formatFileSize(context, 0)` gives `0 B`.
 - [x] 2.5 `Credentials rejected` re-opens the add sheet with the address filled and the secret blank, and what comes back keeps the same identifier so `SourceRegistry.replacing` preserves position, downloads and the reader's name — verified by the `replacing` tests
 - [x] 2.6 `SourcePrecedence` ranking by registry position, an unattributed find and a removed source tying for last, and the row opening the copy it names — verified by the precedence tests on both platforms
 - [x] 2.7 The folder walk cached: catalogue written on completion and restored before the next walk, covers keyed by publication and pixel size, both in the caches directory; incremental refresh; a publication a walk no longer finds removed while its progress stays; neither write nor removal firing on a walk that saw nothing — verified by the library-cache tests
@@ -137,12 +172,100 @@ Every item here owes a screenshot from a booted simulator or emulator, light and
 dark, at default and largest text size. A `#Preview` and a `@Preview` do not count.
 `pnpm capture:android --list` names the routes; `pnpm capture:ios` is the iOS side.
 
+**Which walks and routes already exist, audited 2026-09-05 by reading
+`apps/ios/UITests/Sweep*.swift` and `scripts/android-routes.mjs` — no device was
+booted.** Only 4.1 and 4.3 have a harness on both platforms. The other four have no
+walk and no route on either, so each owes the walk before it owes the frame, and
+that is work rather than a shutter press.
+
+**Two preconditions bind every iOS frame below.** The sweeps do not seed sources —
+they look for `StoryArc Test Catalogue` and `Attic NAS` on whatever the device
+already holds, and `SweepSources` skips (`XCTSkip`) rather than fails when they are
+absent, so a run on a fresh simulator returns green having photographed nothing.
+Check for a skip in the result bundle before believing a pass. Appearance is the
+simulator's, not the app's — `--appearance light|dark`, which also suffixes the
+filename so a light and a dark run cannot overwrite each other.
+
 - [ ] 4.1 The source detail screen, both platforms, showing all five fields and the five actions — verify by attaching the screenshots to the change
+      **Frames owed: 8.** Surface *Settings › Your libraries › one source*; state *a
+      connected source that has at least one finished download* (see the caveat below);
+      appearance light and dark; text size default and largest — per platform.
+      **iOS:** `pnpm capture:ios --only SweepSettingsTests/testCaptureSettingsSourceDetail
+      --appearance light|dark`. Exists; opens `StoryArc Test Catalogue`, falling back to
+      `Attic NAS`. **No largest-text variant of this walk exists** —
+      `testCaptureSettingsRootAtLargestText` in the same file is the pattern to copy, and
+      that is one new method, not a flag.
+      **Android:** `pnpm capture:android "Settings > source detail" --out <file> [--dark]
+      [--font-scale 2.0]`. Exists (`scripts/android-routes.mjs:285`); opens the `Audiobooks`
+      source, and is listed under *reachable only once a source list is not empty*.
+      **This task cannot be satisfied as written by one frame, and the artifact is wrong
+      about the tree.** `SourceDiagnosis.of` offers *Remove downloads* only when the source
+      has a finished download, and *Reconnect* only when its credential was refused — so no
+      single source is ever offered all of them at once. The five this task names need a
+      **removable source holding at least one finished download**; the walk's current
+      catalogue may hold none, in which case the frame shows four rows and does not discharge
+      the task. Either seed a download before the walk, or split the row list across 4.1 and
+      4.2 and say so here.
+      Note that the *Downloaded* field was reading `Zero kB` in exactly this frame until
+      2026-09-05 — see 2.4. A capture taken before that commit shows the defect.
 - [ ] 4.2 The reconnect sheet reached from a rejected credential, address filled and secret blank
+      **Frames owed: 8** — 4 per platform (light/dark × default/largest). Surface *the add
+      sheet re-opened by the source detail screen's `Reconnect` row*; state *address field
+      populated, secret field empty, the source's identifier preserved*.
+      **No walk and no route on either platform.** `SweepSources` photographs the three
+      *add* sheets — `testCaptureAddCatalogueSheet`, `…AddKavitaSheet`, `…AddShareSheet`,
+      plus `…AddCatalogueSheetAtLargestText` and the two file pickers — but nothing reaches
+      the sheet by the reconnect path, which is the one that has to arrive pre-filled.
+      `testCaptureAddCatalogueSheetAtLargestText` is the largest-text pattern to copy.
+      **The blocker is device state, not navigation:** the row appears only when
+      `source.state.needsUserAction`, so the walk needs a source whose credential a server
+      actually refused. `Attic NAS` points at a host that is not running, which yields
+      *unreachable*, not *unauthorized* — those are different states and only the second
+      offers `Reconnect`. A fixture holding an `unauthorized` source is the prerequisite.
 - [ ] 4.3 The "cannot be reached" notice for an unreachable server, with the "downloads stay readable" line and the try-again action. **Capture a control beside it** — a reachable source at the same moment — so the picture proves the state and not merely that the screen exists
+      **Frames owed: 8, plus the control.** Surface *the source detail screen of an
+      unreachable source*; state *`Not answering` with `No answer since …`*; light and dark,
+      default and largest.
+      **iOS:** `pnpm capture:ios --only SweepSourcesTests/testCaptureUnreachableSourceDetail`
+      exists and holds 3 s before the shutter so the probe has settled. The **control** the
+      task demands is `SweepSettingsTests/testCaptureSettingsSourceDetail` (a reachable
+      source) run **in the same session**, plus `SweepSourcesTests/testCaptureAwayNotice` for
+      the library-wide sentence. Run them in one `capture:ios` invocation so "at the same
+      moment" is true rather than asserted.
+      **Android has no route for this state** — the route table reaches `Settings > source
+      detail` only, and it opens `Audiobooks`, a local source that cannot be unreachable.
+      **The claim the control has to defend** is `AGENTS.md`'s second non-negotiable: an
+      unreachable source is **grey, never red**. A grey row proves nothing beside no other
+      row; the reachable source at the same appearance is what makes it evidence.
+      No largest-text variant exists for either walk.
 - [ ] 4.4 Pull-to-refresh on iOS, mid-gesture and after completion
+      **Frames owed: 4** — iOS only, mid-gesture and settled, light and dark. Largest text is
+      not meaningful for a spinner and can be declared out of scope here, in writing.
+      **No walk exists, and mid-gesture is the hard half.** `shutter()` fires between
+      XCUITest actions, so a `swipeDown()` has already ended by the time it runs. Reaching
+      the mid-gesture frame needs a held drag — `XCUIElement.press(forDuration:thenDragTo:)`
+      or an `XCUICoordinate` press-move-release — with the shutter between the move and the
+      release. Budget this as the one genuinely new capture technique in §4.
 - [ ] 4.5 The precedence rule with two sources holding one title: the row, and the copy it opens
+      **Frames owed: 8** — 4 per platform. Two surfaces, so two shutters per condition: *the
+      shelf row for a title held by two sources*, and *the publication page the row opens*,
+      which must be the copy `SourcePrecedence` names.
+      **No walk and no route on either platform**, and the blocker is the corpus rather than
+      the harness: `packages/test-fixtures` would need the same publication reachable through
+      two registered sources. Confirm against `SourcePrecedenceTests` which pair the rule
+      actually ranks before building the fixture — registry position wins, and an
+      unattributed find ties with a removed source for last.
 - [ ] 4.6 The removal confirmation showing the title count and the 30-day sentence
+      **Frames owed: 8** — 4 per platform. Surface *the removal confirmation dialog raised
+      from the source detail screen's `Remove` row*; state *a source with a non-zero title
+      count*, so the count in `sources.remove.body %lld` is a real number and not `0`.
+      **No walk and no route**, but this is the cheapest of the five to add: both platforms
+      already reach the screen (4.1's walk and route), and the dialog is one more tap.
+      `SweepSettingsTests/testCaptureSettingsResetConfirmation` is the iOS pattern for
+      photographing a confirmation; `Downloads > remove dialog` is the Android one.
+      **Both strings must be legible in the frame** — the count and the 30-day retention
+      sentence — which is the reason the largest-text pair is not optional here: a
+      confirmation dialog is where truncation costs a reader their library.
 
 ## 5. The honest limit in the cached indicator
 
