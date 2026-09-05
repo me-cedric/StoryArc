@@ -949,6 +949,52 @@ when a cover was the resume affordance. Whoever syncs should add a
       wrapper (`strings.xml:347-351`). One of the twenty-one is unreachable — see
       task 2.2.
 
+      ---
+
+      **Recounted from the catalogues 2026-09-05, and the "33" above is on a mixed basis.**
+      It adds iOS's *total* (13, which includes two keys this change did not write) to
+      Android's *own* (20, which already excludes two). Counted the same way on both sides:
+
+      | | iOS `detail.*` | Android `detail_*` | Total |
+      | --- | --- | --- | --- |
+      | Present in the catalogues today | 13 | **22** | **35** |
+      | Written by this change | 11 | 20 | **31** |
+      | Written by `audiobooks-and-playback` | 2 | 2 | 4 |
+
+      The four that are not this change's, with the commit that added each:
+      `detail.listen` and `detail.continueListening` on iOS (`a385e883`), and
+      `detail_action_listen` and `detail_action_continue_listening` on Android
+      (`645549b8`). They are on this page's namespace because that change spends this
+      page's vocabulary, not because this change wrote them. **So the honest number for
+      this task's own constraint is 31, and it is still not zero.** Every one of the 35
+      resolves in all four locales — `grep -c 'name="detail_'` is 22 in each of
+      `values`, `values-fr`, `values-de` and `values-es`, and every iOS key carries
+      `de`, `en`, `es`, `fr`.
+
+      **There is nowhere to hand them, and that is why this task cannot be closed by
+      handing them anywhere.** The vocabulary slice is
+      [`ui-revamp-2026-08.md`](../../../designs/ui-revamp-2026-08.md) §5, sequenced at
+      §7 as slice **A**; `docs/openspec/changes/` holds eight changes and none of them is
+      it. The slice's own note says it is atomic or it is broken — five `.xcstrings` and
+      twenty `strings.xml` in one pass — so opening it as a side effect of this task
+      would be the half-finished vocabulary pass that note forbids. **The task therefore
+      stays open with the decision cited**, per this file's own rule for a task the
+      change has decided against, and the 31 keys are the slice's inheritance rather than
+      this change's debt to repay.
+
+      **One thing checked while counting, because it is the failure `pnpm lint` cannot
+      see.** `strings:ios` checks that every *key* resolves in four languages; it cannot
+      see a sentence that never became a key. Every user-facing string this page draws is
+      a key on both platforms — refusals and the "this one is gone" screen included.
+      iOS: `DetailActions.swift:54`, `:60`, `:65`, `:73`, `:80`, `:83`, `:106`, `:133`,
+      `:141`, `:173`, `DetailProvenanceLine.swift:35`, `DetailSeriesShelf.swift:22`, and
+      `PublicationRoute.swift:105` through `DetailStrings.text("detail.gone")`. Android:
+      every draw in `PublicationDetailScreen.kt`, `DetailHero.kt` and `DetailActions.kt`
+      goes through `stringResource`, and the one bare literal in those three files is
+      `publication.format.displayName` at `DetailHero.kt:181`, which is a format name
+      rather than a sentence. **No English literal ships from this page**, which is worth
+      recording because the count above makes it look like the opposite risk was taken.
+
 ## Phase 4 — Large screens
 
 - [ ] **4.1** iPad: the page as the split's detail column, with the hero art
