@@ -42,49 +42,6 @@ import java.text.NumberFormat
 import kotlin.math.roundToInt
 
 /**
- * What a pairing will be like to read, in words a reader can act on.
- *
- * A reader choosing a background colour does not know what "4.7 to 1" means. A number
- * nobody can interpret is not information; it is decoration that looks like
- * information. So the sheet leads with one of three bands and states the measured ratio
- * after it. Nothing is dropped: `reading-themes` requires a refused pairing to be
- * stated "with the measured ratio stated", a reader who is refused deserves to know by
- * how much, and a developer reading a bug report needs the number.
- *
- * **The two boundaries are the domain's own, not new ones.** [ReadingContrast.AAA] at
- * 7, which a derived text colour aims for and every built-in preset clears, and
- * [ReadingContrast.AA] at 4.5, below which the sheet refuses the pairing outright. A
- * band drawn at any other number would let the words and the refusal disagree about the
- * same pairing — the sheet calling a pairing comfortable and then refusing it.
- *
- * The words are about reading rather than about the numbers behind them, because a
- * reader wants to know whether a chapter will be comfortable, not whether a guideline
- * is met. They replace `theme_page_colour_below_aaa`, which said the same thing in the
- * arithmetic the reader could not read.
- *
- * iOS mirrors this in `PageColourSection.swift`.
- */
-internal enum class ReadingComfort(@StringRes val label: Int) {
-    /** 7 to 1 and above. */
-    EASY(R.string.theme_page_colour_band_easy),
-
-    /** 4.5 to 1 up to 7 to 1. Usable, and the sheet says what it costs. */
-    TIRING(R.string.theme_page_colour_band_tiring),
-
-    /** Below 4.5 to 1. Refused. */
-    FAINT(R.string.theme_page_colour_band_faint),
-    ;
-
-    companion object {
-        fun band(ratio: Double): ReadingComfort = when {
-            ratio >= ReadingContrast.AAA -> EASY
-            ratio >= ReadingContrast.AA -> TIRING
-            else -> FAINT
-        }
-    }
-}
-
-/**
  * A reading background of the reader's own, kept legible.
  *
  * `reading-themes` asks for four things here and it is easy to build three of them:
@@ -228,6 +185,53 @@ internal fun PageColourSection(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.error,
             )
+        }
+    }
+}
+
+/**
+ * What a pairing will be like to read, in words a reader can act on.
+ *
+ * A reader choosing a background colour does not know what "4.7 to 1" means. A number
+ * nobody can interpret is not information; it is decoration that looks like
+ * information. So the sheet leads with one of three bands and states the measured ratio
+ * after it. Nothing is dropped: `reading-themes` requires a refused pairing to be
+ * stated "with the measured ratio stated", a reader who is refused deserves to know by
+ * how much, and a developer reading a bug report needs the number.
+ *
+ * **The two boundaries are the domain's own, not new ones.** [ReadingContrast.AAA] at
+ * 7, which a derived text colour aims for and every built-in preset clears, and
+ * [ReadingContrast.AA] at 4.5, below which the sheet refuses the pairing outright. A
+ * band drawn at any other number would let the words and the refusal disagree about the
+ * same pairing — the sheet calling a pairing comfortable and then refusing it.
+ *
+ * The words are about reading rather than about the numbers behind them, because a
+ * reader wants to know whether a chapter will be comfortable, not whether a guideline
+ * is met. They replace `theme_page_colour_below_aaa`, which said the same thing in the
+ * arithmetic the reader could not read.
+ *
+ * ponytail: it lives beside the one section that draws it rather than in `core:model`,
+ * because it is a wording decision over a number the domain already gives. Move it when
+ * a second surface asks the same question.
+ *
+ * iOS mirrors this in `PageColourSection.swift`.
+ */
+internal enum class ReadingComfort(@StringRes val label: Int) {
+    /** 7 to 1 and above. */
+    EASY(R.string.theme_page_colour_band_easy),
+
+    /** 4.5 to 1 up to 7 to 1. Usable, and the sheet says what it costs. */
+    TIRING(R.string.theme_page_colour_band_tiring),
+
+    /** Below 4.5 to 1. Refused. */
+    FAINT(R.string.theme_page_colour_band_faint),
+    ;
+
+    companion object {
+        fun band(ratio: Double): ReadingComfort = when {
+            ratio >= ReadingContrast.AAA -> EASY
+            ratio >= ReadingContrast.AA -> TIRING
+            else -> FAINT
         }
     }
 }

@@ -13,49 +13,9 @@ internal import StoryArcCore
 ///
 /// It is a seventh slot, not a seventh preset: choosing it keeps the typography the
 /// reader already has, and tapping one of the six leaves it behind.
-/// What a pairing will be like to read, in words a reader can act on.
 ///
-/// A reader choosing a background colour does not know what "4.7 to 1" means. A number
-/// nobody can interpret is not information; it is decoration that looks like
-/// information. So the sheet leads with one of three bands and states the measured
-/// ratio after it. Nothing is dropped: `reading-themes` requires a refused pairing to
-/// be stated "with the measured ratio stated", a reader who is refused deserves to know
-/// by how much, and a developer reading a bug report needs the number.
-///
-/// **The two boundaries are the domain's own, not new ones.** ``ReadingContrast/aaa``
-/// at 7, which a derived text colour aims for and every built-in preset clears, and
-/// ``ReadingContrast/aa`` at 4.5, below which the sheet refuses the pairing outright. A
-/// band drawn at any other number would let the words and the refusal disagree about
-/// the same pairing — the sheet calling a pairing comfortable and then refusing it.
-///
-/// The words are about reading rather than about the numbers behind them, because a
-/// reader wants to know whether a chapter will be comfortable, not whether a guideline
-/// is met. They replace `theme.pageColour.belowAAA`, which said the same thing in the
-/// arithmetic the reader could not read.
-///
-/// Android mirrors this in `PageColourSection.kt`.
-enum ReadingComfort: String, CaseIterable {
-    /// 7 to 1 and above.
-    case easy
-    /// 4.5 to 1 up to 7 to 1. Usable, and the sheet says what it costs.
-    case tiring
-    /// Below 4.5 to 1. Refused.
-    case faint
-
-    static func band(for ratio: Double) -> ReadingComfort {
-        if ratio >= ReadingContrast.aaa { return .easy }
-        return ratio >= ReadingContrast.aa ? .tiring : .faint
-    }
-
-    /// The catalogue key that says what this band will be like to read.
-    ///
-    /// Built from the case name rather than written out three times, so a band cannot
-    /// exist without a key. `PageColourBandTests` asserts the catalogue answers each of
-    /// them in all four languages, which is the check a literal at the call site would
-    /// otherwise buy from `pnpm strings:ios`.
-    var key: String { "theme.pageColour.band.\(rawValue)" }
-}
-
+/// The pairing is described in plain words first and measured second. See
+/// ``ReadingComfort``.
 struct PageColourSection: View {
     @Environment(\.theme) private var theme
 
@@ -260,6 +220,53 @@ struct PageColourSection: View {
     private static func formatted(_ ratio: Double) -> String {
         ratio.formatted(.number.precision(.fractionLength(1)).locale(.storyArc))
     }
+}
+
+/// What a pairing will be like to read, in words a reader can act on.
+///
+/// A reader choosing a background colour does not know what "4.7 to 1" means. A number
+/// nobody can interpret is not information; it is decoration that looks like
+/// information. So the sheet leads with one of three bands and states the measured
+/// ratio after it. Nothing is dropped: `reading-themes` requires a refused pairing to
+/// be stated "with the measured ratio stated", a reader who is refused deserves to know
+/// by how much, and a developer reading a bug report needs the number.
+///
+/// **The two boundaries are the domain's own, not new ones.** ``ReadingContrast/aaa``
+/// at 7, which a derived text colour aims for and every built-in preset clears, and
+/// ``ReadingContrast/aa`` at 4.5, below which the sheet refuses the pairing outright. A
+/// band drawn at any other number would let the words and the refusal disagree about
+/// the same pairing — the sheet calling a pairing comfortable and then refusing it.
+///
+/// The words are about reading rather than about the numbers behind them, because a
+/// reader wants to know whether a chapter will be comfortable, not whether a guideline
+/// is met. They replace `theme.pageColour.belowAAA`, which said the same thing in the
+/// arithmetic the reader could not read.
+///
+/// ponytail: it lives beside the one section that draws it rather than in
+/// `StoryArcCore`, because it is a wording decision over a number the domain already
+/// gives. Move it when a second surface asks the same question.
+///
+/// Android mirrors this in `PageColourSection.kt`.
+enum ReadingComfort: String, CaseIterable {
+    /// 7 to 1 and above.
+    case easy
+    /// 4.5 to 1 up to 7 to 1. Usable, and the sheet says what it costs.
+    case tiring
+    /// Below 4.5 to 1. Refused.
+    case faint
+
+    static func band(for ratio: Double) -> ReadingComfort {
+        if ratio >= ReadingContrast.aaa { return .easy }
+        return ratio >= ReadingContrast.aa ? .tiring : .faint
+    }
+
+    /// The catalogue key that says what this band will be like to read.
+    ///
+    /// Built from the case name rather than written out three times, so a band cannot
+    /// exist without a key. `PageColourBandTests` asserts the catalogue answers each of
+    /// them in all four languages, which is the check a literal at the call site would
+    /// otherwise buy from `pnpm strings:ios`.
+    var key: String { "theme.pageColour.band.\(rawValue)" }
 }
 
 /// One colour, tappable, with the selection shown by a ring rather than a tick.
