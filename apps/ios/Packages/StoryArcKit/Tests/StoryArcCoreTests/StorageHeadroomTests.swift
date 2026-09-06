@@ -122,6 +122,34 @@ struct DownloadSpaceHoldTests {
         #expect(released["finished"]?.state == .finished)
     }
 
+    @Test("A row already waiting for Wi-Fi says the room instead")
+    func wifiHoldBecomesTheShortage() {
+        // The device's shortage outranks the connection, and `hold(limit:)` names it first.
+        // A row left saying "waiting for Wi-Fi" keeps saying it while the reader is *on*
+        // Wi-Fi, because `pump()` stops at the shortage and never re-examines the
+        // connection — so the screen names a remedy that has already happened.
+        let library = DownloadLibrary(downloads: [
+            download("wifi", state: .paused(.waitingForWiFi)),
+        ])
+        let held = library.pausingForSpace()
+
+        #expect(held["wifi"]?.state == .paused(.outOfSpace))
+        #expect(held.hold(limit: nil) == .outOfSpace)
+    }
+
+    @Test("Room returning puts a Wi-Fi hold back for the connection to judge again")
+    func roomReturnsAWifiHoldToTheQueue() {
+        let library = DownloadLibrary(downloads: [
+            download("wifi", state: .paused(.waitingForWiFi)),
+        ])
+        let released = library.pausingForSpace().resumingAfterSpace()
+
+        #expect(released["wifi"]?.state == .queued)
+        // The same pump asks the connection next, and holds it again when it still forbids.
+        let again = released.reconsideringWifi { _ in false }
+        #expect(again["wifi"]?.state == .paused(.waitingForWiFi))
+    }
+
     @Test("Releasing a library that was never held changes nothing")
     func releaseIsIdempotent() {
         #expect(mixed.resumingAfterSpace() == mixed)

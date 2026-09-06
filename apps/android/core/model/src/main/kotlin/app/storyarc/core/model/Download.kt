@@ -187,16 +187,27 @@ data class DownloadLibrary(val downloads: List<Download> = emptyList()) {
      * the reason on every row -- not a queue that quietly stops, which is what a global hold
      * on its own looks like from the downloads screen.
      *
-     * Only the queued and the running. A finished download has nothing to pause, and a
-     * download the reader paused is left exactly as they left it: overwriting
-     * [Download.Pause.BY_READER] here would resume it the moment space returned, which is
-     * not what they asked for.
+     * The queued, the running, and one already held for Wi-Fi. A finished download has
+     * nothing to pause, and a download the reader paused is left exactly as they left it:
+     * overwriting [Download.Pause.BY_READER] here would resume it the moment space returned,
+     * which is not what they asked for.
+     *
+     * **A Wi-Fi hold is overwritten, and it has to be.** The device's shortage outranks the
+     * connection -- [hold] names it first -- and `pump` stops at the shortage before it
+     * examines the connection again. A row left saying "waiting for Wi-Fi" therefore keeps
+     * saying it while the reader is *on* Wi-Fi, and the screen names a remedy that has
+     * already happened. [resumingAfterSpace] puts the row back in the queue, and the same
+     * pump holds it for Wi-Fi again when the connection still forbids it.
      */
-    fun pausingForSpace(): DownloadLibrary =
-        downloads.filter { it.state == Download.State.Queued || it.state == Download.State.Running }
-            .fold(this) { library, download ->
-                library.marking(download.id, Download.State.Paused(Download.Pause.OUT_OF_SPACE))
-            }
+    fun pausingForSpace(): DownloadLibrary {
+        val wifi = Download.State.Paused(Download.Pause.WAITING_FOR_WIFI)
+        return downloads.filter {
+            it.state == Download.State.Queued || it.state == Download.State.Running ||
+                it.state == wifi
+        }.fold(this) { library, download ->
+            library.marking(download.id, Download.State.Paused(Download.Pause.OUT_OF_SPACE))
+        }
+    }
 
     /**
      * Puts back everything that was only waiting for room.

@@ -84,13 +84,24 @@ public struct DownloadLibrary: Sendable, Equatable {
     /// with the reason on every row — not a queue that quietly stops, which is what a
     /// global hold on its own looks like from the downloads screen.
     ///
-    /// Only the queued and the running. A finished download has nothing to pause, and a
-    /// download the reader paused is left exactly as they left it: overwriting
-    /// ``Download/Pause/byReader`` here would resume it the moment space returned, which is
-    /// not what they asked for.
+    /// The queued, the running, and one already held for Wi-Fi. A finished download has
+    /// nothing to pause, and a download the reader paused is left exactly as they left it:
+    /// overwriting ``Download/Pause/byReader`` here would resume it the moment space
+    /// returned, which is not what they asked for.
+    ///
+    /// **A Wi-Fi hold is overwritten, and it has to be.** The device's shortage outranks the
+    /// connection — ``hold(limit:)`` names it first — and the queue's pump stops at the
+    /// shortage before it examines the connection again. A row left saying "waiting for
+    /// Wi-Fi" therefore keeps saying it while the reader is *on* Wi-Fi, and the screen names
+    /// a remedy that has already happened. ``resumingAfterSpace()`` puts the row back in the
+    /// queue, and the same pump holds it for Wi-Fi again when the connection still forbids
+    /// it.
     public func pausingForSpace() -> DownloadLibrary {
         downloads
-            .filter { $0.state == .queued || $0.state == .running }
+            .filter {
+                $0.state == .queued || $0.state == .running
+                    || $0.state == .paused(.waitingForWiFi)
+            }
             .reduce(self) { $0.marking($1.id, as: .paused(.outOfSpace)) }
     }
 

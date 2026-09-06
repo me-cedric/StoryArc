@@ -132,6 +132,37 @@ class DownloadSpaceHoldTest {
     }
 
     @Test
+    fun `a row already waiting for Wi-Fi says the room instead`() {
+        // The device's shortage outranks the connection, and [DownloadLibrary.hold] names it
+        // first. A row left saying "waiting for Wi-Fi" keeps saying it while the reader is
+        // *on* Wi-Fi, because `pump` stops at the shortage and never re-examines the
+        // connection -- so the screen names a remedy that has already happened.
+        val library = DownloadLibrary(
+            listOf(download("wifi", Download.State.Paused(Download.Pause.WAITING_FOR_WIFI))),
+        )
+        val held = library.pausingForSpace()
+
+        assertEquals(Download.State.Paused(Download.Pause.OUT_OF_SPACE), held["wifi"]?.state)
+        assertEquals(DownloadHold.OUT_OF_SPACE, held.hold(null))
+    }
+
+    @Test
+    fun `room returning puts a Wi-Fi hold back for the connection to judge again`() {
+        val library = DownloadLibrary(
+            listOf(download("wifi", Download.State.Paused(Download.Pause.WAITING_FOR_WIFI))),
+        )
+        val released = library.pausingForSpace().resumingAfterSpace()
+
+        assertEquals(Download.State.Queued, released["wifi"]?.state)
+        // The same pump asks the connection next, and holds it again when it still forbids.
+        val again = released.reconsideringWifi { false }
+        assertEquals(
+            Download.State.Paused(Download.Pause.WAITING_FOR_WIFI),
+            again["wifi"]?.state,
+        )
+    }
+
+    @Test
     fun `releasing a library that was never held changes nothing`() {
         assertEquals(mixed, mixed.resumingAfterSpace())
     }
