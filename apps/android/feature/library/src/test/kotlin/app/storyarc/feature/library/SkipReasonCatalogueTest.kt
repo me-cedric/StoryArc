@@ -57,6 +57,30 @@ class SkipReasonCatalogueTest {
         )
     }
 
+    /**
+     * The locked refusal prompts for nothing, in every language.
+     *
+     * `publication-formats` keeps that case payload-free because there is no key to ask for and
+     * no account to name. A translation is a second place the promise can be broken, and this
+     * platform had no assertion of it at all: `ProtectedAudiobookPromptsForNothingTest` guards
+     * `open_in_protected`, which is a different resource in a different module.
+     *
+     * The same words as `SkipReasonCatalogueTests.theLockedRefusalPromptsForNothing`, and every
+     * token is matched against every language: a French word has no business in the German
+     * refusal either.
+     */
+    @Test
+    fun `the locked refusal asks for no key, no account and no activation, in any language`() {
+        for (locale in LOCALES) {
+            val value = namesIn(locale)
+                .getValue("library_skipped_reason_content_protected")
+                .lowercase()
+            for (asked in PROMPT_WORDS) {
+                assertTrue("the values$locale refusal mentions $asked", !value.contains(asked))
+            }
+        }
+    }
+
     private fun namesIn(locale: String): Map<String, String> {
         val module = requireNotNull(System.getProperty(MODULE_DIRECTORY)) {
             "$MODULE_DIRECTORY is not set — see this module's build.gradle.kts"
@@ -77,6 +101,22 @@ class SkipReasonCatalogueTest {
         val LOCALES = listOf("", "-fr", "-de", "-es")
 
         val STRING = Regex("""<string name="([^"]+)"[^>]*>(.*?)</string>""", RegexOption.DOT_MATCHES_ALL)
+
+        /**
+         * What a prompt would have to say, in all four languages.
+         *
+         * A translator writes in one language, so a list of English tokens guards English
+         * alone. The first six are the list iOS's `AudiobookIndexingTests` applied to the
+         * English sentence before the words moved; the rest are the same four ideas — a key, a
+         * password, an account, a way to sign in — in the three other languages.
+         * `activation` is spelt the same in English and French.
+         */
+        val PROMPT_WORDS = listOf(
+            "key", "password", "account", "activation", "sign in", "log in",
+            "clé", "mot de passe", "compte", "connexion", "connecter",
+            "schlüssel", "passwort", "konto", "anmeld", "aktivierung",
+            "clave", "contraseña", "cuenta", "sesión", "activación",
+        )
 
         /**
          * The names the library has to word, one per refusal the scan can report.
