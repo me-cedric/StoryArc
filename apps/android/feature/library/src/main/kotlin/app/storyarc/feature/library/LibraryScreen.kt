@@ -690,11 +690,19 @@ private fun Shelf(
         // matched, and a second set of headings cutting across the first would be two
         // answers to one question. The threshold and every refusal below it belong to
         // [LibrarySections]; this only decides that the question is worth asking.
-        val sections = remember(publications, query.sort, groups, other) {
+        //
+        // The reader's language, for the reason [LibraryViewModel.rebuild] gives. A heading is
+        // the initial of the sort key, and which article the sort key drops is a fact about the
+        // reader's language — so a heading read in the device's would name a letter the shelf
+        // did not sort on. Read once per composition rather than per recomposition: the settings
+        // blob is decoded on every call, and a language change recreates the activity, which
+        // takes this composition with it.
+        val locale = remember { viewModel.readerLocale() }
+        val sections = remember(publications, query.sort, groups, other, locale) {
             if (groups.isNotEmpty() || publications.size <= LibrarySections.THRESHOLD) {
                 emptyList()
             } else {
-                LibrarySections.divide(publications, query.sort, other)
+                LibrarySections.divide(publications, query.sort, other, locale)
             }
         }
         if (layout == LibraryLayout.GRID) {

@@ -178,6 +178,29 @@ class LibrarySectionsTest {
     }
 
     @Test
+    fun `a heading is the initial of the sort key, so a leading article files under neither`() {
+        // `library-browsing` ignores a leading article when it alphabetises, so *The Sandman*
+        // sits between *Saga* and *Swamp Thing*. A heading read off the raw title opens "T"
+        // in the middle of that S run and "S" again after it — one shelf drawn as two piles
+        // per letter, which the no-heading-twice rule then answers by refusing to divide the
+        // shelf at all. The shelf below arrives in the order `LibraryIndex.arrange` leaves it
+        // in for an English reader.
+        val shelf = listOf(
+            publication("Saga"),
+            publication("The Sandman"),
+            publication("Swamp Thing"),
+            publication("Tokyo Ghost"),
+            publication("Trees"),
+            publication("The Twelve"),
+        )
+
+        val sections = divide(shelf, LibrarySort.TITLE)
+
+        assertEquals(listOf("S", "T"), sections.map { it.title })
+        assertEquals(listOf(3, 3), titles(sections).map { it.size })
+    }
+
+    @Test
     fun `a year sort divides by year, and an unknown year is not filed as an early one`() {
         val shelf = listOf(
             publication("Watchmen", year = 1986),
@@ -299,11 +322,14 @@ class LibrarySectionsTest {
     fun `a series the sort scatters is not a heading, because two of them are two places`() {
         // Sorted by title, "Ashfall #3" is filed under T and "Ashfall #4" under W, with other
         // books between them. Two sections headed "Ashfall" would read as the app having lost
-        // half a series, so both fall back to the letter the sort filed them under.
+        // half a series, so both fall back to the letter the sort filed them under. No title
+        // here carries a leading article, so the letter a heading names is the title's own
+        // first letter — the article case is asserted by `a heading is the initial of the sort
+        // key`, and mixing the two questions into one shelf would leave neither of them read.
         val shelf = listOf(
-            publication("The Long Count", series = "Ashfall"),
-            publication("The Third Chapter"),
-            publication("The Quiet Season"),
+            publication("Tidewrack", series = "Ashfall"),
+            publication("Third Chapter"),
+            publication("Turning Season"),
             publication("Undeclared Direction"),
             publication("Unsupported Codec"),
             publication("Undertow"),

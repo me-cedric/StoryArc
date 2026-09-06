@@ -206,7 +206,14 @@ internal object LibrarySections {
             // library across twenty headings that all mean "no series".
             LibrarySort.SERIES -> other
 
-            LibrarySort.TITLE -> initial(publication.displayTitle, other, locale)
+            // The **sort key**, not the title. `library-browsing` alphabetises a title with
+            // its leading article ignored, so *The Sandman* sits between *Saga* and *Swamp
+            // Thing*; a heading read off the raw title opens "T" in the middle of that S run
+            // and "S" again after it, and the no-heading-twice rule answers by refusing to
+            // divide the shelf at all. The heading and the order have to be read off one key
+            // or the sections stop describing the shelf they sit on.
+            LibrarySort.TITLE ->
+                initial(LibraryIndex.sortKey(publication.displayTitle, locale), other, locale)
 
             // The year as the file spells it. A publication with none is not "before
             // everything" — the library simply does not know, and `YearRange` treats an
