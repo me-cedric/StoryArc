@@ -78,3 +78,83 @@ struct ShelfCoverChoiceTests {
         }
     }
 }
+
+/// The screen that offers the choice, and the model call the choice reaches.
+///
+/// The picker answering its own questions proves nothing about whether a reader can open it:
+/// `settingCover` and `coverMemberID` were round-tripped by the store and honoured by
+/// ``StoryArcCore/CompositeCover`` for weeks while no view, view model or menu called any of
+/// them, so a symbol search looked convincing and the clause was still unreachable. These
+/// walk the built value tree of the screen the offer lives on. Android's
+/// `ShelfCoverMenuTest` presses the same control on the same screen.
+@MainActor
+@Suite("The collection screen offers a cover")
+struct ShelfCoverMenuTests {
+
+    /// A model with one collection, kept in memory: no store is passed, so nothing here
+    /// writes to the machine the test runs on.
+    private func model(holding members: Set<String>) throws -> (LibraryModel, UUID) {
+        let model = LibraryModel()
+        model.create(collection: "Image Comics")
+        let id = try #require(model.shelves.collections.first?.id)
+        if !members.isEmpty { model.add(members, toCollection: id) }
+        return (model, id)
+    }
+
+    @Test("A collection holding something offers the cover choice")
+    func offersTheChoice() throws {
+        let (model, id) = try model(holding: ["a", "b"])
+
+        let drawn = ShelfCoverMenuTests.strings(in: CollectionDetail(model: model, id: id).body)
+
+        #expect(
+            drawn.contains("shelves.cover"),
+            "the collection screen offers no way to choose a cover, so settingCover is unreachable again"
+        )
+    }
+
+    @Test("A collection holding nothing does not offer it")
+    func emptyOffersNothing() throws {
+        let (model, id) = try model(holding: [])
+
+        let drawn = ShelfCoverMenuTests.strings(in: CollectionDetail(model: model, id: id).body)
+
+        #expect(!drawn.contains("shelves.cover"))
+    }
+
+    /// Choosing reaches the model, and the model reaches ``StoryArcCore/Shelves``.
+    /// `ShelvesStoreTests` carries the same choice through a round trip on disk.
+    @Test("The chosen cover is the one the collection then wears")
+    func choosingSets() throws {
+        let (model, id) = try model(holding: ["a", "b"])
+
+        model.setCover("b", onCollection: id)
+
+        #expect(model.shelves.collections.first?.coverMemberID == "b")
+        #expect(ShelfCoverChoice.chosen(in: try #require(model.shelves.collections.first)) == .member("b"))
+    }
+
+    /// The walk `SourceDetailSizeTests` describes: depth capped, class instances visited
+    /// once, and every claim made from it positive.
+    private static func strings(in root: Any) -> Set<String> {
+        var found: Set<String> = []
+        var seen: Set<ObjectIdentifier> = []
+
+        func walk(_ value: Any, depth: Int) {
+            guard depth < 40 else { return }
+            if let text = value as? String {
+                found.insert(text)
+                return
+            }
+            let mirror = Mirror(reflecting: value)
+            if mirror.displayStyle == .class,
+               !seen.insert(ObjectIdentifier(value as AnyObject)).inserted {
+                return
+            }
+            for child in mirror.children { walk(child.value, depth: depth + 1) }
+        }
+
+        walk(root, depth: 0)
+        return found
+    }
+}
