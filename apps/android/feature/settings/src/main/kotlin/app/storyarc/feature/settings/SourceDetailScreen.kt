@@ -41,6 +41,7 @@ import app.storyarc.core.model.SourceAction
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceDiagnosis
 import app.storyarc.core.model.SourceFailure
+import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRemovalWording
 import app.storyarc.core.persistence.ImportedCopies
 
@@ -194,6 +195,33 @@ internal fun SourceDetailScreen(
             if (source.id != ImportedCopies.SOURCE_ID && !source.kind.syncsReadingProgress) {
                 Text(
                     text = stringResource(R.string.sources_detail_progress_local_only),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.textSecondary,
+                )
+            }
+
+            // `network-share`' *Encrypted transport*: "the source detail screen states whether
+            // the connection is encrypted". The sentence lived only in the add-share sheet,
+            // which a reader sees once, before the source exists. A share is the only kind with
+            // a transport to state: a folder is a disk, and the two servers are HTTP.
+            //
+            // **It names encryption and never signing, and that is a decision rather than an
+            // omission.** ADR-0016 refuses a signing line on iOS -- that client verifies no
+            // response and cannot answer the question, and "the app does not explain its own
+            // weaknesses to the reader". jcifs-ng can answer it, and the add-share sheet says
+            // so; this screen is drawn the same way on both platforms, so it states the
+            // transport and the encryption alone, and a signed session reads like an unsigned
+            // one here.
+            //
+            // **It says *not* encrypted, flatly, because nothing else is reachable.**
+            // `SmbClient` reports `isEncrypted = false` on both platforms, and ADR-0010 records
+            // why neither client encrypts. A second sentence for the encrypted case would be a
+            // translated string no reader can see. When a client does negotiate SMB 3
+            // encryption, this becomes a question with two answers and the wording moves with
+            // it.
+            if (source.kind == SourceKind.NETWORK_SHARE) {
+                Text(
+                    text = stringResource(R.string.sources_detail_transport),
                     style = MaterialTheme.typography.bodySmall,
                     color = palette.textSecondary,
                 )
