@@ -97,17 +97,31 @@ if (present(KAVITA).length === 0) {
   const base = process.env.STORYARC_KAVITA_URL
   const key = process.env.STORYARC_KAVITA_API_KEY
   if (base && key) {
-    // The key travels as a bearer header and never in a URL — the same rule the client keeps.
-    const answer = await reach(`${base.replace(/\/$/, '')}/api/Server/server-info`, {
-      Authorization: `Bearer ${key}`,
-    })
-    console.log(`  server answers        ${answer.ok ? 'yes' : 'no'} (${answer.status})`)
+    // The call the client itself makes first, and the only one that says whether the key is
+    // good: `KavitaClient.authenticate` POSTs the key as a query item to Plugin/authenticate
+    // and exchanges it for a token, then every later request carries `Bearer <token>`.
+    // Probing anything else answers a question the app never asks — an earlier version of
+    // this script used `Server/server-info`, which the mock serves and a real Kavita does
+    // not, and reported a 404 that looked like a bad key.
+    const url = new URL(`${base.replace(/\/$/, '')}/api/Plugin/authenticate`)
+    url.searchParams.set('apiKey', key)
+    url.searchParams.set('pluginName', 'StoryArc')
+    let answer
+    try {
+      const got = await fetch(url, { method: 'POST', redirect: 'manual' })
+      const body = got.ok ? await got.json().catch(() => null) : null
+      answer = { ok: got.ok && Boolean(body?.token), status: got.status }
+      if (got.ok && !body?.token) answer.status = `${got.status}, no token in the answer`
+    } catch (error) {
+      answer = { ok: false, status: error?.cause?.code ?? 'unreachable' }
+    }
+    console.log(`  key exchanges for a token  ${answer.ok ? 'yes' : 'no'} (${answer.status})`)
     if (!answer.ok) failed += 1
   }
   const opds = process.env.STORYARC_KAVITA_OPDS_URL
   if (opds) {
     const answer = await reach(opds)
-    console.log(`  opds feed answers     ${answer.ok ? 'yes' : 'no'} (${answer.status})`)
+    console.log(`  opds feed answers         ${answer.ok ? 'yes' : 'no'} (${answer.status})`)
     if (!answer.ok) failed += 1
   }
 }
