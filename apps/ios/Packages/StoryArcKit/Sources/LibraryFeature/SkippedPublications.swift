@@ -1,3 +1,5 @@
+public import Formats
+
 /// The publications a scan could not open, and whether the reader has been told about them.
 ///
 /// `library-browsing`'s *What could not be opened*: the library "SHALL say **which**
@@ -24,13 +26,15 @@ public struct SkippedPublications: Sendable, Equatable {
     /// own file browser, which is what makes it actionable.
     public struct Entry: Sendable, Equatable, Identifiable {
         public let name: String
-        /// Verbatim from the scanner. Deliberately not re-worded here: a second sentence
-        /// for the same condition is a second thing to keep true.
-        public let reason: String
+        /// The scanner's case, not its words. This type carries the refusal and
+        /// `SkipReasonWords` says what it means, so the sentence is the reader's language
+        /// wherever it is drawn — and a second sentence for the same condition is still a
+        /// second thing to keep true, so there is one key per case and no more.
+        public let reason: SkipReason
 
         public var id: String { name }
 
-        public init(name: String, reason: String) {
+        public init(name: String, reason: SkipReason) {
             self.name = name
             self.reason = reason
         }
@@ -45,7 +49,7 @@ public struct SkippedPublications: Sendable, Equatable {
         /// Nothing failed, or everything that had failed now opens.
         case nothing
         /// Exactly one, named, with its reason stated where the notice is.
-        case one(name: String, reason: String)
+        case one(name: String, reason: SkipReason)
         /// More than one. The count is here and the reasons are in the list.
         case several(count: Int)
         /// The reader dismissed it, and the list is still reachable.

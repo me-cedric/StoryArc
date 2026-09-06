@@ -55,15 +55,27 @@ enum LibraryFeatureSource {
 
     /// The library's string catalogue, for one key.
     static func localizations(of key: String) -> [String: Any] {
+        guard let found = localizationsIfAny(of: key) else {
+            fatalError("the library's string catalogue does not answer \(key)")
+        }
+        return found
+    }
+
+    /// The library's string catalogue, for one key, or nil where it defines none.
+    ///
+    /// The sibling above is for a guard that already knows the key exists. This one is for a
+    /// guard whose whole question is whether it does: a missing key has to be a failure that
+    /// names itself, and `fatalError` stops the run instead.
+    static func localizationsIfAny(of key: String) -> [String: Any]? {
         let catalogue = package.appending(path: "Sources/LibraryFeature/Resources/Localizable.xcstrings")
         guard
             let data = try? Data(contentsOf: catalogue),
             let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-            let strings = parsed["strings"] as? [String: Any],
-            let record = strings[key] as? [String: Any]
+            let strings = parsed["strings"] as? [String: Any]
         else {
             fatalError("the library's string catalogue is not readable at \(catalogue.path)")
         }
+        guard let record = strings[key] as? [String: Any] else { return nil }
         return record["localizations"] as? [String: Any] ?? [:]
     }
 }

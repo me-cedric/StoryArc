@@ -95,11 +95,16 @@ struct SkippedNoticeAnnouncementTests {
     }
 
     private static let sevenZip = SkippedPublications.Entry(
-        name: "refused.cb7", reason: "CB7 is not a format StoryArc reads"
+        name: "refused.cb7", reason: .unsupportedFormat("CB7")
     )
     private static let protected = SkippedPublications.Entry(
-        name: "password-protected.cbz", reason: "the archive is password protected"
+        name: "password-protected.cbz", reason: .archivePasswordProtected
     )
+
+    /// The catalogue key the notice asks for on the 7-Zip's behalf, with its hole erased the
+    /// way SwiftUI derives it from the interpolation in `SkipReasonWords.swift`.
+    private static let sevenZipReasonKey = "library.skipped.reason.unsupported %@"
+    private static let protectedReasonKey = "library.skipped.reason.archivePasswordProtected"
 
     /// The notice's built body for one scan's refusals, dismissed or not.
     private static func notice(_ entries: [SkippedPublications.Entry], dismissed: Bool = false) -> ViewNode {
@@ -124,7 +129,15 @@ struct SkippedNoticeAnnouncementTests {
             "the sentence is not in the merged element: \(said.sorted())"
         )
         #expect(said.contains(Self.sevenZip.name), "the publication's name is not in the merged element")
-        #expect(said.contains(Self.sevenZip.reason), "the reason is announced as a second stop, not with the name")
+        // The reason's **key**, not its words: the notice draws `SkipReason.sentence`, so what
+        // the built view holds is the catalogue key and its argument. A screen reader hears the
+        // reader's own language, which is what `localization`'s *A publication skipped during a
+        // scan* asks for — "a screen reader announces the same translated words the screen
+        // shows" — and this is as close as a host test can stand to it.
+        #expect(
+            said.contains(Self.sevenZipReasonKey),
+            "the reason is announced as a second stop, not with the name"
+        )
     }
 
     @Test("Several failures are one element naming the count, with the reasons kept for the list")
@@ -139,8 +152,8 @@ struct SkippedNoticeAnnouncementTests {
         #expect(said.contains { $0.hasPrefix("library.skipped ") }, "the count is not in the merged element")
         // "the reasons are not merged": two files that failed differently say different
         // things, in the list, and the notice says neither.
-        #expect(!said.contains(Self.sevenZip.reason))
-        #expect(!said.contains(Self.protected.reason))
+        #expect(!said.contains(Self.sevenZipReasonKey))
+        #expect(!said.contains(Self.protectedReasonKey))
         // The control for the two negatives: the walk still sees strings, elsewhere in the tree.
         #expect(tree.strings.contains("library.skipped.list"))
     }

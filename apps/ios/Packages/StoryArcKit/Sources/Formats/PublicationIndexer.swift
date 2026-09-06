@@ -14,13 +14,35 @@ public import StoryArcCore
 /// so an authoritative source can replace them later without raising a conflict
 /// the app invented (`publication-formats`).
 public enum PublicationIndexer {
-    /// What went wrong, in terms the library can show without inventing a reason.
+    /// What went wrong, as a closed set of cases.
+    ///
+    /// **A case, never a sentence.** `unreadable(reason: String)` used to stand here, and five
+    /// English sentences were written into it — in a module that ships no string catalogue,
+    /// which is why `pnpm strings:ios` never reported them and a French reader was shown
+    /// English at the moment they most needed to understand. `localization`'s *A refusal
+    /// speaks the reader's language* is the requirement; a closed set is what makes it hold,
+    /// because the compiler now refuses the prose. `LibraryFeature` words these.
+    ///
+    /// Android's `IndexException` carries the same cases under the same names, minus
+    /// ``pdfUnopenable``, which that platform cannot reach — it indexes a PDF without opening
+    /// it, because `PdfRenderer` is a framework class the indexer stays off.
     public enum IndexError: Error, Equatable {
         /// A container StoryArc recognises and does not read. Carries the name so
         /// the message can say "7-Zip" rather than "could not open file".
+        ///
+        /// The name is content, not a sentence: `localization`'s *A sentence built around
+        /// content* shows a format's name as it is and translates every word around it.
         case unsupported(format: String)
-        /// Recognised, supported, and this particular file cannot be read.
-        case unreadable(reason: String)
+        /// Nothing at the path the library was handed.
+        case notThere
+        /// Bytes no sniffer claims.
+        case formatNotRecognised
+        /// The archive opened and asked for a password.
+        case archivePasswordProtected
+        /// The archive is one StoryArc reads and this one will not open.
+        case archiveUnreadable
+        /// PDFKit refused the document.
+        case pdfUnopenable
         /// Audio behind a store's content protection — an Audible `.aax` or `.aaxc`.
         ///
         /// **Its own case, and `publication-formats` requires it to be**: "the refusal is
@@ -64,7 +86,7 @@ public enum PublicationIndexer {
 
         var isDirectory: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
-        guard exists else { throw IndexError.unreadable(reason: "the file is not there") }
+        guard exists else { throw IndexError.notThere }
 
         if isDirectory.boolValue { return try await folderPublication(at: url) }
 
@@ -80,7 +102,7 @@ public enum PublicationIndexer {
         // exhaustiveness, which would cost the compiler's naming of every call site
         // a new container must be decided for.
         guard let container else {
-            throw IndexError.unreadable(reason: "the format was not recognised")
+            throw IndexError.formatNotRecognised
         }
 
         switch container {
@@ -142,7 +164,7 @@ public enum PublicationIndexer {
         let container = FormatSniffer.container(of: probe)
 
         guard let container else { // see the guard above
-            throw IndexError.unreadable(reason: "the format was not recognised")
+            throw IndexError.formatNotRecognised
         }
 
         return try await remote(

@@ -95,18 +95,20 @@ struct AudiobookIndexingTests {
         let locked = PublicationIndexer.IndexError.contentProtected
         #expect(locked != .unsupported(format: "MPEG-4 audio"))
         #expect(locked != .unsupported(format: "protected audiobook"))
-        #expect(locked != .unreadable(reason: "the archive could not be read"))
+        #expect(locked != .archiveUnreadable)
     }
 
     /// The refusal carries no payload, and that is deliberate: there is no key to ask for
     /// and no account to name, so there is nowhere for a prompt to get its wording from.
-    @Test("Nothing in the refusal invites a prompt for a key or an account")
+    ///
+    /// The words moved with the change that closed this case set — a refusal is a case here
+    /// and a sentence in `LibraryFeature`, in four languages. So the promise that it prompts
+    /// for nothing is asserted where the words are, by
+    /// `SkipReasonCatalogueTests.theLockedRefusalPromptsForNothing`, in all four. What is left
+    /// here is the case itself, which is the thing that carries nothing to prompt with.
+    @Test("The locked refusal reaches the library as a case that carries nothing")
     func nothingToPromptFor() {
-        let reason = LibraryScanner.skipReason(for: .contentProtected)
-        #expect(reason.contains("content protection"))
-        for word in ["key", "account", "activation", "password", "sign in", "log in"] {
-            #expect(!reason.lowercased().contains(word), "the refusal must not mention a \(word)")
-        }
+        #expect(SkipReason(.contentProtected) == .contentProtected)
     }
 
     // MARK: - Damage

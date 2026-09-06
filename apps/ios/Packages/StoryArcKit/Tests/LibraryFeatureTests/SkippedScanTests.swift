@@ -77,9 +77,12 @@ struct SkippedScanTests {
         let reasons = Dictionary(
             uniqueKeysWithValues: model.skipped.entries.map { ($0.name, $0.reason) }
         )
-        #expect(reasons["refused.cb7"]?.contains("CB7") == true)
+        #expect(reasons["refused.cb7"] == .unsupportedFormat("CB7"))
         #expect(reasons["password-protected.cbz"] != reasons["refused.cb7"])
-        #expect(model.skipped.entries.allSatisfy { !$0.reason.isEmpty })
+        // "not dropped silently" is the type's own guarantee now — every case words a
+        // sentence — so what is left is that neither is the catch-all, which is the case the
+        // library has nothing specific to say about.
+        #expect(model.skipped.entries.allSatisfy { $0.reason != .unknown })
     }
 
     @Test("One failure names the publication rather than counting it")
@@ -94,7 +97,7 @@ struct SkippedScanTests {
             return
         }
         #expect(name == "refused.cb7")
-        #expect(reason.contains("CB7"))
+        #expect(reason == .unsupportedFormat("CB7"))
     }
 
     @Test("A scan that opens everything says nothing")

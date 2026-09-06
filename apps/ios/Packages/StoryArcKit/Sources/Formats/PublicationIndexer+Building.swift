@@ -64,11 +64,11 @@ extension PublicationIndexer {
                 streaming: .refused
             )
         } catch ComicArchiveError.passwordProtected {
-            throw IndexError.unreadable(reason: "the archive is password protected")
+            throw IndexError.archivePasswordProtected
         } catch let ComicArchiveError.unsupportedContainer(container) {
             throw IndexError.unsupported(format: container.displayName)
         } catch {
-            throw IndexError.unreadable(reason: "the archive could not be read")
+            throw IndexError.archiveUnreadable
         }
         return comic(
             archive,
@@ -179,7 +179,7 @@ extension PublicationIndexer {
         do {
             reader = try PdfDocumentReader(url: url)
         } catch {
-            throw IndexError.unreadable(reason: "the PDF could not be opened")
+            throw IndexError.pdfUnopenable
         }
         return Publication(
             identity: identity,

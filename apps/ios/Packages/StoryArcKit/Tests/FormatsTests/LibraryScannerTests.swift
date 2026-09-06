@@ -109,15 +109,20 @@ struct LibraryScannerTests {
     @Test("An unreadable file is skipped with a reason, not dropped silently")
     func skipsWithReason() async throws {
         let events = await events(in: corpus)
-        let skips = events.compactMap { event -> (String, String)? in
+        let skips = events.compactMap { event -> (String, SkipReason)? in
             if case let .skipped(path, reason) = event { return (path, reason) }
             return nil
         }
         // refused.cb7 is in the corpus and must be reported by name.
         let sevenZip = skips.first { $0.0 == "refused.cb7" }
         #expect(sevenZip != nil)
-        #expect(sevenZip?.1.contains("CB7") == true)
-        #expect(skips.allSatisfy { !$0.1.isEmpty })
+        // The format's name, because `publication-formats` forbids "could not open": it is
+        // content, carried by the case, and `LibraryFeature` words the sentence around it.
+        #expect(sevenZip?.1 == .unsupportedFormat("CB7"))
+        // "not dropped silently" is now the type's own guarantee — every case words a
+        // sentence — so what is left to assert is that none of them is the catch-all, which
+        // is the one the library has nothing specific to say about.
+        #expect(skips.allSatisfy { $0.1 != .unknown })
     }
 
     @Test("A refused publication is found rather than skipped")

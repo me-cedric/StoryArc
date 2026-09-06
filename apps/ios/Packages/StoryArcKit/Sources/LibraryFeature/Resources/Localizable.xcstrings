@@ -6711,6 +6711,246 @@
         }
       }
     },
+    "library.skipped.reason.archivePasswordProtected": {
+      "comment": "The archive opened and asked for a password. StoryArc does not prompt for one.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "das Archiv ist passwortgeschützt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the archive is password protected"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "el archivo comprimido está protegido con contraseña"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "l’archive est protégée par un mot de passe"
+          }
+        }
+      }
+    },
+    "library.skipped.reason.archiveUnreadable": {
+      "comment": "The archive is a kind StoryArc reads and this one will not open.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "das Archiv konnte nicht gelesen werden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the archive could not be read"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no se pudo leer el archivo comprimido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "l’archive n’a pas pu être lue"
+          }
+        }
+      }
+    },
+    "library.skipped.reason.contentProtected": {
+      "comment": "Audio locked by the store that sold it. Android’s wording, agreed for both platforms because it names the kind of thing. It asks for no key, no account and no activation code.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dieses Hörbuch ist durch den Kopierschutz seines Shops gesperrt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "this audiobook is protected by its store’s content protection"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "este audiolibro está bloqueado por la protección de contenido de su tienda"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ce livre audio est verrouillé par la protection de contenu de sa boutique"
+          }
+        }
+      }
+    },
+    "library.skipped.reason.formatNotRecognised": {
+      "comment": "Bytes no sniffer claims. Not the same as a format StoryArc declines to read.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "das Format wurde nicht erkannt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the format was not recognised"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no se reconoció el formato"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "le format n’a pas été reconnu"
+          }
+        }
+      }
+    },
+    "library.skipped.reason.notThere": {
+      "comment": "Nothing at the path the library was handed. Shown beside the file’s own name.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "die Datei ist nicht vorhanden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the file is not there"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no se encuentra el archivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "le fichier est introuvable"
+          }
+        }
+      }
+    },
+    "library.skipped.reason.pdfUnopenable": {
+      "comment": "PDFKit refused the document. iOS only: Android indexes a PDF without opening it.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "die PDF konnte nicht geöffnet werden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the PDF could not be opened"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no se pudo abrir el PDF"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "le PDF n’a pas pu être ouvert"
+          }
+        }
+      }
+    },
+    "library.skipped.reason.unknown": {
+      "comment": "A failure the format layer wrote no case for. A translated general refusal, never a maintainer’s wording.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "die Datei konnte nicht gelesen werden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "it could not be read"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no se pudo leer el archivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "le fichier n’a pas pu être lu"
+          }
+        }
+      }
+    },
+    "library.skipped.reason.unsupported %@": {
+      "comment": "A container StoryArc recognises and does not read, named so a reader knows what to convert. The format’s name is content and is shown as it is.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc liest das Format %@ nicht"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is not a format StoryArc reads"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc no lee el formato %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc ne lit pas le format %@"
+          }
+        }
+      }
+    },
     "library.sort": {
       "extractionState": "manual",
       "localizations": {

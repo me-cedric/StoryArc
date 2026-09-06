@@ -1,6 +1,7 @@
 internal import SwiftUI
 
 internal import DesignSystem
+internal import Formats
 
 /// What the library says about the publications it could not open.
 ///
@@ -70,17 +71,18 @@ struct SkippedNotice: View {
     /// window and the named control was truncated to *"What couldn’t be open…"*. A control
     /// whose name is cut off is not the named control `library-browsing` asks for, and no unit
     /// test can see it — the width that did the truncating belongs to the window.
-    private func banner(sentence: Text, reason: String?) -> some View {
+    private func banner(sentence: Text, reason: SkipReason?) -> some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
                 sentence
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textPrimary)
-                // Verbatim from `publication-formats`. Shown here only when there is one
-                // publication to attribute it to; several reasons belong in the list, where
-                // each sits beside its own name.
+                // `publication-formats`' refusal, in the reader's language: the scan hands
+                // over a case and `SkipReasonWords` says what it means. Shown here only when
+                // there is one publication to attribute it to; several reasons belong in the
+                // list, where each sits beside its own name.
                 if let reason {
-                    Text(reason)
+                    reason.sentence
                         .textRole(.caption)
                         .foregroundStyle(theme.palette.textSecondary)
                 }
@@ -170,7 +172,7 @@ struct SkippedList: View {
                     Text(entry.name)
                         .textRole(.body)
                         .foregroundStyle(theme.palette.textPrimary)
-                    Text(entry.reason)
+                    entry.reason.sentence
                         .textRole(.footnote)
                         .foregroundStyle(theme.palette.textSecondary)
                 }

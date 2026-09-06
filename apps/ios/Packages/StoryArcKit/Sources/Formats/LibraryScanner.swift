@@ -12,10 +12,53 @@ public enum ScanEvent: Sendable, Equatable {
     /// screen can fill while the rest of the folder is still being walked.
     case found(Publication)
     /// A file was recognised and not indexed. Carries a reason the library can
-    /// show, because `publication-formats` forbids a silent failure.
-    case skipped(path: String, reason: String)
+    /// word, because `publication-formats` forbids a silent failure.
+    case skipped(path: String, reason: SkipReason)
     /// The walk finished.
     case finished(found: Int, skipped: Int)
+}
+
+/// Why a scan passed a file over, as a case the library words.
+///
+/// **This module writes no reader-facing sentence, and this type is how.** The reasons used
+/// to cross this seam as a `String`, written here, in a module that ships no string catalogue
+/// — so `pnpm strings:ios` could not see them and a French reader read English.
+/// `localization`'s *A refusal speaks the reader's language* is the requirement, and a closed
+/// set is what makes it hold: `LibraryFeature/SkipReasonWords.swift` maps each case to a key
+/// its own catalogue answers in four languages.
+///
+/// It is `PublicationIndexer.IndexError` plus ``unknown``, rather than that type itself: a
+/// walk also meets failures the indexer never threw, and *A failure with no sentence written
+/// for it* requires those to be a translated general refusal rather than internal prose.
+///
+/// Android's `SkipReason` carries the same cases under the same names, minus `pdfUnopenable`.
+public enum SkipReason: Sendable, Equatable {
+    /// A container StoryArc recognises and does not read, named. The name is content.
+    case unsupportedFormat(String)
+    case notThere
+    case formatNotRecognised
+    case archivePasswordProtected
+    case archiveUnreadable
+    case pdfUnopenable
+    case contentProtected
+    /// A failure the indexer wrote no case for. The library words it as a general refusal.
+    case unknown
+
+    /// The scan's reason for a refusal the indexer named.
+    ///
+    /// A case-for-case map and nothing else. It carries no words, which is what keeps this
+    /// module unable to write one.
+    init(_ error: PublicationIndexer.IndexError) {
+        switch error {
+        case let .unsupported(format): self = .unsupportedFormat(format)
+        case .notThere: self = .notThere
+        case .formatNotRecognised: self = .formatNotRecognised
+        case .archivePasswordProtected: self = .archivePasswordProtected
+        case .archiveUnreadable: self = .archiveUnreadable
+        case .pdfUnopenable: self = .pdfUnopenable
+        case .contentProtected: self = .contentProtected
+        }
+    }
 }
 
 /// Walks a folder and turns what it finds into publications.
@@ -310,9 +353,9 @@ public enum LibraryScanner {
             emit(.found(publication))
             return Tally(found: 1, skipped: 0)
         } catch let error as PublicationIndexer.IndexError {
-            emit(.skipped(path: url.lastPathComponent, reason: skipReason(for: error)))
+            emit(.skipped(path: url.lastPathComponent, reason: SkipReason(error)))
         } catch {
-            emit(.skipped(path: url.lastPathComponent, reason: "it could not be read"))
+            emit(.skipped(path: url.lastPathComponent, reason: .unknown))
         }
         return Tally(found: 0, skipped: 1)
     }
@@ -341,20 +384,6 @@ public enum LibraryScanner {
         if let size = values?.fileSize { publication.fileSize = Int64(size) }
     }
 
-    /// A reason in words a person can act on.
-    ///
-    /// "7-Zip is not supported" tells someone to convert the file; "could not open"
-    /// tells them nothing, which is what `publication-formats` forbids.
-    static func skipReason(for error: PublicationIndexer.IndexError) -> String {
-        switch error {
-        case let .unsupported(format): "\(format) is not a format StoryArc reads"
-        case let .unreadable(reason): reason
-        // Distinct from the line above, and `publication-formats` requires it to be: the
-        // format is one StoryArc reads and this file is locked by the store that sold it.
-        // No key is asked for here or anywhere.
-        case .contentProtected: "it is protected by its store's content protection"
-        }
-    }
 }
 
 extension ScanEvent {

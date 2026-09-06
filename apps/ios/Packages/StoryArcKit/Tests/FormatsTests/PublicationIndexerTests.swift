@@ -169,7 +169,7 @@ struct PublicationIndexerTests {
 
     @Test("A file that is not there is named as missing, not as unsupported")
     func missingFile() async throws {
-        await #expect(throws: PublicationIndexer.IndexError.unreadable(reason: "the file is not there")) {
+        await #expect(throws: PublicationIndexer.IndexError.notThere) {
             _ = try await PublicationIndexer.index(
                 fileAt: URL(fileURLWithPath: "/nowhere/at/all.cbz")
             )

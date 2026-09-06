@@ -16,11 +16,11 @@ struct SkippedPublicationsTests {
 
     private let sevenZip = SkippedPublications.Entry(
         name: "refused.cb7",
-        reason: "CB7 is not a format StoryArc reads"
+        reason: .unsupportedFormat("CB7")
     )
     private let protected = SkippedPublications.Entry(
         name: "password-protected.cbz",
-        reason: "the archive is password protected"
+        reason: .archivePasswordProtected
     )
 
     @Test("Nothing failed, nothing is said")
@@ -36,7 +36,7 @@ struct SkippedPublicationsTests {
         // words `publication-formats` gives for it". Not a count, and not a sentence this
         // layer wrote.
         let skipped = SkippedPublications().settling([sevenZip])
-        #expect(skipped.notice == .one(name: "refused.cb7", reason: "CB7 is not a format StoryArc reads"))
+        #expect(skipped.notice == .one(name: "refused.cb7", reason: .unsupportedFormat("CB7")))
     }
 
     @Test("Several state the count and keep every reason apart")
@@ -47,7 +47,7 @@ struct SkippedPublicationsTests {
         // "the reasons are not merged: two files that failed differently say different
         // things". The count is the notice; the reasons are the list behind it.
         #expect(skipped.entries.map(\.name) == ["refused.cb7", "password-protected.cbz"])
-        #expect(Set(skipped.entries.map(\.reason)).count == 2)
+        #expect(skipped.entries[0].reason != skipped.entries[1].reason)
     }
 
     @Test("Dismissal is the reader's, and the list stays reachable")

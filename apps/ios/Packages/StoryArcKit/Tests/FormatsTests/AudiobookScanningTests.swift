@@ -102,7 +102,7 @@ struct AudiobookScanningTests {
             to: library.appending(path: "Sea Room.aax")
         )
 
-        var skipped: [(path: String, reason: String)] = []
+        var skipped: [(path: String, reason: SkipReason)] = []
         var found = 0
         for await event in LibraryScanner.scan(folderAt: library) {
             switch event {
@@ -116,11 +116,10 @@ struct AudiobookScanningTests {
         #expect(skipped.count == 1, "and it is not nothing either — it was dropped in silence")
         #expect(skipped.first?.path.hasSuffix("Sea Room.aax") == true)
         let reason = try #require(skipped.first?.reason)
-        #expect(reason.contains("content protection"), "the reason is the lock, not the container")
-        // The refusal prompts for nothing, here as everywhere else it is worded.
-        for asked in ["key", "account", "activation", "password", "sign in"] {
-            #expect(!reason.lowercased().contains(asked), "the scan reason asked for a \(asked)")
-        }
+        // The lock, not the container. The case says which refusal this is; the sentence and
+        // the promise that it prompts for nothing are `LibraryFeature`'s, in four languages —
+        // `SkipReasonCatalogueTests` asserts both.
+        #expect(reason == .contentProtected, "the reason is the lock, not the container")
     }
 
     /// The half that makes the fix safe: a locked file is worth *opening* and is not a part.
