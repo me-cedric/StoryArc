@@ -202,15 +202,6 @@ class KavitaClientTest {
     }
 
     @Test
-    fun aSearchResultWithNoPageCountsStillDecodes() = runBlocking {
-        // Kavita's search carries identity, not progress. A decoder that insisted would turn
-        // every search into "unexpected response".
-        val found = client().search("tidal")
-        assertEquals(listOf("Tidal Reach"), found.map { it.name })
-        assertNull(found.first().fraction)
-    }
-
-    @Test
     fun aSearchReadsAllFiveKindsTheSpecNames() = runBlocking {
         // `kavita-server`: "matches across series, chapters, people, genres, and tags". A
         // genre and a tag arrive as one kind, and in that order.

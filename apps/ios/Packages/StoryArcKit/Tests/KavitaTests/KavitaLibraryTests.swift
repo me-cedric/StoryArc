@@ -76,14 +76,6 @@ struct KavitaLibraryTests {
         #expect(!KavitaChapter(id: 1, number: "1", pages: 0, pagesRead: 0).isFinished)
     }
 
-    @Test("A search returns the series the server matched")
-    func search() async throws {
-        let client = try client(
-            #"{"series":[{"id":2,"name":"Tidal Reach","libraryId":1}],"chapters":[]}"#
-        )
-        #expect(try await client.search("tidal").map(\.name) == ["Tidal Reach"])
-    }
-
     @Test("A search reads all five kinds the spec names")
     func findsEveryKind() async throws {
         // `kavita-server`: "matches across series, chapters, people, genres, and tags". A

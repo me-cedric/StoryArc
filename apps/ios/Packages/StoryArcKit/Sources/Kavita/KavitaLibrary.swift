@@ -222,14 +222,6 @@ extension KavitaClient {
         return KavitaFile(bytes: bytes, mediaType: type)
     }
 
-    /// Series matching a query, answered by the server.
-    ///
-    /// The narrow half of ``find(_:)``, kept because the series is the only thing a caller
-    /// that already knows which library it is in needs.
-    public func search(_ query: String) async throws -> [KavitaSeries] {
-        try await results(for: query).series
-    }
-
     /// Everything the server matched, in the five kinds the spec names.
     ///
     /// `kavita-server`: searching within a Kavita source sends the query to the server,

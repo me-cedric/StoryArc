@@ -220,6 +220,26 @@ final class KavitaStub: URLProtocol {
         return configuration
     }
 
+    /// What a request carried, for a test that checks the fields rather than the address.
+    ///
+    /// `URLSession` turns a body into a stream before a `URLProtocol` sees it, so
+    /// `httpBody` is nil here however the request was built and reading the stream is the
+    /// only way to see what was posted.
+    static func body(of request: URLRequest) -> String? {
+        if let data = request.httpBody { return String(decoding: data, as: UTF8.self) }
+        guard let stream = request.httpBodyStream else { return nil }
+        stream.open()
+        defer { stream.close() }
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 1024)
+        while stream.hasBytesAvailable {
+            let read = stream.read(&buffer, maxLength: buffer.count)
+            guard read > 0 else { break }
+            data.append(buffer, count: read)
+        }
+        return String(decoding: data, as: UTF8.self)
+    }
+
     override static func canInit(with request: URLRequest) -> Bool { true }
 
     override static func canonicalRequest(for request: URLRequest) -> URLRequest { request }

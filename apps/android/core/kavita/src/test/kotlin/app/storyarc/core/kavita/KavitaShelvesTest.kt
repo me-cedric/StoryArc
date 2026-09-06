@@ -5,16 +5,21 @@ import java.net.InetSocketAddress
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
 /**
- * Putting a local reading list on a server, and taking it back off again.
+ * The writes a reader's shelf makes to a server: making a list, dropping it again, moving one
+ * of its entries, and making a collection.
  *
  * `collections-and-reading-lists` asks for a local list to be copied onto a server, and the
  * house makes an action of that shape undoable for ten seconds -- which for a list the server
- * now holds means asking the server to drop it. The same four claims iOS's
- * `KavitaShelvesTests` makes, in the same order.
+ * now holds means asking the server to drop it. The same requirement makes a reading list's
+ * order its meaning and asks a new order to be "sent to the server", and lets a new shelf be
+ * kept "on a server if the user chooses one that supports collections".
+ *
+ * The same eight claims iOS's `KavitaShelvesTests` makes, in the same order.
  */
 class KavitaShelvesTest {
 
@@ -24,6 +29,13 @@ class KavitaShelvesTest {
     private var method: String? = null
     private var path: String? = null
     private var query: String? = null
+
+    /** What was posted, so a test can check the fields Kavita reads rather than only the
+     * address they were sent to. */
+    private var sent: String? = null
+
+    /** What a GET is answered with, which for a collection create is the read-back. */
+    private var listing = """[{"id":4,"title":"Attic"}]"""
 
     /** What the stub answers with, so one test can make the server refuse. */
     private var status = 200
@@ -42,10 +54,13 @@ class KavitaShelvesTest {
             var code = 200
             if (requested.endsWith("/Plugin/authenticate")) {
                 body = """{"username":"ada","token":"t"}"""
+            } else if (exchange.requestMethod == "GET") {
+                body = listing
             } else {
                 method = exchange.requestMethod
                 path = requested
                 query = exchange.requestURI.query
+                sent = exchange.requestBody.readBytes().decodeToString()
                 code = status
                 body = answer
             }
@@ -85,6 +100,50 @@ class KavitaShelvesTest {
         assertEquals("DELETE", method)
         assertEquals("/api/ReadingList", path)
         assertEquals("readingListId=7", query)
+    }
+
+    @Test
+    fun moveNamesTheEntryAndBothPositions() = runBlocking {
+        // Kavita moves by position and by entry together. A client that sent one without the
+        // other would move whatever happens to sit there now.
+        answer = "{}"
+        client().moveInList(7, item = 3, from = 2, to = 0)
+        assertEquals("POST", method)
+        assertEquals("/api/ReadingList/update-position", path)
+        assertTrue(sent.orEmpty().contains(""""readingListId":7"""))
+        assertTrue(sent.orEmpty().contains(""""readingListItemId":3"""))
+        assertTrue(sent.orEmpty().contains(""""fromPosition":2"""))
+        assertTrue(sent.orEmpty().contains(""""toPosition":0"""))
+    }
+
+    @Test(expected = KavitaError.Http::class)
+    fun aRefusedMoveThrows() {
+        // Which is what lets the order stay queued: a caller that swallowed this would drop
+        // the reader's order on the floor and say nothing.
+        status = 400
+        answer = """{"message":"no"}"""
+        runBlocking { client().moveInList(7, item = 3, from = 2, to = 0) }
+    }
+
+    @Test
+    fun createCollectionPostsTheNameWithNoTag() = runBlocking {
+        answer = "{}"
+        val made = client().createCollection("Attic")
+        assertEquals("POST", method)
+        assertEquals("/api/Collection/update-for-series", path)
+        assertTrue(sent.orEmpty().contains(""""collectionTagId":0"""))
+        assertTrue(sent.orEmpty().contains(""""collectionTagTitle":"Attic""""))
+        // Read back, because the bulk-add answers with nothing and the id is what everything
+        // after this is addressed by.
+        assertEquals(4, made.id)
+        assertEquals("Attic", made.title)
+    }
+
+    @Test(expected = KavitaError.UnexpectedResponse::class)
+    fun aCollectionTheServerNeverListsThrows() {
+        answer = "{}"
+        listing = "[]"
+        runBlocking { client().createCollection("Attic") }
     }
 
     @Test(expected = KavitaError.Http::class)

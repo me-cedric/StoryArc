@@ -199,6 +199,52 @@ class KavitaClient(val address: KavitaAddress) {
     }
 
     /**
+     * Makes a collection on the server and answers with what it became.
+     *
+     * `collections-and-reading-lists` lets a reader keep a new collection "on a server if the
+     * user chooses one that supports collections". Kavita has no create route for a
+     * collection: it brings one into being by tagging series, with a zero id meaning "make
+     * it". So the create is a bulk-add, and the id has to be read back afterwards -- the
+     * bulk-add answers with nothing, and everything a caller does next is addressed by the id
+     * the server minted.
+     *
+     * **A collection holding no series has never been made against a live Kavita.** The mock
+     * takes one; a real server may not, because a collection with nothing in it is not a
+     * thing Kavita's own interface can make. That is a live-server question, and
+     * `docs/openspec/STATUS.md` scores it as one.
+     */
+    suspend fun createCollection(title: String, seriesIds: List<Int> = emptyList()): KavitaCollection {
+        request(
+            address.endpoint("Collection/update-for-series"),
+            method = "POST",
+            body = Json.encodeToString(
+                KavitaCollectionDraft.serializer(),
+                KavitaCollectionDraft(0, title, seriesIds),
+            ),
+        )
+        return collections().lastOrNull { it.title == title } ?: throw KavitaError.UnexpectedResponse
+    }
+
+    /**
+     * Moves one entry of a server reading list to a new place in it.
+     *
+     * `collections-and-reading-lists` makes a reading list's order its meaning, and asks for
+     * a new order to be "sent to the server" for a server-backed list. Kavita moves one entry
+     * at a time, by position rather than by identity, so a caller that wants a whole order
+     * sends a run of these -- see `ShelfSync`, which plans that run.
+     */
+    suspend fun moveInList(listId: Int, item: Int, from: Int, to: Int) {
+        request(
+            address.endpoint("ReadingList/update-position"),
+            method = "POST",
+            body = Json.encodeToString(
+                KavitaListPosition.serializer(),
+                KavitaListPosition(listId, item, from, to),
+            ),
+        )
+    }
+
+    /**
      * Makes a new, empty reading list on the server and answers with what it became.
      *
      * `collections-and-reading-lists` lets a reader put a local list "on a server" so it
@@ -227,14 +273,6 @@ class KavitaClient(val address: KavitaAddress) {
             method = "DELETE",
         )
     }
-
-    /**
-     * Series matching a query, answered by the server.
-     *
-     * The narrow half of [find], kept because the series is the only thing a caller that
-     * already knows which library it is in needs.
-     */
-    suspend fun search(query: String): List<KavitaSeries> = results(query).series
 
     /**
      * Everything the server matched, in the five kinds the spec names.

@@ -82,6 +82,25 @@ struct KavitaListDraft: Encodable {
     let title: String
 }
 
+/// What `update-for-series` wants: a collection, a name for it, and the series to put in it.
+///
+/// Zero for the id is Kavita's own way of saying "make one": its bulk-add creates the
+/// collection when the id names none. There is no separate create route for a collection the
+/// way there is for a reading list.
+struct KavitaCollectionDraft: Encodable {
+    let collectionTagId: Int
+    let collectionTagTitle: String
+    let seriesIds: [Int]
+}
+
+/// What `update-position` wants: one entry, where it is, and where it goes.
+struct KavitaListPosition: Encodable {
+    let readingListId: Int
+    let readingListItemId: Int
+    let fromPosition: Int
+    let toPosition: Int
+}
+
 extension KavitaClient {
     /// The collections this server holds.
     public func collections() async throws -> [KavitaCollection] {
@@ -128,6 +147,67 @@ extension KavitaClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(
             KavitaListAppend(readingListId: listId, seriesId: seriesId, chapterIds: chapterIds)
+        )
+        _ = try await send(request)
+    }
+
+    /// Makes a collection on the server and answers with what it became.
+    ///
+    /// `collections-and-reading-lists` lets a reader keep a new collection "on a server if the
+    /// user chooses one that supports collections". Kavita has no create route for a
+    /// collection: it brings one into being by tagging series, with a zero id meaning "make
+    /// it". So the create is a bulk-add, and the id has to be read back afterwards — the
+    /// bulk-add answers with nothing, and everything a caller does next is addressed by the
+    /// id the server minted.
+    ///
+    /// **A collection holding no series has never been made against a live Kavita.** The mock
+    /// takes one; a real server may not, because a collection with nothing in it is not a
+    /// thing Kavita's own interface can make. That is a live-server question, and
+    /// `docs/openspec/STATUS.md` scores it as one.
+    public func createCollection(
+        named title: String,
+        seriesIds: [Int] = []
+    ) async throws -> KavitaCollection {
+        guard let url = address.endpoint("Collection/update-for-series") else {
+            throw KavitaError.badAddress
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(
+            KavitaCollectionDraft(
+                collectionTagId: 0,
+                collectionTagTitle: title,
+                seriesIds: seriesIds
+            )
+        )
+        _ = try await send(request)
+        guard let made = try await collections().last(where: { $0.title == title }) else {
+            throw KavitaError.unexpectedResponse
+        }
+        return made
+    }
+
+    /// Moves one entry of a server reading list to a new place in it.
+    ///
+    /// `collections-and-reading-lists` makes a reading list's order its meaning, and asks
+    /// for a new order to be "sent to the server" for a server-backed list. Kavita moves one
+    /// entry at a time, by position rather than by identity, so a caller that wants a whole
+    /// order sends a run of these — see ``ShelfSync``, which plans that run.
+    public func moveInList(_ listId: Int, item: Int, from: Int, to: Int) async throws {
+        guard let url = address.endpoint("ReadingList/update-position") else {
+            throw KavitaError.badAddress
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(
+            KavitaListPosition(
+                readingListId: listId,
+                readingListItemId: item,
+                fromPosition: from,
+                toPosition: to
+            )
         )
         _ = try await send(request)
     }

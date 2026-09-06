@@ -50,3 +50,26 @@ data class KavitaListAppend(
 /** What `create` wants: a name, and nothing else. Kavita fills in the rest. */
 @Serializable
 data class KavitaListDraft(val title: String)
+
+/**
+ * What `update-for-series` wants: a collection, a name for it, and the series to put in it.
+ *
+ * Zero for the id is Kavita's own way of saying "make one": its bulk-add creates the
+ * collection when the id names none. There is no separate create route for a collection the
+ * way there is for a reading list.
+ */
+@Serializable
+data class KavitaCollectionDraft(
+    val collectionTagId: Int,
+    val collectionTagTitle: String,
+    val seriesIds: List<Int>,
+)
+
+/** What `update-position` wants: one entry, where it is, and where it goes. */
+@Serializable
+data class KavitaListPosition(
+    val readingListId: Int,
+    val readingListItemId: Int,
+    val fromPosition: Int,
+    val toPosition: Int,
+)
