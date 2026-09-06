@@ -128,4 +128,25 @@ struct RefusedFileWordingTests {
             }
         }
     }
+
+    @Test("The protected refusal forecloses the field it does not draw")
+    func protectedForeclosesTheField() throws {
+        let strings = try catalogue()
+        let entry = strings["open.in.protected %@"] as? [String: Any]
+        let localizations = entry?["localizations"] as? [String: Any]
+        let unit = (localizations?["en"] as? [String: Any])?["stringUnit"] as? [String: Any]
+        let value = try #require(
+            unit?["value"] as? String,
+            "open.in.protected %@ carries no English value."
+        )
+        #expect(
+            value.contains("nothing to enter"),
+            """
+            The English `open.in.protected %@` states the protection and stops. Android says \
+            one sentence more — `ProtectedAudiobookPromptsForNothingTest` asserts \
+            "nothing to enter" — because it forecloses the expectation rather than leaving \
+            the reader waiting for a field that is never coming.
+            """
+        )
+    }
 }

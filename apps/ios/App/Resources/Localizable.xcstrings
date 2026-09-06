@@ -978,25 +978,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ ist durch den Kopierschutz seines Shops geschützt, daher kann StoryArc es nicht öffnen."
+            "value": "%@ ist durch den Kopierschutz seines Shops geschützt, daher kann StoryArc es nicht öffnen. StoryArc entfernt keinen Kopierschutz, es gibt hier also nichts einzugeben."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ is protected by its store's content protection, so StoryArc cannot open it."
+            "value": "%@ is protected by its store's content protection, so StoryArc cannot open it. StoryArc does not remove content protection, so there is nothing to enter here."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ está protegido por la protección de contenido de su tienda, por lo que StoryArc no puede abrirlo."
+            "value": "%@ está protegido por la protección de contenido de su tienda, por lo que StoryArc no puede abrirlo. StoryArc no retira protecciones de contenido, así que aquí no hay nada que introducir."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ est protégé par la protection de contenu de sa boutique, et StoryArc ne peut donc pas l’ouvrir."
+            "value": "%@ est protégé par la protection de contenu de sa boutique, et StoryArc ne peut donc pas l’ouvrir. StoryArc ne retire pas les protections de contenu ; il n’y a rien à saisir ici."
           }
         }
       }
