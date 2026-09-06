@@ -5,7 +5,7 @@ sentence goes and how it survives the sync, not about code.
 
 ## Why a separate change rather than an edit to `publication-detail`
 
-The amendment of record lives in `publication-detail`'s delta. Adding four
+The amendment of record lives in `publication-detail`'s delta. Adding two
 bullets there would have been one file edit and no collision. It was not done for
 one reason: **`publication-detail` is an active change owned by other work**, and
 its `tasks.md` tracks twelve ticked tasks, nine partial and two open against a
@@ -27,11 +27,11 @@ This delta carries `publication-detail`'s block verbatim and adds to it:
 | Element | Source |
 | --- | --- |
 | Requirement prose, first two paragraphs | `publication-detail`, word for word |
-| Requirement prose, third paragraph | new — the SHALL about stating the cost |
-| *Continue from a resume affordance*, first two bullets | `publication-detail`, word for word |
-| *Continue from a resume affordance*, third bullet | new — one action |
+| Requirement prose, third paragraph | new — the SHALL about stating the cost, and the bound on it |
+| *Continue from a resume affordance*, first three bullets | `publication-detail`, word for word |
+| *Continue from a resume affordance*, fourth bullet | new — one action |
 | *Continue from the library*, first four bullets | `publication-detail`, word for word |
-| *Continue from the library*, last two bullets | new — two actions, and where a resume affordance is offered |
+| *Continue from the library*, fifth bullet | new — two actions |
 | *Restart deliberately*, all three bullets | `publication-detail`, word for word |
 
 `publication-detail`'s block therefore holds nothing this one lacks. That makes
@@ -57,7 +57,8 @@ No number is stated for a publication the app cannot open, or for one whose
 source is away, or for one that must be downloaded first. Those three states draw
 no *Continue* at all — `DetailActions.kt:101` lists them as `opensTheBook = false`,
 and `DetailActions.swift:92` draws `EmptyView` for a refusal — so there is no
-path back into a book to measure.
+path back into a book to measure. The bound is written into the delta and not
+only here, because the sync step carries `specs/**` and archives this file.
 
 ## What is deliberately not changed
 
@@ -68,3 +69,9 @@ path back into a book to measure.
   is stale as of commit `3ba316c1`. This change does not own the file, and the
   correction is named here so that whoever owns it can make it.
 - **`publication-detail`'s delta, proposal and tasks.** Owned by that change.
+- **Where a resume affordance is offered.** This change once required every
+  surface that shows a resumable publication to offer one. Neither app does that:
+  `HomeMore` on iOS is a plain `CoverGrid`, the Keep reading *show all* on Android
+  narrows the library query, and `LibraryScreen.kt:708` hides the row whenever the
+  query is narrowed. A rule that both apps break belongs to a change that writes
+  application code and owes a capture.

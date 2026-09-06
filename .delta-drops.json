@@ -12,7 +12,7 @@
                 "publication-detail",
                 "two-taps-back-to-the-book"
             ],
-            "reason": "publication-detail's block is carried into two-taps-back-to-the-book word for word, so the later block is a strict superset. two-taps adds one SHALL sentence requiring the cost of each resume verb to be stated, and three bullets stating it: one action from a resume affordance, two from a cover, on both platforms. Nothing needed merging. The order is recorded because no tool can infer it, and syncing two-taps first would leave publication-detail's later sync deleting that sentence and those bullets."
+            "reason": "publication-detail's block is carried into two-taps-back-to-the-book word for word, so the later block is a strict superset. two-taps adds one paragraph requiring the cost of each resume verb to be stated and bounding it, and two bullets stating it: one action from a resume affordance, two from a cover, on both platforms. Nothing needed merging. The order is recorded because no tool can infer it, and syncing two-taps first would leave publication-detail's later sync deleting that sentence and those bullets."
         }
     },
     "one-library-three-destinations/library-browsing": {

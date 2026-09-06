@@ -85,10 +85,9 @@ requirement, and this delta is the place the cost is stated either way.
 
 ## What changes
 
-- `reading-progress` → *Resuming*: one SHALL sentence about stating the cost, one
-  bullet on each of the two continue scenarios naming the number of actions, and
-  one bullet saying that a resume affordance is offered wherever a resumable
-  publication is shown, so the two-action path is never the only way back.
+- `reading-progress` → *Resuming*: one paragraph that requires the cost to be
+  stated and bounds it to a publication the app can open now, and one bullet on
+  each of the two continue scenarios naming the number of actions.
 - Nothing else in `reading-progress` moves. The local store, position identity,
   synchronisation and conflict resolution are untouched.
 - No application code changes. No screenshot is owed.
@@ -100,10 +99,10 @@ Two live changes now hold a `## MODIFIED` block for `reading-progress` →
 replaces the whole block.
 
 This block is a **superset** of `publication-detail`'s: every sentence and every
-bullet of that delta is carried here word for word, and this one adds four
-bullets and one sentence. A superset is safe in one order only, so the order is
+bullet of that delta is carried here word for word, and this one adds two
+bullets and one paragraph. A superset is safe in one order only, so the order is
 recorded in `.delta-drops.json` as
 `["publication-detail", "two-taps-back-to-the-book"]`. Syncing
 `publication-detail` first and this change second leaves the union in the main
-spec. The reverse order would delete the four bullets and the sentence this
+spec. The reverse order would delete the two bullets and the paragraph this
 change exists to add.

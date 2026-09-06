@@ -41,8 +41,10 @@ A task is ticked when the file it names holds what the task describes.
 - [x] 3.2 Add the SHALL sentence that requires the cost of each verb to be stated.
 - [x] 3.3 Add the action count to *Continue from a resume affordance* and to
   *Continue from the library*.
-- [x] 3.4 Add the bullet that keeps a resume affordance available wherever a
-  resumable publication is shown, so the two-action path is never the only way back.
+- [x] 3.4 Bound the two counts in the delta itself. A publication that draws no
+  continue action has no path back into the book, so no count applies to it. The
+  bound is stated in the requirement prose because only `specs/**` reaches the main
+  spec on sync; a bound left in `design.md` is archived and lost.
 - [x] 3.5 Leave *Restart deliberately* exactly as `publication-detail` wrote it.
   Its reason clause is already correct and amending a correct clause is a defect.
 

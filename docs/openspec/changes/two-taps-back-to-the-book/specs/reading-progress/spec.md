@@ -11,9 +11,11 @@ Both are resuming. The difference is that one is an offer to carry on and the
 other is an offer to look first, and a reader who chose to look should not be
 dropped into the book.
 
-The app SHALL state what each of the two verbs costs the reader in actions,
-because the two costs differ and the cheaper one is what "the shortest path"
-above means.
+This requirement SHALL state what each of the two verbs costs the reader in
+actions, because the two costs differ and the cheaper one is what "the shortest
+path" above means. The counts hold for a publication the app can open now. A
+publication whose source is away, whose access is refused, or which must be
+downloaded first draws no continue action, so no count applies to it.
 
 #### Scenario: Continue from a resume affordance
 - **WHEN** a reader chooses a partially read publication from Keep reading, or from any other affordance that offers to resume it
@@ -27,7 +29,6 @@ above means.
 - **AND** that action states that it will continue rather than start, so the reader knows which of the two will happen before taking it
 - **AND** the page is the only thing between the cover and the book: no further screen, prompt or confirmation stands in the way of carrying on
 - **AND** the reader takes two actions, on both platforms — the cover, then the primary action — which is one more than a resume affordance costs
-- **AND** every surface that shows a resumable publication therefore offers a resume affordance too, so the two-action path is a reader's choice to look first and never the only way back into a book
 
 #### Scenario: Restart deliberately
 - **WHEN** a user wants to start over
