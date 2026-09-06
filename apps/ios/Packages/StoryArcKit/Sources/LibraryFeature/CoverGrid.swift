@@ -10,8 +10,16 @@ public import StoryArcCore
 /// Android's 840. What is true, against the widths read from the simulator device profiles
 /// that day: a full-width shelf clears this on every current iPad in landscape, and in
 /// portrait only on a 13-inch one. The *library's* shelf clears it nowhere at all, because
-/// ``LibraryPanes`` caps that column at 760 points — so the tier belongs to the full-width
-/// shelves on Home, on Downloads and in the browse grids, and to no shelf drawn in a pane.
+/// ``LibraryPanes`` caps that column at 760 points.
+///
+/// **Which surfaces the tier governs.** Exactly three call sites read this number:
+/// ``CoverGrid``, ``SectionedShelf`` and `OnDeviceShelf`. Through them the tier belongs to
+/// Home's *see all* grid, to a collection's grid, to Search — which ``LibraryPanes`` draws in
+/// a plain stack, at the width of the window — and to Downloads. It governs no shelf drawn in
+/// a pane. **The browse grids are not in that list on iOS.** `CatalogueBrowserView`,
+/// `KavitaSeriesList` and `KavitaShelfViews` each set a fixed minimum and never call this
+/// function. It is *Android* whose three remote-browse grids ask the window, and `design.md`
+/// §4 describes that arrangement, not this one.
 ///
 /// Android takes the same tier at 840 dp. `design.md` §4 records that divergence as open,
 /// and it is still open: the argument for closing it by moving this number to 840 was that

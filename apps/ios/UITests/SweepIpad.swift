@@ -64,11 +64,16 @@ final class SweepIpadTests: XCTestCase {
         shutter(app, named: "ipad-home-in-progress")
     }
 
-    /// The library: the same shelf, given twice the width and asked how many columns it wants.
+    /// The library: the same shelf, given a pane's width and asked how many columns it wants.
     ///
-    /// `coverMinimumWidth(shelfWidth:textSize:)` steps to 158 pt past 900 pt of shelf, which
-    /// is the tier a landscape iPad is in — "fewer, larger, more confident covers a big window
-    /// is for" rather than the same lattice widened. This is the frame that says whether it is.
+    /// **Corrected on 2026-09-06.** This said the frame shows the 158 pt tier "a landscape
+    /// iPad is in". It cannot. ``LibraryPanes`` caps the library column at 760 pt, so this
+    /// shelf takes the middle tier — 132 pt, five columns — at every iPad width and in both
+    /// orientations. What the frame does say is whether the cap buys what it was chosen for:
+    /// five columns of cover, and a detail column the shelf does not eat.
+    ///
+    /// The wide tier is photographed by `testCaptureIpadDownloads` and `testCaptureIpadSearch`
+    /// instead. Those are the two iPad surfaces handed the whole window.
     func testCaptureIpadLibrary() throws {
         let app = try landscape()
         try go(to: "Library", in: app)
