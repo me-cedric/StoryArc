@@ -768,6 +768,11 @@ creep — see [`design.md`](design.md).
       all existing `pnpm capture:android` routes. `CoverlessWellTest` and `:app`'s
       `DownloadsCoverlessWellTest` both assert the title is drawn and would have to change with
       it, which is the honest measure of the size of this.
+      **Android draws the well too (2026-09-06, `42426140`).** `PlayerArtwork` in `:app` draws the
+      cover or `CoverlessWell` as the player's first child from the publication `PlayingBook` now
+      exposes; `PlayerSemanticsTest` pins both. Frames in `android-player-artwork-2026-09-06`.
+      Still `[~]`: whether the media notification is handed the same artwork is not verified.
+
 - [~] 4.5 Both: the full player — cover, publication, chapter, position, duration,
       play/pause, skip both ways, scrub, chapter list, speed, sleep timer. Assert
       opening it never restarts, reloads or repositions the audio.
@@ -807,6 +812,10 @@ creep — see [`design.md`](design.md).
       second half is 4.4b's and is where the work should be done.
       **Owed when the cover lands:** the player with real artwork, both platforms, light and
       dark at the default and largest text sizes.
+      **Android's player carries the artwork now (2026-09-06)**, which the 2026-09-05 review had
+      named as the one thing iOS drew and Android did not; see 4.4b and
+      `android-player-artwork-2026-09-06`. The rest of this task's Android half stands as before.
+
 - [x] 4.6 Both: a publication with no chapter markers lists its parts in playing
       order rather than showing an empty list.
       **iOS done, and there is no branch for it.** A source with no chapter markers reports

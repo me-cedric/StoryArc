@@ -171,15 +171,13 @@ says so and names what is left to watch.
       SwiftUI's taking is not host-tested — `prepareReadAloud` needs Readium — and is covered by
       the centre's `takeVoiceStopped` test and the capture.
 
-      *Seen — on iOS.* `ReadAloudPlayerTests.testCaptureVoiceStoppedByAnotherBook` and
-      `testCaptureVoiceStoppedByAnAudiobook`, in `docs/designs/screenshots/voice-stopped-2026-09-05/`:
-      the banner over the new page and the capsule over the audiobook's dock, each naming
-      *Harbour Lights 01*. **Not yet seen on Android.** The routes `EPUB reader > voice stopped`
-      and `Player > voice stopped` reach their screens and four frames across two runs show no
-      snackbar, before and after the duration was lengthened; a diagnostic run found the speech
-      engine connecting when the voice starts and no notification from the app. Whether the
-      voice was speaking when the second book opened is not established, so the Android half of
-      this clause's proof is still owed — the frames' README says where to look first.
+      *Seen — on both.* iOS: `ReadAloudPlayerTests.testCaptureVoiceStoppedByAnotherBook` and
+      `testCaptureVoiceStoppedByAnAudiobook`, the banner over the new page and the capsule over
+      the audiobook's dock. Android: the `EPUB reader > voice stopped` route, once `002fbdbd`
+      let the voice start at all — `ReadAloudHost.begin` watched the session before starting it
+      and tore the voice down on the idle value, so on every earlier Android frame there had been
+      no voice to displace. The `Player > voice stopped` frame is still owed. All in
+      `docs/designs/screenshots/voice-stopped-2026-09-05/`.
 
       **Two of the three landed; the third needs a word this change may not ship.**
       `SessionHandover` answers what opening a publication does to a voice that is

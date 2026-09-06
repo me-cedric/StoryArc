@@ -15,7 +15,7 @@ which wait on something the harness cannot yet produce. Frames are under
 | 5 | Themed Android icons collapse the five faces into one | **Decided against changing, and said**: correct for a themed icon, whose point is the wallpaper's colour; the icon spec carries the qualifier |
 | 6 | The Android nav bar wears two brand colours at once | **Fixed**: the selected label follows the accent on every scheme (`c1e90a70`; `android-nav-label-2026-09-06`) |
 | 7 | A failed download offers only "Stop" | **Fixed on both platforms**: a failed row offers Retry and Remove, and its confirmation says nothing reached the device (Android `633382bf`, iOS `e0ab0e8b`…`3886fb74`; `downloads-retry-2026-09-05`). iOS's Retry reaches whichever live queue holds the record |
-| 8 | The Android full player has no artwork | **In progress** on 2026-09-06 (`audiobooks-and-playback` 4.4b / 4.5) |
+| 8 | The Android full player has no artwork | **Fixed**: the cover, or the shared coverless well, above the transport (`42426140`; `android-player-artwork-2026-09-06`). Whether the media notification gets the same artwork is still unverified |
 | 9 | Android still confirms "Stop" with deletion wording | **Fixed** (`f44af9a0`): stop, remove, remove an import and clear a failed transfer are four sentences |
 | 10 | Library icon buttons override Material You with the brand accent | **Fixed**: chrome icons read the scheme's primary (`65af6a18`; `android-library-chrome-2026-09-06`) |
 | 11 | Eight Android surfaces are off the cover-size ladder | **Fixed**: three grids ask the ladder, five surfaces step at the accessibility boundary, `design.md` §4's table says which does what (`288e8462`; `android-cover-ladder-2026-09-06`) |
@@ -36,3 +36,8 @@ opening anything since the split landed.
 **Finding 12's fix turned up the wording defect behind it.** The removal confirmation said no
 files are deleted while the app deletes a source's downloads; it now states the titles, the
 downloads and the space, and fits at the largest text size (`source-lifecycle-2026-09-05`).
+
+**Finding 8's fix found why the Android voice never spoke on the emulator.** `ReadAloudHost.begin`
+watched the controller's session before starting it and tore the voice down on the idle value it
+was born with, so every Android read-aloud frame taken on 2026-09-05 was of a reader with no voice
+(`002fbdbd`; `voice-stopped-2026-09-05`).

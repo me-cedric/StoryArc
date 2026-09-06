@@ -28,21 +28,24 @@ value links had had no destination since 2026-09-05 13:05, and no cover on the s
 anything on any device. `docs/designs/screenshots/ios-pane-2026-09-06/README.md` has that story;
 the walks passed on the first run after the fix.
 
-## Android: the surfaces exist, the emulator has not shown the word
+## Android: nothing spoke, so nothing was displaced — fixed, and the word is on the page
 
-`EpubReaderOverlays` and `PlayerScreen` each collect `SpokenAudio.voiceStopped` with the
-lifecycle, take the notice and show it as a snackbar; `VoiceStoppedWordTest` and
-`SpokenAudioTest` pin the arming and the taking. Four device frames were taken across two
-routes and none shows the snackbar. The Short duration was one cause — the surface composes
-while the book is still being parsed, and four seconds were gone before the first page drew —
-and both surfaces now use `SnackbarDuration.Long`; the frames retaken after that change still
-show no word. A diagnostic run confirmed the speech engine connects when the voice is started,
-and found no notification from the app, which points at the notification permission the route
-answers with an optional `?=Allow` step. **Whether the voice was speaking at the moment the
-second book opened is not established**, so neither is whether the displacement armed anything.
-The one Android frame kept is the honest one: the route reaches the page and the word is not on
-it. The Android half of this scenario's proof is still owed, and the place to look first is
-whether `ReadAloudHost.speaking` is set before the route presses Back.
+Four frames across two routes showed no snackbar, before and after the duration was lengthened,
+and a diagnostic found the speech engine connecting and no notification from the app. The cause
+was upstream of the notice (`002fbdbd`): `ReadAloudHost.begin` launched its watcher over the
+controller's session *before* calling `start`; on `Dispatchers.Main.immediate` the collector ran at
+once, read the idle session the controller was born with as the session ending, and ran `finish` —
+releasing the controller, cancelling its scope, abandoning audio focus it had not asked for yet.
+`start` then posted its first sentence onto a cancelled scope. `logcat` showed the abandon two
+milliseconds before the request; `dumpsys media_session` showed no session; `SpokenAudio.speaking`
+was null. There was no voice to displace, on any route, which is also why the reader's transport
+was missing from every earlier Android frame here.
+
+The voice is started before it is watched, and `ReadAloudHostTest` drives the host over a fake
+engine so the watcher-first order fails by name. `android-epub-reader-voice-stopped-light.png` is
+the retake: *Harbour Lights 02* open over the voice, the snackbar reading *Stopped reading “Harbour
+Lights 01” aloud.* at the foot of the page. The `Player > voice stopped` frame was not retaken
+before this branch merged and is still owed; the same fix is what it needed.
 
 ## How to retake them
 
