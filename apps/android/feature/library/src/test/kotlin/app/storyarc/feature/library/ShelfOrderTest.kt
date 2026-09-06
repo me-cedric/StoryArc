@@ -24,8 +24,9 @@ import org.robolectric.annotation.Config
  * makes an edit to a server list while the server is away "applied locally, marked pending,
  * and pushed on reconnection".
  *
- * The hard claim is the last three tests: a send that fails must never cost the reader the
- * order they made. iOS's `ShelfOrderTests` makes the same claims in the same order.
+ * The hard claim is the last five tests: a send that fails, and one that lands after a newer
+ * order was made, must never cost the reader the order they made. iOS's `ShelfOrderTests`
+ * makes the same claims in the same order.
  *
  * Robolectric, because [KavitaProgressStore] is `SharedPreferences` and that needs a context.
  */
@@ -34,6 +35,7 @@ import org.robolectric.annotation.Config
 class ShelfOrderTest {
 
     private val sourceId = "3E7F6C1C-0000-0000-0000-00000000AAAA"
+    private val otherSourceId = "3E7F6C1C-0000-0000-0000-00000000BBBB"
 
     private fun store(): KavitaProgressStore =
         KavitaProgressStore.open(ApplicationProvider.getApplicationContext<Application>())
@@ -136,6 +138,31 @@ class ShelfOrderTest {
         val store = store()
         store.hold(KavitaUnsent(origin(), page = 0, listId = 4, order = listOf(1, 2, 3)))
         store.hold(KavitaUnsent(origin(), page = 0, listId = 4, order = listOf(3, 2, 1)))
+        assertEquals(1, store.unsent().size)
+        assertEquals(listOf(3, 2, 1), store.unsent().first().order)
+    }
+
+    @Test
+    fun ordersAreHeldPerServer() = runBlocking {
+        // Every Kavita numbers its first reading list 1, so two servers holding a list of the
+        // same number is the ordinary case rather than the odd one.
+        val store = store()
+        KavitaSync.reorder(store, null, sourceId, listId = 1, order = listOf(3, 1, 2))
+        KavitaSync.reorder(store, null, otherSourceId, listId = 1, order = listOf(9, 8, 7))
+        assertEquals(2, store.unsent().size)
+        assertEquals(listOf(3, 1, 2), KavitaSync.wantedOrder(store, sourceId, 1))
+        assertEquals(listOf(9, 8, 7), KavitaSync.wantedOrder(store, otherSourceId, 1))
+    }
+
+    @Test
+    fun sentDropsOnlyWhatItSent() {
+        // Two moves on a slow server: the first send returns after the second order was
+        // written down, and a drop by key would take the reader's newer order with it.
+        val store = store()
+        val first = KavitaUnsent(origin(), page = 0, listId = 4, order = listOf(1, 2, 3))
+        store.hold(first)
+        store.hold(KavitaUnsent(origin(), page = 0, listId = 4, order = listOf(3, 2, 1)))
+        store.sent(listOf(first))
         assertEquals(1, store.unsent().size)
         assertEquals(listOf(3, 2, 1), store.unsent().first().order)
     }

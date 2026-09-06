@@ -67,8 +67,14 @@ public struct KavitaUnsent: Sendable, Equatable, Codable {
     /// waiting for the same chapter, and they are three different promises. An order is a
     /// fourth, and it belongs to the list rather than to a chapter — one list has one
     /// wanted order, and the latest one the reader made is the one that is true.
+    ///
+    /// An order names its server as well as its list. Every Kavita numbers its first reading
+    /// list 1, so two servers holding a list of the same number is the ordinary case, and a
+    /// key without the server would file both orders as one and lose the first.
     public var key: String {
-        guard order == nil else { return "order:\(listID.map(String.init) ?? "-")" }
+        guard order == nil else {
+            return "order:\(origin.sourceId):\(listID.map(String.init) ?? "-")"
+        }
         return "\(origin.chapterId):\(listID.map(String.init) ?? "-"):\(mark.map(String.init) ?? "-")"
     }
 
@@ -157,10 +163,13 @@ public struct KavitaProgressStore: @unchecked Sendable {
         return stored
     }
 
-    /// Drops the positions that reached the server.
+    /// Drops the records that reached the server.
+    ///
+    /// Matched whole rather than by key. A flush reads what is waiting, sends it, and comes
+    /// back later; anything the reader wrote down while it ran carries the same key and is a
+    /// different promise, so dropping by key would throw away an edit nothing had sent.
     public func sent(_ delivered: [KavitaUnsent]) {
-        let keys = Set(delivered.map(\.key))
-        write(unsent().filter { !keys.contains($0.key) })
+        write(unsent().filter { !delivered.contains($0) })
     }
 
     private func links() -> [String: KavitaOrigin] {

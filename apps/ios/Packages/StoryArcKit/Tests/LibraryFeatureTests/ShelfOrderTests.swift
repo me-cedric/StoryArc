@@ -14,12 +14,14 @@ import StoryArcCore
 /// requirement makes an edit to a server list while the server is away "applied locally,
 /// marked pending, and pushed on reconnection".
 ///
-/// The hard claim is the last two tests: a send that fails must never cost the reader the
-/// order they made. Android's `ShelfOrderTest` makes the same claims in the same order.
+/// The hard claim is the last five tests: a send that fails, and one that lands after a newer
+/// order was made, must never cost the reader the order they made. Android's `ShelfOrderTest`
+/// makes the same claims in the same order.
 @Suite("Shelf order")
 struct ShelfOrderTests {
 
     private let sourceID = "3E7F6C1C-0000-0000-0000-00000000AAAA"
+    private let otherSourceID = "3E7F6C1C-0000-0000-0000-00000000BBBB"
 
     /// A defaults suite of its own, named the way `scripts/sweep-test-debris.mjs` can
     /// recognise: a bare UUID leaves a plist in `~/Library/Preferences` that nothing removes.
@@ -123,6 +125,31 @@ struct ShelfOrderTests {
         let store = store()
         store.hold(KavitaUnsent(origin: origin(), page: 0, listID: 4, order: [1, 2, 3]))
         store.hold(KavitaUnsent(origin: origin(), page: 0, listID: 4, order: [3, 2, 1]))
+        #expect(store.unsent().count == 1)
+        #expect(store.unsent().first?.order == [3, 2, 1])
+    }
+
+    @Test("A reorder on one server leaves an order held for another server alone")
+    func ordersAreHeldPerServer() async {
+        // Every Kavita numbers its first reading list 1, so two servers holding a list of the
+        // same number is the ordinary case rather than the odd one.
+        let store = store()
+        await KavitaSync.reorder(1, to: [3, 1, 2], on: sourceID, to: nil, in: store)
+        await KavitaSync.reorder(1, to: [9, 8, 7], on: otherSourceID, to: nil, in: store)
+        #expect(store.unsent().count == 2)
+        #expect(KavitaSync.wantedOrder(of: 1, on: sourceID, in: store) == [3, 1, 2])
+        #expect(KavitaSync.wantedOrder(of: 1, on: otherSourceID, in: store) == [9, 8, 7])
+    }
+
+    @Test("A send that lands drops what it sent, not an order made while it was running")
+    func sentDropsOnlyWhatItSent() {
+        // Two drags on a slow server: the first send returns after the second order was
+        // written down, and a drop by key would take the reader's newer order with it.
+        let store = store()
+        let first = KavitaUnsent(origin: origin(), page: 0, listID: 4, order: [1, 2, 3])
+        store.hold(first)
+        store.hold(KavitaUnsent(origin: origin(), page: 0, listID: 4, order: [3, 2, 1]))
+        store.sent([first])
         #expect(store.unsent().count == 1)
         #expect(store.unsent().first?.order == [3, 2, 1])
     }
