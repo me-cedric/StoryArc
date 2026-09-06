@@ -83,28 +83,6 @@ class ShelfDeletionTest {
     }
 
     /**
-     * The figure the question states. A reader deciding whether to delete *Reading soon* needs to
-     * know it holds forty things, and the count has to be read when the question is asked rather
-     * than when it is answered -- the shelf is still there at that moment.
-     */
-    @Test
-    fun `a deletion carries how many titles the shelf holds`() {
-        val before = shelves()
-        val collection = before.collections.first()
-        val list = before.lists.first()
-
-        assertEquals(2, ShelfDeletion.of(collection).count)
-        assertEquals(collection.members.size, ShelfDeletion.of(collection).count)
-        assertEquals(2, ShelfDeletion.of(list).count)
-        assertEquals(list.entries.size, ShelfDeletion.of(list).count)
-    }
-
-    @Test
-    fun `an empty collection is counted not skipped`() {
-        assertEquals(0, ShelfDeletion.of(PublicationCollection(name = "Reading soon")).count)
-    }
-
-    /**
      * The kind is what dispatches, not the identity. Shown with the pathological case the two
      * sections make possible in principle: one identity, two shelves, and deleting one of them
      * must not take the other with it.

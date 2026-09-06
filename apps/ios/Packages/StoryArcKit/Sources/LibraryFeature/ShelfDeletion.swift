@@ -35,29 +35,19 @@ struct ShelfDeletion: Identifiable, Equatable {
     let name: String
     let kind: Kind
 
-    /// How many titles the shelf holds, read when the question is asked.
-    ///
-    /// The source removal confirmation states what goes in titles before it asks, and this
-    /// asks the same question about the same kind of act. A reader deciding whether to delete
-    /// *Reading soon* needs to know it holds forty things — and needs it now, because after
-    /// the answer the shelf is not there to be counted.
-    let count: Int
-
     init(_ collection: PublicationCollection) {
         id = collection.id
         name = collection.name
         kind = .collection
-        count = collection.members.count
     }
 
     init(_ list: ReadingList) {
         id = list.id
         name = list.name
         kind = .list
-        count = list.entries.count
     }
 
-    /// The sentence the dialogue shows: how many titles the shelf holds, and that they stay.
+    /// The sentence the dialogue shows: the titles stay, and which of the two shelves goes.
     ///
     /// A property the `message:` closure calls rather than the closure's own body, so a test
     /// can ask it. A `confirmationDialog`'s message is never evaluated while nothing is
@@ -65,8 +55,8 @@ struct ShelfDeletion: Identifiable, Equatable {
     /// reverted source-removal body passed every automated test on 2026-09-05.
     var message: Text {
         switch kind {
-        case .collection: Text("shelves.delete.collection.body \(count)", bundle: .module)
-        case .list: Text("shelves.delete.list.body \(count)", bundle: .module)
+        case .collection: Text("shelves.delete.collection.body", bundle: .module)
+        case .list: Text("shelves.delete.list.body", bundle: .module)
         }
     }
 

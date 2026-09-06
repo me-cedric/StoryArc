@@ -8106,156 +8106,60 @@
         }
       }
     },
-    "shelves.delete.collection.body %lld": {
+    "shelves.delete.collection.body": {
       "extractionState": "manual",
       "localizations": {
         "de": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld Titel bleibt in Ihrer Bibliothek. Nur die Sammlung verschwindet."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld Titel bleiben in Ihrer Bibliothek. Nur die Sammlung verschwindet."
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Bücher und Comics darin bleiben in Ihrer Bibliothek. Nur die Sammlung verschwindet."
           }
         },
         "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld title stays in your library. Only the collection goes."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld titles stay in your library. Only the collection goes."
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "The books and comics in it stay in your library. Only the collection goes."
           }
         },
         "es": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld título sigue en tu biblioteca. Solo desaparece la colección."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld títulos siguen en tu biblioteca. Solo desaparece la colección."
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los libros y cómics que contiene siguen en tu biblioteca. Solo desaparece la colección."
           }
         },
         "fr": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld titre reste dans votre bibliothèque. Seule la collection disparaît."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld titres restent dans votre bibliothèque. Seule la collection disparaît."
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les livres et les bandes dessinées qu’elle contient restent dans votre bibliothèque. Seule la collection disparaît."
           }
         }
       }
     },
-    "shelves.delete.list.body %lld": {
+    "shelves.delete.list.body": {
       "extractionState": "manual",
       "localizations": {
         "de": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld Titel bleibt in Ihrer Bibliothek. Nur die Leseliste verschwindet."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld Titel bleiben in Ihrer Bibliothek. Nur die Leseliste verschwindet."
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Bücher und Comics darin bleiben in Ihrer Bibliothek. Nur die Leseliste verschwindet."
           }
         },
         "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld title stays in your library. Only the reading list goes."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld titles stay in your library. Only the reading list goes."
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "The books and comics in it stay in your library. Only the reading list goes."
           }
         },
         "es": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld título sigue en tu biblioteca. Solo desaparece la lista de lectura."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld títulos siguen en tu biblioteca. Solo desaparece la lista de lectura."
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los libros y cómics que contiene siguen en tu biblioteca. Solo desaparece la lista de lectura."
           }
         },
         "fr": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld titre reste dans votre bibliothèque. Seule la liste de lecture disparaît."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld titres restent dans votre bibliothèque. Seule la liste de lecture disparaît."
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les livres et les bandes dessinées qu’elle contient restent dans votre bibliothèque. Seule la liste de lecture disparaît."
           }
         }
       }

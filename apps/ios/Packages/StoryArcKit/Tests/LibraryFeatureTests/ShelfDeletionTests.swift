@@ -88,51 +88,29 @@ struct ShelfDeletionTests {
         #expect(ShelfDeletion(list).kind == .list)
     }
 
-    /// The figure the question states. A reader deciding whether to delete *Reading soon*
-    /// needs to know it holds forty things, and the count has to be read when the question is
-    /// asked rather than when it is answered — the shelf is still there at that moment.
-    @Test("A deletion carries how many titles the shelf holds")
-    func carriesTheCount() throws {
-        let before = shelves()
-        let collection = try #require(before.collections.first)
-        let list = try #require(before.lists.first)
-
-        #expect(ShelfDeletion(collection).count == 2)
-        #expect(ShelfDeletion(collection).count == collection.members.count)
-        #expect(ShelfDeletion(list).count == 2)
-        #expect(ShelfDeletion(list).count == list.entries.count)
-    }
-
-    @Test("An empty collection is counted, not skipped")
-    func countsAnEmptyCollection() {
-        let empty = PublicationCollection(name: "Reading soon")
-
-        #expect(empty.members.isEmpty)
-        #expect(ShelfDeletion(empty).count == empty.members.count)
-    }
-
-    /// The sentence the dialogue shows, asked of the function the `message:` closure calls.
+    /// The sentence the dialogue shows, asked of the property the `message:` closure calls.
     ///
     /// A `confirmationDialog`'s message is never in the value tree while nothing is
     /// presented, so a message written inline is asserted by nothing — the gap that let a
     /// reverted source-removal body pass every test on 2026-09-05. `SourceDetailSizeTests`
     /// closes the same gap the same way.
     ///
-    /// The key carries its argument, which is what states the count: an uncounted key has no
-    /// trailing space after `body`.
-    @Test("The confirmation states the count, and names the kind of shelf that goes")
-    func theMessageStatesTheCount() throws {
+    /// The kind decides the key, because *the collection* and *the reading list* are
+    /// different words to a reader. Android's `ShelfDeletionDialogTest` asserts the same
+    /// pair, on the composed dialogue.
+    @Test("The confirmation names the kind of shelf that goes")
+    func theMessageNamesTheKind() throws {
         let before = shelves()
         let collection = try #require(before.collections.first)
         let list = try #require(before.lists.first)
 
         let aboutCollection = Self.strings(in: ShelfDeletion(collection).message)
-        #expect(aboutCollection.contains { $0.hasPrefix("shelves.delete.collection.body ") })
-        #expect(!aboutCollection.contains { $0.hasPrefix("shelves.delete.list.body") })
+        #expect(aboutCollection.contains("shelves.delete.collection.body"))
+        #expect(!aboutCollection.contains("shelves.delete.list.body"))
 
         let aboutList = Self.strings(in: ShelfDeletion(list).message)
-        #expect(aboutList.contains { $0.hasPrefix("shelves.delete.list.body ") })
-        #expect(!aboutList.contains { $0.hasPrefix("shelves.delete.collection.body") })
+        #expect(aboutList.contains("shelves.delete.list.body"))
+        #expect(!aboutList.contains("shelves.delete.collection.body"))
     }
 
     /// Every `String` reachable from a value, by the walk `SourceDetailSizeTests` describes:

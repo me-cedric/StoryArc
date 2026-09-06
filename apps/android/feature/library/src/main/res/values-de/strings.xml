@@ -179,14 +179,8 @@
     <string name="shelves_unpin">Von Start lösen</string>
     <string name="shelves_delete_confirm">Löschen</string>
     <string name="shelves_delete_title">„%1$s“ löschen?</string>
-    <plurals name="shelves_delete_collection_body">
-        <item quantity="one">%1$d Titel bleibt in Ihrer Bibliothek. Nur die Sammlung verschwindet.</item>
-        <item quantity="other">%1$d Titel bleiben in Ihrer Bibliothek. Nur die Sammlung verschwindet.</item>
-    </plurals>
-    <plurals name="shelves_delete_list_body">
-        <item quantity="one">%1$d Titel bleibt in Ihrer Bibliothek. Nur die Leseliste verschwindet.</item>
-        <item quantity="other">%1$d Titel bleiben in Ihrer Bibliothek. Nur die Leseliste verschwindet.</item>
-    </plurals>
+    <string name="shelves_delete_collection_body">Die Bücher und Comics darin bleiben in Ihrer Bibliothek. Nur die Sammlung verschwindet.</string>
+    <string name="shelves_delete_list_body">Die Bücher und Comics darin bleiben in Ihrer Bibliothek. Nur die Leseliste verschwindet.</string>
     <string name="shelves_cover">Titelbild wählen</string>
     <string name="shelves_cover_about">Wählen Sie eines davon, oder lassen Sie die Sammlung ihre ersten vier Titelbilder zeigen.</string>
     <string name="shelves_cover_composite">Die ersten vier Titelbilder</string>

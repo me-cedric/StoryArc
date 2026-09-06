@@ -181,14 +181,8 @@
     <string name="shelves_unpin">Ne plus épingler</string>
     <string name="shelves_delete_confirm">Supprimer</string>
     <string name="shelves_delete_title">Supprimer « %1$s » ?</string>
-    <plurals name="shelves_delete_collection_body">
-        <item quantity="one">%1$d titre reste dans votre bibliothèque. Seule la collection disparaît.</item>
-        <item quantity="other">%1$d titres restent dans votre bibliothèque. Seule la collection disparaît.</item>
-    </plurals>
-    <plurals name="shelves_delete_list_body">
-        <item quantity="one">%1$d titre reste dans votre bibliothèque. Seule la liste de lecture disparaît.</item>
-        <item quantity="other">%1$d titres restent dans votre bibliothèque. Seule la liste de lecture disparaît.</item>
-    </plurals>
+    <string name="shelves_delete_collection_body">Les livres et les bandes dessinées qu’elle contient restent dans votre bibliothèque. Seule la collection disparaît.</string>
+    <string name="shelves_delete_list_body">Les livres et les bandes dessinées qu’elle contient restent dans votre bibliothèque. Seule la liste de lecture disparaît.</string>
     <string name="shelves_cover">Choisir une couverture</string>
     <string name="shelves_cover_about">Choisissez-en une, ou laissez la collection montrer ses quatre premières couvertures.</string>
     <string name="shelves_cover_composite">Les quatre premières couvertures</string>
