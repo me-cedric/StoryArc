@@ -213,7 +213,26 @@ extension BackgroundTransfers: URLSessionDownloadDelegate {
         didCompleteWithError error: (any Error)?
     ) {
         guard let error else { return }
+        // The system hands back what it fetched here as well as from
+        // `cancel(byProducingResumeData:)`, and this is the path a dropped connection takes —
+        // the first interruption `offline-downloads` names. Read before the failure is
+        // reported, because reporting it is what decides whether the download has another
+        // attempt for the token to belong to.
+        carryOn(from: error, of: task)
         resume(task, with: .failure(error))
+    }
+
+    /// Hands on what the system left of a transfer that ended in an error.
+    ///
+    /// A transfer with nothing worth resuming carries no token, and a connection that dropped
+    /// before anything arrived is one of those. Nothing is reported in that case: the download
+    /// is still wanted and starting it over is what happens anyway.
+    private func carryOn(from error: any Error, of task: URLSessionTask) {
+        guard let name = task.taskDescription,
+              let data = (error as NSError).userInfo[NSURLSessionDownloadTaskResumeData] as? Data,
+              let handler = resumable.withLock({ $0 })
+        else { return }
+        handler(name, data)
     }
 
     public func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {

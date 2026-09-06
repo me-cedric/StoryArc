@@ -74,9 +74,13 @@ extension DownloadQueue {
                 id,
                 as: .failed(reason: reason, attempts: DownloadLibrary.attemptLimit)
             )
-        if let store, let download = library[id] {
+        if let store, let download = library[id], !DownloadLibrary.shouldRetry(download) {
             // The whole directory, not the one file: a stem this build did not choose is
             // still this download's bytes, and leaving them is what made the storage total lie.
+            //
+            // Only once nothing is going to ask for the rest of them. The attempt after the
+            // backoff resumes from the token beside the record, and deleting the directory
+            // here is what made a dropped connection restart at zero.
             store.remove(download)
         }
         store?.save(library)

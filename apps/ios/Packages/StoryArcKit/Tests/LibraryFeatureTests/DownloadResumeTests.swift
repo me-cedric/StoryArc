@@ -95,6 +95,60 @@ struct DownloadResumeTests {
         #expect(queue.resumption(for: record) == nil)
     }
 
+    @Test("A transfer the connection dropped keeps what the system had fetched")
+    func aDroppedConnectionKeepsItsToken() throws {
+        // `offline-downloads` names network loss first among the interruptions a download
+        // resumes from, and network loss is not a hold: it arrives as an error carrying the
+        // system's own token in `userInfo`. The app read the error and dropped the token, so
+        // the attempt after the backoff began at zero — the interruption the scenario names
+        // first was the one it did not answer.
+        let record = held()
+        let store = try store(holding: [record])
+        let queue = queue(store)
+        let token = Data([1, 2, 3, 4])
+        let dropped = NSError(
+            domain: NSURLErrorDomain,
+            code: NSURLErrorNetworkConnectionLost,
+            userInfo: [NSURLSessionDownloadTaskResumeData: token]
+        )
+
+        queue.keepIfResumable(dropped, for: record)
+
+        #expect(
+            queue.resumption(for: record) == token,
+            "A dropped connection threw away the bytes the system had already fetched."
+        )
+    }
+
+    @Test("A failure with another attempt behind it keeps what the transfer fetched")
+    func aRetryableFailureKeepsTheToken() throws {
+        let record = held()
+        let store = try store(holding: [record])
+        let queue = queue(store)
+        queue.keep(Data([1, 2, 3, 4]), for: record.id)
+
+        queue.fail(record.id, reason: "the connection was lost")
+
+        #expect(
+            queue.resumption(for: record) != nil,
+            "The failure deleted the token the attempt after the backoff resumes from."
+        )
+    }
+
+    @Test("A download with no attempts left keeps nothing behind it")
+    func aSpentDownloadKeepsNothing() throws {
+        // The other half of the same rule. Nothing is going to ask for the rest of these
+        // bytes, so a reader who is told the download failed is not left paying for them.
+        let record = held()
+        let store = try store(holding: [record])
+        let queue = queue(store)
+        queue.keep(Data([1, 2, 3, 4]), for: record.id)
+
+        queue.fail(record.id, reason: "that is not a publication", retryable: false)
+
+        #expect(queue.resumption(for: record) == nil)
+    }
+
     @Test("A download the reader cancelled keeps nothing to be resumed from")
     func aCancelledDownloadKeepsNothing() throws {
         // The order this guards is real: the reader cancels, the record and the directory go,

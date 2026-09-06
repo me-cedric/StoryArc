@@ -215,9 +215,9 @@ struct DownloadQueueConnectionTests {
         // last one said, and a pass that alters no record returns the same library, so the
         // store is not written at all — asserted on the rule itself in `DownloadWifiHoldTests`.
         //
-        // So the reader pays ten writes for ten real transitions, and five fresh starts. With
-        // no Range request anywhere in the app those five begin at zero, which is the part of
-        // this that costs them data rather than disk.
+        // So the reader pays ten writes for ten real transitions, and five fresh starts. Each
+        // of those five carries on from the token the hold before it kept, rather than
+        // beginning at zero, which is the part of this that costs them data rather than disk.
         //
         // Read synchronously, with no yield: `NWPathMonitor` is live in a host test and
         // reports the machine's own connection whenever it likes, so a claim that waits is a

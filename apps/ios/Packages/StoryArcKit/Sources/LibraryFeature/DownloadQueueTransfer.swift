@@ -71,7 +71,29 @@ extension DownloadQueue {
     /// transfer was unwinding is one the reader cancelled, and writing a token for it would
     /// re-create the directory a removal had just deleted.
     func keep(_ resumeData: Data, for id: Download.ID) {
-        guard let store, let download = library[id], case .paused = download.state else { return }
+        guard let download = library[id], case .paused = download.state else { return }
+        write(resumeData, beside: download)
+    }
+
+    /// Keeps what a transfer that *failed* left, so the attempt after the backoff asks only
+    /// for the rest.
+    ///
+    /// Written straight from the failure rather than through
+    /// ``Catalogue/BackgroundTransfers/onResumable(_:)``, because the order matters and a
+    /// handler hopping back to the main actor cannot promise one: this has to land before
+    /// ``fail(_:reason:retryable:)`` decides whether the download keeps its directory. Its own
+    /// entrance rather than ``keep(_:for:)``'s, because the record is not paused here — it is
+    /// the one this queue is failing, and asking it to look paused would let a token for a
+    /// dead transfer land on a live one.
+    func keepIfResumable(_ error: any Error, for download: Download) {
+        guard let data = (error as NSError).userInfo[NSURLSessionDownloadTaskResumeData] as? Data,
+              library[download.id] != nil
+        else { return }
+        write(data, beside: download)
+    }
+
+    private func write(_ resumeData: Data, beside download: Download) {
+        guard let store else { return }
         let file = store.resumeData(of: download)
         try? FileManager.default.createDirectory(
             at: file.deletingLastPathComponent(),
@@ -155,6 +177,10 @@ extension DownloadQueue {
             // their own. Failing here would overwrite that reason and delete the bytes
             // already fetched.
             guard !Task.isCancelled else { return nil }
+            // `offline-downloads`' *Resuming after interruption* names network loss first, and
+            // this is where network loss arrives. Without this the bytes the system fetched
+            // were thrown away and the retry after the backoff began at zero.
+            keepIfResumable(error, for: download)
             fail(download.id, reason: CatalogueMessages.reachability(error))
         }
         return nil
