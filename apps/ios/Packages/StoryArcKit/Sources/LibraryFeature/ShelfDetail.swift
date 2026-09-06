@@ -93,10 +93,14 @@ struct ReadingListDetail: View {
         let position = list?.position { finished.contains($0) } ?? 0
         // What is drawn, and what each row is numbered. The list keeps its own order
         // throughout: `shown` is a new sequence and `numbers` is read off `entries`.
+        // The reader's language, for the reason ``LibraryModel/rebuild()`` gives: a reading
+        // list sorted by title has to collate the way the shelf does, and the shelf now
+        // collates in the chosen language rather than the device's.
         let shown = ListOrdering.arrange(
             entries,
             by: order,
-            publications: model.publications
+            publications: model.publications,
+            locale: .storyArc
         ) { LibraryIndex.Progress.of(model.progress[$0.id]) }
         let numbers = ListOrdering.positions(in: entries)
 

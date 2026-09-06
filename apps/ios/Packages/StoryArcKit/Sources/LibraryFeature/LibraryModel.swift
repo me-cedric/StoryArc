@@ -334,8 +334,16 @@ public final class LibraryModel {
     // in the other half of this type.
     /// Recomputes what is on screen from the library and the query.
     func rebuild() {
-        visible = LibraryIndex.arrange(publications, query: query) { self.state(of: $0) }
-        matchGroups = LibraryIndex.grouped(publications, query: query) { self.state(of: $0) }
+        // The reader's language, not the device's. `localization` moves the interface to the
+        // chosen language, and collation is part of the interface: Spanish files *ñ* after *n*
+        // and German does not, so a shelf sorted with `Locale.current` is sorted in a language
+        // the reader is not reading. The environment locale a SwiftUI view carries does not
+        // reach here, because this is a model and not a view — ``StoryArcCore/Locale/storyArc``
+        // is the answer that does, and it falls back to the process locale when nothing is
+        // chosen.
+        let locale = Locale.storyArc
+        visible = LibraryIndex.arrange(publications, query: query, locale: locale) { self.state(of: $0) }
+        matchGroups = LibraryIndex.grouped(publications, query: query, locale: locale) { self.state(of: $0) }
         // The whole library, narrowed by nothing. This used to apply `query.scope`, on the
         // argument that "a filter on format has nothing to say about" what a reader is in
         // the middle of — which was right about format and wrong about the library filter,
