@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.IntSize
 import kotlin.math.abs
 import kotlinx.coroutines.launch
@@ -54,6 +56,10 @@ internal fun CurledPages(
 ) {
     val progress = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
+    val view = LocalView.current
+    val context = LocalContext.current
+    // Off unless `adb` armed it. See `FrameProbe`.
+    val frames = remember(view) { FrameTicker(context, FrameProbe.interval(view)) }
 
     Canvas(
         modifier = modifier
@@ -94,6 +100,9 @@ internal fun CurledPages(
                             reached = base
                             travelled = 0f
                             scope.launch { progress.stop() }
+                            // The turn starts here and ends when its settle completes, so a
+                            // count covers the drag and the spring and nothing else.
+                            frames.began()
                         }
 
                         change.consume()
@@ -118,6 +127,10 @@ internal fun CurledPages(
                     val settled = CurlTurn.settles(progress = reached, isFlick = flick)
                     scope.launch {
                         progress.animateTo(if (settled) 1f else 0f, spring())
+                        // The turn is over either way — a page that sprang back still spent
+                        // frames. A settle a later drag took over never reaches this, and
+                        // that drag's own settle closes the count.
+                        frames.ended()
                         if (settled) {
                             // The page swap first, then the reset: the other order shows
                             // the outgoing page flat for a frame before it goes.
