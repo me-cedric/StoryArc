@@ -111,6 +111,9 @@ fun KavitaBrowserScreen(
     val finder = remember(address) { KavitaFinder() }
     var isSearching by remember(address) { mutableStateOf(false) }
     var failure by remember(address) { mutableStateOf<String?>(null) }
+
+    /** Why one library's series list is empty, when it is empty for a reason. */
+    var seriesFailure by remember(address) { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -140,7 +143,18 @@ fun KavitaBrowserScreen(
     val current = level
     LaunchedEffect(current) {
         if (current is KavitaLevel.Series) {
-            series = runCatching { client.series(current.library.id) }.getOrDefault(emptyList())
+            // Said rather than swallowed, for the reason the library list above gives. This
+            // used to fall back to an empty list, so a server too old to answer the listing
+            // at all looked exactly like a library with nothing in it.
+            runCatching { client.series(current.library.id) }
+                .onSuccess {
+                    series = it
+                    seriesFailure = null
+                }
+                .onFailure {
+                    series = emptyList()
+                    seriesFailure = KavitaMessage.of(context, it, current.library.name)
+                }
         }
     }
 
@@ -267,7 +281,16 @@ fun KavitaBrowserScreen(
                     androidx.compose.foundation.layout.Arrangement.spacedBy(StoryArcSpace.md),
                 modifier = body,
             ) {
-                if (series.isEmpty()) {
+                seriesFailure?.let { message ->
+                    item(key = "seriesFailure", span = { GridItemSpan(maxLineSpan) }) {
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = palette.textPrimary,
+                        )
+                    }
+                }
+                if (seriesFailure == null && series.isEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         Text(
                             text = stringResource(R.string.kavita_empty),

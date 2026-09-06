@@ -233,6 +233,7 @@
     <string name="kavita_error_not_kavita">Diese Adresse hat geantwortet, aber nicht wie ein Kavita-Server.</string>
     <string name="kavita_error_key_rejected">Dieser API-Schlüssel wurde abgelehnt. Prüfen Sie ihn in Ihren Kavita-Kontoeinstellungen.</string>
     <string name="kavita_error_too_old">Dieser Server verwendet Kavita %1$s. StoryArc benötigt %2$s oder neuer.</string>
+    <string name="kavita_error_too_old_for_request">Dieser Server ist zu alt für StoryArc. Er kennt die Anfrage nicht, die StoryArc sendet.</string>
     <string name="kavita_error_key_not_stored">Dieses Gerät wollte den API-Schlüssel nicht speichern, daher wurde der Server nicht hinzugefügt. Es wurde nichts halbfertig gespeichert.</string>
     <string name="kavita_empty">Diese Bibliothek ist leer.</string>
     <string name="kavita_loose_chapters">Kapitel</string>

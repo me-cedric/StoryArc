@@ -33,6 +33,15 @@ class KavitaClient(val address: KavitaAddress) {
      */
     private var token: String? = null
 
+    /**
+     * The routes this server has answered 404 to, so the discovery is paid for once.
+     *
+     * Held here because one client is one server. It lives for the session and no longer:
+     * the answer is cheap to find again, and the registry of saved sources is a place for
+     * what a reader chose rather than for what a server happened to answer.
+     */
+    private val unsupported = mutableSetOf<String>()
+
     /** What the server said about itself, once it has been asked. */
     var identity: KavitaIdentity? = null
         private set
@@ -51,6 +60,9 @@ class KavitaClient(val address: KavitaAddress) {
 
         /** The filter that asks a listing route for everything it holds. */
         private const val EMPTY_FILTER = "{}"
+
+        /** The one status that means "this server does not have this route". */
+        private const val NOT_FOUND = 404
 
         private val json = Json { ignoreUnknownKeys = true }
     }
@@ -84,14 +96,24 @@ class KavitaClient(val address: KavitaAddress) {
      * The library still rides in the query, which is where this client has always put it;
      * whether a live Kavita reads it there is unmeasured.
      */
+    /**
+     * The series in one library, or in all of them.
+     *
+     * **The library is a statement in the body, not a query parameter.** Measured against a
+     * live Kavita on 2026-09-06: `POST /api/Series/all-v2?libraryId=3` answered all 215
+     * series across four libraries, so the parameter this client used to send did nothing at
+     * all -- and the request succeeded, so a reader who picked one library was shown every
+     * library and nothing reported a problem. The statement in [KavitaFilter] answered 91
+     * series from library 3 alone. An empty filter is the whole list.
+     *
+     * A filter that cannot be encoded throws. It never widens to the whole server.
+     */
     suspend fun series(libraryId: Int? = null): List<KavitaSeries> = decode(
-        request(
-            address.endpoint(
-                "Series/all-v2",
-                libraryId?.let { mapOf("libraryId" to it.toString()) } ?: emptyMap(),
-            ),
-            method = "POST",
-            body = EMPTY_FILTER,
+        listing(
+            "Series/all-v2",
+            libraryId?.let {
+                Json.encodeToString(KavitaFilter.serializer(), KavitaFilter.ofLibrary(it))
+            } ?: EMPTY_FILTER,
         ),
     )
 
@@ -200,9 +222,8 @@ class KavitaClient(val address: KavitaAddress) {
      * on 2026-09-06, a GET here is a 404 and this client sent one, so a reader who added their
      * own Kavita was shown no reading lists at all.
      */
-    suspend fun readingLists(): List<KavitaReadingList> = decode(
-        request(address.endpoint("ReadingList/lists"), method = "POST", body = EMPTY_FILTER),
-    )
+    suspend fun readingLists(): List<KavitaReadingList> =
+        decode(listing("ReadingList/lists", EMPTY_FILTER))
 
     /** One reading list's entries, in the order the server keeps. */
     suspend fun readingListItems(id: Int): List<KavitaReadingListItem> =
@@ -331,6 +352,35 @@ class KavitaClient(val address: KavitaAddress) {
 
     private suspend fun results(query: String): KavitaSearchResults =
         decode(get("Search/search", mapOf("queryString" to query)))
+
+    /**
+     * Posts to a listing route an older Kavita may not have, and remembers a 404.
+     *
+     * **A client cannot ask a Kavita what version it is.** Measured on 2026-09-06:
+     * `/api/Server/version`, `/api/Health/api-version` and `/api/Server/accepting-connections`
+     * all answer 404, `/api/Server/server-info-slim` is admin only, and swagger is off in
+     * production. So feature detection is the only detection there is, and the feature is the
+     * route answering at all.
+     *
+     * **Only a 404 counts.** A 401, a 403, a 500 or a timeout is the key or the server being
+     * wrong for a moment. Reading one of those as "old server" would turn one expired token
+     * into a permanent downgrade that no later good answer could undo.
+     *
+     * **There is no older shape to fall back to.** No documented v1 of these routes was
+     * found, and Kavita's controllers carry no `[Obsolete]` marker naming one. Inventing a
+     * request shape would be a guess a reader pays for, so this refuses in a sentence the
+     * screens can draw instead. iOS's `KavitaClient.sendVersioned` does the same.
+     */
+    private suspend fun listing(path: String, body: String): ByteArray {
+        if (path in unsupported) throw KavitaError.RouteMissing(path)
+        try {
+            return request(address.endpoint(path), method = "POST", body = body)
+        } catch (refused: KavitaError.Http) {
+            if (refused.status != NOT_FOUND) throw refused
+            unsupported += path
+            throw KavitaError.RouteMissing(path)
+        }
+    }
 
     private inline fun <reified T> decode(body: ByteArray): T =
         runCatching { json.decodeFromString<T>(String(body)) }
@@ -488,6 +538,14 @@ sealed class KavitaError(message: String) : IOException(message) {
     /** Older than this app knows how to talk to, named so the reader can act. */
     data class ServerTooOld(val found: KavitaVersion, val required: KavitaVersion) :
         KavitaError("kavita $found is older than $required")
+
+    /**
+     * The server does not have this route, so it is an older Kavita than this app can use.
+     *
+     * Distinct from [ServerTooOld], which knows the version because the server stated one.
+     * Here nothing did: see `KavitaClient.listing`.
+     */
+    data class RouteMissing(val path: String) : KavitaError("no route $path")
 
     data class Http(val status: Int) : KavitaError("http $status")
 }

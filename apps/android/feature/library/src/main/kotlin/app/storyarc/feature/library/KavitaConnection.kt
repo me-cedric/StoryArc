@@ -184,6 +184,7 @@ internal fun describeKavita(context: Context, error: KavitaError): String = when
         error.found.toString(),
         error.required.toString(),
     )
+    is KavitaError.RouteMissing -> context.getString(R.string.kavita_error_too_old_for_request)
     is KavitaError.KeyRejected -> context.getString(R.string.kavita_error_key_rejected)
     is KavitaError.BadAddress -> context.getString(R.string.kavita_error_not_an_address)
     is KavitaError.UnexpectedResponse -> context.getString(R.string.kavita_error_not_kavita)

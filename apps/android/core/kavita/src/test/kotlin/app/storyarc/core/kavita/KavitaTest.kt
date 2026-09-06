@@ -4,10 +4,16 @@ import app.storyarc.core.model.KavitaHit
 import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -113,6 +119,14 @@ class KavitaClientTest {
     /** The verb and body a listing route was asked with, which a live Kavita is strict about. */
     private var listingMethod: String? = null
     private var listingBody: String? = null
+    private var listingQuery: String? = null
+
+    /** How many times the series list was asked for, and whether this server has the route. */
+    private var listings = 0
+    private var listingIsMissing = false
+
+    /** A key the server refuses however often it is renewed, which is not an old server. */
+    private var keyIsRefused = false
 
     private fun client() = KavitaClient(
         KavitaAddress("http://localhost:${server.address.port}", "key"),
@@ -139,12 +153,23 @@ class KavitaClientTest {
                     status = 401
                     body = """{"message":"expired"}"""
                 }
+                keyIsRefused -> {
+                    status = 401
+                    body = """{"message":"refused"}"""
+                }
                 path.endsWith("/Library/libraries") ->
                     body = """[{"id":1,"name":"Comics"},{"id":2,"name":"Books"}]"""
                 path.endsWith("/Series/all-v2") -> {
+                    listings += 1
                     listingMethod = exchange.requestMethod
+                    listingQuery = exchange.requestURI.query
                     listingBody = exchange.requestBody.readBytes().decodeToString()
-                    body = """[{"id":1,"name":"Tidal Reach","libraryId":1,"pages":24,"pagesRead":6}]"""
+                    body = if (listingIsMissing) {
+                        status = 404
+                        """{"message":"no such route"}"""
+                    } else {
+                        """[{"id":1,"name":"Tidal Reach","libraryId":1,"pages":24,"pagesRead":6}]"""
+                    }
                 }
                 path.endsWith("/ReadingList/lists") -> {
                     listingMethod = exchange.requestMethod
@@ -213,7 +238,65 @@ class KavitaClientTest {
         // same claim, and `scripts/kavita-server.mjs --self-test` the server's half of it.
         client().series(1)
         assertEquals("POST", listingMethod)
+    }
+
+    @Test
+    fun theLibraryAReaderPickedRidesInTheFilterAndNeverInTheQuery() = runBlocking {
+        // Measured against a live Kavita on 2026-09-06: `POST /api/Series/all-v2?libraryId=3`
+        // answered all 215 series across four libraries, so the parameter this client used to
+        // send did nothing at all. The same route carrying this statement answered 91 series
+        // from library 3 alone. Field 19 is `Libraries` in Kavita's `SeriesFilterField`, and
+        // comparison 0 is the value measured to narrow. iOS's `KavitaLibraryTests` makes the
+        // same claim, and `scripts/kavita-server.mjs --self-test` the server's half of it.
+        client().series(3)
+
+        assertNull(listingQuery)
+        val filter = Json.parseToJsonElement(listingBody.orEmpty()).jsonObject
+        assertEquals(0, filter.getValue("combination").jsonPrimitive.int)
+        val statement = filter.getValue("statements").jsonArray.single().jsonObject
+        assertEquals(19, statement.getValue("field").jsonPrimitive.int)
+        assertEquals(0, statement.getValue("comparison").jsonPrimitive.int)
+        assertEquals("3", statement.getValue("value").jsonPrimitive.content)
+    }
+
+    @Test
+    fun aListingOfTheWholeServerCarriesNoStatementAtAll() = runBlocking {
+        // An empty filter is what a live Kavita answers with everything. A statement naming
+        // no library would be a filter this repository has not measured.
+        client().series()
         assertEquals("{}", listingBody)
+    }
+
+    @Test
+    fun aServerThatDoesNotKnowTheSeriesListIsAskedOnceAndThenRefused() = runBlocking {
+        // A client cannot ask a Kavita what version it is: every version route answered 404
+        // or 403 on 2026-09-06, and swagger is off in production. So a 404 on the route
+        // itself is the only signal, and paying for it on every listing is the cost this
+        // remembers away.
+        listingIsMissing = true
+        val client = client()
+
+        val missing = KavitaError.RouteMissing("Series/all-v2")
+        assertEquals(missing, assertThrows(KavitaError.RouteMissing::class.java) {
+            runBlocking { client.series() }
+        })
+        assertEquals(missing, assertThrows(KavitaError.RouteMissing::class.java) {
+            runBlocking { client.series() }
+        })
+        assertEquals(1, listings)
+    }
+
+    @Test
+    fun aRefusedKeyIsNotRememberedAsAServerThatIsTooOld() = runBlocking {
+        // A 401, a 403, a 500 or a timeout is the key or the server being wrong for a moment.
+        // Reading one of them as "old server" would turn one expired token into a permanent
+        // downgrade for that server, which no later good answer could undo.
+        val client = client()
+        keyIsRefused = true
+        assertThrows(KavitaError.KeyRejected::class.java) { runBlocking { client.series() } }
+
+        keyIsRefused = false
+        assertEquals(1, client.series().size)
     }
 
     @Test

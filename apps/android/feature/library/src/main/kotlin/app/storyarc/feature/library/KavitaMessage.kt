@@ -30,6 +30,11 @@ internal object KavitaMessage {
                 error.found.toString(),
                 error.required.toString(),
             )
+        // A server that does not have the route at all. The path is not said out loud: it
+        // names an API a reader never chose, and the sentence they need is that the server is
+        // too old rather than which request went unanswered.
+        is KavitaError.RouteMissing ->
+            context.getString(R.string.kavita_error_too_old_for_request)
         KavitaError.BadAddress, KavitaError.UnexpectedResponse ->
             context.getString(R.string.kavita_error_not_kavita)
         // Any other status is the server being unwell rather than the reader being wrong, and

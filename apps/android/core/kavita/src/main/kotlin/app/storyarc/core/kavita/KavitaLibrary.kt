@@ -14,6 +14,49 @@ import kotlinx.serialization.json.JsonNames
 @Serializable
 data class KavitaLibraryFolder(val id: Int, val name: String)
 
+/**
+ * One clause of Kavita's series filter.
+ *
+ * `field` 19 is `Libraries` in `SeriesFilterField.cs`, line 29. `comparison` 0 narrowed a
+ * live server on 2026-09-06, so it is the value this app sends. `value` is a string on the
+ * wire even when it names a number, which is how Kavita's own client sends it.
+ */
+@Serializable
+internal data class KavitaFilterStatement(
+    val comparison: Int,
+    val field: Int,
+    val value: String,
+)
+
+/**
+ * Kavita's `SeriesFilterV2Dto`, of the parts this app sends.
+ *
+ * The DTO also carries `id`, `name` and `sortOptions`. This app sends the two fields it has
+ * a use for, because a field nobody measured is a field this client cannot claim a meaning
+ * for. `combination` 0 is `FilterCombination.And`.
+ */
+@Serializable
+internal data class KavitaFilter(
+    val statements: List<KavitaFilterStatement>,
+    // No default. `kotlinx.serialization` leaves a field holding its default out of the
+    // encoded body, and the body measured against a live server on 2026-09-06 carried
+    // `"combination":0`. A filter that quietly dropped it would be a shape nobody measured.
+    val combination: Int,
+) {
+    companion object {
+        private const val LIBRARY_FIELD = 19
+        private const val MEASURED_COMPARISON = 0
+
+        /** `FilterCombination.And`, which is what one statement needs and more would want. */
+        private const val AND = 0
+
+        fun ofLibrary(id: Int) = KavitaFilter(
+            listOf(KavitaFilterStatement(MEASURED_COMPARISON, LIBRARY_FIELD, id.toString())),
+            AND,
+        )
+    }
+}
+
 /** A series, as the library list shows it. */
 @Serializable
 data class KavitaSeries(
