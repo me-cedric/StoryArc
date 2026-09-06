@@ -22,6 +22,11 @@ import Testing
 /// count or to free. What was missing was any way for a reader to see which of the two they
 /// were being shown. So every one of these lines names downloads now, and none of them
 /// claims to describe the device.
+/// **`@MainActor` because every comparison below reads the size helper twice**, and the
+/// helper follows the interface language. `ChosenLanguageFormattingTests` moves that choice
+/// on the main actor and puts it back before its case returns, so a main-actor case here
+/// reads one language on both sides of an `==`.
+@MainActor
 @Suite("Storage summaries")
 struct StorageSummaryTests {
 

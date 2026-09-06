@@ -16,15 +16,18 @@ import StoryArcCore
 /// screen at a time. Android has no such split — its override goes through
 /// `createConfigurationContext`, which moves the whole configuration at once.
 ///
-/// **This suite is the only place that moves the process-wide choice**, and it is
-/// `.serialized` so its own cases cannot overlap. `.serialized` orders cases *within* a
-/// suite and nothing between two suites, exactly as `KavitaClientTests` records. Three
-/// sibling cases read a size through the same helpers and would misread one taken during
-/// this suite's window — `SourceDetailSizeTests.zeroIsANumber`,
-/// `SourceDetailSizeTests.aRealSizeIsTheAppsOwn` and `StorageSummaryTests`' comparisons. The
-/// window is one formatting call wide and the choice is put back before the case returns,
-/// so it is small rather than absent; a one-off failure in one of those three names this
-/// suite as the first thing to look at.
+/// **The choice is one value for the whole process, and `.serialized` does not fence it.**
+/// `.serialized` orders cases *within* a suite and nothing between two suites, exactly as
+/// `KavitaClientTests` records, and `swift test` runs all 266 suites in one process in
+/// parallel. The window a case here holds French open is not one formatting call either: it
+/// is a whole SwiftUI body render and a reflection walk.
+///
+/// **What fences it is the main actor.** Every case that moves the choice, and every case
+/// that reads a formatter following it, is `@MainActor` and synchronous, so one runs to its
+/// end before the next starts. Those suites are `PlayerLabelsTests`, `StorageUsageTests`,
+/// `StorageSummaryTests`, `SourceDetailSizeTests` and this one. **A new case that reads a
+/// size, a date, a percentage or a spoken duration belongs in a `@MainActor` suite**, or it
+/// will read French on a host that is not French, one run in a hundred.
 @MainActor
 @Suite("Sizes and dates follow the chosen interface language", .serialized)
 struct ChosenLanguageFormattingTests {

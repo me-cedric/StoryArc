@@ -4,6 +4,13 @@ import Testing
 @testable import Persistence
 
 /// What a size looks like to a reader, and in whose number format.
+///
+/// **`@MainActor` because these sizes follow the interface language**, which is one value for
+/// the whole process. `ChosenLanguageFormattingTests` moves that value, and its cases are
+/// main-actor and synchronous, as these are: a case here cannot start inside the window
+/// another case holds French open. Without the annotation this suite runs on another thread
+/// and reads "1,4 MB" while asking for the host's own decimal point.
+@MainActor
 @Suite("Storage usage")
 struct StorageUsageTests {
     @Test("A size follows the reader's own number format")
