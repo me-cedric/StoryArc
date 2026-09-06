@@ -301,6 +301,49 @@ class ProgressStoreTest {
         assertEquals(false, store.link(learned))
     }
 
+    @Test
+    fun aWholeLibraryThroughLinkKeepsContinueReadingInOrder() = runTest {
+        // What the scan does with its results: every identity it produced, in one pass.
+        // "Continue reading" is ordered by `updatedAt`, and learning a file's digest is not
+        // reading it -- a backfill that restamped the date would reorder the whole row on
+        // one launch. The second pass is the other half: an already-linked library is
+        // walked on every launch and must write nothing.
+        val store = store()
+        store.save(
+            ReadingProgress(
+                identity(path = "/books/older.cbz"), ReadingPosition.Page(1, 10), false,
+                updatedAtEpochMillis = 1_000,
+            ),
+        )
+        store.save(
+            ReadingProgress(
+                identity(path = "/books/newer.cbz"), ReadingPosition.Page(2, 10), false,
+                updatedAtEpochMillis = 2_000,
+            ),
+        )
+        val before = store.recent()
+
+        val scanned = listOf(
+            identity(digest = "d-older", path = "/books/older.cbz"),
+            identity(digest = "d-newer", path = "/books/newer.cbz"),
+            // Most of a library has no position at all, and none of it should gain one.
+            identity(digest = "d-unread", path = "/books/unread.cbz"),
+        )
+        assertEquals(2, scanned.count { store.link(it) })
+
+        val after = store.recent()
+        assertEquals(before.map { it.updatedAtEpochMillis }, after.map { it.updatedAtEpochMillis })
+        assertEquals(before.map { it.position }, after.map { it.position })
+        assertEquals(2, after.size)
+        // The rename each of them now survives.
+        assertEquals(
+            ReadingPosition.Page(2, 10),
+            store.progress(identity(digest = "d-newer", path = "/books/renamed.cbz"))?.position,
+        )
+        // And the second scan of the same library writes nothing.
+        assertEquals(0, scanned.count { store.link(it) })
+    }
+
     // MARK: an audiobook's place
 
     /**

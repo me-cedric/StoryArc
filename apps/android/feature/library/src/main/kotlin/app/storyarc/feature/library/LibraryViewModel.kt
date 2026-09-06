@@ -799,6 +799,16 @@ class LibraryViewModel(
                 }
                 rebuild()
                 cacheLibrary(partial.isNotEmpty())
+                // The digests this walk computed, handed to the store that keeps reading
+                // positions. A position written before digests existed carries a path alone,
+                // so the first rename lost it; [ProgressStore.save] repairs that only when
+                // the reader opens the book again, which a reader who tidies first never
+                // does. Once, at the end, over the whole shelf: [ProgressStore.link] writes
+                // only what is new, so a linked library costs a read each and no write.
+                // Nothing here digests anything. iOS does the same in `LibraryModel.scan`.
+                for (publication in _publications.value) {
+                    progressStore?.link(publication.identity)
+                }
             }
             // After the walk, not before it. Recorded positions are matched against
             // the publications the scan produced, so refreshing while the list is
