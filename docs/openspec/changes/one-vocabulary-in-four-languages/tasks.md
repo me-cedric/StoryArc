@@ -369,14 +369,61 @@ Two literals, and the largest hidden surface behind them.
       land partly without leaving a seam open.
       Verify: `pnpm strings:ios` and `pnpm lint:android`; re-run 4.1's
       comparison and watch the reconciled rows leave the list.
-- [ ] **4.3** Reconcile the offline destination's vocabulary.
+- [x] **4.3** Reconcile the offline destination's vocabulary.
       iOS: *Nothing in your library is on this device yet*
       (`library.empty.onDevice`), *Nothing downloaded*, *%@ downloaded*.
       Android: *Nothing in your library can be read without a connection*,
       *Nothing on this device*, *%1$s on this device*. These are two different
       promises, not two phrasings.
-      **Blocked on the open question**: direction §8.4 records the name as an
-      owner decision never taken. Do not pick one. Ask.
+      **Decided 2026-09-06 by the owner. The open question is answered, not
+      guessed, and this paragraph is the record of it.** The destination is named
+      by its **location** — *on this device* — and the empty state carries the
+      **capability**. *On this device* is short, concrete, and is the vocabulary
+      both platforms already use for this idea in their own interfaces; it is
+      what a reader scans a list for. *Can be read without a connection* is the
+      more truthful promise but the poorer label: it reads as a sentence rather
+      than a place, and it wraps badly at the largest text size, where Spanish is
+      this app's measured worst case for length. So the promise moves to the one
+      surface with room to read it — the empty state, which exists to say what a
+      place is for.
+      **Done.** Three keys a side, four languages each, same meaning and same
+      placeholder count. iOS `settings.downloads.none` and
+      `settings.downloads.summary %@` take Android's *Nothing on this device* and
+      *%@ on this device*. Both platforms' empty state becomes *Nothing in your
+      library is on this device yet. What you keep here can be read without a
+      connection.* — the location, then the promise, two sentences and not a
+      paragraph. Two register slips went with the rewrite because the sentence
+      was being written anyway: iOS's German said *deiner* where 104 of its 107
+      German strings say *Ihre*, and Android's Spanish said *su biblioteca* where
+      both catalogues otherwise say *tu biblioteca*.
+      **Judged to mean a completed transfer, so kept as *downloaded*:**
+      `downloads.total`, `privacy.downloads %@`, `downloads.failed %@ %lld`,
+      `downloads.pending` and `library.filter.download.*`. The last is the axis a
+      reader filters by — whether the app fetched a file — which is a different
+      question from where the file is.
+      **Judged to name the place, and already agreed on both platforms:**
+      `downloads.onDevice`, `catalogue.entry.downloaded`, `kavita.kept`,
+      `source.onThisDevice` and `library.availability.onDevice` all draw *On this
+      device*, and `tab.downloads` / `destination_downloads` both name the
+      destination *Downloads*. Nothing to reconcile.
+      **The accessibility labels were checked, not assumed.** Neither platform
+      gives these three surfaces a label of their own: the settings row, the
+      empty sentence and the destination's tab are announced from the text they
+      draw, so the drawn name and the announced name are one string.
+      **One consequence for 4.2 to carry.** The figure in the settings row counts
+      what `DownloadStore.bytesOnDisk()` weighs — what StoryArc fetched or
+      imported, not a folder the reader added. iOS states that on the screen the
+      row opens, in `downloads.manageInDestination`; Android's mirror of that key
+      does not. That row is already on 4.2's list as *wording*, and it matters
+      more now that both platforms name the device.
+      Verify: `pnpm strings:ios` — *every key resolves, in en, fr, de, es*;
+      `pnpm test:ios` — 2148 tests in 280 suites passed; `pnpm gradle
+      :feature:library:testDebugUnitTest` — build successful.
+      `OfflineDestinationNameTests` and `OfflineDestinationNameTest` were watched
+      red first: iOS on *en states settings.downloads.none as "Nothing
+      downloaded", which does not name the location*, Android on *en states the
+      empty shelf as "Nothing in your library can be read without a connection.",
+      which does not name the location*.
 - [ ] **4.4** Record the rows marked *platform forces it* as deliberate, in the
       key's own comment, so the next comparison does not re-report them.
       At least three: *Reduce Motion* against *Remove animations* (each
