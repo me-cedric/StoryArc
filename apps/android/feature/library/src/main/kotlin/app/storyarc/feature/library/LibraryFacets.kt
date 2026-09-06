@@ -1,6 +1,8 @@
 package app.storyarc.feature.library
 
 import app.storyarc.core.model.PublicationFormat
+import java.text.Collator
+import java.util.Locale
 
 /**
  * What the filter menu is allowed to offer.
@@ -20,21 +22,27 @@ import app.storyarc.core.model.PublicationFormat
 fun LibraryViewModel.availableFormats(): List<PublicationFormat> =
     publications.value.map { it.format }.distinct().sortedBy { it.displayName }
 
-/** Languages actually present, as codes. The screen names them for the reader. */
+/**
+ * Languages actually present, as codes. The screen names them for the reader.
+ *
+ * Collated like the other three even though a language tag is ASCII: nothing validates what a
+ * `ComicInfo.xml` writes into `<LanguageISO>`, so a mis-tagged file spelling the language out
+ * reaches this list as it is spelled.
+ */
 fun LibraryViewModel.availableLanguages(): List<String> =
-    publications.value.mapNotNull { it.language }.distinct().sorted()
+    publications.value.mapNotNull { it.language }.distinct().collated(readerLocale())
 
 /** Publishers actually present, as the files spell them. */
 fun LibraryViewModel.availablePublishers(): List<String> =
-    publications.value.mapNotNull { it.publisher }.distinct().sorted()
+    publications.value.mapNotNull { it.publisher }.distinct().collated(readerLocale())
 
 /** Genres actually present, gathered from every publication's list. */
 fun LibraryViewModel.availableGenres(): List<String> =
-    publications.value.flatMap { it.genres }.distinct().sorted()
+    publications.value.flatMap { it.genres }.distinct().collated(readerLocale())
 
 /** Tags actually present. Kept apart from [availableGenres] because the files do. */
 fun LibraryViewModel.availableTags(): List<String> =
-    publications.value.flatMap { it.tags }.distinct().sorted()
+    publications.value.flatMap { it.tags }.distinct().collated(readerLocale())
 
 /**
  * The decades the library spans, newest first.
@@ -47,3 +55,34 @@ fun LibraryViewModel.availableTags(): List<String> =
  */
 fun LibraryViewModel.availableDecades(): List<Int> =
     publications.value.mapNotNull { it.year }.map { it - it % 10 }.distinct().sortedDescending()
+
+/**
+ * Filter values in the order a reader of [locale] reads them.
+ *
+ * A bare `sorted()` is Kotlin's `compareTo` on `String`, which is UTF-16 unit order: *É* is
+ * U+00C9 and *Z* is U+005A, so every accented value landed after every unaccented one and a
+ * French reader found *Éditions* past *Zenith*. That is not the wrong collation, it is none —
+ * the shelf, the search results and a reading list all collate and this menu did not.
+ *
+ * `Collator.SECONDARY` against the reader's locale, which is the comparison `LibraryIndex`
+ * gives the shelf, so a value is filed in one place wherever it is drawn. Without
+ * `LibraryIndex.sortKey`, though: that strips a leading article so a title files under its
+ * first real word, and `library-browsing` asks for it on **titles**. A publisher named *The
+ * Comic Company* is a name, not a title, and filing it under C would be a behaviour no
+ * requirement asks for.
+ *
+ * `compareTo` breaks a tie, and it is not decoration. `SECONDARY` calls *marvel* and *Marvel*
+ * equal while `distinct()` keeps them as two values, so the menu could draw them either way
+ * round. It decides only between values that collate equal.
+ *
+ * The collator is built once per sort rather than once per comparison, which is what
+ * `LibraryIndex.arrange` does and for the same reason. The locale is read once for the same
+ * reason again: `readerLocale()` decodes the settings blob on every call.
+ */
+private fun List<String>.collated(locale: Locale): List<String> {
+    val collator = Collator.getInstance(locale).apply { strength = Collator.SECONDARY }
+    return sortedWith { left, right ->
+        val byReader = collator.compare(left, right)
+        if (byReader != 0) byReader else left.compareTo(right)
+    }
+}
