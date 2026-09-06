@@ -355,6 +355,37 @@ const server = createServer((request, response) => {
     })))
   }
 
+  // `collections-and-reading-lists` lets a reader keep a new collection on a server. Kavita
+  // has no create route for one: it brings a collection into being by tagging series, and a
+  // zero id means "make it". The mock takes a bulk-add with no series at all, which is what
+  // the shelves screen sends; **a real Kavita may refuse that**, because a collection holding
+  // nothing is not something its own interface can make. Nothing here has run against a live
+  // server, so that stays an open question rather than a proven behaviour.
+  if (url.pathname === '/api/Collection/update-for-series' && request.method === 'POST') {
+    let body = ''
+    request.on('data', (chunk) => { body += chunk })
+    request.on('end', () => {
+      const posted = JSON.parse(body || '{}')
+      const title = posted.collectionTagTitle ?? ''
+      const wanted = posted.seriesIds ?? []
+      if (!posted.collectionTagId) {
+        if (!title) return send(response, 400, { message: 'a collection needs a name' })
+        collections.push({
+          id: Math.max(0, ...collections.map((each) => each.id)) + 1,
+          title,
+          summary: null,
+          seriesIds: wanted,
+        })
+        return send(response, 200, {})
+      }
+      const found = collections.find((each) => each.id === posted.collectionTagId)
+      if (!found) return send(response, 404, { message: 'no such collection' })
+      found.seriesIds = [...new Set([...found.seriesIds, ...wanted])]
+      send(response, 200, {})
+    })
+    return undefined
+  }
+
   if (url.pathname === '/api/Collection/series') {
     const found = collections.find((each) => each.id === Number(url.searchParams.get('collectionId')))
     if (!found) return send(response, 404, { message: 'no such collection' })
@@ -432,6 +463,37 @@ const server = createServer((request, response) => {
           seriesName: owner.name,
         })
       }
+      send(response, 200, {})
+    })
+    return undefined
+  }
+
+  // `collections-and-reading-lists` makes a reading list's order its meaning, and asks for a
+  // new order to be sent to the server. Kavita moves one entry at a time, by position, so the
+  // mock takes the same four fields Kavita's own `update-position` takes and renumbers what
+  // is left -- a mock that took the move and kept the old `order` values could not tell a
+  // client that reorders from one that only thinks it does.
+  if (url.pathname === '/api/ReadingList/update-position' && request.method === 'POST') {
+    let body = ''
+    request.on('data', (chunk) => { body += chunk })
+    request.on('end', () => {
+      const posted = JSON.parse(body || '{}')
+      const list = readingLists.find((each) => each.id === posted.readingListId)
+      if (!list) return send(response, 404, { message: 'no such list' })
+      const from = posted.fromPosition
+      const to = posted.toPosition
+      const inRange = (at) => Number.isInteger(at) && at >= 0 && at < list.items.length
+      if (!inRange(from) || !inRange(to)) {
+        return send(response, 400, { message: 'position out of range' })
+      }
+      if (list.items[from].id !== posted.readingListItemId) {
+        // Kavita addresses the move by the entry as well as by where it is. A client that
+        // sent one without the other would be moving whatever happens to sit there now.
+        return send(response, 400, { message: 'that entry is not at that position' })
+      }
+      const [moved] = list.items.splice(from, 1)
+      list.items.splice(to, 0, moved)
+      list.items.forEach((item, at) => { item.order = at })
       send(response, 200, {})
     })
     return undefined
@@ -611,6 +673,95 @@ const drive = async () => {
     new Set(held.map((each) => each.ageRating)).size > 1)
   check('the corpus holds more than one publication status',
     new Set(statuses).size > 1, statuses)
+
+  // A collection a reader made against the server, per `collections-and-reading-lists`. The
+  // server mints the id, and the client reads it back by name because Kavita's bulk-add
+  // answers with nothing.
+  const heldBefore = (await (await get('/api/Collection', token)).json()).length
+  const created = await post('/api/Collection/update-for-series', {
+    collectionTagId: 0,
+    collectionTagTitle: 'Made by a reader',
+    seriesIds: [],
+  }, token)
+  check('a collection a reader made is accepted', created.status === 200, created.status)
+  const grouped = await (await get('/api/Collection', token)).json()
+  check('a collection a reader made is one the server then lists',
+    grouped.length === heldBefore + 1 &&
+      grouped.some((each) => each.title === 'Made by a reader'),
+    grouped.map((each) => each.title))
+  check('a collection a reader made carries an id nothing else has',
+    new Set(grouped.map((each) => each.id)).size === grouped.length,
+    grouped.map((each) => each.id))
+  const unnamed = await post('/api/Collection/update-for-series', {
+    collectionTagId: 0,
+    collectionTagTitle: '',
+    seriesIds: [],
+  }, token)
+  check('a collection with no name is refused rather than made', unnamed.status === 400,
+    unnamed.status)
+
+  // `collections-and-reading-lists` makes a reading list's order the thing it exists to
+  // hold, so the mock has to be a contract about the order and not only about the entries.
+  // A move by position is the one place a reordering client can be silently wrong: a server
+  // that took the move and left `order` alone would answer every later read in the old
+  // sequence, and no client-side test could see the difference.
+  const listItems = async (id) =>
+    (await get(`/api/ReadingList/items?readingListId=${id}`, token)).json()
+
+  const start = await listItems(1)
+  check('a reading list answers in its own order',
+    start.every((item, at) => item.order === at), start.map((each) => each.order))
+
+  if (start.length > 1) {
+    const last = start[start.length - 1]
+    const moved = await post('/api/ReadingList/update-position', {
+      readingListId: 1,
+      readingListItemId: last.id,
+      fromPosition: start.length - 1,
+      toPosition: 0,
+    }, token)
+    check('a move the server accepts answers 200', moved.status === 200, moved.status)
+
+    const after = await listItems(1)
+    check('the entry moved to the top is the one that is now first',
+      after[0].id === last.id, after[0].id)
+    check('the whole list is renumbered from zero after a move',
+      after.every((item, at) => item.order === at), after.map((each) => each.order))
+    check('a move keeps every entry it started with',
+      after.length === start.length &&
+        start.every((each) => after.some((item) => item.id === each.id)),
+      after.map((each) => each.id))
+
+    // Kavita addresses a move by the entry as well as by where it is. A client that sent one
+    // without the other would move whatever happens to sit there now, which is how a reorder
+    // scrambles a list instead of ordering it.
+    const mismatched = await post('/api/ReadingList/update-position', {
+      readingListId: 1,
+      readingListItemId: last.id,
+      fromPosition: 1,
+      toPosition: 0,
+    }, token)
+    check('a move naming an entry that is not at that position is refused',
+      mismatched.status === 400, mismatched.status)
+
+    const outOfRange = await post('/api/ReadingList/update-position', {
+      readingListId: 1,
+      readingListItemId: after[0].id,
+      fromPosition: 0,
+      toPosition: after.length,
+    }, token)
+    check('a move to a position the list does not have is refused',
+      outOfRange.status === 400, outOfRange.status)
+  }
+
+  const noSuchList = await post('/api/ReadingList/update-position', {
+    readingListId: 9999,
+    readingListItemId: 1,
+    fromPosition: 0,
+    toPosition: 0,
+  }, token)
+  check('a move on a list the server does not hold is refused',
+    noSuchList.status === 404, noSuchList.status)
 
   server.close()
   if (failures.length) {
