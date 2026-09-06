@@ -47,7 +47,14 @@ public actor SmbClient {
                 username: address.isGuest ? nil : address.username,
                 password: address.isGuest ? nil : address.password
             )
-            try await client.connectShare(address.share)
+            // The response, not just the act. `network-share` wants the specific failure
+            // named, and the tree-connect response is the one place this connection learns
+            // that the share demands encryption it cannot give. Thrown before `isConnected`
+            // is set, so a share this client may not read is never treated as reachable.
+            let tree = try await client.connectShare(address.share)
+            if let refusal = Self.refusal(forShareFlags: tree.shareFlags.rawValue) {
+                throw refusal
+            }
             isConnected = true
 
             return SmbIdentity(
@@ -155,10 +162,12 @@ public actor SmbClient {
         // trying to reach their NAS.
         if isHandshake, Self.dialectRefusals.contains(status) { return .protocolUnsupported }
         // ACCESS_DENIED from a server that has agreed a dialect usually means a refused
-        // password, but a share with `smb encrypt = required` answers the same way to a
-        // client that cannot encrypt. This one cannot, so the two are indistinguishable
-        // here and the commoner reading wins. Android's client says which it was, because
-        // jcifs detects the requirement itself.
+        // password, but a server with `reject unencrypted access` answers the same way to a
+        // client that cannot encrypt. Those two are indistinguishable *from a status*, so
+        // the commoner reading wins here. The share-level demand is not read from a status
+        // at all: the tree-connect response carries it as a flag, and
+        // ``refusal(forShareFlags:)`` names it. Android reads the same demand out of jcifs'
+        // own message.
         switch status {
         case 0xC000_006D, 0xC000_006A, 0xC000_0022: return .authenticationRejected
         // BAD_NETWORK_NAME and OBJECT_PATH_NOT_FOUND only. OBJECT_NAME_NOT_FOUND means a
@@ -169,6 +178,22 @@ public actor SmbClient {
         default: return .unexpected(detail: NTStatus(status).description)
         }
     }
+
+    /// What a share's own flags refuse, read out of the tree-connect response.
+    ///
+    /// One flag matters to this client: `SMB2_SHAREFLAG_ENCRYPT_DATA`. MS-SMB2 has a server
+    /// set it to tell the client that this share's traffic must be encrypted, and has the
+    /// client fail the operation when it cannot encrypt. This client cannot, so it fails it
+    /// here, where the demand is a fact rather than a guess -- ``meaning(of:isHandshake:)``
+    /// sees only `ACCESS_DENIED`, which a refused password sends too.
+    ///
+    /// `nil` when the share demands nothing this client cannot give.
+    static func refusal(forShareFlags flags: UInt32) -> SmbError? {
+        flags & encryptDataShareFlag == 0 ? nil : .encryptionRequired
+    }
+
+    /// `SMB2_SHAREFLAG_ENCRYPT_DATA`, from MS-SMB2 2.2.10.
+    private static let encryptDataShareFlag: UInt32 = 0x0000_8000
 
     /// Statuses that can only mean the server would not agree a dialect this client speaks.
     ///
