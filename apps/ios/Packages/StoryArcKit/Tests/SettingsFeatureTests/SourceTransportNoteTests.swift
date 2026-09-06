@@ -21,6 +21,12 @@ import StoryArcCore
 ///
 /// [adr]: docs/decisions/0016-ios-smb-response-signing.md
 ///
+/// **The sentence denies encryption, and the denial is what is asserted.** Both clients
+/// hardcode `isEncrypted = false`, so the screen states a constant rather than reading the
+/// session, and [ADR-0016][adr] records why that is where this stands. The day item 1 of that
+/// ADR's *What would change this* lands, the four sentences become false and these tests fail
+/// by name, in whichever language was edited first.
+///
 /// **The view's own body is built and read, not its source file**, for the reason
 /// ``SourceProgressNoteTests`` gives: a guard that a comment satisfies is not a guard. The
 /// four translations are read from the catalogue on disk, because `swift build` copies an
@@ -138,26 +144,35 @@ struct SourceTransportNoteTests {
         #expect(keys.contains(Self.note), "\(state) looked up \(keys.sorted())")
     }
 
-    /// The words a reader is owed, and the words ADR-0016 refuses.
+    /// The claim a reader is owed, and the words ADR-0016 refuses.
+    ///
+    /// **The negation is matched, not the word alone.** An earlier form of this suite asked
+    /// only whether each sentence carried the word for "encrypted", so *The connection is
+    /// encrypted.* satisfied it. That is the edit someone will make the day a client
+    /// negotiates SMB 3, and it is the edit that lands in one language before the other three.
+    /// The polarity is the whole of the claim, so the polarity is what is pinned.
     ///
     /// Every token is matched against every language: a French word has no business in the
     /// German sentence either, and the signing half is a promise this app does not make in any
     /// of the four.
-    private static let encryption = [
-        "en": "encrypted", "fr": "chiffré", "de": "verschlüsselt", "es": "cifrad",
+    private static let notEncrypted = [
+        "en": "not encrypted",
+        "fr": "pas chiffré",
+        "de": "nicht verschlüsselt",
+        "es": "no está cifrad",
     ]
     private static let signing = [
         "signed", "signing", "signé", "signature", "signiert", "signatur", "firmad", "firma",
     ]
 
     @Test(
-        "Every language states whether the connection is encrypted",
+        "Every language states that the connection is not encrypted",
         arguments: ["en", "fr", "de", "es"]
     )
-    func everyLanguageNamesEncryption(_ language: String) throws {
+    func everyLanguageDeniesEncryption(_ language: String) throws {
         let sentence = try Self.value(of: Self.note, in: language).lowercased()
-        let word = try #require(Self.encryption[language])
-        #expect(sentence.contains(word), "the \(language) sentence reads \"\(sentence)\"")
+        let claim = try #require(Self.notEncrypted[language])
+        #expect(sentence.contains(claim), "the \(language) sentence reads \"\(sentence)\"")
     }
 
     @Test("No language claims anything about signing", arguments: ["en", "fr", "de", "es"])
