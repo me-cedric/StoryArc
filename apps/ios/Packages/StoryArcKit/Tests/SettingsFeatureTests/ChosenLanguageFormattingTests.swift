@@ -34,18 +34,40 @@ struct ChosenLanguageFormattingTests {
 
     private static let bytes: Int64 = 1_500_000
 
+    /// French *on this device*: the chosen language, over the region the device already had.
+    private static let french = onThisDevice("fr")
+
+    /// The same, in English, so the control below holds on a device set to any region.
+    private static let english = onThisDevice("en")
+
+    /// Composed the way ``StoryArcCore/Locale/storyArc`` composes it, and that is deliberate.
+    /// These two cases assert that the *formatter* asks that locale at all. Whether the
+    /// composition is itself right is [theRegionSurvivesTheChoice]'s question, and that case
+    /// compares against the device instead of against a second copy of the rule.
+    private static func onThisDevice(_ language: String) -> Locale {
+        var components = Locale.Components(locale: .autoupdatingCurrent)
+        components.languageComponents.languageCode = Locale.LanguageCode(language)
+        components.languageComponents.script = nil
+        return Locale(components: components)
+    }
+
     @Test("A size chosen in French is grouped and spelled the French way")
     func aSizeFollowsTheChoice() {
         InterfaceLanguage.choose("fr")
         defer { InterfaceLanguage.choose(nil) }
-        let french = Locale(identifier: "fr")
 
         #expect(
-            DownloadStore.formatted(Self.bytes) == Self.size(in: french),
+            DownloadStore.formatted(Self.bytes) == Self.size(in: Self.french),
             "the download size ignored the chosen language: \(DownloadStore.formatted(Self.bytes))"
         )
+        // The unit comes from the language rather than from the region, so this holds on
+        // any device: "Mo" is French for "MB" wherever the reader is.
         #expect(
-            formattedBytes(Self.bytes).contains(french.decimalSeparator ?? ","),
+            DownloadStore.formatted(Self.bytes).contains("Mo"),
+            "the download size was not spelled in French: \(DownloadStore.formatted(Self.bytes))"
+        )
+        #expect(
+            formattedBytes(Self.bytes).contains(Self.french.decimalSeparator ?? ","),
             "the storage figure ignored the chosen language: \(formattedBytes(Self.bytes))"
         )
     }
@@ -57,14 +79,46 @@ struct ChosenLanguageFormattingTests {
 
         let shown = Self.renderedSourceDetail()
         #expect(
-            shown.contains(Self.timestamp(in: Locale(identifier: "fr"))),
+            shown.contains(Self.timestamp(in: Self.french)),
             "the last sync was not written in French: \(shown.sorted())"
         )
         // The control. Without it this case would pass on a screen that had lost the row,
         // and on a host already running in French.
         #expect(
-            !shown.contains(Self.timestamp(in: Locale(identifier: "en"))),
+            !shown.contains(Self.timestamp(in: Self.english)),
             "the last sync was written in English as well as French"
+        )
+    }
+
+    /// The choice moves the language, and it moves nothing else.
+    ///
+    /// `localization` gives a date "the device's locale, calendar and time-zone conventions"
+    /// and a size "locale digit grouping and unit conventions". A bare language tag answers
+    /// neither. A reader in the United Kingdom who picks English read `4 Sep 2025 at 17:33`
+    /// before the choice and `Sep 4, 2025 at 5:33 PM` after it, because `Locale("en")` carries
+    /// the United States' date order and its 12-hour clock. The region, the clock and the
+    /// numbering system stay the device's; only the language changes.
+    @Test("A chosen language keeps the device's region, clock and calendar")
+    func theRegionSurvivesTheChoice() {
+        InterfaceLanguage.choose("fr")
+        defer { InterfaceLanguage.choose(nil) }
+        let device = Locale.autoupdatingCurrent
+
+        #expect(
+            Locale.storyArc.language.languageCode?.identifier == "fr",
+            "the choice did not reach the locale: \(Locale.storyArc.identifier)"
+        )
+        #expect(
+            Locale.storyArc.region == device.region,
+            "the choice discarded the device's region: \(Locale.storyArc.identifier)"
+        )
+        #expect(
+            Locale.storyArc.hourCycle == device.hourCycle,
+            "the choice discarded the device's clock: \(Locale.storyArc.identifier)"
+        )
+        #expect(
+            Locale.storyArc.calendar.identifier == device.calendar.identifier,
+            "the choice discarded the device's calendar: \(Locale.storyArc.identifier)"
         )
     }
 

@@ -37,7 +37,21 @@ extension Locale {
     /// The reader's choice when there is one, and the device's otherwise. `autoupdatingCurrent`
     /// rather than `current` so a language changed in system settings is followed without a
     /// relaunch, which is the other half of what `localization` asks for.
+    ///
+    /// **The choice moves the language over the device's own locale, rather than replacing it.**
+    /// A bare tag carries a region too: `Locale(identifier: "en")` means English *in the United
+    /// States*, so a reader in the United Kingdom who picked English got the American date order
+    /// and a 12-hour clock on a device set to 24. `localization` gives a date "the device's
+    /// locale, calendar and time-zone conventions" and a size "locale digit grouping and unit
+    /// conventions", and only its Sorting scenario names the interface language. So the region,
+    /// the calendar, the clock and the numbering system stay the device's, and the language is
+    /// the one field the choice sets. The script goes with the language: a device reading
+    /// Simplified Chinese does not hand `Hans` to French.
     public static var storyArc: Locale {
-        InterfaceLanguage.tag.map(Locale.init(identifier:)) ?? .autoupdatingCurrent
+        guard let tag = InterfaceLanguage.tag else { return .autoupdatingCurrent }
+        var components = Locale.Components(locale: .autoupdatingCurrent)
+        components.languageComponents.languageCode = Locale.LanguageCode(tag)
+        components.languageComponents.script = nil
+        return Locale(components: components)
     }
 }
