@@ -20,8 +20,11 @@ public struct ShelvesView: View {
     private let model: LibraryModel
     private let onOpen: (Publication, URL) -> Void
 
-    @State private var creating: Kind?
+    @State private var creating: ShelfDraft?
     @State private var draftName = ""
+
+    /// Set when a server would not take the shelf the reader asked it to keep.
+    @State private var serverRefusedTheShelf = false
 
     /// Which shelves the reader has asked to see on the home surface.
     ///
@@ -41,6 +44,13 @@ public struct ShelvesView: View {
     /// from rows that each fetch their own.
     @State private var serverShelves: [ServerShelf] = []
 
+    /// Which of those servers could take a new shelf, per kind.
+    ///
+    /// `collections-and-reading-lists` offers a server at creation only when it "supports"
+    /// the kind being made, and a server that has just answered is the only honest reading of
+    /// that — an empty answer and no answer are different things.
+    @State private var capable = ServerShelves(shelves: [], listCapable: [])
+
     /// Edits owed to a server, so a shelf can say so and a conflict can be said once.
     ///
     /// Read into the view rather than asked for per card: the badge and the notice come out
@@ -54,14 +64,6 @@ public struct ShelvesView: View {
     /// confirmation "states plainly that the publications themselves are not deleted". This
     /// is the gap between the two — while it holds something, nothing has been written.
     @State private var deleting: ShelfDeletion?
-
-    /// Which kind the "new" sheet is making.
-    private enum Kind: String, Identifiable {
-        case collection
-        case list
-
-        var id: String { rawValue }
-    }
 
     public init(model: LibraryModel, onOpen: @escaping (Publication, URL) -> Void = { _, _ in }) {
         self.model = model
@@ -94,10 +96,11 @@ public struct ShelvesView: View {
         .background(theme.palette.surfaceCanvas)
         .task {
             if serverShelves.isEmpty {
-                serverShelves = await ServerShelf.all(
+                capable = await ServerShelf.fetch(
                     in: model.registry,
                     credentials: CredentialStore()
                 )
+                serverShelves = capable.shelves
             }
             // Outside the guard: what is owed, and what is still to be said about a conflict,
             // are worth reading every time this screen appears, not only the first.
@@ -105,26 +108,24 @@ public struct ShelvesView: View {
         }
         .navigationTitle(Text("shelves.title", bundle: .module))
         .toolbar { ToolbarItem(placement: .primaryAction) { newMenu } }
-        .alert(
-            Text(creating == .list ? "shelves.new.list" : "shelves.new.collection", bundle: .module),
-            isPresented: Binding(get: { creating != nil }, set: { if !$0 { creating = nil } }),
-            presenting: creating
-        ) { kind in
-            TextField(String(localized: "shelves.new.field", bundle: .module, locale: .storyArc), text: $draftName)
-            Button(role: .cancel) {} label: { Text("shelves.cancel", bundle: .module) }
-            Button {
-                switch kind {
-                case .collection: model.create(collection: draftName)
-                case .list: model.create(list: draftName)
-                }
-            } label: {
-                Text("shelves.create", bundle: .module)
+        // `collections-and-reading-lists`: a new shelf is kept on this device by default "or
+        // on a server if the user chooses one", and "the storage location is stated at
+        // creation, not discovered later". ``ShelfCreation`` asks both.
+        .shelfCreation($creating, name: $draftName) { kind, name in
+            switch kind {
+            case .collection: model.create(collection: name)
+            case .list: model.create(list: name)
             }
-        } message: { _ in
-            // `collections-and-reading-lists`: "the storage location is stated at creation,
-            // not discovered later". There is one location today, and saying so is what
-            // makes the sentence true rather than merely unfalsified.
-            Text("shelves.new.storedLocally", bundle: .module)
+        } onServer: { kind, name, page in
+            Task { await keep(kind, named: name, on: page) }
+        }
+        // A server that would not take it is said out loud rather than quietly turned into a
+        // local shelf: a shelf whose stated home is a lie is worse than an error.
+        .alert(
+            Text("shelves.new.refused", bundle: .module),
+            isPresented: $serverRefusedTheShelf
+        ) {
+            Button {} label: { Text("shelves.conflict.understood", bundle: .module) }
         }
         // `collections-and-reading-lists`: on a conflict "the user is told once what
         // changed". Dismissing it is what makes it once — the notice is deleted, not
@@ -163,7 +164,7 @@ public struct ShelvesView: View {
             if local.isEmpty && server.isEmpty {
                 makeShelfButton("shelves.new.collection") {
                     draftName = ""
-                    creating = .collection
+                    creating = draft(.collection)
                 }
             }
 
@@ -217,7 +218,7 @@ public struct ShelvesView: View {
             if local.isEmpty && server.isEmpty {
                 makeShelfButton("shelves.new.list") {
                     draftName = ""
-                    creating = .list
+                    creating = draft(.list)
                 }
             }
 
@@ -334,13 +335,13 @@ public struct ShelvesView: View {
         Menu {
             Button {
                 draftName = ""
-                creating = .collection
+                creating = draft(.collection)
             } label: {
                 Text("shelves.new.collection", bundle: .module)
             }
             Button {
                 draftName = ""
-                creating = .list
+                creating = draft(.list)
             } label: {
                 Text("shelves.new.list", bundle: .module)
             }
@@ -351,6 +352,23 @@ public struct ShelvesView: View {
                 Image(systemName: "plus")
             }
         }
+    }
+
+    /// What the reader is making, and where it could go.
+    private func draft(_ kind: ShelfDraft.Kind) -> ShelfDraft {
+        ShelfDraft(
+            kind: kind,
+            servers: kind == .list ? capable.listCapable : capable.collectionCapable
+        )
+    }
+
+    /// Makes the shelf on the server the reader chose, and shows it beside the local ones.
+    private func keep(_ kind: ShelfDraft.Kind, named name: String, on page: KavitaPage) async {
+        guard let made = await ShelfCreation.make(kind, named: name, on: page) else {
+            serverRefusedTheShelf = true
+            return
+        }
+        serverShelves.append(made)
     }
 
     /// Asks every server list what it holds, settles what has landed, and pushes what has

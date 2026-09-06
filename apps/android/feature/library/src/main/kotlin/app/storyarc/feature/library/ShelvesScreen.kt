@@ -28,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -55,6 +56,7 @@ import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.persistence.ShelfEditStore
 import java.util.UUID
+import kotlinx.coroutines.launch
 
 /**
  * Collections and reading lists, in one place.
@@ -113,14 +115,30 @@ fun ShelvesScreen(
     // collections "alongside local ones", which means inside the same two sections, and a
     // section cannot be built from rows that each fetch their own.
     var serverShelves by remember { mutableStateOf<List<ServerShelf>>(emptyList()) }
+    // Which of those servers could take a new shelf, per kind. `collections-and-reading-lists`
+    // offers a server at creation only when it "supports" the kind being made, and a server
+    // that has just answered is the only honest reading of that -- an empty answer and no
+    // answer are different things.
+    var collectionCapable by remember { mutableStateOf<List<KavitaPage>>(emptyList()) }
+    var listCapable by remember { mutableStateOf<List<KavitaPage>>(emptyList()) }
     LaunchedEffect(servers) {
-        serverShelves = servers.flatMap { server ->
+        val found = mutableListOf<ServerShelf>()
+        val holdsCollections = mutableListOf<KavitaPage>()
+        val holdsLists = mutableListOf<KavitaPage>()
+        for (server in servers) {
             val client = KavitaClient(server.address)
-            val collections = runCatching { client.collections() }.getOrDefault(emptyList())
-            val lists = runCatching { client.readingLists() }.getOrDefault(emptyList())
-            collections.map { ServerShelf(server, it.id, it.title, isList = false) } +
-                lists.map { ServerShelf(server, it.id, it.title, isList = true) }
+            runCatching { client.collections() }.getOrNull()?.let { collections ->
+                holdsCollections += server
+                found += collections.map { ServerShelf(server, it.id, it.title, isList = false) }
+            }
+            runCatching { client.readingLists() }.getOrNull()?.let { lists ->
+                holdsLists += server
+                found += lists.map { ServerShelf(server, it.id, it.title, isList = true) }
+            }
         }
+        serverShelves = found
+        collectionCapable = holdsCollections
+        listCapable = holdsLists
     }
 
     // Edits owed to a server, so a shelf can say so and a conflict can be said once. Read into
@@ -143,8 +161,11 @@ fun ShelvesScreen(
         queue = edits.queue()
     }
 
+    val scope = rememberCoroutineScope()
     var creating by remember { mutableStateOf<Boolean?>(null) }
     var draft by remember { mutableStateOf("") }
+    /** Set when a server would not take the shelf the reader asked it to keep. */
+    var serverRefusedTheShelf by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
 
     // The shelf a reader has asked to delete and not yet answered for.
@@ -292,40 +313,34 @@ fun ShelvesScreen(
     }
 
     creating?.let { isList ->
+        ShelfCreationDialog(
+            draft = ShelfDraft(isList, if (isList) listCapable else collectionCapable),
+            name = draft,
+            onName = { draft = it },
+            onDevice = {
+                if (isList) viewModel.createList(draft) else viewModel.createCollection(draft)
+                creating = null
+            },
+            onServer = { page ->
+                creating = null
+                scope.launch {
+                    val made = ShelfCreation.make(isList, draft, page)
+                    if (made == null) serverRefusedTheShelf = true else serverShelves += made
+                }
+            },
+            onDismiss = { creating = null },
+        )
+    }
+
+    // A server that would not take it is said out loud rather than quietly turned into a local
+    // shelf: a shelf whose stated home is a lie is worse than an error.
+    if (serverRefusedTheShelf) {
         AlertDialog(
-            onDismissRequest = { creating = null },
-            title = {
-                Text(
-                    stringResource(
-                        if (isList) R.string.shelves_new_list else R.string.shelves_new_collection,
-                    ),
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
-                    // `collections-and-reading-lists`: "the storage location is stated at
-                    // creation, not discovered later". There is one location today, and
-                    // saying so is what makes the sentence true rather than unfalsified.
-                    Text(stringResource(R.string.shelves_new_stored_locally))
-                    OutlinedTextField(
-                        value = draft,
-                        onValueChange = { draft = it },
-                        label = { Text(stringResource(R.string.shelves_new_field)) },
-                        singleLine = true,
-                    )
-                }
-            },
+            onDismissRequest = { serverRefusedTheShelf = false },
+            title = { Text(stringResource(R.string.shelves_new_refused)) },
             confirmButton = {
-                TextButton(onClick = {
-                    if (isList) viewModel.createList(draft) else viewModel.createCollection(draft)
-                    creating = null
-                }) {
-                    Text(stringResource(R.string.shelves_create))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { creating = null }) {
-                    Text(stringResource(R.string.shelves_cancel))
+                TextButton(onClick = { serverRefusedTheShelf = false }) {
+                    Text(stringResource(R.string.shelves_conflict_understood))
                 }
             },
         )
