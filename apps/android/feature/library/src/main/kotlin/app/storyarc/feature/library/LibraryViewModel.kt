@@ -804,7 +804,9 @@ class LibraryViewModel(
                 // so the first rename lost it; [ProgressStore.save] repairs that only when
                 // the reader opens the book again, which a reader who tidies first never
                 // does. Once, at the end, over the whole shelf: [ProgressStore.link] writes
-                // only what is new, so a linked library costs a read each and no write.
+                // only what is new, so a linked library writes nothing. It is not free --
+                // `existing` queries by server key, then digest, then path, and stops at the
+                // first hit, so a publication nobody has read costs two indexed lookups.
                 // Nothing here digests anything. iOS does the same in `LibraryModel.scan`.
                 for (publication in _publications.value) {
                     progressStore?.link(publication.identity)
