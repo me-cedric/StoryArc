@@ -21,7 +21,9 @@ struct ShelfOrderTests {
 
     private let sourceID = "3E7F6C1C-0000-0000-0000-00000000AAAA"
 
-    private func store(_ name: String = UUID().uuidString) -> KavitaProgressStore {
+    /// A defaults suite of its own, named the way `scripts/sweep-test-debris.mjs` can
+    /// recognise: a bare UUID leaves a plist in `~/Library/Preferences` that nothing removes.
+    private func store(_ name: String = "storyarc-\(UUID().uuidString)") -> KavitaProgressStore {
         KavitaProgressStore(defaults: UserDefaults(suiteName: name) ?? .standard)
     }
 
@@ -150,7 +152,7 @@ struct ShelfOrderTests {
     func aHeldOrderIsDurable() throws {
         // Durability is the whole promise: the reader who reorders on a train has closed the
         // app long before the server is back.
-        let name = UUID().uuidString
+        let name = "storyarc-\(UUID().uuidString)"
         store(name).hold(KavitaUnsent(origin: origin(), page: 0, listID: 4, order: [3, 1, 2]))
         let reopened = store(name)
         #expect(reopened.unsent().first?.order == [3, 1, 2])
