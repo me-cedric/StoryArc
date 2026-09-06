@@ -276,22 +276,36 @@ looks like a music player.
 - **One wide-tier threshold, 840 on both platforms. Decided on 2026-09-06.**
   Android has always taken 158 at a shelf of 840 dp. iOS took it at 900 pt
   (`confidentShelfWidth`), and `confidentShelfWidth` is now 840. **iOS moved;
-  Android did not.** 840 is Material's expanded breakpoint and is already this
-  app's pane-count threshold — `StoryArcWindowClass.showsTwoPanes`, true at 840,
-  the count register #4 ties the breakpoints to — while 900 appeared in no
-  register at all. The deciding argument is what a reader sees: at 840 the
-  window gains a second pane, so covers stepping at 900 gave a reader dragging a
-  window wider **two** reflows a few points apart. At one number they get one
-  change, and fewer, larger, more confident covers arriving exactly as the
-  layout gains a pane read as one deliberate step rather than two twitches.
-- **What that moved, and for whom.** This is a behaviour change, not a rename.
-  The simulator device profiles give the current iPad line 744, 820, 834, 1024
-  and 1032 pt in portrait, and 1133, 1180, 1210, 1366 and 1376 pt in landscape,
-  so **no iPad has a full-screen width in [840, 899)**. But the app sets no
-  `UIRequiresFullScreen`, *Split View, Slide Over and multi-window* asks a
-  resized window to reflow continuously, and `WindowClass.swift` names Stage
-  Manager — so a window dragged to, say, 870 pt is a full-width shelf inside the
-  band. There the covers were 132 pt and are now 158, on the four iOS surfaces
+  Android did not.** The deciding argument is that both platforms hand this tier
+  a measured *shelf* width, so the threshold is the app's own number and not a
+  platform size class — two of them were a divergence neither platform forces.
+  840 is Material's expanded breakpoint and is in a register already; 900
+  appeared in none.
+- **The pane reading of 840 is Android's alone. Recorded, not erased.** On
+  Android 840 dp is also `StoryArcWindowClass.showsTwoPanes` — the pane count
+  register #4 ties the breakpoints to — so there the covers step where the window
+  gains its second pane and one drag gives one reflow instead of two. **iOS has
+  no width like it.** Its `StoryArcWindowClass` has no such member; its only
+  second pane is `LibraryPanes`'s split view, built for the shelf surface alone,
+  turned on by the horizontal size class near 600 pt, in a column capped at 760.
+  No iOS surface that reads `confidentShelfWidth` gains a pane at any width. iOS
+  gained one number here, not one reflow, and that asymmetry is register #4 doing
+  its job: Android decides panes from a width constant, iOS from a size class.
+- **What that moved, and for whom — a lower bound, not a census.** This is a
+  behaviour change, not a rename. The simulator device profiles give the current
+  iPad line 744, 820, 834, 1024 and 1032 pt in portrait, and 1133, 1180, 1210,
+  1366 and 1376 pt in landscape, so **no iPad has a full-screen width in
+  [840, 899)** — but those are *window* widths and iOS measures the *grid*. The
+  shell is `.tabViewStyle(.sidebarAdaptable)` and `CoverGrid` puts a shown
+  sidebar at about 300 pt less than the window, so a landscape iPad can hand the
+  grid a width inside the band while its window is far above it. Which iPads do
+  is **unmeasured**; pinning it needs a simulator, and the set named here is
+  derived from device widths and is therefore a floor. What is certain is the
+  resized window: the app sets no `UIRequiresFullScreen`, *Split View, Slide Over
+  and multi-window* asks a resized window to reflow continuously, and
+  `WindowClass.swift` names Stage Manager — so a window dragged to, say, 870 pt
+  is a full-width shelf inside the band. There the covers were 132 pt and are now
+  158, on the four iOS surfaces
   handed a whole window: Home's *see all* grid, a collection's grid, Search and
   Downloads. **The library's own shelf is unaffected on both platforms**, because
   `LibraryPanes` caps its column at 760 pt — below 840 as it was below 900, so it
@@ -299,7 +313,7 @@ looks like a music player.
   `ShelfColumns.of`. The iOS browse grids set fixed minimums and never ask at
   all; it is **Android** whose three remote-browse grids ask the window, as the
   bullet below records. Both suites pin 839, 840 and 870 under one pair of test
-  names — *the wide tier starts at 840, where a window gains its second pane* and
+  names — *the wide tier starts at 840, the one number both platforms use* and
   *a shelf of 870 takes the wide tier, the band iOS moved on 2026-09-06* — so the
   two numbers cannot drift apart again. The threshold stays in code on both
   platforms and not in `packages/design-tokens`: `layout.json` holds the tier
