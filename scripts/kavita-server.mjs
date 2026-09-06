@@ -207,15 +207,21 @@ const authorised = (request) =>
  *
  * A route whose verb nobody has measured is left out of this table and still answers any
  * verb, because a wrong entry here makes a working client look broken -- which is worse
- * than the blindness it replaces. `/api/Collection/series` is the one such route today.
+ * than the blindness it replaces. Three routes are left out today, and each for its own
+ * reason:
+ *
+ *   - `/api/Collection/series`. Both clients GET it. Nobody has asked a live Kavita.
+ *   - `/api/Server/server-info`. Both clients GET it, but `scripts/live-check.mjs` records
+ *     a real Kavita answering 404 to it, so what that server does answer is unknown. A
+ *     route the repository holds contrary evidence about is the last one to pin.
+ *   - `/api/Series`. This mock serves it from the `all-v2` handler and no client calls it,
+ *     so neither a measurement nor an agreement between the clients states its verb.
  */
 const ROUTES = [
   { at: '/api/Plugin/authenticate', verb: 'POST', example: `/api/Plugin/authenticate?apiKey=${API_KEY}` },
-  { at: '/api/Server/server-info', verb: 'GET', example: '/api/Server/server-info' },
   { at: /^\/api\/Image\//, verb: 'GET', example: `/api/Image/series-cover?seriesId=1&apiKey=${API_KEY}` },
   { at: '/api/Library/libraries', verb: 'GET', example: '/api/Library/libraries' },
   { at: '/api/Series/all-v2', verb: 'POST', example: '/api/Series/all-v2' },
-  { at: '/api/Series', verb: 'POST', example: '/api/Series' },
   { at: /^\/api\/Series\/\d+$/, verb: 'GET', example: '/api/Series/1' },
   { at: '/api/Series/metadata', verb: 'GET', example: '/api/Series/metadata?seriesId=1' },
   { at: '/api/Series/volumes', verb: 'GET', example: '/api/Series/volumes?seriesId=1' },
@@ -232,6 +238,7 @@ const ROUTES = [
   { at: '/api/ReadingList/update-by-multiple', verb: 'POST', example: '/api/ReadingList/update-by-multiple' },
   { at: '/api/ReadingList/update-position', verb: 'POST', example: '/api/ReadingList/update-position' },
   { at: '/api/ReadingList', verb: 'DELETE', example: '/api/ReadingList?readingListId=1' },
+  { at: '/api/Search/search', verb: 'GET', example: '/api/Search/search?queryString=a' },
 ]
 
 /** The verb a route requires, or nothing when this mock asserts none for it. */
@@ -851,9 +858,32 @@ const drive = async () => {
   check('a chapter download answers a get',
     (await get(`/api/Download/chapter?chapterId=${chapter.id}`, token)).status === 200)
 
+  // Search is the third route a live Kavita has answered for. `GET /api/Search/search`
+  // answered 200 on the owner's own server on 2026-09-06 and both clients GET it, so the
+  // table pins it and this drive uses it.
+  const found = await get(
+    `/api/Search/search?queryString=${encodeURIComponent(first.name)}`, token)
+  check('the search route answers a get', found.status === 200, found.status)
+  const hits = found.status === 200 ? await found.json() : { series: [] }
+  check('a search for a series the corpus holds finds that series',
+    hits.series.some((each) => each.id === first.id))
+
   const kept = await post('/api/ReadingList/create', { title: 'Kept by a reader' }, token)
   check('a list a reader made is accepted', kept.status === 200, kept.status)
   const keptId = (await kept.json()).id
+
+  // Appending chapters to a list is a route both clients POST and nothing above reaches, so
+  // its row in the table used to be asserted only by the sweep -- which derives the wrong
+  // verb from the same row it tests, and therefore agrees with a wrong row.
+  const appended = await post('/api/ReadingList/update-by-multiple', {
+    readingListId: keptId,
+    seriesId: first.id,
+    chapterIds: [chapter.id],
+  }, token)
+  check('chapters a reader appends to a list are accepted', appended.status === 200,
+    appended.status)
+  check('a chapter appended to a list is one the list then holds',
+    (await listItems(keptId)).some((item) => item.chapterId === chapter.id))
   const dropped = await fetch(`${base}/api/ReadingList?readingListId=${keptId}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
