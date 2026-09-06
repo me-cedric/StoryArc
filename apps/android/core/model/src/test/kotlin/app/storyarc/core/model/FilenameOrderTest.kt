@@ -56,6 +56,17 @@ class FilenameOrderTest {
     }
 
     @Test
+    fun `a numeral outside the ten digits orders as a character, so both platforms agree`() {
+        val library = listOf(
+            publication("Chapter", series = "Kagurabachi", file = "ch\u0663.cbz"),
+            publication("Chapter", series = "Kagurabachi", file = "ch\u00B2.cbz"),
+            publication("Chapter", series = "Kagurabachi", file = "cha.cbz"),
+        )
+        val sorted = LibraryIndex.arrange(library, LibraryQuery(sort = LibrarySort.SERIES), Locale.ENGLISH)
+        assertEquals(listOf("cha.cbz", "ch\u00B2.cbz", "ch\u0663.cbz"), files(sorted))
+    }
+
+    @Test
     fun `a series that carries issue numbers keeps them, and the filename never fires`() {
         val library = listOf(
             publication("Chapter", series = "Kagurabachi", number = "2", file = "z.cbz"),

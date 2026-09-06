@@ -60,6 +60,17 @@ struct FilenameOrderTests {
         #expect(files(sorted) == ["ch1.cbz", "Ch2.cbz", "CH10.cbz"])
     }
 
+    @Test("A numeral outside the ten digits orders as a character, so both platforms agree")
+    func onlyTheTenDigitsAreDigits() {
+        let library = [
+            publication("Chapter", series: "Kagurabachi", file: "ch\u{0663}.cbz"),
+            publication("Chapter", series: "Kagurabachi", file: "ch\u{00B2}.cbz"),
+            publication("Chapter", series: "Kagurabachi", file: "cha.cbz"),
+        ]
+        let sorted = LibraryIndex.arrange(library, query: LibraryQuery(sort: .series), locale: english)
+        #expect(files(sorted) == ["cha.cbz", "ch\u{00B2}.cbz", "ch\u{0663}.cbz"])
+    }
+
     @Test("A series that carries issue numbers keeps them, and the filename never fires")
     func numbersOutrankTheFilename() {
         let library = [

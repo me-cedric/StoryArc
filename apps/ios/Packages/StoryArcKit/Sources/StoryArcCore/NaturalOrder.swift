@@ -22,12 +22,12 @@ public enum NaturalOrder {
         var right = Substring(rhs)
 
         while let leftChar = left.first, let rightChar = right.first {
-            let leftIsDigit = leftChar.isNumber
-            let rightIsDigit = rightChar.isNumber
+            let leftIsDigit = isDigit(leftChar)
+            let rightIsDigit = isDigit(rightChar)
 
             if leftIsDigit && rightIsDigit {
-                let leftRun = left.prefix(while: \.isNumber)
-                let rightRun = right.prefix(while: \.isNumber)
+                let leftRun = left.prefix(while: isDigit)
+                let rightRun = right.prefix(while: isDigit)
                 // Compared digit-by-digit rather than parsed into an integer:
                 // parsing caps at the platform's word size, and iOS's UInt64 and
                 // Android's Long do not have the same ceiling. A page number is
@@ -61,5 +61,15 @@ public enum NaturalOrder {
         }
 
         return left.count < right.count
+    }
+
+    /// Whether a character is one of the ten digits.
+    ///
+    /// The ten, spelled out, rather than `Character.isNumber`, which answers `true` for the
+    /// whole Unicode number category — a superscript two included. Kotlin's `Char.isDigit`
+    /// answers `true` for decimal digits only, so the two rules would file the same folder
+    /// in different orders. This range is the rule both platforms can spell.
+    private static func isDigit(_ character: Character) -> Bool {
+        ("0"..."9").contains(character)
     }
 }

@@ -28,8 +28,8 @@ object NaturalOrder {
         var right = 0
 
         while (left < lhs.length && right < rhs.length) {
-            val leftIsDigit = lhs[left].isDigit()
-            val rightIsDigit = rhs[right].isDigit()
+            val leftIsDigit = isDigit(lhs[left])
+            val rightIsDigit = isDigit(rhs[right])
 
             if (leftIsDigit && rightIsDigit) {
                 val leftEnd = runEnd(lhs, left)
@@ -69,7 +69,17 @@ object NaturalOrder {
 
     private fun runEnd(text: String, from: Int): Int {
         var index = from
-        while (index < text.length && text[index].isDigit()) index++
+        while (index < text.length && isDigit(text[index])) index++
         return index
     }
+
+    /**
+     * Whether a character is one of the ten digits.
+     *
+     * The ten, spelled out, rather than [Char.isDigit], which answers `true` for every
+     * decimal digit in Unicode. Swift's `Character.isNumber` answers `true` for the whole
+     * Unicode number category, a superscript two included, so the two rules would file the
+     * same folder in different orders. This range is the rule both platforms can spell.
+     */
+    private fun isDigit(character: Char): Boolean = character in '0'..'9'
 }
