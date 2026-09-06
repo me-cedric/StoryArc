@@ -180,7 +180,9 @@ final class KavitaSent: @unchecked Sendable {
     var request: URLRequest? { lock.withLock { seen } }
     var body: Data? { lock.withLock { payload } }
 
-    private static func drain(_ stream: InputStream?) -> Data? {
+    /// Reads a body stream to the end. Internal, because ``KavitaStub/body(of:)`` needs the
+    /// same read and a second copy of it would be a second thing to get wrong.
+    static func drain(_ stream: InputStream?) -> Data? {
         guard let stream else { return nil }
         stream.open()
         defer { stream.close() }
@@ -226,18 +228,9 @@ final class KavitaStub: URLProtocol {
     /// `httpBody` is nil here however the request was built and reading the stream is the
     /// only way to see what was posted.
     static func body(of request: URLRequest) -> String? {
-        if let data = request.httpBody { return String(decoding: data, as: UTF8.self) }
-        guard let stream = request.httpBodyStream else { return nil }
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        var buffer = [UInt8](repeating: 0, count: 1024)
-        while stream.hasBytesAvailable {
-            let read = stream.read(&buffer, maxLength: buffer.count)
-            guard read > 0 else { break }
-            data.append(buffer, count: read)
-        }
-        return String(decoding: data, as: UTF8.self)
+        guard let data = request.httpBody ?? KavitaSent.drain(request.httpBodyStream)
+        else { return nil }
+        return String(bytes: data, encoding: .utf8)
     }
 
     override static func canInit(with request: URLRequest) -> Bool { true }
