@@ -54,11 +54,19 @@ final class NetworkCost {
         monitor.cancel()
     }
 
-    /// Records the connection and tells whoever is listening.
+    /// Records the connection and tells whoever is listening, when it changed.
     ///
     /// The monitor calls this, and so does a test: a `NWPath` cannot be built, so injecting
     /// the answer is the only way to assert what the queue does with it.
+    ///
+    /// **A report that says what the last one said is dropped here.** `NWPathMonitor` fires
+    /// on every property of the path, most of which this type does not read, and the listener
+    /// is a download queue whose ``DownloadQueue/pump()`` asks the volume how much room is
+    /// left. That is a filesystem stat on the main actor, and paying it for a report that
+    /// changed nothing is the cost this guard exists to refuse. The same argument the cached
+    /// ``DownloadQueue/spaceIsLow`` makes: a stat per notice is a cost a screen should not pay.
     func note(careful: Bool, cellular: Bool) {
+        guard careful != isCareful || cellular != isCellular else { return }
         isCareful = careful
         isCellular = cellular
         onChange?()
