@@ -53,7 +53,11 @@ extension LibraryView {
     var sections: [LibrarySection] {
         guard surface == .shelf, model.matchGroups.isEmpty, shown.count > LibrarySections.threshold
         else { return [] }
-        return LibrarySections.divide(shown, by: model.query.sort)
+        // The reader's language, for the reason ``LibraryModel/rebuild()`` gives. A heading
+        // is the initial of the sort key, and which article the sort key drops is a fact about
+        // the reader's language — so a heading read in the device's would name a letter the
+        // shelf did not sort on.
+        return LibrarySections.divide(shown, by: model.query.sort, locale: .storyArc)
     }
 
     /// Whether it is the device axis that is hiding the library, rather than a filter.

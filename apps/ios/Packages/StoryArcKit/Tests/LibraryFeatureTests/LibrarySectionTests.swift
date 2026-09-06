@@ -43,11 +43,23 @@ struct LibrarySectionTests {
         sections.map { $0.publications.map(\.displayTitle) }
     }
 
+    /// The shelf divided for an English reader.
+    ///
+    /// The language is named rather than taken from the host. A heading is the initial of the
+    /// **sort key**, and the sort key drops a leading article in the reader's language: *The
+    /// Long Count* files under L for an English reader and under T for a German one, because
+    /// German has no article *the*. A suite that let the host decide would assert one thing on
+    /// a developer's machine and another on a machine set to German. Android's
+    /// `LibrarySectionsTest` pins `english` in the same place and for the same reason.
+    private func divide(_ shelf: [Publication], by sort: LibrarySort) -> [LibrarySection] {
+        LibrarySections.divide(shelf, by: sort, locale: Locale(identifier: "en"))
+    }
+
     @Test("A series the shelf holds more than one of becomes a heading")
     func sharedSeriesBecomesASection() {
         let shelf = series("Ashfall", 4) + series("Blackwater", 4)
 
-        let sections = LibrarySections.divide(shelf, by: .series)
+        let sections = divide(shelf, by: .series)
 
         #expect(sections.map(\.title) == ["Ashfall", "Blackwater"])
         #expect(titles(sections).map(\.count) == [4, 4])
@@ -67,7 +79,7 @@ struct LibrarySectionTests {
             publication("Blacksad", series: "Blacksad")
         ]
 
-        let sections = LibrarySections.divide(shelf, by: .title)
+        let sections = divide(shelf, by: .title)
 
         #expect(sections.map(\.title) == ["A", "B"])
         #expect(titles(sections).map(\.count) == [3, 3])
@@ -89,7 +101,7 @@ struct LibrarySectionTests {
             + series("Ashfall", 6)
             + [publication("truncated"), publication("zip64"), publication("tar-store")]
 
-        #expect(LibrarySections.divide(shelf, by: .series).isEmpty)
+        #expect(divide(shelf, by: .series).isEmpty)
     }
 
     @Test("A library of series and standalones, arranged by series, divides into two runs")
@@ -106,7 +118,7 @@ struct LibrarySectionTests {
             locale: Locale(identifier: "en_US")
         )
 
-        let sections = LibrarySections.divide(shelf, by: .series)
+        let sections = divide(shelf, by: .series)
 
         #expect(sections.count == 2)
         #expect(sections[0].title == "Ashfall")
@@ -124,7 +136,7 @@ struct LibrarySectionTests {
         // never moves a publication.
         let shelf = series("Ashfall", 4) + series("Blackwater", 4) + series("Cinderfall", 4)
 
-        let sections = LibrarySections.divide(shelf, by: .series)
+        let sections = divide(shelf, by: .series)
 
         #expect(sections.flatMap { $0.publications.map(\.displayTitle) }
             == shelf.map(\.displayTitle))
@@ -134,7 +146,7 @@ struct LibrarySectionTests {
     func sectionsAreDistinct() {
         let shelf = series("Ashfall", 4) + series("Blackwater", 4)
 
-        let sections = LibrarySections.divide(shelf, by: .series)
+        let sections = divide(shelf, by: .series)
 
         #expect(Set(sections.map(\.id)).count == sections.count)
     }
@@ -150,9 +162,32 @@ struct LibrarySectionTests {
             publication("Appleseed")
         ]
 
-        let sections = LibrarySections.divide(shelf, by: .title)
+        let sections = divide(shelf, by: .title)
 
         #expect(sections.map(\.title) == ["#", "A"])
+        #expect(titles(sections).map(\.count) == [3, 3])
+    }
+
+    @Test("A heading is the initial of the sort key, so a leading article files under neither")
+    func headingsFollowTheSortKey() {
+        // `library-browsing` ignores a leading article when it alphabetises, so *The Sandman*
+        // sits between *Saga* and *Swamp Thing*. A heading read off the raw title opens "T"
+        // in the middle of the S run and "S" again after it — one shelf drawn as two piles
+        // per letter, which the no-heading-twice rule then answers by refusing to divide the
+        // shelf at all. The shelf below arrives in the order `LibraryIndex.arrange` leaves it
+        // in for an English reader.
+        let shelf = [
+            publication("Saga"),
+            publication("The Sandman"),
+            publication("Swamp Thing"),
+            publication("Tokyo Ghost"),
+            publication("Trees"),
+            publication("The Twelve")
+        ]
+
+        let sections = divide(shelf, by: .title)
+
+        #expect(sections.map(\.title) == ["S", "T"], "a heading was read off the raw title")
         #expect(titles(sections).map(\.count) == [3, 3])
     }
 
@@ -167,7 +202,7 @@ struct LibrarySectionTests {
             publication("Unknown C")
         ]
 
-        let sections = LibrarySections.divide(shelf, by: .year)
+        let sections = divide(shelf, by: .year)
 
         #expect(sections.map(\.title).first == "1986")
         #expect(sections.count == 2)
@@ -186,7 +221,7 @@ struct LibrarySectionTests {
             publication("Daytripper")
         ]
 
-        let sections = LibrarySections.divide(shelf, by: .series)
+        let sections = divide(shelf, by: .series)
 
         #expect(sections.count == 2)
         #expect(sections[0].title == "Ashfall")
@@ -207,7 +242,7 @@ struct LibrarySectionTests {
         ]
 
         for sort in [LibrarySort.lastRead, .progress, .dateAdded, .fileSize] {
-            #expect(LibrarySections.divide(shelf, by: sort).isEmpty)
+            #expect(divide(shelf, by: sort).isEmpty)
         }
     }
 
@@ -218,13 +253,13 @@ struct LibrarySectionTests {
         // from producing the same heading twice.
         let shelf = series("Ashfall", 4) + series("Blackwater", 4)
 
-        #expect(LibrarySections.divide(shelf, by: .lastRead).map(\.title)
+        #expect(divide(shelf, by: .lastRead).map(\.title)
             == ["Ashfall", "Blackwater"])
     }
 
     @Test("A shelf that divides into one section is not divided at all")
     func oneSectionIsNoSection() {
-        #expect(LibrarySections.divide(series("Ashfall", 8), by: .series).isEmpty)
+        #expect(divide(series("Ashfall", 8), by: .series).isEmpty)
     }
 
     @Test("A division that does not average a row of covers a heading is refused")
@@ -237,21 +272,21 @@ struct LibrarySectionTests {
         let shelf = letters.map { publication("\($0)ne of a kind") }
 
         #expect(shelf.count == 22)
-        #expect(LibrarySections.divide(shelf, by: .title).isEmpty)
+        #expect(divide(shelf, by: .title).isEmpty)
     }
 
     @Test("The same shelf divides once its headings each cover a row and more")
     func denseDivisionsAreKept() {
         let shelf = series("Ashfall", 6) + series("Blackwater", 6) + series("Cinderfall", 6)
 
-        let sections = LibrarySections.divide(shelf, by: .series)
+        let sections = divide(shelf, by: .series)
 
         #expect(sections.map(\.title) == ["Ashfall", "Blackwater", "Cinderfall"])
     }
 
     @Test("An empty shelf divides into nothing rather than into an empty heading")
     func emptyShelfHasNoSections() {
-        #expect(LibrarySections.divide([], by: .title).isEmpty)
+        #expect(divide([], by: .title).isEmpty)
     }
 
     @Test("Dividing keeps every publication exactly once")
@@ -262,7 +297,7 @@ struct LibrarySectionTests {
             + [publication("Akira"), publication("Astro Boy"), publication("Blame")]
             + series("Blackwater", 5)
 
-        let divided = LibrarySections.divide(shelf, by: .series)
+        let divided = divide(shelf, by: .series)
             .flatMap(\.publications)
             .map(\.displayTitle)
 
@@ -272,13 +307,16 @@ struct LibrarySectionTests {
     @Test("A series the sort scatters is not a heading, because two of them are two places")
     func scatteredSeriesIsDemoted() {
         // Sorted by title, "Ashfall #3" is filed under T and "Ashfall #4" under W, with
-        // other books between them. Two sections headed "Ashfall" would read as the app
+        // other books between them. No title here carries a leading article, so the letter a
+        // heading names is the title's own first letter — ``headingsFollowTheSortKey`` is
+        // where the article case is asserted, and mixing the two questions into one shelf
+        // would leave neither of them read. Two sections headed "Ashfall" would read as the app
         // having lost half a series, so both fall back to the letter the sort filed them
         // under.
         let shelf = [
-            publication("The Long Count", series: "Ashfall"),
-            publication("The Third Chapter"),
-            publication("The Quiet Season"),
+            publication("Tidewrack", series: "Ashfall"),
+            publication("Third Chapter"),
+            publication("Turning Season"),
             publication("Undeclared Direction"),
             publication("Unsupported Codec"),
             publication("Undertow"),
@@ -287,7 +325,7 @@ struct LibrarySectionTests {
             publication("Whiteout")
         ]
 
-        let sections = LibrarySections.divide(shelf, by: .title)
+        let sections = divide(shelf, by: .title)
 
         #expect(sections.map(\.title) == ["T", "U", "W"])
     }
@@ -303,7 +341,7 @@ struct LibrarySectionTests {
             publication("Whiteout")
         ]
 
-        let sections = LibrarySections.divide(shelf, by: .series)
+        let sections = divide(shelf, by: .series)
 
         #expect(sections.map(\.title).first == "Ashfall")
         #expect(sections.count == 2)
@@ -320,7 +358,7 @@ struct LibrarySectionTests {
             publication("Blacksad")
         ]
 
-        let sections = LibrarySections.divide(shelf, by: .title)
+        let sections = divide(shelf, by: .title)
 
         #expect(sections.map(\.title) == ["A", "B"])
     }

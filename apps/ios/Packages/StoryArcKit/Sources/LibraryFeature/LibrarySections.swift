@@ -50,7 +50,15 @@ enum LibrarySections {
     /// all continuous, and a heading over a continuum is an invented boundary), and a shelf
     /// whose every publication lands in one section, where a single heading over the whole
     /// grid would be a label rather than a structure.
-    static func divide(_ publications: [Publication], by sort: LibrarySort) -> [LibrarySection] {
+    /// - Parameter locale: the language whose alphabet the headings are read in. The
+    ///   reader's, from the one caller that draws a shelf; the process's by default, the way
+    ///   ``StoryArcCore/LibraryIndex/arrange(_:query:locale:progress:)`` defaults, so a caller
+    ///   that names none is not silently given somebody else's alphabet.
+    static func divide(
+        _ publications: [Publication],
+        by sort: LibrarySort,
+        locale: Locale = .current
+    ) -> [LibrarySection] {
         guard !publications.isEmpty else { return [] }
 
         // A series is only worth a heading when the shelf holds more than one of it. A manga
@@ -63,9 +71,11 @@ enum LibrarySections {
         // right to think the app had lost one of them. So a series the sort scatters is
         // demoted to the sort's own division, which is what "the sections follow the sort
         // rather than replacing it" means when the two disagree.
-        shared.subtract(scatteredSeries(publications, sort: sort, sharedSeries: shared))
+        shared.subtract(
+            scatteredSeries(publications, sort: sort, sharedSeries: shared, locale: locale)
+        )
 
-        let sections = runs(publications, sort: sort, sharedSeries: shared)
+        let sections = runs(publications, sort: sort, sharedSeries: shared, locale: locale)
 
         // One section is the whole shelf under a heading, which says nothing the shelf did
         // not already say. A key of `nil` — a sort that divides into nothing — arrives here
@@ -97,14 +107,20 @@ enum LibrarySections {
     private static func runs(
         _ publications: [Publication],
         sort: LibrarySort,
-        sharedSeries: Set<String>
+        sharedSeries: Set<String>,
+        locale: Locale
     ) -> [LibrarySection] {
         var sections: [LibrarySection] = []
         var currentKey: String?
         var current: [Publication] = []
 
         for publication in publications {
-            let key = self.key(for: publication, sort: sort, sharedSeries: sharedSeries)
+            let key = self.key(
+                for: publication,
+                sort: sort,
+                sharedSeries: sharedSeries,
+                locale: locale
+            )
             if key != currentKey {
                 if let currentKey, !current.isEmpty {
                     sections.append(section(currentKey, current, at: sections.count))
@@ -142,11 +158,12 @@ enum LibrarySections {
     private static func scatteredSeries(
         _ publications: [Publication],
         sort: LibrarySort,
-        sharedSeries: Set<String>
+        sharedSeries: Set<String>,
+        locale: Locale
     ) -> Set<String> {
         var seen: Set<String> = []
         var scattered: Set<String> = []
-        for section in runs(publications, sort: sort, sharedSeries: sharedSeries) {
+        for section in runs(publications, sort: sort, sharedSeries: sharedSeries, locale: locale) {
             guard sharedSeries.contains(section.title) else { continue }
             if !seen.insert(section.title).inserted { scattered.insert(section.title) }
         }
@@ -158,7 +175,8 @@ enum LibrarySections {
     private static func key(
         for publication: Publication,
         sort: LibrarySort,
-        sharedSeries: Set<String>
+        sharedSeries: Set<String>,
+        locale: Locale
     ) -> String? {
         // Series first, as the requirement words it. It is checked before the sort's own
         // division rather than after because a reader scanning a shelf recognises *Saga*
@@ -174,7 +192,13 @@ enum LibrarySections {
             // library across twenty headings that all mean "no series".
             return unknown
         case .title:
-            return initial(of: publication.displayTitle)
+            // The **sort key**, not the title. `library-browsing` alphabetises a title with
+            // its leading article ignored, so *The Sandman* sits between *Saga* and *Swamp
+            // Thing*; a heading read off the raw title opens "T" in the middle of that S run
+            // and "S" again after it, and the no-heading-twice rule answers by refusing to
+            // divide the shelf at all. The heading and the order have to be read off one key
+            // or the sections stop describing the shelf they sit on.
+            return initial(of: LibraryIndex.sortKey(publication.displayTitle, locale: locale), locale: locale)
         case .year:
             // The year as the file spells it. A publication with none is not "before
             // everything" — the library simply does not know, and `YearRange` treats an
@@ -192,12 +216,12 @@ enum LibrarySections {
     ///
     /// Uppercased for the reader's locale rather than for the machine's: a Turkish shelf
     /// files *ısı* under *I*, and `uppercased()` with no locale would not.
-    private static func initial(of title: String) -> String {
+    private static func initial(of title: String, locale: Locale) -> String {
         guard let first = title.trimmingCharacters(in: .whitespacesAndNewlines).first else {
             return unknown
         }
         guard first.isLetter else { return "#" }
-        return String(first).uppercased(with: .current)
+        return String(first).uppercased(with: locale)
     }
 
     /// The heading for everything the library cannot place.
