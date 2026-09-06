@@ -359,14 +359,39 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       control, brightness. Second level behind one "Customise" action.
 - [~] **3.5** Fine axes: line, character, word and paragraph spacing, margins,
       alignment, font family, bold. Long-press to reset an axis.
-      **Unticked on 2026-09-06. The axes are built; the reset gesture is not.**
-      The audit of `reading-themes` read the spec clause "a long press or a double
-      tap on a slider returns that axis to its preset value" against both readers.
-      Neither has a handler. `ThemeAxisSliders.swift` and `ThemeAxesScreen.kt`
-      build plain sliders, and a search for `onLongPress`, `longPressGesture`,
-      `combinedClickable` and `detectTapGestures` in both files returns nothing.
-      The tick claimed a gesture that no reader can perform. What remains is one
-      gesture per platform, reaching the reset the preset already knows.
+
+      **The axes shipped. The reset gesture did not, on either platform, and this task
+      claimed it for a while.** Audited on 2026-09-06: `ThemeAxisSliders.swift` and
+      `ThemeAxesScreen.kt` built plain sliders, and a search of both for `onLongPress`,
+      `longPressGesture`, `combinedClickable` and `detectTapGestures` returned nothing.
+      `reading-themes`, *Resetting an axis*, asks for it directly: "a user long-presses
+      or double-taps a slider ... that axis returns to its preset value".
+
+      **Built on 2026-09-06, on both platforms, and routed through the path a drag takes.**
+      `ThemeAxesSheet.reset(_:on:)` calls `EpubReaderModel.set`; `resetAxis` calls the same
+      `onSet` the Android slider drags through. That path captures the locator, submits the
+      preferences and returns to the locator after the reflow, so the preview, the page, the
+      stored theme and the reading position see the reset exactly as they see a drag. No
+      second reset path was added.
+
+      **The gesture differs by platform, and the platform forces it.** iOS puts a
+      `LongPressGesture` on the slider itself, through `simultaneousGesture`, which is the
+      iOS idiom for a control. Compose cannot: a `Slider` runs its own press detector and
+      its `draggable` inside its node, after any modifier the caller passes, and that
+      detector consumes the down event — a gesture attached to the slider never fires. So
+      Android puts the long press on the axis block that holds the name, the value and the
+      track.
+
+      **Which is why the accessibility action is not a fallback.** Both platforms carry one
+      — `.accessibilityAction(named:)` on iOS, a `CustomAccessibilityAction` on Android —
+      named `theme.axis.reset` / `theme_axis_reset` in en, fr, de and es. On Android it is
+      the only path that reaches the slider itself, and it is the path VoiceOver, TalkBack,
+      Switch Control, Switch Access and a keyboard use on both.
+
+      Asserted by `ThemeAxisResetTests` (iOS, 8 cases) and `ThemeAxisResetTest` (Android, 5
+      cases). Both were watched failing first: with a reset that restored the whole theme,
+      `onlyThatAxisReturns` and `it returns that axis alone` failed by name. The reading
+      position is asserted over a real navigator on iOS and over the wiring on Android.
 - [x] **3.6** Live preview rendered by the **real** renderer, showing a chapter
       title and body text, reflowing continuously during a drag. **Done, and what
       "the real renderer" turned out to mean is worth stating exactly, because it is
