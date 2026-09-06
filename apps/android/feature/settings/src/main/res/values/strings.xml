@@ -163,8 +163,8 @@
     <string name="downloads_held_out_of_space_note">Downloads continue by themselves when the device has room.</string>
     <string name="downloads_held_storage_full_note">Remove a download or raise the limit.</string>
     <string name="settings_sources_none">No libraries yet</string>
-    <string name="settings_downloads_none">Nothing on this device</string>
-    <string name="settings_downloads_summary">%1$s on this device</string>
+    <string name="settings_downloads_none">Nothing downloaded</string>
+    <string name="settings_downloads_summary">%1$s downloaded</string>
     <plurals name="settings_sources_summary">
         <item quantity="one">%1$d library</item>
         <item quantity="other">%1$d libraries</item>

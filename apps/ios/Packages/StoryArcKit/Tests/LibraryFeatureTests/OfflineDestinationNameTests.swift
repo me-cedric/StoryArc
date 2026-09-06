@@ -60,24 +60,44 @@ struct OfflineDestinationNameTests {
         }
     }
 
+    /// The word each language uses for the act of fetching a file.
+    private static let transfer = [
+        "en": "download", "fr": "téléchargé", "de": "heruntergeladen", "es": "descarga",
+    ]
+
     private static let settings = "Sources/SettingsFeature/Resources/Localizable.xcstrings"
     private static let library = "Sources/LibraryFeature/Resources/Localizable.xcstrings"
 
-    // MARK: - The count names a place
+    // MARK: - The count names what it counts
 
-    /// Settings' own row is where the count is read, and it named a transfer.
-    @Test("Both halves of the count name the location, in every language", arguments: [
+    /// Settings' own row states a figure, and the figure is downloads.
+    ///
+    /// **This row deliberately does not name the device, and that is not an oversight.** The
+    /// destination is named by its location; this figure is not the destination. It weighs
+    /// `DownloadStore.bytesOnDisk()` — the app's own downloads and imports — and not a folder
+    /// the reader added, which is readable offline and is counted nowhere here. A sweep on
+    /// 2026-09-04 photographed "Nothing on this device" over a device holding nine
+    /// publications and moved these two strings to name the transfer instead. Naming the
+    /// place here would put that back.
+    @Test("Both halves of the count name the transfer, in every language", arguments: [
         "settings.downloads.none",
         "settings.downloads.summary %@",
     ])
-    func theCountNamesTheLocation(key: String) throws {
+    func theCountNamesTheTransfer(key: String) throws {
         let values = try Self.strings(key, in: Self.settings)
         #expect(values.count == 4, "Every language the app ships has to answer this.")
         for (language, sentence) in values {
-            let wanted = try #require(Self.location[language], "\(language) is not a shipped language.")
+            let wanted = try #require(Self.transfer[language], "\(language) is not a shipped language.")
             #expect(
                 sentence.lowercased().contains(wanted),
-                "\(language) states \(key) as “\(sentence)”, which does not name the location."
+                "\(language) states \(key) as “\(sentence)”, which does not name the transfer."
+            )
+        }
+        for (language, sentence) in values {
+            let place = try #require(Self.location[language], "\(language) is not a shipped language.")
+            #expect(
+                !sentence.lowercased().contains(place),
+                "\(language) states \(key) as “\(sentence)”, which names a place the figure does not count."
             )
         }
     }

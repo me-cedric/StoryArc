@@ -3169,25 +3169,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nichts auf diesem Gerät"
+            "value": "Nichts heruntergeladen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nothing on this device"
+            "value": "Nothing downloaded"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nada en este dispositivo"
+            "value": "Nada descargado"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rien sur cet appareil"
+            "value": "Rien de téléchargé"
           }
         }
       }
@@ -3227,25 +3227,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ auf diesem Gerät"
+            "value": "%@ heruntergeladen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ on this device"
+            "value": "%@ downloaded"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ en este dispositivo"
+            "value": "%@ descargados"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ sur cet appareil"
+            "value": "%@ téléchargés"
           }
         }
       }

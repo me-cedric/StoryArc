@@ -158,8 +158,8 @@
     <string name="downloads_held_out_of_space_note">Las descargas se reanudan solas cuando el dispositivo tiene espacio.</string>
     <string name="downloads_held_storage_full_note">Elimina una descarga o aumenta el límite.</string>
     <string name="settings_sources_none">Aún no hay bibliotecas</string>
-    <string name="settings_downloads_none">Nada en este dispositivo</string>
-    <string name="settings_downloads_summary">%1$s en este dispositivo</string>
+    <string name="settings_downloads_none">Nada descargado</string>
+    <string name="settings_downloads_summary">%1$s descargados</string>
     <plurals name="settings_sources_summary">
         <item quantity="one">%1$d biblioteca</item>
         <item quantity="other">%1$d bibliotecas</item>

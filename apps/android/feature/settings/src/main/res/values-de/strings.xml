@@ -158,8 +158,8 @@
     <string name="downloads_held_out_of_space_note">Die Downloads werden von selbst fortgesetzt, sobald das Gerät Platz hat.</string>
     <string name="downloads_held_storage_full_note">Entfernen Sie einen Download oder erhöhen Sie das Limit.</string>
     <string name="settings_sources_none">Noch keine Bibliotheken</string>
-    <string name="settings_downloads_none">Nichts auf diesem Gerät</string>
-    <string name="settings_downloads_summary">%1$s auf diesem Gerät</string>
+    <string name="settings_downloads_none">Nichts heruntergeladen</string>
+    <string name="settings_downloads_summary">%1$s heruntergeladen</string>
     <plurals name="settings_sources_summary">
         <item quantity="one">%1$d Bibliothek</item>
         <item quantity="other">%1$d Bibliotheken</item>
