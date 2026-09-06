@@ -27,7 +27,7 @@ extension EpubReaderModel {
         guard navigator == nil, failure == nil else { return }
 
         guard let fileURL = FileURL(url: url) else {
-            failure = String(localized: "epub.failure.unreachable", bundle: .module)
+            failure = String(localized: "epub.failure.unreachable", bundle: .module, locale: .storyArc)
             return
         }
 
@@ -46,10 +46,10 @@ extension EpubReaderModel {
             case let .success(opened):
                 await start(opened)
             case .failure:
-                failure = String(localized: "epub.failure.unreadable", bundle: .module)
+                failure = String(localized: "epub.failure.unreadable", bundle: .module, locale: .storyArc)
             }
         case .failure:
-            failure = String(localized: "epub.failure.unreachable", bundle: .module)
+            failure = String(localized: "epub.failure.unreachable", bundle: .module, locale: .storyArc)
         }
     }
 
@@ -90,7 +90,7 @@ extension EpubReaderModel {
             // read aloud at all decides whether the control appears.
             prepareReadAloud(opened)
         } catch {
-            failure = String(localized: "epub.failure.unreadable", bundle: .module)
+            failure = String(localized: "epub.failure.unreadable", bundle: .module, locale: .storyArc)
         }
     }
 

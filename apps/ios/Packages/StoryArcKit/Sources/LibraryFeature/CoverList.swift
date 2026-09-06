@@ -253,7 +253,11 @@ struct ListRow: View {
                 publication.displayTitle,
                 subtitle,
                 model.readFraction(of: publication).map {
-                    String(localized: "library.cell.progress \(Int($0 * 100))", bundle: .module)
+                    String(
+                        localized: "library.cell.progress \(Int($0 * 100))",
+                        bundle: .module,
+                        locale: .storyArc
+                    )
                 },
             ],
             isOnDevice: model.isOnDevice(publication),

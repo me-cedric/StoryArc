@@ -372,6 +372,7 @@ public final class PlayerCentre {
     private func title(ofPartAt index: Int) -> String? {
         guard parts.indices.contains(index) else { return nil }
         if let title = parts[index].title, !title.isEmpty { return title }
-        return parts.count > 1 ? String(localized: "player.part.number \(index + 1)", bundle: .module) : nil
+        guard parts.count > 1 else { return nil }
+        return String(localized: "player.part.number \(index + 1)", bundle: .module, locale: .storyArc)
     }
 }

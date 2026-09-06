@@ -284,7 +284,11 @@ struct CoverCell: View {
                 // Progress is spoken, because a bar at the foot of a cover is invisible to
                 // anyone using VoiceOver and "how far in am I" is the whole point of it.
                 model.readFraction(of: publication).map {
-                    String(localized: "library.cell.progress \(Int($0 * 100))", bundle: .module)
+                    String(
+                        localized: "library.cell.progress \(Int($0 * 100))",
+                        bundle: .module,
+                        locale: .storyArc
+                    )
                 },
                 publication.pageCount.map {
                     String(localized: "library.cell.pages \($0)", bundle: .module, locale: .storyArc)

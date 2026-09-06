@@ -15,7 +15,7 @@
  * same way. None was visible in a test, and only one was visible in a screenshot anyone
  * had taken.
  *
- * Three checks:
+ * Four checks:
  *
  *   POSITIONAL    a catalogue *key* using `%1$@`-style specifiers. SwiftUI never derives
  *                 one, so nothing can ever look it up. Values may — and should, since a
@@ -23,6 +23,17 @@
  *   MISSING       a key a Swift source asks for that the catalogue does not define.
  *   UNTRANSLATED  a key the catalogue defines that some supported language has no
  *                 translated value for.
+ *   UNLOCALISED   a `String(localized:)` call that is handed no `locale:`. The other three
+ *                 checks ask whether a key resolves; this one asks whether it resolves in
+ *                 the language the reader chose.
+ *
+ * The fourth check exists because ten shipped call sites were doing exactly that. A
+ * `Text` resolves against the SwiftUI environment, which every scene sets to
+ * `Locale.storyArc`; a `String(localized:)` resolves against the locale it is handed, and
+ * against `Locale.current` when it is handed none. So a reader who set the app to French
+ * on a German device met four EPUB open failures, a player part number, two cover
+ * accessibility labels and three theme sentences in German. Every key existed in all four
+ * languages, so the three checks above passed on every one of them.
  *
  * Specifiers are normalised away before a key is compared, so `%@` and `%lld` are the
  * same hole. That is deliberate: telling them apart needs Swift's type checker, and a
@@ -119,6 +130,95 @@ const substituted = (localization) => {
     })
 }
 
+/** Where a `String(localized:` call begins. The rest of it is scanned, not matched. */
+const LOCALIZED_CALL = /\bString\(\s*localized:/g
+
+/**
+ * The same source with every comment blanked out, line for line.
+ *
+ * `PlayerLabels.swift` documents this very gate by writing `String(localized: "…")` into a
+ * doc comment, and a scan that read prose would report the file that explains it. Spaces
+ * rather than deletion, so a reported line number is still the line in the file. Quotes are
+ * tracked, so a `//` inside a string literal stays part of the literal.
+ */
+const withoutComments = (text) => {
+    let out = ''
+    let inString = false
+    let inLine = false
+    let inBlock = false
+    for (let i = 0; i < text.length; i += 1) {
+        const here = text[i]
+        const next = text[i + 1]
+        if (here === '\n') {
+            inLine = false
+            inString = false
+            out += here
+            continue
+        }
+        if (inLine || inBlock) {
+            if (inBlock && here === '*' && next === '/') { inBlock = false; out += '  '; i += 1; continue }
+            out += ' '
+            continue
+        }
+        if (inString) {
+            if (here === '\\') { out += '  '; i += 1; continue }
+            if (here === '"') inString = false
+            out += here
+            continue
+        }
+        if (here === '"') { inString = true; out += here; continue }
+        if (here === '/' && next === '/') { inLine = true; out += '  '; i += 1; continue }
+        if (here === '/' && next === '*') { inBlock = true; out += '  '; i += 1; continue }
+        out += here
+    }
+    return out
+}
+
+/**
+ * Every `String(localized:)` call in one Swift source, and whether it was handed a locale.
+ *
+ * A regular expression cannot answer this on its own. The argument list wraps — SwiftLint
+ * caps a line at 120 columns, and `LibrarySourceHealth` puts `bundle:` and `locale:` on the
+ * line after the key — so the scan walks forward from the call to its closing parenthesis,
+ * counting depth and stepping over string literals. A `)` inside a key, and a `\(…)`
+ * interpolation inside one, therefore end nothing.
+ *
+ * **The one shape it reads wrong, named rather than hidden**: a string literal written
+ * inside an interpolation inside the key, as `"a \(b ?? "c")"`. The inner quote toggles the
+ * scan out of the literal. No call site in this tree has that shape, and a wrong answer
+ * there is a reported call that is in fact correct, not a missed one.
+ */
+export const localizedCalls = (source) => {
+    const text = withoutComments(source)
+    const calls = []
+    LOCALIZED_CALL.lastIndex = 0
+    let match
+    while ((match = LOCALIZED_CALL.exec(text))) {
+        const open = text.indexOf('(', match.index)
+        let depth = 1
+        let inString = false
+        let arguments_ = ''
+        let i = open + 1
+        for (; i < text.length && depth > 0; i += 1) {
+            const character = text[i]
+            if (inString) {
+                if (character === '\\') i += 1
+                else if (character === '"') inString = false
+                continue
+            }
+            if (character === '"') { inString = true; continue }
+            if (character === '(') depth += 1
+            else if (character === ')') depth -= 1
+            if (depth > 0) arguments_ += character
+        }
+        calls.push({
+            line: text.slice(0, match.index).split('\n').length,
+            hasLocale: /\blocale:/.test(arguments_),
+        })
+    }
+    return calls
+}
+
 /** Whether one language has a usable value: a plain one, or every plural form. */
 const translated = (entry, language) => {
     const localization = entry.localizations?.[language]
@@ -190,7 +290,16 @@ export const check = (root) => {
 
         for (const source of sources) {
             const seen = new Set()
-            for (const [, interpolated, staticKey] of readFileSync(source, 'utf8').matchAll(LOOKUP)) {
+            const text = readFileSync(source, 'utf8')
+            for (const call of localizedCalls(text)) {
+                if (call.hasLocale) continue
+                problems.push(
+                    `UNLOCALISED  ${relative(root, source)}:${call.line}\n` +
+                        '  String(localized:) is handed no locale:, so it resolves against the device language\n' +
+                        '  rather than the one the reader chose. Pass `locale: .storyArc`.',
+                )
+            }
+            for (const [, interpolated, staticKey] of text.matchAll(LOOKUP)) {
                 const literal = interpolated ?? staticKey
                 // A literal without a dotted head is a sentence typed inline rather than a
                 // key. `Text(verbatim:)` never reaches the catalogue and is already excluded
@@ -246,6 +355,33 @@ const selfTest = () => {
     // one reports `reading.matte.%` against a catalogue that correctly has no such key.
     if ([...'LocalizedStringKey("reading.matte.\\(key)")'.matchAll(LOOKUP)].length !== 0) {
         fail('LOOKUP reads an interpolated LocalizedStringKey as a static key')
+    }
+
+    // Every shape the fourth check has to read, so the scan cannot be simplified into a
+    // regular expression again without a case here saying why that is not enough.
+    for (const [source, expected] of [
+        ['String(localized: "a.b", bundle: .module, locale: .storyArc)', [true]],
+        ['String(localized: "a.b", bundle: .module)', [false]],
+        // The shape SwiftLint's 120-column cap produces: the locale is on the next line.
+        ['String(localized: "a.b",\n    bundle: .module, locale: .storyArc)', [true]],
+        // A closing parenthesis inside the key ends nothing.
+        ['String(localized: "a.b \\(index + 1)", bundle: .module)', [false]],
+        // A call nested inside another call is still one call each.
+        ['String(localized: "a.b", bundle: .module, locale: .storyArc)\nString(localized: "c.d", bundle: .module)', [true, false]],
+        ['Text("a.b")', []],
+        // The file that documents this gate writes the call into its own doc comment.
+        ['/// - `String(localized: "a.b")` answers with the key itself on the host.', []],
+        ['/* String(localized: "a.b") */', []],
+        // A `//` inside a key is part of the key, not the start of a comment.
+        ['String(localized: "a.b https://x", bundle: .module)', [false]],
+    ]) {
+        const got = localizedCalls(source).map((call) => call.hasLocale)
+        if (JSON.stringify(got) !== JSON.stringify(expected)) {
+            fail(`localizedCalls over ${JSON.stringify(source)} = ${JSON.stringify(got)}, expected ${JSON.stringify(expected)}`)
+        }
+    }
+    if (localizedCalls('String(localized: "a.b")\nString(localized: "c.d")')[1]?.line !== 2) {
+        fail('localizedCalls does not name the line a call starts on')
     }
 
     if (POSITIONAL.test('about.version %@ %@')) fail('POSITIONAL fires on a derived key')

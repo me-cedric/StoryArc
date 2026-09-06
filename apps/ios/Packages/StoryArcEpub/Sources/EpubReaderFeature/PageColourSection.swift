@@ -187,7 +187,11 @@ struct PageColourSection: View {
             let ratio = Self.formatted(candidate.contrast)
             let aa = Self.formatted(ReadingContrast.aa)
             AccessibilityNotification.Announcement(
-                String(localized: "theme.pageColour.refused \(ratio) \(aa)", bundle: .module)
+                String(
+                    localized: "theme.pageColour.refused \(ratio) \(aa)",
+                    bundle: .module,
+                    locale: .storyArc
+                )
             ).post()
             return
         }

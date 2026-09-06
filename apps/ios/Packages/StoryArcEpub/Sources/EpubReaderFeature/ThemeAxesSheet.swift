@@ -293,6 +293,6 @@ struct ThemeAxesSheet: View {
     /// sentence: "Restore Calm" is one string with the preset's own name inside it, and a
     /// language that puts the name first has to be able to.
     private var presetName: String {
-        String(localized: model.theme.preset.localizedName, bundle: .module)
+        String(localized: model.theme.preset.localizedName, bundle: .module, locale: .storyArc)
     }
 }

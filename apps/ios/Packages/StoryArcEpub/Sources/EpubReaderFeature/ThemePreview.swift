@@ -80,7 +80,9 @@ struct ThemePreview: View {
             theme: readingTheme,
             values: values,
             title: title,
-            body: excerpt.isEmpty ? String(localized: "theme.preview.sample", bundle: .module) : excerpt
+            body: excerpt.isEmpty
+                ? String(localized: "theme.preview.sample", bundle: .module, locale: .storyArc)
+                : excerpt
         )
     }
 }
