@@ -1,11 +1,14 @@
 name: iOS
 
 on:
+  # `package.json` is in the list because the epub job runs `pnpm test:ios:epub`
+  # rather than its own copy of the command. The script is then gated by the job
+  # that uses it, and the two cannot drift apart unseen.
   push:
     branches: [main]
-    paths: ['apps/ios/**', 'packages/**', 'third_party/**', '.github/workflows/ios.yml', '.swiftlint.yml']
+    paths: ['apps/ios/**', 'packages/**', 'third_party/**', '.github/workflows/ios.yml', '.swiftlint.yml', 'package.json']
   pull_request:
-    paths: ['apps/ios/**', 'packages/**', 'third_party/**', '.github/workflows/ios.yml', '.swiftlint.yml']
+    paths: ['apps/ios/**', 'packages/**', 'third_party/**', '.github/workflows/ios.yml', '.swiftlint.yml', 'package.json']
 
 concurrency:
   group: ios-${{ github.ref }}
@@ -38,15 +41,25 @@ jobs:
       - name: Report toolchain
         run: xcodebuild -version && swift --version
 
+      # No `version:` — package.json's `packageManager` field is the pin. No
+      # `pnpm install` either: the script runs `xcodebuild` and reads nothing from
+      # `node_modules`, and `pnpm run` does not need the tree to be installed.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
       # This package cannot be tested on the host: Readium is iOS-only, which is
       # the whole reason it is a separate package. A simulator is required.
+      #
+      # The script, not a copy of its command. The script passes
+      # `-collect-test-diagnostics never`, and a copy here that lost that flag would
+      # send a failing run off to collect a sysdiagnose from the simulator — a
+      # collection that times out after 600 seconds, turning a thirteen-second answer
+      # into an eleven-minute one at the moment the egress rule has just broken.
       - name: Test
-        working-directory: apps/ios/Packages/StoryArcEpub
-        run: |
-          xcodebuild test \
-            -scheme StoryArcEpub \
-            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
-            -quiet
+        run: pnpm test:ios:epub
 
   lint:
     name: SwiftLint
