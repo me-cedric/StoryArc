@@ -39,6 +39,9 @@ class ScanLinksProgressTest {
         return source.readText().lineSequence().joinToString("\n") { it.substringBefore("//") }
     }
 
+    /** [code] with each run of whitespace collapsed, so an assertion can quote a statement. */
+    private fun statements(): String = code().replace(Regex("\\s+"), " ")
+
     @Test
     fun `the scan hands every identity it learned to the progress store`() {
         assertTrue(
@@ -52,11 +55,18 @@ class ScanLinksProgressTest {
 
     @Test
     fun `it links once for the whole walk rather than once per publication`() {
+        // Counting the call is not enough: a call moved into the collect loop is still one
+        // call. So the statement itself is quoted -- the walk hands over the shelf it
+        // produced, not each file as it meets it.
+        val misplaced =
+            "Linking belongs at the end of the walk, over the shelf the walk produced:" +
+                " a call inside the collect loop reads the store once per file found," +
+                " which is the cost `link` was shaped to avoid. Expected exactly one" +
+                " `$WHOLE_SHELF`."
+        assertEquals(misplaced, 1, statements().split(WHOLE_SHELF).size - 1)
         assertEquals(
-            "The view model links in more than one place. Linking belongs at the end of the" +
-                " walk, over the shelf the walk produced: a call inside the collect loop" +
-                " reads the store once per file found, which is the cost `link` was shaped" +
-                " to avoid.",
+            "The view model links in more than one place, so the shelf pass is no longer" +
+                " the only one. Every other call reads the store per publication.",
             1,
             code().split(LINKED).size - 1,
         )
@@ -70,5 +80,9 @@ class ScanLinksProgressTest {
 
         /** The call that closes the window. */
         const val LINKED = "progressStore?.link("
+
+        /** That call in the only place it costs one pass: after the walk, over the shelf. */
+        const val WHOLE_SHELF =
+            "for (publication in _publications.value) { progressStore?.link(publication.identity) }"
     }
 }
