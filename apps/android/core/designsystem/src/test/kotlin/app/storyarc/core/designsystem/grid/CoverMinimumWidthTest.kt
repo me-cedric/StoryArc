@@ -44,20 +44,25 @@ class CoverMinimumWidthTest {
     }
 
     /**
-     * The wide tier and the second pane are one step, not two.
+     * One wide-tier threshold, and 760 does not reach it.
      *
      * Decided on 2026-09-06 and recorded in `design.md` §4. Android has always stepped here.
-     * iOS stepped at 900 pt until that date, so a reader dragging a window wider met two
-     * reflows a few points apart: the pane arrived, then the covers stepped. 840 is
-     * Material's expanded breakpoint and `StoryArcWindowClass.showsTwoPanes`. iOS's
+     * iOS stepped at 900 pt until that date. Both platforms hand the tier a measured shelf
+     * width, so it is the app's own number rather than a platform size class, and two of them
+     * were a divergence neither platform forces. 840 is Material's expanded breakpoint. iOS's
      * `CoverMinimumWidthTests` asserts this boundary under the same name, so the two numbers
      * cannot drift apart again.
+     *
+     * The pane reading of 840 is this platform's alone: here it is also
+     * `StoryArcWindowClass.showsTwoPanes`, and iOS's type of that name has no such member.
+     * iOS's second pane is `LibraryPanes`'s split view on its shelf surface, turned on by the
+     * horizontal size class near 600 pt. iOS gained one number here, not one reflow.
      *
      * 760 is not a device. It is the ceiling iOS's `LibraryPanes` puts on the library column,
      * and it takes the middle tier — the widest a library shelf is drawn on either platform.
      */
     @Test
-    fun `the wide tier starts at 840, where a window gains its second pane`() {
+    fun `the wide tier starts at 840, the one number both platforms use`() {
         assertEquals(132.dp, coverMinimumWidth(839, ORDINARY))
         assertEquals(158.dp, coverMinimumWidth(840, ORDINARY))
         assertEquals(132.dp, coverMinimumWidth(760, ORDINARY))
@@ -66,10 +71,12 @@ class CoverMinimumWidthTest {
     /**
      * The band the decision moved, asserted at its middle.
      *
-     * No iPad has a full-screen width in [840, 899), so on iOS this width is only reached by
-     * a freely resized window — which `native-experience` asks to reflow continuously. There
-     * it drew the 132 pt tier before the decision and draws 158 after it. Here it always drew
-     * 158, so this test is a pin on Android and a changed answer on iOS.
+     * No iPad has a full-screen window in [840, 899). That bounds the window and not the
+     * shelf: iOS measures the grid, so a full-screen iPad showing the shell's sidebar can
+     * reach this band too. The case that is certain is a freely resized window, which
+     * `native-experience` asks to reflow continuously. There it drew the 132 pt tier before
+     * the decision and draws 158 after it. Here it always drew 158, so this test is a pin on
+     * Android and a changed answer on iOS.
      */
     @Test
     fun `a shelf of 870 takes the wide tier, the band iOS moved on 2026-09-06`() {
