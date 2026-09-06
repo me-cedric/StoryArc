@@ -150,6 +150,26 @@ sentences plus a wrapper — so it is invisible to a name-based comparison. It i
 handled as its own item, ordered after `publication-detail` archives, because its
 requirements are still in that change's delta and not yet in a main spec.
 
+### 6. The offline destination is named by its location
+
+**Decided 2026-09-06 by the owner.** The destination that holds offline-readable
+publications is named by its location — *on this device*. The empty state carries
+the capability — *can be read without a connection*.
+
+*On this device* is short and concrete. Both platforms already use it for this
+idea elsewhere in their own interfaces, so it is what a reader scans a list for.
+*Can be read without a connection* is the more truthful promise and the poorer
+label. It reads as a sentence rather than a place, and it wraps badly at the
+largest text size, where Spanish is this app's measured worst case for length. So
+the promise moves to the one surface with room to read it: the empty state, which
+exists to say what a place is for.
+
+**Not every key that says *downloaded* is wrong.** A key that means a completed
+transfer keeps that word. `downloads.total`, `privacy.downloads %@`,
+`downloads.failed`, `downloads.pending` and `library.filter.download.*` all name
+the transfer and not the place, so none of them change. Task 4.3 holds the full
+register of what moved and what stayed.
+
 ## Accessibility consequences
 
 - **Fixing the string fixes the announcement.** Both skipped notices group with
@@ -209,13 +229,10 @@ a seam half-done — it is a divergence between platforms, not within a list.
 
 ## Open Questions
 
-- **What is the destination holding offline-readable publications called?**
-  Carried from the spec's `[NEEDS CLARIFICATION]`. iOS ships *Nothing in your
-  library is on this device yet* and Android *Nothing in your library can be read
-  without a connection*; direction §8.4 records the choice as an owner decision
-  never taken. It changes wording only, so the approach and the task breakdown
-  stand either way — but the reconciliation task for that destination cannot
-  close until it is answered.
+- ~~**What is the destination holding offline-readable publications called?**~~
+  **Answered on 2026-09-06.** The owner named the destination by its location.
+  Decision 6 above records the choice and the reasoning; task 4.3 records what
+  each catalogue now says.
 - **Does `theme.pageColour.ratio` keep its arithmetic?** Direction §5 asks for
   *Contrast %@ to 1* to become three plain bands. `reading-themes` / *Custom
   colour* requires a refused pairing be stated "with the measured ratio stated",

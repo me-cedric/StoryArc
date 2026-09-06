@@ -7,10 +7,10 @@ somebody looked at the picture — not that a preview was rendered. A tick does
 task ships a translation, the tick covers that the four locales resolve and the
 layout survives them, and nothing more.
 
-**Two open questions bound two tasks**, and neither blocks the rest: 4.3 cannot
-close until the offline destination is named (design, Open Questions), and 4.4
-carries the judgement calls the owner may want to see. Everything else is
-answerable from the tree.
+**One open question binds one task**, and it does not block the rest: 4.4 carries
+the judgement calls the owner may want to see. The other question — what the
+offline destination is called — was answered on 2026-09-06, and design decision 6
+records it. Everything else is answerable from the tree.
 
 **Ordering is by seam, not by platform.** The proposal's sizing argument is that
 a seam left half-done is worse than one not started — so each of §1, §2 and §3 is

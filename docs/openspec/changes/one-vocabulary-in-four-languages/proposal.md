@@ -99,10 +99,6 @@ change collides with none of them.
   stated" — and `reader-theming-and-page-transitions` already holds a MODIFIED
   block on that same requirement, which is the two-changes-one-requirement shape
   `pnpm delta:drop` exists to catch. Left alone until the owner settles it.
-- **Naming the third destination.** *Downloads* versus *On this device* is
-  direction §8.4 and an owner decision, not a wording clean-up. It is also
-  already shipped inconsistently, and that inconsistency is recorded as an open
-  question rather than resolved here.
 - **Key renames.** This change writes values and adds keys. A key whose *name*
   is misleading is renamed by the slice that rewrites the view using it, per §5's
   own mechanics rule.
