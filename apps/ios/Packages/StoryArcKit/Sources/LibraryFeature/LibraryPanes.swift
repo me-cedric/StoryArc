@@ -83,9 +83,13 @@ extension LibraryView {
                     })
                     // The leading column is the *shelf*, not a list of places to go, so it is
                     // given a shelf's width rather than a sidebar's ~320 points.
-                    // ``CoverGrid`` steps its covers up past 900 points of shelf; below about
-                    // 320 the grid is down to one column, which is the floor this refuses to
-                    // go under whatever the window does.
+                    //
+                    // **Corrected on 2026-09-06.** This said ``CoverGrid`` "steps its covers
+                    // up past 900 points of shelf", offered as the reason for the cap — and
+                    // the cap is 760, so the library shelf never reaches that tier at all.
+                    // What 760 actually buys is the middle tier, five columns of cover, and a
+                    // detail column the shelf does not eat. The minimum is the floor this
+                    // refuses to go under whatever the window does.
                     .navigationSplitViewColumnWidth(min: 320, ideal: 480, max: 760)
             } detail: {
                 NavigationStack(path: $detailPath) {

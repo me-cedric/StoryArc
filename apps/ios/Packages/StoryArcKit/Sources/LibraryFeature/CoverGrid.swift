@@ -5,8 +5,21 @@ public import StoryArcCore
 
 /// The width at or above which the shelf stops being a widened phone.
 ///
-/// An iPad Pro clears it in either orientation; the same iPad in a half-width Split
-/// View slot does not, and gets the middle tier, which is the point of measuring.
+/// **Corrected on 2026-09-06.** This said "an iPad Pro clears it in either orientation",
+/// and an 11-inch iPad Pro is 834 points across in portrait, which clears neither 900 nor
+/// Android's 840. What is true, against the widths read from the simulator device profiles
+/// that day: a full-width shelf clears this on every current iPad in landscape, and in
+/// portrait only on a 13-inch one. The *library's* shelf clears it nowhere at all, because
+/// ``LibraryPanes`` caps that column at 760 points — so the tier belongs to the full-width
+/// shelves on Home, on Downloads and in the browse grids, and to no shelf drawn in a pane.
+///
+/// Android takes the same tier at 840 dp. `design.md` §4 records that divergence as open,
+/// and it is still open: the argument for closing it by moving this number to 840 was that
+/// no iPad geometry falls between the two, and that argument holds only for full-screen
+/// devices. `native-experience` requires a resized window to "reflow continuously", and
+/// ``StoryArcWindowClass`` names Stage Manager as one of the events that changes the
+/// number, so a window dragged to 870 points is a shelf inside the band. Moving this
+/// constant changes what a reader sees there, and that is a comparison, not a rename.
 private let confidentShelfWidth: CGFloat = 900
 
 /// How much wider a cover is drawn once the reader is at an accessibility text size.
