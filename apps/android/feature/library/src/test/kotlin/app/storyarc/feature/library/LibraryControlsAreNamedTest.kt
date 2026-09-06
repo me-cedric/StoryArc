@@ -84,10 +84,20 @@ class LibraryControlsAreNamedTest {
         )
     }
 
+    /**
+     * The view model these controls are drawn over, built once and outside a composable.
+     *
+     * `ViewModelConstructorInComposable` refuses a view model constructed inside a
+     * composable, and it is right to: a construction there runs again on every
+     * recomposition. A test wants one instance for the whole run, so it belongs here.
+     */
+    private val viewModel by lazy {
+        LibraryViewModel(ApplicationProvider.getApplicationContext<Application>())
+    }
+
     /** The controls under the bar, over a view model with nothing in it. */
     @Composable
     private fun Controls(layout: LibraryLayout) {
-        val application = ApplicationProvider.getApplicationContext<Application>()
         LibraryControls(
             query = LibraryQuery(),
             registry = SourceRegistry(),
@@ -99,7 +109,7 @@ class LibraryControlsAreNamedTest {
             onDownloadsChange = {},
             onLayoutChange = {},
             onClearFilters = {},
-            viewModel = LibraryViewModel(application),
+            viewModel = viewModel,
         )
     }
 
