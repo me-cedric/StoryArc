@@ -47,8 +47,12 @@ internal object OpdsTrust {
      * The system comes first on purpose. A certificate that evaluates is not the reader's
      * problem, and asking them about one would teach them to tap through the question that
      * matters.
+     *
+     * `internal`, not `private`: this decision is the whole of what `opds-catalog` promises
+     * about an untrusted certificate, and `OpdsTrustTest` must be able to call it. The module
+     * boundary does not move -- nothing outside `core:catalogue` sees this class.
      */
-    private class PinAwareTrustManager(
+    internal class PinAwareTrustManager(
         private val platform: X509TrustManager,
         private val pins: CertificatePins,
         private val host: String,
