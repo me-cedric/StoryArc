@@ -45,8 +45,11 @@ extension SkipReason {
         case .contentProtected:
             Text("library.skipped.reason.contentProtected", bundle: .module)
         // *A failure with no sentence written for it*: a translated general refusal, rather
-        // than text produced for a maintainer. The maintainer's copy is the diagnostic
-        // export, which is English by explicit design.
+        // than text produced for a maintainer. There is no maintainer's copy anywhere.
+        // `LibraryScanner.swift:358` catches the throw and keeps this case alone, and the
+        // diagnostic export carries nothing about a scan, so the description of the failure
+        // is discarded. The discard is older than this file. Giving it a route needs its own
+        // change, on both platforms.
         case .unknown:
             Text("library.skipped.reason.unknown", bundle: .module)
         }

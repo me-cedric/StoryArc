@@ -102,10 +102,17 @@ struct AudiobookIndexingTests {
     /// and no account to name, so there is nowhere for a prompt to get its wording from.
     ///
     /// The words moved with the change that closed this case set — a refusal is a case here
-    /// and a sentence in `LibraryFeature`, in four languages. So the promise that it prompts
-    /// for nothing is asserted where the words are, by
-    /// `SkipReasonCatalogueTests.theLockedRefusalPromptsForNothing`, in all four. What is left
-    /// here is the case itself, which is the thing that carries nothing to prompt with.
+    /// and a sentence in `LibraryFeature`, in four languages. So the promise that no wording
+    /// prompts for anything is asserted where the words are, by
+    /// `SkipReasonCatalogueTests.theLockedRefusalPromptsForNothing`, in all four.
+    ///
+    /// **The two halves of the name are held by two different things, and only one of them is
+    /// the `#expect`.** *Reaches the library* is the assertion: `SkipReason.init(_:)` is a
+    /// case-for-case map and this is the line of it that a typo would send to `.unknown`.
+    /// *Carries nothing* is the compiler's: `.contentProtected` written without an argument
+    /// stops compiling on the day somebody gives the case one, so the payload cannot be added
+    /// in silence. That is the same shape as `SkipReasonWordsTest`'s exhaustive `when`, where
+    /// the guard is the compilation and not the assertion.
     @Test("The locked refusal reaches the library as a case that carries nothing")
     func nothingToPromptFor() {
         #expect(SkipReason(.contentProtected) == .contentProtected)
