@@ -216,7 +216,17 @@ struct SourceDetail: View {
         guard let moment = diagnosis.lastSuccessfulSync else {
             return Text("sources.detail.never", bundle: .module)
         }
-        return Text(moment.formatted(date: .abbreviated, time: .shortened))
+        return Text(moment.formatted(Self.timestamp))
+    }
+
+    /// A date in the reader's chosen language, not the device's.
+    ///
+    /// `moment.formatted(date:time:)` takes the process locale, which the interface-language
+    /// override does not move — so this screen wrote *Sep 4, 2025 at 17:33* under French
+    /// labels. Computed rather than stored: the choice can change while the app runs, and a
+    /// stored style would keep whichever locale it was first read in.
+    private static var timestamp: Date.FormatStyle {
+        Date.FormatStyle(date: .abbreviated, time: .shortened).locale(.storyArc)
     }
 
     /// The last error, in the reader's words rather than the network's.
@@ -227,7 +237,7 @@ struct SourceDetail: View {
         switch failure {
         case let .unreachable(since):
             Text(
-                "sources.detail.error.unreachable \(since.formatted(date: .abbreviated, time: .shortened))",
+                "sources.detail.error.unreachable \(since.formatted(Self.timestamp))",
                 bundle: .module
             )
         case let .unauthorized(reason):

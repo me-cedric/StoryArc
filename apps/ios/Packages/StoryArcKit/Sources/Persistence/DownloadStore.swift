@@ -197,8 +197,14 @@ public struct DownloadStore {
     /// On the store because the store is what measures it: ``bytesOnDisk()`` walks the
     /// directory, and the type that produces the number is the one place its spelling
     /// cannot drift away from.
+    ///
+    /// ``StoryArcCore/Locale/storyArc`` rather than the process locale. A reader who sets
+    /// the app to French gets French words from every `String(localized:)` call site and
+    /// got English grouping and an English unit from this one, because a formatter outside
+    /// a SwiftUI environment reads the process locale unless it is handed another. This is
+    /// the size every screen shows, so one line here moves all of them.
     public static func formatted(_ bytes: Int64) -> String {
-        bytes.formatted(.byteCount(style: .file, spellsOutZero: false))
+        bytes.formatted(.byteCount(style: .file, spellsOutZero: false).locale(.storyArc))
     }
 
     /// The file extension a media type implies, or `bin` when it implies none.

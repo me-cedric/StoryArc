@@ -1,5 +1,6 @@
 public import Foundation
 
+internal import StoryArcCore
 internal import WebKit
 
 /// What StoryArc is using on disk, and how to give it back.
@@ -115,9 +116,14 @@ public func formattedBytes(_ bytes: Int64) -> String {
 }
 
 /// One decimal place, in the reader's own number format.
+///
+/// ``StoryArcCore/Locale/storyArc`` rather than `.current`: `.current` is the process
+/// locale, which the interface-language override does not move. A reader who chose French
+/// read French sentences with an English decimal point until this line asked the right
+/// locale.
 private func scaled(_ bytes: Int64, by divisor: Double, unit: String) -> String {
     let value = (Double(bytes) / divisor).formatted(
-        .number.precision(.fractionLength(1)).locale(.current)
+        .number.precision(.fractionLength(1)).locale(.storyArc)
     )
     return "\(value) \(unit)"
 }
