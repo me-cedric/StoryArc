@@ -110,6 +110,10 @@ class KavitaClientTest {
     private var sentBearer: String? = null
     private var sentQuery: String? = null
 
+    /** The verb and body a listing route was asked with, which a live Kavita is strict about. */
+    private var listingMethod: String? = null
+    private var listingBody: String? = null
+
     private fun client() = KavitaClient(
         KavitaAddress("http://localhost:${server.address.port}", "key"),
     )
@@ -137,8 +141,16 @@ class KavitaClientTest {
                 }
                 path.endsWith("/Library/libraries") ->
                     body = """[{"id":1,"name":"Comics"},{"id":2,"name":"Books"}]"""
-                path.endsWith("/Series/all-v2") ->
+                path.endsWith("/Series/all-v2") -> {
+                    listingMethod = exchange.requestMethod
+                    listingBody = exchange.requestBody.readBytes().decodeToString()
                     body = """[{"id":1,"name":"Tidal Reach","libraryId":1,"pages":24,"pagesRead":6}]"""
+                }
+                path.endsWith("/ReadingList/lists") -> {
+                    listingMethod = exchange.requestMethod
+                    listingBody = exchange.requestBody.readBytes().decodeToString()
+                    body = """[{"id":1,"title":"Start here"}]"""
+                }
                 path.endsWith("/Series/volumes") ->
                     body = """[{"id":10,"number":0,"chapters":[{"id":1,"number":"1","pages":8,"pagesRead":8}]},
                               {"id":11,"number":1,"name":"Volume 1","chapters":[]}]"""
@@ -191,6 +203,26 @@ class KavitaClientTest {
     @Test
     fun aSeriesReportsHowFarThroughItTheServerThinksYouAre() = runBlocking {
         assertEquals(0.25, client().series(1).first().fraction!!, 0.0001)
+    }
+
+    @Test
+    fun theSeriesListIsAskedForWithAPost() = runBlocking {
+        // Measured against a live Kavita on 2026-09-06: a GET on `Series/all-v2` answers 404
+        // and a POST carrying an empty filter answers with every series. A reader who added
+        // their own server was shown no series at all. iOS's `KavitaLibraryTests` makes the
+        // same claim, and `scripts/kavita-server.mjs --self-test` the server's half of it.
+        client().series(1)
+        assertEquals("POST", listingMethod)
+        assertEquals("{}", listingBody)
+    }
+
+    @Test
+    fun theReadingListsAreAskedForWithAPost() = runBlocking {
+        // The same defect on the other listing route: a GET answers 404 on a live Kavita, so
+        // a reader who added their own server was shown no reading lists either.
+        client().readingLists()
+        assertEquals("POST", listingMethod)
+        assertEquals("{}", listingBody)
     }
 
     @Test

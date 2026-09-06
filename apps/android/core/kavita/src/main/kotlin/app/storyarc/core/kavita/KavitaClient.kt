@@ -48,6 +48,10 @@ class KavitaClient(val address: KavitaAddress) {
         val MINIMUM_VERSION = KavitaVersion(0, 8, 0)
 
         private const val TIMEOUT_MILLIS = 20_000
+
+        /** The filter that asks a listing route for everything it holds. */
+        private const val EMPTY_FILTER = "{}"
+
         private val json = Json { ignoreUnknownKeys = true }
     }
 
@@ -71,9 +75,24 @@ class KavitaClient(val address: KavitaAddress) {
     suspend fun libraries(): List<KavitaLibraryFolder> =
         decode(get("Library/libraries"))
 
-    /** The series in one library, or in all of them. */
+    /**
+     * The series in one library, or in all of them.
+     *
+     * A POST carrying a filter, because that is what Kavita answers. Measured against a live
+     * server on 2026-09-06: a GET here is a 404, and this client sent one -- so a reader who
+     * added their own Kavita was shown no series at all. An empty filter is the whole list.
+     * The library still rides in the query, which is where this client has always put it;
+     * whether a live Kavita reads it there is unmeasured.
+     */
     suspend fun series(libraryId: Int? = null): List<KavitaSeries> = decode(
-        get("Series/all-v2", libraryId?.let { mapOf("libraryId" to it.toString()) } ?: emptyMap()),
+        request(
+            address.endpoint(
+                "Series/all-v2",
+                libraryId?.let { mapOf("libraryId" to it.toString()) } ?: emptyMap(),
+            ),
+            method = "POST",
+            body = EMPTY_FILTER,
+        ),
     )
 
     /**
@@ -174,8 +193,16 @@ class KavitaClient(val address: KavitaAddress) {
     suspend fun collected(id: Int): List<KavitaSeries> =
         decode(get("Collection/series", mapOf("collectionId" to id.toString())))
 
-    /** The reading lists this server holds. */
-    suspend fun readingLists(): List<KavitaReadingList> = decode(get("ReadingList/lists"))
+    /**
+     * The reading lists this server holds.
+     *
+     * A POST carrying a filter, for the reason [series] gives: measured against a live server
+     * on 2026-09-06, a GET here is a 404 and this client sent one, so a reader who added their
+     * own Kavita was shown no reading lists at all.
+     */
+    suspend fun readingLists(): List<KavitaReadingList> = decode(
+        request(address.endpoint("ReadingList/lists"), method = "POST", body = EMPTY_FILTER),
+    )
 
     /** One reading list's entries, in the order the server keeps. */
     suspend fun readingListItems(id: Int): List<KavitaReadingListItem> =
