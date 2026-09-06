@@ -20,8 +20,11 @@ import Testing
 /// says explicitly holds publications "whatever source [they] came from and however [they]
 /// got there" — a folder the reader picked included, and those bytes are not the app's to
 /// count or to free. What was missing was any way for a reader to see which of the two they
-/// were being shown. So every one of these lines names downloads now, and none of them
-/// claims to describe the device.
+/// were being shown. The owner's answer for `one-vocabulary-in-four-languages` task 4.3 is
+/// that the destination is named by its location — "on this device", the same words on both
+/// platforms — and that what the figure counts is stated where a reader has room to read it,
+/// on the screen this row opens. `OfflineDestinationNameTests` guards the words themselves;
+/// what is asserted here is the branch and the figure.
 /// **`@MainActor` because every comparison below reads the size helper twice**, and the
 /// helper follows the interface language. `ChosenLanguageFormattingTests` moves that choice
 /// on the main actor and puts it back before its case returns, so a main-actor case here
@@ -30,9 +33,9 @@ import Testing
 @Suite("Storage summaries")
 struct StorageSummaryTests {
 
-    /// The root row's own words. It said *Nothing on this device* over a device with nine
-    /// publications on it; what is true is that nothing has been downloaded.
-    @Test("An empty download store is stated as no downloads, not as an empty device")
+    /// Which of the two the row takes, not what it then says — the words are checked
+    /// by `OfflineDestinationNameTests`, in four languages and against Android's.
+    @Test("An empty download store takes the branch that states nothing, not a figure")
     func none() {
         let key = SettingsGroup.downloads.summaryKey(for: AppSettings(), LibrarySummary())
         #expect(key == LocalizedStringKey("settings.downloads.none"))

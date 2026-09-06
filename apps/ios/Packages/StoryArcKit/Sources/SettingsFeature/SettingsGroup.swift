@@ -72,11 +72,11 @@ enum SettingsGroup: String, CaseIterable, Identifiable {
         // against the group behind it and find wrong.
         case .sources:
             library.sources == 0 ? "settings.sources.none" : "settings.sources.summary \(library.sources)"
-        // About **downloads**, not about the device. This row read "Nothing on this device"
-        // over a device holding nine publications: the figure counts what StoryArc fetched
-        // or imported, and a folder the reader added is readable with no network without
-        // being any of it. Both readings were defensible and a reader could not see which
-        // they had — see ``LibrarySummary``.
+        // Named by its location, which is the owner's decision for the offline destination:
+        // the row points at a place, and the place is called "on this device" on both
+        // platforms. What the figure counts is narrower than that name — see
+        // ``LibrarySummary`` — and `downloads.manageInDestination` is where the reader is
+        // told so, because that screen has the room and this row has one line.
         case .downloads:
             library.bytesOnDisk == 0
                 ? "settings.downloads.none"
@@ -102,8 +102,11 @@ enum SettingsGroup: String, CaseIterable, Identifiable {
 ///
 /// The September sweep photographed the two readings side by side and neither said which
 /// it was — Settings claiming "Nothing on this device" while the destination showed nine
-/// publications. The numbers were both right; the words were the defect, and every line
-/// that states this figure now names downloads.
+/// publications. The numbers were both right and the words were the defect. The owner's
+/// answer for `one-vocabulary-in-four-languages` task 4.3 is that the destination is named
+/// by its location on both platforms, so this row says "on this device" again; what makes
+/// the two readings tellable apart is `downloads.manageInDestination`, which states what
+/// the figure counts on the screen the row opens.
 public struct LibrarySummary: Sendable, Equatable {
     public let sources: Int
 

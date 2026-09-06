@@ -4843,25 +4843,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aus deiner Bibliothek ist noch nichts auf diesem Gerät."
+            "value": "Aus Ihrer Bibliothek ist noch nichts auf diesem Gerät. Was Sie hier behalten, lässt sich ohne Verbindung lesen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nothing in your library is on this device yet."
+            "value": "Nothing in your library is on this device yet. What you keep here can be read without a connection."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Todavía no hay nada de tu biblioteca en este dispositivo."
+            "value": "Todavía no hay nada de tu biblioteca en este dispositivo. Lo que guardes aquí se puede leer sin conexión."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rien de votre bibliothèque n’est encore sur cet appareil."
+            "value": "Rien de votre bibliothèque n’est encore sur cet appareil. Ce que vous gardez ici se lit sans connexion."
           }
         }
       }
