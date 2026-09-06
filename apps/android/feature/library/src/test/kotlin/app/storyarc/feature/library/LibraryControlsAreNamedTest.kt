@@ -19,6 +19,7 @@ import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibrarySort
+import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -172,13 +173,9 @@ class LibraryControlsAreNamedTest {
     @Test
     fun `the ways to add a source share one button and are named inside it`() {
         compose.setContent { StoryArcTheme { Bar() } }
-        val kinds = listOf(
-            R.string.library_add_folder,
-            R.string.library_import,
-            R.string.catalogue_title,
-            R.string.kavita_title,
-            R.string.smb_title,
-        ).map(::string)
+        // The four kinds name themselves, and the import keeps its own words beside them.
+        // `SourceKindsAreNamedTest` holds the one-line explanation each kind also carries.
+        val kinds = SourceKind.entries.map { string(it.titleRes) } + string(R.string.library_import)
 
         kinds.forEach { compose.onNodeWithText(it).assertDoesNotExist() }
         compose.onNodeWithContentDescription(string(R.string.library_add_source)).performClick()

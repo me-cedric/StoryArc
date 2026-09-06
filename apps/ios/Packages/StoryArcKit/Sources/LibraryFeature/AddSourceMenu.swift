@@ -1,5 +1,7 @@
 internal import SwiftUI
 
+internal import StoryArcCore
+
 /// The five ways to bring something in to read.
 ///
 /// A menu rather than five buttons. There are four kinds of library now and there will be
@@ -22,11 +24,11 @@ struct AddSourceMenu: View {
 
     var body: some View {
         Menu {
-            item("library.addFolder", "folder.badge.plus", addFolder)
+            item(.localFolder, addFolder)
             ImportPublicationButton(action: importFile)
-            item("catalogue.title", "dot.radiowaves.up.forward", addCatalogue)
-            item("kavita.title", "externaldrive.connected.to.line.below", addKavita)
-            item("smb.title", "externaldrive.badge.wifi", addShare)
+            item(.opdsCatalog, addCatalogue)
+            item(.kavitaServer, addKavita)
+            item(.networkShare, addShare)
         } label: {
             Label {
                 Text("library.addSource", bundle: .module)
@@ -36,18 +38,24 @@ struct AddSourceMenu: View {
         }
     }
 
+    /// One kind of place, named and explained.
+    ///
+    /// `sources` asks for "a one-line explanation of each", and the live delta puts that
+    /// naming here rather than on the first screen — this menu is the secondary action, and
+    /// choosing between the four is the question it asks. The sentences were written and
+    /// translated into four languages and drawn by nobody: the rows used to carry the four
+    /// *sheets'* titles, which name the destination and say nothing about what it is.
+    ///
+    /// A second `Text` in a menu button's label is how SwiftUI draws a subtitle, which is the
+    /// platform's own shape for exactly this. The kind carries both keys and the symbol, from
+    /// ``SourceKind`` in `SourcePresentation.swift`, so a fifth kind is named everywhere at
+    /// once rather than in whichever menu was remembered.
     @ViewBuilder
-    private func item(
-        _ key: LocalizedStringKey,
-        _ symbol: String,
-        _ action: @escaping () -> Void
-    ) -> some View {
+    private func item(_ kind: SourceKind, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Label {
-                Text(key, bundle: .module)
-            } icon: {
-                Image(systemName: symbol)
-            }
+            Text(kind.titleKey, bundle: .module)
+            Text(kind.explanationKey, bundle: .module)
+            Image(systemName: kind.symbolName)
         }
     }
 }

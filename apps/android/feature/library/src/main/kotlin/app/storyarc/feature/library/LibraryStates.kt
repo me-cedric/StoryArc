@@ -6,16 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CreateNewFolder
-import androidx.compose.material.icons.filled.Dns
-import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filled.RssFeed
-import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -193,6 +185,10 @@ internal fun LibraryAway(
  * which is a thing with words on it. What it opens is the same five choices the toolbar
  * offers, and the four transports are named only here — where choosing between them is the
  * question actually being asked, rather than a wall to be understood first.
+ *
+ * The rows are [AddSourceItems], which the toolbar's menu draws too. They used to be a second
+ * copy of the same list, differing from the toolbar's in nothing but which strings it had
+ * drifted to — and neither copy carried the one-line explanation `sources` asks for.
  */
 @Composable
 private fun AddBooksButton(
@@ -208,40 +204,15 @@ private fun AddBooksButton(
         Text(stringResource(R.string.library_add_source))
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-        AddBooksItem(R.string.library_add_folder, Icons.Filled.CreateNewFolder) {
-            open = false
-            onAddFolder()
-        }
-        AddBooksItem(R.string.library_import, Icons.Filled.FileDownload) {
-            open = false
-            onOpenComic()
-        }
-        AddBooksItem(R.string.catalogue_title, Icons.Filled.RssFeed) {
-            open = false
-            onAddCatalogue()
-        }
-        AddBooksItem(R.string.kavita_title, Icons.Filled.Dns) {
-            open = false
-            onAddKavita()
-        }
-        AddBooksItem(R.string.smb_title, Icons.Filled.Storage) {
-            open = false
-            onAddShare()
-        }
+        AddSourceItems(
+            onChosen = { open = false },
+            onAddFolder = onAddFolder,
+            onImport = onOpenComic,
+            onAddCatalogue = onAddCatalogue,
+            onAddKavita = onAddKavita,
+            onAddShare = onAddShare,
+        )
     }
-}
-
-@Composable
-private fun AddBooksItem(
-    label: Int,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit,
-) {
-    DropdownMenuItem(
-        text = { Text(stringResource(label)) },
-        leadingIcon = { Icon(icon, contentDescription = null) },
-        onClick = onClick,
-    )
 }
 
 /**
