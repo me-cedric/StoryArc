@@ -26,13 +26,6 @@ struct PageColourSection: View {
 
     /// The pairing the page is being drawn with, or nil while the preset's own colours are.
     let inForce: ReaderPalette?
-    let onAdopt: (ReaderPalette) -> Bool
-    let onDiscard: () -> Void
-
-    /// The ratio of the pairing that was last turned down, so it can be stated.
-    @State private var refused: Double?
-    @State private var picked = Color.white
-    @State private var name = ""
 
     /// A pairing the reader has chosen and not yet applied.
     ///
@@ -40,7 +33,18 @@ struct PageColourSection: View {
     /// text colour to be "shown in the preview **before** being applied". Every control here
     /// used to call ``onAdopt`` directly, so the page changed first and the sample under it
     /// drew what was already in force — a preview of the past.
-    @State private var pending: ReaderPalette?
+    ///
+    /// Owned by ``ThemeAxesSheet`` rather than by this section: the specimen above it draws
+    /// the pairing too, and two surfaces previewing one pairing have to agree.
+    @Binding var pending: ReaderPalette?
+
+    let onAdopt: (ReaderPalette) -> Bool
+    let onDiscard: () -> Void
+
+    /// The ratio of the pairing that was last turned down, so it can be stated.
+    @State private var refused: Double?
+    @State private var picked = Color.white
+    @State private var name = ""
 
     /// What the sample, the band and the ratio describe.
     private var palette: ReaderPalette? { Self.previewed(pending: pending, inForce: inForce) }

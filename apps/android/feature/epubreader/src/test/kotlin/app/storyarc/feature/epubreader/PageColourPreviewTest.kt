@@ -1,6 +1,8 @@
 package app.storyarc.feature.epubreader
 
 import app.storyarc.core.model.ReaderPalette
+import app.storyarc.core.model.ReadingTheme
+import app.storyarc.core.model.ThemePreset
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -72,6 +74,26 @@ class PageColourPreviewTest {
     }
 
     // endregion
+
+    @Test
+    fun `the specimen above the controls is drawn with the pairing being previewed`() {
+        val inUse = ReadingTheme(ThemePreset.PAPER, custom = inForce)
+
+        assertEquals(
+            "The screen's own specimen still draws the pairing in force while the three-line" +
+                " sample under it draws the pending one, so one screen shows two answers for" +
+                " one pairing and the larger one is stale. `ebook-reader` asks the specimen" +
+                " to update \"as an axis changes\", and `reading-themes` asks a background to" +
+                " be \"shown in the preview before being applied\".",
+            pending,
+            previewedTheme(inUse, pending).custom,
+        )
+        assertEquals(
+            "The specimen stopped drawing the reader's own colours once nothing was pending.",
+            inForce,
+            previewedTheme(inUse, null).custom,
+        )
+    }
 
     // region What a tap does, and what it does not do
 

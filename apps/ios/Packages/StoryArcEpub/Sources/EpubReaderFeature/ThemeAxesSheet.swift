@@ -41,14 +41,22 @@ struct ThemeAxesSheet: View {
     /// Words from where the reader is, read once when level one opened.
     let excerpt: String
 
+    /// A page-colour pairing the reader has chosen and not yet applied.
+    ///
+    /// Held here rather than inside ``PageColourSection`` because the specimen above it draws
+    /// the pairing too, and a preview that two surfaces answer differently is worse than one
+    /// surface answering late.
+    @State private var pendingColours: ReaderPalette?
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: StoryArcSpace.xl) {
-                    // First, because it is the thing every control below it changes, and
-                    // `ebook-reader` asks for it to update "as an axis changes".
+                    // First, because every control below changes it, and `ebook-reader` asks
+                    // it to update "as an axis changes" — the background axis included, which
+                    // reaches it as a pending pairing before it reaches the page.
                     ThemePreview(
-                        readingTheme: model.theme,
+                        readingTheme: Self.previewed(model.theme, pending: pendingColours),
                         values: model.values,
                         title: model.chapterTitle,
                         excerpt: excerpt
@@ -66,6 +74,7 @@ struct ThemeAxesSheet: View {
                         // in the same branch as the other overrides.
                         PageColourSection(
                             inForce: model.theme.custom,
+                            pending: $pendingColours,
                             onAdopt: { model.adoptColours($0) },
                             onDiscard: model.discardCustomColours
                         )
@@ -83,6 +92,22 @@ struct ThemeAxesSheet: View {
                 }
             }
         }
+    }
+
+    /// The theme the specimen is drawn with: the pairing being previewed, where there is one.
+    ///
+    /// `ebook-reader` asks the specimen to "update as an axis changes" and `reading-themes`
+    /// asks a background to be "shown in the preview before being applied". A specimen drawn
+    /// from the theme in force answers neither for this one axis: it kept the old colours
+    /// while the three-line sample below it showed the new ones, so one screen gave two
+    /// answers and the larger one was stale.
+    ///
+    /// A static function rather than an expression inside the body, so a host test can ask
+    /// it — the precedent ``ThemeSheet/presetColumns(for:)`` sets for the same reason. Android
+    /// mirrors it in `previewedTheme`.
+    static func previewed(_ theme: ReadingTheme, pending: ReaderPalette?) -> ReadingTheme {
+        guard let pending else { return theme }
+        return theme.adopting(pending)
     }
 
     /// `reading-themes`: stepped, with the position shown, never a free slider.

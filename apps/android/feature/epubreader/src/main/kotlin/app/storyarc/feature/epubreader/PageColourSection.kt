@@ -36,6 +36,7 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.ReaderPalette
+import app.storyarc.core.model.ReadingTheme
 import app.storyarc.core.model.ReadingContrast
 import app.storyarc.core.model.SUGGESTED_BACKGROUNDS
 import app.storyarc.core.model.SUGGESTED_FOREGROUNDS
@@ -66,10 +67,15 @@ import kotlin.math.roundToInt
  *
  * @param inForce the pairing the page is being drawn with, or null while the preset's own
  *   colours are.
+ * @param pending a pairing the reader has chosen and not yet applied. Owned by
+ *   [ThemeAxesScreen] rather than by this section: the specimen above it draws the pairing
+ *   too, and two surfaces previewing one pairing have to agree.
  */
 @Composable
 internal fun PageColourSection(
     inForce: ReaderPalette?,
+    pending: ReaderPalette?,
+    onPreview: (ReaderPalette?) -> Unit,
     onAdopt: (ReaderPalette) -> Boolean,
     onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
@@ -83,9 +89,6 @@ internal fun PageColourSection(
     var saturation by remember { mutableStateOf(0.3f) }
     var lightness by remember { mutableStateOf(0.95f) }
 
-    /** A pairing the reader has chosen and not yet applied. */
-    var pending by remember { mutableStateOf<ReaderPalette?>(null) }
-
     /** What the sample, the band and the ratio describe. */
     val palette = previewedPairing(pending = pending, inForce = inForce)
 
@@ -94,7 +97,7 @@ internal fun PageColourSection(
 
     /** Shows a pairing without putting it on the page. */
     fun preview(candidate: ReaderPalette) {
-        pending = candidate
+        onPreview(candidate)
         // A refusal measured a pairing that is no longer the one being described.
         refused = null
     }
@@ -102,7 +105,7 @@ internal fun PageColourSection(
     fun adopt(candidate: ReaderPalette) {
         refused = if (onAdopt(candidate)) null else candidate.contrast
         // What was pending is now in force, and `inForce` describes it from here.
-        if (refused == null) pending = null
+        if (refused == null) onPreview(null)
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
@@ -189,7 +192,7 @@ internal fun PageColourSection(
 
             OutlinedButton(
                 onClick = {
-                    pending = null
+                    onPreview(null)
                     refused = null
                     onDiscard()
                 },
@@ -233,6 +236,21 @@ internal fun PageColourSection(
  */
 internal fun previewedPairing(pending: ReaderPalette?, inForce: ReaderPalette?): ReaderPalette? =
     pending ?: inForce
+
+/**
+ * The theme the level-two specimen is drawn with: the pairing being previewed, if any.
+ *
+ * `ebook-reader` asks the specimen to "update as an axis changes" and `reading-themes` asks a
+ * background to be "shown in the preview before being applied". A specimen drawn from the
+ * theme in force answers neither for this axis: it kept the old colours while the three-line
+ * sample below it showed the new ones, so one screen gave two answers and the larger one was
+ * stale.
+ *
+ * It sits beside [previewedPairing] rather than in `ThemeAxesScreen.kt`, which is at its
+ * language's line cap. iOS keeps its twin on `ThemeAxesSheet`, which is not.
+ */
+internal fun previewedTheme(theme: ReadingTheme, pending: ReaderPalette?): ReadingTheme =
+    pending?.let { theme.adopting(it) } ?: theme
 
 /**
  * What a pairing will be like to read, in words a reader can act on.

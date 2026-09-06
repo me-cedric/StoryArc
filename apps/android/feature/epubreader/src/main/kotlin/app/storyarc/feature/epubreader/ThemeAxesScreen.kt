@@ -39,6 +39,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -133,6 +135,8 @@ internal fun ThemeAxesScreen(
     // returns to level one, with one dismiss target rather than two.
     BackHandler(onBack = onClose)
 
+    val pending = remember { mutableStateOf<ReaderPalette?>(null) }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -157,9 +161,9 @@ internal fun ThemeAxesScreen(
                 .padding(StoryArcSpace.gutter),
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xl),
         ) {
-            // First, because it is the thing every control below it changes, and
-            // `ebook-reader` asks for it to update "as an axis changes".
-            ThemePreview(theme = theme, values = values, title = chapter, excerpt = excerpt)
+            // First, because every control below changes it, and `ebook-reader` asks it to
+            // update "as an axis changes" — the background axis included, before the page.
+            ThemePreview(previewedTheme(theme, pending.value), values, chapter, excerpt)
 
             PageTurnControl(choices, onChooseTransition)
 
@@ -176,6 +180,8 @@ internal fun ThemeAxesScreen(
                 // overrides.
                 PageColourSection(
                     inForce = theme.custom,
+                    pending = pending.value,
+                    onPreview = { pending.value = it },
                     onAdopt = onAdoptColours,
                     onDiscard = onDiscardColours,
                 )

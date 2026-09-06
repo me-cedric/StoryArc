@@ -64,6 +64,26 @@ struct PageColourPreviewTests {
         )
     }
 
+    @Test("The specimen above the controls is drawn with the pairing being previewed")
+    func theSpecimenDrawsThePendingPairing() {
+        let inUse = ReadingTheme(preset: .paper, custom: inForce)
+
+        #expect(
+            ThemeAxesSheet.previewed(inUse, pending: pending).custom == pending,
+            """
+            The sheet's own specimen still draws the pairing in force while the three-line \
+            sample under it draws the pending one, so one screen shows two answers for one \
+            pairing and the larger one is stale. `ebook-reader` asks the specimen to update \
+            "as an axis changes", and `reading-themes` asks a background to be "shown in the \
+            preview before being applied".
+            """
+        )
+        #expect(
+            ThemeAxesSheet.previewed(inUse, pending: nil).custom == inForce,
+            "the specimen stopped drawing the reader's own colours once nothing was pending"
+        )
+    }
+
     // MARK: - What a tap does, and what it does not do
 
     @Test("A swatch previews the pairing and does not put it on the page")
