@@ -227,6 +227,13 @@ is the target shape.
       `pnpm strings:ios`: *every key resolves, in en, fr, de, es*. `pnpm build:ios`
       exits 0 with no `error:` line. The English values are unchanged, so the two
       platforms' wording still diverges where it diverged before — §4.2 owns that.
+      **Corrected 2026-09-06.** `open.in.protected %@` stated the protection and
+      stopped, so an iOS reader was left waiting for a field that never arrives.
+      Android's `open_in_protected` says one sentence more, *there is nothing to enter
+      here*, and `ProtectedAudiobookPromptsForNothingTest` asserts those words. The
+      sentence is now in all four iOS values, word for word from Android.
+      `RefusedFileWordingTests` guards the English one and failed by name first: *The
+      protected refusal forecloses the field it does not draw*.
 - [x] **2.3** Give the Android name fallback a key.
       `app/.../OpenedFile.kt:114`'s `"this file"` is interpolated into an
       otherwise-localised sentence, so a French dialog reads French around an
@@ -315,6 +322,17 @@ Two literals, and the largest hidden surface behind them.
       error)`, which is the same defect with a worse rendering. Left alone because
       this task says Android-only and `Sources/ReaderFeature/` is another agent's
       file in this wave. It wants its own task.
+      **Corrected 2026-09-06.** Two claims above were wrong.
+      The refusal read *the file may be damaged or incomplete*. The catch cannot know
+      that: a rejected server credential, a denied permission and a cancelled read all
+      reach the same line, and `PublicationAccess.openArchive` routes every registered
+      remote scheme through it. The sentence now stops after the refusal, in all four
+      languages.
+      The diagnostic export does not carry the exception. `Diagnostic.text` emits
+      [App], [Device], [Settings], [Reading defaults], [Storage] and [Sources], and the
+      app writes no log, so a refusal's cause is now known to nobody. The four resource
+      comments and the test's doc comment said otherwise and now say what happens.
+      Task 3.5 owns the missing half.
 - [~] **3.4** Capture the reader's failure message in French.
       Walk: open a truncated file from the corpus. Light and dark.
       **Control:** the same screen in English at the same moment — the sentence
@@ -328,6 +346,14 @@ Two literals, and the largest hidden surface behind them.
       `ReaderScreen.kt:228`. Appearance: light and dark. Text size: default.
       Control frame: the same screen with the interface language set to English,
       same device, same moment.
+- [ ] **3.5** Record a refusal's cause where a maintainer reaches it.
+      3.3 removed the exception from the screen and put it nowhere. One `[Last
+      failure]` section in `Diagnostic.text`, or one `Log.w` call at
+      `ReaderViewModel.kt:436` and `:494`, closes it.
+      **Blocked on a shorter file.** Either route adds a line to
+      `ReaderViewModel.kt`, which `scripts/line-cap.mjs` records at 811 lines.
+      Raising that record weakens the ratchet, so this slice shortens the file first.
+      Verify: `pnpm gradle :feature:reader:testDebugUnitTest` and `pnpm lines:check`.
 
 ## 4. One state, one name
 
