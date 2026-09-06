@@ -86,7 +86,7 @@ struct ShelfCoverChoiceTests {
 /// ``StoryArcCore/CompositeCover`` for weeks while no view, view model or menu called any of
 /// them, so a symbol search looked convincing and the clause was still unreachable. These
 /// walk the built value tree of the screen the offer lives on. Android's
-/// `ShelfCoverMenuTest` presses the same control on the same screen.
+/// `ShelfCoverMenuTest` asks the same screen's semantics tree for the same control.
 @MainActor
 @Suite("The collection screen offers a cover")
 struct ShelfCoverMenuTests {
