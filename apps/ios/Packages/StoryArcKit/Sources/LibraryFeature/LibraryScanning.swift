@@ -72,8 +72,9 @@ extension LibraryModel {
     ///
     /// Runs after the walk, once, over the whole shelf rather than per publication as it
     /// arrives. ``ProgressStore/link(_:)`` writes only when a record exists *and* something
-    /// about it is new, so a library that has already been linked costs one read each and no
-    /// write at all. Nothing here computes a digest: it passes on the one the scan produced.
+    /// about it is new, so a linked library writes nothing at all. It is not free: `existing`
+    /// queries by server key, then digest, then path, and stops at the first hit, so a
+    /// publication nobody has read costs two indexed lookups. Nothing here computes a digest.
     ///
     /// Android does the same at the end of `LibraryViewModel.scan`.
     private func linkScannedIdentities() async {
