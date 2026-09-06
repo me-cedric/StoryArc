@@ -88,6 +88,12 @@ extension LibraryModel {
     /// The locale is read once per sort rather than once per comparison: ``Locale/storyArc``
     /// builds `Locale.Components` from the reader's choice on every access. Android's
     /// ``LibraryFacets`` builds its `Collator` once for the same reason.
+    ///
+    /// It is read here rather than handed in, and Android hands it in. The platform forces
+    /// that difference: Android's `readerLocale()` decodes the stored settings on every call,
+    /// so its filter menu remembers one locale for the four facets it asks on every
+    /// recomposition. ``Locale/storyArc`` reads a tag already in memory and touches no file,
+    /// so a facet fetching its own costs a `Locale.Components` build and nothing else.
     private func collated(_ values: Set<String>) -> [String] {
         let locale = Locale.storyArc
         return values.sorted {
