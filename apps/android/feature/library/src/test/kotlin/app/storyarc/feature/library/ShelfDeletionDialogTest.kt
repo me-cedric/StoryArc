@@ -1,6 +1,5 @@
 package app.storyarc.feature.library
 
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -21,14 +20,14 @@ import org.robolectric.annotation.Config
 /**
  * What the deletion dialogue says, and what pressing its two buttons does.
  *
- * `ShelfDeletionTest` pins that a deletion carries the count and that applying one keeps every
- * publication; nothing pinned that the dialogue *states* the count. `SourceRemovalDialogTest`
- * records why that gap matters: on 2026-09-05 a reviewer reverted a removal dialog to a plainer
- * body and every automated test on both platforms stayed green.
+ * `ShelfDeletionTest` pins that applying a deletion keeps every publication; nothing pinned that
+ * the dialogue *says so*. `SourceRemovalDialogTest` records why that gap matters: on 2026-09-05 a
+ * reviewer reverted a removal dialog to a plainer body and every automated test on both platforms
+ * stayed green.
  *
  * The sentences are resolved inside the one composition, in Robolectric's locale, rather than
- * copied into this file -- so a catalogue that stopped counting fails here rather than passing
- * against a copy. iOS asks the same of `ShelfDeletion.message` in `ShelfDeletionTests`.
+ * copied into this file -- so a catalogue that lost a key fails here rather than passing against a
+ * copy. iOS asks the same of `ShelfDeletion.message` in `ShelfDeletionTests`.
  */
 @RunWith(RobolectricTestRunner::class)
 // 34 for the reason `SourceRemovalDialogTest` gives: Robolectric has no image for 37.
@@ -46,31 +45,12 @@ class ShelfDeletionDialogTest {
     private val list = ReadingList(name = "Crossover", entries = listOf("a", "c"))
 
     @Test
-    fun `the confirmation states how many titles the collection holds`() {
-        var counted = ""
-        var singular = ""
-        compose.setContent {
-            counted = pluralStringResource(R.plurals.shelves_delete_collection_body, 3, 3)
-            singular = pluralStringResource(R.plurals.shelves_delete_collection_body, 1, 1)
-            StoryArcTheme {
-                ShelfDeletionDialog(ShelfDeletion.of(collection), onConfirm = {}, onDismiss = {})
-            }
-        }
-        compose.waitForIdle()
-
-        // The two sentences must differ, or the assertions below could not tell them apart.
-        assertNotEquals(singular, counted)
-        compose.onNodeWithText(counted).assertIsDisplayed()
-        compose.onNodeWithText(singular).assertDoesNotExist()
-    }
-
-    @Test
     fun `the confirmation names the collection and says the titles stay`() {
         var title = ""
         var body = ""
         compose.setContent {
             title = stringResource(R.string.shelves_delete_title, collection.name)
-            body = pluralStringResource(R.plurals.shelves_delete_collection_body, 3, 3)
+            body = stringResource(R.string.shelves_delete_collection_body)
             StoryArcTheme {
                 ShelfDeletionDialog(ShelfDeletion.of(collection), onConfirm = {}, onDismiss = {})
             }
@@ -86,14 +66,15 @@ class ShelfDeletionDialogTest {
         var forList = ""
         var forCollection = ""
         compose.setContent {
-            forList = pluralStringResource(R.plurals.shelves_delete_list_body, 2, 2)
-            forCollection = pluralStringResource(R.plurals.shelves_delete_collection_body, 2, 2)
+            forList = stringResource(R.string.shelves_delete_list_body)
+            forCollection = stringResource(R.string.shelves_delete_collection_body)
             StoryArcTheme {
                 ShelfDeletionDialog(ShelfDeletion.of(list), onConfirm = {}, onDismiss = {})
             }
         }
         compose.waitForIdle()
 
+        // The two sentences must differ, or the assertions below could not tell them apart.
         assertNotEquals(forCollection, forList)
         compose.onNodeWithText(forList).assertIsDisplayed()
         compose.onNodeWithText(forCollection).assertDoesNotExist()
