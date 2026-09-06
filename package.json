@@ -58,6 +58,8 @@
     "notices:check": "node scripts/notices.mjs --check",
     "strings:ios": "node scripts/ios-strings.mjs",
     "strings:ios:check": "node scripts/ios-strings.mjs --self-test",
+    "strings:drawn": "node scripts/drawn-strings-check.mjs",
+    "strings:drawn:selftest": "node scripts/drawn-strings-check.mjs --self-test",
     "lockfile:ios": "node scripts/ios-lockfile.mjs --check",
     "lockfile:ios:selftest": "node scripts/ios-lockfile.mjs --self-test",
     "libarchive:pin": "node scripts/libarchive-pin.mjs --check",

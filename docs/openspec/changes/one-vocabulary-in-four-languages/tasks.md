@@ -408,7 +408,7 @@ Two literals, and the largest hidden surface behind them.
 Last, because a gate that fails on pre-existing code blocks eight in-flight
 changes.
 
-- [ ] **5.1** Write the check with its `--self-test` in the same commit.
+- [x] **5.1** Write the check with its `--self-test` in the same commit.
       `scripts/` beside `delta-drop-check.mjs` and `partial-tasks-check.mjs`. It
       guards the drawing surface only — bare literals in `Text(`, `alert(`,
       `Button(` labels, `accessibilityLabel`, `contentDescription =`.
@@ -417,14 +417,34 @@ changes.
       zero literals in these positions, so this check would have caught none of
       the thirty — it is a backstop against the next one, and claiming otherwise
       is the vacuous shape.
-- [ ] **5.2** Prove it fails, by name.
+      **Done:** `scripts/drawn-strings-check.mjs`. One script reads Swift and
+      Kotlin, because SwiftUI and Compose spell `Text(` the same way. The header
+      names six blind spots, and says plainly that the check would have caught
+      none of the thirty.
+- [x] **5.2** Prove it fails, by name.
       Introduce a bare literal in a drawing position, watch the check name the
       file and line, revert. AGENTS.md §5 requires this in the change that adds
       the guard, and names three checks here that could not fail.
       Verify: `node scripts/<name>.mjs --self-test`.
-- [ ] **5.3** Wire it into `pnpm lint` and add the `:selftest` script.
+      **Done, in both directions.** `node scripts/drawn-strings-check.mjs`
+      reports `apps/ios/App/RefusedFile.swift:55` and `:58` on the committed
+      tree. A copy of `SkippedNotice.swift` with one key replaced by prose is
+      reported at line 50, and the reverted copy reports nothing.
+      `--self-test` passes 15 of 15 cases.
+- [~] **5.3** Wire it into `pnpm lint` and add the `:selftest` script.
       `package.json`, matching how `delta:drop` and `partial:tasks` are wired.
       Verify: `pnpm lint` passes on a clean tree and fails on 5.2's mutation.
+      **Half done, and the missing half is blocked by task 2.2.** `package.json`
+      gains `strings:drawn` and `strings:drawn:selftest`. The `lint` chain is
+      **not** changed, because the check reports two literals that are already
+      committed: the refused-file alert's title and its OK button, at
+      `apps/ios/App/RefusedFile.swift:55` and `:58`. Wiring it in today fails
+      `pnpm lint` for every one of the eight in-flight changes, which is the
+      exact hazard this section is ordered last to avoid. Task 2.2 removes both
+      literals. After it lands, add `&& pnpm strings:drawn` to the `lint` script
+      and tick this task; that is the whole remaining edit. A suppression list or
+      a baseline of allowed violations is refused — it would turn the check into
+      decoration.
 
 ## 6. Gates
 
