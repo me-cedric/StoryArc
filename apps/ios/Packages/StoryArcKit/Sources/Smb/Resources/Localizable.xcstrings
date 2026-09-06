@@ -1,0 +1,35 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "smb.discovery.denied" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Zugriff auf das lokale Netzwerk ist aus, deshalb findet StoryArc keine Freigaben. Schalten Sie ihn in Einstellungen unter Datenschutz & Sicherheit, dann Lokales Netzwerk, wieder ein. Sie können eine Freigabe weiterhin von Hand hinzufügen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local Network access is off, so StoryArc finds no shares. Turn it on again in Settings, under Privacy & Security, then Local Network. You can still add a share by hand."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a la red local está desactivado, así que StoryArc no encuentra recursos compartidos. Actívalo de nuevo en Ajustes, en Privacidad y seguridad, luego Red local. Todavía puedes añadir un recurso compartido a mano."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accès au réseau local est désactivé, donc StoryArc ne trouve aucun partage. Réactivez-le dans Réglages, sous Confidentialité et sécurité, puis Réseau local. Vous pouvez toujours ajouter un partage à la main."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

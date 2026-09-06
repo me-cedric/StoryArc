@@ -68,13 +68,17 @@ let package = Package(
         ),
         // The SMB seam. Everything above it works against `RandomAccessSource`
         // and learns nothing about the protocol. ADR-0010.
+        // The catalogue is here because `SmbDiscovery` writes a sentence rather than a
+        // condition: a refused local-network permission is explained by the module that
+        // detects it, not by whichever screen happens to be showing.
         .target(
             name: "Smb",
             dependencies: [
                 "Formats",
                 "StoryArcCore",
                 .product(name: "SMBClient", package: "SMBClient"),
-            ]
+            ],
+            resources: [.process("Resources")]
         ),
         .target(
             name: "LibraryFeature",
