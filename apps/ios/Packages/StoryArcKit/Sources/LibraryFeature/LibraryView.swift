@@ -334,9 +334,17 @@ public struct LibraryView: View {
             .watchingFolders(of: model)
             // `sources` names pull-to-refresh: a refresh "re-fetches the catalogue in the
             // background" and updates the view "incrementally rather than clearing it".
+            //
+            // What it re-fetches is what the shelf is showing, which ``ShelfRefresh`` decides
+            // and a test can reach. This used to ask every server and walk every folder on
+            // every pull, so a reader on a metered link paid for their whole library because
+            // they pulled a shelf narrowed to one folder.
             .refreshable {
-                await model.resolveSources(credentials: credentials, pins: pins)
-                await model.rescan()
+                let plan = ShelfRefresh.of(model.query.scope, in: model.registry)
+                if plan.asksNetwork {
+                    await model.resolveSources(credentials: credentials, pins: pins)
+                }
+                if plan.walksFolders { await model.rescan() }
             }
             // A bar, so the notice floats on glass and the shelf fades out beneath it
             // rather than being clipped by it. Above the tab bar, which the system insets
