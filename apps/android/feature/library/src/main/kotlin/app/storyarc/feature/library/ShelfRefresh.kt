@@ -23,16 +23,22 @@ import app.storyarc.core.model.SourceRegistry
  * reach, and a decision written inside a composable is a decision nothing can assert. iOS's
  * `ShelfRefresh` holds the same table.
  *
- * ponytail: the network half is all-or-nothing. A shelf narrowed to one server asks *every*
- * server, because the probe needs the credentials and the pinned certificates and those are
- * the app layer's — `LibraryScreen` is handed one `onProbeSources` lambda and no way to name a
- * source. That is the whole remaining cost, and it is bounded by the number of servers a
- * reader configured. Scoping it further means a new callback through `AppDestinations`.
+ * ponytail: the network half is not scoped at all. A shelf narrowed to one server asks *every*
+ * configured server, and fetches every Kavita server's reading lists with it, because the probe
+ * needs the credentials and the pinned certificates and those are the app layer's --
+ * `LibraryScreen` is handed one `onProbeSources` lambda and no way to name a source. That is
+ * the ceiling: one connection per configured server plus one reading-lists request per Kavita
+ * server, on every pull, which a reader on a metered link pays for. Scoping it means a new
+ * callback through `AppDestinations`.
  *
- * ponytail: the same lambda reports no progress, so `PullToRefreshBox` follows the folder
- * walk and a shelf narrowed to one server refreshes without a sustained indicator. Driving it
- * from the sources' own `Connecting` state instead would blink it on every background probe,
- * which is worse. What it needs is a signal that tells a pull from the backoff loop.
+ * ponytail: the same lambda reports no progress and does not suspend, so `PullToRefreshBox`
+ * follows the folder walk alone. A shelf narrowed to one server therefore refreshes with no
+ * indicator at all: the spinner retracts as the finger lifts and the probes run unseen. A
+ * reader who pulls again re-enters `retryUnreachableSources`, which cancels the probe in
+ * flight. iOS has neither cost, because SwiftUI awaits its `refreshable` closure. Driving the
+ * indicator from the sources' own `Connecting` state instead would blink it on every
+ * background probe, which is worse. What it needs is a signal that tells a pull from the
+ * backoff loop.
  */
 data class ShelfRefresh(
     /** Whether the folders are walked again. */

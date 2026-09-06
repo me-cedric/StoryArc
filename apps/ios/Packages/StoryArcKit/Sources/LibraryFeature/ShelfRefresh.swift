@@ -17,6 +17,13 @@ internal import StoryArcCore
 /// the managed import folder belongs to no source and is walked on every scan. **The network
 /// is asked only when the shelf is showing something reached over one.**
 ///
+/// ponytail: the network half is not scoped at all. A shelf narrowed to one server asks
+/// *every* configured server, and fetches every Kavita server's reading lists with it, because
+/// ``LibraryModel/probeNetworkSources(credentials:pins:)`` walks the whole registry and there
+/// is no per-source probe to call. That is the ceiling: one connection per configured server
+/// plus one reading-lists request per Kavita server, on every pull. Android's `ShelfRefresh`
+/// records the same ceiling, and a second one this platform does not have.
+///
 /// Pure, and its own type, for the reason ``SourceProbe`` is: the decision is what a test can
 /// reach, and a decision written inside a view modifier is a decision nothing can assert.
 /// Android's `ShelfRefresh` holds the same table.
