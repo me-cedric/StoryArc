@@ -278,6 +278,23 @@ public final class LibraryModel {
         rebuild()
     }
 
+    /// Re-files the shelf in the language the reader has just chosen.
+    ///
+    /// ``visible`` and ``matchGroups`` are stored, so the collation they were built with is
+    /// the one they keep. Every other writer is an event about the *library* — a scan, an
+    /// import, a download, a query. A language change is an event about the *reader*, and
+    /// until the shell reported it the shelf stayed in the language the reader had left while
+    /// every word around it moved. `localization` requires the whole interface to switch
+    /// "immediately without a restart".
+    ///
+    /// Called by the shell rather than observed here: the choice lives in `InterfaceLanguage`,
+    /// which is a value and announces nothing, and the shell is the one place that already
+    /// watches the setting in order to apply it. Android reaches the same rebuild by recreating
+    /// the activity, which is that platform's own way of saying the same thing.
+    public func languageChanged() {
+        rebuild()
+    }
+
     /// Adds a folder and scans it.
     ///
     /// The security-scoped access is started here and deliberately not stopped:

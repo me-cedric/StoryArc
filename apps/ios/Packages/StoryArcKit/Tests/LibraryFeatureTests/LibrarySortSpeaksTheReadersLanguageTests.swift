@@ -154,6 +154,65 @@ struct LibrarySortSpeaksTheReadersLanguageTests {
         #expect(code.contains("locale: .storyArc"), "ShelfDetail sorts in the device's language")
     }
 
+    // MARK: - The iPad sidebar, which shares a screen with the shelf
+
+    /// Two series whose order is the language's answer rather than the alphabet's.
+    private static let withSeries: [Publication] = ["Nube", "Ñu"].map { name in
+        Publication(
+            identity: PublicationIdentity(normalizedPath: "/fixtures/\(name) #1.cbz"),
+            format: .cbz,
+            displayTitle: "\(name) #1",
+            series: name,
+            origin: .inferred
+        )
+    }
+
+    /// The sidebar's series column collates the way the shelf beside it collates.
+    ///
+    /// On an iPad the column and the shelf are on screen together, so two lists of the same
+    /// names in opposite orders is a thing a reader sees at once. Spanish makes *ñ* a letter
+    /// after *n* and files *Nube* first; German folds it onto *n* and files *Ñu* first, because
+    /// *ñu* and *nub* agree until *ñu* runs out. `localizedStandardCompare` gave the second
+    /// answer whatever the reader had chosen, because it resolves against the device.
+    @Test("The sidebar's series list collates in the reader's language")
+    func theSidebarCollatesInTheReadersLanguage() {
+        InterfaceLanguage.choose("es")
+        defer { InterfaceLanguage.choose(nil) }
+        let inSpanish = SidebarSeriesList.series(in: Self.withSeries, locale: .storyArc)
+        #expect(inSpanish.map(\.name) == ["Nube", "Ñu"], "the sidebar ignored the chosen language")
+
+        InterfaceLanguage.choose("de")
+        let inGerman = SidebarSeriesList.series(in: Self.withSeries, locale: .storyArc)
+        #expect(inGerman.map(\.name) == ["Ñu", "Nube"], "the sidebar ignored the chosen language")
+    }
+
+    // MARK: - The shell, which is where a language change happens
+
+    /// The shell re-files the shelf when the reader changes the language.
+    ///
+    /// ``LibraryModel/visible`` is stored, not computed, and `rebuild()` is its only writer.
+    /// None of `rebuild()`'s other callers is a language change: they are a query change, a
+    /// progress refresh, a scan, an import, a download, a source edit, a folder watch and a
+    /// cover cache. So a reader who picks *Español* watched every word around the grid turn
+    /// Spanish while the grid kept the old language's order — until a scan, an import or a
+    /// touch on a sort control happened to rebuild it. `localization` requires the whole
+    /// interface to switch "immediately without a restart", and the shelf is interface.
+    ///
+    /// Android re-files it because choosing a language calls `recreate()`, and the activity
+    /// coming back runs `refreshProgress()`, which rebuilds. `speaking(_:)` is iOS's whole
+    /// equivalent and it changes no view identity, so nothing on this platform re-ran. The
+    /// shell has to name the moment, and a `View` body is not something a value-level
+    /// assertion reaches — ``ReaderRoutingWiringTests`` states at length why a guard on the
+    /// app's wiring reads it as text.
+    @Test("The shell re-files the shelf when the reader changes the language")
+    func theShellRefilesTheShelfOnALanguageChange() {
+        let code = LibraryFeatureSource.appCode(of: "App/StoryArcApp.swift")
+        #expect(
+            code.contains(".onChange(of: settings.language) { library.languageChanged() }"),
+            "StoryArcApp keeps the old collation when the reader changes the language"
+        )
+    }
+
     // MARK: - The default, which must stay the process locale
 
     @Test("A caller that names no locale still gets the process locale")

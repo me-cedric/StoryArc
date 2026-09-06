@@ -38,13 +38,37 @@ enum LibraryFeatureSource {
         return text
     }
 
+    /// A source file in the app target, which is outside this package.
+    ///
+    /// `apps/ios/App` is two directories above the package root. The app has no test target of
+    /// its own — ``ReaderRoutingWiringTests`` records at length why its wiring is read as text
+    /// rather than rendered — and the shell is where the library model is held, so a guard on
+    /// what the shell asks the model for has to reach out of the package to find it.
+    static func appSource(_ relativePath: String) -> String {
+        let root = package.deletingLastPathComponent().deletingLastPathComponent()
+        let file = root.appending(path: relativePath)
+        guard let text = try? String(contentsOf: file, encoding: .utf8) else {
+            fatalError("\(relativePath) is not at \(file.path) — has it moved?")
+        }
+        return text
+    }
+
     /// A file's code, with `//` prose removed.
     ///
     /// Every one of these files explains the defect it fixes, and those comments name the tab
     /// bar, the rectangle and the icon-only labels in order to say they are gone. A guard that
     /// searched the prose would pass on the documentation of the change.
     static func code(of relativePath: String) -> String {
-        source(relativePath)
+        stripping(source(relativePath))
+    }
+
+    /// The same, for a file in the app target.
+    static func appCode(of relativePath: String) -> String {
+        stripping(appSource(relativePath))
+    }
+
+    private static func stripping(_ text: String) -> String {
+        text
             .split(separator: "\n", omittingEmptySubsequences: false)
             .map { line -> String in
                 guard let comment = line.range(of: "//") else { return String(line) }

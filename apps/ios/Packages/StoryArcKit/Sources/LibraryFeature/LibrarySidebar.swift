@@ -222,17 +222,42 @@ struct SidebarSeriesList: View {
 
     let model: LibraryModel
 
-    /// Every series in the library, in the order a reader reads names.
-    ///
-    /// `localizedStandardCompare` rather than `<`, for the reason ``DetailSeriesShelf``
-    /// gives about issue numbers: a plain string comparison sorts by code point, which puts
-    /// "Ändern" after "Zephyr" in German and is wrong in every language that has an accent.
     private var series: [(name: String, issues: [Publication])] {
-        Dictionary(grouping: model.publications.filter { !($0.series ?? "").isEmpty }) {
+        Self.series(in: model.publications, locale: .storyArc)
+    }
+
+    /// Every series in the library, in the order a reader of `locale` reads names.
+    ///
+    /// Collated rather than compared with `<`, for the reason ``DetailSeriesShelf`` gives
+    /// about issue numbers: a plain string comparison sorts by code point, which puts
+    /// "Ändern" after "Zephyr" in German and is wrong in every language that has an accent.
+    ///
+    /// **And collated the way the shelf collates.** On an iPad this list and the shelf are on
+    /// screen together, so two lists of the same names in opposite orders is a thing a reader
+    /// can see at once. `LibraryIndex.compareBySeries` files a series name by its sort key in
+    /// the *reader's* language; `localizedStandardCompare` filed it by the raw name in the
+    /// *device's*. A reader on a German iPad who chose Spanish saw the shelf run *Nube, Ñu*
+    /// and the column beside it run *Ñu, Nube*.
+    ///
+    /// A static function rather than a computed property so the order is a value a test can
+    /// ask for. The three orders it has to agree with are asserted in
+    /// ``LibrarySortSpeaksTheReadersLanguageTests``.
+    static func series(
+        in publications: [Publication],
+        locale: Locale
+    ) -> [(name: String, issues: [Publication])] {
+        Dictionary(grouping: publications.filter { !($0.series ?? "").isEmpty }) {
             $0.series ?? ""
         }
         .map { (name: $0.key, issues: $0.value) }
-        .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        .sorted {
+            LibraryIndex.sortKey($0.name, locale: locale).compare(
+                LibraryIndex.sortKey($1.name, locale: locale),
+                options: [.caseInsensitive],
+                range: nil,
+                locale: locale
+            ) == .orderedAscending
+        }
     }
 
     var body: some View {

@@ -183,6 +183,11 @@ struct StoryArcApp: App {
             )
             .storyArcTheme(appearance: settings.appearance)
             .speaking(settings.language)
+            // The shelf is drawn from a stored, already-collated list, so it does not follow
+            // the language the way a `Text` does — see `LibraryModel.languageChanged()`.
+            // `speaking` above has already applied the new choice by the time this runs: it
+            // takes effect while the body is built, and an `onChange` action runs after that.
+            .onChange(of: settings.language) { library.languageChanged() }
             .sheet(isPresented: $isShowingSettings) {
                 SettingsView(
                     settings: settingsBinding,
