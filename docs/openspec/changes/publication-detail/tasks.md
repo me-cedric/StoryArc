@@ -1252,6 +1252,11 @@ when a cover was the resume affordance. Whoever syncs should add a
       when the page is popped. `CurlWalkTests` opens a page from the shelf again on the phone;
       the iPad frames this task owes are `SweepIpadPanes`'s.
 
+      **Three of those frames exist now**, in `docs/designs/screenshots/ios-pane-2026-09-06/`:
+      the empty pane, *Bright Panels*'s page beside an unmoved shelf, and *Broken Transfer*
+      replacing it on a second choice. Portrait, Split View and the hero-under-the-sidebar
+      question are still owed, which is why this stays `[~]`.
+
 - [~] **4.2** Android: the detail pane, with predictive back animated by the
       scaffold. Screenshot expanded width, and the narrow-then-widen path.
 

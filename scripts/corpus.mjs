@@ -401,7 +401,7 @@ function build(root, { count = BASE_COUNT } = {}) {
 
 const target = process.argv[2]
 if (!target) {
-  console.error('usage: node scripts/corpus.mjs <directory> | --simulator | --self-test' +
+  console.error('usage: node scripts/corpus.mjs <directory> | --simulator [udid] | --self-test' +
     ' [--count <n>]')
   process.exit(2)
 }
@@ -509,8 +509,13 @@ if (target === '--self-test') {
 
 let root = target
 if (target === '--simulator') {
+  // `--simulator <udid>` names the device. `booted` alone is whichever one simctl picks, and
+  // with an iPhone and an iPad both up for a sweep that is a coin toss — the corpus landed
+  // in the phone's container while the iPad walk skipped for want of covers.
+  const named = process.argv[3]
+  const device = named && !named.startsWith('--') ? named : 'booted'
   const container = execFileSync('xcrun',
-    ['simctl', 'get_app_container', 'booted', 'app.storyarc.StoryArc', 'data'],
+    ['simctl', 'get_app_container', device, 'app.storyarc.StoryArc', 'data'],
     { encoding: 'utf8' }).trim()
   if (!existsSync(container)) throw new Error(`no booted app container: ${container}`)
   root = join(container, 'Documents', 'Corpus')
