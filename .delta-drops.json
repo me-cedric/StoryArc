@@ -6,6 +6,13 @@
                 "one-library-three-destinations"
             ],
             "reason": "reader-theming's block is already a subset of one-library-three-destinations', which adds two scenarios about reaching destinations and a window too small for a layout. Nothing needed merging; the order is recorded because no tool can infer it and syncing one-library first would leave reader-theming's later sync deleting those two scenarios."
+        },
+        "reading-progress → \"Resuming\"": {
+            "order": [
+                "publication-detail",
+                "two-taps-back-to-the-book"
+            ],
+            "reason": "publication-detail's block is carried into two-taps-back-to-the-book word for word, so the later block is a strict superset. two-taps adds one SHALL sentence requiring the cost of each resume verb to be stated, and three bullets stating it: one action from a resume affordance, two from a cover, on both platforms. Nothing needed merging. The order is recorded because no tool can infer it, and syncing two-taps first would leave publication-detail's later sync deleting that sentence and those bullets."
         }
     },
     "one-library-three-destinations/library-browsing": {
