@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.format.SkipReason
 
 /**
  * What the library says about the publications it could not open.
@@ -114,7 +115,7 @@ internal fun SkippedNotice(
 @Composable
 internal fun SkippedBanner(
     sentence: String,
-    reason: String?,
+    reason: SkipReason?,
     onOpenList: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -150,12 +151,13 @@ internal fun SkippedBanner(
                 style = MaterialTheme.typography.bodyMedium,
                 color = palette.textPrimary,
             )
-            // Verbatim from `publication-formats`. Shown here only when there is one
+            // `publication-formats`' refusal, in the reader's language: the scan hands over a
+            // case and [skipReasonText] says what it means. Shown here only when there is one
             // publication to attribute it to; several reasons belong in the list, where each
             // sits beside its own name.
             if (reason != null) {
                 Text(
-                    text = reason,
+                    text = skipReasonText(reason),
                     style = MaterialTheme.typography.bodySmall,
                     color = palette.textSecondary,
                 )
@@ -230,7 +232,7 @@ internal fun SkippedList(
                     color = palette.textPrimary,
                 )
                 Text(
-                    text = entry.reason,
+                    text = skipReasonText(entry.reason),
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.textSecondary,
                 )

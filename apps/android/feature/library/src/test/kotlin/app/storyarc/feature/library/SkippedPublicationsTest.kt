@@ -1,5 +1,6 @@
 package app.storyarc.feature.library
 
+import app.storyarc.core.format.SkipReason
 import app.storyarc.feature.library.SkippedPublications.Entry
 import app.storyarc.feature.library.SkippedPublications.Notice
 import org.junit.Assert.assertEquals
@@ -24,8 +25,8 @@ import org.junit.Test
  */
 class SkippedPublicationsTest {
 
-    private val sevenZip = Entry("refused.cb7", "CB7 is not a format StoryArc reads")
-    private val protected = Entry("password-protected.cbz", "the archive is password protected")
+    private val sevenZip = Entry("refused.cb7", SkipReason.UnsupportedFormat("CB7"))
+    private val protected = Entry("password-protected.cbz", SkipReason.ArchivePasswordProtected)
 
     @Test
     fun `nothing failed nothing is said`() {
@@ -43,7 +44,7 @@ class SkippedPublicationsTest {
         // words `publication-formats` gives for it". Not a count, and not a sentence this
         // layer wrote.
         assertEquals(
-            Notice.One("refused.cb7", "CB7 is not a format StoryArc reads"),
+            Notice.One("refused.cb7", SkipReason.UnsupportedFormat("CB7")),
             SkippedPublications().settling(listOf(sevenZip)).notice,
         )
     }

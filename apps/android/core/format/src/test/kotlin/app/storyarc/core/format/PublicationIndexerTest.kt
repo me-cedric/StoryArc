@@ -198,7 +198,7 @@ class PublicationIndexerTest {
         val failure = runCatching {
             PublicationIndexer.index(File("/nowhere/at/all.cbz"))
         }.exceptionOrNull()
-        assertTrue("expected Unreadable, got $failure", failure is IndexException.Unreadable)
+        assertTrue("expected NotThere, got $failure", failure is IndexException.NotThere)
     }
 
     @Test

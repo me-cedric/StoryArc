@@ -29,6 +29,13 @@
     <string name="library_skipped_one">«%1$s» no se pudo abrir</string>
     <string name="library_skipped_list">Lo que no se pudo abrir</string>
     <string name="library_skipped_dismiss">Descartar</string>
+    <string name="library_skipped_reason_unsupported">StoryArc no lee el formato %1$s</string>
+    <string name="library_skipped_reason_not_there">no se encuentra el archivo</string>
+    <string name="library_skipped_reason_format_not_recognised">no se reconoció el formato</string>
+    <string name="library_skipped_reason_archive_password_protected">el archivo comprimido está protegido con contraseña</string>
+    <string name="library_skipped_reason_archive_unreadable">no se pudo leer el archivo comprimido</string>
+    <string name="library_skipped_reason_content_protected">este audiolibro está bloqueado por la protección de contenido de su tienda</string>
+    <string name="library_skipped_reason_unknown">no se pudo leer el archivo</string>
     <string name="library_search">Buscar</string>
     <string name="library_search_recent">Búsquedas recientes</string>
     <string name="library_search_recent_clear">Borrar las búsquedas recientes</string>

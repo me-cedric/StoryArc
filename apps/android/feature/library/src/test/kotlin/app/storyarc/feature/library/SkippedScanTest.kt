@@ -2,6 +2,7 @@ package app.storyarc.feature.library
 
 import app.storyarc.core.format.LibraryScanner
 import app.storyarc.core.format.ScanEvent
+import app.storyarc.core.format.SkipReason
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -75,14 +76,20 @@ class SkippedScanTest {
             )
             val reasons = skipped.entries.associate { it.name to it.reason }
             // The CB7's reason names the container, which is the whole point of
-            // `publication-formats` wording it rather than the library inventing one.
-            assertTrue(reasons.getValue("refused.cb7"), "CB7" in reasons.getValue("refused.cb7"))
+            // `publication-formats` wording it rather than the library inventing one. The name
+            // is content, carried by the case; the sentence around it is `strings.xml`'s.
+            assertEquals(
+                SkipReason.UnsupportedFormat("CB7"),
+                reasons.getValue("refused.cb7"),
+            )
             // Not merged. This is the assertion a count could never satisfy.
             assertNotEquals(
                 reasons.getValue("refused.cb7"),
                 reasons.getValue("password-protected.cbz"),
             )
-            assertTrue(skipped.entries.all { it.reason.isNotBlank() })
+            // "not dropped silently" is the type's own guarantee now — every case words a
+            // sentence — so what is left is that neither is the catch-all.
+            assertTrue(skipped.entries.none { it.reason == SkipReason.Unknown })
         } finally {
             root.deleteRecursively()
         }

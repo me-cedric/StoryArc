@@ -109,8 +109,13 @@ class LibraryScannerTest {
         // refused.cb7 is in the corpus and must be reported by name.
         val sevenZip = skips.firstOrNull { it.path == "refused.cb7" }
         assertTrue("refused.cb7 was not reported", sevenZip != null)
-        assertTrue(sevenZip!!.reason.contains("CB7"))
-        assertTrue(skips.all { it.reason.isNotEmpty() })
+        // The format's name, because `publication-formats` forbids "could not open": it is
+        // content, carried by the case, and `feature/library` words the sentence around it.
+        assertEquals(SkipReason.UnsupportedFormat("CB7"), sevenZip!!.reason)
+        // "not dropped silently" is the type's own guarantee now — every case words a
+        // sentence — so what is left to assert is that none of them is the catch-all, which
+        // is the one the library has nothing specific to say about.
+        assertTrue(skips.none { it.reason == SkipReason.Unknown })
     }
 
     @Test
@@ -305,9 +310,12 @@ class LibraryScannerTest {
         val skipped = events.filterIsInstance<ScanEvent.Skipped>()
 
         assertEquals(1, skipped.size)
-        assertTrue(
+        // The lock, not the container. The case says which refusal this is; the sentence is
+        // `feature/library`'s, in four languages — `SkipReasonWordsTest` asserts that.
+        assertEquals(
             "the reason does not name the protection: ${skipped.single().reason}",
-            skipped.single().reason.contains("content protection"),
+            SkipReason.ContentProtected,
+            skipped.single().reason,
         )
     }
 

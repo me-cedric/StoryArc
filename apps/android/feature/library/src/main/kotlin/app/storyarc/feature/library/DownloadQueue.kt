@@ -516,7 +516,14 @@ class DownloadQueue(
                 context.getString(R.string.catalogue_acquire_unsupported, error.format),
                 retryable = false,
             )
-            is IndexException.Unreadable -> failVerification(
+            // The four cases that replaced one `Unreadable(reason)`, answered the way that
+            // one branch answered it. Which of them a re-fetch can actually help is a
+            // separate question from wording a refusal, and it is not asked here.
+            is IndexException.NotThere,
+            is IndexException.FormatNotRecognised,
+            is IndexException.ArchivePasswordProtected,
+            is IndexException.ArchiveUnreadable,
+            -> failVerification(
                 download.id,
                 context.getString(R.string.catalogue_acquire_unreadable),
             )

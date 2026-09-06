@@ -11,16 +11,44 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.security.MessageDigest
 
-/** What went wrong, in terms the library can show without inventing a reason. */
+/**
+ * What went wrong, as a closed set of cases.
+ *
+ * **A case, never a sentence.** `Unreadable(val reason: String)` used to stand here, and
+ * English sentences were written into it — in a module that ships no `strings.xml`, where a
+ * translation gap cannot fail lint and a French reader read English at the moment they most
+ * needed to understand. `localization`'s *A refusal speaks the reader's language* is the
+ * requirement; a closed set is what makes it hold, because the compiler now refuses the
+ * prose. `feature/library` words these.
+ *
+ * Every `message` here is a maintainer's, terse and deliberately not a sentence: the
+ * diagnostic export is English by explicit design and this is what it carries.
+ *
+ * iOS's `PublicationIndexer.IndexError` carries the same cases under the same names, plus
+ * `pdfUnopenable`. This platform cannot reach that one — [PublicationIndexer] indexes a PDF
+ * without opening it, because `PdfRenderer` is a framework class the indexer stays off.
+ */
 sealed class IndexException(message: String) : Exception(message) {
     /**
      * A container StoryArc recognises and does not read. Carries the name so the
      * message can say "7-Zip" rather than "could not open file".
+     *
+     * The name is content, not a sentence: `localization`'s *A sentence built around content*
+     * shows a format's name as it is and translates every word around it.
      */
     class Unsupported(val format: String) : IndexException("unsupported format: $format")
 
-    /** Recognised, supported, and this particular file cannot be read. */
-    class Unreadable(val reason: String) : IndexException(reason)
+    /** Nothing at the path the library was handed. */
+    class NotThere : IndexException("not there")
+
+    /** Bytes no sniffer claims. */
+    class FormatNotRecognised : IndexException("format not recognised")
+
+    /** The archive opened and asked for a password. */
+    class ArchivePasswordProtected : IndexException("archive password protected")
+
+    /** The archive is a kind StoryArc reads and this one will not open. */
+    class ArchiveUnreadable : IndexException("archive unreadable")
 
     /**
      * An audiobook locked by its store's content protection.
@@ -130,7 +158,7 @@ object PublicationIndexer {
             FormatSniffer.Container.PROTECTED_AUDIOBOOK ->
                 throw IndexException.ContentProtected(container.displayName)
 
-            null -> throw IndexException.Unreadable("the format was not recognised")
+            null -> throw IndexException.FormatNotRecognised()
         }
     }
 
@@ -232,11 +260,11 @@ object PublicationIndexer {
                 streaming = StreamingCapability.REFUSED,
             )
         } catch (_: ComicArchiveException.PasswordProtected) {
-            throw IndexException.Unreadable("the archive is password protected")
+            throw IndexException.ArchivePasswordProtected()
         } catch (cause: ComicArchiveException.UnsupportedContainer) {
             throw IndexException.Unsupported(cause.container.displayName)
         } catch (_: ComicArchiveException) {
-            throw IndexException.Unreadable("the archive could not be read")
+            throw IndexException.ArchiveUnreadable()
         }
         return comic(archive, format, identity, name, fallback)
     }
@@ -326,7 +354,7 @@ object PublicationIndexer {
                 fallback,
             )
         }
-        if (!file.isFile) throw IndexException.Unreadable("the file is not there")
+        if (!file.isFile) throw IndexException.NotThere()
 
         // Both reads come off the one handle the sniff below already needs, and it is
         // closed rather than left to the collector — see [contentDigest].
@@ -367,7 +395,7 @@ object PublicationIndexer {
             FormatSniffer.Container.PROTECTED_AUDIOBOOK ->
                 throw IndexException.ContentProtected(container.displayName)
 
-            null -> throw IndexException.Unreadable("the format was not recognised")
+            null -> throw IndexException.FormatNotRecognised()
         }
     }
 
@@ -397,11 +425,11 @@ object PublicationIndexer {
                 streaming = StreamingCapability.REFUSED,
             )
         } catch (_: ComicArchiveException.PasswordProtected) {
-            throw IndexException.Unreadable("the archive is password protected")
+            throw IndexException.ArchivePasswordProtected()
         } catch (cause: ComicArchiveException.UnsupportedContainer) {
             throw IndexException.Unsupported(cause.container.displayName)
         } catch (_: ComicArchiveException) {
-            throw IndexException.Unreadable("the archive could not be read")
+            throw IndexException.ArchiveUnreadable()
         }
         return comic(archive, format, identity, filename, fallback)
     }

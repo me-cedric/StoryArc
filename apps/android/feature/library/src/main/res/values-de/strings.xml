@@ -29,6 +29,13 @@
     <string name="library_skipped_one">„%1$s“ konnte nicht geöffnet werden</string>
     <string name="library_skipped_list">Was nicht geöffnet werden konnte</string>
     <string name="library_skipped_dismiss">Ausblenden</string>
+    <string name="library_skipped_reason_unsupported">StoryArc liest das Format %1$s nicht</string>
+    <string name="library_skipped_reason_not_there">die Datei ist nicht vorhanden</string>
+    <string name="library_skipped_reason_format_not_recognised">das Format wurde nicht erkannt</string>
+    <string name="library_skipped_reason_archive_password_protected">das Archiv ist passwortgeschützt</string>
+    <string name="library_skipped_reason_archive_unreadable">das Archiv konnte nicht gelesen werden</string>
+    <string name="library_skipped_reason_content_protected">dieses Hörbuch ist durch den Kopierschutz seines Shops gesperrt</string>
+    <string name="library_skipped_reason_unknown">die Datei konnte nicht gelesen werden</string>
     <string name="library_search">Suchen</string>
     <string name="library_search_recent">Letzte Suchen</string>
     <string name="library_search_recent_clear">Letzte Suchen löschen</string>

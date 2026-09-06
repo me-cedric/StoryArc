@@ -31,13 +31,65 @@ sealed interface ScanEvent {
     data class Found(val publication: Publication) : ScanEvent
 
     /**
-     * A file was recognised and not indexed. Carries a reason the library can show,
+     * A file was recognised and not indexed. Carries a reason the library can word,
      * because `publication-formats` forbids a silent failure.
      */
-    data class Skipped(val path: String, val reason: String) : ScanEvent
+    data class Skipped(val path: String, val reason: SkipReason) : ScanEvent
 
     /** The walk finished. */
     data class Finished(val found: Int, val skipped: Int) : ScanEvent
+}
+
+/**
+ * Why a scan passed a file over, as a case the library words.
+ *
+ * **This module writes no reader-facing sentence, and this type is how.** The reasons used to
+ * cross this seam as a `String`, written here, in a module that ships no `strings.xml` — so a
+ * translation gap could not fail lint and a French reader read English. `localization`'s
+ * *A refusal speaks the reader's language* is the requirement, and a closed set is what makes
+ * it hold: `feature/library`'s `skipReasonText` maps each case to a name its four
+ * `strings.xml` answer.
+ *
+ * It is [IndexException] plus [Unknown], rather than that type itself: a walk also meets
+ * failures the indexer never threw, and *A failure with no sentence written for it* requires
+ * those to be a translated general refusal rather than internal prose. A value, not an
+ * exception, so two of them compare by what they say rather than by which throw made them.
+ *
+ * iOS's `SkipReason` carries the same cases under the same names, plus `pdfUnopenable`.
+ */
+sealed interface SkipReason {
+    /** A container StoryArc recognises and does not read, named. The name is content. */
+    data class UnsupportedFormat(val format: String) : SkipReason
+
+    data object NotThere : SkipReason
+
+    data object FormatNotRecognised : SkipReason
+
+    data object ArchivePasswordProtected : SkipReason
+
+    data object ArchiveUnreadable : SkipReason
+
+    data object ContentProtected : SkipReason
+
+    /** A failure the indexer wrote no case for. The library words it as a general refusal. */
+    data object Unknown : SkipReason
+
+    companion object {
+        /**
+         * The scan's reason for a refusal the indexer named.
+         *
+         * A case-for-case map and nothing else. It carries no words, which is what keeps this
+         * module unable to write one.
+         */
+        fun of(cause: IndexException): SkipReason = when (cause) {
+            is IndexException.Unsupported -> UnsupportedFormat(cause.format)
+            is IndexException.NotThere -> NotThere
+            is IndexException.FormatNotRecognised -> FormatNotRecognised
+            is IndexException.ArchivePasswordProtected -> ArchivePasswordProtected
+            is IndexException.ArchiveUnreadable -> ArchiveUnreadable
+            is IndexException.ContentProtected -> ContentProtected
+        }
+    }
 }
 
 /**
@@ -524,11 +576,11 @@ object LibraryScanner {
                 )
             }
         } catch (cause: IndexException) {
-            ScanEvent.Skipped(entry.name, reasonFor(cause))
+            ScanEvent.Skipped(entry.name, SkipReason.of(cause))
         } catch (cause: CancellationException) {
             throw cause
         } catch (_: Exception) {
-            ScanEvent.Skipped(entry.name, "it could not be read")
+            ScanEvent.Skipped(entry.name, SkipReason.Unknown)
         }
         emit(event)
         return if (event is ScanEvent.Found) Tally(found = 1) else Tally(skipped = 1)
@@ -575,11 +627,11 @@ object LibraryScanner {
             // knowledge here.
             ScanEvent.Found(publication.withFileFacts(size = -1L, addedAt = modifiedAt))
         } catch (cause: IndexException) {
-            ScanEvent.Skipped(name, reasonFor(cause))
+            ScanEvent.Skipped(name, SkipReason.of(cause))
         } catch (cause: CancellationException) {
             throw cause
         } catch (_: Exception) {
-            ScanEvent.Skipped(name, "it could not be read")
+            ScanEvent.Skipped(name, SkipReason.Unknown)
         }
         emit(event)
         return if (event is ScanEvent.Found) Tally(found = 1) else Tally(skipped = 1)
@@ -605,11 +657,11 @@ object LibraryScanner {
                     .withFileFacts(if (file.isFile) file.length() else -1L, createdAt(file)),
             )
         } catch (cause: IndexException) {
-            ScanEvent.Skipped(file.name, reasonFor(cause))
+            ScanEvent.Skipped(file.name, SkipReason.of(cause))
         } catch (cause: CancellationException) {
             throw cause
         } catch (_: Exception) {
-            ScanEvent.Skipped(file.name, "it could not be read")
+            ScanEvent.Skipped(file.name, SkipReason.Unknown)
         }
         emit(event)
         return if (event is ScanEvent.Found) Tally(found = 1) else Tally(skipped = 1)
@@ -651,20 +703,4 @@ object LibraryScanner {
         return created?.takeIf { it > 0L } ?: file.lastModified()
     }
 
-    /**
-     * A reason in words a person can act on.
-     *
-     * "7-Zip is not supported" tells someone to convert the file; "could not open"
-     * tells them nothing, which is what `publication-formats` forbids.
-     */
-    private fun reasonFor(cause: IndexException): String = when (cause) {
-        is IndexException.Unsupported -> "${cause.format} is not a format StoryArc reads"
-        is IndexException.Unreadable -> cause.reason
-        // Not "not a format StoryArc reads" — the format *is* read, and this file is
-        // locked. `publication-formats` requires the two to be told apart, and the whole
-        // point of the distinction is that a reader shown the first message would go and
-        // convert a file that needs no converting.
-        is IndexException.ContentProtected ->
-            "this audiobook is protected by its store's content protection"
-    }
 }

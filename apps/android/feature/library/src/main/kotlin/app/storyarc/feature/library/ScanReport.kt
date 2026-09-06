@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import app.storyarc.core.format.ScanEvent
+import app.storyarc.core.format.SkipReason
 
 /**
  * What the library is doing, so the UI can say so rather than guess.
@@ -60,10 +61,12 @@ data class SkippedPublications(
     data class Entry(
         val name: String,
         /**
-         * Verbatim from the scanner. Deliberately not re-worded here: a second sentence for
-         * the same condition is a second thing to keep true.
+         * The scanner's case, not its words. This type carries the refusal and
+         * [skipReasonText] says what it means, so the sentence is the reader's language
+         * wherever it is drawn — and a second sentence for the same condition is still a
+         * second thing to keep true, so there is one name per case and no more.
          */
-        val reason: String,
+        val reason: SkipReason,
     )
 
     /**
@@ -78,7 +81,7 @@ data class SkippedPublications(
         data object Nothing : Notice
 
         /** Exactly one, named, with its reason stated where the notice is. */
-        data class One(val name: String, val reason: String) : Notice
+        data class One(val name: String, val reason: SkipReason) : Notice
 
         /** More than one. The count is here and the reasons are in the list. */
         data class Several(val count: Int) : Notice

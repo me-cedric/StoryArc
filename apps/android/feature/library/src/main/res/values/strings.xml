@@ -29,6 +29,13 @@
     <string name="library_skipped_one">“%1$s” couldn’t be opened</string>
     <string name="library_skipped_list">What couldn’t be opened</string>
     <string name="library_skipped_dismiss">Dismiss</string>
+    <string name="library_skipped_reason_unsupported">%1$s is not a format StoryArc reads</string>
+    <string name="library_skipped_reason_not_there">the file is not there</string>
+    <string name="library_skipped_reason_format_not_recognised">the format was not recognised</string>
+    <string name="library_skipped_reason_archive_password_protected">the archive is password protected</string>
+    <string name="library_skipped_reason_archive_unreadable">the archive could not be read</string>
+    <string name="library_skipped_reason_content_protected">this audiobook is protected by its store’s content protection</string>
+    <string name="library_skipped_reason_unknown">it could not be read</string>
     <string name="library_search">Search</string>
     <string name="library_search_recent">Recent searches</string>
     <string name="library_search_recent_clear">Clear recent searches</string>
