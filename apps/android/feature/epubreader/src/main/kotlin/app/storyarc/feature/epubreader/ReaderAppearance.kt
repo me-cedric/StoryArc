@@ -91,6 +91,14 @@ internal fun linkedReadingTheme(settings: AppSettings): ThemePreset? =
  * `null` means the reader never linked the two, and it does nothing — the shelf's own theme
  * stays in force. That is the scenario's second clause.
  *
+ * **It puts a theme in force and does not record it.** `settings-and-about` allows one opt-in
+ * setting that links appearance and reading theme, and the shelf's own stored theme is not
+ * overwritten by it — so turning the setting off again brings that theme back. A device
+ * turning dark at sunset is not the reader changing their mind, and a recorded adopt writes:
+ * a reader who had named a page colour and moved an axis lost both, from the page and from
+ * the store, with no way back. Adjusting a theme *while* linked is still recorded, because
+ * that is a deliberate act.
+ *
  * It goes through [EpubReaderViewModel.adopt] rather than writing the theme itself, because
  * that is what moves the flow the activity's `LaunchedEffect(theme, values, transition)`
  * watches — and that effect captures the reading position, submits the preferences and goes
@@ -98,7 +106,8 @@ internal fun linkedReadingTheme(settings: AppSettings): ThemePreset? =
  *
  * A change that names the theme already in force does nothing either. Dark and OLED Dark both
  * mean Quiet, so a reader moving between them would otherwise lose every axis they had moved,
- * for an appearance change the reading theme cannot see.
+ * for an appearance change the reading theme cannot see. That guard is also what a book
+ * opening on a matching appearance takes: their own colours stay on the page.
  *
  * An extension rather than a member, for both of the reasons iOS puts its own `follow` in
  * `LinkedPreset.swift`: this rule belongs beside the appearance it reads, and the two view
@@ -106,5 +115,5 @@ internal fun linkedReadingTheme(settings: AppSettings): ThemePreset? =
  */
 internal fun EpubReaderViewModel.follow(linked: ThemePreset?) {
     if (linked == null || linked == theme.value.preset) return
-    adopt(linked)
+    adopt(linked, recorded = false)
 }

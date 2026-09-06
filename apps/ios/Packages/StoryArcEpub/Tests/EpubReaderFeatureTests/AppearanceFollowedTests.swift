@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import Testing
 
+import Persistence
 import StoryArcCore
 @testable import EpubReaderFeature
 
@@ -28,8 +29,8 @@ import StoryArcCore
 @Suite("The reading theme follows the appearance mid-book")
 struct AppearanceFollowedTests {
 
-    /// A reader with no store behind it, on a named preset.
-    private func reader(on preset: ThemePreset) -> EpubReaderModel {
+    /// A reader on a named preset, with the store it is given or none at all.
+    private func reader(on preset: ThemePreset, preferences: ReaderPreferences? = nil) -> EpubReaderModel {
         let model = EpubReaderModel(
             publication: Publication(
                 identity: PublicationIdentity(normalizedPath: "/nowhere.epub"),
@@ -37,7 +38,8 @@ struct AppearanceFollowedTests {
                 displayTitle: "nowhere",
                 origin: .embedded
             ),
-            url: URL(fileURLWithPath: "/nowhere.epub")
+            url: URL(fileURLWithPath: "/nowhere.epub"),
+            preferences: preferences
         )
         model.adopt(preset)
         return model
@@ -119,6 +121,38 @@ struct AppearanceFollowedTests {
         #expect(model.theme.isModified, "the deviation stopped being recorded as one")
     }
 
+    @Test("The appearance's own theme is not recorded against the shelf")
+    func theFollowedThemeIsNotRecorded() throws {
+        let suite = "AppearanceFollowedTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let preferences = ReaderPreferences(defaults: defaults)
+
+        let model = reader(on: .paper, preferences: preferences)
+        let evening = ReaderPalette.derived(name: "Evening", background: "#F5EFE0")
+        model.adoptColours(evening)
+
+        model.follow(.quiet)
+
+        let stored = preferences.themes().theme(for: EpubReaderModel.scope, shelf: model.shelf)
+        #expect(
+            stored.theme.custom == evening,
+            """
+            A sunset deleted the reader's own page colour. The device dictating a theme is \
+            not the reader changing their mind, so it puts a theme in force without writing \
+            it: `settings-and-about` keeps the shelf's own theme so that turning the setting \
+            off again brings it back, and there is no other way back to a named slot.
+            """
+        )
+        #expect(
+            stored.theme.preset == .paper,
+            """
+            The device overwrote the shelf's stored preset. A reader who turns the link off \
+            then gets the appearance's theme rather than their own, for ever.
+            """
+        )
+    }
+
     // MARK: - The wiring, which no host test can watch
 
     @Test("The follow goes through the one path that preserves the reading position")
@@ -126,10 +160,10 @@ struct AppearanceFollowedTests {
         let source = try Self.source("LinkedPreset.swift")
 
         #expect(
-            source.contains("adopt(linked)"),
+            source.contains("applyTheme(remembering: false)"),
             """
-            The follow no longer goes through `EpubReaderModel.adopt`. That is the path a \
-            preset tap takes, and the only one that captures the locator, submits the \
+            The follow no longer goes through `EpubReaderModel.applyTheme`. That is the path \
+            a preset tap takes, and the only one that captures the locator, submits the \
             preferences and goes back to the locator afterwards. A theme written straight \
             onto `theme` would move the reader, and `reading-themes` asks for the position to \
             be preserved to the paragraph across the repagination.
@@ -142,16 +176,34 @@ struct AppearanceFollowedTests {
         let source = try Self.source("EpubReaderView.swift")
 
         #expect(
-            source.contains(".onChange(of: linkedPreset)"),
+            source.contains(".onChange(of: linked)"),
             """
-            The reader watches the appearance link no longer. It reaches the model through \
-            `State(initialValue:)`, which is read once and ignored on every later value, so a \
-            device that turns dark mid-book is seen at the next open and not before.
+            The reader watches the appearance link no longer. A link read once is the \
+            appearance the book happened to open in, so a device that turns dark mid-book is \
+            seen at the next open and not before.
             """
         )
         #expect(
             source.contains("model.follow("),
             "the reader observes the link and does nothing with it, which is the same defect with a watcher"
+        )
+    }
+
+    @Test("The appearance is resolved inside the view hierarchy, where it is live")
+    func theViewResolvesTheAppearanceItself() throws {
+        let source = try Self.source("EpubReaderView.swift")
+
+        #expect(
+            source.contains("@Environment(\\.colorScheme)"),
+            """
+            The colour scheme is read somewhere other than this view again. A `SwiftUI.App` \
+            sits outside every view hierarchy and therefore outside every trait collection, \
+            so a colour scheme read there holds its default and the whole link is inert.
+            """
+        )
+        #expect(
+            source.contains("linkedPreset(for: settings, in: colorScheme)"),
+            "the view holds a colour scheme it never resolves the link with"
         )
     }
 

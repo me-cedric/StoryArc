@@ -25,6 +25,13 @@ public struct EpubReaderView: View {
     @Environment(\.theme) var theme
     @Environment(\.dismiss) var dismiss
 
+    /// The device's own light or dark, read here because only a view can read it.
+    ///
+    /// `@Environment(\.colorScheme)` on a `SwiftUI.App` sits outside every view hierarchy and
+    /// therefore outside every trait collection, so it holds its default and never moves —
+    /// which made the whole appearance link inert. See ``linkedPreset(for:in:)``.
+    @Environment(\.colorScheme) private var colorScheme
+
     @State var model: EpubReaderModel
     @State private var isChromeVisible = true
     @State var isShowingTheme = false
@@ -57,16 +64,23 @@ public struct EpubReaderView: View {
     /// What the device's brightness was before the reader touched it.
     @State private var deviceBrightness: CGFloat?
 
-    /// The reading theme the app appearance dictates, or `nil` where the reader did not
-    /// link the two.
+    /// What the reader chose in Settings, or `nil` for a reader built without them.
     ///
-    /// Stored as well as handed to the model, and that is the whole of the fix. `@State`
-    /// reads its initial value **once**, so a preset that only reached the model through
-    /// ``init(publication:url:progress:preferences:bookmarks:annotations:linkedPreset:)``
-    /// was the appearance the book happened to open in, for as long as the book stayed open.
-    /// `ebook-reader` asks for the switch "then and there rather than at the next open", so
-    /// the reader watches this instead. See ``EpubReaderModel/follow(_:)``.
-    private let linkedPreset: ThemePreset?
+    /// The *settings* rather than the preset they resolve to, because resolving one needs the
+    /// device's colour scheme and only this view can read that.
+    private let settings: AppSettings?
+
+    /// The reading theme the app appearance dictates, or `nil` where the reader did not link
+    /// the two.
+    ///
+    /// Recomputed on every appearance change, which is what makes the link live. A preset
+    /// handed in at construction is the appearance the book happened to open in, for as long
+    /// as the book stays open, and `ebook-reader` asks for the switch "then and there rather
+    /// than at the next open". See ``EpubReaderModel/follow(_:)``.
+    private var linked: ThemePreset? {
+        guard let settings else { return nil }
+        return linkedPreset(for: settings, in: colorScheme)
+    }
 
     public init(
         publication: Publication,
@@ -77,10 +91,10 @@ public struct EpubReaderView: View {
         bookmarks: BookmarkStore? = nil,
         /// Where the highlights and notes a reader makes live between sessions.
         annotations: AnnotationStore? = nil,
-        /// See ``EpubReaderModel/init(publication:url:progress:preferences:linkedPreset:)``.
-        linkedPreset: ThemePreset? = nil
+        /// What the reader chose in Settings › Appearance. See ``linked``.
+        settings: AppSettings? = nil
     ) {
-        self.linkedPreset = linkedPreset
+        self.settings = settings
         _model = State(
             initialValue: EpubReaderModel(
                 publication: publication,
@@ -88,8 +102,7 @@ public struct EpubReaderView: View {
                 progress: progress,
                 preferences: preferences,
                 bookmarkStore: bookmarks,
-                annotationStore: annotations,
-                linkedPreset: linkedPreset
+                annotationStore: annotations
             )
         )
     }
@@ -292,6 +305,10 @@ public struct EpubReaderView: View {
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = true
             deviceBrightness = UIScreen.main.brightness
+            // The link's first answer, resolved here rather than at construction, where no
+            // view can read the device's colour scheme. It does nothing where the reader
+            // never linked the two, or where the appearance already names the theme in force.
+            model.follow(linked)
         }
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
@@ -312,11 +329,10 @@ public struct EpubReaderView: View {
             if let new { UIScreen.main.brightness = CGFloat(new) }
         }
         // `ebook-reader`: the reading theme follows the appearance "then and there rather
-        // than at the next open", and only for the reader who linked the two. The app
-        // resolves the pair from the device's own colour scheme, so this fires when the
-        // device switches while the book is open. See ``EpubReaderModel/follow(_:)``.
-        .onChange(of: linkedPreset) { _, linked in
-            model.follow(linked)
+        // than at the next open", and only for the reader who linked the two. This fires when
+        // the device switches while the book is open. See ``EpubReaderModel/follow(_:)``.
+        .onChange(of: linked) { _, new in
+            model.follow(new)
         }
     }
 

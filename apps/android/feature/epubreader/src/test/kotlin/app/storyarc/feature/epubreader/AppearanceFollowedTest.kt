@@ -3,15 +3,21 @@ package app.storyarc.feature.epubreader
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.AppearanceMode
 import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.model.ReaderPalette
+import app.storyarc.core.model.ShelfMemory
+import app.storyarc.core.model.ThemeScope
 import app.storyarc.core.model.ThemeAxis
 import app.storyarc.core.model.ThemePreset
 import app.storyarc.core.model.values
+import app.storyarc.core.persistence.ReaderPreferences
+import android.os.Looper
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.io.File
 
@@ -40,13 +46,14 @@ import java.io.File
 @Config(sdk = [34])
 class AppearanceFollowedTest {
 
-    /** A reader with no store behind it, on a named preset. */
-    private fun reader(on: ThemePreset): EpubReaderViewModel {
+    /** A reader on a named preset, with the store it is given or none at all. */
+    private fun reader(on: ThemePreset, themeStore: ReaderPreferences? = null): EpubReaderViewModel {
         val model = EpubReaderViewModel(
             application = RuntimeEnvironment.getApplication(),
             location = NOWHERE,
             identity = PublicationIdentity(normalizedPath = NOWHERE),
             progress = null,
+            themeStore = themeStore,
         )
         model.adopt(on)
         return model
@@ -114,6 +121,73 @@ class AppearanceFollowedTest {
         )
     }
 
+    @Test
+    fun `the appearance's own theme is not recorded against the shelf`() {
+        val store = ReaderPreferences.open(RuntimeEnvironment.getApplication())
+        val model = reader(on = ThemePreset.PAPER, themeStore = store)
+        val shelf = ShelfMemory.shelf(null, PublicationIdentity(normalizedPath = NOWHERE).stableId)
+        fun stored() = store.themes().theme(ThemeScope.REFLOWABLE, shelf)
+        settle()
+
+        val evening = ReaderPalette.derived("Evening", "#F5EFE0")
+        model.adoptColours(evening)
+        settle()
+        assertEquals(
+            "The reader's own page colour never reached the store, so what this case measures" +
+                " after the follow would be absent whatever the follow did.",
+            evening,
+            stored().theme.custom,
+        )
+
+        model.follow(ThemePreset.QUIET)
+        settle()
+
+        val stored = stored()
+        assertEquals(
+            "A sunset deleted the reader's own page colour. The device dictating a theme is" +
+                " not the reader changing their mind, so it puts a theme in force without" +
+                " writing it: `settings-and-about` keeps the shelf's own theme so that" +
+                " turning the setting off again brings it back, and there is no other way" +
+                " back to a named slot.",
+            evening,
+            stored.theme.custom,
+        )
+        assertEquals(
+            "The device overwrote the shelf's stored preset. A reader who turns the link off" +
+                " then gets the appearance's theme rather than their own, for ever.",
+            ThemePreset.PAPER,
+            stored.theme.preset,
+        )
+    }
+
+    @Test
+    fun `a change the reader makes after a followed one is recorded again`() {
+        val store = ReaderPreferences.open(RuntimeEnvironment.getApplication())
+        val model = reader(on = ThemePreset.PAPER, themeStore = store)
+        val shelf = ShelfMemory.shelf(null, PublicationIdentity(normalizedPath = NOWHERE).stableId)
+        settle()
+
+        model.follow(ThemePreset.QUIET)
+        settle()
+        model.set(ThemeAxis.LINE_SPACING, 2.4)
+        settle()
+
+        assertEquals(
+            "The reader moved an axis after the device had moved the theme, and it was not" +
+                " recorded. Only the device's own change goes unrecorded; adjusting a theme" +
+                " while linked is the reader changing their mind, and a change that silently" +
+                " failed to stick would be the worse surprise.",
+            2.4,
+            store.themes().theme(ThemeScope.REFLOWABLE, shelf).values.lineHeight,
+            0.0,
+        )
+    }
+
+    /** Lets the view model's own collector run: it records the theme off the main thread. */
+    private fun settle() {
+        shadowOf(Looper.getMainLooper()).idle()
+    }
+
     // endregion
 
     // region The wiring, which no JVM test can watch
@@ -123,12 +197,13 @@ class AppearanceFollowedTest {
         val source = code("ReaderAppearance.kt")
 
         assertTrue(
-            "The follow no longer goes through `adopt`. That is the path a preset tap takes," +
-                " and the only one that moves the theme flow the activity's" +
+            "The follow no longer goes through an unrecorded `adopt`. `adopt` is the path a" +
+                " preset tap takes and the only one that moves the theme flow the activity's" +
                 " `LaunchedEffect(theme, values, transition)` watches — which captures the" +
                 " locator, submits the preferences and goes back to the locator. A theme" +
-                " written straight onto `_theme` would move the reader.",
-            source.contains("adopt(linked)"),
+                " written straight onto `_theme` would move the reader, and a recorded one" +
+                " would overwrite the shelf's own theme the reader can still go back to.",
+            source.contains("adopt(linked, recorded = false)"),
         )
     }
 

@@ -212,21 +212,7 @@ public final class EpubReaderModel {
         progress: ProgressStore? = nil,
         preferences: ReaderPreferences? = nil,
         bookmarkStore: BookmarkStore? = nil,
-        annotationStore: AnnotationStore? = nil,
-        /// A preset the *app appearance* dictates, when the reader opted into that.
-        ///
-        /// `settings-and-about` keeps appearance and reading theme apart by default and
-        /// allows "a single opt-in setting" that links them. When it is on, this is what
-        /// the page is read with, and the shelf's own stored theme is *not* overwritten on
-        /// open — so turning the setting off again brings it back.
-        ///
-        /// One edge, stated rather than glossed: adjusting a theme *while* linked does
-        /// record it against the shelf, replacing what was there. That is the reader
-        /// changing their mind on purpose, and a change that silently failed to stick
-        /// would be the worse surprise.
-        ///
-        /// Passed in already resolved, because "System" is a question about the device.
-        linkedPreset: ThemePreset? = nil
+        annotationStore: AnnotationStore? = nil
     ) {
         self.publication = publication
         self.url = url
@@ -243,8 +229,11 @@ public final class EpubReaderModel {
         // The reflowable scope. A fixed-layout EPUB never reaches this reader —
         // `ebook-reader` sends it to the comic reader, which has pages.
         let stored = preferences?.themes().theme(for: Self.scope, shelf: shelf) ?? ShelfSettings()
-        self.theme = linkedPreset.map { ReadingTheme(preset: $0) } ?? stored.theme
-        self.values = linkedPreset?.values ?? stored.values
+        // The shelf's own theme, always. The appearance link is applied by the view, in force
+        // and unrecorded, so that turning the setting off brings this one back. See
+        // ``EpubReaderModel/follow(_:)``.
+        self.theme = stored.theme
+        self.values = stored.values
         self.transition = stored.transition
     }
 
@@ -369,8 +358,10 @@ public final class EpubReaderModel {
         )
     }
 
-    func applyTheme() {
-        remember()
+    /// - Parameter remembering: false for a theme the *device* put in force rather than the
+    ///   reader. See ``EpubReaderModel/follow(_:)``.
+    func applyTheme(remembering: Bool = true) {
+        if remembering { remember() }
         guard let navigator else { return }
 
         // Where the reader is, before the reflow moves it.

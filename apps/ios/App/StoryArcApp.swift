@@ -14,7 +14,6 @@ struct StoryArcApp: App {
     // The state below is internal rather than private because the actions that read it
     // live in `StoryArcAppActions.swift`, and `private` does not reach across a file.
     // Internal, not public: this is the app target, so nothing outside it can see them.
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
 
     /// `comic-reader` locks the reader's orientation, and an application delegate is the
@@ -283,7 +282,11 @@ struct StoryArcApp: App {
                         preferences: ReaderPreferences(),
                         bookmarks: BookmarkStore(),
                         annotations: AnnotationStore(),
-                        linkedPreset: linkedPreset(for: settings, in: colorScheme)
+                        // The settings rather than the preset they resolve to: "System"
+                        // is a question about the device, and an `App` sits outside every
+                        // view hierarchy, so a colour scheme read here never moves. The
+                        // reader resolves it from its own environment.
+                        settings: settings
                     )
                     // Identity, so opening the next issue from the end screen
                     // builds a fresh reader rather than reusing the previous one's

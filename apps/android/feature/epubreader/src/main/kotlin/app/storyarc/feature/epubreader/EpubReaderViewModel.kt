@@ -41,6 +41,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -178,17 +179,15 @@ class EpubReaderViewModel(
     private val _currentResource = MutableStateFlow<Url?>(null)
     val currentResource: StateFlow<Url?> = _currentResource.asStateFlow()
 
+    /** The linked preset, where it names a theme other than the shelf's own stored one. */
+    private val followedAtOpen = linkedPreset?.takeIf { it != stored.theme.preset }
+
     /** Which preset is on and which axes have been moved from it. */
-    private val _theme = MutableStateFlow(
-        // A linked preset wins over the shelf's own theme, and does *not* replace it: the
-        // stored theme stays exactly where it is, so turning the setting back off restores
-        // it rather than having lost it.
-        linkedPreset?.let { ReadingTheme(it) } ?: stored.theme,
-    )
+    private val _theme = MutableStateFlow(followedAtOpen?.let { ReadingTheme(it) } ?: stored.theme)
     val theme: StateFlow<ReadingTheme> = _theme.asStateFlow()
 
     /** The typography in force: the preset's own values until an axis is moved. */
-    private val _values = MutableStateFlow(linkedPreset?.values ?: stored.values)
+    private val _values = MutableStateFlow(followedAtOpen?.values ?: stored.values)
     val values: StateFlow<ThemeValues> = _values.asStateFlow()
 
     /** How a page becomes the next page. Paginated or scrolling, for an EPUB. */
@@ -204,13 +203,25 @@ class EpubReaderViewModel(
     val preferences get() = _theme.value.preferences(_values.value, _transition.value)
 
     /**
+     * What an unrecorded [adopt] is putting in force, until the flows have settled on it.
+     *
+     * Two flows move for one adopt, so the collector sees the half-way state as well as the
+     * settled one. Both belong to the device rather than to the reader.
+     */
+    private var notRecorded: ShelfSettings? = null
+
+    /**
      * Adopts a preset, discarding any deviation from the last one.
      *
      * `reading-themes`: tapping a preset applies "every axis the preset defines at
      * once and the change is visible immediately in the reader behind the sheet".
+     *
+     * @param recorded false for a preset the *device's appearance* dictated. See [follow].
      */
-    fun adopt(preset: ThemePreset) {
-        _theme.value = _theme.value.adopting(preset)
+    fun adopt(preset: ThemePreset, recorded: Boolean = true) {
+        val next = _theme.value.adopting(preset)
+        if (!recorded) notRecorded = ShelfSettings(next, preset.values, _transition.value)
+        _theme.value = next
         _values.value = preset.values
     }
 
@@ -351,6 +362,11 @@ class EpubReaderViewModel(
                 ShelfSettings(theme, values, transition)
             }
                 .drop(1)
+                .filter {
+                    val settling = notRecorded ?: return@filter true
+                    if (it == settling) notRecorded = null
+                    false
+                }
                 .collect { store.save(store.themes().remembering(it, themeScope, shelf)) }
         }
     }
