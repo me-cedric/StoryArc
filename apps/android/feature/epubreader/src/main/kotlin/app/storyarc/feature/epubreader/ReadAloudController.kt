@@ -46,11 +46,11 @@ import org.readium.r2.shared.publication.Publication
  */
 internal class ReadAloudController(
     /** The application context: this outlives every activity, and so must its context. */
-    val context: Context,
+    override val context: Context,
     publication: Publication,
     /** Reports the sentence the engine has started saying. */
     private val onSentence: suspend (Sentence) -> Unit,
-) {
+) : SpokenVoice {
 
     /**
      * The scope the walk runs in.
@@ -64,7 +64,7 @@ internal class ReadAloudController(
     private val sentences = SpokenSentences(publication)
 
     private val _session = MutableStateFlow(PlaybackSession())
-    val session: StateFlow<PlaybackSession> = _session.asStateFlow()
+    override val session: StateFlow<PlaybackSession> = _session.asStateFlow()
 
     private val audio = context.getSystemService(AudioManager::class.java)
 
@@ -109,7 +109,7 @@ internal class ReadAloudController(
      * the middle of a chapter means "from here", and starting at the chapter's first
      * paragraph would make them listen back to what they have already read.
      */
-    fun start(from: Locator?) {
+    override fun start(from: Locator?) {
         if (!sentences.isSpeakable) return
         if (audio?.requestAudioFocus(focusRequest) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
             return
@@ -120,7 +120,7 @@ internal class ReadAloudController(
     }
 
     /** Pause and play, from the reader's own control or from the lock screen's. */
-    fun toggle() {
+    override fun toggle() {
         if (_session.value.isPlaying) {
             pauseFor(interrupted = false)
         } else {
@@ -138,14 +138,14 @@ internal class ReadAloudController(
      * the page gets the same two. Skipping while paused starts speaking again, which is
      * what the gesture means: nobody skips a sentence to keep hearing silence.
      */
-    fun skip(forward: Boolean) {
+    override fun skip(forward: Boolean) {
         if (!_session.value.isActive) return
         _session.value = _session.value.started()
         speakNext(forward = forward)
     }
 
     /** Stops: the listener closed it, or the book ran out of words. */
-    fun stop() = finish(_session.value.stopped())
+    override fun stop() = finish(_session.value.stopped())
 
     /**
      * Stops because the audio was taken and not given back.
@@ -172,7 +172,7 @@ internal class ReadAloudController(
      * Called by [ReadAloudHost] when the session has ended, never by a screen. An activity
      * calling this is what used to make closing the book the same act as stopping the voice.
      */
-    fun release() {
+    override fun release() {
         stop()
         engine?.shutdown()
         engine = null

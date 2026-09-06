@@ -34,6 +34,29 @@ internal interface SpokenSentenceFollower {
 }
 
 /**
+ * The engine and its cursor, as the host drives them.
+ *
+ * What [ReadAloudController] is, without the `TextToSpeech` behind it. The host's rules —
+ * when a session is announced, when it is torn down, and in what order a voice is started and
+ * watched — are asserted against a voice a test can build in one line, because the real one
+ * needs a Readium `Publication` and a speech engine before it says a word. Nothing here is
+ * wider than what [ReadAloudHost] already called.
+ */
+internal interface SpokenVoice {
+    /** The application context the session hands to its foreground service. */
+    val context: Context
+
+    /** Whether the voice is running, and what silenced it if it is not. */
+    val session: StateFlow<PlaybackSession>
+
+    fun start(from: Locator?)
+    fun toggle()
+    fun skip(forward: Boolean)
+    fun stop()
+    fun release()
+}
+
+/**
  * The voice, which outlives the screen that started it.
  *
  * `ebook-reader`: "the session SHALL outlive the screen it was started from", and closing
@@ -120,7 +143,7 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
         SpokenAudio.shared.register(this)
     }
 
-    private var controller: ReadAloudController? = null
+    private var controller: SpokenVoice? = null
     private var position: SpokenPosition? = null
     private var watching: Job? = null
 
@@ -158,16 +181,43 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
         position: SpokenPosition,
         from: Locator?,
         drawnBy: SpokenSentenceFollower,
+    ) = begin(book, position, from, drawnBy) { onSentence ->
+        ReadAloudController(
+            context = context.applicationContext,
+            publication = publication,
+            onSentence = onSentence,
+        )
+    }
+
+    /**
+     * The same, over whatever [voice] builds — which is how `ReadAloudHostTest` reaches the
+     * rules below without a speech engine.
+     *
+     * **The voice is started before it is watched, and the order is the fix.** [SpokenVoice.session]
+     * is a `StateFlow`, and a collector launched on `Dispatchers.Main.immediate` receives the
+     * current value synchronously, inside `launch`. Watched first, a controller that has not
+     * started yet hands the watcher the idle session it was born with, the watcher reads idle as
+     * *the session ended*, and [finish] tears the voice down — cancelling its scope, abandoning
+     * audio focus it has not yet asked for, and clearing [book] — all before [SpokenVoice.start]
+     * has run. `start` then asks for focus, binds the engine, and posts its first sentence onto a
+     * cancelled scope, so the engine connects and never says a word. Every Android frame of a
+     * displaced voice taken between 2026-09-05 and 06 shows exactly that, and `logcat` shows the
+     * abandon two milliseconds *before* the request. Started first, the first value the watcher
+     * sees is the started session — or an idle one for a voice that could not start, which is
+     * the one case where tearing down straight away is right.
+     */
+    internal fun begin(
+        book: SpokenBook,
+        position: SpokenPosition,
+        from: Locator?,
+        drawnBy: SpokenSentenceFollower,
+        voice: (onSentence: suspend (Sentence) -> Unit) -> SpokenVoice,
     ) {
         // Named, so restarting the book already being spoken is a restart and not a
         // displacement that would tell the listener their voice stopped while it speaks on.
         SpokenAudio.shared.silence(toSpeak = book.id)
-        val voice = ReadAloudController(
-            context = context.applicationContext,
-            publication = publication,
-            onSentence = ::sentenceSpoken,
-        )
-        controller = voice
+        val speaking = voice(::sentenceSpoken)
+        controller = speaking
         this.position = position
         this.follower = WeakReference(drawnBy)
         _book.value = book
@@ -178,18 +228,18 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
             override fun skip(forward: Boolean) = this@ReadAloudHost.skip(forward)
             override fun stop() = end()
         }
+        speaking.start(from)
         watching = scope.launch {
-            voice.session.collect { next ->
+            speaking.session.collect { next ->
                 // A session that has already been finished has nothing left to say. Without
                 // this an ending emission could arrive after the next session had started —
                 // a `StateFlow` collector resumes on its dispatcher rather than inside the
                 // write — and tear down the book that had just replaced it.
-                if (controller !== voice) return@collect
+                if (controller !== speaking) return@collect
                 _session.value = next
-                if (next.isActive) announce() else finish(voice)
+                if (next.isActive) announce() else finish(speaking)
             }
         }
-        voice.start(from)
     }
 
     /** A reader has opened the book being spoken, and will draw its sentence. */
@@ -249,7 +299,7 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
      * audio being taken for good all arrive here as the same idle session. The position is
      * not written here because it has already been written: see [sentenceSpoken].
      */
-    private fun finish(ending: ReadAloudController) {
+    private fun finish(ending: SpokenVoice) {
         if (controller !== ending) return
         controller = null
         position = null

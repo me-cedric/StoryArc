@@ -33,6 +33,12 @@ android {
             allWarningsAsErrors.set(true)
         }
     }
+
+    // `ReadAloudHostTest` starts the host's foreground service through an application
+    // context, and `Intent` is a stub in the unit-test JVM. Robolectric supplies the runtime
+    // rather than `isReturnDefaultValues`, for the reason `:core:playback` gives: a default
+    // that answers null in silence hides the call a test meant to exercise.
+    testOptions { unitTests { isIncludeAndroidResources = true } }
 }
 
 // The bundled typefaces live in `packages/fonts`, one copy read by both apps.
@@ -127,6 +133,10 @@ dependencies {
     // `ReadAloudSessionTest`, which asserts that the voice is one of the speakers
     // `SpokenAudio` arbitrates.
     testImplementation(libs.kotlinx.coroutines.test)
+    // `ReadAloudHostTest` drives the host over a voice with no engine behind it, and the
+    // host's first act on a started voice is to start a foreground service. That needs the
+    // Android runtime; see `testOptions` above.
+    testImplementation(libs.robolectric)
     // The theme sheet's accessibility semantics are only observable through a
     // composition. `uiautomator dump` reports a Compose slider as an unnamed
     // SeekBar whatever its semantics say, so it cannot answer the question this
