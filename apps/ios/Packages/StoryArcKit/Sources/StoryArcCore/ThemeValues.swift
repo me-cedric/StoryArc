@@ -269,6 +269,27 @@ public extension ThemeValues {
         }
     }
 
+    /// Whether one axis stands at a different value here than in `other`.
+    ///
+    /// ``value(of:)`` cannot answer this. It reports 0 for the four axes a Double cannot
+    /// express, so two different typefaces compare equal there. A reader who puts one axis
+    /// back to the preset's own value has stopped deviating from that preset, and
+    /// ``ReadingTheme/deviating(on:in:)`` needs the true answer to record that.
+    func differs(from other: ThemeValues, on axis: ThemeAxis) -> Bool {
+        switch axis {
+        case .lineSpacing: lineHeight != other.lineHeight
+        case .characterSpacing: letterSpacing != other.letterSpacing
+        case .wordSpacing: wordSpacing != other.wordSpacing
+        case .paragraphSpacing: paragraphSpacing != other.paragraphSpacing
+        case .margins: pageMargins != other.pageMargins
+        case .fontSize: fontSize != other.fontSize
+        case .fontFamily: typeface != other.typeface
+        case .boldText: isBold != other.isBold
+        case .textAlignment: textAlignment != other.textAlignment
+        case .hyphenation: isHyphenated != other.isHyphenated
+        }
+    }
+
     /// The same values with one axis moved.
     func setting(_ axis: ThemeAxis, to value: Double) -> ThemeValues {
         var copy = self

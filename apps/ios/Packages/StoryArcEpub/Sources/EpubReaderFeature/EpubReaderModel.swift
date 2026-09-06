@@ -278,12 +278,13 @@ public final class EpubReaderModel {
     /// Moves one axis, which marks the preset modified without deselecting it.
     ///
     /// The axis is passed alongside the new values so the model records *which* axis
-    /// moved — the sheet needs that to offer "restore this preset", and Readium
-    /// cannot tell us.
+    /// moved — the sheet needs that to offer "restore this preset", and Readium cannot
+    /// tell us. The theme reads the new value rather than the fact of the move, because
+    /// the per-axis reset arrives here too. See ``ReadingTheme/deviating(on:in:)``.
     public func change(_ axis: ThemeAxis, to values: ThemeValues) {
         guard theme.isEffective(axis) else { return }
         self.values = values
-        theme = theme.deviating(on: axis)
+        theme = theme.deviating(on: axis, in: values)
         applyTheme()
     }
 

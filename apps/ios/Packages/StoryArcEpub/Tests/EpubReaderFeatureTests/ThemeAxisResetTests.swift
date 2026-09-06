@@ -90,6 +90,47 @@ struct ThemeAxisResetTests {
         )
     }
 
+    @Test("Resetting the only moved axis leaves the preset unmodified")
+    func theResetClearsTheDeviation() {
+        let reader = model()
+        reader.adopt(.calm)
+        reader.set(.lineSpacing, to: 2.4)
+        #expect(reader.theme.isModified, "the drag marked the preset modified")
+
+        ThemeAxesSheet.reset(.lineSpacing, on: reader)
+
+        #expect(
+            !reader.theme.isModified,
+            """
+            The reset put the axis back and still recorded it as a deviation. Calm keeps the \
+            "Modified" caption and the whole-theme "Restore Calm" action stays on screen with \
+            nothing left to restore. `reading-themes`, *Resetting the preset that is already \
+            unmodified*: the action is "absent rather than present and doing nothing, because \
+            a control that never changes anything teaches a reader to distrust the ones that \
+            do".
+            """
+        )
+    }
+
+    @Test("Resetting one axis leaves the other moved axis marked as deviating")
+    func theResetKeepsTheOtherDeviations() {
+        let reader = model()
+        reader.adopt(.calm)
+        reader.set(.lineSpacing, to: 2.4)
+        reader.set(.margins, to: 2.1)
+
+        ThemeAxesSheet.reset(.lineSpacing, on: reader)
+
+        #expect(
+            reader.theme.deviations == [.margins],
+            """
+            The reset changed the deviations of an axis it was not asked for. Only the axis \
+            that went back to the preset's value stops deviating; the margins the reader \
+            nudged still differ from Calm, so Calm is still modified and still restorable.
+            """
+        )
+    }
+
     @Test("The reset reaches the stored theme, not only the slider")
     func theResetIsRemembered() throws {
         let suite = "ThemeAxisResetTests.\(UUID().uuidString)"
@@ -115,27 +156,38 @@ struct ThemeAxisResetTests {
         )
     }
 
-    @Test("The reading position survives the reset")
-    func thePositionSurvives() async throws {
-        let reader = model()
-        await reader.open()
-        try #require(reader.navigator != nil, "the book opened, so there is a position to keep")
-        // Described rather than named: Readium's `Locator` comes from a module this
-        // package imports internally, so a test can compare one without being able to
-        // spell its type.
-        let before = String(describing: reader.navigator?.currentLocation)
+    /// The reading position is **not** proved here, and this is what stands in its place.
+    ///
+    /// The case that used to sit here compared `String(describing:
+    /// navigator?.currentLocation)` before the reset and after it. `currentLocation` is nil
+    /// in this test host, because the navigator is never laid out in a window, so both
+    /// sides read "nil" and the case held for any implementation — including one that moved
+    /// the reader. Worse, `EpubReaderModel.applyTheme` takes the other branch under a nil
+    /// location: `guard let locator else { return }` returns before the restore the case
+    /// named. Its only guard was `#require(navigator != nil)`, which is the navigator
+    /// object rather than a position.
+    ///
+    /// So this reads the three statements that do the work and pins their order. It is a
+    /// tripwire, like the three below it, and it fails when the capture, the submit or the
+    /// return is removed or reordered. It says nothing about a real reader. Task 3.5 in
+    /// `reader-theming-and-page-transitions` records the guarantee as unproved on both
+    /// platforms, and names what a proof would need.
+    @Test("The reflow is bracketed by capturing the position and going back to it")
+    func theReflowIsBracketedByTheLocator() throws {
+        let source = try Self.source("EpubReaderModel.swift")
 
-        reader.adopt(.calm)
-        reader.set(.lineSpacing, to: 2.4)
-        ThemeAxesSheet.reset(.lineSpacing, on: reader)
-        // Longer than the model's own reflow settle, so the restore has run.
-        try await Task.sleep(for: .milliseconds(600))
+        let capture = try #require(source.range(of: "let locator = navigator.currentLocation"))
+        let submit = try #require(source.range(of: "navigator.submitPreferences("))
+        let restore = try #require(source.range(of: "await navigator.go(to: locator"))
 
         #expect(
-            String(describing: reader.navigator?.currentLocation) == before,
+            capture.upperBound < submit.lowerBound && submit.upperBound < restore.lowerBound,
             """
-            The reset moved the reader. `reading-themes`: the reading position "is preserved \
-            to the paragraph across the repagination, exactly as a type-size change is".
+            `applyTheme` no longer captures the reading position, submits the preferences \
+            and goes back to that position, in that order. `reading-themes`: the position \
+            "is preserved to the paragraph across the repagination, exactly as a type-size \
+            change is". Submitting first loses the paragraph, because Readium lands on the \
+            progression rather than on the paragraph.
             """
         )
     }

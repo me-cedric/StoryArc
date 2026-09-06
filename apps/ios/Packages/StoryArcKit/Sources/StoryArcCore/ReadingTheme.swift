@@ -77,7 +77,7 @@ public enum ThemeAxis: String, Sendable, Codable, CaseIterable {
 /// modified", with one action to put it back.
 public struct ReadingTheme: Sendable, Equatable, Codable {
     public var preset: ThemePreset
-    /// The axes moved since the preset was adopted.
+    /// The axes that stand at a different value from the preset's own.
     public var deviations: Set<ThemeAxis>
 
     /// The reader's own colours, when they have chosen some.
@@ -155,6 +155,28 @@ public struct ReadingTheme: Sendable, Equatable, Codable {
     public func deviating(on axis: ThemeAxis) -> ReadingTheme {
         guard isEffective(axis) else { return self }
         return ReadingTheme(preset: preset, deviations: deviations.union([axis]), custom: custom)
+    }
+
+    /// Records where an axis stands against the preset, reading the values it now holds.
+    ///
+    /// **An axis that holds the preset's own value is not a deviation from that preset,
+    /// however it got there.** The per-axis reset puts one axis back through the path a
+    /// drag takes, so recording every move as a deviation marked the reset axis as
+    /// deviating: every axis then matched the preset while the theme still reported itself
+    /// modified, and the whole-theme "Restore <preset>" action stayed on screen with
+    /// nothing to restore. `reading-themes`, *Resetting the preset that is already
+    /// unmodified*, forbids that state — "a control that never changes anything teaches a
+    /// reader to distrust the ones that do".
+    public func deviating(on axis: ThemeAxis, in values: ThemeValues) -> ReadingTheme {
+        guard isEffective(axis) else { return self }
+        guard values.differs(from: preset.values, on: axis) else {
+            return ReadingTheme(
+                preset: preset,
+                deviations: deviations.subtracting([axis]),
+                custom: custom
+            )
+        }
+        return deviating(on: axis)
     }
 
     /// Puts every axis back to the preset's own values.
