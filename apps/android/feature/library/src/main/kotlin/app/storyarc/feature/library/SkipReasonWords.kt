@@ -51,7 +51,10 @@ internal fun skipReasonText(reason: SkipReason): String = when (reason) {
         stringResource(R.string.library_skipped_reason_content_protected)
 
     // *A failure with no sentence written for it*: a translated general refusal, rather than
-    // text produced for a maintainer. The maintainer's copy is the diagnostic export, which
-    // is English by explicit design.
+    // text produced for a maintainer. There is no maintainer's copy anywhere.
+    // `LibraryScanner.kt:583,634,664` catch the throw and keep this case alone, and the
+    // diagnostic export carries nothing about a scan, so the description of the failure is
+    // discarded. The discard is older than this file. Giving it a route needs its own change,
+    // on both platforms.
     SkipReason.Unknown -> stringResource(R.string.library_skipped_reason_unknown)
 }
