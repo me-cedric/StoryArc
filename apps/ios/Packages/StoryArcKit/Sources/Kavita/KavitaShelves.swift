@@ -108,11 +108,19 @@ extension KavitaClient {
     }
 
     /// The series in one collection.
+    ///
+    /// `Series/series-by-collection`, which is the route Kavita publishes. This asked
+    /// `Collection/series` until 2026-09-07, a route in no shipped Kavita: absent from the
+    /// published `openapi.json` of v0.8.6, v0.8.8, v0.8.9.1, v0.9.0 and v0.9.1.4, and 404
+    /// on a live 0.9.1.4, so no reader ever saw a collection's contents.
+    ///
+    /// `Collection/all-series` is not the replacement. Its parameters are `seriesId` and
+    /// `ownedOnly`, so it answers which collections hold one series -- the other question.
     public func collected(_ id: Int) async throws -> [KavitaSeries] {
         try decode(
             [KavitaSeries].self,
             from: try await get(
-                "Collection/series",
+                "Series/series-by-collection",
                 query: [URLQueryItem(name: "collectionId", value: String(id))]
             )
         )

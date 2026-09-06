@@ -3122,31 +3122,31 @@
         }
       }
     },
-    "kavita.confirmed %@ %@": {
+    "kavita.confirmed %@": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Angemeldet als %1$@ · Kavita %2$@"
+            "value": "Angemeldet als %@"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Signed in as %1$@ · Kavita %2$@"
+            "value": "Signed in as %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sesión iniciada como %1$@ · Kavita %2$@"
+            "value": "Sesión iniciada como %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connecté en tant que %1$@ · Kavita %2$@"
+            "value": "Connecté en tant que %@"
           }
         }
       }
@@ -3350,35 +3350,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cette adresse a répondu, mais pas comme un serveur Kavita."
-          }
-        }
-      }
-    },
-    "kavita.error.tooOld": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dieser Server verwendet Kavita %1$@. StoryArc benötigt %2$@ oder neuer."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "That server runs Kavita %1$@. StoryArc needs %2$@ or newer."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ese servidor usa Kavita %1$@. StoryArc necesita la %2$@ o posterior."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ce serveur utilise Kavita %1$@. StoryArc a besoin de la version %2$@ ou plus récente."
           }
         }
       }

@@ -152,10 +152,7 @@ public struct KavitaSheet: View {
     private func confirmation(_ identity: KavitaIdentity) -> some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.md) {
             Label {
-                Text(
-                    "kavita.confirmed \(identity.username) \(identity.version.description)",
-                    bundle: .module
-                )
+                Text("kavita.confirmed \(identity.username)", bundle: .module)
                 .textRole(.headline)
                 .foregroundStyle(theme.palette.textPrimary)
             } icon: {

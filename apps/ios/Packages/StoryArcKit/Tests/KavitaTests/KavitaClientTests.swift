@@ -19,48 +19,33 @@ struct KavitaClientTests {
         .response(status: 200, body: Data(text.utf8))
     }
 
-    @Test("Connecting authenticates and reports the account and version")
+    @Test("Connecting authenticates against a server that has no version route")
     func connects() async throws {
+        // No shipped Kavita answers `Server/server-info`. It is absent from the published
+        // `openapi.json` of v0.8.6, v0.8.8, v0.8.9.1, v0.9.0 and v0.9.1.4, and a live
+        // 0.9.1.4 answers 404. This client asked for it anyway, and `send` throws on any
+        // non-2xx, so adding a Kavita source failed for every reader on every version.
+        // Android's `KavitaTest` makes the same claim.
         let client = try client { request in
-            if request.url?.path().contains("authenticate") == true {
-                return self.json(#"{"username":"ada","token":"t","apiKey":"key"}"#)
-            }
-            return self.json(#"{"kavitaVersion":"0.8.3"}"#)
+            request.url?.path().contains("authenticate") == true
+                ? self.json(#"{"username":"ada","token":"t","apiKey":"key"}"#)
+                : .response(status: 404, body: Data(#"{"message":"no such route"}"#.utf8))
         }
-        let identity = try await client.connect()
-        #expect(identity.username == "ada")
-        #expect(identity.version == KavitaVersion(major: 0, minor: 8, patch: 3))
+        #expect(try await client.connect().username == "ada")
     }
 
-    @Test("A server older than the minimum is refused, naming the version")
-    func refusesAnOldServer() async throws {
-        // `kavita-server` requires the app to reject an older server "naming the required
-        // version", which is a better failure than a series list that is silently empty.
+    @Test("Connecting asks one question, which is who the reader is")
+    func connectsWithOneRequest() async throws {
+        // A client cannot learn a Kavita's version by any route, and the verbs of every
+        // route either client calls are the same across those five releases. So a second
+        // request buys nothing to decide with.
+        let asked = Paths()
         let client = try client { request in
-            if request.url?.path().contains("authenticate") == true {
-                return self.json(#"{"username":"ada","token":"t","apiKey":"key"}"#)
-            }
-            return self.json(#"{"kavitaVersion":"0.7.14"}"#)
+            asked.append(request.url?.path() ?? "")
+            return self.json(#"{"username":"ada","token":"t","apiKey":"key"}"#)
         }
-        await #expect(
-            throws: KavitaError.serverTooOld(
-                found: KavitaVersion(major: 0, minor: 7, patch: 14),
-                required: KavitaClient.minimumVersion
-            )
-        ) {
-            try await client.connect()
-        }
-    }
-
-    @Test("A build number in the version is ignored rather than refused")
-    func fourComponentVersion() async throws {
-        let client = try client { request in
-            if request.url?.path().contains("authenticate") == true {
-                return self.json(#"{"username":"ada","token":"t","apiKey":"key"}"#)
-            }
-            return self.json(#"{"kavitaVersion":"0.8.3.2"}"#)
-        }
-        #expect(try await client.connect().version == KavitaVersion(major: 0, minor: 8, patch: 3))
+        try await client.connect()
+        #expect(asked.value == ["/api/Plugin/authenticate"])
     }
 
     @Test("An expired token is renewed and the request retried once")
@@ -72,9 +57,6 @@ struct KavitaClientTests {
             let path = request.url?.path() ?? ""
             if path.contains("authenticate") {
                 return self.json(#"{"username":"ada","token":"fresh","apiKey":"key"}"#)
-            }
-            if path.contains("server-info") {
-                return self.json(#"{"kavitaVersion":"0.8.3"}"#)
             }
             // The first call with a token fails as though it had expired; the second, with
             // the token minted after that, succeeds.
@@ -157,6 +139,24 @@ struct KavitaClientTests {
     /// A box, because the stub runs on the session's queue.
     private final class Counter: @unchecked Sendable {
         var value = 0
+    }
+
+    /// Every path the transport was asked for, in order, for the same reason.
+    private final class Paths: @unchecked Sendable {
+        private let lock = NSLock()
+        private var paths: [String] = []
+
+        func append(_ path: String) {
+            lock.lock()
+            defer { lock.unlock() }
+            paths.append(path)
+        }
+
+        var value: [String] {
+            lock.lock()
+            defer { lock.unlock() }
+            return paths
+        }
     }
 }
 

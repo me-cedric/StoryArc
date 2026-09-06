@@ -73,6 +73,21 @@ struct KavitaShelvesTests {
         return KavitaClient(address: address, configuration: configuration)
     }
 
+    @Test("A collection is asked for its series at the route Kavita publishes")
+    func collectedAsksTheRouteKavitaPublishes() async throws {
+        // `Collection/series` is in no shipped Kavita: absent from the published
+        // `openapi.json` of v0.8.6, v0.8.8, v0.8.9.1, v0.9.0 and v0.9.1.4, and 404 on a
+        // live 0.9.1.4. `Series/series-by-collection` is in all five and answered 200 on
+        // that same server. `Collection/all-series` is not the replacement — it takes a
+        // `seriesId`, so it answers which collections hold one series, the other question.
+        // Android's `KavitaShelvesTest` makes the same claim, and
+        // `scripts/kavita-server.mjs --self-test` the server's half of it.
+        let asked = Asked()
+        _ = try await client(asked, body: "[]").collected(4)
+        #expect(asked.path == "/api/Series/series-by-collection")
+        #expect(asked.query == "collectionId=4")
+    }
+
     @Test("Creating a list answers with the id the server minted")
     func createAnswersWithTheServersOwnId() async throws {
         // Everything that follows — the entries, and the undo — is addressed by it, so a

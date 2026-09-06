@@ -33,12 +33,6 @@ enum KavitaMessage {
                 ),
                 source
             )
-        case let .serverTooOld(found, required):
-            return String(
-                format: String(localized: "kavita.error.tooOld", bundle: .module, locale: .storyArc),
-                found.description,
-                required.description
-            )
         case .routeMissing:
             // A server that does not have the route at all. The path is not said out loud:
             // it names an API a reader never chose, and the sentence they need is that the

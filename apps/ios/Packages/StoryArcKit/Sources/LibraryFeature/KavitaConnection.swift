@@ -127,12 +127,6 @@ public final class KavitaConnection {
     /// Kavita OPDS URL pasted there is answered by Kavita.
     static func describe(_ error: KavitaError) -> String {
         switch error {
-        case let .serverTooOld(found, required):
-            String(
-                format: String(localized: "kavita.error.tooOld", bundle: .module, locale: .storyArc),
-                found.description,
-                required.description
-            )
         case .routeMissing:
             String(localized: "kavita.error.tooOldForRequest", bundle: .module, locale: .storyArc)
         case .keyRejected:

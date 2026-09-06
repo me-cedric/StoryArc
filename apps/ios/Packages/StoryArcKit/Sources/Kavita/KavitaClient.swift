@@ -102,28 +102,29 @@ public actor KavitaClient {
         session.finishTasksAndInvalidate()
     }
 
-    /// The oldest Kavita this app knows how to talk to.
+    /// Authenticates, and stops.
     ///
-    /// `kavita-server` requires the app to reject an older server "naming the required
-    /// version", which is a better failure than a series list that is silently empty
-    /// because an endpoint moved.
-    public static let minimumVersion = KavitaVersion(major: 0, minor: 8, patch: 0)
-
-    /// Authenticates, and reports what the server is.
+    /// One request, because the server answers only one question a plugin may ask: who is
+    /// this key. This used to ask a second, `Server/server-info`, to gate the server on a
+    /// minimum version. That route is in no shipped Kavita -- absent from the published
+    /// `openapi.json` of v0.8.6, v0.8.8, v0.8.9.1, v0.9.0 and v0.9.1.4, and 404 on a live
+    /// 0.9.1.4 -- so the 404 threw and **adding a Kavita source failed for every reader on
+    /// every version**. The gate it fed could never fire for the same reason.
     ///
-    /// Two requests, because they answer two different questions: who am I, and what is
-    /// this. A reader whose key works against a server too old to use needs to be told the
-    /// second thing, not the first.
+    /// The gate was deleted rather than repaired on 2026-09-07, because nothing can feed
+    /// it and nothing would use it. No route states the version: `Server/version`,
+    /// `Health/api-version` and `Server/accepting-connections` all 404,
+    /// `Server/server-info-slim` is admin only, swagger is off in production, and
+    /// `Health` answers `Ok` with no version in it. And the verbs of every route either
+    /// client calls are identical across those five releases, which is April 2025 to
+    /// September 2026, so a version number would decide nothing.
+    ///
+    /// What replaces it is feature detection, which was already here:
+    /// ``sendVersioned(_:path:)`` reads a 404 on a listing route as that route missing,
+    /// remembers it for the session, and says so in a sentence.
     @discardableResult
     public func connect() async throws -> KavitaIdentity {
-        let account = try await authenticate()
-        let version = try await serverVersion()
-
-        guard version >= Self.minimumVersion else {
-            throw KavitaError.serverTooOld(found: version, required: Self.minimumVersion)
-        }
-
-        let identity = KavitaIdentity(username: account, version: version)
+        let identity = KavitaIdentity(username: try await authenticate())
         self.identity = identity
         return identity
     }
@@ -155,15 +156,6 @@ public actor KavitaClient {
         }
         token = account.token
         return account.username
-    }
-
-    private func serverVersion() async throws -> KavitaVersion {
-        guard let url = address.endpoint("Server/server-info") else { throw KavitaError.badAddress }
-        let data = try await send(URLRequest(url: url))
-        guard let info = try? JSONDecoder().decode(KavitaServerInfo.self, from: data),
-              let version = KavitaVersion(info.kavitaVersion)
-        else { throw KavitaError.unexpectedResponse }
-        return version
     }
 
     /// One request, re-authenticating once if the token has expired.
@@ -219,45 +211,15 @@ public actor KavitaClient {
     }
 }
 
-/// What a server says it is, once it has answered.
+/// Who the reader is on this server, which is all authentication answers with.
+///
+/// It held a version until 2026-09-07. Nothing could fill that field: no route on any
+/// shipped Kavita states the server's version to a plugin. See ``KavitaClient/connect()``.
 public struct KavitaIdentity: Sendable, Equatable {
     public let username: String
-    public let version: KavitaVersion
 
-    public init(username: String, version: KavitaVersion) {
+    public init(username: String) {
         self.username = username
-        self.version = version
-    }
-}
-
-/// A Kavita version, compared the way versions are compared rather than as a string.
-public struct KavitaVersion: Sendable, Equatable, Comparable, CustomStringConvertible {
-    public let major: Int
-    public let minor: Int
-    public let patch: Int
-
-    public init(major: Int, minor: Int, patch: Int) {
-        self.major = major
-        self.minor = minor
-        self.patch = patch
-    }
-
-    /// Reads `0.8.3` or `0.8.3.2`, which Kavita has used both of.
-    ///
-    /// A fourth component is ignored rather than refused: it is a build number, and a
-    /// server that reports one is not a server this app should decline to talk to.
-    public init?(_ text: String) {
-        let parts = text.split(separator: ".").compactMap { Int($0) }
-        guard parts.count >= 2 else { return nil }
-        major = parts[0]
-        minor = parts[1]
-        patch = parts.count > 2 ? parts[2] : 0
-    }
-
-    public var description: String { "\(major).\(minor).\(patch)" }
-
-    public static func < (left: KavitaVersion, right: KavitaVersion) -> Bool {
-        (left.major, left.minor, left.patch) < (right.major, right.minor, right.patch)
     }
 }
 
@@ -270,13 +232,10 @@ public enum KavitaError: Error, Equatable, Sendable {
     /// "with an explanation and an action to enter a new key".
     case keyRejected
 
-    /// Older than this app knows how to talk to, named so the reader can act.
-    case serverTooOld(found: KavitaVersion, required: KavitaVersion)
-
     /// The server does not have this route, so it is an older Kavita than this app can use.
     ///
-    /// Distinct from ``serverTooOld(found:required:)``, which knows the version because the
-    /// server stated one. Here nothing did: see ``KavitaClient/sendVersioned(_:path:)``.
+    /// The only signal there is. Nothing states a version: see ``KavitaClient/connect()``
+    /// and ``KavitaClient/sendVersioned(_:path:)``.
     case routeMissing(path: String)
 
     case http(status: Int)
@@ -286,9 +245,4 @@ public enum KavitaError: Error, Equatable, Sendable {
 struct KavitaAccount: Decodable {
     let username: String
     let token: String
-}
-
-/// What `Server/server-info` returns, of what this app reads.
-struct KavitaServerInfo: Decodable {
-    let kavitaVersion: String
 }
