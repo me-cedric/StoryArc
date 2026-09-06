@@ -136,30 +136,48 @@ class OpdsClient(
      *
      * `offline-downloads`' *Resuming after interruption*: an interrupted download "resumes
      * from where it stopped if the server supports range requests, and restarts otherwise".
-     * [into] is the partial file, so its length is the offset to ask from, and there are
-     * three answers to that ask:
+     * [into] is the partial file, so its length is the offset to ask from -- but only when a
+     * validator was recorded beside it, because only the validator makes the server say
+     * whether the bytes on disk are still a prefix of what it holds. See [resumable].
      *
-     * - **206.** The server gave the rest. The bytes are appended.
-     * - **200.** The server ignored the range and gave the whole resource, which RFC 9110
-     *   permits. The partial bytes are discarded and the body replaces them -- appending a
-     *   whole body onto a prefix writes a file that is not the publication, and a ZIP with a
-     *   prefix opens far enough to look as if it worked.
-     * - **416.** The bytes asked for are not there, so the file on disk is not a prefix of
-     *   what the server holds. It is deleted and the download starts over.
+     * There are two answers to that ask, and only one of them continues the file:
+     *
+     * - **206.** The server compared the validator, and gave the rest. The bytes are appended.
+     * - **Anything else.** The server would not continue this file. It may be sending the
+     *   whole resource, which RFC 9110 permits, or only the requested window while saying
+     *   200, which `scripts/opds-server.mjs` sends as `?lie=status` -- and the headers do not
+     *   tell the two apart, because `Content-Length` describes whichever one it sent. So the
+     *   body is not read at all: the partial is dropped and the file is asked for again with
+     *   no `Range`, which is a first attempt and is checked as one. A 416 says the same
+     *   thing in its own words and takes the same path.
      */
     suspend fun download(url: String, credential: OpdsCredential? = null, into: File) {
-        val from = if (into.isFile) into.length() else 0L
         try {
-            fetch(url, credential, into, from)
-        } catch (error: OpdsError.Http) {
-            if (error.status != RANGE_NOT_SATISFIABLE || from == 0L) throw error
-            into.delete()
-            fetch(url, credential, into, 0L)
+            fetch(url, credential, into, resuming = resumable(into))
+        } catch (restart: Restart) {
+            fetch(url, credential, into, resuming = null)
         }
         // A cancelled copy stops mid-body and leaves the bytes it wrote, which is the point:
         // the next attempt asks for the rest of them. It is not a completed download, so the
         // caller has to be told cancellation rather than handed a short file to index.
         coroutineContext.ensureActive()
+    }
+
+    /**
+     * What the last attempt recorded of the resource [into] holds a prefix of, or null.
+     *
+     * Null means *do not resume*. A `Range` sent without an `If-Range` asks a server to
+     * continue a file it has no way to check: a publication re-served at the same address
+     * after a re-scan or a re-compression answers 206 for a prefix that is no longer its own,
+     * the two builds splice, and the result is a file of exactly the declared length whose
+     * first half is unreadable. Nothing downstream can catch that -- the length is right, and
+     * the index reads a central directory that is intact -- so it is refused here instead.
+     * `offline-downloads` names the fallback in the same sentence: it "restarts otherwise".
+     */
+    private fun resumable(into: File): String? {
+        if (!into.isFile || into.length() == 0L) return null
+        val tag = File(into.path + TAG_SUFFIX)
+        return if (tag.isFile) tag.readText().takeIf { it.isNotBlank() } else null
     }
 
     /**
@@ -195,7 +213,7 @@ class OpdsClient(
         url: String,
         credential: OpdsCredential?,
         into: File? = null,
-        from: Long = 0,
+        resuming: String? = null,
     ): Fetched =
         withContext(Dispatchers.IO) {
             // Read once, outside the blocking read loop. A copy that runs after the caller
@@ -204,10 +222,13 @@ class OpdsClient(
             // The configured source's origin, or -- for an address the reader typed, which
             // has nothing to be compared against -- its own.
             val home = origin ?: OpdsOrigin.of(url)
+            // Tied to the validator rather than read from the file on its own: bytes with
+            // nothing to check them against are bytes this client starts over from.
+            val from = if (resuming != null && into?.isFile == true) into.length() else 0L
             var target = url
             var hops = 0
             while (true) {
-                val sink = into?.let { Sink(it, from) { job?.isActive != false } }
+                val sink = into?.let { Sink(it, from, resuming) { job?.isActive != false } }
                 when (val hop = one(target, credential, home, sink)) {
                     is Hop.Done -> return@withContext hop.fetched
                     is Hop.Moved -> {
@@ -221,7 +242,25 @@ class OpdsClient(
         }
 
     /** Where a publication's bytes go, from which offset, and for as long as anyone wants them. */
-    private class Sink(val into: File, val from: Long, val keepGoing: () -> Boolean)
+    private class Sink(
+        val into: File,
+        val from: Long,
+        val validator: String?,
+        val keepGoing: () -> Boolean,
+    ) {
+        /** Beside the partial, and so inside the directory a removal deletes. */
+        val tag: File = File(into.path + TAG_SUFFIX)
+    }
+
+    /**
+     * The server would not carry this file on, so the download starts over.
+     *
+     * Thrown only for a request that carried a `Range`, and caught only by [download], whose
+     * next attempt carries none -- so it cannot be thrown twice for one download. An
+     * [IOException] rather than something of its own, so that a future gap in that reasoning
+     * reaches the queue as a failed transfer rather than as a crash.
+     */
+    private class Restart : IOException("the server would not continue the file")
 
     private fun one(
         url: String,
@@ -249,8 +288,13 @@ class OpdsClient(
             connection.setRequestProperty("Authorization", credential.header)
         }
         // Open-ended, because the app wants the rest of the file and not a window into it.
-        if (sink != null && sink.from > 0) {
+        // `If-Range` travels with it and is not optional: it is the whole of what makes the
+        // server compare the prefix on disk against what it holds now, and answer with the
+        // whole file instead of splicing a changed publication onto a stale half.
+        val validator = sink?.validator
+        if (sink != null && sink.from > 0 && validator != null) {
             connection.setRequestProperty("Range", "bytes=${sink.from}-")
+            connection.setRequestProperty("If-Range", validator)
         }
         // Nothing is cached to disk. A catalogue response can name a reader's whole
         // library, and `settings-and-about` promises no data leaves the device that the
@@ -290,10 +334,21 @@ class OpdsClient(
                     connection.getHeaderField("WWW-Authenticate")
                         ?.let(OpdsError.AuthenticationScheme::of),
                 )
+                // The bytes asked for are not there, so what is on disk is not a prefix of
+                // the file and there is nothing to carry on from.
+                status == RANGE_NOT_SATISFIABLE && sink != null && sink.from > 0 -> throw Restart()
                 else -> throw OpdsError.Http(status)
             }
 
             if (sink != null) {
+                // A ranged request answered by anything but 206 is not a continuation, and
+                // the headers do not say what it is instead: a server sending the whole
+                // resource and a server sending only the window both declare the length of
+                // what they sent, so the second one's slice would pass every check this
+                // client can make and land as a publication missing its opening bytes. The
+                // body is left unread and the file asked for again with no range, which is
+                // the one request whose length describes the whole publication.
+                if (sink.from > 0 && status != HttpURLConnection.HTTP_PARTIAL) throw Restart()
                 connection.inputStream.use { stream -> write(stream, connection, status, sink) }
                 return Hop.Done(Fetched(ByteArray(0), connection.contentType, url))
             }
@@ -319,6 +374,10 @@ class OpdsClient(
     private fun write(stream: InputStream, connection: HttpURLConnection, status: Int, sink: Sink) {
         val append = status == HttpURLConnection.HTTP_PARTIAL
         sink.into.parentFile?.mkdirs()
+        // Recorded before the first byte lands, because the attempt that needs it is the one
+        // after an interruption, and after an interruption there is no response left to read
+        // it from.
+        if (!append) record(connection, sink)
         FileOutputStream(sink.into, append).use { out ->
             val buffer = ByteArray(COPY_BYTES)
             while (sink.keepGoing()) {
@@ -336,6 +395,23 @@ class OpdsClient(
         if (whole != null && sink.into.length() != whole) {
             throw IOException("the download stopped at ${sink.into.length()} of $whole bytes")
         }
+        // The file is whole, so the validator that guarded its resumes is spent.
+        sink.tag.delete()
+    }
+
+    /**
+     * Keeps what the server says identifies this version of the resource, or keeps nothing.
+     *
+     * A weak `ETag` says two responses are equivalent, not identical, and RFC 9110 forbids
+     * one in an `If-Range` for exactly the reason this app needs it: a prefix is bytes, and
+     * equivalent bytes are not the same bytes. A server that offers neither a strong `ETag`
+     * nor a `Last-Modified` leaves no file, and a download from it restarts rather than
+     * resuming -- which is the other half of the sentence `offline-downloads` writes.
+     */
+    private fun record(connection: HttpURLConnection, sink: Sink) {
+        val validator = connection.getHeaderField("ETag")?.takeIf { !it.startsWith("W/") }
+            ?: connection.getHeaderField("Last-Modified")
+        if (validator == null) sink.tag.delete() else sink.tag.writeText(validator)
     }
 
     /** What the response says the complete resource weighs, or null when it does not say. */
@@ -357,6 +433,9 @@ class OpdsClient(
 
         /** The bytes asked for are not there, so what is on disk is not a prefix of the file. */
         const val RANGE_NOT_SATISFIABLE = 416
+
+        /** What is added to a partial file's name to name the validator kept beside it. */
+        const val TAG_SUFFIX = ".tag"
     }
 }
 
