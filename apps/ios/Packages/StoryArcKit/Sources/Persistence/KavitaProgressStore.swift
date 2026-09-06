@@ -1,5 +1,7 @@
 public import Foundation
 
+public import StoryArcCore
+
 /// Which server chapter a publication came from.
 ///
 /// The reader knows nothing about Kavita and should not: it opens a file. This is the note
@@ -18,6 +20,24 @@ public struct KavitaOrigin: Sendable, Equatable, Codable {
         self.seriesId = seriesId
         self.volumeId = volumeId
         self.chapterId = chapterId
+    }
+}
+
+extension KavitaOrigin {
+    /// ADR-0006's first identity rule, built from what the browser already knows.
+    ///
+    /// Of the five things an origin holds, only two name the publication: the server it
+    /// came from and the chapter itself. A library and a series say where it sits on that
+    /// server, which moves when the server is reorganised.
+    ///
+    /// Nil when ``sourceId`` is not an identifier. The store scopes a server identity to
+    /// the source's own id, and inventing one would file two servers' chapter 42 as one
+    /// publication — data loss in the one store this app promises never to lose, and
+    /// strictly worse than leaving them as two records.
+    public var serverIdentifier: PublicationIdentity.ServerIdentifier? {
+        UUID(uuidString: sourceId).map {
+            PublicationIdentity.ServerIdentifier(sourceID: $0, remoteID: String(chapterId))
+        }
     }
 }
 

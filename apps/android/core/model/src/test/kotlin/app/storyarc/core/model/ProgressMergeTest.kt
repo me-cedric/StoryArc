@@ -206,15 +206,56 @@ class ProgressMergeTest {
     }
 
     @Test
-    fun `a server identifier outranks both, because the server owns its own content`() {
+    fun `a publication with no path of its own is filed under its server identifier`() {
+        // ADR-0006's first rule decides which *record* an identity resolves to, and that
+        // rule lives in `matches`. The filing key is a different question: it must be the
+        // component the app learned first, so the server identifier is the key only when
+        // there is no path to prefer.
         val sourceId = UUID.randomUUID()
         val identity = PublicationIdentity(
             serverIdentifier = PublicationIdentity.ServerIdentifier(sourceId, "42"),
             contentDigest = "d1",
-            normalizedPath = "/lib/Bone 01.cbz",
         )
 
         assertEquals("srv:$sourceId:42", identity.stableId)
+    }
+
+    @Test
+    fun `learning a server identifier does not re-file a publication`() {
+        // The rule the digest already obeys, for the same reason and at higher stakes.
+        // Bookmarks, annotations, shelf memory, collection members, a download's id and
+        // Kavita's own chapter-to-publication table all hold this string. A server chapter
+        // is read from a file this app wrote first, so the path is always there before the
+        // server identifier arrives.
+        val onDisk = PublicationIdentity(contentDigest = "d1", normalizedPath = "/lib/Bone 01.cbz")
+        val served = onDisk.recordingServer(
+            PublicationIdentity.ServerIdentifier(UUID.randomUUID(), "42"),
+        )
+
+        assertEquals("42", served.serverIdentifier?.remoteId)
+        assertEquals("path:/lib/Bone 01.cbz", served.stableId)
+    }
+
+    @Test
+    fun `a server identifier already recorded is not overwritten by a later one`() {
+        // The same courtesy `recordingDigest` pays: whoever supplied the first one knew
+        // something this caller does not.
+        val known = PublicationIdentity(
+            serverIdentifier = PublicationIdentity.ServerIdentifier(UUID.randomUUID(), "42"),
+        )
+        val other = PublicationIdentity.ServerIdentifier(UUID.randomUUID(), "99")
+
+        assertEquals("42", known.recordingServer(other).serverIdentifier?.remoteId)
+        assertEquals("42", known.recordingServer(null).serverIdentifier?.remoteId)
+    }
+
+    @Test
+    fun `a server identifier that could not be built leaves the identity as it was`() {
+        // What a source whose id is not a UUID gets. Nothing is invented from a filename:
+        // a guessed server identity would file two different publications as one.
+        val pathOnly = PublicationIdentity(normalizedPath = "/a/b.cbz")
+
+        assertEquals(pathOnly, pathOnly.recordingServer(null))
     }
 
     @Test

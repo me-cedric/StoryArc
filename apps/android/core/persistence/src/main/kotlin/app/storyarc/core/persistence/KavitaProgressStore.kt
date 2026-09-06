@@ -2,8 +2,10 @@ package app.storyarc.core.persistence
 
 import android.content.Context
 import android.content.SharedPreferences
+import app.storyarc.core.model.PublicationIdentity
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.util.UUID
 
 /**
  * Which server chapter a publication came from.
@@ -20,6 +22,22 @@ data class KavitaOrigin(
     val volumeId: Int,
     val chapterId: Int,
 )
+
+/**
+ * ADR-0006's first identity rule, built from what the browser already knows.
+ *
+ * Of the five things an origin holds, only two name the publication: the server it came
+ * from and the chapter itself. A library and a series say where it sits on that server,
+ * which moves when the server is reorganised.
+ *
+ * Null when [KavitaOrigin.sourceId] is not an identifier. The store scopes a server
+ * identity to the source's own id, and inventing one would file two servers' chapter 42 as
+ * one publication -- data loss in the one store this app promises never to lose, and
+ * strictly worse than leaving them as two records.
+ */
+val KavitaOrigin.serverIdentifier: PublicationIdentity.ServerIdentifier?
+    get() = runCatching { UUID.fromString(sourceId) }.getOrNull()
+        ?.let { PublicationIdentity.ServerIdentifier(it, chapterId.toString()) }
 
 /**
  * One thing waiting to reach a server that was not there when it happened.

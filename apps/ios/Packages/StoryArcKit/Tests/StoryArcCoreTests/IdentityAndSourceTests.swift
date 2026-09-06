@@ -70,15 +70,52 @@ struct PublicationIdentityTests {
         #expect(PublicationIdentity(contentDigest: "d1").stableID == "sha:d1")
     }
 
-    @Test("A server identifier outranks both, because the server owns its own content")
-    func aServerIdentifierWins() {
+    @Test("A publication with no path of its own is filed under its server identifier")
+    func aServerOnlyIdentityKeysOnItsServer() {
+        // ADR-0006's first rule decides which *record* an identity resolves to, and that
+        // rule lives in `matches`. The filing key is a different question: it must be the
+        // component the app learned first, so the server identifier is the key only when
+        // there is no path to prefer.
         let identity = PublicationIdentity(
             serverIdentifier: .init(sourceID: sourceID, remoteID: "42"),
-            contentDigest: "d1",
-            normalizedPath: "/lib/Bone 01.cbz"
+            contentDigest: "d1"
         )
 
         #expect(identity.stableID == "srv:\(sourceID.uuidString):42")
+    }
+
+    @Test("Learning a server identifier does not re-file a publication")
+    func aServerIdentifierDoesNotMoveTheKey() {
+        // The rule the digest already obeys, for the same reason and at higher stakes.
+        // Bookmarks, annotations, shelf memory, collection members, a download's id and
+        // Kavita's own chapter-to-publication table all hold this string. A server chapter
+        // is read from a file this app wrote first, so the path is always there before the
+        // server identifier arrives.
+        let onDisk = PublicationIdentity(contentDigest: "d1", normalizedPath: "/lib/Bone 01.cbz")
+        let served = onDisk.recordingServer(.init(sourceID: sourceID, remoteID: "42"))
+
+        #expect(served.serverIdentifier?.remoteID == "42")
+        #expect(served.stableID == "path:/lib/Bone 01.cbz")
+    }
+
+    @Test("A server identifier already recorded is not overwritten by a later one")
+    func recordingServerKeepsWhatIsThere() {
+        // The same courtesy `recordingDigest` pays: whoever supplied the first one knew
+        // something this caller does not.
+        let known = PublicationIdentity(serverIdentifier: .init(sourceID: sourceID, remoteID: "42"))
+        let other = PublicationIdentity.ServerIdentifier(sourceID: UUID(), remoteID: "99")
+
+        #expect(known.recordingServer(other).serverIdentifier?.remoteID == "42")
+        #expect(known.recordingServer(nil).serverIdentifier?.remoteID == "42")
+    }
+
+    @Test("A server identifier that could not be built leaves the identity as it was")
+    func recordingNoServerChangesNothing() {
+        // What a source whose id is not a UUID gets. Nothing is invented from a filename:
+        // a guessed server identity would file two different publications as one.
+        let pathOnly = PublicationIdentity(normalizedPath: "/a/b.cbz")
+
+        #expect(pathOnly.recordingServer(nil) == pathOnly)
     }
 
     @Test("A digest already recorded is not overwritten by a later one")

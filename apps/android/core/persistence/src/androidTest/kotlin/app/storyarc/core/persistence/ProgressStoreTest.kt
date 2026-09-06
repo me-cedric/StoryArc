@@ -454,4 +454,175 @@ class ProgressStoreTest {
 
         assertEquals(ReadingPosition.Page(4, 20), store.progress(id)?.position)
     }
+
+    // The same publication from two sources.
+
+    /**
+     * `reading-progress`, *Same publication from two sources*: "the local progress applies,
+     * resolved through content identity". The server hands back the bytes it was given, so
+     * the digest is what joins the two -- the server identifier arrives alongside it and
+     * must not fork the record. iOS pins the same case.
+     */
+    @Test
+    fun aFolderCopyAndAServerCopyAreOneRecord() = runTest {
+        val store = store()
+        val source = UUID.randomUUID()
+        store.save(
+            ReadingProgress(
+                identity(digest = "bone-01", path = "/books/Bone 01.cbz"),
+                ReadingPosition.Page(11, 30), false, updatedAtEpochMillis = 1_000,
+            ),
+        )
+
+        val served = identity(
+            server = source to "42",
+            digest = "bone-01",
+            path = "/caches/Kavita/42/Bone 1.cbz",
+        )
+        assertEquals(ReadingPosition.Page(11, 30), store.progress(served)?.position)
+
+        store.save(
+            ReadingProgress(served, ReadingPosition.Page(19, 30), false, updatedAtEpochMillis = 2_000),
+        )
+        assertEquals("one publication, one record", 1, store.recent(10).size)
+        assertEquals(
+            ReadingPosition.Page(19, 30),
+            store.progress(identity(digest = "bone-01"))?.position,
+        )
+    }
+
+    /**
+     * What the digest alone cannot do.
+     *
+     * A server that re-compresses on the way out hands back different bytes at a different
+     * cache path, and every component but the chapter id has moved. This is ADR-0006's first
+     * rule doing the one job the other two cannot: "the server is authoritative for its own
+     * content".
+     */
+    @Test
+    fun aRepackagedChapterKeepsItsRecord() = runTest {
+        val store = store()
+        val source = UUID.randomUUID()
+        store.save(
+            ReadingProgress(
+                identity(
+                    server = source to "42",
+                    digest = "packed-once",
+                    path = "/caches/Kavita/42/a.cbz",
+                ),
+                ReadingPosition.Page(7, 30), false, updatedAtEpochMillis = 1_000,
+            ),
+        )
+
+        val again = identity(
+            server = source to "42",
+            digest = "packed-twice",
+            path = "/caches/Kavita/42/b.cbz",
+        )
+        assertEquals(ReadingPosition.Page(7, 30), store.progress(again)?.position)
+
+        store.save(
+            ReadingProgress(again, ReadingPosition.Page(21, 30), false, updatedAtEpochMillis = 2_000),
+        )
+        assertEquals("one chapter, one record", 1, store.recent(10).size)
+    }
+
+    /**
+     * The assertion that matters most.
+     *
+     * A merge rule that is too eager destroys reading positions silently, and neither a
+     * title nor an author is part of an identity -- two printings of the same book are two
+     * publications until their bytes agree.
+     */
+    @Test
+    fun lookalikePublicationsNeverMerge() = runTest {
+        val store = store()
+        val source = UUID.randomUUID()
+        store.save(
+            ReadingProgress(
+                identity(server = source to "42", digest = "print-one", path = "/books/Bone 01.cbz"),
+                ReadingPosition.Page(3, 30), false, updatedAtEpochMillis = 1_000,
+            ),
+        )
+        // The same server, a different chapter.
+        store.save(
+            ReadingProgress(
+                identity(
+                    server = source to "43",
+                    digest = "print-two",
+                    path = "/books/Bone 01 (copy).cbz",
+                ),
+                ReadingPosition.Page(5, 30), false, updatedAtEpochMillis = 2_000,
+            ),
+        )
+        // The same chapter number, a different server.
+        store.save(
+            ReadingProgress(
+                identity(
+                    server = UUID.randomUUID() to "42",
+                    digest = "print-three",
+                    path = "/books/Bone 01 (2).cbz",
+                ),
+                ReadingPosition.Page(8, 30), false, updatedAtEpochMillis = 3_000,
+            ),
+        )
+
+        assertEquals(3, store.recent(10).size)
+        assertEquals(
+            ReadingPosition.Page(3, 30),
+            store.progress(identity(server = source to "42"))?.position,
+        )
+    }
+
+    /**
+     * Every position in the shipped app was written against a path, because nothing ever
+     * built a server identifier. Opening the chapter from its server has to find that record
+     * and attach to it, not start a second one at page one.
+     */
+    @Test
+    fun aPreExistingRecordAdoptsAServerIdentifier() = runTest {
+        val store = store()
+        val source = UUID.randomUUID()
+        store.save(
+            ReadingProgress(
+                identity(path = "/caches/Kavita/42/Bone 1.cbz"),
+                ReadingPosition.Page(9, 30), false, updatedAtEpochMillis = 1_000,
+            ),
+        )
+
+        val learned = identity(server = source to "42", path = "/caches/Kavita/42/Bone 1.cbz")
+        assertTrue(store.link(learned))
+
+        val found = store.progress(identity(server = source to "42"))
+        assertEquals(ReadingPosition.Page(9, 30), found?.position)
+        assertEquals(
+            "learning where it came from is not reading it",
+            1_000L,
+            found?.updatedAtEpochMillis,
+        )
+        assertEquals(1, store.recent(10).size)
+    }
+
+    /**
+     * [ProgressStore.progressForStableId] is how a Kavita pull reaches a record: the browser
+     * wrote down the publication id the chapter was opened as, and that string has to keep
+     * finding the row after the row learns which chapter it is.
+     */
+    @Test
+    fun adoptingAServerIdentifierDoesNotMoveTheKey() = runTest {
+        val store = store()
+        val path = "/caches/Kavita/42/Bone 1.cbz"
+        store.save(
+            ReadingProgress(
+                identity(path = path), ReadingPosition.Page(9, 30), false,
+                updatedAtEpochMillis = 1_000,
+            ),
+        )
+        store.link(identity(server = UUID.randomUUID() to "42", path = path))
+
+        assertEquals(
+            ReadingPosition.Page(9, 30),
+            store.progressForStableId("path:$path")?.position,
+        )
+    }
 }
