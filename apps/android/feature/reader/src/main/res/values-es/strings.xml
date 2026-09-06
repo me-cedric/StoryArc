@@ -38,6 +38,12 @@
     <string name="reader_transition_no_curl">El doblez no se ofrece aquí: este dispositivo no puede dibujarlo con suficiente fluidez.</string>
     <string name="reader_transition_reflowable">No disponible para libros cuyo texto cambia de tamaño.</string>
     <string name="reader_empty">Aquí no hay páginas que StoryArc pueda mostrar.</string>
+    <!-- Shown when a book will not open at all. Deliberately general: the reader used to be
+         shown the exception's own message, which is English prose written for a maintainer
+         and says things like "no file descriptor for content://…" and "page has no size".
+         The diagnostic export carries that detail, in English by design, and a maintainer
+         gets it there. `ReaderFailureSaysNothingInternalTest` fails if it comes back. -->
+    <string name="reader_cannot_open">StoryArc no ha podido abrir este libro. Puede que el archivo esté dañado o incompleto.</string>
     <string name="reader_offline_brief">Esperando la red…</string>
     <string name="reader_offline_long">Este cómic está en una carpeta compartida a la que no se puede acceder. Las páginas ya leídas siguen aquí.</string>
     <string name="reader_offline_download">Descargarla</string>

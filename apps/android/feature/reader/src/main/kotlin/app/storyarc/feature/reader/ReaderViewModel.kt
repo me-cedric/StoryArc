@@ -238,8 +238,8 @@ class ReaderViewModel(
     private val _pages = MutableStateFlow<List<PageEntry>>(emptyList())
     val pages: StateFlow<List<PageEntry>> = _pages.asStateFlow()
 
-    private val _failure = MutableStateFlow<String?>(null)
-    val failure: StateFlow<String?> = _failure.asStateFlow()
+    private val _failure = MutableStateFlow<Int?>(null)
+    val failure: StateFlow<Int?> = _failure.asStateFlow()
 
     private val _skippedPageCount = MutableStateFlow(0)
 
@@ -433,8 +433,8 @@ class ReaderViewModel(
                 initialIndex = recorded.index
             }
             deriveCoverColours()
-        } catch (cause: Exception) {
-            _failure.value = cause.message ?: "could not be opened"
+        } catch (_: Exception) {
+            _failure.value = R.string.reader_cannot_open
         }
         _isOpened.value = true
     }
@@ -491,8 +491,8 @@ class ReaderViewModel(
             if (recorded is ReadingPosition.Page && recorded.index in _pages.value.indices) {
                 initialIndex = recorded.index
             }
-        } catch (cause: Exception) {
-            _failure.value = cause.message ?: "could not be opened"
+        } catch (_: Exception) {
+            _failure.value = R.string.reader_cannot_open
         }
         _isOpened.value = true
     }

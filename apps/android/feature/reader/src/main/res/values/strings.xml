@@ -38,6 +38,12 @@
     <string name="reader_transition_no_curl">Curl is not offered here: this device cannot draw it smoothly enough to be worth it.</string>
     <string name="reader_transition_reflowable">Not available for books whose text resizes.</string>
     <string name="reader_empty">There are no pages here StoryArc can show.</string>
+    <!-- Shown when a book will not open at all. Deliberately general: the reader used to be
+         shown the exception's own message, which is English prose written for a maintainer
+         and says things like "no file descriptor for content://…" and "page has no size".
+         The diagnostic export carries that detail, in English by design, and a maintainer
+         gets it there. `ReaderFailureSaysNothingInternalTest` fails if it comes back. -->
+    <string name="reader_cannot_open">StoryArc could not open this book. The file may be damaged or incomplete.</string>
     <string name="reader_offline_brief">Waiting for the network…</string>
     <string name="reader_offline_long">This comic is in a shared folder that cannot be reached. Pages already read are still here.</string>
     <string name="reader_offline_download">Download it</string>

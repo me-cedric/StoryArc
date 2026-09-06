@@ -225,7 +225,7 @@ fun ReaderScreen(
     ) {
         when {
             failure != null -> {
-                Message(failure!!)
+                Message(stringResource(failure!!))
                 CloseButton(onClose)
             }
             pages.isEmpty() && isOpened -> {
