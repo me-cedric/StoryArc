@@ -1869,6 +1869,36 @@
         }
       }
     },
+    "theme.axis.reset": {
+      "comment": "Accessibility action on one axis slider. Puts that axis back to the preset's value, and no other axis.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf den Vorgabewert zurücksetzen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset to the preset value"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restablecer al valor predefinido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rétablir la valeur du préréglage"
+          }
+        }
+      }
+    },
     "theme.axis.textAlignment": {
       "extractionState": "manual",
       "localizations": {

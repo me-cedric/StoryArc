@@ -35,6 +35,22 @@ extension ThemeAxesSheet {
         }
     }
 
+    /// Puts one axis back to the value the active preset gives it.
+    ///
+    /// `reading-themes`, *Resetting an axis*: "that axis returns to its preset value".
+    /// **That axis**, and no other — a reader who nudged the margins and then reset the
+    /// line spacing keeps the margins. `restoreTheme` is the whole-theme action and is a
+    /// different control, on the same sheet.
+    ///
+    /// The reset goes through `EpubReaderModel.set`, which is the path a drag takes. That
+    /// path captures the locator, submits the preferences and returns to the locator once
+    /// the text has reflowed, so the preview, the page, the stored theme and the reading
+    /// position all see the reset exactly as they see a drag. Writing the value straight
+    /// onto `values` would move the reader.
+    static func reset(_ axis: ThemeAxis, on model: EpubReaderModel) {
+        model.set(axis, to: model.theme.preset.values.value(of: axis))
+    }
+
     /// The sliders. One loop rather than five blocks, because the domain answers
     /// every question a slider asks: its range, its value, and how to set it.
     var fineAxes: some View {
@@ -65,6 +81,22 @@ extension ThemeAxesSheet {
                             step: axis.step ?? range.upperBound
                         )
                         .tint(theme.accent)
+                        // `reading-themes`, *Resetting an axis*: a long press or a
+                        // double tap on a slider returns that axis to its preset
+                        // value. A long press on a control is the iOS idiom, and
+                        // `simultaneousGesture` runs it beside the slider's own drag
+                        // rather than instead of it. A press that travels past
+                        // `LongPressGesture`'s 10-point tolerance cancels, so a drag
+                        // that pauses does not reset the axis it is setting.
+                        .simultaneousGesture(
+                            LongPressGesture().onEnded { _ in Self.reset(axis, on: model) }
+                        )
+                        // The same reset, without the gesture. `native-experience`
+                        // requires a control to announce what it does, and VoiceOver,
+                        // Switch Control and a keyboard cannot long-press.
+                        .accessibilityAction(named: Text("theme.axis.reset", bundle: .module)) {
+                            Self.reset(axis, on: model)
+                        }
                         // The name belongs on the slider. The heading above it is a
                         // sibling element, so VoiceOver landing on the slider would
                         // otherwise announce a bare percentage and never say which
