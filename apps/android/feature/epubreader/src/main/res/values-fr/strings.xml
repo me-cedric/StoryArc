@@ -46,6 +46,7 @@
     <string name="theme_axis_paragraph_spacing">Espacement des paragraphes</string>
     <string name="theme_axis_margins">Marges</string>
     <string name="theme_axis_text_alignment">Alignement du texte</string>
+    <string name="theme_axis_reset">Rétablir la valeur du préréglage</string>
     <string name="theme_spacing">Espacement</string>
     <string name="theme_brightness">Luminosité</string>
     <string name="theme_typeface_publisher">Éditeur</string>

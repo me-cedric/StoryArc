@@ -46,6 +46,7 @@
     <string name="theme_axis_paragraph_spacing">Paragraph spacing</string>
     <string name="theme_axis_margins">Margins</string>
     <string name="theme_axis_text_alignment">Text alignment</string>
+    <string name="theme_axis_reset">Reset to the preset value</string>
     <string name="theme_spacing">Spacing</string>
     <string name="theme_brightness">Brightness</string>
     <string name="theme_typeface_publisher">Publisher</string>

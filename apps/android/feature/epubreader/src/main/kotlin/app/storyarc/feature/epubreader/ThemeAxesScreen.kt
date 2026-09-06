@@ -3,6 +3,7 @@ package app.storyarc.feature.epubreader
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,10 +41,13 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
@@ -165,7 +169,7 @@ internal fun ThemeAxesScreen(
             if (theme.preset.keepsPublisherStyles) {
                 PublisherStylesNotice(onLeavePublisherStyles)
             } else {
-                FineAxes(values, onSet)
+                FineAxes(theme.preset, values, onSet)
                 AlignmentControl(values, onChange)
                 // A custom background cannot apply under Original, where the publisher's own
                 // colours are the point — so it lives in the same branch as the other
@@ -426,8 +430,35 @@ private fun SwitchRow(
  * The sliders. One loop rather than five blocks, because the domain answers every
  * question a slider asks: its range, its value, and how to set it.
  */
+/**
+ * Puts one axis back to the value the active preset gives it.
+ *
+ * `reading-themes`, *Resetting an axis*: "that axis returns to its preset value". **That
+ * axis**, and no other — a reader who nudged the margins and then reset the line spacing
+ * keeps the margins. Restoring the whole theme is `onRestore`, a separate control on the
+ * same screen.
+ *
+ * The reset goes through `onSet`, which is the path a drag takes. That path reaches
+ * `EpubReaderViewModel.set`, which marks the axis deviated and stores the theme, and the
+ * activity's `applyTheme`, which captures the locator, submits the preferences and returns
+ * to the locator once the text has reflowed. So the preview, the page, the stored theme and
+ * the reading position all see the reset exactly as they see a drag.
+ *
+ * A plain function rather than a lambda in the composable, because no JVM test can press a
+ * Compose gesture and this is what `ThemeAxisResetTest` proves the behaviour over. iOS
+ * splits it the same way, into `ThemeAxesSheet.reset(_:on:)`.
+ */
+internal fun resetAxis(
+    preset: ThemePreset,
+    axis: ThemeAxis,
+    onSet: (ThemeAxis, Double) -> Unit,
+) {
+    onSet(axis, preset.values.value(axis))
+}
+
 @Composable
 private fun FineAxes(
+    preset: ThemePreset,
     values: ThemeValues,
     onSet: (ThemeAxis, Double) -> Unit,
     modifier: Modifier = Modifier,
@@ -443,9 +474,28 @@ private fun FineAxes(
 
         ThemeAxis.entries.forEach { axis ->
             val range = axis.sliderRange ?: return@forEach
-            Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair)) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair),
+                // `reading-themes`, *Resetting an axis*: a long press or a double tap
+                // returns that axis to its preset value.
+                //
+                // On the axis, not on the slider — and that is a difference the platform
+                // forces, not a choice. A Compose `Slider` runs its own press detector and
+                // its `draggable` inside its node, after any modifier the caller passes, and
+                // that detector consumes the down event. A gesture attached to the slider
+                // never fires. iOS has `simultaneousGesture` and puts the long press on the
+                // slider itself. Here it lands on the axis block: the name, the value and
+                // the space around them, directly above the track.
+                //
+                // Which is why the accessibility action below is not a fallback. It is the
+                // only path that reaches the slider, and it reaches every reader.
+                modifier = Modifier.pointerInput(axis, preset) {
+                    detectTapGestures(onLongPress = { resetAxis(preset, axis, onSet) })
+                },
+            ) {
                 val spoken = spokenValue(values.value(axis), axis.unit)
                 val name = stringResource(axis.labelRes)
+                val resetName = stringResource(R.string.theme_axis_reset)
 
                 // The name on the left, the value on the right.
                 //
@@ -513,6 +563,15 @@ private fun FineAxes(
                     modifier = Modifier.semantics {
                         contentDescription = name
                         stateDescription = spoken
+                        // The reset, without the gesture. TalkBack, Switch Access and a
+                        // keyboard cannot long-press, and `native-experience` requires a
+                        // control to announce what it does.
+                        customActions = listOf(
+                            CustomAccessibilityAction(resetName) {
+                                resetAxis(preset, axis, onSet)
+                                true
+                            },
+                        )
                     },
                 )
             }

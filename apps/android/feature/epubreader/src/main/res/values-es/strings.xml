@@ -46,6 +46,7 @@
     <string name="theme_axis_paragraph_spacing">Espaciado entre párrafos</string>
     <string name="theme_axis_margins">Márgenes</string>
     <string name="theme_axis_text_alignment">Alineación del texto</string>
+    <string name="theme_axis_reset">Restablecer al valor predefinido</string>
     <string name="theme_spacing">Espaciado</string>
     <string name="theme_brightness">Brillo</string>
     <string name="theme_typeface_publisher">Editor</string>
