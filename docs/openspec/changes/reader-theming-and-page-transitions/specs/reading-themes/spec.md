@@ -85,24 +85,6 @@ independently adjustable.
 - **WHEN** a user long-presses or double-taps a slider
 - **THEN** that axis returns to its preset value
 
-### Requirement: Custom colour
-
-The app SHALL let a user choose a reading background colour beyond the presets,
-and SHALL keep the pairing readable.
-
-#### Scenario: Choosing a background
-- **WHEN** a user picks a background colour
-- **THEN** a text colour is derived that meets at least 7:1 contrast against it, and both are shown in the preview before being applied
-- **AND** the user may override the derived text colour, but a pairing below 4.5:1 is refused with the measured ratio stated
-
-#### Scenario: Custom colour and the four reader themes
-- **WHEN** a custom colour is in use
-- **THEN** it is stored as a seventh, user-named slot alongside the six presets rather than overwriting one
-
-#### Scenario: Fixed-layout and image content
-- **WHEN** a custom background is set and the publication is fixed-layout, a comic, or a scanned PDF
-- **THEN** the background applies to the area around the page and not to the page itself, because tinting artwork is not a reading preference
-
 ### Requirement: Live preview
 
 The theme sheet SHALL show what a change will look like before the user commits
@@ -137,3 +119,44 @@ A reading theme SHALL persist at the level the user would expect and no wider.
 #### Scenario: Changing the global default
 - **WHEN** a user changes reading defaults in settings
 - **THEN** it applies to publications opened from then on and does not overwrite a per-series choice already made
+
+## MODIFIED Requirements
+
+### Requirement: Custom colour
+
+The app SHALL let a user choose a reading background colour beyond the presets,
+and SHALL keep the pairing readable.
+
+A pairing SHALL be described to the reader in plain words **before** any number:
+one of three bands saying what the pairing will be like to read, with the
+measured contrast ratio stated after it. The bands SHALL divide at the two
+thresholds the app already enforces — 7:1, which a derived text colour aims for
+and every preset clears, and 4.5:1, below which a pairing is refused — so the
+words and the refusal cannot describe one pairing differently.
+
+> **This requirement moved from this change's ADDED block to a MODIFIED one, and its
+> scenario names came from the main spec rather than from the older delta.** The main
+> spec already held *Custom colour* when this change was written; an ADDED block on a
+> requirement that already exists is invisible to `pnpm delta:drop`, which reads
+> `## MODIFIED Requirements` alone. The older delta also called one scenario *Custom
+> colour and the four reader themes* while its own THEN said six presets, so archiving it
+> would have renamed a scenario to disagree with itself. Both are corrected here.
+
+#### Scenario: Choosing a background
+- **WHEN** a user picks a background colour
+- **THEN** a text colour is derived that meets at least 7:1 contrast against it, and both are shown in the preview before being applied
+- **AND** the user may override the derived text colour, but a pairing below 4.5:1 is refused with the measured ratio stated
+
+#### Scenario: What a pairing will be like to read
+- **WHEN** a pairing is shown, whether it is in use or has just been refused
+- **THEN** the sheet says in plain words whether it is comfortable to read for a whole chapter, readable but tiring over one, or too faint to read
+- **AND** the measured contrast ratio is stated after those words rather than instead of them, so a refusal keeps its measurement and a reader who wants the number still has it
+- **AND** the words describe reading rather than naming a ratio or a guideline, because a reader choosing a colour cannot act on a number they cannot interpret
+
+#### Scenario: Custom colour and the six presets
+- **WHEN** a custom colour is in use
+- **THEN** it is stored as a seventh, user-named slot alongside the six presets rather than overwriting one
+
+#### Scenario: Fixed-layout and image content
+- **WHEN** a custom background is set and the publication is fixed-layout, a comic, or a scanned PDF
+- **THEN** the background applies to the area around the page and not to the page itself, because tinting artwork is not a reading preference

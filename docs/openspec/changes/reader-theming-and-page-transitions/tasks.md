@@ -539,6 +539,43 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       reflowable and fixed-layout separate defaults that have to be *stored*
       somewhere. See 3.10.
 
+- [x] **3.7b** **Say what a pairing will be like to read, before the number that
+      measures it.** The owner's answer to the open question
+      `one-vocabulary-in-four-languages` recorded: *does `theme.pageColour.ratio` keep
+      its arithmetic?* It does, and a plain band now leads it.
+
+      A reader choosing a background colour does not know what "4.7 to 1" means. A
+      number nobody can interpret is not information; it is decoration that looks like
+      information. But `reading-themes` requires a refused pairing be stated "with the
+      measured ratio stated", and that is there for a reason: a reader who is refused
+      deserves to know by how much, and a developer reading a bug report needs the
+      number. So both, in the order a reader needs them — the band first, the measured
+      ratio second. Nothing was removed.
+
+      **Three bands, divided at the two thresholds the app already enforces.** 7 to 1,
+      which a derived text colour aims for and every preset clears, and 4.5 to 1, below
+      which the sheet refuses the pairing. Inventing a third boundary would let the
+      words and the refusal describe one pairing differently — the sheet calling a
+      pairing comfortable and then refusing it. Above 7: *Comfortable to read for a
+      whole chapter.* Between: *Readable, but tiring over a whole chapter.* Below 4.5:
+      *Too faint to read.* The words are about reading rather than about a ratio or a
+      guideline, because that is the question a reader is actually asking.
+
+      `theme.pageColour.belowAAA` is gone, replaced rather than dropped: it said
+      *below the 7 to 1 that every built-in theme meets*, which is the middle band said
+      in the arithmetic the reader could not read. The middle band now says it in words,
+      and it says it for every pairing rather than only for one of the three.
+
+      `ReadingComfort` sits in the section that draws it on both platforms rather than
+      in the domain: it is a wording decision over a number the domain already gives,
+      and no other surface asks the question. ponytail: move it to `StoryArcCore` and
+      `core:model` when a second surface needs it.
+
+      The delta moved from this change's ADDED block into a MODIFIED one at the same
+      time. `pnpm delta:drop` reads `## MODIFIED Requirements` alone, so an ADDED block
+      on a requirement the main spec already holds was guarded by nothing; proven by
+      deleting a carried scenario, which the gate then reported by name.
+
 - [x] **3.10** **Theme scope and persistence.** Added, because the
       `reading-themes` requirement of the same name had no task and the gap was
       visible in the product: the theme started at its default on every open, so
