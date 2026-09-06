@@ -19,7 +19,7 @@ import org.junit.Test
  * order its meaning and asks a new order to be "sent to the server", and lets a new shelf be
  * kept "on a server if the user chooses one that supports collections".
  *
- * The same eight claims iOS's `KavitaShelvesTests` makes, in the same order.
+ * The same nine claims iOS's `KavitaShelvesTests` makes, in the same order.
  */
 class KavitaShelvesTest {
 
@@ -36,6 +36,9 @@ class KavitaShelvesTest {
 
     /** What a GET is answered with, which for a collection create is the read-back. */
     private var listing = """[{"id":4,"title":"Attic"}]"""
+
+    /** What a GET after the create is answered with, when a test wants a different listing. */
+    private var listingAfter: String? = null
 
     /** What the stub answers with, so one test can make the server refuse. */
     private var status = 200
@@ -55,7 +58,9 @@ class KavitaShelvesTest {
             if (requested.endsWith("/Plugin/authenticate")) {
                 body = """{"username":"ada","token":"t"}"""
             } else if (exchange.requestMethod == "GET") {
-                body = listing
+                // `method` is set by the branch below, so it says which side of the create
+                // this read is on -- which is what lets a test change what the server holds.
+                body = if (method == null) listing else listingAfter ?: listing
             } else {
                 method = exchange.requestMethod
                 path = requested
@@ -137,6 +142,16 @@ class KavitaShelvesTest {
         // after this is addressed by.
         assertEquals(4, made.id)
         assertEquals("Attic", made.title)
+    }
+
+    @Test
+    fun createCollectionAnswersWithTheMintedId() = runBlocking {
+        // Kavita lists collections by title, so two of one name have no reliable order and a
+        // read-back that matched on the name could address somebody else's collection.
+        answer = "{}"
+        listing = """[{"id":4,"title":"Attic"}]"""
+        listingAfter = """[{"id":9,"title":"Attic"},{"id":4,"title":"Attic"}]"""
+        assertEquals(9, client().createCollection("Attic").id)
     }
 
     @Test(expected = KavitaError.UnexpectedResponse::class)

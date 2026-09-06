@@ -158,7 +158,8 @@ extension KavitaClient {
     /// collection: it brings one into being by tagging series, with a zero id meaning "make
     /// it". So the create is a bulk-add, and the id has to be read back afterwards — the
     /// bulk-add answers with nothing, and everything a caller does next is addressed by the
-    /// id the server minted.
+    /// id the server minted. The listing is read on both sides of the create so the new id
+    /// can be told from one the server already held under the same name.
     ///
     /// **A collection holding no series has never been made against a live Kavita.** The mock
     /// takes one; a real server may not, because a collection with nothing in it is not a
@@ -181,8 +182,14 @@ extension KavitaClient {
                 seriesIds: seriesIds
             )
         )
+        let before = Set(try await collections().map(\.id))
         _ = try await send(request)
-        guard let made = try await collections().last(where: { $0.title == title }) else {
+        // By id rather than by name. Kavita lists collections by title, so a server that
+        // already held one of this name lists two in no reliable order, and the last of them
+        // can be the one somebody else made. One of that name is unambiguous either way.
+        let named = try await collections().filter { $0.title == title }
+        let minted = named.first { !before.contains($0.id) }
+        guard let made = minted ?? (named.count == 1 ? named.first : nil) else {
             throw KavitaError.unexpectedResponse
         }
         return made

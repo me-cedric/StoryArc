@@ -8,7 +8,7 @@ import Testing
 /// `collections-and-reading-lists` asks for a local list to be copied onto a server, and the
 /// house makes an action of that shape undoable for ten seconds — which for a list the server
 /// now holds means asking the server to drop it. Android's `KavitaShelvesTest` makes the same
-/// four claims in the same order.
+/// nine claims in the same order.
 struct KavitaShelvesTests {
     /// What the stub was asked, so a test can check the verb and the address rather than
     /// only the answer.
@@ -50,7 +50,8 @@ struct KavitaShelvesTests {
     private func collectionClient(
         _ asked: Asked,
         sent: Sent,
-        listing: String = #"[{"id":4,"title":"Attic"}]"#
+        listing: String = #"[{"id":4,"title":"Attic"}]"#,
+        after: String? = nil
     ) throws -> KavitaClient {
         let host = "\(UUID().uuidString).example"
         let configuration = KavitaStub.session(host: host) { request in
@@ -58,7 +59,10 @@ struct KavitaShelvesTests {
                 return .response(status: 200, body: Data(#"{"username":"ada","token":"t"}"#.utf8))
             }
             if request.httpMethod == "GET" {
-                return .response(status: 200, body: Data(listing.utf8))
+                // `asked.method` is set by the post below, so it says which side of the create
+                // this read is on — which is what lets a test change what the server holds.
+                let listed = asked.method == nil ? listing : (after ?? listing)
+                return .response(status: 200, body: Data(listed.utf8))
             }
             asked.method = request.httpMethod
             asked.path = request.url?.path()
@@ -133,6 +137,19 @@ struct KavitaShelvesTests {
         // after this is addressed by.
         #expect(made.id == 4)
         #expect(made.title == "Attic")
+    }
+
+    @Test("A collection made where the server already holds that name answers with the new one")
+    func createCollectionAnswersWithTheMintedId() async throws {
+        // Kavita lists collections by title, so two of one name have no reliable order and a
+        // read-back that matched on the name could address somebody else's collection.
+        let made = try await collectionClient(
+            Asked(),
+            sent: Sent(),
+            listing: #"[{"id":4,"title":"Attic"}]"#,
+            after: #"[{"id":9,"title":"Attic"},{"id":4,"title":"Attic"}]"#
+        ).createCollection(named: "Attic")
+        #expect(made.id == 9)
     }
 
     @Test("A collection the server never lists is not answered as if it had been made")

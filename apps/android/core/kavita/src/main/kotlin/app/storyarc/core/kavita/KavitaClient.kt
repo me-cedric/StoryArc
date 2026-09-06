@@ -206,7 +206,8 @@ class KavitaClient(val address: KavitaAddress) {
      * collection: it brings one into being by tagging series, with a zero id meaning "make
      * it". So the create is a bulk-add, and the id has to be read back afterwards -- the
      * bulk-add answers with nothing, and everything a caller does next is addressed by the id
-     * the server minted.
+     * the server minted. The listing is read on both sides of the create so the new id can be
+     * told from one the server already held under the same name.
      *
      * **A collection holding no series has never been made against a live Kavita.** The mock
      * takes one; a real server may not, because a collection with nothing in it is not a
@@ -214,6 +215,7 @@ class KavitaClient(val address: KavitaAddress) {
      * `docs/openspec/STATUS.md` scores it as one.
      */
     suspend fun createCollection(title: String, seriesIds: List<Int> = emptyList()): KavitaCollection {
+        val before = collections().map { it.id }.toSet()
         request(
             address.endpoint("Collection/update-for-series"),
             method = "POST",
@@ -222,7 +224,13 @@ class KavitaClient(val address: KavitaAddress) {
                 KavitaCollectionDraft(0, title, seriesIds),
             ),
         )
-        return collections().lastOrNull { it.title == title } ?: throw KavitaError.UnexpectedResponse
+        // By id rather than by name. Kavita lists collections by title, so a server that
+        // already held one of this name lists two in no reliable order, and the last of them
+        // can be the one somebody else made. One of that name is unambiguous either way.
+        val named = collections().filter { it.title == title }
+        return named.firstOrNull { it.id !in before }
+            ?: named.singleOrNull()
+            ?: throw KavitaError.UnexpectedResponse
     }
 
     /**
