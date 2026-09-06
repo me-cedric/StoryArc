@@ -205,6 +205,11 @@ struct StoryArcApp: App {
                     // opened a catalogue.
                     downloads: downloads,
                     bytesOnDisk: downloadStore.bytesOnDisk(),
+                    // The imported share of that total. `local-library` asks the app to
+                    // report the space an import used, and this is the only screen that
+                    // states a storage figure at all. Android's `SettingsHost` reads the
+                    // same value from the same accessor.
+                    importedBytes: library.importedBytes,
                     // Removing one download and reordering the queue left with the files:
                     // both are the Downloads destination's now, which is where a reader
                     // looks for them and where they are one tap away rather than four.

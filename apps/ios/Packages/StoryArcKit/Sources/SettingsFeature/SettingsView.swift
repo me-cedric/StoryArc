@@ -54,6 +54,11 @@ public struct SettingsView: View {
     private let downloads: DownloadLibrary
     private let bytesOnDisk: Int64
 
+    /// What the imported copies weigh, out of ``bytesOnDisk``. Carried across for the same
+    /// reason the total is: the copies belong to the library that made them, and a feature
+    /// module never depends on another feature module.
+    private let importedBytes: Int64
+
     /// Removes every download at once, which is what the Privacy screen's "clear
     /// downloads" means. The only download action left on this screen: removing one at a
     /// time belongs to the Downloads destination now, and clearing is not that in a loop —
@@ -89,6 +94,7 @@ public struct SettingsView: View {
         onSourceAction: @escaping (Source, SourceAction) async -> Void = { _, _ in },
         downloads: DownloadLibrary = DownloadLibrary(),
         bytesOnDisk: Int64 = 0,
+        importedBytes: Int64 = 0,
         onClearDownloads: @escaping () -> Void = {}
     ) {
         _settings = settings
@@ -103,6 +109,7 @@ public struct SettingsView: View {
         self.onSourceAction = onSourceAction
         self.downloads = downloads
         self.bytesOnDisk = bytesOnDisk
+        self.importedBytes = importedBytes
         self.onClearDownloads = onClearDownloads
     }
 
@@ -222,6 +229,7 @@ public struct SettingsView: View {
         case .downloads:
             DownloadsSettings(
                 bytesOnDisk: bytesOnDisk,
+                importedBytes: importedBytes,
                 downloads: downloads,
                 settings: $settings,
                 highlight: highlight

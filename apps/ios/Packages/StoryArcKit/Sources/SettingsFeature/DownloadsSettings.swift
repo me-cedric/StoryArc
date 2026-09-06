@@ -25,6 +25,19 @@ struct DownloadsSettings: View {
     /// of number that makes a reader distrust the whole screen.
     let bytesOnDisk: Int64
 
+    /// What the copies the reader imported weigh, out of the total above.
+    ///
+    /// `local-library` asks the app to report the space an import used, and
+    /// `offline-downloads` asks the storage view for the total "broken down by source". "On
+    /// this device" is a source, and this is its share — the only part of that breakdown
+    /// either app can state today.
+    ///
+    /// Drawn only when there is something imported. A reader who has never imported a file
+    /// is told nothing by a second row of zero, and the section footer already says the
+    /// total counts what StoryArc downloaded **or imported**, which is what relates the two
+    /// figures for a reader who sees both.
+    var importedBytes: Int64 = 0
+
     /// What is on the device and what is still on its way.
     ///
     /// Handed in for the reason `bytesOnDisk` is: the downloads belong to the library that
@@ -51,6 +64,16 @@ struct DownloadsSettings: View {
                 } label: {
                     Text("downloads.total", bundle: .module)
                         .foregroundStyle(theme.palette.textPrimary)
+                }
+
+                if importedBytes > 0 {
+                    LabeledContent {
+                        Text(DownloadStore.formatted(importedBytes))
+                            .foregroundStyle(theme.palette.textSecondary)
+                    } label: {
+                        Text("downloads.imported", bundle: .module)
+                            .foregroundStyle(theme.palette.textPrimary)
+                    }
                 }
             } footer: {
                 // Said rather than implied, twice over. A reader who came here looking for
