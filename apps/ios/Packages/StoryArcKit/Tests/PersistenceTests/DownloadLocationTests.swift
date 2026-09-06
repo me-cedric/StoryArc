@@ -71,6 +71,31 @@ struct DownloadLocationTests {
         #expect(!FileManager.default.fileExists(atPath: store.location(of: record).path()))
     }
 
+    @Test("A resume token sits inside its own download's folder and a removal takes it")
+    func removalTakesTheResumeToken() throws {
+        let (store, directory) = try store()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let record = download()
+
+        // `offline-downloads` resumes an interrupted download "from where it stopped", and on
+        // iOS this token is what the system needs to do it. A reader who removes a download
+        // and is left with the makings of half of one has been told the bytes are gone when
+        // they are not.
+        let token = store.resumeData(of: record)
+        try FileManager.default.createDirectory(
+            at: token.deletingLastPathComponent(), withIntermediateDirectories: true
+        )
+        try Data([4, 5, 6]).write(to: token)
+
+        #expect(
+            token.deletingLastPathComponent() == store.location(of: record)
+                .deletingLastPathComponent(),
+            "The resume token is not in the folder a removal deletes."
+        )
+        store.remove(record)
+        #expect(!FileManager.default.fileExists(atPath: token.path()))
+    }
+
     @Test("A title a filesystem would refuse is made safe without leaving its own folder")
     func awkwardTitlesAreSafe() throws {
         let (store, directory) = try store()

@@ -28,6 +28,10 @@ extension DownloadQueue {
         )
         try? FileManager.default.removeItem(at: file)
         try FileManager.default.moveItem(at: temporary, to: file)
+        // The transfer this token described is over. Left behind, it would be offered to the
+        // next download of the same publication, which would carry on a transfer that has
+        // already finished.
+        try? FileManager.default.removeItem(at: store.resumeData(of: download))
         // Indexing *is* the verification. `offline-downloads` requires integrity to be
         // checked "before it is marked available offline", and with no checksum from the
         // server the honest check is whether the bytes are a publication this app can

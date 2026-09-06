@@ -77,6 +77,9 @@ public final class DownloadQueue {
         transfers.onOrphan { [weak self] name, file in
             Task { @MainActor in await self?.adopt(name, from: file) }
         }
+        transfers.onResumable { [weak self] name, data in
+            Task { @MainActor in self?.keep(data, for: name) }
+        }
         Task { await reclaim() }
     }
 

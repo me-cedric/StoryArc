@@ -102,9 +102,9 @@ extension DownloadQueue {
     /// a record actually moved.
     ///
     /// Cancelling is not deleting. The record and the bytes counted against it stay, and the
-    /// download is started again when Wi-Fi returns. What the app cannot yet do is start it
-    /// again *from* those bytes: there is no Range request anywhere in either tree, so a
-    /// resumed transfer begins at zero.
+    /// download is started again when Wi-Fi returns — *from* those bytes, as of the resume
+    /// token ``BackgroundTransfers`` now collects when it stops a transfer. A transfer the
+    /// system could not describe leaves no token, and that download starts over.
     ///
     /// **Cancelling the task reaches the system's transfer**, which it did not until
     /// ``BackgroundTransfers/download(_:named:)`` was given a cancellation handler. Before

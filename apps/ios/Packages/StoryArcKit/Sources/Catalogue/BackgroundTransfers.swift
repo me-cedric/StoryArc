@@ -91,8 +91,24 @@ public final class BackgroundTransfers: NSObject, @unchecked Sendable {
     /// connection the reader asked the app not to use, and the row that said "waiting for
     /// Wi-Fi" was then marked finished. Every return of Wi-Fi added another copy of the same
     /// transfer, because the first one was never stopped.
-    public func download(_ request: URLRequest, named: String) async throws -> URL {
-        let task = session.downloadTask(with: request)
+    /// One transfer, carried on from `resumingWith` when the system left something to carry.
+    ///
+    /// `offline-downloads`' *Resuming after interruption*: an interrupted download "resumes
+    /// from where it stopped if the server supports range requests, and restarts otherwise".
+    /// A background `URLSession` holds the fetched bytes where this app cannot reach them, so
+    /// the resume is the system's own — the token ``stop(_:named:)`` collects, handed back
+    /// here. `URLSession` sends the ranged request, validates the answer against what it
+    /// already has, and starts over by itself when the server will not resume.
+    ///
+    /// A token the system will not take is not a failure worth reporting: the download is
+    /// still wanted, and starting it over is what the reader asked for either way.
+    public func download(
+        _ request: URLRequest,
+        named: String,
+        resumingWith resumeData: Data? = nil
+    ) async throws -> URL {
+        let task = resumeData.map(session.downloadTask(withResumeData:))
+            ?? session.downloadTask(with: request)
         task.taskDescription = named
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
@@ -122,10 +138,31 @@ public final class BackgroundTransfers: NSObject, @unchecked Sendable {
     ///
     /// The removal and the resume are one locked step, so a completion arriving at the same
     /// moment finds no waiter and resumes nothing.
+    /// Stops a transfer, and keeps what the system will give back of it.
+    ///
+    /// `cancel(byProducingResumeData:)` rather than `cancel()`. The queue cancels in order to
+    /// *hold* a download — for Wi-Fi, for room on the device, or because the reader asked —
+    /// and a plain cancel throws the fetched bytes away, so every return of Wi-Fi started the
+    /// same 400 MB comic again from nothing.
+    ///
+    /// The caller is told at once and the token arrives later, because those are two
+    /// different moments: the system has to close the file before it can describe it. A
+    /// transfer with nothing worth resuming yields no token, which is the honest answer and
+    /// leaves the next attempt to start over.
     private func stop(_ task: URLSessionDownloadTask, named: String) {
-        task.cancel()
+        task.cancel { [weak self] data in
+            guard let data, let handler = self?.resumable.withLock({ $0 }) else { return }
+            handler(named, data)
+        }
         waiting.withLock { $0.removeValue(forKey: named) }?.resume(throwing: CancellationError())
     }
+
+    /// Told when a stopped transfer left something to carry on from.
+    public func onResumable(_ handler: (@Sendable (String, Data) -> Void)?) {
+        resumable.withLock { $0 = handler }
+    }
+
+    private let resumable = Mutex<(@Sendable (String, Data) -> Void)?>(nil)
 
     /// The names of the transfers the system is still carrying.
     ///

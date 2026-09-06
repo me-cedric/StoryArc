@@ -52,6 +52,34 @@ extension DownloadQueue {
         pump()
     }
 
+    /// What a held transfer left behind for this one to carry on from, if anything.
+    ///
+    /// `offline-downloads`' *Resuming after interruption*. Kept beside the download rather
+    /// than in the record, because it is a token of the system's and not a fact about the
+    /// publication — see ``Persistence/DownloadStore/resumeData(of:)``.
+    ///
+    /// Nil is the ordinary answer and means *start over*: a first attempt has nothing, and a
+    /// transfer the system could not describe left nothing.
+    func resumption(for download: Download) -> Data? {
+        guard let store else { return nil }
+        return try? Data(contentsOf: store.resumeData(of: download))
+    }
+
+    /// Keeps what a held transfer left, so the next attempt asks only for the rest.
+    ///
+    /// Only for a download the app still holds and is not running. A record removed while its
+    /// transfer was unwinding is one the reader cancelled, and writing a token for it would
+    /// re-create the directory a removal had just deleted.
+    func keep(_ resumeData: Data, for id: Download.ID) {
+        guard let store, let download = library[id], case .paused = download.state else { return }
+        let file = store.resumeData(of: download)
+        try? FileManager.default.createDirectory(
+            at: file.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try? resumeData.write(to: file)
+    }
+
     /// One attempt, with no opinion about whether there will be another.
     func one(
         _ download: Download,
@@ -73,7 +101,11 @@ extension DownloadQueue {
             if let credential = credential(download.id), home?.admits(download.remote) == true {
                 request.setValue(credential.header, forHTTPHeaderField: "Authorization")
             }
-            let temporary = try await transfers.download(request, named: download.id)
+            let temporary = try await transfers.download(
+                request,
+                named: download.id,
+                resumingWith: resumption(for: download)
+            )
             return try await land(download, from: temporary, seriesHint: seriesHint)
         } catch let error as PublicationIndexer.IndexError {
             // Indexing *is* the verification, so this is where `offline-downloads`' "a
