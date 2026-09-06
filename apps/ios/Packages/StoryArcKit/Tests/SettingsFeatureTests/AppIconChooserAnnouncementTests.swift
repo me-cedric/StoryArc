@@ -32,7 +32,7 @@ extension ForEach: RowBuilding {
 /// **The view's built value is read, not its source**, for the reason `SourceDetailSizeTests`
 /// gives: a regex is satisfied by a modifier's name in a comment. The row is a `Button` under
 /// an `AccessibilityContainerModifier` carrying `Combine`, then an
-/// `AccessibilityAttachmentModifier` whose `TraitsKey` entry holds SwiftUI's own trait bits.
+/// `AccessibilityAttachmentModifier` whose `traits` field holds SwiftUI's own trait bits.
 /// The bits are never spelled here — `selectedBits` and `buttonBits` are read off two control
 /// views built with the public modifier, so if SwiftUI renumbers them both sides move at once.
 ///
@@ -91,29 +91,41 @@ struct AppIconChooserAnnouncementTests {
         }
     }
 
-    /// The bits an accessibility attachment under `node` stores for `key`, or nil if it stores none.
+    /// The bits an accessibility attachment under `node` stores in `field`, or nil if it stores none.
     ///
-    /// `.accessibilityAddTraits` and `.accessibilityHidden` both write an entry keyed by a type
-    /// — `TraitsKey`, `VisibilityKey` — whose value is an option set with a `rawValue`.
-    static func bits(for key: String, in node: ViewNode) -> UInt64? {
-        let entry = node.descendants.first { $0.child(labelled: "key")?.typeName.contains(key) == true }
-        let raw = entry?.child(labelled: "value")?.child(labelled: "value")?.child(labelled: "rawValue")?.value
-        switch raw {
-        case let wide as UInt64: return wide
-        case let narrow as UInt32: return UInt64(narrow)
-        default: return nil
+    /// `.accessibilityAddTraits` and `.accessibilityHidden` write `AccessibilityProperties`' own
+    /// `traits` and `visibility` fields. Each holds an option set with a `rawValue`. An earlier SDK
+    /// kept the same two in a dictionary under entries keyed by a `TraitsKey` or a `VisibilityKey`
+    /// type, and that shape is gone. So this searches the subtree for the first `rawValue` rather
+    /// than walking a fixed path, and the next reshuffle moves nothing here.
+    static func bits(for field: String, in node: ViewNode) -> UInt64? {
+        for candidate in node.descendants where candidate.label == field {
+            if let raw = firstRawValue(under: candidate) { return raw }
         }
+        return nil
+    }
+
+    /// The first integer `rawValue` below `node`, which is the option set's value and not its mask.
+    private static func firstRawValue(under node: ViewNode) -> UInt64? {
+        for descendant in node.descendants where descendant.label == "rawValue" {
+            switch descendant.value {
+            case let wide as UInt64: return wide
+            case let narrow as UInt32: return UInt64(narrow)
+            default: continue
+            }
+        }
+        return nil
     }
 
     /// SwiftUI's own numbering, read rather than assumed.
     private static let selectedBits = bits(
-        for: "TraitsKey", in: tree(of: Text("x").accessibilityAddTraits(.isSelected))
+        for: "traits", in: tree(of: Text("x").accessibilityAddTraits(.isSelected))
     )
     private static let buttonBits = bits(
-        for: "TraitsKey", in: tree(of: Text("x").accessibilityAddTraits(.isButton))
+        for: "traits", in: tree(of: Text("x").accessibilityAddTraits(.isButton))
     )
     private static let hiddenBits = bits(
-        for: "VisibilityKey", in: tree(of: Color.red.accessibilityHidden(true))
+        for: "visibility", in: tree(of: Color.red.accessibilityHidden(true))
     )
 
     /// The chooser over a platform that draws `applied`, built, with its rows.
@@ -143,7 +155,7 @@ struct AppIconChooserAnnouncementTests {
         #expect(Self.buttonBits != nil)
         #expect(Self.hiddenBits != nil)
         #expect(Self.selectedBits != Self.buttonBits)
-        let shown = Self.bits(for: "VisibilityKey", in: Self.tree(of: Color.red.accessibilityHidden(false)))
+        let shown = Self.bits(for: "visibility", in: Self.tree(of: Color.red.accessibilityHidden(false)))
         #expect(shown != Self.hiddenBits)
     }
 
@@ -173,7 +185,7 @@ struct AppIconChooserAnnouncementTests {
         let button = try #require(Self.buttonBits)
 
         for face in AppIconChoice.allCases {
-            let traits = try #require(Self.bits(for: "TraitsKey", in: try Self.row(for: face, in: rows)))
+            let traits = try #require(Self.bits(for: "traits", in: try Self.row(for: face, in: rows)))
             #expect(traits & button == button, "\(face) is not announced as a button")
             #expect((traits & selected == selected) == (face == .paper), "\(face)'s 'in use' state is wrong")
         }
@@ -190,7 +202,7 @@ struct AppIconChooserAnnouncementTests {
                 try Self.row(for: face, in: rows).descendants.first { $0.typeName == "AppIconTile" }?.value
             )
             let body = try #require(Self.body(of: tile), "\(face)'s tile is not a View")
-            #expect(Self.bits(for: "VisibilityKey", in: Self.tree(of: body)) == hidden, "\(face)'s tile is announced")
+            #expect(Self.bits(for: "visibility", in: Self.tree(of: body)) == hidden, "\(face)'s tile is announced")
         }
     }
 
