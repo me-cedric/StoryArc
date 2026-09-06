@@ -169,4 +169,20 @@ struct KavitaShelvesTests {
             _ = try await client.createList(named: "Crossover")
         }
     }
+
+    @Test("The reading lists are asked for with a post, which is the only verb Kavita answers")
+    func readingListsArePosted() async throws {
+        // Measured against a live Kavita on 2026-09-06: `GET /api/ReadingList/lists` answers
+        // 404 and a POST carrying an empty filter answers with every list. Android's
+        // `KavitaTest` makes the same claim, and `scripts/kavita-server.mjs --self-test` the
+        // server's half of it.
+        let asked = Asked()
+        let sent = Sent()
+        let client = try client(asked, sent: sent, body: "[]")
+        _ = try await client.readingLists()
+
+        #expect(asked.path == "/api/ReadingList/lists")
+        #expect(asked.method == "POST")
+        #expect(sent.body == "{}")
+    }
 }

@@ -181,9 +181,22 @@ extension KavitaClient {
     }
 
     /// The series in one library, or in all of them.
+    ///
+    /// A POST carrying a filter, because that is what Kavita answers. Measured against a
+    /// live server on 2026-09-06: a GET here is a 404, and this client sent one — so a
+    /// reader who added their own Kavita was shown no series at all. An empty filter is
+    /// the whole list. The library still rides in the query, which is where this client has
+    /// always put it; whether a live Kavita reads it there is unmeasured.
     public func series(inLibrary id: Int? = nil) async throws -> [KavitaSeries] {
         let query = id.map { [URLQueryItem(name: "libraryId", value: String($0))] } ?? []
-        return try decode([KavitaSeries].self, from: try await get("Series/all-v2", query: query))
+        guard let url = address.endpoint("Series/all-v2", query: query) else {
+            throw KavitaError.badAddress
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Data("{}".utf8)
+        return try decode([KavitaSeries].self, from: try await send(request))
     }
 
     /// One series, asked for by identity.

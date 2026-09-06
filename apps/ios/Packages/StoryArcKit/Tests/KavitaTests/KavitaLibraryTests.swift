@@ -117,6 +117,37 @@ struct KavitaLibraryTests {
      "tags":[{"id":2,"title":"Ongoing"}]}
     """
 
+    @Test("The series list is asked for with a post, which is the only verb Kavita answers")
+    func seriesListIsPosted() async throws {
+        // Measured against a live Kavita on 2026-09-06: `GET /api/Series/all-v2` answers 404
+        // and a POST carrying an empty filter answers with every series. A reader who added
+        // their own server was shown no series at all, and no test could see it because the
+        // mock answered any verb. `scripts/kavita-server.mjs --self-test` holds the server's
+        // half of this claim, and Android's `KavitaTest` the same client half.
+        let sent = KavitaSent()
+        let host = "\(UUID().uuidString).example"
+        let configuration = KavitaStub.session(host: host) { request in
+            if request.url?.path().contains("authenticate") == true {
+                return .response(status: 200, body: Data(#"{"username":"a","token":"t"}"#.utf8))
+            }
+            sent.record(request)
+            return .response(status: 200, body: Data("[]".utf8))
+        }
+        let address = try #require(KavitaAddress.from(base: "https://\(host)", apiKey: "k"))
+        let client = KavitaClient(address: address, configuration: configuration)
+        _ = try await client.series(inLibrary: 1)
+
+        let request = try #require(sent.request)
+        #expect(request.url?.path() == "/api/Series/all-v2")
+        #expect(request.httpMethod == "POST")
+        #expect(request.value(forHTTPHeaderField: "Content-Type") == "application/json")
+        #expect(String(bytes: try #require(sent.body), encoding: .utf8) == "{}")
+        // The library still rides in the query, which is where the client has always put it
+        // and what the mock reads. Whether a live Kavita filters on it is the parent's to
+        // measure -- an unmeasured filter statement in the body would be a guess.
+        #expect(request.url?.query() == "libraryId=1")
+    }
+
     @Test("A response that is not the shape expected is named as such")
     func unexpectedShape() async throws {
         let client = try client(#"{"unexpected":true}"#)

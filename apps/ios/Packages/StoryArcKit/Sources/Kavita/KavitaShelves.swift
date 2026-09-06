@@ -119,8 +119,17 @@ extension KavitaClient {
     }
 
     /// The reading lists this server holds.
+    ///
+    /// A POST carrying a filter, for the reason ``series(inLibrary:)`` gives: measured
+    /// against a live server on 2026-09-06, a GET here is a 404 and this client sent one,
+    /// so a reader who added their own Kavita was shown no reading lists at all.
     public func readingLists() async throws -> [KavitaReadingList] {
-        try decode([KavitaReadingList].self, from: try await get("ReadingList/lists"))
+        guard let url = address.endpoint("ReadingList/lists") else { throw KavitaError.badAddress }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Data("{}".utf8)
+        return try decode([KavitaReadingList].self, from: try await send(request))
     }
 
     /// One reading list's entries, in the order the server keeps.
