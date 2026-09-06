@@ -280,11 +280,27 @@ extension LibraryModel {
         // directory, for exactly this.
         guard !partial else { return }
 
+        // **Both sides resolved the same way, and the separator kept.** The folder arrives
+        // as a resolved bookmark spells it, `/private/var/…`; a location is built from
+        // `PublicationIdentity.normalizedPath`, which is `(path as NSString).standardizingPath`
+        // and strips that prefix again. `/var` is a symbolic link to `/private/var` on both
+        // platforms, so the raw strings never matched for one file: on a bookmarked folder
+        // this filter selected nothing, and every book the reader had deleted stayed on the
+        // shelf and opened on a file that is gone. `LibraryScanner.normalized(_:)` names the
+        // same hazard for the resumed scan, and ``isAppStorage(_:)`` resolves both sides too.
+        //
+        // The trailing separator is the other half of the same comparison, and it fails the
+        // expensive way: without it a walk of `…/Comics` read `…/Comics2` as being inside it
+        // and forgot a neighbouring library's books. ``isOnDevice(_:)`` composes it the same
+        // way, for the same reason.
+        let walked = folder.standardizedFileURL.resolvingSymlinksInPath().path(percentEncoded: false)
+        let inside = walked.hasSuffix("/") ? walked : walked + "/"
         let gone = publications.filter { publication in
             guard !seen.contains(publication.id),
                   let location = locations[publication.id]
             else { return false }
-            return location.path().hasPrefix(folder.path())
+            return location.standardizedFileURL.resolvingSymlinksInPath()
+                .path(percentEncoded: false).hasPrefix(inside)
         }
         guard !gone.isEmpty else { return }
 
