@@ -59,6 +59,14 @@ struct DownloadQueueWakingTests {
         )
     }
 
+    /// How many transfers the queue began, counted where it asks for a credential.
+    ///
+    /// A reference type because the queue's credential closure escapes and the count has to
+    /// outlive the call that made it.
+    private final class Starts {
+        var count = 0
+    }
+
     private func finished(id: String, bytes: Int64) -> Download {
         Download(
             id: id,
@@ -93,21 +101,39 @@ struct DownloadQueueWakingTests {
     }
 
     /// **The same notice, several times.** `NWPathMonitor` reports an interface coming up
-    /// more than once, and `pump` is what makes that safe: `start` marks the record running
-    /// before it returns, so the next pump no longer sees it queued.
+    /// more than once. Two things make that safe, and this counts what both of them are for:
+    /// `NetworkCost` reports only a connection that differs from the last one, and `pump`
+    /// marks a record running before it returns, so a second pump no longer sees it queued.
+    ///
+    /// **Counted at the credential, not at `running`.** The queue asks for the credential
+    /// once per started transfer, on the way into the fetch and before the transfer
+    /// suspends, so these calls are the starts. `running` cannot count them: it is keyed by
+    /// download id, so a second start of the same download overwrites the first entry rather
+    /// than adding one, and the count stays 1 however many transfers were begun. The same is
+    /// true of the record's state, which `marking` sets idempotently. Android counts the
+    /// credential for this reason.
     @Test("Repeated network notices do not start the same download twice")
-    func noDoubleStart() throws {
+    func noDoubleStart() async throws {
         let id = "no-double-start-\(UUID().uuidString)"
         let store = try store(holding: [queued(id: id)])
+        let starts = Starts()
         let queue = DownloadQueue(
             store: store,
+            credential: { _ in
+                starts.count += 1
+                return nil
+            },
             settings: { AppSettings(downloadOverWifiOnly: true) }
         )
 
         for _ in 0..<5 { queue.network.note(careful: false, cellular: false) }
+        // Every start is a task on this actor, and the credential is read before the first
+        // suspension inside it. Yielding gives each task that was created its turn, so a
+        // second start is counted rather than missed.
+        for _ in 0..<50 { await Task.yield() }
 
-        #expect(queue.running.count == 1)
-        #expect(queue.library.downloads.filter { $0.state == .running }.count == 1)
+        #expect(starts.count == 1, "Five notices started more than one transfer.")
+        #expect(queue.library[id]?.state == .running)
     }
 
     /// **Room was freed.** The reader's own limit is reached, so the queue is held; deleting
