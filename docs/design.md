@@ -282,9 +282,14 @@ looks like a music player.
   enough to move 900 to 840. *Split View, Slide Over and multi-window* requires
   a resized window to reflow continuously, and `WindowClass.swift` names Stage
   Manager, so a window dragged to 870 pt is a full-width shelf inside the band.
-  The two numbers disagree there — on Home, on Downloads and in the browse
-  grids. Moving iOS to 840 is a behaviour change on a supported geometry, and
-  it still waits on the tablet comparison the paragraph above asked for.
+  The two numbers disagree there — on Home's *see all* grid, on a collection's
+  grid, on Search and on Downloads. Those are the iOS surfaces that are handed
+  a whole window and ask `coverMinimumWidth`. The library's own shelf is capped
+  at 760 pt, and the iOS browse grids set fixed minimums and never ask at all;
+  it is **Android** whose three remote-browse grids ask the window, as the
+  bullet below records. Moving iOS to 840 is a behaviour change on a supported
+  geometry. Neither number moves until the two are compared on one tablet — a
+  thing to settle, not a licence to copy either.
   `CoverMinimumWidthTests` now pins every width named here, 839 and 840
   included, so whoever takes the decision fails a test by name and comes back
   to this paragraph. The number stays in code on both platforms and not in
