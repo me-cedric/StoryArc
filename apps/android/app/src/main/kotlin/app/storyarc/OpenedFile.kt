@@ -1,6 +1,6 @@
 package app.storyarc
 
-import android.content.ContentResolver
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -69,9 +69,16 @@ internal object OpenedFile {
      * The source stays open for the whole index, because the decoder path it exposes is
      * `/proc/self/fd/N` and that resolves only while the descriptor is open. The caller
      * gets the path back so the reader can open the same bytes without a copy.
+     *
+     * Takes the activity's [Context] rather than its `ContentResolver`, because a file the
+     * provider does not name is named by [displayName] from `strings.xml`, and a resolver
+     * cannot answer for a string. The activity's context, never the application's:
+     * `localization` lets the reader override the interface language, and that override
+     * lives on the activity.
      */
-    suspend fun index(resolver: ContentResolver, uri: Uri): Outcome = withContext(Dispatchers.IO) {
-        val name = displayName(resolver, uri)
+    suspend fun index(context: Context, uri: Uri): Outcome = withContext(Dispatchers.IO) {
+        val resolver = context.contentResolver
+        val name = displayName(context, uri)
         runCatching {
             UriSource(resolver, uri).use { source ->
                 // A digest, not the `Uri`. A provider hands the same file over under a
@@ -107,10 +114,11 @@ internal object OpenedFile {
     }
 
     /** The provider's own name for the file, which is the only name a reader recognises. */
-    private fun displayName(resolver: ContentResolver, uri: Uri): String {
+    private fun displayName(context: Context, uri: Uri): String {
+        val resolver = context.contentResolver
         resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
             if (cursor.moveToFirst() && !cursor.isNull(0)) return cursor.getString(0)
         }
-        return uri.lastPathSegment ?: "this file"
+        return uri.lastPathSegment ?: context.getString(R.string.open_in_unnamed)
     }
 }

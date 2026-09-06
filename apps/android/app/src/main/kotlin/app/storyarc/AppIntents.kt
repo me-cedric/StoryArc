@@ -60,7 +60,7 @@ internal fun AppIntents(
     LaunchedEffect(incoming) {
         val uri = incoming ?: return@LaunchedEffect
         handedOver.value = null
-        when (val outcome = OpenedFile.index(activity.contentResolver, uri)) {
+        when (val outcome = OpenedFile.index(activity, uri)) {
             // The same door the library goes through, so a file that arrives from a file
             // manager is routed to a reader by what it *is*, exactly as one chosen from a
             // shelf would be.

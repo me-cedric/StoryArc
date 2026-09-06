@@ -7,6 +7,12 @@
     <string name="open_in_unreadable">StoryArc no reconoce %1$s. Lee CBZ, CBR, CBT, EPUB, PDF y audiolibros.</string>
     <string name="open_in_protected">%1$s está protegido por la protección de contenido de su tienda, y StoryArc no puede abrirlo. StoryArc no retira protecciones de contenido, así que aquí no hay nada que introducir.</string>
     <string name="open_in_dismiss">OK</string>
+    <!-- The name used when the provider offers no name and the Uri has no last segment.
+         It is interpolated into the three sentences above, so it is written to read inside
+         one: lower case where the language does not capitalise a common noun. Two of the
+         three English sentences start with it, and a missing capital there costs less than
+         a wrong capital in the middle of the French and the Spanish ones. -->
+    <string name="open_in_unnamed">este archivo</string>
 
     <string name="shortcut_continue">Seguir leyendo</string>
     <string name="shortcut_continue_named">Seguir con %1$s</string>

@@ -10,6 +10,12 @@
          waiting for a field that is never coming. -->
     <string name="open_in_protected">%1$s is protected by its store\'s content protection, and StoryArc cannot open it. StoryArc does not remove content protection, so there is nothing to enter here.</string>
     <string name="open_in_dismiss">OK</string>
+    <!-- The name used when the provider offers no name and the Uri has no last segment.
+         It is interpolated into the three sentences above, so it is written to read inside
+         one: lower case where the language does not capitalise a common noun. Two of the
+         three English sentences start with it, and a missing capital there costs less than
+         a wrong capital in the middle of the French and the Spanish ones. -->
+    <string name="open_in_unnamed">this file</string>
 
     <!-- The player. The intervals are in the strings because they are on the controls:
          `audio-playback` asks the interval to be "stated on the control itself", and 15 s
