@@ -10,7 +10,9 @@ import StoryArcCore
 /// That screen writes the download store and owns no `DownloadQueue`: the only queue the app
 /// builds is `@State` on a catalogue page. So *Retry* there can mark the record `queued` and
 /// has nowhere to send the pump — and `DownloadQueue.reconsider()`, the method written for
-/// exactly that, had no callers on either platform. A button that turned a red row into a
+/// exactly that, had no callers on either platform when this suite was written. It has them
+/// now, in `DownloadQueueWakingTests`, and none of them is this. A button that turned a red
+/// row into a
 /// queued one that nothing would ever run is the control that lies, and this suite is what
 /// keeps it from being one. Two ends:
 ///

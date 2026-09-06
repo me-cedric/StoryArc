@@ -2,7 +2,7 @@ public import Foundation
 
 internal import Network
 
-/// Whether the connection is one to be careful with.
+/// Whether the connection is one to be careful with, and a way to be told when it changes.
 ///
 /// `network-share` asks the same question before streaming: on such a connection the reader
 /// confirms first.
@@ -11,14 +11,41 @@ internal import Network
 /// platform's data saver or Low Data Mode is active ... the app treats the connection as
 /// metered regardless of its own setting". `isConstrained` is Low Data Mode; `isExpensive`
 /// is cellular and personal hotspot. Both mean the same thing here: use less of it.
+///
+/// The two answers are kept rather than the `NWPath` they came from. The monitor's own
+/// update handler is the callback this type needs — no publisher and no observation
+/// framework is added for it — and a stored pair of answers is what lets ``note(careful:
+/// cellular:)`` be the one door both the monitor and a test come through.
 @MainActor
 final class NetworkCost {
     private let monitor = NWPathMonitor()
-    private var path: NWPath?
+
+    /// Told after every change, so a held download queue can look again.
+    ///
+    /// Owners hold themselves weakly here: this object belongs to the one that sets the
+    /// closure, and a strong capture would be a cycle.
+    var onChange: (() -> Void)?
+
+    /// True until the monitor has an answer, which errs toward using less.
+    private(set) var isCareful = true
+
+    /// Whether the only way out is cellular.
+    ///
+    /// Separate from ``isCareful``: Low Data Mode over Wi-Fi is careful but is still Wi-Fi,
+    /// and `offline-downloads`' "download over Wi-Fi only" is a question about the medium
+    /// rather than about the cost. True until the monitor has an answer, for the same
+    /// reason ``isCareful`` is.
+    private(set) var isCellular = true
 
     init() {
         monitor.pathUpdateHandler = { [weak self] path in
-            Task { @MainActor in self?.path = path }
+            Task { @MainActor in
+                self?.note(
+                    careful: path.isConstrained || path.isExpensive,
+                    cellular: !path.usesInterfaceType(.wifi)
+                        && !path.usesInterfaceType(.wiredEthernet)
+                )
+            }
         }
         monitor.start(queue: .global(qos: .utility))
     }
@@ -27,19 +54,13 @@ final class NetworkCost {
         monitor.cancel()
     }
 
-    /// True until the monitor has an answer, which errs toward using less.
-    var isCareful: Bool {
-        guard let path else { return true }
-        return path.isConstrained || path.isExpensive
-    }
-
-    /// Whether the only way out is cellular.
+    /// Records the connection and tells whoever is listening.
     ///
-    /// Separate from ``isCareful``: Low Data Mode over Wi-Fi is careful but is still Wi-Fi,
-    /// and `offline-downloads`' "download over Wi-Fi only" is a question about the medium
-    /// rather than about the cost.
-    var isCellular: Bool {
-        guard let path else { return true }
-        return !path.usesInterfaceType(.wifi) && !path.usesInterfaceType(.wiredEthernet)
+    /// The monitor calls this, and so does a test: a `NWPath` cannot be built, so injecting
+    /// the answer is the only way to assert what the queue does with it.
+    func note(careful: Bool, cellular: Bool) {
+        isCareful = careful
+        isCellular = cellular
+        onChange?()
     }
 }

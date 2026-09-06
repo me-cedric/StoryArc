@@ -66,6 +66,9 @@ public final class DownloadQueue {
         // So a retry pressed on a screen that owns no queue can reach this one while it is
         // alive — see `DownloadQueueRetry.swift`.
         remember()
+        // The monitor's own update handler is `offline-downloads`' "automatically". Weakly,
+        // because the queue owns the monitor and a strong capture would be a cycle.
+        network.onChange = { [weak self] in self?.reconsider() }
         // Anything that was mid-flight when the app died comes back queued, so the pump
         // picks it up rather than leaving it stuck at "in progress" for ever. A record the
         // Downloads screen put back in the queue while no queue was alive is picked up here
@@ -101,14 +104,6 @@ public final class DownloadQueue {
         finish(id, with: file)
         pump()
     }
-
-    /// How many transfers run at once.
-    ///
-    /// Two on an ordinary connection: enough that a slow server does not stall the whole
-    /// queue, few enough that a reader's bandwidth is not divided six ways. One on a
-    /// metered or constrained connection, which is what `offline-downloads` means by
-    /// lowering the bound — Low Data Mode and a personal hotspot both land here.
-    public var concurrency: Int { network.isCareful ? 1 : 2 }
 
     let settings: () -> AppSettings
 
@@ -257,8 +252,13 @@ public final class DownloadQueue {
     }
 
     /// Forgets a download and deletes its file.
+    ///
+    /// Then looks again, because room was freed. Deleting a finished publication is the one
+    /// remedy `offline-downloads` names for a queue held by the storage limit, and a remedy
+    /// that needs the reader to leave the screen and come back is not one.
     public func remove(_ id: Download.ID) {
         library = store?.removing(id, from: library) ?? library.removing(id)
+        pump()
     }
 
     /// What each queued download is *of*, so a retry has an entry to index against.

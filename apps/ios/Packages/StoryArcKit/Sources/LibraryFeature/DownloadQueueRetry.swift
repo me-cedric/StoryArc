@@ -8,7 +8,8 @@ public import StoryArcCore
 /// the pump — and then has nowhere to send the pump. Android found the hole first, fixing the
 /// same row a day earlier: `DownloadQueue.reconsider()` had no callers on either platform,
 /// and a re-queued record was picked up only when a reader next enqueued something from a
-/// catalogue. iOS's ``reconsider()`` still has none; this is the caller the retry needed.
+/// catalogue. ``reconsider()`` now has its own callers — a change of network, and room freed
+/// by a removal — but none of them is a queue this screen can name. This is that caller.
 ///
 /// Every queue registers itself while it is alive, weakly, and ``retry(_:)`` asks the first
 /// of them that holds the record as failed to resume it — and only that one, because two

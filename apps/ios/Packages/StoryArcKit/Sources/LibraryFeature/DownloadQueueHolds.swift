@@ -21,6 +21,18 @@ extension DownloadQueue {
         case outOfSpace
     }
 
+    /// How many transfers run at once.
+    ///
+    /// Two on an ordinary connection: enough that a slow server does not stall the whole
+    /// queue, few enough that a reader's bandwidth is not divided six ways. One on a
+    /// metered or constrained connection, which is what `offline-downloads` means by
+    /// lowering the bound — Low Data Mode and a personal hotspot both land here.
+    ///
+    /// Here rather than on the queue proper because it answers this file's one question —
+    /// may the queue run, and how much — out of the same ``NetworkCost`` that ``mayStart(_:)``
+    /// reads. It moved to make room for the observer that wakes a held queue.
+    public var concurrency: Int { network.isCareful ? 1 : 2 }
+
     /// Asks the volume how much room is left, and remembers the answer.
     func refreshHeadroom() {
         spaceIsLow = StorageHeadroom.isLow(free: store?.availableBytes())
