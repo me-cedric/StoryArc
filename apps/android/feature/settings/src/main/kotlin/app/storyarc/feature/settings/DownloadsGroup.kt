@@ -114,8 +114,9 @@ private fun Waiting(hold: DownloadHold?) {
         modifier = Modifier.padding(bottom = StoryArcSpace.sm),
     ) {
         // The pause reason's own sentence, already translated and already drawn on the row of
-        // every held download. Said once here rather than written a second time, so the screen
-        // and the queue cannot disagree in one language.
+        // every held download -- `DownloadsParts.kt`, and `DownloadQueueSection.swift` on iOS.
+        // Said once here rather than written a second time, so the screen and the queue cannot
+        // disagree in one language.
         Text(
             text = stringResource(hold.state),
             style = MaterialTheme.typography.bodyLarge,
