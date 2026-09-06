@@ -18,6 +18,13 @@ import kotlin.math.roundToInt
  * its host's rate, so the only place a number about a reader's phone can be taken is a
  * reader's phone.
  *
+ * **What is counted is what the main thread was handed, not what the reader saw.** The frame
+ * clock reports the display's vsync. It does not report whether this app drew anything new for
+ * that vsync, or whether the compositor showed it. So a turn whose shader misses its deadline
+ * on the GPU, while the main thread stays free enough to answer every callback, is reported
+ * with no dropped frame. Read a zero as *the main thread kept up*, and never as *the frame
+ * budget was met*.
+ *
  * iOS's `FrameRun` holds the same arithmetic, rule for rule.
  */
 internal class FrameRun(val isEnabled: Boolean) {
@@ -25,11 +32,11 @@ internal class FrameRun(val isEnabled: Boolean) {
     var isRecording = false
         private set
 
-    /** Frames the display delivered while the turn ran. */
+    /** Frame callbacks this app was handed while the turn ran. */
     var delivered = 0
         private set
 
-    /** Frames the display could have delivered in the same time and did not. */
+    /** Frame callbacks the display had room for over the same span and did not hand over. */
     var dropped = 0
         private set
 
