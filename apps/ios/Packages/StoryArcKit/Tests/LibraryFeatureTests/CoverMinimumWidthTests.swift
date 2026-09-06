@@ -42,23 +42,28 @@ struct CoverMinimumWidthTests {
         #expect(coverMinimumWidth(shelfWidth: 1366, textSize: size) == 158)
     }
 
-    /// The wide tier and the second pane are one step, not two.
+    /// One wide-tier threshold, and 760 does not reach it.
     ///
     /// Decided on 2026-09-06 and recorded in `design.md` §4. `confidentShelfWidth` was 900
-    /// and Android's threshold has always been 840, which is Material's expanded breakpoint
-    /// and `StoryArcWindowClass.showsTwoPanes`. At 900 a reader dragging a window wider met
-    /// two reflows a few points apart: the pane arrived, then the covers stepped. They now
-    /// meet one. Android asserts this boundary under this same name, so the two numbers
-    /// cannot drift apart again.
+    /// and Android's threshold has always been 840, which is Material's expanded breakpoint.
+    /// Both platforms hand the tier a measured shelf width, so it is the app's own number
+    /// rather than a platform size class, and two of them were a divergence neither platform
+    /// forces. Android asserts this boundary under this same name, so they cannot drift apart
+    /// again.
+    ///
+    /// **The pane reading of 840 is Android's.** There it is also
+    /// `StoryArcWindowClass.showsTwoPanes` — a member iOS's type of that name does not have.
+    /// The only iOS second pane is ``LibraryPanes``'s split view, on the shelf surface alone,
+    /// turned on by the horizontal size class near 600 pt.
     ///
     /// **760 is not a device.** It is the ceiling ``LibraryPanes`` puts on the library
     /// column, so it is the widest the *library* shelf is ever drawn, and it still takes the
     /// middle tier. The library grid reaches the wide tier under no number this file names.
     @Test(
-        "The wide tier starts at 840, where a window gains its second pane",
+        "The wide tier starts at 840, the one number both platforms use",
         arguments: ordinarySizes
     )
-    func theWideTierStartsWhereTheSecondPaneDoes(size: DynamicTypeSize) {
+    func theWideTierStartsAtTheOneSharedNumber(size: DynamicTypeSize) {
         #expect(coverMinimumWidth(shelfWidth: 839, textSize: size) == 132)
         #expect(coverMinimumWidth(shelfWidth: 840, textSize: size) == 158)
         #expect(coverMinimumWidth(shelfWidth: 760, textSize: size) == 132)
@@ -66,11 +71,13 @@ struct CoverMinimumWidthTests {
 
     /// The band the decision moved, asserted at its middle.
     ///
-    /// No iPad has a full-screen width in [840, 899), but the app sets no
-    /// `UIRequiresFullScreen` and `native-experience` asks a resized window to reflow
-    /// continuously. A window dragged to 870 pt is a full-width shelf inside the band. It
-    /// drew the 132 pt tier before this decision and draws 158 after it. Android drew 158
-    /// there already, so this test is a pin there and a changed answer here.
+    /// No iPad has a full-screen *window* in [840, 899), which bounds the window and not
+    /// this function's input — a shelf is a column, and `confidentShelfWidth` says why the
+    /// affected set is a lower bound. What is certain is the resized window: the app sets no
+    /// `UIRequiresFullScreen` and `native-experience` asks one to reflow continuously, so a
+    /// window dragged to 870 pt is a full-width shelf inside the band. It drew the 132 pt
+    /// tier before this decision and draws 158 after it. Android drew 158 there already, so
+    /// this test is a pin there and a changed answer here.
     @Test(
         "A shelf of 870 takes the wide tier, the band iOS moved on 2026-09-06",
         arguments: ordinarySizes

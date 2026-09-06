@@ -6,23 +6,35 @@ public import StoryArcCore
 /// The width at or above which the shelf stops being a widened phone.
 ///
 /// **Decided on 2026-09-06: 840, the number Android has always used.** This was 900, and
-/// `design.md` §4 recorded the divergence as open. 840 is Material's expanded breakpoint
-/// and the width at which a window gains its second pane, so the covers now step where the
-/// layout steps. At 900 a reader dragging a window wider met two reflows a few points
-/// apart; they now meet one.
+/// `design.md` §4 recorded the divergence as open. Both platforms hand this tier a measured
+/// *shelf* width, so the threshold is the app's own number and not a platform size class —
+/// which is why two of them were a divergence neither platform forces. 840 is Material's
+/// expanded breakpoint and is in a register already; 900 was in none.
 ///
-/// **This moved behaviour, and here is whose.** No iPad has a full-screen width in
-/// [840, 899) — the current line is 744, 820, 834, 1024 and 1032 points in portrait and
-/// 1133, 1180, 1210, 1366 and 1376 in landscape — but the app sets no `UIRequiresFullScreen`
-/// and `native-experience` asks a resized window to "reflow continuously", and
-/// ``StoryArcWindowClass`` names Stage Manager as one of the events that changes the number.
-/// A window dragged to, say, 870 points is a full-width shelf inside that band, and it now
-/// draws 158 pt covers where it drew 132. `CoverMinimumWidthTests` pins 839, 840 and 870.
+/// **The pane reading of 840 is Android's, not this platform's.** There 840 dp is also
+/// `StoryArcWindowClass.showsTwoPanes`, so the covers step where the window gains its
+/// second pane and one drag gives one reflow. iOS has no width like it. Its
+/// ``StoryArcWindowClass`` has no such member; its only second pane is ``LibraryPanes``'s
+/// split view, built for the shelf surface alone, turned on by the horizontal size class
+/// near 600 points, in a column capped at 760. No iOS surface that reads this number gains
+/// a pane at any width. iOS gains one number here, not one reflow.
 ///
-/// Against the widths read from the simulator device profiles on 2026-09-06: a full-width
-/// shelf clears this on every current iPad in landscape, and in portrait only on a 13-inch
-/// one. The *library's* shelf clears it nowhere at all, because ``LibraryPanes`` caps that
-/// column at 760 points.
+/// **This moved behaviour, and the set it moved is a lower bound.** No iPad has a
+/// full-screen width in [840, 899) — the current line is 744, 820, 834, 1024 and 1032 points
+/// in portrait and 1133, 1180, 1210, 1366 and 1376 in landscape — but those are *window*
+/// widths and this function is handed the *grid's*. ``AppShell`` is `.sidebarAdaptable`, and
+/// the note on ``CoverGrid``'s measured width puts a shown sidebar at about 300 points, so a
+/// landscape iPad can hand this a width inside the band while its window is far above it.
+/// Which iPads do is unmeasured, and measuring it needs a simulator. What is certain is the
+/// resized window: the app sets no `UIRequiresFullScreen`, `native-experience` asks a resized
+/// window to "reflow continuously", and ``StoryArcWindowClass`` names Stage Manager as one of
+/// the events that changes the number. A window dragged to, say, 870 points is a full-width
+/// shelf inside that band, and it now draws 158 pt covers where it drew 132.
+/// `CoverMinimumWidthTests` pins 839, 840 and 870.
+///
+/// Against those same profiles: a full-width shelf clears this on every current iPad in
+/// landscape, and in portrait only on a 13-inch one. The *library's* shelf clears it nowhere
+/// at all, because ``LibraryPanes`` caps that column at 760 points.
 ///
 /// **Which surfaces the tier governs.** Exactly three call sites read this number:
 /// ``CoverGrid``, ``SectionedShelf`` and `OnDeviceShelf`. Through them the tier belongs to
