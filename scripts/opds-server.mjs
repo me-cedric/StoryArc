@@ -391,24 +391,41 @@ const LIES = {
 }
 
 /**
- * Sends `body`, honouring `Range`, and lying about it when asked to.
+ * What identifies this version of a publication, so a resumed read can be checked.
+ *
+ * A strong `ETag`, which is what RFC 9110 lets a client send back as `If-Range`. Without one
+ * a client asking for `bytes=N-` is asking a server to continue a file it has no way to
+ * check, and a publication re-served after a re-scan answers 206 for a prefix that is no
+ * longer its own — the two builds splice into a file of exactly the right length whose first
+ * half is unreadable. Size and modification time, because that is what the corpus has.
+ */
+const validatorOf = (entry) =>
+  `"${entry.size.toString(16)}-${Date.parse(entry.updated).toString(16)}"`
+
+/**
+ * Sends `body`, honouring `Range` and `If-Range`, and lying about it when asked to.
  *
  * The `Accept-Ranges: bytes` here is the advertisement ADR-0008 needs: without it a client
  * has no way to know a ranged read is worth attempting, and `offline-downloads` has to
  * state whether an interrupted download resumed or restarted.
  */
-function sendBytes(request, response, type, body, { lie, ranges } = {}) {
+function sendBytes(request, response, type, body, { lie, ranges, tag } = {}) {
   const headers = {
     'Content-Type': type,
     'Cache-Control': 'no-store',
     'Accept-Ranges': ranges === 'off' ? 'none' : 'bytes',
+    ...(tag ? { ETag: tag } : {}),
   }
   const whole = () => {
     response.writeHead(200, { ...headers, 'Content-Length': String(body.length) })
     response.end(body)
   }
 
-  const window = ranges === 'off' ? null : byteRange(request.headers.range, body.length)
+  // A client that sends `If-Range` is saying "continue only if this is still the file I
+  // have". A validator that does not match is answered with the whole resource, which is
+  // the answer a client resuming a changed publication has to be given.
+  const stale = tag && request.headers['if-range'] && request.headers['if-range'] !== tag
+  const window = ranges === 'off' || stale ? null : byteRange(request.headers.range, body.length)
   if (!window || lie === 'ignore') return whole()
   if (window.unsatisfiable) {
     response.writeHead(416, { ...headers, 'Content-Range': `bytes */${body.length}` })
@@ -582,6 +599,7 @@ const server = createServer((request, response) => {
       return sendBytes(request, response, entry.type, body, {
         lie: url.searchParams.get('lie'),
         ranges: url.searchParams.get('ranges'),
+        tag: validatorOf(entry),
       })
     }
     // The slow path sends the whole body, whatever was asked for: it exists to be
@@ -591,6 +609,8 @@ const server = createServer((request, response) => {
       'Content-Length': String(body.length),
       'Cache-Control': 'no-store',
       'Accept-Ranges': 'bytes',
+      // The path that exists to be interrupted is the path whose validator gets used.
+      ETag: validatorOf(entry),
     })
     const chunks = 20
     const size = Math.ceil(body.length / chunks)
@@ -652,6 +672,21 @@ const drive = async () => {
     plain.headers.get('accept-ranges') === 'bytes', plain.headers.get('accept-ranges'))
   check('a file with no range asked is whole',
     (await bytes(plain)).equals(expected))
+
+  // What a resume needs beyond `Accept-Ranges`: something to send back as `If-Range`. A
+  // client with no validator cannot tell a continued file from a spliced one, and refuses
+  // to resume at all — so a server that offers none makes every interruption a restart.
+  check('a file offers a strong validator to resume against',
+    plain.headers.get('etag') === validatorOf(subject), plain.headers.get('etag'))
+  const stale = await fetch(`${base}${path}`, {
+    headers: { Range: 'bytes=0-15', 'If-Range': '"not-this-file"' },
+  })
+  check('a range whose validator no longer matches is answered with the whole file',
+    stale.status === 200 && (await bytes(stale)).equals(expected), stale.status)
+  const fresh = await fetch(`${base}${path}`, {
+    headers: { Range: 'bytes=0-15', 'If-Range': validatorOf(subject) },
+  })
+  check('a range whose validator matches is still a range', fresh.status === 206, fresh.status)
 
   const head = await get(path, 'bytes=0-15')
   check('a range is answered 206', head.status === 206, head.status)
