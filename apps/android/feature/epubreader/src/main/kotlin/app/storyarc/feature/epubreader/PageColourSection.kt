@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -57,10 +58,18 @@ import kotlin.math.roundToInt
  * the sheet already speaks in Material sliders — a hand-rolled hue wheel would be
  * more code and less familiar. ponytail: HSL sliders; a wheel only if a reader asks
  * for one.
+ *
+ * A pairing is also **shown before it is applied**. Every control here sets a pending
+ * pairing that the sample, the band and the ratio describe; one confirmation puts it on the
+ * page. The refusal is unchanged and still happens on that confirmation, because a pairing
+ * has to be asked for before it can be turned down.
+ *
+ * @param inForce the pairing the page is being drawn with, or null while the preset's own
+ *   colours are.
  */
 @Composable
 internal fun PageColourSection(
-    palette: ReaderPalette?,
+    inForce: ReaderPalette?,
     onAdopt: (ReaderPalette) -> Boolean,
     onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
@@ -74,11 +83,26 @@ internal fun PageColourSection(
     var saturation by remember { mutableStateOf(0.3f) }
     var lightness by remember { mutableStateOf(0.95f) }
 
+    /** A pairing the reader has chosen and not yet applied. */
+    var pending by remember { mutableStateOf<ReaderPalette?>(null) }
+
+    /** What the sample, the band and the ratio describe. */
+    val palette = previewedPairing(pending = pending, inForce = inForce)
+
     /** The reader's name for the slot, or whatever it already had. */
     val chosenName = name.trim().ifEmpty { palette?.name ?: "" }
 
+    /** Shows a pairing without putting it on the page. */
+    fun preview(candidate: ReaderPalette) {
+        pending = candidate
+        // A refusal measured a pairing that is no longer the one being described.
+        refused = null
+    }
+
     fun adopt(candidate: ReaderPalette) {
         refused = if (onAdopt(candidate)) null else candidate.contrast
+        // What was pending is now in force, and `inForce` describes it from here.
+        if (refused == null) pending = null
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
@@ -91,7 +115,7 @@ internal fun PageColourSection(
         SwatchRow(
             colours = SUGGESTED_BACKGROUNDS,
             selected = palette?.background,
-            onSelect = { adopt(ReaderPalette.derived(chosenName, it)) },
+            onSelect = { preview(ReaderPalette.derived(chosenName, it)) },
         )
 
         Text(
@@ -107,7 +131,7 @@ internal fun PageColourSection(
                 hue = h
                 saturation = s
                 lightness = l
-                adopt(ReaderPalette.derived(chosenName, hslHex(h, s, l)))
+                preview(ReaderPalette.derived(chosenName, hslHex(h, s, l)))
             },
         )
 
@@ -136,7 +160,7 @@ internal fun PageColourSection(
                 value = name,
                 onValueChange = {
                     name = it
-                    adopt(palette.copy(name = it.trim()))
+                    preview(palette.copy(name = it.trim()))
                 },
                 label = { Text(stringResource(R.string.theme_page_colour_name)) },
                 singleLine = true,
@@ -151,11 +175,21 @@ internal fun PageColourSection(
             SwatchRow(
                 colours = SUGGESTED_FOREGROUNDS,
                 selected = palette.foreground,
-                onSelect = { adopt(palette.copy(foreground = it)) },
+                onSelect = { preview(palette.copy(foreground = it)) },
             )
+
+            // Present only while something is waiting, because a control that never changes
+            // anything teaches a reader to distrust the ones that do — the rule
+            // `reading-themes` states for the named reset.
+            pending?.let { candidate ->
+                Button(onClick = { adopt(candidate) }) {
+                    Text(stringResource(R.string.theme_page_colour_apply))
+                }
+            }
 
             OutlinedButton(
                 onClick = {
+                    pending = null
                     refused = null
                     onDiscard()
                 },
@@ -188,6 +222,17 @@ internal fun PageColourSection(
         }
     }
 }
+
+/**
+ * What the sample, the band and the ratio describe.
+ *
+ * The pending pairing where there is one, and the pairing in force otherwise. A function
+ * rather than an expression inside the composable, so a JVM test can ask it.
+ *
+ * iOS mirrors this in `PageColourSection.previewed(pending:inForce:)`.
+ */
+internal fun previewedPairing(pending: ReaderPalette?, inForce: ReaderPalette?): ReaderPalette? =
+    pending ?: inForce
 
 /**
  * What a pairing will be like to read, in words a reader can act on.

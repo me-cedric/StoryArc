@@ -2425,6 +2425,35 @@
         }
       }
     },
+    "theme.pageColour.apply": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Farbe verwenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use this colour"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar este color"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser cette couleur"
+          }
+        }
+      }
+    },
     "theme.pageColour.clear": {
       "extractionState": "manual",
       "localizations": {

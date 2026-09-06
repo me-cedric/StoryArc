@@ -65,7 +65,7 @@ struct ThemeAxesSheet: View {
                         // the publisher's own colours are the point — so it lives
                         // in the same branch as the other overrides.
                         PageColourSection(
-                            palette: model.theme.custom,
+                            inForce: model.theme.custom,
                             onAdopt: { model.adoptColours($0) },
                             onDiscard: model.discardCustomColours
                         )

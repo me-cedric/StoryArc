@@ -175,7 +175,7 @@ internal fun ThemeAxesScreen(
                 // colours are the point — so it lives in the same branch as the other
                 // overrides.
                 PageColourSection(
-                    palette = theme.custom,
+                    inForce = theme.custom,
                     onAdopt = onAdoptColours,
                     onDiscard = onDiscardColours,
                 )

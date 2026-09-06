@@ -78,6 +78,7 @@
     <string name="theme_page_colour_band_tiring">Lesbar, aber anstrengend über ein ganzes Kapitel.</string>
     <string name="theme_page_colour_band_faint">Zu blass zum Lesen.</string>
     <string name="theme_page_colour_refused">Nicht angewendet. %1$s zu 1 liegt unter den %2$s zu 1, die zum bequemen Lesen nötig sind.</string>
+    <string name="theme_page_colour_apply">Diese Farbe verwenden</string>
     <string name="theme_page_colour_clear">Farben des Themas verwenden</string>
     <string name="theme_page_colour_sample">Text, der lang genug ist, um die Kombination zu beurteilen.</string>
     <string name="theme_page_colour_sample_label">Beispiel für Text und Hintergrund zusammen</string>

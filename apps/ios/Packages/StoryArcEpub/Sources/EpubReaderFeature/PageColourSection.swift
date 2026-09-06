@@ -16,10 +16,16 @@ internal import StoryArcCore
 ///
 /// The pairing is described in plain words first and measured second. See
 /// ``ReadingComfort``.
+///
+/// It is also **shown before it is applied**. Every control here sets a pending pairing that
+/// the sample, the band and the ratio describe; one confirmation puts it on the page. The
+/// refusal is unchanged and still happens on that confirmation, because a pairing has to be
+/// asked for before it can be turned down.
 struct PageColourSection: View {
     @Environment(\.theme) private var theme
 
-    let palette: ReaderPalette?
+    /// The pairing the page is being drawn with, or nil while the preset's own colours are.
+    let inForce: ReaderPalette?
     let onAdopt: (ReaderPalette) -> Bool
     let onDiscard: () -> Void
 
@@ -27,6 +33,17 @@ struct PageColourSection: View {
     @State private var refused: Double?
     @State private var picked = Color.white
     @State private var name = ""
+
+    /// A pairing the reader has chosen and not yet applied.
+    ///
+    /// `reading-themes` / *Choosing a background* asks for the background and the derived
+    /// text colour to be "shown in the preview **before** being applied". Every control here
+    /// used to call ``onAdopt`` directly, so the page changed first and the sample under it
+    /// drew what was already in force — a preview of the past.
+    @State private var pending: ReaderPalette?
+
+    /// What the sample, the band and the ratio describe.
+    private var palette: ReaderPalette? { Self.previewed(pending: pending, inForce: inForce) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
@@ -46,7 +63,7 @@ struct PageColourSection: View {
             }
             .onChange(of: picked) { _, colour in
                 guard let hex = colour.hexString else { return }
-                adopt(ReaderPalette.derived(name: chosenName, background: hex))
+                preview(ReaderPalette.derived(name: chosenName, background: hex))
             }
 
             if let palette {
@@ -86,7 +103,7 @@ struct PageColourSection: View {
                     hex: hex,
                     isActive: palette?.background.caseInsensitiveCompare(hex) == .orderedSame
                 ) {
-                    adopt(ReaderPalette.derived(name: chosenName, background: hex))
+                    preview(ReaderPalette.derived(name: chosenName, background: hex))
                 }
                 .accessibilityLabel(Text("theme.pageColour.swatch \(hex)", bundle: .module))
             }
@@ -130,7 +147,7 @@ struct PageColourSection: View {
                 Text("theme.pageColour.name", bundle: .module)
             }
             .textFieldStyle(.roundedBorder)
-            .onSubmit { adopt(palette.renamed(to: chosenName)) }
+            .onSubmit { preview(palette.renamed(to: chosenName)) }
 
             Text("theme.pageColour.textColour", bundle: .module)
                 .textRole(.footnote)
@@ -138,7 +155,18 @@ struct PageColourSection: View {
 
             foregrounds(palette)
 
+            // Present only while something is waiting, because a control that never
+            // changes anything teaches a reader to distrust the ones that do — the rule
+            // `reading-themes` states for the named reset.
+            if let pending {
+                Button { adopt(pending) } label: {
+                    Text("theme.pageColour.apply", bundle: .module)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+
             Button(role: .destructive) {
+                pending = nil
                 refused = nil
                 onDiscard()
             } label: {
@@ -181,14 +209,24 @@ struct PageColourSection: View {
                     hex: hex,
                     isActive: palette.foreground.caseInsensitiveCompare(hex) == .orderedSame
                 ) {
-                    adopt(palette.overriding(foreground: hex))
+                    preview(palette.overriding(foreground: hex))
                 }
                 .accessibilityLabel(Text("theme.pageColour.swatch \(hex)", bundle: .module))
             }
         }
     }
 
-    // MARK: - Applying
+    // MARK: - Previewing, then applying
+
+    /// Shows a pairing without putting it on the page.
+    ///
+    /// The reader's book keeps the colours it has until they confirm. A refusal from a
+    /// previous attempt is cleared, because it measured a pairing that is no longer the one
+    /// being described.
+    private func preview(_ pairing: ReaderPalette) {
+        pending = pairing
+        refused = nil
+    }
 
     /// Applies a pairing, or remembers the ratio that stopped it.
     private func adopt(_ candidate: ReaderPalette) {
@@ -219,6 +257,17 @@ struct PageColourSection: View {
             return
         }
         refused = nil
+        // What was pending is now in force, and `inForce` will describe it from here.
+        pending = nil
+    }
+
+    /// What the sample, the band and the ratio describe.
+    ///
+    /// The pending pairing where there is one, and the pairing in force otherwise. A
+    /// function rather than an expression inside the body, so a host test can ask it —
+    /// the precedent ``ThemeSheet/presetColumns(for:)`` sets for the same reason.
+    static func previewed(pending: ReaderPalette?, inForce: ReaderPalette?) -> ReaderPalette? {
+        pending ?? inForce
     }
 
     /// The reader's name for the slot, or a default until they give it one.

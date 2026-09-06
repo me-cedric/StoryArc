@@ -78,6 +78,7 @@
     <string name="theme_page_colour_band_tiring">Legible, pero cansado a lo largo de un capítulo.</string>
     <string name="theme_page_colour_band_faint">Demasiado tenue para leer.</string>
     <string name="theme_page_colour_refused">No aplicado. %1$s a 1 está por debajo del %2$s a 1 necesario para leer con comodidad.</string>
+    <string name="theme_page_colour_apply">Usar este color</string>
     <string name="theme_page_colour_clear">Usar los colores del tema</string>
     <string name="theme_page_colour_sample">Texto lo bastante largo para juzgar la combinación.</string>
     <string name="theme_page_colour_sample_label">Muestra del texto y el fondo juntos</string>
