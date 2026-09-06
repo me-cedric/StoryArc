@@ -26,6 +26,13 @@ import StoryArcCore
 /// a translated value for every band in every language, which is what a reader needs and what the
 /// run-time lookup would go looking for.
 ///
+/// **The band has to be drawn, and drawn first.** A suite over the pure function alone was
+/// vacuous against the requirement it was written for: both draw calls could be deleted and every
+/// case still passed. So the section is also read as text, which is the tripwire
+/// `ThemeAxisResetTests` and `ThemeSheetTest` already use for a layout no JVM or host test can
+/// measure. The announcement is read the same way, because it is the only line that reaches a
+/// reader who cannot see the sheet.
+///
 /// Android mirrors this suite in `PageColourBandTest`.
 @Suite("A colour pairing says how it will read")
 struct PageColourBandTests {
@@ -89,6 +96,69 @@ struct PageColourBandTests {
         }
     }
 
+    // MARK: - What the sheet draws, and what it says aloud
+
+    @Test("The band is drawn, and drawn above the ratio that measures it, in both places")
+    func theBandLeadsTheRatio() throws {
+        let source = try Self.source("PageColourSection.swift")
+
+        let inUse = try #require(
+            source.range(of: "band(for: palette.contrast)"),
+            "the sheet draws no band for the pairing in force, so the ratio stands alone again"
+        )
+        let ratio = try #require(
+            source.range(of: #""theme.pageColour.ratio \("#),
+            "the sheet no longer states the measured ratio of the pairing in force"
+        )
+        #expect(
+            inUse.lowerBound < ratio.lowerBound,
+            """
+            The measured ratio is drawn before the words that explain it. `reading-themes` / \
+            *Custom colour*: the sheet "says in plain words … AND the measured contrast ratio is \
+            stated after those words rather than instead of them".
+            """
+        )
+
+        let onRefusal = try #require(
+            source.range(of: "band(for: refused)"),
+            "a refused pairing draws no band, so the refusal opens with arithmetic again"
+        )
+        let refusal = try #require(
+            source.range(of: #""theme.pageColour.refused \("#),
+            "the refusal no longer states the ratio it measured"
+        )
+        #expect(
+            onRefusal.lowerBound < refusal.lowerBound,
+            """
+            A refused pairing states its arithmetic before its plain words. The refusal is the \
+            one moment a reader most needs the words first.
+            """
+        )
+    }
+
+    @Test("A refused pairing is announced in the order the sheet draws it")
+    func theRefusalIsAnnouncedBandFirst() throws {
+        let source = try Self.source("PageColourSection.swift")
+
+        #expect(
+            source.contains("ReadingComfort.band(for: candidate.contrast)"),
+            """
+            The refusal announcement carries no band. The tapped swatch does not move and the \
+            reason renders at the foot of the section, so this announcement is the only thing a \
+            VoiceOver reader hears — and without the band it is the arithmetic alone, which is \
+            what `reading-themes` / *Custom colour* asks the sheet to lead away from.
+            """
+        )
+        #expect(
+            source.contains(#"AccessibilityNotification.Announcement("\(band) \(refusal)")"#),
+            """
+            The announcement does not speak the band before the refusal. What is heard and what \
+            is drawn then describe one pairing in two different orders, and the reader who \
+            cannot see the sheet gets the worse of the two.
+            """
+        )
+    }
+
     // MARK: - Four languages
 
     @Test("Every band has a translated sentence in all four languages")
@@ -128,6 +198,20 @@ struct PageColourBandTests {
             #expect(value.contains("%@"), "the ratio line no longer states the number it measured")
         }
     }
+
+    /// One source file of the feature, read from disk.
+    ///
+    /// A tripwire rather than a proof, for the reason `ThemeAxisResetTests` gives: no host test
+    /// can lay out a SwiftUI view, so the assertions over it say the band is written where the
+    /// sheet draws it and never that a reader saw it. What a band *is* is proved above, over the
+    /// pure function. The spellings asserted carry their argument lists, so no line of prose in
+    /// the file can satisfy one by accident.
+    private static func source(_ name: String) throws -> String {
+        try String(
+            contentsOf: EpubCatalogue.package.appending(path: "Sources/EpubReaderFeature/\(name)"),
+            encoding: .utf8
+        )
+    }
 }
 
 /// The EPUB reader's own string catalogue, read from disk.
@@ -141,7 +225,7 @@ private enum EpubCatalogue {
     ///
     /// So it is inside the checkout being compiled, by construction. Walking up looking for a marker
     /// leaves it: this repository nests agent worktrees at `.claude/worktrees/`.
-    private static var package: URL {
+    static var package: URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()

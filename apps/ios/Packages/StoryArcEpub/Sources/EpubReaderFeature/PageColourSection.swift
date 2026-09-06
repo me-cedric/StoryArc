@@ -197,15 +197,25 @@ struct PageColourSection: View {
             // The reason renders at the foot of the section and the tapped swatch does
             // not move, so without this a VoiceOver user hears nothing and the measured
             // ratio never reaches the reader who was refused.
+            //
+            // The band is spoken first, in the order the section draws it. A reader who
+            // cannot see the sheet is the one who most needs the plain words, and this
+            // announcement is the only line that reaches them.
             let ratio = Self.formatted(candidate.contrast)
             let aa = Self.formatted(ReadingContrast.aa)
-            AccessibilityNotification.Announcement(
-                String(
-                    localized: "theme.pageColour.refused \(ratio) \(aa)",
-                    bundle: .module,
-                    locale: .storyArc
-                )
-            ).post()
+            let band = String(
+                localized: String.LocalizationValue(
+                    ReadingComfort.band(for: candidate.contrast).key
+                ),
+                bundle: .module,
+                locale: .storyArc
+            )
+            let refusal = String(
+                localized: "theme.pageColour.refused \(ratio) \(aa)",
+                bundle: .module,
+                locale: .storyArc
+            )
+            AccessibilityNotification.Announcement("\(band) \(refusal)").post()
             return
         }
         refused = nil
