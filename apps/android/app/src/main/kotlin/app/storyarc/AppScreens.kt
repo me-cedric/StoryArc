@@ -229,6 +229,11 @@ internal fun HostedScreen(
         // this app spent a rewrite reducing to one.
         is Screen.Player -> {
             val playing = PlaybackHost.nowPlaying.collectAsStateWithLifecycle().value
+            // The library's half of what is playing: the publication behind the id, for the
+            // cover and the format. Matched against the session's own id rather than trusted,
+            // so a book the system resumed on its own is drawn coverless rather than under
+            // the cover of whatever this app started last.
+            val following = PlayingBook.following.collectAsStateWithLifecycle().value
             if (playing == null) {
                 PlayerFinishedScreen(onBack = back)
             } else {
@@ -246,6 +251,15 @@ internal fun HostedScreen(
                     // kept — the notification's buttons read the same store.
                     intervals = PlaybackHost.skipIntervals.collectAsStateWithLifecycle().value,
                     onIntervals = PlaybackHost::setSkipIntervals,
+                    publication = following?.takeIf { it.id == playing.publicationId },
+                    // The same cache every shelf reads, so a cover the library has drawn
+                    // once is not decoded a second time for the player.
+                    cover = host.library::cover,
+                    // What the player drew, to the lock screen and the shade — the same
+                    // picture, not a second treatment.
+                    onArtwork = { picture ->
+                        PlayingBook.artwork(host.activity, playing.publicationId, picture)
+                    },
                 )
             }
         }

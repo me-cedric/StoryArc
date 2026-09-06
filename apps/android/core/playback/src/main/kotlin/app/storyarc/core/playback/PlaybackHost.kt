@@ -2,6 +2,7 @@ package app.storyarc.core.playback
 
 import android.content.ComponentName
 import android.content.Context
+import android.net.Uri
 import android.os.Bundle
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionCommand
@@ -176,6 +177,19 @@ object PlaybackHost : SpokenAudio.Speaker {
 
     /** Pause and play, from wherever the listener reached for it. */
     fun toggle() = centre.toggle()
+
+    /**
+     * Gives the system's own controls the picture the player draws.
+     *
+     * `audio-playback`: the shade and the lock screen are "given that same artwork rather than
+     * a second one". The picture is the app's — this module has no design system to draw a
+     * coverless well with — so it arrives here as a file the session can load, once the player
+     * has drawn it. Named for a publication so that a picture arriving after the book it was
+     * drawn for has ended is dropped rather than put on the next one.
+     */
+    fun setArtwork(publicationId: String, artwork: Uri) {
+        current?.takeIf { it.publicationId == publicationId }?.setArtwork(artwork)
+    }
 
     /**
      * Sets, replaces or clears the sleep timer.

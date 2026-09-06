@@ -1,5 +1,6 @@
 package app.storyarc.core.playback
 
+import android.net.Uri
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -279,6 +280,29 @@ class AudiobookSource(
         player.prepare()
     }
 
+    /** The picture the session shows: the book's own, until the player has drawn one. */
+    private var artwork: Uri? = book.artworkUri?.let(Uri::parse)
+
+    /**
+     * Gives the items the picture the player drew, without touching the audio.
+     *
+     * `replaceMediaItems` over items whose locations have not changed is a metadata update
+     * and not a reload: ExoPlayer asks each source whether it can take the new item, and a
+     * progressive source can when the URI, the cache key and the DRM are the same, so the
+     * audio neither stops, seeks nor buffers. That is what lets the picture arrive a second
+     * after the first sound without breaking `audio-playback`'s "never restarts, reloads or
+     * repositions the audio" — the clause the whole player is built around.
+     */
+    fun setArtwork(uri: Uri) {
+        if (uri == artwork) return
+        artwork = uri
+        val items = book.sources.map(::mediaItem)
+        // The playlist is this book's or it is nobody's business to rewrite. A count that
+        // differs means the player is already carrying something else.
+        if (player.mediaItemCount != items.size) return
+        player.replaceMediaItems(0, items.size, items)
+    }
+
     private fun mediaItem(part: Audiobook.AudioPart): MediaItem =
         MediaItem.Builder()
             .setUri(part.uri)
@@ -291,7 +315,7 @@ class AudiobookSource(
                     // both draw under the title.
                     .setSubtitle(part.title)
                     .setArtist(book.author)
-                    .setArtworkUri(book.artworkUri?.let(android.net.Uri::parse))
+                    .setArtworkUri(artwork)
                     .setIsBrowsable(false)
                     .setIsPlayable(true)
                     .setMediaType(

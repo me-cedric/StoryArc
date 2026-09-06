@@ -1,5 +1,6 @@
 package app.storyarc
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -56,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.control.StoryArcSliderTrack
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.model.Publication
 import app.storyarc.core.playback.NowPlaying
 import app.storyarc.core.playback.PlaybackPosition
 import app.storyarc.core.playback.PlaybackSpeed
@@ -79,6 +81,11 @@ import kotlinx.coroutines.launch
  * session, it is `PlaybackHost`'s, and this screen only draws it. A screen that took a
  * publication would have to start something to draw anything, which is precisely the
  * restart the spec forbids.
+ *
+ * **It takes a `Publication` too, now, and the sentence above still holds.** The publication
+ * is nullable and starts nothing: it is where the cover and the format come from, and the
+ * session goes on without it — see `PlayingBook.following` for when it is null. What is
+ * drawn from it is [PlayerArtwork], the first thing in the column.
  *
  * **A scrolling column, and no fixed heights.** `audio-playback` at the largest text size:
  * "the surface scrolls if it must, and no transport control is pushed off the screen". The
@@ -104,6 +111,16 @@ internal fun PlayerScreen(
      * — a parameter rather than a read of the singleton inside, so a test can arm it.
      */
     spokenAudio: SpokenAudio = SpokenAudio.shared,
+    /**
+     * The publication being played as the library knows it, for the cover and the format —
+     * or null when nothing in the app started it, which is what a book the system resumed
+     * after the process died looks like. See `PlayingBook.following`.
+     */
+    publication: Publication? = null,
+    /** Where a cover comes from. `OnDeviceCover` takes its cover the same way, for a test's sake. */
+    cover: suspend (Publication, Int) -> Bitmap? = { _, _ -> null },
+    /** Where the drawn artwork goes for the system's own controls, or null where nothing wants it. */
+    onArtwork: ((Bitmap) -> Unit)? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     // `ebook-reader`, *Opening a different publication*: an audiobook opened while a voice was
@@ -141,6 +158,17 @@ internal fun PlayerScreen(
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        // First, because `audio-playback` lists the cover first and because the artwork is
+        // the interface: the transport reads as belonging to the picture above it. Bounded at
+        // 320 dp so the transport stays on a phone's screen at the largest text size — the
+        // chapter list below is what scrolls away, never a control.
+        PlayerArtwork(
+            title = playing.title,
+            publication = publication,
+            cover = cover,
+            onArtwork = onArtwork,
+        )
+
         playing.chapter?.let {
             Text(
                 text = it,

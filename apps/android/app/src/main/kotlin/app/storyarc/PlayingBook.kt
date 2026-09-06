@@ -1,6 +1,8 @@
 package app.storyarc
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.net.Uri
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.persistence.PlaybackPreferences
@@ -10,13 +12,18 @@ import app.storyarc.core.playback.PlaybackHost
 import app.storyarc.core.playback.PlaybackPart
 import app.storyarc.core.playback.PlaybackPosition
 import app.storyarc.core.playback.PlaybackSpeed
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Keeping a listener's place, so closing an audiobook does not lose it.
@@ -37,6 +44,9 @@ internal object PlayingBook {
     /** How often a playing book writes down where it has reached. */
     private const val TICK_MILLIS = 15_000L
 
+    /** Where the player's own picture of a book is written for the session to load. */
+    private const val ARTWORK_DIR = "player-artwork"
+
     /**
      * A scope as long as the process, not as long as a screen.
      *
@@ -47,13 +57,29 @@ internal object PlayingBook {
      */
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    /** The publication the hook below is writing for. */
-    private var following: Publication? = null
+    private val _following = MutableStateFlow<Publication?>(null)
+
+    /**
+     * The publication being played, as the library knows it — or null.
+     *
+     * What the full player draws its artwork and its format from. `PlaybackHost.nowPlaying`
+     * carries an id and a title and nothing more, because `:core:playback` has no business
+     * knowing what a `Publication` is; this is the app's half of the answer. Set when a book
+     * is started here, and **cleared when the host lets the session go** — the book ran out,
+     * the listener stopped it, or another one displaced it — so a second book cannot start
+     * under the first's cover. A book the system put back on the air after the process died
+     * was started by nothing here, and is answered with null rather than with whatever played
+     * last.
+     */
+    val following: StateFlow<Publication?> = _following.asStateFlow()
 
     /** Where a chosen speed goes, and where the next book's comes from. */
     private var preferences: PlaybackPreferences? = null
 
     private var ticker: Job? = null
+
+    /** Watches the host for the moment it lets this publication's session go. */
+    private var watcher: Job? = null
 
     /**
      * Starts a book, from where the listener left it.
@@ -93,8 +119,39 @@ internal object PlayingBook {
      */
     fun setSpeed(speed: PlaybackSpeed) {
         PlaybackHost.setSpeed(speed)
-        val publication = following ?: return
+        val publication = _following.value ?: return
         preferences?.rememberSpeed(publication.id, publication.series, speed.rate)
+    }
+
+    /**
+     * The picture the player drew, handed to the system's own controls.
+     *
+     * `audio-playback`: the lock screen and the shade are "given that same artwork rather than
+     * a second one". Written under the cache directory and handed over as a file, because
+     * media3 loads a session's artwork from a URI — a `file://` one goes through the same data
+     * source that plays the book — and a bitmap across the binder is a copy of every pixel on
+     * every refresh. The cache directory rather than files, because it is a picture the player
+     * can draw again.
+     *
+     * Only for the publication still being followed, checked before the write and again after
+     * it: a listener who started a second book while the first's picture was still being
+     * written must not get the first's cover on the second's lock screen.
+     */
+    fun artwork(context: Context, publicationId: String, picture: Bitmap) {
+        if (_following.value?.id != publicationId) return
+        scope.launch {
+            val file = withContext(Dispatchers.IO) {
+                runCatching {
+                    val directory = File(context.cacheDir, ARTWORK_DIR).apply { mkdirs() }
+                    val name = publicationId.hashCode().toUInt().toString(36)
+                    File(directory, "$name.png").also { file ->
+                        file.outputStream().use { picture.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                    }
+                }.getOrNull()
+            } ?: return@launch
+            if (_following.value?.id != publicationId) return@launch
+            PlaybackHost.setArtwork(publicationId, Uri.fromFile(file))
+        }
     }
 
     /**
@@ -106,9 +163,9 @@ internal object PlayingBook {
      * than by picking the id apart — a stable id is a key, not a serialisation.
      */
     private fun follow(publication: Publication, store: ProgressStore) {
-        following = publication
+        _following.value = publication
         PlaybackHost.recordPosition = { id, position, parts ->
-            val known = following
+            val known = _following.value
             // A book started before this process was, resumed by the notification-shade
             // carousel, reaches here with an id nothing in the app has seen. Writing the
             // position against the wrong publication is worse than not writing it, so it
@@ -118,12 +175,28 @@ internal object PlayingBook {
             }
         }
 
+        watcher?.cancel()
+        watcher = scope.launch {
+            // The host publishes null between `play` and the first sound as well as after the
+            // last one, so a null before this book has been seen playing is the gap and not
+            // the ending. Seen once, the next null — or another book's id — is the session
+            // let go, whichever of the three endings let it go: `PlaybackCentre` routes all of
+            // them through one teardown.
+            var seen = false
+            PlaybackHost.nowPlaying.collect { playing ->
+                when {
+                    playing?.publicationId == publication.id -> seen = true
+                    seen && _following.value === publication -> _following.value = null
+                }
+            }
+        }
+
         ticker?.cancel()
         ticker = scope.launch {
             while (isActive) {
                 delay(TICK_MILLIS)
                 val playing = PlaybackHost.nowPlaying.value ?: continue
-                val known = following ?: continue
+                val known = _following.value ?: continue
                 if (!playing.isPlaying || playing.publicationId != known.id) continue
                 write(
                     store,
