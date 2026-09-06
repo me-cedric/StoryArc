@@ -29,24 +29,28 @@ extension LibraryModel {
 
     /// Languages actually present, as codes. The view names them for the reader —
     /// the model has no business holding "Français".
+    ///
+    /// Collated like the other three even though a language tag is ASCII: nothing
+    /// validates what a `ComicInfo.xml` writes into `<LanguageISO>`, so a mis-tagged
+    /// file spelling the language out reaches this list as it is spelled.
     public var availableLanguages: [String] {
-        Array(Set(publications.compactMap(\.language))).sorted()
+        collated(Set(publications.compactMap(\.language)))
     }
 
     /// Publishers actually present, as the files spell them.
     public var availablePublishers: [String] {
-        Array(Set(publications.compactMap(\.publisher))).sorted()
+        collated(Set(publications.compactMap(\.publisher)))
     }
 
     /// Genres actually present, gathered from every publication's list.
     public var availableGenres: [String] {
-        Array(Set(publications.flatMap(\.genres))).sorted()
+        collated(Set(publications.flatMap(\.genres)))
     }
 
     /// Tags actually present. Kept apart from ``availableGenres`` because the
     /// files keep them apart.
     public var availableTags: [String] {
-        Array(Set(publications.flatMap(\.tags))).sorted()
+        collated(Set(publications.flatMap(\.tags)))
     }
 
     /// The decades the library spans, newest first.
@@ -59,6 +63,37 @@ extension LibraryModel {
     /// never offers a decade the library has nothing in.
     public var availableDecades: [Int] {
         Array(Set(publications.compactMap(\.year).map { $0 - $0 % 10 })).sorted(by: >)
+    }
+
+    /// Filter values in the order a reader of the chosen language reads them.
+    ///
+    /// A bare `sorted()` is Swift's `<` on `String`, which is code point order: *É* is U+00C9
+    /// and *Z* is U+005A, so every accented value landed after every unaccented one and a
+    /// French reader found *Éditions* past *Zenith*. That is not the wrong collation, it is
+    /// none — the shelf, the search results and a reading list all collate and this menu did
+    /// not.
+    ///
+    /// `.caseInsensitive` against ``Locale/storyArc``, which is the same comparison
+    /// `LibraryIndex` gives the shelf, so a value is filed in one place wherever it is drawn.
+    /// Without ``LibraryIndex/sortKey(_:locale:)``, though: that strips a leading article so a
+    /// title files under its first real word, and `library-browsing` asks for it on **titles**.
+    /// A publisher named *The Comic Company* is a name, not a title, and filing it under C
+    /// would be a behaviour no requirement asks for.
+    ///
+    /// The raw comparison breaks a tie, and it is not decoration. A case-insensitive collation
+    /// calls *marvel* and *Marvel* equal while `Set` holds them as two values in an order that
+    /// is not fixed between runs, so the menu could draw them either way round on two launches
+    /// of one library. It decides only between values that collate equal.
+    ///
+    /// The locale is read once per sort rather than once per comparison: ``Locale/storyArc``
+    /// builds `Locale.Components` from the reader's choice on every access. Android's
+    /// ``LibraryFacets`` builds its `Collator` once for the same reason.
+    private func collated(_ values: Set<String>) -> [String] {
+        let locale = Locale.storyArc
+        return values.sorted {
+            let byReader = $0.compare($1, options: [.caseInsensitive], range: nil, locale: locale)
+            return byReader == .orderedSame ? $0 < $1 : byReader == .orderedAscending
+        }
     }
 }
 
