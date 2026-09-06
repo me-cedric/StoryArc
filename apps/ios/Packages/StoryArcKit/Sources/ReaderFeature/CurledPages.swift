@@ -112,6 +112,9 @@ struct CurledPages: View {
                     settle &+= 1
                     base = stand.value
                     origin = value.translation.width
+                    // The turn starts here and ends when its settle completes, so a count
+                    // covers the drag and the spring and nothing else. Off unless armed.
+                    FrameProbe.began()
                 }
                 reached = CurlTurn.progress(
                     base: base,
@@ -141,7 +144,12 @@ struct CurledPages: View {
                     // one's: SwiftUI runs this completion when the animation is *removed*,
                     // which an interruption does, and turning the page here would turn it
                     // under a finger still on the screen.
-                    guard settles, settle == ticket else { return }
+                    guard settle == ticket else { return }
+                    // The turn is over either way — a page that sprang back still spent
+                    // frames. A settle a drag took over is that drag's to close, which is
+                    // why this sits behind the ticket check and not in front of it.
+                    FrameProbe.ended()
+                    guard settles else { return }
                     // The page swap first, then the reset: the other order shows the
                     // outgoing page flat for a frame before it goes.
                     onTurned()
