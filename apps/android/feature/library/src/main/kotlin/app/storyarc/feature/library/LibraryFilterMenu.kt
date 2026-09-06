@@ -90,6 +90,14 @@ internal fun FilterChipMenu(
     var open by remember { mutableStateOf(false) }
     var section by remember { mutableStateOf<FilterSection?>(null) }
     val active = narrowingCount(query, downloads)
+    // The reader's language, read once per composition and handed to every facet that
+    // collates. `readerLocale()` decodes the settings blob on every call, and [SectionList]
+    // asks four facets for their values on every recomposition of the open menu, so a facet
+    // fetching its own would run four decodes a frame while the reader taps through groups.
+    // Remembering cannot go stale: a language change recreates the activity, and this
+    // composition goes with it. `ShelfDetailScreen` remembers the same locale for the same
+    // reason, and `LibraryFacetsCollateTest` pins this call.
+    val locale = remember { viewModel.readerLocale() }
 
     // The chip and its menu are one item of [LibraryControls]'s wrapping row, not two. A
     // `DropdownMenu` is a popup and measures as nothing, but it still takes a slot -- and a
@@ -127,6 +135,7 @@ internal fun FilterChipMenu(
                     registry = registry,
                     downloads = downloads,
                     viewModel = viewModel,
+                    locale = locale,
                     onOpen = { section = it },
                     onClear = {
                         onClearFilters()
@@ -142,6 +151,7 @@ internal fun FilterChipMenu(
                         registry,
                         downloads,
                         viewModel,
+                        locale,
                         onQueryChange,
                         onDownloadsChange,
                     )
@@ -172,13 +182,14 @@ private fun SectionList(
     registry: SourceRegistry,
     downloads: DownloadFilter,
     viewModel: LibraryViewModel,
+    locale: Locale,
     onOpen: (FilterSection) -> Unit,
     onClear: () -> Unit,
 ) {
     FilterSection.entries.forEach { section ->
         // A group with nothing in it is left out entirely: an empty "Genre" list
         // tells the reader nothing and costs a tap to find out.
-        if (section.hasValues(registry, viewModel)) {
+        if (section.hasValues(registry, viewModel, locale)) {
             SectionItem(
                 label = stringResource(section.labelRes),
                 isActive = section.isActive(query, downloads),
@@ -203,6 +214,7 @@ private fun SectionValues(
     registry: SourceRegistry,
     downloads: DownloadFilter,
     viewModel: LibraryViewModel,
+    locale: Locale,
     onQueryChange: (LibraryQuery) -> Unit,
     onDownloadsChange: (DownloadFilter) -> Unit,
 ) {
@@ -225,25 +237,25 @@ private fun SectionValues(
 
         // Languages named in themselves. A reader looking for Deutsch is not helped
         // by "German", which is the rule the language setting already follows.
-        FilterSection.LANGUAGE -> viewModel.availableLanguages().forEach { code ->
+        FilterSection.LANGUAGE -> viewModel.availableLanguages(locale).forEach { code ->
             CheckedItem(languageName(code), code in query.languages) {
                 onQueryChange(query.copy(languages = toggled(query.languages, code)))
             }
         }
 
-        FilterSection.PUBLISHER -> viewModel.availablePublishers().forEach { publisher ->
+        FilterSection.PUBLISHER -> viewModel.availablePublishers(locale).forEach { publisher ->
             CheckedItem(publisher, publisher in query.publishers) {
                 onQueryChange(query.copy(publishers = toggled(query.publishers, publisher)))
             }
         }
 
-        FilterSection.GENRE -> viewModel.availableGenres().forEach { genre ->
+        FilterSection.GENRE -> viewModel.availableGenres(locale).forEach { genre ->
             CheckedItem(genre, genre in query.genres) {
                 onQueryChange(query.copy(genres = toggled(query.genres, genre)))
             }
         }
 
-        FilterSection.TAG -> viewModel.availableTags().forEach { tag ->
+        FilterSection.TAG -> viewModel.availableTags(locale).forEach { tag ->
             CheckedItem(tag, tag in query.tags) {
                 onQueryChange(query.copy(tags = toggled(query.tags, tag)))
             }
@@ -478,6 +490,7 @@ private fun FilterSection.isActive(
 private fun FilterSection.hasValues(
     registry: SourceRegistry,
     viewModel: LibraryViewModel,
+    locale: Locale,
 ): Boolean = when (this) {
     // Only with a second library to narrow to. A group whose whole list is "Everywhere"
     // and the one library there is asks the reader nothing.
@@ -490,10 +503,10 @@ private fun FilterSection.hasValues(
     // journey, not during one.
     FilterSection.DOWNLOAD -> true
     FilterSection.FORMAT -> viewModel.availableFormats().isNotEmpty()
-    FilterSection.LANGUAGE -> viewModel.availableLanguages().isNotEmpty()
-    FilterSection.PUBLISHER -> viewModel.availablePublishers().isNotEmpty()
-    FilterSection.GENRE -> viewModel.availableGenres().isNotEmpty()
-    FilterSection.TAG -> viewModel.availableTags().isNotEmpty()
+    FilterSection.LANGUAGE -> viewModel.availableLanguages(locale).isNotEmpty()
+    FilterSection.PUBLISHER -> viewModel.availablePublishers(locale).isNotEmpty()
+    FilterSection.GENRE -> viewModel.availableGenres(locale).isNotEmpty()
+    FilterSection.TAG -> viewModel.availableTags(locale).isNotEmpty()
     FilterSection.DECADE -> viewModel.availableDecades().isNotEmpty()
 }
 

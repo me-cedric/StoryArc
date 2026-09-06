@@ -10,6 +10,7 @@ import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.persistence.LibraryCache
 import app.storyarc.core.persistence.SettingsStore
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -173,5 +174,47 @@ class LibraryFacetsCollateTest {
             listOf("Marvel", "marvel"),
             model(both).availablePublishers(),
         )
+    }
+
+    /**
+     * The menu reads the reader's language once per composition, not once per facet.
+     *
+     * The collation needs a locale, and `readerLocale()` decodes the settings blob on every
+     * call. [LibraryFilterMenu] asks four facets for their values on every recomposition of
+     * the open menu -- `SectionList` calls `hasValues` for all nine groups -- so a facet that
+     * fetched its own locale would run four decodes per frame while the reader types.
+     * `LibrarySortSpeaksTheReadersLanguageTest` pins the same rule on `ShelfDetailScreen`.
+     *
+     * The source, not a composition: a Robolectric composition proves the rows are drawn,
+     * never how many times the locale was read. Remembering cannot go stale, because a
+     * language change recreates the activity and the composition goes with it.
+     */
+    @Test
+    fun `the filter menu reads the reader's language once, not once per facet`() {
+        val module = System.getProperty(MODULE_DIRECTORY)?.let(::File)
+            ?: error(
+                "$MODULE_DIRECTORY is unset. This test reads the module's own source and will" +
+                    " not go looking for it elsewhere -- run it through Gradle" +
+                    " (`pnpm gradle :feature:library:testDebugUnitTest`), which sets the" +
+                    " property from the module directory.",
+            )
+        val file = File(module, FILTER_MENU_SOURCE)
+        if (!file.isFile) error("$FILTER_MENU_SOURCE is not under ${module.absolutePath}")
+        val source = file.readText()
+        assertTrue(
+            "the filter menu decodes the settings blob once per facet, once per frame",
+            source.contains("remember { viewModel.readerLocale() }"),
+        )
+        assertTrue(
+            "the filter menu does not hand that locale to the facets",
+            source.contains("availablePublishers(locale)"),
+        )
+    }
+
+    private companion object {
+        /** Set by this module's `build.gradle.kts`, from its own `projectDir`. */
+        const val MODULE_DIRECTORY = "storyarc.library.projectDir"
+        const val FILTER_MENU_SOURCE =
+            "src/main/kotlin/app/storyarc/feature/library/LibraryFilterMenu.kt"
     }
 }

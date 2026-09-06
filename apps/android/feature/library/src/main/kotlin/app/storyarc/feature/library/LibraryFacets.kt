@@ -29,20 +29,20 @@ fun LibraryViewModel.availableFormats(): List<PublicationFormat> =
  * `ComicInfo.xml` writes into `<LanguageISO>`, so a mis-tagged file spelling the language out
  * reaches this list as it is spelled.
  */
-fun LibraryViewModel.availableLanguages(): List<String> =
-    publications.value.mapNotNull { it.language }.distinct().collated(readerLocale())
+fun LibraryViewModel.availableLanguages(locale: Locale = readerLocale()): List<String> =
+    publications.value.mapNotNull { it.language }.distinct().collated(locale)
 
 /** Publishers actually present, as the files spell them. */
-fun LibraryViewModel.availablePublishers(): List<String> =
-    publications.value.mapNotNull { it.publisher }.distinct().collated(readerLocale())
+fun LibraryViewModel.availablePublishers(locale: Locale = readerLocale()): List<String> =
+    publications.value.mapNotNull { it.publisher }.distinct().collated(locale)
 
 /** Genres actually present, gathered from every publication's list. */
-fun LibraryViewModel.availableGenres(): List<String> =
-    publications.value.flatMap { it.genres }.distinct().collated(readerLocale())
+fun LibraryViewModel.availableGenres(locale: Locale = readerLocale()): List<String> =
+    publications.value.flatMap { it.genres }.distinct().collated(locale)
 
 /** Tags actually present. Kept apart from [availableGenres] because the files do. */
-fun LibraryViewModel.availableTags(): List<String> =
-    publications.value.flatMap { it.tags }.distinct().collated(readerLocale())
+fun LibraryViewModel.availableTags(locale: Locale = readerLocale()): List<String> =
+    publications.value.flatMap { it.tags }.distinct().collated(locale)
 
 /**
  * The decades the library spans, newest first.
@@ -76,8 +76,18 @@ fun LibraryViewModel.availableDecades(): List<Int> =
  * round. It decides only between values that collate equal.
  *
  * The collator is built once per sort rather than once per comparison, which is what
- * `LibraryIndex.arrange` does and for the same reason. The locale is read once for the same
- * reason again: `readerLocale()` decodes the settings blob on every call.
+ * `LibraryIndex.arrange` does and for the same reason.
+ *
+ * The locale is a parameter, and the four callers above default it rather than fetching it:
+ * `readerLocale()` decodes the settings blob on every call, and [LibraryFilterMenu] asks four
+ * of these functions for their values on every recomposition of the open menu. So the menu
+ * remembers one locale and hands it to all four, exactly as `LibraryIndex.arrange` is handed
+ * one. The default keeps a caller with no locale in hand honest, and a test that chooses a
+ * language still proves the choice reaches the sort.
+ *
+ * iOS does not carry the parameter, and the platform forces that: `Locale.storyArc` reads a
+ * tag already in memory, so a facet fetching its own costs a `Locale.Components` build and no
+ * file at all.
  */
 private fun List<String>.collated(locale: Locale): List<String> {
     val collator = Collator.getInstance(locale).apply { strength = Collator.SECONDARY }
