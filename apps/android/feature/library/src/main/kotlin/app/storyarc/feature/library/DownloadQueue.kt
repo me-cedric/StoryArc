@@ -64,8 +64,14 @@ class DownloadQueue(
      * A function rather than a value: `offline-downloads` requires a paused queue to
      * "resume automatically when [Wi-Fi] returns", so the answer has to be re-asked rather
      * than captured once at construction.
+     *
+     * **No default, deliberately.** It used to default to [AppSettings.Defaults], and the
+     * one production caller left it out -- so the shipped queue read Wi-Fi-only as off and
+     * no storage limit, was never held, and had nothing to resume. Every test supplied the
+     * setting and passed. A caller that has no opinion writes one out, which is a sentence
+     * a reviewer can see.
      */
-    private val settings: () -> AppSettings = { AppSettings.Defaults },
+    private val settings: () -> AppSettings,
     /**
      * Whether the device is on Wi-Fi, now and on every change.
      *
@@ -389,8 +395,9 @@ class DownloadQueue(
      * deletes a film comes back to a queue that started again by itself.
      *
      * A settings change is the third caller this was written for, and it has none yet. The
-     * screen that owns [AppSettings] builds this queue without handing it [settings], so the
-     * reader's Wi-Fi and storage choices do not reach it at all.
+     * reader's choices do reach the queue -- `AppScreens` hands it the store, and [settings]
+     * re-reads that store on every pump -- so a choice made while a catalogue page is open is
+     * acted on at the next pump rather than at the moment it is made.
      */
     fun reconsider() = pump()
 

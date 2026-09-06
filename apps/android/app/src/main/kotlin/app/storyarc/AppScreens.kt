@@ -376,6 +376,11 @@ private fun CatalogueScreen(host: AppHost, screen: Screen.Catalogue) {
             dependencies.downloads,
             credential = { page.credential },
             origin = page.origin,
+            // The reader's own choices, read from the store on every pump rather than
+            // captured here. Without this the queue answers from `AppSettings.Defaults`,
+            // where Wi-Fi-only is off and there is no storage limit -- so it is never held,
+            // and a queue that is never held has nothing to resume.
+            settings = dependencies.settings::settings,
         )
     }
     val entry = screen.entry

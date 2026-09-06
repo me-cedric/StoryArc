@@ -171,7 +171,7 @@ class DownloadQueueWakingTest {
         val manager = context.getSystemService(ConnectivityManager::class.java)!!
         val before = shadowOf(manager).networkCallbacks.size
 
-        val queue = DownloadQueue(context, CertificatePins(), store())
+        val queue = DownloadQueue(context, CertificatePins(), store(), settings = { AppSettings() })
         shadowOf(getMainLooper()).idle()
         assertEquals(before + 1, shadowOf(manager).networkCallbacks.size)
 
