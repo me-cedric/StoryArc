@@ -1,8 +1,7 @@
 package app.storyarc.feature.library
 
 import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
+import androidx.compose.runtime.RememberObserver
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.catalogue.OpdsAcquisition
 import app.storyarc.core.catalogue.OpdsClient
@@ -28,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -66,7 +66,15 @@ class DownloadQueue(
      * than captured once at construction.
      */
     private val settings: () -> AppSettings = { AppSettings.Defaults },
-) {
+    /**
+     * Whether the device is on Wi-Fi, now and on every change.
+     *
+     * A flow rather than a poll, because `offline-downloads` requires a queue paused for
+     * Wi-Fi to "resume automatically when [Wi-Fi] returns", and automatically means without
+     * the reader going back to the screen. Injected so a test can drive the connection.
+     */
+    private val onWifi: Flow<Boolean> = NetworkCost.onWifi(context),
+) : RememberObserver {
     private val _library = MutableStateFlow(
         // Nothing outside this process carries a transfer on Android, so a download the
         // store calls running is one whose process died mid-flight. It goes back in the
@@ -134,7 +142,7 @@ class DownloadQueue(
     /** Whether this one may start over the connection the device is on. */
     private fun mayStart(download: Download): Boolean = MeteredDownload.mayStart(
         wifiOnly = settings().downloadOverWifiOnly,
-        isMetered = !isOnWifi(),
+        isMetered = !isOnWifi,
         isOverridden = download.id in overridden,
     )
 
@@ -255,7 +263,13 @@ class DownloadQueue(
         return file.takeIf { it.exists() }
     }
 
-    /** Forgets a download and deletes its file. */
+    /**
+     * Forgets a download and deletes its file, then looks again because room was freed.
+     *
+     * Deleting a finished publication is the one remedy `offline-downloads` names for a queue
+     * held by the storage limit, and a remedy that needs the reader to leave the screen and
+     * come back is not one.
+     */
     fun remove(id: String) {
         _library.value[id]?.let { download ->
             // The whole directory, not the one file: a stem this build did not choose is
@@ -264,6 +278,7 @@ class DownloadQueue(
         }
         _library.value = _library.value.removing(id)
         store?.save(_library.value)
+        pump()
     }
 
     private fun extensionOf(mediaType: String): String =
@@ -283,7 +298,7 @@ class DownloadQueue(
         // Not held when something in the queue carries a metered override: one granted
         // publication is running, and a queue that reported itself stopped while bytes were
         // arriving would be the lie this function exists to prevent.
-        if (current.downloadOverWifiOnly && !isOnWifi() && !hasOverriddenPending()) {
+        if (current.downloadOverWifiOnly && !isOnWifi && !hasOverriddenPending()) {
             return Held.WaitingForWifi
         }
         val limit = current.maximumDownloadBytes ?: return null
@@ -357,19 +372,25 @@ class DownloadQueue(
         store?.save(waiting)
     }
 
-    private fun isOnWifi(): Boolean {
-        val manager = context.getSystemService(ConnectivityManager::class.java) ?: return false
-        val capabilities = manager.getNetworkCapabilities(manager.activeNetwork) ?: return false
-        return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
-    }
+    /**
+     * Whether the device is on Wi-Fi, as [onWifi] last reported it.
+     *
+     * False until the first report, which errs toward using less: the same answer the poll
+     * this replaced gave while there was no network.
+     */
+    private var isOnWifi = false
 
     /**
      * Re-examines a held queue.
      *
-     * Called when the network or the settings change. `offline-downloads` promises downloads
-     * "resume automatically when [Wi-Fi] returns", and automatically means without the
-     * reader going back to the screen.
+     * Called when the network changes, and when a removal frees room. `offline-downloads`
+     * promises downloads "resume automatically when [Wi-Fi] returns", and automatically means
+     * without the reader going back to the screen. The same is true of room: a reader who
+     * deletes a film comes back to a queue that started again by itself.
+     *
+     * A settings change is the third caller this was written for, and it has none yet. The
+     * screen that owns [AppSettings] builds this queue without handing it [settings], so the
+     * reader's Wi-Fi and storage choices do not reach it at all.
      */
     fun reconsider() = pump()
 
@@ -545,5 +566,57 @@ class DownloadQueue(
     private fun finish(id: String, file: File?) {
         waiting.remove(id)?.forEach { it.complete(file) }
     }
+
+    /** The collection of [onWifi], so it can be ended without ending the transfers. */
+    private var watching: Job? = null
+
+    /**
+     * Stops watching the connection.
+     *
+     * A `ConnectivityManager.NetworkCallback` lives until it is unregistered, and this queue
+     * is built again for every catalogue page a reader opens. Cancelling the collection makes
+     * [NetworkCost.onWifi] unregister the callback.
+     *
+     * The transfers are left alone. `offline-downloads` asks a started download to continue
+     * "as far as the platform allows", and on Android that is as far as the process lives, so
+     * a reader who leaves the catalogue page keeps the bytes they were already fetching.
+     */
+    fun close() {
+        watching?.cancel()
+    }
+
+    /**
+     * Starts watching the connection, last, so every field this touches is built.
+     *
+     * A Kotlin initialiser block runs in declaration order, and the collection reaches [pump]
+     * through [reconsider] on its very first report -- which is also what puts back a
+     * transfer the process died during, the way iOS's `init` does.
+     *
+     * No debounce. `registerDefaultNetworkCallback` reports an interface coming up more than
+     * once, and [pump] is already safe against that: it marks a record running before it
+     * returns, so the next pass no longer sees it queued.
+     */
+    init {
+        watching = scope.launch {
+            onWifi.collect { wifi ->
+                isOnWifi = wifi
+                reconsider()
+            }
+        }
+    }
+
+    override fun onRemembered() = Unit
+
+    /**
+     * Compose forgets this queue with the page that remembered it, which is the queue's life.
+     *
+     * `AppScreens` builds it with `remember(page.url)`, so leaving the page or entering
+     * another section ends it. Implementing [RememberObserver] is how that end is heard --
+     * a `DisposableEffect` at the call site would be the same thing said in the caller.
+     */
+    override fun onForgotten() = close()
+
+    /** Built and then never remembered, which ends it just as surely. */
+    override fun onAbandoned() = close()
 
 }
