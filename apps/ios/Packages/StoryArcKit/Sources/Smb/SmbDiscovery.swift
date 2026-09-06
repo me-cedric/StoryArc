@@ -44,7 +44,12 @@ public final class SmbDiscovery {
     /// working is a normal condition.
     public private(set) var advice: String?
 
-    private var browser: NWBrowser?
+    /// The browser this class runs, once ``start()`` has built one.
+    ///
+    /// Readable inside the module so a test can drive the handlers ``start()`` installs. The
+    /// wiring is the production behaviour here, and a test that calls ``noteRefusal()``
+    /// directly asserts none of it.
+    private(set) var browser: NWBrowser?
 
     public init() {}
 
@@ -78,6 +83,20 @@ public final class SmbDiscovery {
         return true
     }
 
+    /// Records a refusal, if this is what a browser reports one as.
+    ///
+    /// `.waiting` is what a refusal produces in practice; `.failed` is the same answer
+    /// arriving as a stop rather than as a pause. Neither empties the host list, so discovery
+    /// keeps hiding itself exactly as it did before.
+    func note(_ state: NWBrowser.State) {
+        switch state {
+        case let .waiting(error), let .failed(error):
+            if Self.isRefusal(error) { noteRefusal() }
+        default:
+            break
+        }
+    }
+
     /// Starts looking. Idempotent, so a screen may call it on every appearance.
     public func start() {
         guard browser == nil else { return }
@@ -87,15 +106,12 @@ public final class SmbDiscovery {
             using: .tcp
         )
         found.stateUpdateHandler = { [weak self] state in
-            // `.waiting` is what a refusal produces in practice; `.failed` is the same answer
-            // arriving as a stop rather than as a pause. Neither empties the host list, so
-            // discovery keeps hiding itself exactly as it did before.
-            switch state {
-            case let .waiting(error), let .failed(error):
-                guard Self.isRefusal(error) else { return }
-                Task { @MainActor in self?.noteRefusal() }
-            default:
-                return
+            // Network delivers this on the queue handed to `start(queue:)` below, which is the
+            // main one, so this is already the main actor rather than a hop to it. Change that
+            // queue and this line has to change with it.
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.note(state)
             }
         }
         found.browseResultsChangedHandler = { [weak self] results, _ in

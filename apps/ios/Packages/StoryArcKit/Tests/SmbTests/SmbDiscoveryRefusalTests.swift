@@ -18,6 +18,12 @@ import Testing
 /// second scan does not say it again. ``SmbDiscovery/noteRefusal()`` reports whether it
 /// produced the sentence, which is what makes "once" a thing a test can hold.
 ///
+/// **The browser's own handler is driven, not only the two helpers under it.** A suite that
+/// calls ``SmbDiscovery/noteRefusal()`` directly says nothing about the line that installs the
+/// handler, and that line is the whole of what this class added: deleting it left every test
+/// green. So three tests read the handler back off the browser ``SmbDiscovery/start()`` built
+/// and hand it a state, which is what a refused permission does on a device.
+///
 /// **The sentence itself is not asserted here.** `swift build` copies an `.xcstrings` without
 /// compiling it, so `String(localized:)` answers with the key on the host. What is asserted is
 /// that the key is produced, produced once, and answerable in four languages — the last read
@@ -74,6 +80,45 @@ struct SmbDiscoveryRefusalTests {
         let discovery = SmbDiscovery()
         _ = discovery.noteRefusal()
         #expect(discovery.hosts.isEmpty)
+    }
+
+    /// The discovery `start()` built, and the state handler it installed on the browser.
+    ///
+    /// The caller stops the discovery: `start()` opens a real browse, and a browser left
+    /// running outlives the test that made it.
+    private static func started() throws -> (SmbDiscovery, (NWBrowser.State) -> Void) {
+        let discovery = SmbDiscovery()
+        discovery.start()
+        let handler = try #require(discovery.browser?.stateUpdateHandler, "start() installed no handler")
+        return (discovery, handler)
+    }
+
+    @Test("A refusal reaching the browser's own handler produces the sentence")
+    func aRefusalArrivesThroughTheBrowser() throws {
+        let (discovery, handler) = try Self.started()
+        defer { discovery.stop() }
+        // `.waiting` is what a refusal produces in practice, and this is the wiring that
+        // carries it: remove the line that installs the handler and this fails by name.
+        handler(.waiting(.dns(-65570)))
+        #expect(discovery.advice == Self.key)
+    }
+
+    @Test("A refusal that stops the browser is read the same way as one that pauses it")
+    func aFailedBrowserIsARefusalToo() throws {
+        let (discovery, handler) = try Self.started()
+        defer { discovery.stop() }
+        handler(.failed(.posix(.EPERM)))
+        #expect(discovery.advice == Self.key)
+    }
+
+    @Test("An ordinary failure reaching the browser says nothing")
+    func anOrdinaryFailureSaysNothingThroughTheBrowser() throws {
+        let (discovery, handler) = try Self.started()
+        defer { discovery.stop() }
+        // A browser waiting because the Wi-Fi is down, and one that simply started.
+        handler(.waiting(.posix(.ENETDOWN)))
+        handler(.ready)
+        #expect(discovery.advice == nil)
     }
 
     @Test("The sentence is answerable in four languages", arguments: ["en", "fr", "de", "es"])
