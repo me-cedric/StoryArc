@@ -11,6 +11,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import java.io.File
 
 /**
  * What a colour pairing will be like to read, said in words before the number that measures it.
@@ -30,6 +31,11 @@ import org.robolectric.annotation.Config
  *
  * The four languages are resolved through Robolectric's own qualifiers, so what is asserted is the
  * value `values-fr/strings.xml` really holds rather than a copy of it written here.
+ *
+ * **The band has to be drawn, and drawn first.** A suite over the pure function alone was vacuous
+ * against the requirement it was written for: both draw calls could be deleted and every case
+ * still passed. So the section is also read as text, which is the tripwire `ThemeSheetTest`
+ * already uses for a layout no JVM test can measure.
  *
  * iOS mirrors this suite in `PageColourBandTests`.
  */
@@ -85,6 +91,42 @@ class PageColourBandTest {
 
     // endregion
 
+    // region What the sheet draws
+
+    @Test
+    fun `the band is drawn, and drawn above the ratio that measures it, in both places`() {
+        val source = code("PageColourSection.kt")
+
+        val inUse = source.indexOf("stringResource(ReadingComfort.band(palette.contrast).label)")
+        val ratio = source.indexOf("R.string.theme_page_colour_ratio")
+        assertTrue(
+            "The sheet draws no band for the pairing in force, so the ratio stands alone again.",
+            inUse >= 0,
+        )
+        assertTrue("The sheet no longer states the measured ratio of the pairing in force.", ratio >= 0)
+        assertTrue(
+            "The measured ratio is drawn before the words that explain it. `reading-themes` /" +
+                " *Custom colour*: the sheet \"says in plain words … AND the measured contrast" +
+                " ratio is stated after those words rather than instead of them\".",
+            inUse < ratio,
+        )
+
+        val onRefusal = source.indexOf("stringResource(ReadingComfort.band(it).label)")
+        val refusal = source.indexOf("R.string.theme_page_colour_refused")
+        assertTrue(
+            "A refused pairing draws no band, so the refusal opens with arithmetic again.",
+            onRefusal >= 0,
+        )
+        assertTrue("The refusal no longer states the ratio it measured.", refusal >= 0)
+        assertTrue(
+            "A refused pairing states its arithmetic before its plain words. The refusal is the" +
+                " one moment a reader most needs the words first.",
+            onRefusal < refusal,
+        )
+    }
+
+    // endregion
+
     // region Four languages
 
     @Test
@@ -106,6 +148,30 @@ class PageColourBandTest {
 
     private fun band(ratio: Double) = ReadingComfort.band(ratio)
 
+    /**
+     * One source file of this module, read from the path Gradle hands the test JVM.
+     *
+     * A tripwire rather than a proof, for the reason `ThemeSheetTest` gives: no JVM test can lay
+     * out a composable, so the assertions over it say the band is written where the sheet draws
+     * it and never that a reader saw it. What a band *is* is proved above, over the pure
+     * function. The spellings asserted carry their argument lists or their `R.string.` head, so
+     * no line of prose in the file can satisfy one by accident.
+     */
+    private fun code(name: String): String {
+        val directory = System.getProperty(MODULE_DIRECTORY)
+            ?: error(
+                "$MODULE_DIRECTORY is unset. This test reads the module's own source and will" +
+                    " not go looking for it elsewhere — run it through Gradle" +
+                    " (`pnpm gradle :feature:epubreader:testDebugUnitTest`), which sets the" +
+                    " property from the module directory.",
+            )
+        val file = File(directory, "src/main/kotlin/app/storyarc/feature/epubreader/$name")
+        if (!file.isFile) {
+            error("$name is not under $directory — has it moved?")
+        }
+        return file.readText()
+    }
+
     private fun assertTheSheetSpeaks() {
         // Robolectric's own application, because `androidx.test.core` is not on this
         // module's unit-test classpath and one sentence is not worth a dependency.
@@ -124,6 +190,8 @@ class PageColourBandTest {
     }
 
     private companion object {
+        /** Set by this module's `build.gradle.kts`, from its own `projectDir`. */
+        const val MODULE_DIRECTORY = "storyarc.epubreader.projectDir"
         const val MEASURED = "3.2"
         const val FLOOR = "4.5"
     }
