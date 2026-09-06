@@ -7,15 +7,16 @@
  * sentences reached a French reader. This looks at the small surface where a literal is drawn
  * straight onto the screen.
  *
- * **What it would have caught, plainly: none of those thirty.** The census taken for
- * `one-vocabulary-in-four-languages` found **zero** literals in these positions on either
- * platform, because every one of the thirty reached a view through a variable from the format
- * layer. The type change in that change's section 1 is the gate for those. This is a backstop
- * against the next leak, on the surface `RefusedFile.swift` leaked through, and claiming more
- * for it would be the vacuous shape AGENTS.md section 5 catalogues.
- *
- * It is not vacuous on arrival: on the tree that added it, it reports two literals in
- * `apps/ios/App/RefusedFile.swift` — the refused-file alert's title and its OK button.
+ * **What it would have caught, plainly: two of those thirty.** The census taken for
+ * `one-vocabulary-in-four-languages` said zero, and the census was wrong on this file. The
+ * check reports the refused-file alert's title and its OK button, at
+ * `apps/ios/App/RefusedFile.swift:55` and `:58` — two of the six literals that file holds.
+ * It is the only automated check that sees them, because both are `Text(verbatim:)`: they
+ * never become a key, so `strings:ios` has no key to miss. The other twenty-eight reach a view
+ * through a variable from the format layer, and the type change in that change's section 1 is
+ * the gate for those. This is a backstop against the next leak, on the surface
+ * `RefusedFile.swift` leaked through, and claiming more for it would be the vacuous shape
+ * AGENTS.md section 5 catalogues.
  *
  * **The five positions.** `Text(`, `alert(`, a `Button(` label, `accessibilityLabel` and
  * `contentDescription =`. SwiftUI and Compose spell `Text(` the same way, so one pattern set
@@ -23,19 +24,21 @@
  * and regular expressions, which is the rung this stops at.
  *
  * **A literal is reported when it reads as a sentence.** Interpolations and format specifiers
- * are removed first. What is left must contain a letter, so a separator (`" · "`), a counter
- * (`"\(index + 1)"`) and an empty string are not sentences. In Swift only, a literal that
- * starts with a dotted lowercase word is a catalogue key rather than prose — `strings:ios`
- * checks that those resolve. Kotlin gets no such exemption, because Compose reads a catalogue
- * through `stringResource`, never through a literal.
+ * are removed first, one level of nested parentheses deep. What is left must contain a letter,
+ * so a separator (`" · "`), a counter (`"\(index + 1)"`) and an empty string are not
+ * sentences. In Swift only, a literal that starts with a dotted lowercase word is a catalogue
+ * key rather than prose, and `strings:ios` checks that those resolve. Kotlin gets no such
+ * exemption, because Compose reads a catalogue through `stringResource`, never a literal.
  *
  * **What a regex over source cannot see. Named, not hidden:**
  *
- *   - A sentence that reaches a view through a variable. This is the main limit and it is the
- *     shape all thirty had.
- *   - A literal on a different line from the call that draws it, because the scan is by line.
+ *   - A sentence that reaches a view through a variable. This is the main limit, and it is the
+ *     shape twenty-eight of the thirty had.
+ *   - A literal that anything except whitespace separates from the call. The call may wrap
+ *     onto a later line; it may not pass through a helper or a modifier.
  *   - Any position outside the five above, including a label a helper function builds.
- *   - A comment. Comment lines are skipped, so a commented-out `Text("…")` is not reported.
+ *   - A comment, but only a line that starts as one. A commented-out `Text("…")` on its own
+ *     line is not reported. A comment after a drawing call, on the same line, is read.
  *   - Test sources. `Tests/`, `UITests/`, `src/test/` and `src/androidTest/` assert on drawn
  *     strings and build fixtures; they are not a drawing surface.
  *   - A Swift sentence that begins with a dotted lowercase word, which the key exemption
@@ -74,8 +77,12 @@ const POSITIONS = [
     ['contentDescription', /\bcontentDescription\s*=\s*"((?:[^"\\]|\\.)*)"/g],
 ]
 
-/** Swift `\(…)`, Kotlin `${…}` and `$name`. What a value puts in is not what an author wrote. */
-const INTERPOLATION = /\\\([^()]*\)|\$\{[^}]*\}|\$[A-Za-z_][A-Za-z0-9_]*/g
+/**
+ * Swift `\(…)`, Kotlin `${…}` and `$name`. What a value puts in is not what an author wrote.
+ * The Swift form allows one nested pair of parentheses, because `\(duration.formatted())` is
+ * ordinary; a deeper nest is left in place and reads as a sentence.
+ */
+const INTERPOLATION = /\\\((?:[^()]|\([^()]*\))*\)|\$\{[^}]*\}|\$[A-Za-z_][A-Za-z0-9_]*/g
 
 /** `%@`, `%1$@`, `%lld`, `%1$d`: an argument, not a word. */
 const SPECIFIER = /%(?:\d+\$)?[@a-zA-Z]+/g
@@ -102,30 +109,41 @@ const walk = (directory, out = []) => {
     return out
 }
 
-/** Every drawn sentence under `root`, with the file and line that holds it. */
+/**
+ * Every drawn sentence under `root`, with the file and line that holds it.
+ *
+ * The scan reads a whole file at once, not a line at a time, because a drawing call that ends
+ * its line at the open parenthesis is the shape SwiftLint's 120-column rule produces: 53 Swift
+ * and 250 Kotlin call sites already wrap that way. Each pattern allows only whitespace between
+ * the call and the literal, so a match spans a newline only when the call itself does. The
+ * report names the line of the literal, and two positions that reach the same literal — an
+ * `alert(` around a `Text(` — report it once.
+ */
 export function audit(root) {
     const findings = []
     if (!existsSync(root)) return findings
     for (const path of walk(root).sort()) {
         if (isTestPath(path)) continue
         const swift = path.endsWith('.swift')
-        readFileSync(path, 'utf8')
-            .split('\n')
-            .forEach((line, index) => {
-                if (isComment(line)) return
-                const seen = new Set()
-                for (const [position, pattern] of POSITIONS) {
-                    pattern.lastIndex = 0
-                    let match
-                    while ((match = pattern.exec(line))) {
-                        const literal = match[1]
-                        if (seen.has(literal)) continue
-                        if (!isSentence(literal, swift)) continue
-                        seen.add(literal)
-                        findings.push({ path, line: index + 1, position, literal })
-                    }
-                }
-            })
+        const text = readFileSync(path, 'utf8')
+        const lines = text.split('\n')
+        const hits = []
+        const seen = new Set()
+        for (const [position, pattern] of POSITIONS) {
+            pattern.lastIndex = 0
+            let match
+            while ((match = pattern.exec(text))) {
+                const literal = match[1]
+                const line = text.slice(0, match.index + match[0].length - literal.length - 1).split('\n').length
+                const key = `${line}\u0000${literal}`
+                if (seen.has(key)) continue
+                if (isComment(lines[line - 1])) continue
+                if (!isSentence(literal, swift)) continue
+                seen.add(key)
+                hits.push({ path, line, position, literal })
+            }
+        }
+        findings.push(...hits.sort((one, other) => one.line - other.line))
     }
     return findings
 }
@@ -174,6 +192,21 @@ function selfTest() {
 
     found = run('Refused.swift', 'accessibilityLabel(Text(verbatim: "Cover of this book"))\n')
     cases.push(['a literal in two positions at once is reported once', found.length === 1])
+
+    found = run('Refused.swift', '.alert("Cannot open this file", isPresented: $shown) { }\n')
+    cases.push(['an alert title with no Text( around it is reported', found[0]?.position === 'alert('])
+
+    found = run('Cover.swift', '.accessibilityLabel("Cover of this book")\n')
+    cases.push([
+        'an accessibilityLabel with no Text( around it is reported',
+        found[0]?.position === 'accessibilityLabel',
+    ])
+
+    found = run('Refused.swift', 'Text(\n    verbatim: "This book is damaged"\n)\n')
+    cases.push(['a call wrapped onto the next line is reported', found.length === 1 && found[0]?.line === 2])
+
+    found = run('Player.swift', 'Text("\\(duration.formatted())")\n')
+    cases.push(['an interpolation that calls a function is not a sentence', found.length === 0])
 
     rmSync(dir, { recursive: true, force: true })
     mkdirSync(join(dir, 'Tests'), { recursive: true })
