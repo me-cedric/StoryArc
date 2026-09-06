@@ -38,12 +38,17 @@
     <string name="reader_transition_no_curl">La pliure n’est pas proposée ici : cet appareil ne peut pas la dessiner assez fluidement.</string>
     <string name="reader_transition_reflowable">Non disponible pour les livres dont le texte se redimensionne.</string>
     <string name="reader_empty">Il n’y a ici aucune page que StoryArc puisse afficher.</string>
-    <!-- Shown when a book will not open at all. Deliberately general: the reader used to be
-         shown the exception's own message, which is English prose written for a maintainer
-         and says things like "no file descriptor for content://…" and "page has no size".
-         The diagnostic export carries that detail, in English by design, and a maintainer
-         gets it there. `ReaderFailureSaysNothingInternalTest` fails if it comes back. -->
-    <string name="reader_cannot_open">StoryArc n’a pas pu ouvrir ce livre. Le fichier est peut-être endommagé ou incomplet.</string>
+    <!-- Shown when a book will not open at all.
+         It names no cause on purpose. The catch that sets it takes every exception: a
+         damaged archive, a rejected server credential, a denied permission and a cancelled
+         read all arrive here, and naming one of them sends the reader after the wrong
+         repair.
+         The reader used to be shown the exception's own message, which is English prose
+         written for a maintainer and says things like "no file descriptor for
+         content://…" and "page has no size". That detail is now dropped rather than
+         moved: the diagnostic export does not carry it and the app writes no log.
+         `ReaderFailureSaysNothingInternalTest` fails if the message comes back. -->
+    <string name="reader_cannot_open">StoryArc n’a pas pu ouvrir ce livre.</string>
     <string name="reader_offline_brief">En attente du réseau…</string>
     <string name="reader_offline_long">Cette bande dessinée est dans un dossier partagé injoignable. Les pages déjà lues sont toujours là.</string>
     <string name="reader_offline_download">La télécharger</string>

@@ -13,9 +13,9 @@ import java.io.File
  * size*. `localization` requires every sentence a reader is shown to resolve through a
  * catalogue in four languages, and an exception message resolves through none.
  *
- * **This deliberately removes information the reader could see.** The detail was never theirs:
- * the diagnostic export carries it, in English by explicit design, and that is where a
- * maintainer gets it.
+ * **This deliberately removes information the reader could see, and does not put it anywhere
+ * else.** The diagnostic export does not carry it and the app writes no log, so the cause of a
+ * refusal is now known to nobody. That is a cost of this guard, not a claim it makes good.
  *
  * The assertion is a source guard rather than a behaviour test, because this module's unit
  * tests run on a bare JVM with no Android framework — a `ReaderViewModel` cannot be built here.
@@ -66,7 +66,7 @@ class ReaderFailureSaysNothingInternalTest {
             "These lines put internal text on the reader's screen: $offenders. `core/format`" +
                 " throws English written for a maintainer — `not a pdf`, `cannot open file`," +
                 " `no file descriptor for …`, `page has no size` — and a reader of French is" +
-                " shown it verbatim. The diagnostic export is where that detail belongs.",
+                " shown it verbatim. A sentence written for a maintainer is not the reader's.",
             offenders.isEmpty(),
         )
     }
