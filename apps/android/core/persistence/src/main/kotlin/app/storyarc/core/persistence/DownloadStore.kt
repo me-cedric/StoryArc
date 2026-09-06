@@ -72,6 +72,21 @@ class DownloadStore internal constructor(
         location(download.id, download.mediaType, download.title)
 
     /**
+     * Where a download's bytes gather while they are still arriving.
+     *
+     * Beside the finished file and inside the download's own directory, so [remove] takes it
+     * with everything else and a reader who clears a download is not left paying for a half
+     * of one. `offline-downloads` asks an interrupted download to resume "from where it
+     * stopped", and this file is where it stopped: its length is the offset the next attempt
+     * asks the server for.
+     *
+     * A separate name rather than the finished path, because the two mean different things
+     * to every other reader of this tree. [location] names a file that indexed; a file still
+     * arriving has not been verified and must never be opened as a publication.
+     */
+    fun partial(download: Download): File = File(location(download).path + ".part")
+
+    /**
      * The same path, for a caller that knows these three before it has a record to hold them.
      *
      * All three are required. The optional `named` this replaced is the whole bug: a caller

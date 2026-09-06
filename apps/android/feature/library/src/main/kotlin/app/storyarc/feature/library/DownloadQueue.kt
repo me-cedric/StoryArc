@@ -22,6 +22,8 @@ import app.storyarc.core.model.StorageHeadroom
 import app.storyarc.core.persistence.DownloadStore
 import java.io.File
 import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -493,20 +495,35 @@ class DownloadQueue(
     }
 
     /** One attempt, with no opinion about whether there will be another. */
+    /**
+     * One fetch of one download, resumed from whatever the last one left behind.
+     *
+     * The bytes land in the download's own partial file rather than at its finished path, so
+     * an interrupted transfer leaves an offset the next attempt asks the server for --
+     * `offline-downloads`' *Resuming after interruption*. The partial becomes the publication
+     * only once the whole of it has arrived.
+     */
     private suspend fun attempt(download: Download, seriesHint: String?): File? = try {
-        val bytes = client.bytes(download.remote, credential(download.id))
         val store = store ?: throw IOException("no download store")
-        val file = withContext(Dispatchers.IO) {
-            val target = store.location(download)
-            store.prepare(target)
-            target.apply { writeBytes(bytes) }
+        val file = store.location(download)
+        withContext(Dispatchers.IO) {
+            store.prepare(file)
+            client.download(download.remote, credential(download.id), store.partial(download))
+            Files.move(
+                store.partial(download).toPath(),
+                file.toPath(),
+                StandardCopyOption.REPLACE_EXISTING,
+            )
         }
         // Indexing *is* the verification. `offline-downloads` requires integrity to be
         // checked "before it is marked available offline", and with no checksum from the
         // server the honest check is whether the bytes are a publication this app can open.
+        // A resumed file reaches this line the same way a first-attempt one does, so what
+        // was appended is verified rather than assumed.
         PublicationIndexer.index(file, catalogueSeries = seriesHint)
+        val written = file.length()
         _library.value = _library.value
-            .advancing(download.id, bytes.size.toLong(), bytes.size.toLong())
+            .advancing(download.id, written, written)
             .marking(download.id, Download.State.Finished)
         store.save(_library.value)
         file

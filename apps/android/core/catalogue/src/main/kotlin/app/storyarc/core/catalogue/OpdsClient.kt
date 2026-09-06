@@ -1,13 +1,19 @@
 package app.storyarc.core.catalogue
 
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URL
 import java.security.cert.X509Certificate
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLHandshakeException
+import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
 /**
@@ -121,6 +127,42 @@ class OpdsClient(
         fetch(url, credential).body
 
     /**
+     * A publication, written to [into] and resumed from whatever [into] already holds.
+     *
+     * Separate from [bytes] because the two want different things of one body. A cover or a
+     * feed is small and is parsed in memory; a publication is the 400 MB comic
+     * `offline-downloads` names in its purpose, and holding that in a `ByteArray` is what
+     * made a download an allocation the size of the file.
+     *
+     * `offline-downloads`' *Resuming after interruption*: an interrupted download "resumes
+     * from where it stopped if the server supports range requests, and restarts otherwise".
+     * [into] is the partial file, so its length is the offset to ask from, and there are
+     * three answers to that ask:
+     *
+     * - **206.** The server gave the rest. The bytes are appended.
+     * - **200.** The server ignored the range and gave the whole resource, which RFC 9110
+     *   permits. The partial bytes are discarded and the body replaces them -- appending a
+     *   whole body onto a prefix writes a file that is not the publication, and a ZIP with a
+     *   prefix opens far enough to look as if it worked.
+     * - **416.** The bytes asked for are not there, so the file on disk is not a prefix of
+     *   what the server holds. It is deleted and the download starts over.
+     */
+    suspend fun download(url: String, credential: OpdsCredential? = null, into: File) {
+        val from = if (into.isFile) into.length() else 0L
+        try {
+            fetch(url, credential, into, from)
+        } catch (error: OpdsError.Http) {
+            if (error.status != RANGE_NOT_SATISFIABLE || from == 0L) throw error
+            into.delete()
+            fetch(url, credential, into, 0L)
+        }
+        // A cancelled copy stops mid-body and leaves the bytes it wrote, which is the point:
+        // the next attempt asks for the rest of them. It is not a completed download, so the
+        // caller has to be told cancellation rather than handed a short file to index.
+        coroutineContext.ensureActive()
+    }
+
+    /**
      * The certificate refused since this client was last asked.
      *
      * Read after a failure, so the UI can show the fingerprint and offer to pin it. Null
@@ -149,15 +191,24 @@ class OpdsClient(
      * the previous hop's, or a chain of two redirects arrives anywhere with the header
      * intact.
      */
-    private suspend fun fetch(url: String, credential: OpdsCredential?): Fetched =
+    private suspend fun fetch(
+        url: String,
+        credential: OpdsCredential?,
+        into: File? = null,
+        from: Long = 0,
+    ): Fetched =
         withContext(Dispatchers.IO) {
+            // Read once, outside the blocking read loop. A copy that runs after the caller
+            // gave up spends the bytes the pause exists to save.
+            val job = coroutineContext[Job]
             // The configured source's origin, or -- for an address the reader typed, which
             // has nothing to be compared against -- its own.
             val home = origin ?: OpdsOrigin.of(url)
             var target = url
             var hops = 0
             while (true) {
-                when (val hop = one(target, credential, home)) {
+                val sink = into?.let { Sink(it, from) { job?.isActive != false } }
+                when (val hop = one(target, credential, home, sink)) {
                     is Hop.Done -> return@withContext hop.fetched
                     is Hop.Moved -> {
                         if (++hops > MAX_REDIRECTS) throw OpdsError.RefusedAddress
@@ -169,7 +220,15 @@ class OpdsClient(
             throw OpdsError.Empty
         }
 
-    private fun one(url: String, credential: OpdsCredential?, home: OpdsOrigin?): Hop {
+    /** Where a publication's bytes go, from which offset, and for as long as anyone wants them. */
+    private class Sink(val into: File, val from: Long, val keepGoing: () -> Boolean)
+
+    private fun one(
+        url: String,
+        credential: OpdsCredential?,
+        home: OpdsOrigin?,
+        sink: Sink? = null,
+    ): Hop {
         // The origin decides, and it is the configured source's -- not the address in hand.
         // A feed that names `http://collect.attacker.example/x` names it in the same field a
         // legitimate cover comes in, and the cover field is fetched with no tap at all.
@@ -188,6 +247,10 @@ class OpdsClient(
         connection.setRequestProperty("Accept", accept)
         if (credential != null && home?.admits(url) == true) {
             connection.setRequestProperty("Authorization", credential.header)
+        }
+        // Open-ended, because the app wants the rest of the file and not a window into it.
+        if (sink != null && sink.from > 0) {
+            connection.setRequestProperty("Range", "bytes=${sink.from}-")
         }
         // Nothing is cached to disk. A catalogue response can name a reader's whole
         // library, and `settings-and-about` promises no data leaves the device that the
@@ -230,6 +293,11 @@ class OpdsClient(
                 else -> throw OpdsError.Http(status)
             }
 
+            if (sink != null) {
+                connection.inputStream.use { stream -> write(stream, connection, status, sink) }
+                return Hop.Done(Fetched(ByteArray(0), connection.contentType, url))
+            }
+
             val body = connection.inputStream.use { it.readBytes() }
             if (body.isEmpty()) throw OpdsError.Empty
             return Hop.Done(Fetched(body, connection.contentType, url))
@@ -238,11 +306,57 @@ class OpdsClient(
         }
     }
 
+    /**
+     * The body onto disk, appended only when the server said it is a continuation.
+     *
+     * 206 is the one status whose bytes carry on from what is already there. Any other
+     * success is the whole resource, including a 200 answering a request that carried a
+     * `Range` -- RFC 9110 lets a server ignore a range it does not want to serve, and
+     * `scripts/opds-server.mjs` does exactly that on request because real servers, proxies
+     * and captive portals do. Appending that onto a prefix writes a longer file that is not
+     * the publication.
+     */
+    private fun write(stream: InputStream, connection: HttpURLConnection, status: Int, sink: Sink) {
+        val append = status == HttpURLConnection.HTTP_PARTIAL
+        sink.into.parentFile?.mkdirs()
+        FileOutputStream(sink.into, append).use { out ->
+            val buffer = ByteArray(COPY_BYTES)
+            while (sink.keepGoing()) {
+                val read = stream.read(buffer)
+                if (read < 0) break
+                out.write(buffer, 0, read)
+            }
+        }
+        if (!sink.keepGoing()) return
+        if (sink.into.length() == 0L) throw OpdsError.Empty
+        // What the server said the whole file weighs. A body that stopped early is a file
+        // this app must not hand to the indexer as a finished download, and a short read
+        // does not always raise on its own.
+        val whole = declaredLength(connection, status)
+        if (whole != null && sink.into.length() != whole) {
+            throw IOException("the download stopped at ${sink.into.length()} of $whole bytes")
+        }
+    }
+
+    /** What the response says the complete resource weighs, or null when it does not say. */
+    private fun declaredLength(connection: HttpURLConnection, status: Int): Long? =
+        if (status == HttpURLConnection.HTTP_PARTIAL) {
+            connection.getHeaderField("Content-Range")?.substringAfterLast('/')?.toLongOrNull()
+        } else {
+            connection.getHeaderField("Content-Length")?.toLongOrNull()
+        }
+
     private companion object {
         const val TIMEOUT_MILLIS = 20_000
 
         /** What a browser allows too. A server that needs more is looping. */
         const val MAX_REDIRECTS = 5
+
+        /** One read of a publication being written to disk. */
+        const val COPY_BYTES = 64 * 1024
+
+        /** The bytes asked for are not there, so what is on disk is not a prefix of the file. */
+        const val RANGE_NOT_SATISFIABLE = 416
     }
 }
 

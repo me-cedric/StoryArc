@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -87,12 +88,17 @@ class DownloadQueueConnectionTest {
     @Test
     fun `pausing for the connection keeps the record and the bytes counted against it`() {
         // `offline-downloads` pauses rather than cancels, and "the bytes stay and the transfer
-        // resumes from them". The record is what carries that count, so losing it is losing
-        // the claim. What the app cannot yet do is resume *from* those bytes: no Range request
-        // exists in either tree, so the next attempt starts at zero.
+        // resumes from them". Two things carry that: the record, which holds the count, and
+        // the partial file, which holds the bytes the next attempt asks the server to carry
+        // on from. Losing either is losing the claim.
         val id = "bytes-survive"
         val wifi = MutableStateFlow(true)
-        val queue = queue(store(queued(id, fetched = 4_000_000)), wifi)
+        val held = store(queued(id, fetched = 4_000_000))
+        val partial = held.partial(queued(id)).apply {
+            parentFile?.mkdirs()
+            writeBytes(ByteArray(4_000))
+        }
+        val queue = queue(held, wifi)
 
         wifi.value = false
 
@@ -100,6 +106,11 @@ class DownloadQueueConnectionTest {
         assertEquals(waiting, paused?.state)
         assertEquals(4_000_000L, paused?.downloadedBytes)
         assertEquals(8_400_000L, paused?.expectedBytes)
+        assertTrue(
+            "A pause deleted the fetched bytes, so the transfer has nothing to resume from.",
+            partial.isFile,
+        )
+        assertEquals(4_000L, partial.length())
     }
 
     @Test

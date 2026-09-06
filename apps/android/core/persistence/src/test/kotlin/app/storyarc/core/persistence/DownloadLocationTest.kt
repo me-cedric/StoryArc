@@ -74,6 +74,24 @@ class DownloadLocationTest {
     }
 
     @Test
+    fun `a partial download sits inside its own directory and a removal takes it`() {
+        // `offline-downloads` resumes an interrupted download "from where it stopped", and the
+        // partial file is where it stopped. It has to live under the download's own directory:
+        // a reader who removes a download and is still charged for half of one has been told
+        // the bytes are gone when they are not.
+        val store = store()
+        val download = download()
+
+        val partial = store.partial(download)
+        store.prepare(partial)
+        partial.writeBytes(byteArrayOf(1, 2, 3))
+
+        assertEquals(store.location(download).parentFile, partial.parentFile)
+        assertTrue(store.remove(download))
+        assertFalse("a removal left the partial bytes behind", partial.exists())
+    }
+
+    @Test
     fun `a title a filesystem would refuse is made safe without colliding with the identity`() {
         val store = store()
         val awkward = download(title = "Bone: Out/From \"Boneville\"")
