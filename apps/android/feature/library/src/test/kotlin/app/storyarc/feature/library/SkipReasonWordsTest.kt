@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.StoryArcTheme
+import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.SkipReason
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -111,10 +112,22 @@ class SkipReasonWordsTest {
         )
 
     /**
-     * Each sentence is on screen, and each is inside the window it is drawn in.
+     * Each sentence is on screen, and each is inside the gutter it is drawn in.
      *
      * Horizontal containment rather than one line: a reason that has honestly wrapped is not a
      * defect, and a reason that runs past the edge is.
+     *
+     * **The tree is unmerged, and that is what makes the three measurements reachable.**
+     * [SkippedBanner] puts `semantics(mergeDescendants = true)` on the column holding the name
+     * and the reason, so on the merged tree `onNodeWithText` answers with that column — whose
+     * width is the banner's padding, never the sentence's. Measured through it, every bound
+     * below held for any string of any length. `SkippedNoticeTest` names the same merge from
+     * the other side: *unmerged there are two*.
+     *
+     * **The bounds are the row's, not the window's**, for the reason [ListOrderChipsWrapTest]
+     * states: the banner pads itself by [StoryArcSpace.gutter] on both sides, so a sentence
+     * that reaches [WINDOW] has already run past the edge of what it was given. Naming the
+     * token rather than 280 dp keeps this following the banner if the gutter moves.
      */
     private fun assertDrawn(reasons: List<SkipReason>, expected: List<String>) {
         compose.setContent {
@@ -138,11 +151,18 @@ class SkipReasonWordsTest {
         compose.waitForIdle()
 
         for (sentence in expected) {
-            val bounds = compose.onNodeWithText(sentence).getUnclippedBoundsInRoot()
+            val bounds = compose.onNodeWithText(sentence, useUnmergedTree = true)
+                .getUnclippedBoundsInRoot()
             assertTrue("$sentence was measured ${bounds.right - bounds.left} wide",
                 bounds.right - bounds.left > Dp.Hairline)
-            assertTrue("$sentence starts at ${bounds.left}", bounds.left >= 0.dp)
-            assertTrue("$sentence ends at ${bounds.right}", bounds.right <= WINDOW)
+            assertTrue(
+                "$sentence starts at ${bounds.left}",
+                bounds.left >= StoryArcSpace.gutter,
+            )
+            assertTrue(
+                "$sentence ends at ${bounds.right}",
+                bounds.right <= WINDOW - StoryArcSpace.gutter,
+            )
         }
     }
 
