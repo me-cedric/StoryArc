@@ -156,14 +156,12 @@ final class ReadAloudPlayerTests: XCTestCase {
     /// - Parameter title: a reflowable EPUB to open by name, or `nil` to let the shared search
     ///   in `EpubWalk` find one — which skips, rather than fails, on a device without any.
     private func speakAndLeaveTheReader(opening title: String? = nil) throws -> XCUIApplication {
-        // **Filtered to the two formats these walks open, and that is what makes them run.**
-        // A cover reached by scrolling does not open under XCUITest: on 2026-09-06, after a
-        // drag that left *Harbour Lights 01* fully visible mid-screen, taps on the cover, on
-        // its caption and on a neighbour with artwork all left the shelf where it was, while
-        // the same covers open when they are visible at launch. Whether a finger does better
-        // is not established here; the frames' README records the finding. With the shelf
-        // filtered to EPUBs and audiobooks, every book these walks name is in the first two
-        // rows, and nothing scrolls.
+        // **Filtered to the two formats these walks open, so nothing scrolls.** With the shelf
+        // reduced to EPUBs and audiobooks every book these walks name is in the first two rows.
+        // The filter was added while chasing a cover that opened nothing at any position; that
+        // turned out to be the Library split's dead value link (see `OpenPublicationRoute`),
+        // not the scroll — and the filter is kept because a walk that scrolls a lazy grid to a
+        // named cell is a walk that flakes.
         let app: XCUIApplication
         if let title {
             app = sweepLaunch(formats: ["epub", "audiobook", "audioFolder"])
