@@ -47,7 +47,7 @@ struct ReadiumMappingTests {
     }
 
     @Test("The colours are the token colours, parsed rather than approximated")
-    func coloursComeFromTokens() throws {
+    func coloursComeFromTokens() {
         let theme = ReadingTheme(preset: .paper)
         let preferences = theme.preferences(values: theme.preset.values)
 
@@ -55,7 +55,13 @@ struct ReadiumMappingTests {
         // show different colours.
         #expect(preferences.backgroundColor == ReadiumNavigator.Color(hex: theme.background))
         #expect(preferences.textColor == ReadiumNavigator.Color(hex: theme.foreground))
-        #expect(try #require(theme.background).hasPrefix("#"))
+
+        // `Color(hex:)` is failable, so a token the parser rejects satisfies both
+        // comparisons above with a pair of nils. These two say it parsed, which is what
+        // makes the comparisons mean anything. `theme.background` is not optional, so the
+        // `#require` that stood here could not fail and said nothing.
+        #expect(preferences.backgroundColor != nil, "the background token must parse as a colour")
+        #expect(preferences.textColor != nil, "the text token must parse as a colour")
     }
 
     @Test("Bold raises the weight without changing the family")
