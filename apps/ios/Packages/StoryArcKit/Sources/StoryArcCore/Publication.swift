@@ -65,13 +65,19 @@ public enum MetadataOrigin: String, Sendable, Codable, CaseIterable {
 public struct Publication: Sendable, Equatable, Identifiable, Codable {
     /// Stable across sources, so the same book from a folder and from a server is
     /// one book with one reading position (ADR-0006).
-    public let identity: PublicationIdentity
+    ///
+    /// Settable for one caller: the Kavita browser, which knows which chapter the file it
+    /// has just written is, and which the indexer cannot know. It records that through
+    /// ``PublicationIdentity/recordingServer(_:)``, which keeps ``id`` where it was.
+    public var identity: PublicationIdentity
 
     /// A stable key for lists and diffing.
     ///
-    /// Built from whichever identity components exist, in the priority ADR-0006
-    /// gives them, so a publication that later gains a server id keeps a usable
-    /// key throughout rather than changing identity mid-session.
+    /// Built from whichever identity components exist, in the order
+    /// ``PublicationIdentity/stableID`` gives them — which is the order they become
+    /// known, not ADR-0006's order of preference, so a publication that later gains a
+    /// digest or a server id keeps the key it already had rather than changing identity
+    /// mid-session.
     public var id: String { identity.stableID }
 
     public let format: PublicationFormat

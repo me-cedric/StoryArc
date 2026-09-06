@@ -68,13 +68,25 @@ public enum KavitaSync {
         var origins: [String: KavitaOrigin] = [:]
 
         for chapter in chapters where chapter.pages > 0 {
-            guard let publicationId = kavita.publication(forChapter: chapter.id),
-                  let held = try? await progress.progress(forStableID: publicationId)
-            else { continue }
+            guard let publicationId = kavita.publication(forChapter: chapter.id) else { continue }
+            let origin = kavita.origin(of: publicationId)
+            // The server's own identifier first, because it finds the record wherever the
+            // chapter's bytes ended up. The stable id is the fallback, and the only route
+            // for a record written before any server identifier was built.
+            var found: ReadingProgress?
+            if let server = origin?.serverIdentifier {
+                found = try? await progress.progress(
+                    for: PublicationIdentity(serverIdentifier: server)
+                )
+            }
+            if found == nil {
+                found = try? await progress.progress(forStableID: publicationId)
+            }
+            guard let held = found else { continue }
             let key = held.identity.stableID
             local[key] = held
             reported[key] = chapter
-            origins[key] = kavita.origin(of: publicationId)
+            origins[key] = origin
             // The server's position, wearing the local record's identity — which is the
             // only thing that lets the two be compared at all.
             var said = held

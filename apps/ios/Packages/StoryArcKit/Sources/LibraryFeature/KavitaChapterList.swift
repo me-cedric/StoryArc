@@ -315,15 +315,21 @@ struct KavitaChapterList: View {
               )
         else { return }
         guard (try? fetched.bytes.write(to: file, options: .atomic)) != nil,
-              let publication = try? await PublicationIndexer.index(
+              var publication = try? await PublicationIndexer.index(
                   fileAt: file,
                   catalogueSeries: series.name
               )
         else { return }
 
+        let origin = origin(of: chapter)
+        // ADR-0006's first identity rule, at the one moment the app holds both halves: a
+        // file it has just indexed, and the chapter the server calls it. The progress store
+        // files by this, so a chapter the server repackages between two opens still finds
+        // the position the reader left. `id` does not move — the path outranks it there.
+        publication.identity = publication.identity.recordingServer(origin.serverIdentifier)
         // The note the reader cannot leave for itself: it opens a file and knows nothing
         // about servers, so this is what lets the position get home.
-        store.remember(origin(of: chapter), for: publication.id)
+        store.remember(origin, for: publication.id)
         onOpen(publication, file)
     }
 }

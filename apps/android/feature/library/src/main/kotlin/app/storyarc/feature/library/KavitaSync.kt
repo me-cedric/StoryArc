@@ -8,10 +8,12 @@ import app.storyarc.core.kavita.KavitaChapter
 import app.storyarc.core.kavita.KavitaExchange
 import app.storyarc.core.kavita.KavitaOwed
 import app.storyarc.core.model.ProgressPull
+import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.persistence.KavitaUnsent
+import app.storyarc.core.persistence.serverIdentifier
 
 /**
  * Telling a Kavita server where the reader got to.
@@ -78,11 +80,18 @@ object KavitaSync {
         for (chapter in chapters) {
             if (chapter.pages <= 0) continue
             val publicationId = kavita.publicationForChapter(chapter.id) ?: continue
-            val held = progress.progressForStableId(publicationId) ?: continue
+            val origin = kavita.origin(publicationId)
+            // The server's own identifier first, because it finds the record wherever the
+            // chapter's bytes ended up. The stable id is the fallback, and the only route
+            // for a record written before any server identifier was built.
+            val held = origin?.serverIdentifier
+                ?.let { progress.progress(PublicationIdentity(serverIdentifier = it)) }
+                ?: progress.progressForStableId(publicationId)
+                ?: continue
             val key = held.identity.stableId
             local[key] = held
             reported[key] = chapter
-            kavita.origin(publicationId)?.let { origins[key] = it }
+            origin?.let { origins[key] = it }
             // The server's position, wearing the local record's identity -- which is the
             // only thing that lets the two be compared at all.
             remote += held.copy(

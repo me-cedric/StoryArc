@@ -48,6 +48,7 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.persistence.KavitaCardStore
 import app.storyarc.core.persistence.KavitaOrigin
+import app.storyarc.core.persistence.serverIdentifier
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import app.storyarc.core.model.ProgressPull
@@ -203,21 +204,19 @@ fun KavitaChapters(
     val open: (KavitaChapter) -> Unit = { chapter ->
         scope.launch {
             fetching = chapter.id
-            fetch(context, client, series.name, chapter)?.let { (publication, path) ->
+            fetch(context, client, series.name, chapter)?.let { (indexed, path) ->
+                val origin = originOf(chapter)
+                // ADR-0006's first identity rule, at the one moment the app holds both
+                // halves: a file it has just indexed, and the chapter the server calls it.
+                // The progress store files by this, so a chapter the server repackages
+                // between two opens still finds the position the reader left. `id` does not
+                // move -- the path outranks it there.
+                val publication = indexed.copy(
+                    identity = indexed.identity.recordingServer(origin.serverIdentifier),
+                )
                 // The note the reader cannot leave for itself: it opens a file and knows
                 // nothing about servers, so this is what lets the position get home.
-                store.remember(
-                    publication.id,
-                    KavitaOrigin(
-                        sourceId = sourceId,
-                        libraryId = series.libraryId,
-                        seriesId = series.id,
-                        volumeId = volumes.firstOrNull { volume ->
-                            volume.chapters.any { it.id == chapter.id }
-                        }?.id ?: 0,
-                        chapterId = chapter.id,
-                    ),
-                )
+                store.remember(publication.id, origin)
                 onOpen(publication, path)
             }
             fetching = null
