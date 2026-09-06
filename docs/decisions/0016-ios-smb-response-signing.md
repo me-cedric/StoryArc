@@ -231,6 +231,38 @@ Nothing is added to the app. No line on the connection sheet, no badge, no
 toggle, no prompt. The posture is recorded here and in
 [`SECURITY.md`](../../SECURITY.md), which already carries it.
 
+### What "nothing is added" covers, and what it does not
+
+**It covers integrity. It does not reach the encryption sentence.** The two are
+easy to read as one, and on 2026-09-06 a reviewer read them as one, so the
+difference is written down here rather than left to a code comment.
+
+[`network-share`](../openspec/specs/network-share/spec.md)'s *Encrypted
+transport* requires the app to state whether a connection is encrypted, and
+[ADR-0010](0010-smb-clients.md) puts that requirement on the source detail
+screen: that screen "reports what *this* connection actually negotiated, which
+is the honest answer and is what the spec asks for". Both add-share sheets
+already carried the sentence before this decision was written. On 2026-09-06 the
+source detail screen gained it too, on both platforms, in four languages:
+*StoryArc reads this share over SMB. The connection is not encrypted.*
+
+That is a spec clause being met. It is not Option A. Option A adds *not signed*,
+which names a weakness a reader cannot act on and which the iOS client cannot
+even measure. The encryption sentence names a property of the transport that the
+reader chose, that both clients report, and that the reader can change by
+choosing a different share. **Signing is still stated nowhere on iOS**, on the
+sheet or on the detail screen, and this decision is why.
+
+**The sentence states a constant, and that is the part to watch.** `SmbClient`
+hardcodes `isEncrypted = false` on both platforms, so the detail screen does not
+read the session, and it cannot: neither `Source` nor `SourceDiagnosis` carries
+what a connection negotiated. The four sentences are therefore true today and
+false the moment a client encrypts. `SourceTransportNoteTests` and
+`SourceTransportNoteTest` pin the negation in every language for exactly that
+reason, so a client that starts encrypting fails both suites by name. Move the
+wording then. Plumb the fact onto `SourceDiagnosis` if the answer stops being
+the same for every share.
+
 ### What would change this
 
 Any one of these reopens it, and none of them needs a new ADR — this one is where
