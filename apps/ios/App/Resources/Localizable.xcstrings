@@ -62,29 +62,130 @@
     },
     "downloads.failed %@ %lld": {
       "extractionState": "manual",
+      "comment": "Three attempts is the ceiling `offline-downloads` sets, so one of them is a real case and reads wrong as \"1 attempts\". Android draws the same sentence through `R.plurals.downloads_failed`.",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nach %2$lld Versuchen fehlgeschlagen: %1$@"
+            "value": "Nach %#@attempts@ fehlgeschlagen: %1$@"
+          },
+          "substitutions": {
+            "attempts": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg Versuch"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg Versuchen"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Failed after %2$lld attempts: %1$@"
+            "value": "Failed after %#@attempts@: %1$@"
+          },
+          "substitutions": {
+            "attempts": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg attempt"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg attempts"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Falló tras %2$lld intentos: %1$@"
+            "value": "Falló tras %#@attempts@: %1$@"
+          },
+          "substitutions": {
+            "attempts": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "many": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg intentos"
+                    }
+                  },
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg intento"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg intentos"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Échec après %2$lld tentatives : %1$@"
+            "value": "Échec après %#@attempts@ : %1$@"
+          },
+          "substitutions": {
+            "attempts": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "many": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg tentatives"
+                    }
+                  },
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg tentative"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg tentatives"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
