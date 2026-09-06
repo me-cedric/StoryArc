@@ -17,10 +17,10 @@ struct FilenameOrderTests {
         _ title: String,
         series: String? = nil,
         number: String? = nil,
-        file: String
+        file: String? = nil
     ) -> Publication {
         Publication(
-            identity: PublicationIdentity(normalizedPath: "/library/Kagurabachi/\(file)"),
+            identity: PublicationIdentity(normalizedPath: file.map { "/library/Kagurabachi/\($0)" }),
             format: .cbz,
             displayTitle: title,
             series: series,
@@ -78,5 +78,25 @@ struct FilenameOrderTests {
         ]
         let sorted = LibraryIndex.arrange(library, query: LibraryQuery(sort: .title), locale: english)
         #expect(sorted.map(\.displayTitle) == ["Akira", "The Sandman"])
+    }
+
+    @Test("A tie under any other sort files by the collated title, because the shelf is not a folder")
+    func aTiedShelfKeepsTheCollatedTitle() {
+        let library = [
+            publication("Maus II", file: "Maus II.cbz"),
+            publication("Maus", file: "Maus.cbz"),
+        ]
+        let sorted = LibraryIndex.arrange(library, query: LibraryQuery(sort: .year), locale: english)
+        #expect(sorted.map(\.displayTitle) == ["Maus", "Maus II"])
+    }
+
+    @Test("A series of server chapters keeps the collated title, because a chapter has no filename")
+    func aSeriesWithNoFilesKeepsTheCollatedTitle() {
+        let library = [
+            publication("A Zoo", series: "Kagurabachi"),
+            publication("Bee", series: "Kagurabachi"),
+        ]
+        let sorted = LibraryIndex.arrange(library, query: LibraryQuery(sort: .series), locale: english)
+        #expect(sorted.map(\.displayTitle) == ["Bee", "A Zoo"])
     }
 }

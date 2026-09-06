@@ -19,9 +19,9 @@ class FilenameOrderTest {
         title: String,
         series: String? = null,
         number: String? = null,
-        file: String,
+        file: String? = null,
     ) = Publication(
-        identity = PublicationIdentity(normalizedPath = "/library/Kagurabachi/$file"),
+        identity = PublicationIdentity(normalizedPath = file?.let { "/library/Kagurabachi/$it" }),
         format = PublicationFormat.CBZ,
         displayTitle = title,
         series = series,
@@ -73,5 +73,25 @@ class FilenameOrderTest {
         )
         val sorted = LibraryIndex.arrange(library, LibraryQuery(sort = LibrarySort.TITLE), Locale.ENGLISH)
         assertEquals(listOf("Akira", "The Sandman"), sorted.map { it.displayTitle })
+    }
+
+    @Test
+    fun `a tie under any other sort files by the collated title, because the shelf is not a folder`() {
+        val library = listOf(
+            publication("Maus II", file = "Maus II.cbz"),
+            publication("Maus", file = "Maus.cbz"),
+        )
+        val sorted = LibraryIndex.arrange(library, LibraryQuery(sort = LibrarySort.YEAR), Locale.ENGLISH)
+        assertEquals(listOf("Maus", "Maus II"), sorted.map { it.displayTitle })
+    }
+
+    @Test
+    fun `a series of server chapters keeps the collated title, because a chapter has no filename`() {
+        val library = listOf(
+            publication("A Zoo", series = "Kagurabachi"),
+            publication("Bee", series = "Kagurabachi"),
+        )
+        val sorted = LibraryIndex.arrange(library, LibraryQuery(sort = LibrarySort.SERIES), Locale.ENGLISH)
+        assertEquals(listOf("Bee", "A Zoo"), sorted.map { it.displayTitle })
     }
 }

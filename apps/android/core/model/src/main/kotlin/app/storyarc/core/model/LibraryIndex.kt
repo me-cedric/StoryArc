@@ -76,13 +76,13 @@ object LibraryIndex {
                 // A stable tiebreak, always ascending: a list that reshuffles
                 // equal rows when the direction flips looks broken.
                 //
-                // `local-library`, *Nested folder structure becomes series*: "a subfolder
-                // whose contents cannot be ordered falls back to case-insensitive natural
-                // filename order". This is that fallback. It sits here rather than inside
-                // the SERIES branch because "cannot be ordered" is exactly the state this
-                // line is reached in: every key above it, the issue number included, said
-                // equal.
-                NaturalOrder.compare(orderingName(left), orderingName(right))
+                // The collated title, and not the filename. `local-library`'s natural
+                // filename order is the fallback of **one series folder**, so it lives in
+                // the SERIES branch. Here it would decide the whole shelf: sorting by
+                // year, by size, by date added, by progress or by last read leaves entire
+                // libraries tied, and those readers are owed the collation and the article
+                // stripping `library-browsing` requires of every title comparison.
+                collator.compare(sortKey(left.displayTitle, locale), sortKey(right.displayTitle, locale))
             }
         }
         return ordered
@@ -163,17 +163,15 @@ object LibraryIndex {
     }
 
     /**
-     * The name a publication falls back to when every ordering key has tied.
+     * The file a publication was read from, or `null` where it has no file.
      *
-     * The filename, which is what `local-library` names, and the display title where a
-     * publication has no file: a server chapter is not a file on disk, and a row ordered
-     * by nothing at all would move about between launches.
+     * A server chapter is not a file on disk, so a Kavita or an OPDS row answers `null`
+     * here and is ordered by its collated title instead.
      */
-    private fun orderingName(publication: Publication): String =
+    private fun fileName(publication: Publication): String? =
         publication.identity.normalizedPath
             ?.split('/')
             ?.lastOrNull { it.isNotEmpty() }
-            ?: publication.displayTitle
 
     /**
      * An issue number as a number, so #10 follows #9.
@@ -273,7 +271,30 @@ object LibraryIndex {
                     )
                     // Within a series, the issue number decides — and numerically, so #10
                     // follows #9 rather than #1.
-                    if (bySeries != 0) bySeries else numberOf(left).compareTo(numberOf(right))
+                    val byNumber = numberOf(left).compareTo(numberOf(right))
+                    val leftFile = fileName(left)
+                    val rightFile = fileName(right)
+                    when {
+                        bySeries != 0 -> bySeries
+                        byNumber != 0 -> byNumber
+                        // `local-library`, *Nested folder structure becomes series*: "a
+                        // subfolder whose contents cannot be ordered falls back to
+                        // case-insensitive natural filename order". A series whose issues
+                        // carry no numbers is that subfolder, and this is the only place
+                        // the fallback is licensed.
+                        //
+                        // Only where both rows are files. Comparing a title here would
+                        // order it by neither the locale collation nor the article
+                        // stripping `library-browsing` requires, so a pair with no file
+                        // keeps the collated title.
+                        leftFile != null && rightFile != null ->
+                            NaturalOrder.compare(leftFile, rightFile)
+
+                        else -> collator.compare(
+                            sortKey(left.displayTitle, locale),
+                            sortKey(right.displayTitle, locale),
+                        )
+                    }
                 }
             }
         }
