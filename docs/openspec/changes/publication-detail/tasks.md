@@ -1240,6 +1240,18 @@ when a cover was the resume affordance. Whoever syncs should add a
       - **Split View beside another app** — manual. It needs the app switcher and a drag
         between two apps, which `XCUIApplication` has no vocabulary for. `SweepIpadPanes.swift`
         says so rather than faking it.
+      **2026-09-06: the pane had never opened a page, and neither had the phone since it
+      landed.** `ff4905ba` registered the page in the detail column and left the shelf's covers
+      as value links in the leading column, on the documented belief that a link in an earlier
+      column lands in the detail stack. SwiftUI's own log says such a link *cannot be
+      activated*: from 2026-09-05 13:05 to 2026-09-06 a tap on any cover of the Library shelf
+      did nothing on any device, and every gate stayed green — `PublicationPaneTests` pinned
+      the registration's position, not a tap, and no walk opened a page from the shelf in
+      between. The shelf column now hands its cells `OpenPublicationRoute`, which writes the
+      detail stack's path; a collapsed window shows the detail column and returns to the shelf
+      when the page is popped. `CurlWalkTests` opens a page from the shelf again on the phone;
+      the iPad frames this task owes are `SweepIpadPanes`'s.
+
 - [~] **4.2** Android: the detail pane, with predictive back animated by the
       scaffold. Screenshot expanded width, and the narrow-then-widen path.
 

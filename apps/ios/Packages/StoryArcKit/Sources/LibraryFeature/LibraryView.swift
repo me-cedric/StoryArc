@@ -203,6 +203,12 @@ public struct LibraryView: View {
     /// cover moves it to `.detail`, and going back moves it home.
     @State var compactColumn: NavigationSplitViewColumn = .sidebar
 
+    /// What the detail column shows: the page a cover chose, and whatever that page pushed.
+    ///
+    /// Owned here because the shelf column has to write it — a cover there cannot push into
+    /// a stack it is not inside. See ``OpenPublicationRoute``.
+    @State var detailPath: [PublicationRoute] = []
+
     public var body: some View {
         container
             // The shelf, asked for by name.

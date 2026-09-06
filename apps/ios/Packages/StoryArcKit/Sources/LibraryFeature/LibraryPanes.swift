@@ -46,28 +46,41 @@ extension LibraryView {
 
     /// The navigation container this surface is composed in.
     ///
-    /// **The registration of ``View/publicationPages(in:onOpen:)`` is the load-bearing line
-    /// in this file, and it appears once per branch.** A `NavigationLink(value:)` resolves
-    /// against the nearest enclosing container that declares a `navigationDestination` for
-    /// that type. In the split branch the leading column declares none, so a cover's
-    /// `PublicationRoute` falls through to the split view, which — this is the documented
-    /// behaviour of `NavigationSplitView`, "tapping a `NavigationLink` that appears in an
-    /// earlier column sets the view that the stack displays over its root view" — puts the
-    /// page in the detail column over the empty-pane sentence. Register it in *both* columns
-    /// and the leading one wins, the page pushes over the shelf, and the second pane never
+    /// **The registration of ``View/publicationPages(in:onOpen:)`` appears once per branch,
+    /// and in the split it is in the detail column only** — registered in the leading column
+    /// as well, the nearer one wins, the page pushes over the shelf and the second pane never
     /// draws anything. `PublicationPaneTests` fails if it moves.
+    ///
+    /// **What this file first believed, and what the runtime said.** The first version relied
+    /// on a cover's `NavigationLink(value:)` in the leading column landing in the detail
+    /// column's stack, and quoted the documentation for it. It does not: a link searches the
+    /// stacks around it and then its own column, finds no destination there, and — in
+    /// SwiftUI's own words in the log — *cannot be activated*. For a day every cover on the
+    /// shelf did nothing, on every device, with every gate green. So the leading column now
+    /// hands its covers ``OpenPublicationRoute``, which writes the detail stack's path
+    /// directly, and the detail stack is bound to that path. The proof is a phone opening a
+    /// page from the shelf and `SweepIpadPanes` photographing the page beside it; the source
+    /// tests are tripwires.
     ///
     /// One container, never two chosen by width. A branch on the size class would rebuild the
     /// whole subtree the moment an iPad left Split View, and *A layout the window is too small
-    /// for* requires widening to restore the second pane "without losing position". The
-    /// platform's own collapse is what keeps that promise: below the regular size class the
-    /// split becomes one stack, a cover pushes, and back returns to the shelf — which is what
-    /// the phone already did, drawn by a different container.
+    /// for* requires widening to restore the second pane "without losing position". Below the
+    /// regular size class the split collapses to one column: choosing a cover shows the detail
+    /// column with the page on its path, and popping the page brings the shelf back.
     @ViewBuilder
     var container: some View {
         if surface == .shelf {
             NavigationSplitView(preferredCompactColumn: $compactColumn) {
                 libraryColumn
+                    // How a cover here opens its page — see ``OpenPublicationRoute``. One
+                    // route rather than an append: a second cover replaces the page beside
+                    // the shelf rather than stacking on it, which is what `SweepIpadPanes`
+                    // photographs as *second choice keeps the shelf still*. A collapsed window
+                    // then shows the detail column.
+                    .environment(\.openPublicationRoute, OpenPublicationRoute { route in
+                        detailPath = [route]
+                        compactColumn = .detail
+                    })
                     // The leading column is the *shelf*, not a list of places to go, so it is
                     // given a shelf's width rather than a sidebar's ~320 points.
                     // ``CoverGrid`` steps its covers up past 900 points of shelf; below about
@@ -75,7 +88,7 @@ extension LibraryView {
                     // go under whatever the window does.
                     .navigationSplitViewColumnWidth(min: 320, ideal: 480, max: 760)
             } detail: {
-                NavigationStack {
+                NavigationStack(path: $detailPath) {
                     PublicationDetailPlaceholder()
                         .publicationPages(in: model, onOpen: onOpen)
                         // A server browsed from the shelf's own offer lands beside the shelf
@@ -97,6 +110,12 @@ extension LibraryView {
             // things, is the "second, disagreeing navigation" for real — and a reader who
             // collapsed the shelf away would be left on a destination showing none of it.
             .toolbar(removing: .sidebarToggle)
+            // A collapsed window shows one column, and the detail column's root is a sentence
+            // about nothing having been chosen. When the page is popped the reader is going
+            // back to the shelf, not to that sentence.
+            .onChange(of: detailPath) { _, path in
+                if path.isEmpty { compactColumn = .sidebar }
+            }
         } else {
             NavigationStack {
                 libraryColumn

@@ -71,6 +71,8 @@ struct CoverList: View {
 
 struct ListRow: View {
     @Environment(\.theme) private var theme
+    /// Set by the Library split's shelf column, where a value link finds no destination.
+    @Environment(\.openPublicationRoute) private var openRoute
     /// A source coming back should not make a thumbnail flick to full brightness — but a
     /// reader who asked for less motion gets the change with no crossfade at all.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -110,8 +112,15 @@ struct ListRow: View {
     var body: some View {
         Group {
             if isPicked == nil {
-                NavigationLink(value: PublicationRoute(publication)) { line }
-                    .buttonStyle(.plain)
+                if let openRoute {
+                    // Inside the Library split — see ``OpenPublicationRoute``. The system's
+                    // disclosure chevron goes with the link; the row still leads to the page.
+                    Button { openRoute(PublicationRoute(publication)) } label: { line }
+                        .buttonStyle(.plain)
+                } else {
+                    NavigationLink(value: PublicationRoute(publication)) { line }
+                        .buttonStyle(.plain)
+                }
             } else {
                 line
                     .contentShape(.rect)

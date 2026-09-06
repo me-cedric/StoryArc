@@ -27,6 +27,43 @@ public struct PublicationRoute: Hashable, Sendable {
     }
 }
 
+/// How a cover opens its page when a value link cannot: by putting the route on a path.
+///
+/// **A `NavigationLink(value:)` in the leading column of a `NavigationSplitView` does not push
+/// into the detail column's stack.** `LibraryPanes.swift` was written on the belief that it
+/// would — "tapping a link in an earlier column sets the view the stack displays over its
+/// root" — and the runtime disagrees, in its own log: *"A NavigationLink is presenting a value
+/// of type PublicationRoute but there is no matching navigationDestination declaration visible
+/// from the location of the link. The link cannot be activated."* A link searches the stacks
+/// around it and then its own column, and the leading column declares no destination on
+/// purpose, because one there pushes the page over the shelf. So from 2026-09-05 13:05 until
+/// 2026-09-06 no cover on the Library shelf opened anything, on an iPhone or an iPad, while
+/// every gate stayed green: the tripwire pinned a line's position, not a tap, and no walk
+/// opened a page from the shelf in between.
+///
+/// The shelf column hands its covers this action instead, and the split owns the detail
+/// stack's path: choosing a cover puts the route on it, and a collapsed window shows the
+/// detail column. Every other surface keeps its value link, because every other surface is
+/// inside a stack that declares the destination — a cell that finds no action in its
+/// environment is on one of those.
+public struct OpenPublicationRoute {
+    private let open: (PublicationRoute) -> Void
+
+    public init(_ open: @escaping (PublicationRoute) -> Void) {
+        self.open = open
+    }
+
+    public func callAsFunction(_ route: PublicationRoute) {
+        open(route)
+    }
+}
+
+extension EnvironmentValues {
+    /// The way a cover in the Library split opens its page, or `nil` on a surface whose own
+    /// stack declares the destination and lets a value link do it.
+    @Entry public var openPublicationRoute: OpenPublicationRoute?
+}
+
 extension View {
     /// Makes every ``PublicationRoute`` pushed onto the enclosing stack open the page.
     ///

@@ -16,6 +16,8 @@ struct CoverCell: View {
     @State private var restarting: Publication?
 
     @Environment(\.theme) private var theme
+    /// Set by the Library split's shelf column, where a value link finds no destination.
+    @Environment(\.openPublicationRoute) private var openRoute
     /// A source coming back should not make a cover flick to full brightness — but a reader
     /// who asked for less motion gets the change with no crossfade at all.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -60,8 +62,15 @@ struct CoverCell: View {
     var body: some View {
         Group {
             if isPicked == nil {
-                NavigationLink(value: PublicationRoute(publication)) { cell }
-                    .buttonStyle(.plain)
+                if let openRoute {
+                    // Inside the Library split, whose shelf column declares no destination and
+                    // whose value links therefore go nowhere — see ``OpenPublicationRoute``.
+                    Button { openRoute(PublicationRoute(publication)) } label: { cell }
+                        .buttonStyle(.plain)
+                } else {
+                    NavigationLink(value: PublicationRoute(publication)) { cell }
+                        .buttonStyle(.plain)
+                }
             } else {
                 cell
                     .contentShape(.rect)

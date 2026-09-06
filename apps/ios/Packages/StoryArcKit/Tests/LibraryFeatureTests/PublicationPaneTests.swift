@@ -1,23 +1,25 @@
 import Foundation
 import Testing
 
-/// The Library destination is a split, and the page is registered in its detail column.
+/// The Library destination is a split, the page is registered in its detail column, and the
+/// shelf column writes that column's path.
 ///
-/// **What this is guarding is a single line's position, and everything depends on it.** A
-/// `NavigationLink(value:)` resolves against the nearest enclosing navigation container that
-/// declares a `navigationDestination` for that type. `LibraryPanes.swift` declares
-/// `PublicationRoute` in the split's **detail** column and nowhere else, which is what makes a
-/// cover open the second pane; declare it in the leading column as well and the page pushes
-/// over the shelf exactly as it did before, the second pane never draws anything, and
-/// **every other gate in this repository stays green**. `swift build`, `swiftlint --strict`
-/// and `xcodebuild build` cannot see the difference between a split that works and a split
-/// that is decorative.
+/// **What this guards is a mechanism, and for a day it guarded the wrong one.** The first
+/// version pinned a single line's position — the page registered in the detail column and in
+/// no earlier one — on the belief that a cover's value link in the leading column would then
+/// land in the detail stack. It does not: SwiftUI's log says such a link *cannot be
+/// activated*, and from 2026-09-05 13:05 to 2026-09-06 no cover on the shelf opened anything
+/// on any device while this suite, `swift build`, `swiftlint --strict` and `xcodebuild build`
+/// all stayed green. The registration's position still matters (a second one in the leading
+/// column would push over the shelf); what makes a cover open at all is the shelf column
+/// handing its cells `OpenPublicationRoute` and the detail stack being bound to `detailPath`,
+/// and this file now pins both.
 ///
 /// **So this reads source text, for the reason ``CoverRoutingWiringTests`` sets out at
 /// length**: `swift test` runs on the host with no window, so the split cannot be composed
 /// here and no assertion in this process can watch a pane draw. It is a tripwire, not a
-/// proof. The proof is the iPad frames `SweepIpadTests` takes, and the handoff names the ones
-/// that are still owed.
+/// proof. The proof is a phone walk opening a page from the shelf (`CurlWalkTests` does, on
+/// its way to the reader) and the iPad frames `SweepIpadPanes` takes.
 @Suite("The publication pane")
 struct PublicationPaneTests {
 
@@ -93,6 +95,35 @@ struct PublicationPaneTests {
             registrations.contains(where: { $0 > detail }),
             "The detail column does not register the publication page, so nothing can open in it."
         )
+    }
+
+    /// The mechanism the leading column actually has, since a value link there has none.
+    @Test("The shelf column hands its covers the detail path, and the detail stack is bound to it")
+    func theShelfWritesTheDetailPath() throws {
+        let all = Self.lines(of: Self.panes)
+        let split = try #require(
+            all.firstIndex { $0.hasPrefix("NavigationSplitView(") },
+            "LibraryPanes.swift composes no NavigationSplitView."
+        )
+        let detail = try #require(
+            all[split...].firstIndex { $0.hasPrefix("} detail: {") },
+            "The split has no detail column."
+        )
+        #expect(
+            all[split..<detail].contains { $0.hasPrefix(".environment(\\.openPublicationRoute") },
+            "The shelf column hands its covers no way to open a page, so a cover's tap does nothing."
+        )
+        #expect(
+            all[detail...].contains { $0.hasPrefix("NavigationStack(path: $detailPath)") },
+            "The detail stack is not bound to detailPath, so what the shelf writes is never shown."
+        )
+        for file in ["CoverCell.swift", "CoverList.swift"] {
+            let code = LibraryFeatureSource.code(of: "Sources/LibraryFeature/\(file)")
+            #expect(
+                code.contains("@Environment(\\.openPublicationRoute)"),
+                "A cover surface in the shelf column does not read the action the column hands it."
+            )
+        }
     }
 
     @Test("The detail column opens on the sentence, not on a publication")
