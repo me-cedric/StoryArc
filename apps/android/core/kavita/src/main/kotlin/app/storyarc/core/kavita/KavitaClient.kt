@@ -90,15 +90,6 @@ class KavitaClient(val address: KavitaAddress) {
     /**
      * The series in one library, or in all of them.
      *
-     * A POST carrying a filter, because that is what Kavita answers. Measured against a live
-     * server on 2026-09-06: a GET here is a 404, and this client sent one -- so a reader who
-     * added their own Kavita was shown no series at all. An empty filter is the whole list.
-     * The library still rides in the query, which is where this client has always put it;
-     * whether a live Kavita reads it there is unmeasured.
-     */
-    /**
-     * The series in one library, or in all of them.
-     *
      * **The library is a statement in the body, not a query parameter.** Measured against a
      * live Kavita on 2026-09-06: `POST /api/Series/all-v2?libraryId=3` answered all 215
      * series across four libraries, so the parameter this client used to send did nothing at
