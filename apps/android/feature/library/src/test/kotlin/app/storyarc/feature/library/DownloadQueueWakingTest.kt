@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
+import app.storyarc.core.model.DownloadHold
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.persistence.DownloadStore
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -92,8 +93,15 @@ class DownloadQueueWakingTest {
         )
         shadowOf(getMainLooper()).idle()
 
-        assertEquals(DownloadQueue.Held.WaitingForWifi, queue.held())
-        assertEquals(Download.State.Queued, queue.library.value[id]?.state)
+        assertEquals(DownloadHold.WAITING_FOR_WIFI, queue.held())
+        // Paused rather than left queued, as of [DownloadQueueConnectionTest]. The reason is
+        // written onto the row now, because `offline-downloads` asks a held download to *state*
+        // that it is waiting for Wi-Fi -- and because that record is what a screen holding no
+        // queue reads.
+        assertEquals(
+            Download.State.Paused(Download.Pause.WAITING_FOR_WIFI),
+            queue.library.value[id]?.state,
+        )
 
         wifi.value = true
 
@@ -149,7 +157,7 @@ class DownloadQueueWakingTest {
         )
         shadowOf(getMainLooper()).idle()
 
-        assertEquals(DownloadQueue.Held.StorageFull, queue.held())
+        assertEquals(DownloadHold.STORAGE_FULL, queue.held())
         assertEquals(Download.State.Queued, queue.library.value[wanted]?.state)
 
         queue.remove(kept)

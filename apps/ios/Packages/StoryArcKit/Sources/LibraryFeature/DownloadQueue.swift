@@ -23,9 +23,9 @@ public final class DownloadQueue {
     /// The most recent failure, for a screen that wants to say something about it.
     public internal(set) var lastFailure: String?
 
-    private let client: OpdsClient
+    let client: OpdsClient
     let store: DownloadStore?
-    private let credential: (Download.ID) -> OpdsCredential?
+    let credential: (Download.ID) -> OpdsCredential?
 
     /// The origin of the catalogue this queue is downloading from.
     ///
@@ -33,7 +33,7 @@ public final class DownloadQueue {
     /// origin rule has to be applied here too: an acquisition href is a URL the *server*
     /// chose, and this queue is the one place in the app that carries a credential to one
     /// with nobody watching.
-    private let origin: OpdsOrigin?
+    let origin: OpdsOrigin?
 
     /// The transfer for each running download, so it can be cancelled.
     var running: [Download.ID: Task<Void, Never>] = [:]
@@ -108,16 +108,17 @@ public final class DownloadQueue {
     let settings: () -> AppSettings
 
     /// Where the bytes actually come from, so a backgrounded app keeps downloading.
-    private let transfers: BackgroundTransfers
+    let transfers: BackgroundTransfers
 
     /// Handed to the app so it can give the system its completion handler back.
     public var backgroundEvents: BackgroundTransfers { transfers }
 
     /// Whether the volume was short of room the last time it was asked.
     ///
-    /// Cached rather than asked on demand: ``held`` is read from a view body, and a
-    /// filesystem stat per render is a cost a screen should not pay. Refreshed wherever the
-    /// queue is about to act — which is the only moment the answer changes anything.
+    /// Asked once per ``pump()`` rather than wherever the answer is wanted: it is a
+    /// filesystem stat on the main actor, and the only moment it changes anything is the
+    /// moment the queue is about to act. What a screen draws is ``held``, which reads the
+    /// records this decision wrote and asks the volume nothing.
     ///
     /// Here rather than beside the rest of the shortage in ``DownloadQueueHolds``, because
     /// a stored property cannot be declared in an extension.
@@ -278,11 +279,14 @@ public final class DownloadQueue {
         // Held rather than cancelled: the queue keeps its order and its progress, and
         // starts again by itself the next time this is asked.
         //
+        // Waiting for Wi-Fi is decided per download — `offline-downloads` grants the
+        // override "for that item only", so one granted publication may run while the rest
+        // of the queue waits — and it is decided in both directions here, which is what
+        // stops a transfer the connection no longer permits.
+        holdForConnection()
         // The reader's own storage maximum stops everything, because an override is about
-        // the *connection* and says nothing about the disk. Waiting for Wi-Fi is decided
-        // per download instead — `offline-downloads` grants the override "for that item
-        // only", so one granted publication may run while the rest of the queue waits.
-        if held == .storageFull { return }
+        // the *connection* and says nothing about the disk.
+        if library.isAtLimit(settings().maximumDownloadBytes) { return }
         let ready = library.downloads.filter { $0.state == .queued && mayStart($0) }
         for download in ready.prefix(max(0, concurrency - running.count)) {
             // No catalogue entry is needed to fetch one: the record carries the address, the
@@ -293,108 +297,4 @@ public final class DownloadQueue {
         }
     }
 
-    private func start(_ download: Download, seriesHint: String?) {
-        library = library.marking(download.id, as: .running)
-        running[download.id] = Task { [weak self] in
-            await self?.transfer(download, seriesHint: seriesHint)
-        }
-    }
-
-    private func transfer(_ download: Download, seriesHint: String?) async {
-        while !Task.isCancelled {
-            if let file = await one(download, seriesHint: seriesHint) {
-                running[download.id] = nil
-                finish(download.id, with: file)
-                pump()
-                return
-            }
-            // `offline-downloads`: "a failed verification re-queues it once". The bytes
-            // arrived and were not a book, so ``one(_:seriesHint:)`` put the download back
-            // in the queue rather than failing it. Left there for the pump to start again,
-            // and — the part that matters — nobody waiting to *read* it is told it failed,
-            // because it has not.
-            if library[download.id]?.state == .queued {
-                running[download.id] = nil
-                pump()
-                return
-            }
-            guard let failed = library[download.id], DownloadLibrary.shouldRetry(failed),
-                  case let .failed(_, attempts) = failed.state
-            else { break }
-            try? await Task.sleep(for: DownloadLibrary.backoff(afterAttempts: attempts))
-        }
-        running[download.id] = nil
-        finish(download.id, with: nil)
-        pump()
-    }
-
-    /// One attempt, with no opinion about whether there will be another.
-    private func one(
-        _ download: Download,
-        seriesHint: String?
-    ) async -> URL? {
-        do {
-            // Through the background session rather than an ordinary request:
-            // `offline-downloads` wants a backgrounded transfer to continue "as far as the
-            // platform allows", and on iOS that is what allows it.
-            // The same rule ``OpdsClient`` applies, because this is the same kind of
-            // address: one the catalogue chose. An acquisition href off the source's own
-            // origin is fetched without the credential, and one that steps down to
-            // cleartext is not fetched at all.
-            guard OpdsOrigin.isFetchable(download.remote) else { throw OpdsError.refusedAddress }
-            let home = origin ?? OpdsOrigin(url: download.remote)
-            if home?.downgrades(download.remote) == true { throw OpdsError.refusedAddress }
-
-            var request = URLRequest(url: download.remote)
-            if let credential = credential(download.id), home?.admits(download.remote) == true {
-                request.setValue(credential.header, forHTTPHeaderField: "Authorization")
-            }
-            let temporary = try await transfers.download(request, named: download.id)
-            return try await land(download, from: temporary, seriesHint: seriesHint)
-        } catch let error as PublicationIndexer.IndexError {
-            // Indexing *is* the verification, so this is where `offline-downloads`' "a
-            // failed verification re-queues it once" is answered — and the two ways it can
-            // fail get different answers.
-            //
-            // **An unsupported format is not a failed verification.** The bytes are
-            // exactly what the server holds; the app simply has no decoder for them.
-            // Fetching them again produces the same format, so this is terminal and always
-            // was.
-            //
-            // **Unreadable bytes are a failed verification.** A truncated archive, a
-            // central directory that is not there, a file that stops mid-entry — the
-            // likeliest cause is the transfer rather than the publication, and one more
-            // fetch is the cheapest way to find out. Exactly one: a second identical
-            // result is the server's answer, and asking a third time is asking a question
-            // already answered twice.
-            if case let .unsupported(format) = error {
-                fail(
-                    download.id,
-                    reason: String(
-                        format: String(
-                            localized: "catalogue.acquire.unsupported",
-                            bundle: .module,
-                            locale: .storyArc
-                        ),
-                        format
-                    ),
-                    retryable: false
-                )
-            } else {
-                failVerification(
-                    download.id,
-                    reason: String(
-                        localized: "catalogue.acquire.unreadable",
-                        bundle: .module,
-                        locale: .storyArc
-                    )
-                )
-            }
-        } catch let error as OpdsError {
-            fail(download.id, reason: CatalogueMessages.describe(error), retryable: error.isTransient)
-        } catch {
-            fail(download.id, reason: CatalogueMessages.reachability(error))
-        }
-        return nil
-    }
 }

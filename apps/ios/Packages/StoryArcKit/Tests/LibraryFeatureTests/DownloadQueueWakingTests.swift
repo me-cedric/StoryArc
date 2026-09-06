@@ -92,7 +92,11 @@ struct DownloadQueueWakingTests {
         )
 
         #expect(queue.held == .waitingForWifi)
-        #expect(queue.library[id]?.state == .queued)
+        // Paused rather than left queued, as of `DownloadQueueConnectionTests`. The reason is
+        // written onto the row now, because `offline-downloads` asks a held download to
+        // *state* that it is waiting for Wi-Fi — and because that record is what a screen
+        // holding no queue reads.
+        #expect(queue.library[id]?.state == .paused(.waitingForWiFi))
 
         queue.network.note(careful: false, cellular: false)
 

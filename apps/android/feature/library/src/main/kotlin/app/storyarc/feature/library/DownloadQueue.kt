@@ -14,6 +14,7 @@ import app.storyarc.core.format.IndexException
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
+import app.storyarc.core.model.DownloadHold
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.MeteredDownload
 import app.storyarc.core.model.PublicationFormat
@@ -151,10 +152,6 @@ class DownloadQueue(
         isMetered = !isOnWifi,
         isOverridden = download.id in overridden,
     )
-
-    /** Whether anything still to do carries a grant. */
-    private fun hasOverriddenPending(): Boolean =
-        _library.value.pending.any { it.id in overridden }
 
     /**
      * Adds a download and starts it when there is room.
@@ -294,31 +291,16 @@ class DownloadQueue(
      * Why the queue is not starting anything, if it is not.
      *
      * Null when it may run. `offline-downloads` requires a held queue to *say* what it is
-     * waiting for -- "waiting for Wi-Fi" and "the storage limit is reached" are different
-     * situations with different remedies, and a stalled list that explains neither is the
-     * worst of the three.
+     * waiting for -- "waiting for Wi-Fi", "the storage limit is reached" and "the device is
+     * full" are three different situations with three different remedies, and a stalled list
+     * that explains none of them is the worst of the four.
+     *
+     * Read from the records rather than from the connection, and that is the whole of it:
+     * [pump] writes the reason onto every row it holds, so the queue's live answer and the one
+     * a screen draws cannot disagree. [DownloadLibrary.hold] is the rule, asserted there, and a
+     * screen that holds no queue asks it the same question.
      */
-    fun held(): Held? {
-        if (spaceIsLow) return Held.OutOfSpace
-        val current = settings()
-        // Not held when something in the queue carries a metered override: one granted
-        // publication is running, and a queue that reported itself stopped while bytes were
-        // arriving would be the lie this function exists to prevent.
-        if (current.downloadOverWifiOnly && !isOnWifi && !hasOverriddenPending()) {
-            return Held.WaitingForWifi
-        }
-        val limit = current.maximumDownloadBytes ?: return null
-        return if (_library.value.bytesOnDisk >= limit) Held.StorageFull else null
-    }
-
-    /** What is stopping the queue. */
-    enum class Held {
-        WaitingForWifi,
-        StorageFull,
-
-        /** The device itself is short of room, whatever the reader's own limit says. */
-        OutOfSpace,
-    }
+    fun held(): DownloadHold? = _library.value.hold(settings().maximumDownloadBytes)
 
     /**
      * Whether the volume was short of room the last time it was asked.
@@ -379,6 +361,40 @@ class DownloadQueue(
     }
 
     /**
+     * Holds every download the connection no longer permits, and puts back the rest.
+     *
+     * `offline-downloads`' *Wi-Fi only* has two halves -- downloads "pause and state that they
+     * are waiting for Wi-Fi, and resume automatically when it returns" -- and the queue
+     * answered only the second. [pump] started transfers and never stopped one, so a reader who
+     * set the setting, began a download on Wi-Fi and walked out of range kept downloading over
+     * mobile data. The setting they chose to protect their data stopped protecting it at the
+     * moment a transfer was running, which is the moment it costs them money.
+     *
+     * The mirror of [holdForSpace] and [releaseSpaceHolds], in one call because the rule
+     * decides both directions at once -- see [DownloadLibrary.reconsideringWifi]. **Nothing is
+     * written when nothing changed**, which is what makes a flapping connection cheap: a report
+     * that says what the last one said never reaches here at all, and one that does costs a
+     * write only when a record actually moved.
+     *
+     * Cancelling is not deleting. The record and the bytes counted against it stay, and the
+     * download is started again when Wi-Fi returns. What the app cannot yet do is start it
+     * again *from* those bytes: there is no Range request anywhere in either tree, so a resumed
+     * transfer begins at zero.
+     */
+    private fun holdForConnection() {
+        val next = _library.value.reconsideringWifi { mayStart(it) }
+        if (next == _library.value) return
+        _library.value = next
+        // Cancelled after the record is decided, so a transfer that ends while this runs finds
+        // the row already paused. An id that is not running cancels nothing.
+        next.downloads
+            .filter { it.state == Download.State.Paused(Download.Pause.WAITING_FOR_WIFI) }
+            .forEach { running.remove(it.id)?.cancel() }
+        follow()
+        store?.save(next)
+    }
+
+    /**
      * Whether the device is on Wi-Fi, as [onWifi] last reported it.
      *
      * False until the first report, which errs toward using less: the same answer the poll
@@ -412,11 +428,14 @@ class DownloadQueue(
         // Held rather than cancelled: the queue keeps its order and its progress, and
         // starts again by itself the next time this is asked.
         //
-        // The reader's own storage maximum stops everything, because an override is about
-        // the *connection* and says nothing about the disk. Waiting for Wi-Fi is decided per
-        // download instead -- `offline-downloads` grants the override "for that item only",
-        // so one granted publication may run while the rest of the queue waits.
-        if (held() == Held.StorageFull) return
+        // Waiting for Wi-Fi is decided per download -- `offline-downloads` grants the override
+        // "for that item only", so one granted publication may run while the rest of the queue
+        // waits -- and it is decided in both directions here, which is what stops a transfer
+        // the connection no longer permits.
+        holdForConnection()
+        // The reader's own storage maximum stops everything, because an override is about the
+        // *connection* and says nothing about the disk.
+        if (_library.value.isAtLimit(settings().maximumDownloadBytes)) return
         val ready = _library.value.downloads
             .filter { it.state == Download.State.Queued && mayStart(it) }
         ready.take(maxOf(0, concurrency - running.size)).forEach { download ->

@@ -1,0 +1,192 @@
+package app.storyarc.feature.library
+
+import android.content.Context
+import android.os.Looper.getMainLooper
+import androidx.test.core.app.ApplicationProvider
+import app.storyarc.core.catalogue.CertificatePins
+import app.storyarc.core.catalogue.OpdsAcquisition
+import app.storyarc.core.catalogue.OpdsEntry
+import app.storyarc.core.model.AppSettings
+import app.storyarc.core.model.Download
+import app.storyarc.core.model.DownloadHold
+import app.storyarc.core.model.DownloadLibrary
+import app.storyarc.core.persistence.DownloadStore
+import kotlinx.coroutines.flow.MutableStateFlow
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
+
+/**
+ * A transfer already running has to stop when the connection stops permitting it.
+ *
+ * `offline-downloads`' *Wi-Fi only* says downloads "pause and state that they are waiting for
+ * Wi-Fi, and resume automatically when it returns". [DownloadQueueWakingTest] proved the second
+ * half. This suite is the first: `pump` only ever *started* transfers, so a reader who set
+ * "download over Wi-Fi only", began a download on Wi-Fi and walked out of range kept
+ * downloading over mobile data. The setting they chose to protect their data stopped protecting
+ * it the moment a transfer was running -- which is the moment it costs them money.
+ *
+ * The connection is injected, because `ConnectivityManager` reports Wi-Fi to an emulator
+ * whatever the host is on.
+ *
+ * Nothing here waits on a transfer, which goes to an address that resolves to nothing. The
+ * record reaches its state in `pump`, before the transfer coroutine reaches its first
+ * suspension. iOS asserts the same six claims in `DownloadQueueConnectionTests.swift`.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class DownloadQueueConnectionTest {
+
+    private val context: Context get() = ApplicationProvider.getApplicationContext()
+
+    private fun store(vararg downloads: Download): DownloadStore =
+        DownloadStore.open(context).apply { save(DownloadLibrary(downloads.toList())) }
+
+    private fun queued(id: String, fetched: Long = 0) = Download(
+        id = id,
+        title = "Harbour Lights 07",
+        remote = "https://example.invalid/hl07.epub",
+        mediaType = "application/epub+zip",
+        state = Download.State.Queued,
+        expectedBytes = 8_400_000,
+        downloadedBytes = fetched,
+    )
+
+    private val waiting = Download.State.Paused(Download.Pause.WAITING_FOR_WIFI)
+
+    private fun queue(store: DownloadStore, wifi: MutableStateFlow<Boolean>) = DownloadQueue(
+        context,
+        CertificatePins(),
+        store,
+        settings = { AppSettings(downloadOverWifiOnly = true) },
+        onWifi = wifi,
+    ).also { shadowOf(getMainLooper()).idle() }
+
+    @Test
+    fun `a running transfer is paused when the connection becomes mobile data`() {
+        val id = "running-stops"
+        val wifi = MutableStateFlow(true)
+        val queue = queue(store(queued(id)), wifi)
+        assertEquals(Download.State.Running, queue.library.value[id]?.state)
+
+        wifi.value = false
+
+        assertEquals(
+            "The transfer kept running over mobile data with Wi-Fi-only on.",
+            waiting,
+            queue.library.value[id]?.state,
+        )
+        assertEquals(DownloadHold.WAITING_FOR_WIFI, queue.held())
+    }
+
+    @Test
+    fun `pausing for the connection keeps the record and the bytes counted against it`() {
+        // `offline-downloads` pauses rather than cancels, and "the bytes stay and the transfer
+        // resumes from them". The record is what carries that count, so losing it is losing
+        // the claim. What the app cannot yet do is resume *from* those bytes: no Range request
+        // exists in either tree, so the next attempt starts at zero.
+        val id = "bytes-survive"
+        val wifi = MutableStateFlow(true)
+        val queue = queue(store(queued(id, fetched = 4_000_000)), wifi)
+
+        wifi.value = false
+
+        val paused = queue.library.value[id]
+        assertEquals(waiting, paused?.state)
+        assertEquals(4_000_000L, paused?.downloadedBytes)
+        assertEquals(8_400_000L, paused?.expectedBytes)
+    }
+
+    @Test
+    fun `a paused download starts again when wifi returns with no screen opened`() {
+        val id = "wifi-returns"
+        val wifi = MutableStateFlow(true)
+        val queue = queue(store(queued(id)), wifi)
+        wifi.value = false
+        assertEquals(waiting, queue.library.value[id]?.state)
+
+        wifi.value = true
+
+        assertEquals(Download.State.Running, queue.library.value[id]?.state)
+        assertNull(queue.held())
+    }
+
+    @Test
+    fun `a download the reader allowed on mobile data is not paused and the grant is its own`() {
+        // `offline-downloads` grants the override "for that item only". A hold that took the
+        // granted download with it would refuse the reader the thing they just agreed to pay
+        // for; a hold that released the queue behind it would spend the allowance they did not
+        // agree to.
+        val granted = "granted"
+        val other = "other"
+        val wifi = MutableStateFlow(true)
+        val queue = queue(store(queued(other)), wifi)
+        queue.enqueue(
+            OpdsEntry(id = granted, title = "Harbour Lights 08"),
+            OpdsAcquisition(
+                href = "https://example.invalid/hl08.epub",
+                mediaType = "application/epub+zip",
+                kind = OpdsAcquisition.Kind.OPEN,
+            ),
+            overridingMeteredConnection = true,
+        )
+
+        wifi.value = false
+
+        assertNotEquals(waiting, queue.library.value[granted]?.state)
+        assertEquals(
+            "The grant released a download the reader never agreed to pay for.",
+            waiting,
+            queue.library.value[other]?.state,
+        )
+    }
+
+    @Test
+    fun `a queue rebuilt on mobile data is held again and says so`() {
+        // The store carries no pause reason on either platform -- a paused record comes back
+        // queued -- so this is not a restore. The queue asks the connection as it starts and
+        // reaches the same answer, which is what makes the reason true rather than remembered:
+        // a process restarted on Wi-Fi shows no hold at all.
+        val id = "relaunch"
+        val store = store(queued(id))
+        val first = queue(store, MutableStateFlow(true))
+        first.close()
+        assertEquals(Download.State.Running, first.library.value[id]?.state)
+
+        val second = queue(store, MutableStateFlow(false))
+
+        assertEquals(waiting, second.library.value[id]?.state)
+        assertEquals(DownloadHold.WAITING_FOR_WIFI, second.held())
+    }
+
+    @Test
+    fun `a connection that drops and returns ten times moves the row ten times not more`() {
+        // What ten transitions in ten seconds do, stated. Each *change* moves the record
+        // exactly once, and nothing else: the flow reports only a connection that differs, and
+        // a pass that alters no record returns the same library, so the store is not written
+        // at all -- asserted on the rule itself in `DownloadWifiHoldTest`.
+        //
+        // So the reader pays ten writes for ten real transitions, and five fresh starts. With
+        // no Range request anywhere in the app those five begin at zero, which is the part of
+        // this that costs them data rather than disk.
+        val id = "flapping"
+        val wifi = MutableStateFlow(true)
+        val queue = queue(store(queued(id)), wifi)
+        val seen = mutableListOf<Download.State?>()
+
+        repeat(5) {
+            wifi.value = true
+            seen += queue.library.value[id]?.state
+            wifi.value = false
+            seen += queue.library.value[id]?.state
+        }
+
+        val expected = (0 until 5).flatMap { listOf(Download.State.Running, waiting) }
+        assertEquals("Ten transitions did not move the row exactly ten times.", expected, seen)
+    }
+}

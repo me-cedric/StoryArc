@@ -12,15 +12,6 @@ public import StoryArcCore
 /// The two stored flags this reads live on the type itself, because a stored property
 /// cannot be declared in an extension.
 extension DownloadQueue {
-    /// What is stopping the queue.
-    public enum Held: Sendable, Equatable {
-        case waitingForWifi
-        case storageFull
-
-        /// The device itself is short of room, whatever the reader's own limit says.
-        case outOfSpace
-    }
-
     /// How many transfers run at once.
     ///
     /// Two on an ordinary connection: enough that a slow server does not stall the whole
@@ -45,21 +36,12 @@ extension DownloadQueue {
     /// full" are three different situations with three different remedies, and a stalled
     /// list that explains none of them is the worst of the four.
     ///
-    /// The device's own shortage is answered first. The other two are situations the reader
-    /// chose and can unchoose from the settings screen; this one is a fact about the phone,
-    /// and it is the one that has to be said out loud before either of the others is worth
-    /// mentioning.
-    public var held: Held? {
-        if spaceIsLow { return .outOfSpace }
-        let current = settings()
-        // Not held when something in the queue carries a metered override: one granted
-        // publication is running, and a queue that reported itself stopped while bytes
-        // were arriving would be the lie this property exists to prevent.
-        if current.downloadOverWifiOnly, network.isCellular, !hasOverriddenPending {
-            return .waitingForWifi
-        }
-        guard let limit = current.maximumDownloadBytes else { return nil }
-        return library.bytesOnDisk >= limit ? .storageFull : nil
+    /// Read from the records rather than from the connection, and that is the whole of it:
+    /// ``pump()`` writes the reason onto every row it holds, so the queue's live answer and
+    /// the one a screen draws cannot disagree. ``DownloadLibrary/hold(limit:)`` is the rule,
+    /// asserted there, and a screen that holds no queue asks it the same question.
+    public var held: DownloadHold? {
+        library.hold(limit: settings().maximumDownloadBytes)
     }
 
     /// Re-examines a held queue.
@@ -102,6 +84,39 @@ extension DownloadQueue {
         store?.save(library)
     }
 
+    /// Holds every download the connection no longer permits, and puts back the rest.
+    ///
+    /// `offline-downloads`' *Wi-Fi only* has two halves — downloads "pause and state that
+    /// they are waiting for Wi-Fi, and resume automatically when it returns" — and the queue
+    /// answered only the second. ``pump()`` started transfers and never stopped one, so a
+    /// reader who set the setting, began a download on Wi-Fi and walked out of range kept
+    /// downloading over cellular. The setting they chose to protect their data stopped
+    /// protecting it at the moment a transfer was running, which is the moment it costs them
+    /// money.
+    ///
+    /// The mirror of ``holdForSpace()`` and ``releaseSpaceHolds()``, in one call because the
+    /// rule decides both directions at once — see
+    /// ``DownloadLibrary/reconsideringWifi(permits:)``. **Nothing is written when nothing
+    /// changed**, which is what makes a flapping connection cheap: a report that says what
+    /// the last one said never reaches here at all, and one that does costs a write only when
+    /// a record actually moved.
+    ///
+    /// Cancelling is not deleting. The record and the bytes counted against it stay, and the
+    /// download is started again when Wi-Fi returns. What the app cannot yet do is start it
+    /// again *from* those bytes: there is no Range request anywhere in either tree, so a
+    /// resumed transfer begins at zero.
+    func holdForConnection() {
+        let next = library.reconsideringWifi { mayStart($0) }
+        guard next != library else { return }
+        library = next
+        // Cancelled after the record is decided, so a transfer that ends while this runs
+        // finds the row already paused. An id that is not running cancels nothing.
+        for download in next.downloads where download.state == .paused(.waitingForWiFi) {
+            running.removeValue(forKey: download.id)?.cancel()
+        }
+        store?.save(library)
+    }
+
     /// Whether the reader has to be asked before this one is queued.
     ///
     /// `offline-downloads`' *Overriding once*. The answer is ``MeteredDownload``'s; what
@@ -132,10 +147,5 @@ extension DownloadQueue {
             isMetered: network.isCellular,
             isOverridden: overridden.contains(download.id)
         )
-    }
-
-    /// Whether anything still to do carries a grant.
-    var hasOverriddenPending: Bool {
-        library.pending.contains { overridden.contains($0.id) }
     }
 }
