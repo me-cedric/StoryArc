@@ -41,17 +41,22 @@ public struct ServerShelf: Identifiable, Sendable {
         for source in registry.sources {
             guard let page = KavitaPage(source: source, credentials: credentials) else { continue }
             let client = KavitaClient(address: page.address)
-            guard let collections = try? await client.collections() else { continue }
-            collectionCapable.append(page)
-            found += collections.map {
-                ServerShelf(server: page, id: $0.id, title: $0.title, isList: false)
+            // Asked and answered on its own. A server can answer one of these and not the
+            // other, so a refused collections request must not cost the reader that server's
+            // reading lists as well.
+            if let collections = try? await client.collections() {
+                collectionCapable.append(page)
+                found += collections.map {
+                    ServerShelf(server: page, id: $0.id, title: $0.title, isList: false)
+                }
             }
             // Answered rather than non-empty: a server that has no lists yet is exactly the
             // one a reader is most likely to want to copy their first list onto.
-            guard let lists = try? await client.readingLists() else { continue }
-            listCapable.append(page)
-            found += lists.map {
-                ServerShelf(server: page, id: $0.id, title: $0.title, isList: true)
+            if let lists = try? await client.readingLists() {
+                listCapable.append(page)
+                found += lists.map {
+                    ServerShelf(server: page, id: $0.id, title: $0.title, isList: true)
+                }
             }
         }
         return ServerShelves(
