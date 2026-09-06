@@ -370,17 +370,26 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       **Built on 2026-09-06, on both platforms, and routed through the path a drag takes.**
       `ThemeAxesSheet.reset(_:on:)` calls `EpubReaderModel.set`; `resetAxis` calls the same
       `onSet` the Android slider drags through. That path captures the locator, submits the
-      preferences and returns to the locator after the reflow, so the preview, the page, the
-      stored theme and the reading position see the reset exactly as they see a drag. No
-      second reset path was added.
+      preferences and returns to the locator after the reflow, so the preview, the page and
+      the stored theme see the reset exactly as they see a drag. No second reset path was
+      added.
 
-      **The gesture differs by platform, and the platform forces it.** iOS puts a
-      `LongPressGesture` on the slider itself, through `simultaneousGesture`, which is the
-      iOS idiom for a control. Compose cannot: a `Slider` runs its own press detector and
-      its `draggable` inside its node, after any modifier the caller passes, and that
-      detector consumes the down event — a gesture attached to the slider never fires. So
-      Android puts the long press on the axis block that holds the name, the value and the
-      track.
+      **Repaired on 2026-09-06, after review, in two places.** The reset recorded the axis
+      as deviating, so every axis held the preset's own value while the preset stayed
+      captioned "Modified" and the whole-theme "Restore <preset>" action stayed on screen
+      with nothing to restore. `reading-themes`, *Resetting the preset that is already
+      unmodified*, forbids that state. `ReadingTheme.deviating` now reads the axis's value
+      instead of the fact of the move, on both platforms, so an axis that holds the preset's
+      own value stops deviating. On iOS the press also ended while the finger was still
+      down, so a reader who rested on the thumb before dragging lost the axis they were
+      setting; the press now sequences a zero-distance drag and resets on the lift, and only
+      when the finger did not travel.
+
+      **The gesture's target differs by platform.** iOS puts a `LongPressGesture` on the
+      slider itself, through `simultaneousGesture`, which is the iOS idiom for a control.
+      Android puts the long press on the axis block that holds the name and the value,
+      directly above the track. That difference is a gap rather than a design; item 2 below
+      records it.
 
       **Which is why the accessibility action is not a fallback.** Both platforms carry one
       — `.accessibilityAction(named:)` on iOS, a `CustomAccessibilityAction` on Android —
@@ -388,10 +397,28 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       the only path that reaches the slider itself, and it is the path VoiceOver, TalkBack,
       Switch Control, Switch Access and a keyboard use on both.
 
-      Asserted by `ThemeAxisResetTests` (iOS, 8 cases) and `ThemeAxisResetTest` (Android, 5
-      cases). Both were watched failing first: with a reset that restored the whole theme,
-      `onlyThatAxisReturns` and `it returns that axis alone` failed by name. The reading
-      position is asserted over a real navigator on iOS and over the wiring on Android.
+      Asserted by `ThemeAxisResetTests` (iOS, 10 cases) and `ThemeAxisResetTest` (Android, 8
+      cases). Both were watched failing first: with the reset recorded as a deviation,
+      `theResetClearsTheDeviation` and `theResetKeepsTheOtherDeviations` failed by name on
+      iOS, and `an axis put back to the preset's own value stops deviating` and `resetting
+      one axis leaves the other moved axis deviating` failed by name on Android.
+
+      **Two pieces are open, which is why this is `[~]` rather than `[x]`.**
+
+      1. **The reading position is not proved on either platform.** The iOS case that
+         claimed it compared `navigator.currentLocation` before the reset and after it.
+         That value is nil in the test host, because the navigator is never laid out in a
+         window, so the case compared "nil" to "nil" and held for any implementation —
+         including one that moved the reader. It also took the branch `applyTheme` does not
+         take under a nil location. The case is replaced by a tripwire that pins the order
+         of the capture, the submit and the return inside `applyTheme`, and Android carries
+         the same kind of tripwire over `EpubReaderActivity`. A proof needs a navigator with
+         a laid-out page, which no unit-test host in this repository provides.
+      2. **The Android long press does not reach the slider the spec names.** It sits on
+         the axis block above the track. `detectTapGestures` waits on the Main pass, and the
+         `Slider` handles the down inside its own node first. A detector reading the
+         `Initial` pass would see the down before the slider does and would reach the track;
+         it needs its own slop and timeout test so that it leaves the drag alone.
 - [x] **3.6** Live preview rendered by the **real** renderer, showing a chapter
       title and body text, reflowing continuously during a drag. **Done, and what
       "the real renderer" turned out to mean is worth stating exactly, because it is
