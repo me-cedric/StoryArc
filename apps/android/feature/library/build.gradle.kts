@@ -120,6 +120,21 @@ tasks.withType<Test>().configureEach {
     )
         .withPropertyName("homeHeroResumeWiringSource")
         .withPathSensitivity(PathSensitivity.RELATIVE)
+    // And `feature/settings`' four catalogues, for `OfflineDestinationNameTest`. That test
+    // reads them as files, by the same `../<module>/` hop it uses for this module's own. This
+    // module's resources reach the task through its classpath, so the empty-state half is
+    // already guarded; the settings half is not. `:feature:library` does not depend on
+    // `:feature:settings`, so without this block nothing ties the up-to-date check to the file
+    // the test opens, the task stays UP-TO-DATE while the settings vocabulary regresses, and a
+    // FROM-CACHE result restores a stale pass.
+    inputs.files(
+        layout.projectDirectory.file("../settings/src/main/res/values/strings.xml"),
+        layout.projectDirectory.file("../settings/src/main/res/values-de/strings.xml"),
+        layout.projectDirectory.file("../settings/src/main/res/values-es/strings.xml"),
+        layout.projectDirectory.file("../settings/src/main/res/values-fr/strings.xml"),
+    )
+        .withPropertyName("offlineDestinationNameSettingsCatalogues")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 dependencies {
