@@ -69,6 +69,20 @@ private fun localeOverride(locale: Locale): Configuration = Configuration().appl
 fun Context.chosenLanguage(): String? = SettingsStore.open(this).settings().language
 
 /**
+ * The locale to sort and compare text in: the reader's language, or the system's when they
+ * have chosen none.
+ *
+ * [speaking] moves resources, and a `Configuration` override reaches an activity's own context
+ * and nothing else. A view model is not an activity, so code that orders text there sees the
+ * system locale -- and a library sorted in the device's language while every word around it is
+ * in the reader's is the defect this answers. Spanish files *ñ* after *n* and German does not.
+ *
+ * The same decision [interfaceLocale] makes, so the sort and the words cannot disagree about
+ * which language is in force.
+ */
+fun Context.readerLocale(): Locale = interfaceLocale(chosenLanguage()) ?: Locale.getDefault()
+
+/**
  * The locale a stored tag means, or null to leave the system's alone.
  *
  * Pure, so the one decision in [speaking] can be asserted without a device.

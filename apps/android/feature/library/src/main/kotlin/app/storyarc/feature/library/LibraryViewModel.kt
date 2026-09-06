@@ -35,7 +35,9 @@ import app.storyarc.core.persistence.importing
 import app.storyarc.core.persistence.imports
 import app.storyarc.core.persistence.locationOf
 import app.storyarc.core.persistence.LibraryPreferences
+import app.storyarc.core.persistence.readerLocale
 import app.storyarc.core.model.Source
+import java.util.Locale
 import java.util.UUID
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.persistence.CredentialStore
@@ -1323,11 +1325,23 @@ class LibraryViewModel(
     // outlived it by a wave because nothing fails when a leak is merely available. A public
     // lookup that answers a forbidden question is an invitation to put the leak back.
 
+    /**
+     * The language the reader chose, or the device's when they have chosen none.
+     *
+     * Read on every rebuild rather than held: a reader who changes the language keeps this view
+     * model -- `recreate()` retains it -- and a locale captured at construction would leave the
+     * shelf collated in the language they just left.
+     */
+    internal fun readerLocale(): Locale = getApplication<Application>().readerLocale()
+
     /** Recomputes what is on screen from the library and the query. */
     private fun rebuild() {
         val all = _publications.value
-        _visible.value = LibraryIndex.arrange(all, _query.value, progress = ::stateOf)
-        _matchGroups.value = LibraryIndex.grouped(all, _query.value, progress = ::stateOf)
+        // The reader's language, not the device's. `localization` moves the interface to the
+        // chosen language, and collation is part of the interface.
+        val locale = readerLocale()
+        _visible.value = LibraryIndex.arrange(all, _query.value, locale, ::stateOf)
+        _matchGroups.value = LibraryIndex.grouped(all, _query.value, locale, ::stateOf)
         // Narrowed to the scope, not to the whole query: the row is what the reader was in
         // the middle of, and a filter on format has nothing to say about that.
         _continueReading.value = LibraryIndex.continueReading(

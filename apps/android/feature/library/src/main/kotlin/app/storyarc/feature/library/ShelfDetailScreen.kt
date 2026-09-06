@@ -207,7 +207,17 @@ fun ReadingListDetailScreen(
     // again — a list sorted by last read would sit at the order it had when the screen opened
     // and quietly stop agreeing with the ticks beside its own rows. A reading list is tens of
     // entries, so the pass costs nothing worth that.
-    val shown = ListOrdering.arrange(entries, order, publications, progress = viewModel::stateOf)
+    //
+    // The reader's language, for the reason [LibraryViewModel.rebuild] gives: a reading list
+    // sorted by title has to collate the way the shelf does, and the shelf now collates in the
+    // chosen language rather than the device's.
+    val shown = ListOrdering.arrange(
+        entries,
+        order,
+        publications,
+        locale = viewModel.readerLocale(),
+        progress = viewModel::stateOf,
+    )
     val numbers = remember(entries) { ListOrdering.positions(entries) }
 
     val snackbars = remember { SnackbarHostState() }
