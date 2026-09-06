@@ -941,6 +941,156 @@
         }
       }
     },
+    "open.in.dismiss": {
+      "extractionState": "manual",
+      "comment": "Button that closes the refused-file alert. Android draws the same word as open_in_dismiss.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
+    "open.in.protected %@": {
+      "extractionState": "manual",
+      "comment": "Shown when a handed-over audiobook is locked by its store. The value is the file name. It offers nothing to fill in on purpose: publication-formats says the app \"does not prompt for a key, an account or an activation code\".",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ist durch den Kopierschutz seines Shops geschützt, daher kann StoryArc es nicht öffnen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is protected by its store's content protection, so StoryArc cannot open it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ está protegido por la protección de contenido de su tienda, por lo que StoryArc no puede abrirlo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ est protégé par la protection de contenu de sa boutique, et StoryArc ne peut donc pas l’ouvrir."
+          }
+        }
+      }
+    },
+    "open.in.refused.title": {
+      "extractionState": "manual",
+      "comment": "Title of the alert shown when a file handed over by the system cannot be opened. Android draws the same sentence as open_in_refused_title.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Datei kann nicht geöffnet werden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cannot open this file"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede abrir este archivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’ouvrir ce fichier"
+          }
+        }
+      }
+    },
+    "open.in.unreadable %@ %@": {
+      "extractionState": "manual",
+      "comment": "Shown when a handed-over file is no format StoryArc recognises. The first value is the file name, the second the list of formats the app reads. The list is data and stays the same in every language.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc erkennt %1$@ nicht. StoryArc liest %2$@ und andere Hörbücher."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ is not a file StoryArc recognises. It reads %2$@ and other audiobooks."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc no reconoce %1$@. Lee %2$@ y otros audiolibros."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc ne reconnaît pas %1$@. Il lit les formats %2$@ et d’autres livres audio."
+          }
+        }
+      }
+    },
+    "open.in.unsupported %@ %@ %@": {
+      "extractionState": "manual",
+      "comment": "Shown when a handed-over file is a format StoryArc does not read. The first value is the file name, the second the format that was detected, the third the list of formats the app reads. The list is data and stays the same in every language.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ ist eine %2$@-Datei, die StoryArc nicht liest. StoryArc liest %3$@ und andere Hörbücher."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ is a %2$@ file, which StoryArc does not read. It reads %3$@ and other audiobooks."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ es un archivo %2$@, que StoryArc no lee. Lee %3$@ y otros audiolibros."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ est un fichier %2$@, que StoryArc ne lit pas. Il lit les formats %3$@ et d’autres livres audio."
+          }
+        }
+      }
+    },
     "shortcut.continue": {
       "comment": "Home-screen quick action. The publication's own title is the subtitle beneath it.",
       "localizations": {
