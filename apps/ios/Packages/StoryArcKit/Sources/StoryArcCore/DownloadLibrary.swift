@@ -106,6 +106,75 @@ public struct DownloadLibrary: Sendable, Equatable {
             .reduce(self) { $0.marking($1.id, as: .queued) }
     }
 
+    /// Holds every unfinished download the connection no longer permits, and puts back every
+    /// one it now does.
+    ///
+    /// `offline-downloads`' *Wi-Fi only*: with the setting on and the device on cellular,
+    /// downloads "pause and state that they are waiting for Wi-Fi, and resume automatically
+    /// when it returns". The queue used to answer only the first half at the moment a
+    /// transfer *started*, so a reader who began a download on Wi-Fi and walked out of range
+    /// kept downloading over cellular — the setting protected the queue and not the transfer
+    /// already running.
+    ///
+    /// The mirror of ``pausingForSpace()`` and ``resumingAfterSpace()``, with one difference
+    /// that earns itself: both directions are decided in **one pass**. A connection that
+    /// drops and returns repeatedly would otherwise pause and resume the same row twice per
+    /// pass, and every one of those is a write to the store.
+    ///
+    /// - Parameter permits: whether this download may move bytes over the connection the
+    ///   device is on. ``MeteredDownload/mayStart(wifiOnly:isMetered:isOverridden:)`` is the
+    ///   rule, asked here so a granted publication is never paused by a hold meant for the
+    ///   rest of the queue.
+    ///
+    /// A download the reader paused, a failed one and a finished one are left exactly as they
+    /// are, for ``pausingForSpace()``'s reason: this answers one question and un-asks only
+    /// that one.
+    public func reconsideringWifi(permits: (Download) -> Bool) -> DownloadLibrary {
+        downloads.reduce(self) { library, download in
+            switch download.state {
+            case .queued, .running:
+                permits(download)
+                    ? library
+                    : library.marking(download.id, as: .paused(.waitingForWiFi))
+            case .paused(.waitingForWiFi):
+                permits(download) ? library.marking(download.id, as: .queued) : library
+            default:
+                library
+            }
+        }
+    }
+
+    /// Whether the reader's own maximum download size is reached.
+    ///
+    /// `offline-downloads`' *Storage limit*: "the app stops downloading when the limit is
+    /// reached". A queue with nothing left to do is not at the limit, because there is
+    /// nothing for the limit to stop.
+    public func isAtLimit(_ limit: Int64?) -> Bool {
+        guard let limit, !pending.isEmpty else { return false }
+        return bytesOnDisk >= limit
+    }
+
+    /// What the queue is waiting for, in the reader's terms, or `nil` when it is not waiting.
+    ///
+    /// `offline-downloads` requires a held queue to *say* what it is waiting for, because the
+    /// three situations have three different remedies. Read from the records the queue wrote
+    /// rather than from the connection, which is what lets a settings screen answer without
+    /// holding a queue at all — and what makes the answer survive a relaunch.
+    ///
+    /// The device's own shortage is named first. The other two are conditions the reader
+    /// chose and can unchoose; this one is a fact about the phone, and it has to be said out
+    /// loud before either of the others is worth mentioning.
+    ///
+    /// A download the reader paused is not a hold. They stopped it, they know why, and the
+    /// row itself offers the remedy.
+    public func hold(limit: Int64?) -> DownloadHold? {
+        if pending.contains(where: { $0.state == .paused(.outOfSpace) }) { return .outOfSpace }
+        if pending.contains(where: { $0.state == .paused(.waitingForWiFi) }) {
+            return .waitingForWifi
+        }
+        return isAtLimit(limit) ? .storageFull : nil
+    }
+
     public func moving(_ id: Download.ID, to destination: Int) -> DownloadLibrary {
         guard let from = downloads.firstIndex(where: { $0.id == id }) else { return self }
         var moved = downloads
@@ -252,4 +321,23 @@ public struct DownloadLibrary: Sendable, Equatable {
 
     /// Three, from `offline-downloads`.
     public static let attemptLimit = 3
+}
+
+/// What is stopping the download queue.
+///
+/// Three situations with three different remedies, which is why `offline-downloads` requires
+/// a held queue to name one rather than simply stopping: Wi-Fi returns by itself, the reader's
+/// own maximum is theirs to raise, and a full device is neither. A stalled list that explains
+/// none of them is the worst of the four.
+///
+/// Here rather than on the queue so a screen that holds no queue can draw it. Android's
+/// `DownloadHold` is the same three cases.
+public enum DownloadHold: Sendable, Equatable, CaseIterable {
+    /// The device itself is short of room, whatever the reader's own limit says.
+    case outOfSpace
+
+    case waitingForWifi
+
+    /// The reader's own maximum download size is reached.
+    case storageFull
 }

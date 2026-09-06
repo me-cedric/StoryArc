@@ -212,6 +212,80 @@ data class DownloadLibrary(val downloads: List<Download> = emptyList()) {
                 library.marking(download.id, Download.State.Queued)
             }
 
+    /**
+     * Holds every unfinished download the connection no longer permits, and puts back every one
+     * it now does.
+     *
+     * `offline-downloads`' *Wi-Fi only*: with the setting on and the device on mobile data,
+     * downloads "pause and state that they are waiting for Wi-Fi, and resume automatically when
+     * it returns". The queue used to answer only the first half at the moment a transfer
+     * *started*, so a reader who began a download on Wi-Fi and walked out of range kept
+     * downloading over mobile data -- the setting protected the queue and not the transfer
+     * already running.
+     *
+     * The mirror of [pausingForSpace] and [resumingAfterSpace], with one difference that earns
+     * itself: both directions are decided in **one pass**. A connection that drops and returns
+     * repeatedly would otherwise pause and resume the same row twice per pass, and every one of
+     * those is a write to the store.
+     *
+     * @param permits whether this download may move bytes over the connection the device is on.
+     *   [MeteredDownload.mayStart] is the rule, asked here so a granted publication is never
+     *   paused by a hold meant for the rest of the queue.
+     *
+     * A download the reader paused, a failed one and a finished one are left exactly as they
+     * are, for [pausingForSpace]'s reason: this answers one question and un-asks only that one.
+     */
+    fun reconsideringWifi(permits: (Download) -> Boolean): DownloadLibrary {
+        val waiting = Download.State.Paused(Download.Pause.WAITING_FOR_WIFI)
+        return downloads.fold(this) { library, download ->
+            when (download.state) {
+                Download.State.Queued, Download.State.Running ->
+                    if (permits(download)) library else library.marking(download.id, waiting)
+                waiting ->
+                    if (permits(download)) {
+                        library.marking(download.id, Download.State.Queued)
+                    } else {
+                        library
+                    }
+                else -> library
+            }
+        }
+    }
+
+    /**
+     * Whether the reader's own maximum download size is reached.
+     *
+     * `offline-downloads`' *Storage limit*: "the app stops downloading when the limit is
+     * reached". A queue with nothing left to do is not at the limit, because there is nothing
+     * for the limit to stop.
+     */
+    fun isAtLimit(limit: Long?): Boolean {
+        if (limit == null || pending.isEmpty()) return false
+        return bytesOnDisk >= limit
+    }
+
+    /**
+     * What the queue is waiting for, in the reader's terms, or null when it is not waiting.
+     *
+     * `offline-downloads` requires a held queue to *say* what it is waiting for, because the
+     * three situations have three different remedies. Read from the records the queue wrote
+     * rather than from the connection, which is what lets a settings screen answer without
+     * holding a queue at all -- and what makes the answer survive a relaunch.
+     *
+     * The device's own shortage is named first. The other two are conditions the reader chose
+     * and can unchoose; this one is a fact about the phone, and it has to be said out loud
+     * before either of the others is worth mentioning.
+     *
+     * A download the reader paused is not a hold. They stopped it, they know why, and the row
+     * itself offers the remedy.
+     */
+    fun hold(limit: Long?): DownloadHold? {
+        val paused = pending.mapNotNull { (it.state as? Download.State.Paused)?.reason }
+        if (Download.Pause.OUT_OF_SPACE in paused) return DownloadHold.OUT_OF_SPACE
+        if (Download.Pause.WAITING_FOR_WIFI in paused) return DownloadHold.WAITING_FOR_WIFI
+        return if (isAtLimit(limit)) DownloadHold.STORAGE_FULL else null
+    }
+
     fun moving(id: String, destination: Int): DownloadLibrary {
         val from = downloads.indexOfFirst { it.id == id }
         if (from < 0) return this
@@ -368,4 +442,25 @@ data class DownloadLibrary(val downloads: List<Download> = emptyList()) {
          */
         fun backoffMillis(attempts: Int): Long = 2000L shl maxOf(0, attempts - 1)
     }
+}
+
+/**
+ * What is stopping the download queue.
+ *
+ * Three situations with three different remedies, which is why `offline-downloads` requires a
+ * held queue to name one rather than simply stopping: Wi-Fi returns by itself, the reader's own
+ * maximum is theirs to raise, and a full device is neither. A stalled list that explains none of
+ * them is the worst of the four.
+ *
+ * Here rather than on the queue so a screen that holds no queue can draw it. iOS's
+ * `DownloadHold` is the same three cases.
+ */
+enum class DownloadHold {
+    /** The device itself is short of room, whatever the reader's own limit says. */
+    OUT_OF_SPACE,
+
+    WAITING_FOR_WIFI,
+
+    /** The reader's own maximum download size is reached. */
+    STORAGE_FULL,
 }
