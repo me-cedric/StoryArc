@@ -85,6 +85,13 @@ jobs:
         # than having no scanner. The device sweep cannot run here; its self-test can.
         run: pnpm a11y:selftest
 
+      - name: The drawn-strings checker's own checks still fire
+        # The check itself is not wired yet: two literals it reports are still committed, in
+        # App/RefusedFile.swift. Task 2.2 of one-vocabulary-in-four-languages removes them.
+        # The self-test does not wait on that, and a checker that stops matching reports a
+        # clean tree.
+        run: pnpm strings:drawn:selftest
+
       - name: Fixture corpus is in sync with its generator
         # The corpus is generated then committed, so it can go stale the same way
         # the tokens can. ubuntu-latest ships Python 3.

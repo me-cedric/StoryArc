@@ -413,14 +413,20 @@ changes.
       guards the drawing surface only — bare literals in `Text(`, `alert(`,
       `Button(` labels, `accessibilityLabel`, `contentDescription =`.
       **State its limit in its own header**, as `ios-strings.mjs` does: it cannot
-      see a sentence that reaches a view through a variable. The census found
-      zero literals in these positions, so this check would have caught none of
-      the thirty — it is a backstop against the next one, and claiming otherwise
-      is the vacuous shape.
+      see a sentence that reaches a view through a variable. It is a backstop
+      against the next leak, and claiming more for it is the vacuous shape.
       **Done:** `scripts/drawn-strings-check.mjs`. One script reads Swift and
       Kotlin, because SwiftUI and Compose spell `Text(` the same way. The header
-      names six blind spots, and says plainly that the check would have caught
-      none of the thirty.
+      names six blind spots.
+      **The census in `design.md` is wrong on one file, and this task repeated
+      the error.** Both said zero literals in these positions, so the check
+      would have caught none of the thirty. It catches two: the refused-file
+      alert's title and its OK button, at `apps/ios/App/RefusedFile.swift:55`
+      and `:58`, which are two of the six that file holds. Both are
+      `Text(verbatim:)`, so neither becomes a key and `strings:ios` is blind to
+      them. This check is the only thing that reports them. The other
+      twenty-eight do reach a view through a variable, and section 1 is their
+      gate.
 - [x] **5.2** Prove it fails, by name.
       Introduce a bare literal in a drawing position, watch the check name the
       file and line, revert. AGENTS.md §5 requires this in the change that adds
@@ -430,7 +436,8 @@ changes.
       reports `apps/ios/App/RefusedFile.swift:55` and `:58` on the committed
       tree. A copy of `SkippedNotice.swift` with one key replaced by prose is
       reported at line 50, and the reverted copy reports nothing.
-      `--self-test` passes 15 of 15 cases.
+      `--self-test` passes 19 of 19 cases. Delete any one of the five position
+      patterns and a named case fails.
 - [~] **5.3** Wire it into `pnpm lint` and add the `:selftest` script.
       `package.json`, matching how `delta:drop` and `partial:tasks` are wired.
       Verify: `pnpm lint` passes on a clean tree and fails on 5.2's mutation.
@@ -441,10 +448,17 @@ changes.
       `apps/ios/App/RefusedFile.swift:55` and `:58`. Wiring it in today fails
       `pnpm lint` for every one of the eight in-flight changes, which is the
       exact hazard this section is ordered last to avoid. Task 2.2 removes both
-      literals. After it lands, add `&& pnpm strings:drawn` to the `lint` script
-      and tick this task; that is the whole remaining edit. A suppression list or
-      a baseline of allowed violations is refused — it would turn the check into
-      decoration.
+      literals. After it lands, two edits wire the check in: add
+      `&& pnpm strings:drawn` to the `lint` script, and add a `pnpm strings:drawn`
+      step to `.github/workflows/contract.yml`. **The second edit is not
+      optional.** No workflow runs `pnpm lint`. `contract.yml` names each check
+      as its own step, so the `lint` clause alone leaves this check running in
+      no automated gate.
+      **The unblocked half is done:** `contract.yml` runs
+      `pnpm strings:drawn:selftest`, beside the four other self-test steps. The
+      self-test passes today and waits on nothing.
+      A suppression list or a baseline of allowed violations is refused — it
+      would turn the check into decoration.
 
 ## 6. Gates
 
