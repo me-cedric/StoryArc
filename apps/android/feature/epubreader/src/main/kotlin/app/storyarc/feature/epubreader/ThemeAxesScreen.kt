@@ -439,10 +439,15 @@ private fun SwitchRow(
  * same screen.
  *
  * The reset goes through `onSet`, which is the path a drag takes. That path reaches
- * `EpubReaderViewModel.set`, which marks the axis deviated and stores the theme, and the
- * activity's `applyTheme`, which captures the locator, submits the preferences and returns
- * to the locator once the text has reflowed. So the preview, the page, the stored theme and
- * the reading position all see the reset exactly as they see a drag.
+ * `EpubReaderViewModel.set`, which records the axis against the preset and stores the theme,
+ * and the activity's `applyTheme`, which captures the locator, submits the preferences and
+ * returns to the locator once the text has reflowed. So the preview, the page, the stored
+ * theme and the reading position all see the reset exactly as they see a drag.
+ *
+ * The axis lands on the preset's own value, so it stops deviating from the preset rather
+ * than counting as one more move. `ReadingTheme.deviating` reads the value for that reason:
+ * a reset that still marked the preset modified left the whole-theme "Restore" action on
+ * screen with nothing to restore.
  *
  * A plain function rather than a lambda in the composable, because no JVM test can press a
  * Compose gesture and this is what `ThemeAxisResetTest` proves the behaviour over. iOS
@@ -479,16 +484,21 @@ private fun FineAxes(
                 // `reading-themes`, *Resetting an axis*: a long press or a double tap
                 // returns that axis to its preset value.
                 //
-                // On the axis, not on the slider — and that is a difference the platform
-                // forces, not a choice. A Compose `Slider` runs its own press detector and
-                // its `draggable` inside its node, after any modifier the caller passes, and
-                // that detector consumes the down event. A gesture attached to the slider
-                // never fires. iOS has `simultaneousGesture` and puts the long press on the
-                // slider itself. Here it lands on the axis block: the name, the value and
-                // the space around them, directly above the track.
+                // **On the axis block, not on the slider the spec names, and that is a
+                // gap rather than a design.** `detectTapGestures` waits on the Main pass,
+                // and the `Slider` handles the down inside its own node first, so a
+                // detector wrapped around the slider does not start a gesture. A detector
+                // reading the `Initial` pass would see the down before the slider does, so
+                // the track is reachable — but it would then need its own slop and timeout
+                // test to leave the drag alone, and no JVM test here can press a Compose
+                // gesture to prove one. Task 3.5 of `reader-theming-and-page-transitions`
+                // records that work as open.
                 //
-                // Which is why the accessibility action below is not a fallback. It is the
-                // only path that reaches the slider, and it reaches every reader.
+                // So the press lands on the axis block: the name, the value and the space
+                // around them, directly above the track. iOS puts its press on the slider
+                // itself, so the same documented gesture has a different target on the two
+                // apps — which is why the accessibility action below is not a fallback. It
+                // is the only path that reaches the slider, and it reaches every reader.
                 modifier = Modifier.pointerInput(axis, preset) {
                     detectTapGestures(onLongPress = { resetAxis(preset, axis, onSet) })
                 },

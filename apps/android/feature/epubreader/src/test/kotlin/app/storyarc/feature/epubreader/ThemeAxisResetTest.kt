@@ -1,11 +1,13 @@
 package app.storyarc.feature.epubreader
 
+import app.storyarc.core.model.ReadingTheme
 import app.storyarc.core.model.ThemeAxis
 import app.storyarc.core.model.ThemePreset
 import app.storyarc.core.model.ThemeValues
 import app.storyarc.core.model.setting
 import app.storyarc.core.model.values
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -121,6 +123,61 @@ class ThemeAxisResetTest {
                 " the paragraph across the repagination\".",
             activity.contains("val locator = navigator.currentLocator.value") &&
                 activity.contains("navigator.go(locator, animated = false)"),
+        )
+    }
+
+    @Test
+    fun `an axis put back to the preset's own value stops deviating`() {
+        val dragged = ThemePreset.CALM.values.setting(ThemeAxis.LINE_SPACING, 2.4)
+        val moved = ReadingTheme(ThemePreset.CALM).deviating(ThemeAxis.LINE_SPACING, dragged)
+        assertTrue("The drag did not mark the preset modified.", moved.isModified)
+
+        val back = moved.deviating(ThemeAxis.LINE_SPACING, ThemePreset.CALM.values)
+
+        assertFalse(
+            "The reset put the axis back and still recorded it as a deviation. Calm keeps" +
+                " the \"Modified\" caption and the whole-theme \"Restore Calm\" action stays" +
+                " on screen with nothing left to restore. `reading-themes`, *Resetting the" +
+                " preset that is already unmodified*: the action is \"absent rather than" +
+                " present and doing nothing\".",
+            back.isModified,
+        )
+    }
+
+    @Test
+    fun `resetting one axis leaves the other moved axis deviating`() {
+        val dragged = ThemePreset.CALM.values
+            .setting(ThemeAxis.LINE_SPACING, 2.4)
+            .setting(ThemeAxis.MARGINS, 2.1)
+        val moved = ReadingTheme(ThemePreset.CALM)
+            .deviating(ThemeAxis.LINE_SPACING, dragged)
+            .deviating(ThemeAxis.MARGINS, dragged)
+
+        val reset = dragged.setting(ThemeAxis.LINE_SPACING, ThemePreset.CALM.values.lineHeight)
+        val back = moved.deviating(ThemeAxis.LINE_SPACING, reset)
+
+        assertEquals(
+            "The reset changed the deviations of an axis it was not asked for. Only the" +
+                " axis that went back to the preset's value stops deviating; the margins the" +
+                " reader nudged still differ from Calm, so Calm is still modified and still" +
+                " restorable.",
+            setOf(ThemeAxis.MARGINS),
+            back.deviations,
+        )
+    }
+
+    @Test
+    fun `the view model records the reset against the preset, not as one more move`() {
+        val model = code("EpubReaderViewModel.kt")
+
+        assertTrue(
+            "`EpubReaderViewModel.change` still marks every move as a deviation without" +
+                " looking at the value, so the two cases above prove nothing about the" +
+                " screen. The reset then leaves the axis on the preset's own value and the" +
+                " preset marked modified, and the whole-theme \"Restore\" action stays on" +
+                " screen with nothing to restore. `ReadingTheme.deviating(axis, values)` is" +
+                " the overload that decides by value.",
+            model.contains("deviating(axis, values)"),
         )
     }
 

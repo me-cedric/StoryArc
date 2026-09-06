@@ -104,7 +104,7 @@ enum class ThemeAxis {
 @Serializable
 data class ReadingTheme(
     val preset: ThemePreset = ThemePreset.PAPER,
-    /** The axes moved since the preset was adopted. */
+    /** The axes that stand at a different value from the preset's own. */
     val deviations: Set<ThemeAxis> = emptySet(),
     /**
      * The reader's own colours, when they have chosen some.
@@ -168,6 +168,24 @@ data class ReadingTheme(
      */
     fun deviating(on: ThemeAxis): ReadingTheme =
         if (isEffective(on)) copy(deviations = deviations + on) else this
+
+    /**
+     * Records where an axis stands against the preset, reading the values it now holds.
+     *
+     * **An axis that holds the preset's own value is not a deviation from that preset,
+     * however it got there.** The per-axis reset puts one axis back through the path a drag
+     * takes, so recording every move as a deviation marked the reset axis as deviating:
+     * every axis then matched the preset while the theme still reported itself modified,
+     * and the whole-theme "Restore <preset>" action stayed on screen with nothing to
+     * restore. `reading-themes`, *Resetting the preset that is already unmodified*, forbids
+     * that state — "a control that never changes anything teaches a reader to distrust the
+     * ones that do".
+     */
+    fun deviating(on: ThemeAxis, values: ThemeValues): ReadingTheme = when {
+        !isEffective(on) -> this
+        values.differs(preset.values, on) -> copy(deviations = deviations + on)
+        else -> copy(deviations = deviations - on)
+    }
 
     /**
      * Puts every axis back to the preset's own values.

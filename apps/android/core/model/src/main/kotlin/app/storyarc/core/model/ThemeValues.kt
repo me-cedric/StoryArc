@@ -273,6 +273,27 @@ fun ThemeValues.value(of: ThemeAxis): Double = when (of) {
     -> 0.0
 }
 
+/**
+ * Whether one axis stands at a different value here than in [from].
+ *
+ * [value] cannot answer this. It reports 0 for the four axes a Double cannot express, so
+ * two different typefaces compare equal there. A reader who puts one axis back to the
+ * preset's own value has stopped deviating from that preset, and
+ * [ReadingTheme.deviating] needs the true answer to record that.
+ */
+fun ThemeValues.differs(from: ThemeValues, on: ThemeAxis): Boolean = when (on) {
+    ThemeAxis.LINE_SPACING -> lineHeight != from.lineHeight
+    ThemeAxis.CHARACTER_SPACING -> letterSpacing != from.letterSpacing
+    ThemeAxis.WORD_SPACING -> wordSpacing != from.wordSpacing
+    ThemeAxis.PARAGRAPH_SPACING -> paragraphSpacing != from.paragraphSpacing
+    ThemeAxis.MARGINS -> pageMargins != from.pageMargins
+    ThemeAxis.FONT_SIZE -> fontSize != from.fontSize
+    ThemeAxis.FONT_FAMILY -> typeface != from.typeface
+    ThemeAxis.BOLD_TEXT -> isBold != from.isBold
+    ThemeAxis.TEXT_ALIGNMENT -> textAlignment != from.textAlignment
+    ThemeAxis.HYPHENATION -> isHyphenated != from.isHyphenated
+}
+
 /** The same values with one axis moved. */
 fun ThemeValues.setting(axis: ThemeAxis, to: Double): ThemeValues = when (axis) {
     ThemeAxis.LINE_SPACING -> copy(lineHeight = to)

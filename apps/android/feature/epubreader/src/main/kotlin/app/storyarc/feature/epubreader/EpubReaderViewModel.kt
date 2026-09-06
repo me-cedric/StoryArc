@@ -229,11 +229,14 @@ class EpubReaderViewModel(
      * The axis is passed alongside the new values so the model records *which* axis
      * moved — the sheet needs that to offer "restore this preset", and Readium
      * cannot tell us.
+     *
+     * The theme reads the new value rather than the fact of the move, because the
+     * per-axis reset arrives here too. See [ReadingTheme.deviating].
      */
     fun change(axis: ThemeAxis, values: ThemeValues) {
         if (!_theme.value.isEffective(axis)) return
         _values.value = values
-        _theme.value = _theme.value.deviating(axis)
+        _theme.value = _theme.value.deviating(axis, values)
     }
 
     /** Puts every axis back to the preset's own values. */
