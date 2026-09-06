@@ -53,6 +53,7 @@ import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.persistence.ShelfEditStore
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -123,6 +124,12 @@ fun KavitaListScreen(
     // order already, which is the ordinary case.
     var wanted by remember(listId) { mutableStateOf<List<Int>>(emptyList()) }
 
+    // The push this screen started last, so the next one waits for it. Kavita moves an entry
+    // by position, and a position only means anything against the order the server is in. Two
+    // moves a second apart would otherwise plan against the same read and land interleaved,
+    // leaving the list in an order nobody asked for.
+    var pushing by remember(listId) { mutableStateOf<Job?>(null) }
+
     LaunchedEffect(listId) {
         wanted = KavitaSync.wantedOrder(KavitaProgressStore.open(context), server.id, listId)
         items = runCatching { client.readingListItems(listId) }
@@ -159,7 +166,9 @@ fun KavitaListScreen(
         val order = next.mapNotNull { it.toIntOrNull() }
         items = order.mapNotNull { id -> items.firstOrNull { it.chapterId == id } } +
             items.filterNot { it.chapterId in order }
-        scope.launch {
+        val previous = pushing
+        pushing = scope.launch {
+            previous?.join()
             val store = KavitaProgressStore.open(context)
             KavitaSync.reorder(store, server.address, server.id, listId, order)
             wanted = KavitaSync.wantedOrder(store, server.id, listId)

@@ -162,6 +162,13 @@ struct KavitaListView: View {
     /// reader's order already, which is the ordinary case.
     @State private var wanted: [Int] = []
 
+    /// The push this view started last, so the next one waits for it.
+    ///
+    /// Kavita moves an entry by position, and a position only means anything against the
+    /// order the server is in. Two drags a second apart would otherwise plan against the
+    /// same read and land interleaved, leaving the list in an order nobody asked for.
+    @State private var pushing: Task<Void, Never>?
+
     /// The server's entries in the reader's order, with the outstanding ones after them.
     ///
     /// ``ShelfSync`` and ``ShelfMerge`` decide both orders, so a test can assert them without
@@ -276,7 +283,9 @@ struct KavitaListView: View {
         items = order.compactMap { id in items.first { $0.chapterId == id } }
             + items.filter { !order.contains($0.chapterId) }
 
-        Task {
+        let previous = pushing
+        pushing = Task {
+            await previous?.value
             let store = KavitaProgressStore()
             await KavitaSync.reorder(
                 listID,
