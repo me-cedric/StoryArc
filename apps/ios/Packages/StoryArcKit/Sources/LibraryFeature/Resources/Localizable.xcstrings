@@ -3383,6 +3383,35 @@
         }
       }
     },
+    "kavita.error.tooOldForRequest": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Server ist zu alt für StoryArc. Er kennt die Anfrage nicht, die StoryArc sendet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That server is too old for StoryArc. It does not know the request StoryArc sends."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ese servidor es demasiado antiguo para StoryArc. No conoce la petición que StoryArc envía."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce serveur est trop ancien pour StoryArc. Il ne connaît pas la requête que StoryArc envoie."
+          }
+        }
+      }
+    },
     "kavita.fetching": {
       "extractionState": "manual",
       "localizations": {

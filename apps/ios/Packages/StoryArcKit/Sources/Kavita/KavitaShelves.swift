@@ -123,13 +123,20 @@ extension KavitaClient {
     /// A POST carrying a filter, for the reason ``series(inLibrary:)`` gives: measured
     /// against a live server on 2026-09-06, a GET here is a 404 and this client sent one,
     /// so a reader who added their own Kavita was shown no reading lists at all.
+    ///
+    /// The other route an older server may not have, so it is asked the way
+    /// ``KavitaClient/sendVersioned(_:path:)`` asks: a 404 here is remembered once and
+    /// answered with a sentence, and nothing else is read as an old server.
     public func readingLists() async throws -> [KavitaReadingList] {
         guard let url = address.endpoint("ReadingList/lists") else { throw KavitaError.badAddress }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = Data("{}".utf8)
-        return try decode([KavitaReadingList].self, from: try await send(request))
+        return try decode(
+            [KavitaReadingList].self,
+            from: try await sendVersioned(request, path: "ReadingList/lists")
+        )
     }
 
     /// One reading list's entries, in the order the server keeps.

@@ -174,6 +174,36 @@ public struct KavitaVolume: Sendable, Equatable, Identifiable, Decodable {
     public var isLooseChapters: Bool { number == 0 }
 }
 
+/// Kavita's `SeriesFilterV2Dto`, of the parts this app sends.
+///
+/// `Kavita.Models/DTOs/Filtering/v2/Requests/SeriesFilterV2Dto.cs` carries `id`, `name`,
+/// `statements`, `combination` and `sortOptions`. This app sends the two it has a use for,
+/// because a field nobody measured is a field this client cannot claim a meaning for.
+struct KavitaFilter: Encodable {
+    /// One clause of the filter.
+    ///
+    /// `field` 19 is `Libraries` in `SeriesFilterField.cs`, line 29. `comparison` 0 narrowed
+    /// a live server on 2026-09-06; the values from 1 to 10 either narrowed the same way or
+    /// were ignored, so this app sends the one it measured. `value` is a string on the wire
+    /// even when it names a number, which is how Kavita's own client sends it.
+    struct Statement: Encodable {
+        let comparison: Int
+        let field: Int
+        let value: String
+    }
+
+    let statements: [Statement]
+
+    /// `FilterCombination.And`, which is what one statement needs and what more would want.
+    let combination: Int
+
+    /// The filter for one library.
+    init(library: Int) {
+        statements = [Statement(comparison: 0, field: 19, value: String(library))]
+        combination = 0
+    }
+}
+
 extension KavitaClient {
     /// The server's libraries.
     public func libraries() async throws -> [KavitaLibraryFolder] {
@@ -185,18 +215,28 @@ extension KavitaClient {
     /// A POST carrying a filter, because that is what Kavita answers. Measured against a
     /// live server on 2026-09-06: a GET here is a 404, and this client sent one — so a
     /// reader who added their own Kavita was shown no series at all. An empty filter is
-    /// the whole list. The library still rides in the query, which is where this client has
-    /// always put it; whether a live Kavita reads it there is unmeasured.
+    /// the whole list.
+    ///
+    /// **The library is a statement in the body, not a query parameter.** The same
+    /// measurement: `POST /api/Series/all-v2?libraryId=3` answered all 215 series across
+    /// four libraries, so the parameter this client used to send did nothing at all, and
+    /// the request succeeded — so a reader who picked one library was shown every library
+    /// and nothing reported a problem. The statement below answered 91 series from library
+    /// 3 alone. See ``KavitaFilter`` for the field and comparison numbers.
+    ///
+    /// A filter that cannot be encoded throws rather than widening. A listing that quietly
+    /// fell back to the whole server is the defect this replaces, not a safe default.
     public func series(inLibrary id: Int? = nil) async throws -> [KavitaSeries] {
-        let query = id.map { [URLQueryItem(name: "libraryId", value: String($0))] } ?? []
-        guard let url = address.endpoint("Series/all-v2", query: query) else {
-            throw KavitaError.badAddress
-        }
+        guard let url = address.endpoint("Series/all-v2") else { throw KavitaError.badAddress }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = Data("{}".utf8)
-        return try decode([KavitaSeries].self, from: try await send(request))
+        request.httpBody = try id.map { try JSONEncoder().encode(KavitaFilter(library: $0)) }
+            ?? Data("{}".utf8)
+        return try decode(
+            [KavitaSeries].self,
+            from: try await sendVersioned(request, path: "Series/all-v2")
+        )
     }
 
     /// One series, asked for by identity.

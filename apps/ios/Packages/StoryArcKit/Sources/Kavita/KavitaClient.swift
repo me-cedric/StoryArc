@@ -58,6 +58,39 @@ public actor KavitaClient {
         return try await send(URLRequest(url: url))
     }
 
+    /// The routes this server has answered 404 to, so the discovery is paid for once.
+    ///
+    /// Held here because this actor is one server. It lives for the session and no longer:
+    /// the answer is cheap to find again, and the registry of saved sources is a place for
+    /// what a reader chose rather than for what a server happened to answer.
+    private var unsupported: Set<String> = []
+
+    /// Sends a request to a route an older Kavita may not have, and remembers a 404.
+    ///
+    /// **A client cannot ask a Kavita what version it is.** Measured on 2026-09-06:
+    /// `/api/Server/version`, `/api/Health/api-version` and `/api/Server/accepting-connections`
+    /// all answer 404, `/api/Server/server-info-slim` is admin-only, and swagger is off in
+    /// production. So feature detection is the only detection there is, and the feature is
+    /// the route answering at all.
+    ///
+    /// **Only a 404 counts.** A 401, a 403, a 500 or a timeout is the key or the server being
+    /// wrong for a moment, and reading one of those as "old server" would turn one expired
+    /// token into a permanent downgrade that no later good answer could undo.
+    ///
+    /// **There is no older shape to fall back to.** No documented v1 of these routes was
+    /// found, and Kavita's controllers carry no `[Obsolete]` marker naming one. Inventing a
+    /// request shape would be a guess a reader pays for, so this refuses in a sentence the
+    /// screens can draw instead.
+    func sendVersioned(_ request: URLRequest, path: String) async throws -> Data {
+        guard !unsupported.contains(path) else { throw KavitaError.routeMissing(path: path) }
+        do {
+            return try await send(request)
+        } catch KavitaError.http(status: 404) {
+            unsupported.insert(path)
+            throw KavitaError.routeMissing(path: path)
+        }
+    }
+
     /// Lets the session's own queue go when the client does.
     ///
     /// A `URLSession` holds its delegate and an operation queue until it is invalidated,
@@ -230,6 +263,12 @@ public enum KavitaError: Error, Equatable, Sendable {
 
     /// Older than this app knows how to talk to, named so the reader can act.
     case serverTooOld(found: KavitaVersion, required: KavitaVersion)
+
+    /// The server does not have this route, so it is an older Kavita than this app can use.
+    ///
+    /// Distinct from ``serverTooOld(found:required:)``, which knows the version because the
+    /// server stated one. Here nothing did: see ``KavitaClient/sendVersioned(_:path:)``.
+    case routeMissing(path: String)
 
     case http(status: Int)
 }

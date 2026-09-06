@@ -141,11 +141,143 @@ struct KavitaLibraryTests {
         #expect(request.url?.path() == "/api/Series/all-v2")
         #expect(request.httpMethod == "POST")
         #expect(request.value(forHTTPHeaderField: "Content-Type") == "application/json")
+    }
+
+    @Test("The library a reader picked rides in the filter, and never in the query")
+    func libraryRidesInTheFilter() async throws {
+        // Measured against a live Kavita on 2026-09-06: `POST /api/Series/all-v2?libraryId=3`
+        // answered all 215 series across four libraries, so the parameter this client used to
+        // send did nothing at all. The same route carrying this statement answered 91 series
+        // from library 3 alone. Field 19 is `Libraries` in Kavita's `SeriesFilterField`.
+        // A reader who picked one library was shown every library, and the request succeeded,
+        // so nothing anywhere reported a problem.
+        let sent = KavitaSent()
+        let client = try recording(sent, answering: .response(status: 200, body: Data("[]".utf8)))
+        _ = try await client.series(inLibrary: 3)
+
+        let request = try #require(sent.request)
+        #expect(request.httpMethod == "POST")
+        #expect(request.url?.query() == nil)
+
+        let filter = try JSONDecoder().decode(SentFilter.self, from: try #require(sent.body))
+        #expect(filter.combination == 0)
+        #expect(filter.statements.count == 1)
+        #expect(filter.statements.first?.field == 19)
+        #expect(filter.statements.first?.comparison == 0)
+        #expect(filter.statements.first?.value == "3")
+    }
+
+    @Test("A listing of the whole server carries no statement at all")
+    func everyLibraryCarriesNoStatement() async throws {
+        // An empty filter is what a live Kavita answers with everything, and it is what this
+        // client has always sent. A statement naming no library would be a filter this
+        // repository has not measured.
+        let sent = KavitaSent()
+        let client = try recording(sent, answering: .response(status: 200, body: Data("[]".utf8)))
+        _ = try await client.series()
         #expect(String(bytes: try #require(sent.body), encoding: .utf8) == "{}")
-        // The library still rides in the query, which is where the client has always put it
-        // and what the mock reads. Whether a live Kavita filters on it is the parent's to
-        // measure -- an unmeasured filter statement in the body would be a guess.
-        #expect(request.url?.query() == "libraryId=1")
+    }
+
+    @Test("A server that does not know the series list is asked once and then refused")
+    func aMissingRouteIsRememberedOnce() async throws {
+        // A client cannot ask a Kavita what version it is: every version route answered 404
+        // or 403 on 2026-09-06, and swagger is off in production. So a 404 on the route
+        // itself is the only signal, and paying for it on every listing is the cost this
+        // remembers away.
+        let calls = Calls()
+        let client = try counting(calls, answering: .response(status: 404, body: Data()))
+
+        let missing = KavitaError.routeMissing(path: "Series/all-v2")
+        await #expect(throws: missing) { _ = try await client.series() }
+        await #expect(throws: missing) { _ = try await client.series() }
+        #expect(calls.count == 1)
+    }
+
+    @Test("A refused key is not remembered as a server that is too old")
+    func aRefusedKeyIsNotAnOldServer() async throws {
+        // A 401, a 403, a 500 or a timeout is the key or the server being wrong for a moment.
+        // Reading one of them as "old server" would turn one expired token into a permanent
+        // downgrade for that server, which no later good answer could undo.
+        let refuse = Calls()
+        let host = "\(UUID().uuidString).example"
+        let configuration = KavitaStub.session(host: host) { request in
+            if request.url?.path().contains("authenticate") == true {
+                return .response(status: 200, body: Data(#"{"username":"a","token":"t"}"#.utf8))
+            }
+            return refuse.isOn
+                ? .response(status: 401, body: Data())
+                : .response(status: 200, body: Data(#"[{"id":1,"name":"Tidal Reach"}]"#.utf8))
+        }
+        let address = try #require(KavitaAddress.from(base: "https://\(host)", apiKey: "k"))
+        let client = KavitaClient(address: address, configuration: configuration)
+
+        refuse.isOn = true
+        await #expect(throws: KavitaError.keyRejected) { _ = try await client.series() }
+        refuse.isOn = false
+        #expect(try await client.series().count == 1)
+    }
+
+    /// A client whose every non-authenticating request is recorded and answered the same way.
+    private func recording(
+        _ sent: KavitaSent,
+        answering answer: KavitaStub.Answer
+    ) throws -> KavitaClient {
+        let host = "\(UUID().uuidString).example"
+        let configuration = KavitaStub.session(host: host) { request in
+            if request.url?.path().contains("authenticate") == true {
+                return .response(status: 200, body: Data(#"{"username":"a","token":"t"}"#.utf8))
+            }
+            sent.record(request)
+            return answer
+        }
+        let address = try #require(KavitaAddress.from(base: "https://\(host)", apiKey: "k"))
+        return KavitaClient(address: address, configuration: configuration)
+    }
+
+    /// The same, counting the requests to the series list rather than keeping the last one.
+    private func counting(
+        _ calls: Calls,
+        answering answer: KavitaStub.Answer
+    ) throws -> KavitaClient {
+        let host = "\(UUID().uuidString).example"
+        let configuration = KavitaStub.session(host: host) { request in
+            if request.url?.path().contains("authenticate") == true {
+                return .response(status: 200, body: Data(#"{"username":"a","token":"t"}"#.utf8))
+            }
+            calls.bump()
+            return answer
+        }
+        let address = try #require(KavitaAddress.from(base: "https://\(host)", apiKey: "k"))
+        return KavitaClient(address: address, configuration: configuration)
+    }
+
+    /// What the client posted, read back as Kavita's own `SeriesFilterV2Dto`.
+    private struct SentFilter: Decodable {
+        let statements: [SentStatement]
+        let combination: Int
+    }
+
+    /// One clause of that filter.
+    private struct SentStatement: Decodable {
+        let comparison: Int
+        let field: Int
+        let value: String
+    }
+
+    /// A box, because the stub runs on the session's queue.
+    private final class Calls: @unchecked Sendable {
+        private let lock = NSLock()
+        private var seen = 0
+        private var refusing = false
+
+        func bump() { lock.withLock { seen += 1 } }
+
+        var count: Int { lock.withLock { seen } }
+
+        var isOn: Bool {
+            get { lock.withLock { refusing } }
+            set { lock.withLock { refusing = newValue } }
+        }
     }
 
     @Test("A response that is not the shape expected is named as such")

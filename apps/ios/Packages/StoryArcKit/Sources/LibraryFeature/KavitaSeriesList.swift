@@ -28,6 +28,13 @@ struct KavitaSeriesList: View {
     @State private var series: [KavitaSeries] = []
     @State private var hasLoaded = false
 
+    /// Why the list is empty, when it is empty for a reason.
+    ///
+    /// This used to be a `try?` into an empty array, so a server too old to answer the
+    /// listing at all looked exactly like a library with nothing in it. A reader on such a
+    /// server deserves the sentence, not a silent empty shelf.
+    @State private var failure: String?
+
     private let columns = [GridItem(.adaptive(minimum: 120), spacing: StoryArcSpace.md)]
 
     var body: some View {
@@ -53,14 +60,24 @@ struct KavitaSeriesList: View {
         .kavitaSearchable(finder) { await finder.run(client, sourceId: sourceId) }
         .task {
             guard !hasLoaded else { return }
-            series = (try? await client.series(inLibrary: library.id)) ?? []
+            do {
+                series = try await client.series(inLibrary: library.id)
+                failure = nil
+            } catch {
+                failure = KavitaMessage.of(error, source: library.name)
+            }
             hasLoaded = true
         }
     }
 
     private var covers: some View {
         ScrollView {
-            if hasLoaded, series.isEmpty {
+            if let failure {
+                Text(failure)
+                    .textRole(.footnote)
+                    .foregroundStyle(theme.palette.textPrimary)
+                    .padding(StoryArcSpace.gutter)
+            } else if hasLoaded, series.isEmpty {
                 Text("kavita.empty", bundle: .module)
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textSecondary)

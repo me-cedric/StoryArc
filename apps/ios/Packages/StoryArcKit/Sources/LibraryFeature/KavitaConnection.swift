@@ -133,6 +133,8 @@ public final class KavitaConnection {
                 found.description,
                 required.description
             )
+        case .routeMissing:
+            String(localized: "kavita.error.tooOldForRequest", bundle: .module, locale: .storyArc)
         case .keyRejected:
             String(localized: "kavita.error.keyRejected", bundle: .module, locale: .storyArc)
         case .badAddress:

@@ -39,6 +39,13 @@ enum KavitaMessage {
                 found.description,
                 required.description
             )
+        case .routeMissing:
+            // A server that does not have the route at all. The path is not said out loud:
+            // it names an API a reader never chose, and the sentence they need is that the
+            // server is too old rather than which request went unanswered.
+            return String(
+                localized: "kavita.error.tooOldForRequest", bundle: .module, locale: .storyArc
+            )
         case .badAddress, .unexpectedResponse:
             return String(localized: "kavita.error.notKavita", bundle: .module, locale: .storyArc)
         // Any other status is the server being unwell rather than the reader being wrong,
