@@ -188,8 +188,14 @@
     <string name="shelves_unpin">Unpin from Home</string>
     <string name="shelves_delete_confirm">Delete</string>
     <string name="shelves_delete_title">Delete “%1$s”?</string>
-    <string name="shelves_delete_collection_body">The books and comics in it stay in your library. Only the collection goes.</string>
-    <string name="shelves_delete_list_body">The books and comics in it stay in your library. Only the reading list goes.</string>
+    <plurals name="shelves_delete_collection_body">
+        <item quantity="one">%1$d title stays in your library. Only the collection goes.</item>
+        <item quantity="other">%1$d titles stay in your library. Only the collection goes.</item>
+    </plurals>
+    <plurals name="shelves_delete_list_body">
+        <item quantity="one">%1$d title stays in your library. Only the reading list goes.</item>
+        <item quantity="other">%1$d titles stay in your library. Only the reading list goes.</item>
+    </plurals>
     <string name="shelves_cover">Choose a cover</string>
     <string name="shelves_cover_about">Pick one of these, or let the collection show its first four covers.</string>
     <string name="shelves_cover_composite">The first four covers</string>

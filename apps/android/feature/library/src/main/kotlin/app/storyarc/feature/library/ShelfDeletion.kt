@@ -4,6 +4,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import app.storyarc.core.model.PublicationCollection
 import app.storyarc.core.model.ReadingList
@@ -33,6 +34,15 @@ internal data class ShelfDeletion(
     val id: UUID,
     val name: String,
     val kind: Kind,
+    /**
+     * How many titles the shelf holds, read when the question is asked.
+     *
+     * The source removal confirmation states what goes in titles before it asks, and this asks
+     * the same question about the same kind of act. A reader deciding whether to delete *Reading
+     * soon* needs to know it holds forty things -- and needs it now, because after the answer the
+     * shelf is not there to be counted.
+     */
+    val count: Int,
 ) {
     /**
      * Which of the two shelves this is.
@@ -57,10 +67,10 @@ internal data class ShelfDeletion(
 
     companion object {
         fun of(collection: PublicationCollection): ShelfDeletion =
-            ShelfDeletion(collection.id, collection.name, Kind.COLLECTION)
+            ShelfDeletion(collection.id, collection.name, Kind.COLLECTION, collection.members.size)
 
         fun of(list: ReadingList): ShelfDeletion =
-            ShelfDeletion(list.id, list.name, Kind.LIST)
+            ShelfDeletion(list.id, list.name, Kind.LIST, list.entries.size)
     }
 }
 
@@ -82,11 +92,13 @@ internal fun ShelfDeletionDialog(
         title = { Text(stringResource(R.string.shelves_delete_title, deletion.name)) },
         text = {
             Text(
-                stringResource(
+                pluralStringResource(
                     when (deletion.kind) {
-                        ShelfDeletion.Kind.COLLECTION -> R.string.shelves_delete_collection_body
-                        ShelfDeletion.Kind.LIST -> R.string.shelves_delete_list_body
+                        ShelfDeletion.Kind.COLLECTION -> R.plurals.shelves_delete_collection_body
+                        ShelfDeletion.Kind.LIST -> R.plurals.shelves_delete_list_body
                     },
+                    deletion.count,
+                    deletion.count,
                 ),
             )
         },
