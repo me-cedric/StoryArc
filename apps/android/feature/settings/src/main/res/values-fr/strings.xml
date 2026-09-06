@@ -151,6 +151,10 @@
     <string name="downloads_paused_by_reader">En pause</string>
     <string name="downloads_paused_waiting_for_wifi">En attente du Wi-Fi</string>
     <string name="downloads_paused_out_of_space">Espace insuffisant sur l’appareil</string>
+    <string name="downloads_held_storage_full">La limite de téléchargement est atteinte</string>
+    <string name="downloads_held_waiting_for_wifi_note">Les téléchargements reprennent d’eux-mêmes dès le retour du Wi-Fi.</string>
+    <string name="downloads_held_out_of_space_note">Les téléchargements reprennent d’eux-mêmes lorsque l’appareil a de la place.</string>
+    <string name="downloads_held_storage_full_note">Supprimez un téléchargement ou augmentez la limite.</string>
     <string name="settings_sources_none">Aucune bibliothèque</string>
     <string name="settings_downloads_none">Rien sur cet appareil</string>
     <string name="settings_downloads_summary">%1$s sur cet appareil</string>

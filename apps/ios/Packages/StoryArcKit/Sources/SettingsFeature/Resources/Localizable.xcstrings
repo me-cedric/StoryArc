@@ -958,6 +958,122 @@
         }
       }
     },
+    "downloads.held.outOfSpace.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Downloads werden von selbst fortgesetzt, sobald das Gerät Platz hat."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloads continue by themselves when the device has room."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las descargas se reanudan solas cuando el dispositivo tiene espacio."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les téléchargements reprennent d’eux-mêmes lorsque l’appareil a de la place."
+          }
+        }
+      }
+    },
+    "downloads.held.storageFull": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Downloadlimit ist erreicht"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The download limit is reached"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se ha alcanzado el límite de descargas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La limite de téléchargement est atteinte"
+          }
+        }
+      }
+    },
+    "downloads.held.storageFull.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entfernen Sie einen Download oder erhöhen Sie das Limit."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove a download or raise the limit."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina una descarga o aumenta el límite."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimez un téléchargement ou augmentez la limite."
+          }
+        }
+      }
+    },
+    "downloads.held.waitingForWifi.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Downloads werden von selbst fortgesetzt, sobald WLAN zurückkehrt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloads continue by themselves when Wi-Fi returns."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las descargas se reanudan solas cuando vuelve el Wi-Fi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les téléchargements reprennent d’eux-mêmes dès le retour du Wi-Fi."
+          }
+        }
+      }
+    },
     "downloads.limit": {
       "extractionState": "manual",
       "localizations": {

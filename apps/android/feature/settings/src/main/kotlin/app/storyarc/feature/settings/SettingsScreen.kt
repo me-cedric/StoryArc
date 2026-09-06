@@ -417,6 +417,7 @@ private fun GroupDetail(
                     )
                 SettingsGroup.DOWNLOADS -> DownloadsGroup(
                     bytesOnDisk = bytesOnDisk,
+                    downloads = downloads,
                     settings = settings,
                     onChange = onChange,
                     highlight = highlight,

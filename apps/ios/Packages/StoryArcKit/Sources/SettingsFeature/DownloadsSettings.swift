@@ -25,6 +25,14 @@ struct DownloadsSettings: View {
     /// of number that makes a reader distrust the whole screen.
     let bytesOnDisk: Int64
 
+    /// What is on the device and what is still on its way.
+    ///
+    /// Handed in for the reason `bytesOnDisk` is: the downloads belong to the library that
+    /// fetched them, and a feature module never depends on another feature module. The
+    /// records are also the whole of what this screen needs to say why the queue is waiting —
+    /// ``DownloadLibrary/hold(limit:)`` reads them, so no queue has to be alive.
+    var downloads: DownloadLibrary = DownloadLibrary()
+
     /// The reader's own policy for the queue, and how to change it.
     @Binding var settings: AppSettings
 
@@ -33,6 +41,7 @@ struct DownloadsSettings: View {
 
     var body: some View {
         HighlightingList(highlight: highlight) {
+            waiting
             policy
 
             Section {
@@ -58,6 +67,37 @@ struct DownloadsSettings: View {
 }
 
 extension DownloadsSettings {
+    /// Why the queue is waiting, and what ends the wait.
+    ///
+    /// `offline-downloads` requires a held queue to say what it is waiting for, and until now
+    /// nothing on either platform drew ``DownloadLibrary/hold(limit:)`` at all: a reader whose
+    /// queue was waiting saw a list that had simply stopped.
+    ///
+    /// **The remedy is said, not only the state.** "Waiting for Wi-Fi" is a fact; what a
+    /// reader needs from it is that nothing is asked of them, because the queue starts again
+    /// by itself. The two cases where it does say so, and the one where it does not names the
+    /// two things that would end it.
+    ///
+    /// Nothing is drawn when the queue is not held — an empty explanation of an absent problem
+    /// is the noise this row exists to avoid.
+    @ViewBuilder
+    fileprivate var waiting: some View {
+        if let hold = downloads.hold(limit: settings.maximumDownloadBytes) {
+            Section {
+                VStack(alignment: .leading) {
+                    // The pause reason's own sentence, already translated and already drawn on
+                    // the row of every held download. Said once here rather than written a
+                    // second time, so the screen and the queue cannot disagree in one language.
+                    Text(hold.stateKey, bundle: .module)
+                        .foregroundStyle(theme.palette.textPrimary)
+                    Text(hold.remedyKey, bundle: .module)
+                        .textRole(.footnote)
+                        .foregroundStyle(theme.palette.textTertiary)
+                }
+            }
+        }
+    }
+
     /// What the reader has asked of the queue.
     ///
     /// The three `offline-downloads` calls policy: whether to wait for Wi-Fi, how much disk
@@ -103,4 +143,33 @@ extension DownloadsSettings {
     }
 
     fileprivate static let limits: [Int64] = [1_000_000_000, 5_000_000_000, 20_000_000_000]
+}
+
+extension DownloadHold {
+    /// What the queue is waiting for.
+    ///
+    /// Two of the three reuse the sentence the pause reason already carries, because they are
+    /// the same fact told to the same reader. The third has no pause reason: the reader's own
+    /// maximum stops the queue without marking a row, so it needs a sentence of its own.
+    var stateKey: LocalizedStringKey {
+        switch self {
+        case .outOfSpace: "downloads.paused.outOfSpace"
+        case .waitingForWifi: "downloads.paused.waitingForWiFi"
+        case .storageFull: "downloads.held.storageFull"
+        }
+    }
+
+    /// What ends the wait.
+    ///
+    /// Two of them end by themselves, and saying so is the point: a reader told only that the
+    /// queue is waiting is a reader looking for a button that should not exist. The third is
+    /// the reader's own choice, so it names both ways out — and names them without ruling out
+    /// the offer to free room that `offline-downloads` asks for and this screen does not make.
+    var remedyKey: LocalizedStringKey {
+        switch self {
+        case .outOfSpace: "downloads.held.outOfSpace.note"
+        case .waitingForWifi: "downloads.held.waitingForWifi.note"
+        case .storageFull: "downloads.held.storageFull.note"
+        }
+    }
 }

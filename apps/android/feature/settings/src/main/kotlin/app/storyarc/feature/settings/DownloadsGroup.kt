@@ -17,6 +17,8 @@ import androidx.compose.ui.res.stringResource
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
+import app.storyarc.core.model.DownloadHold
+import app.storyarc.core.model.DownloadLibrary
 
 /**
  * What the reader has asked of the queue, and what it has spent.
@@ -42,6 +44,14 @@ internal fun DownloadsGroup(
      * number that makes a reader distrust the whole screen.
      */
     bytesOnDisk: Long,
+    /**
+     * What is on the device and what is still on its way.
+     *
+     * Handed in for the reason [bytesOnDisk] is: the downloads belong to the library that
+     * fetched them. The records are also the whole of what this group needs to say why the
+     * queue is waiting -- [DownloadLibrary.hold] reads them, so no queue has to be alive.
+     */
+    downloads: DownloadLibrary = DownloadLibrary(),
     /** The reader's own policy for the queue, and how to change it. */
     settings: AppSettings = AppSettings.Defaults,
     onChange: (AppSettings) -> Unit = {},
@@ -51,6 +61,7 @@ internal fun DownloadsGroup(
     val palette = LocalStoryArcPalette.current
     val context = LocalContext.current
 
+    Waiting(downloads.hold(settings.maximumDownloadBytes))
     Policy(settings, onChange, highlight)
 
     Row(
@@ -77,6 +88,75 @@ internal fun DownloadsGroup(
         color = palette.textSecondary,
     )
 }
+
+/**
+ * Why the queue is waiting, and what ends the wait.
+ *
+ * `offline-downloads` requires a held queue to say what it is waiting for, and until now
+ * nothing on either platform drew [DownloadLibrary.hold] at all: a reader whose queue was
+ * waiting saw a list that had simply stopped.
+ *
+ * **The remedy is said, not only the state.** "Waiting for Wi-Fi" is a fact; what a reader
+ * needs from it is that nothing is asked of them, because the queue starts again by itself. The
+ * two cases where it does say so, and the one where it does not names the two things that would
+ * end it.
+ *
+ * Nothing is drawn when the queue is not held -- an empty explanation of an absent problem is
+ * the noise this row exists to avoid. iOS's `DownloadsSettings` draws the same two sentences.
+ */
+@Composable
+private fun Waiting(hold: DownloadHold?) {
+    if (hold == null) return
+    val palette = LocalStoryArcPalette.current
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+        modifier = Modifier.padding(bottom = StoryArcSpace.sm),
+    ) {
+        // The pause reason's own sentence, already translated and already drawn on the row of
+        // every held download. Said once here rather than written a second time, so the screen
+        // and the queue cannot disagree in one language.
+        Text(
+            text = stringResource(hold.state),
+            style = MaterialTheme.typography.bodyLarge,
+            color = palette.textPrimary,
+        )
+        Text(
+            text = stringResource(hold.remedy),
+            style = MaterialTheme.typography.bodyMedium,
+            color = palette.textSecondary,
+        )
+    }
+}
+
+/**
+ * What the queue is waiting for.
+ *
+ * Two of the three reuse the sentence the pause reason already carries, because they are the
+ * same fact told to the same reader. The third has no pause reason: the reader's own maximum
+ * stops the queue without marking a row, so it needs a sentence of its own.
+ */
+private val DownloadHold.state: Int
+    get() = when (this) {
+        DownloadHold.OUT_OF_SPACE -> R.string.downloads_paused_out_of_space
+        DownloadHold.WAITING_FOR_WIFI -> R.string.downloads_paused_waiting_for_wifi
+        DownloadHold.STORAGE_FULL -> R.string.downloads_held_storage_full
+    }
+
+/**
+ * What ends the wait.
+ *
+ * Two of them end by themselves, and saying so is the point: a reader told only that the queue
+ * is waiting is a reader looking for a button that should not exist. The third is the reader's
+ * own choice, so it names both ways out -- and names them without ruling out the offer to free
+ * room that `offline-downloads` asks for and this screen does not make.
+ */
+private val DownloadHold.remedy: Int
+    get() = when (this) {
+        DownloadHold.OUT_OF_SPACE -> R.string.downloads_held_out_of_space_note
+        DownloadHold.WAITING_FOR_WIFI -> R.string.downloads_held_waiting_for_wifi_note
+        DownloadHold.STORAGE_FULL -> R.string.downloads_held_storage_full_note
+    }
 
 /**
  * What the reader has asked of the queue.

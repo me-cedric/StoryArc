@@ -151,6 +151,10 @@
     <string name="downloads_paused_by_reader">Angehalten</string>
     <string name="downloads_paused_waiting_for_wifi">Wartet auf WLAN</string>
     <string name="downloads_paused_out_of_space">Zu wenig Speicher auf dem Gerät</string>
+    <string name="downloads_held_storage_full">Das Downloadlimit ist erreicht</string>
+    <string name="downloads_held_waiting_for_wifi_note">Die Downloads werden von selbst fortgesetzt, sobald WLAN zurückkehrt.</string>
+    <string name="downloads_held_out_of_space_note">Die Downloads werden von selbst fortgesetzt, sobald das Gerät Platz hat.</string>
+    <string name="downloads_held_storage_full_note">Entfernen Sie einen Download oder erhöhen Sie das Limit.</string>
     <string name="settings_sources_none">Noch keine Bibliotheken</string>
     <string name="settings_downloads_none">Nichts auf diesem Gerät</string>
     <string name="settings_downloads_summary">%1$s auf diesem Gerät</string>

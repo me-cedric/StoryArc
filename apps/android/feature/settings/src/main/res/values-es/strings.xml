@@ -151,6 +151,10 @@
     <string name="downloads_paused_by_reader">En pausa</string>
     <string name="downloads_paused_waiting_for_wifi">Esperando Wi-Fi</string>
     <string name="downloads_paused_out_of_space">No hay espacio suficiente en el dispositivo</string>
+    <string name="downloads_held_storage_full">Se ha alcanzado el límite de descargas</string>
+    <string name="downloads_held_waiting_for_wifi_note">Las descargas se reanudan solas cuando vuelve el Wi-Fi.</string>
+    <string name="downloads_held_out_of_space_note">Las descargas se reanudan solas cuando el dispositivo tiene espacio.</string>
+    <string name="downloads_held_storage_full_note">Elimina una descarga o aumenta el límite.</string>
     <string name="settings_sources_none">Aún no hay bibliotecas</string>
     <string name="settings_downloads_none">Nada en este dispositivo</string>
     <string name="settings_downloads_summary">%1$s en este dispositivo</string>

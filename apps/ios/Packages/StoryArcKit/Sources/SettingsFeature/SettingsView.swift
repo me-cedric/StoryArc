@@ -222,6 +222,7 @@ public struct SettingsView: View {
         case .downloads:
             DownloadsSettings(
                 bytesOnDisk: bytesOnDisk,
+                downloads: downloads,
                 settings: $settings,
                 highlight: highlight
             )
