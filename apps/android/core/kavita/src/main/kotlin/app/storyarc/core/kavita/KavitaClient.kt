@@ -47,15 +47,6 @@ class KavitaClient(val address: KavitaAddress) {
         private set
 
     companion object {
-        /**
-         * The oldest Kavita this app knows how to talk to.
-         *
-         * `kavita-server` requires the app to reject an older server "naming the required
-         * version", which is a better failure than a series list that is silently empty
-         * because an endpoint moved.
-         */
-        val MINIMUM_VERSION = KavitaVersion(0, 8, 0)
-
         private const val TIMEOUT_MILLIS = 20_000
 
         /** The filter that asks a listing route for everything it holds. */
@@ -68,20 +59,29 @@ class KavitaClient(val address: KavitaAddress) {
     }
 
     /**
-     * Authenticates, and reports what the server is.
+     * Authenticates, and stops.
      *
-     * Two requests, because they answer two different questions: who am I, and what is this.
-     * A reader whose key works against a server too old to use needs to be told the second.
+     * One request, because the server answers only one question a plugin may ask: who is this
+     * key. This used to ask a second, `Server/server-info`, to gate the server on a minimum
+     * version. That route is in no shipped Kavita -- absent from the published `openapi.json`
+     * of v0.8.6, v0.8.8, v0.8.9.1, v0.9.0 and v0.9.1.4, and 404 on a live 0.9.1.4 -- so the
+     * 404 threw and **adding a Kavita source failed for every reader on every version**. The
+     * gate it fed could never fire for the same reason.
+     *
+     * The gate was deleted rather than repaired on 2026-09-07, because nothing can feed it
+     * and nothing would use it. No route states the version: `Server/version`,
+     * `Health/api-version` and `Server/accepting-connections` all 404,
+     * `Server/server-info-slim` is admin only, swagger is off in production, and `Health`
+     * answers `Ok` with no version in it. And the verbs of every route either client calls
+     * are identical across those five releases, which is April 2025 to September 2026, so a
+     * version number would decide nothing.
+     *
+     * What replaces it is feature detection, which was already here: [listing] reads a 404 on
+     * a listing route as that route missing, remembers it for the session, and says so in a
+     * sentence. iOS's `KavitaClient.connect()` says the same.
      */
-    suspend fun connect(): KavitaIdentity {
-        val account = authenticate()
-        val info = json.decodeFromString<KavitaServerInfo>(String(get("Server/server-info")))
-        val version = KavitaVersion.of(info.kavitaVersion) ?: throw KavitaError.UnexpectedResponse
-        if (version < MINIMUM_VERSION) {
-            throw KavitaError.ServerTooOld(version, MINIMUM_VERSION)
-        }
-        return KavitaIdentity(account, version).also { identity = it }
-    }
+    suspend fun connect(): KavitaIdentity =
+        KavitaIdentity(authenticate()).also { identity = it }
 
     /** The server's libraries. */
     suspend fun libraries(): List<KavitaLibraryFolder> =
@@ -202,9 +202,19 @@ class KavitaClient(val address: KavitaAddress) {
     /** The collections this server holds. */
     suspend fun collections(): List<KavitaCollection> = decode(get("Collection"))
 
-    /** The series in one collection. */
+    /**
+     * The series in one collection.
+     *
+     * `Series/series-by-collection`, which is the route Kavita publishes. This asked
+     * `Collection/series` until 2026-09-07, a route in no shipped Kavita: absent from the
+     * published `openapi.json` of v0.8.6, v0.8.8, v0.8.9.1, v0.9.0 and v0.9.1.4, and 404 on a
+     * live 0.9.1.4, so no reader ever saw a collection's contents.
+     *
+     * `Collection/all-series` is not the replacement. Its parameters are `seriesId` and
+     * `ownedOnly`, so it answers which collections hold one series -- the other question.
+     */
     suspend fun collected(id: Int): List<KavitaSeries> =
-        decode(get("Collection/series", mapOf("collectionId" to id.toString())))
+        decode(get("Series/series-by-collection", mapOf("collectionId" to id.toString())))
 
     /**
      * The reading lists this server holds.
@@ -485,37 +495,13 @@ class KavitaClient(val address: KavitaAddress) {
         }
 }
 
-/** What a server says it is, once it has answered. */
-data class KavitaIdentity(val username: String, val version: KavitaVersion)
-
-/** A Kavita version, compared the way versions are compared rather than as a string. */
-data class KavitaVersion(val major: Int, val minor: Int, val patch: Int) :
-    Comparable<KavitaVersion> {
-
-    override fun compareTo(other: KavitaVersion): Int = compareValuesBy(
-        this,
-        other,
-        { it.major },
-        { it.minor },
-        { it.patch },
-    )
-
-    override fun toString(): String = "$major.$minor.$patch"
-
-    companion object {
-        /**
-         * Reads `0.8.3` or `0.8.3.2`, which Kavita has used both of.
-         *
-         * A fourth component is ignored rather than refused: it is a build number, and a
-         * server that reports one is not a server this app should decline to talk to.
-         */
-        fun of(text: String): KavitaVersion? {
-            val parts = text.split(".").mapNotNull { it.toIntOrNull() }
-            if (parts.size < 2) return null
-            return KavitaVersion(parts[0], parts[1], parts.getOrElse(2) { 0 })
-        }
-    }
-}
+/**
+ * Who the reader is on this server, which is all authentication answers with.
+ *
+ * It held a version until 2026-09-07. Nothing could fill that field: no route on any shipped
+ * Kavita states the server's version to a plugin. See [KavitaClient.connect].
+ */
+data class KavitaIdentity(val username: String)
 
 /** Why a Kavita server did not answer the way it should. */
 sealed class KavitaError(message: String) : IOException(message) {
@@ -535,15 +521,11 @@ sealed class KavitaError(message: String) : IOException(message) {
         private fun readResolve(): Any = KeyRejected
     }
 
-    /** Older than this app knows how to talk to, named so the reader can act. */
-    data class ServerTooOld(val found: KavitaVersion, val required: KavitaVersion) :
-        KavitaError("kavita $found is older than $required")
-
     /**
      * The server does not have this route, so it is an older Kavita than this app can use.
      *
-     * Distinct from [ServerTooOld], which knows the version because the server stated one.
-     * Here nothing did: see `KavitaClient.listing`.
+     * The only signal there is. Nothing states a version: see [KavitaClient.connect] and
+     * `KavitaClient.listing`.
      */
     data class RouteMissing(val path: String) : KavitaError("no route $path")
 
@@ -553,10 +535,6 @@ sealed class KavitaError(message: String) : IOException(message) {
 /** What `Plugin/authenticate` returns. */
 @Serializable
 internal data class KavitaAccount(val username: String, val token: String)
-
-/** What `Server/server-info` returns, of what this app reads. */
-@Serializable
-internal data class KavitaServerInfo(val kavitaVersion: String)
 
 /**
  * What `Search/search` returns, of what this app reads.

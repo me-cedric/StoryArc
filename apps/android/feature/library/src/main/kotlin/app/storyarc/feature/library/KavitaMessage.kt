@@ -24,12 +24,6 @@ internal object KavitaMessage {
         // as a missing key, and not the same as a server that is down.
         KavitaError.KeyRejected ->
             context.getString(R.string.source_unauthorized_refused_body, source)
-        is KavitaError.ServerTooOld ->
-            context.getString(
-                R.string.kavita_error_too_old,
-                error.found.toString(),
-                error.required.toString(),
-            )
         // A server that does not have the route at all. The path is not said out loud: it
         // names an API a reader never chose, and the sentence they need is that the server is
         // too old rather than which request went unanswered.

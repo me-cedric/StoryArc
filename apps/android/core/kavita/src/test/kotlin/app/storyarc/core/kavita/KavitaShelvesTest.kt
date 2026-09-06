@@ -34,6 +34,10 @@ class KavitaShelvesTest {
      * address they were sent to. */
     private var sent: String? = null
 
+    /** Where a read went, so a test can check the route and not only the answer. */
+    private var readPath: String? = null
+    private var readQuery: String? = null
+
     /** What a GET is answered with, which for a collection create is the read-back. */
     private var listing = """[{"id":4,"title":"Attic"}]"""
 
@@ -58,6 +62,10 @@ class KavitaShelvesTest {
             if (requested.endsWith("/Plugin/authenticate")) {
                 body = """{"username":"ada","token":"t"}"""
             } else if (exchange.requestMethod == "GET") {
+                // Kept apart from `method` and `path`, which the create tests read as "which
+                // side of the create is this", and which a read must therefore leave alone.
+                readPath = requested
+                readQuery = exchange.requestURI.query
                 // `method` is set by the branch below, so it says which side of the create
                 // this read is on -- which is what lets a test change what the server holds.
                 body = if (method == null) listing else listingAfter ?: listing
@@ -80,6 +88,21 @@ class KavitaShelvesTest {
     @After
     fun stop() {
         server.stop(0)
+    }
+
+    @Test
+    fun collectedAsksTheRouteKavitaPublishes() = runBlocking {
+        // `Collection/series` is in no shipped Kavita: absent from the published
+        // `openapi.json` of v0.8.6, v0.8.8, v0.8.9.1, v0.9.0 and v0.9.1.4, and 404 on a live
+        // 0.9.1.4. `Series/series-by-collection` is in all five and answered 200 on that same
+        // server. `Collection/all-series` is not the replacement -- it takes a `seriesId`, so
+        // it answers which collections hold one series, the other question. iOS's
+        // `KavitaShelvesTests` makes the same claim, and `scripts/kavita-server.mjs
+        // --self-test` the server's half of it.
+        listing = "[]"
+        client().collected(4)
+        assertEquals("/api/Series/series-by-collection", readPath)
+        assertEquals("collectionId=4", readQuery)
     }
 
     @Test

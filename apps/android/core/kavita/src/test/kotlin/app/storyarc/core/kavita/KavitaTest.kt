@@ -87,14 +87,6 @@ class KavitaAddressTest {
         assertFalse(secret in listOf(address).toString())
         assertTrue("k.example" in address.toString())
     }
-
-    @Test
-    fun aVersionIsComparedAsAVersion() {
-        assertTrue(KavitaVersion.of("0.7.14")!! < KavitaVersion.of("0.8.0")!!)
-        // A build number is ignored rather than refused.
-        assertEquals(KavitaVersion(0, 8, 3), KavitaVersion.of("0.8.3.2"))
-        assertNull(KavitaVersion.of("nonsense"))
-    }
 }
 
 /**
@@ -131,6 +123,9 @@ class KavitaClientTest {
     /** Whether the token route answers 404, which is that route missing and not a listing. */
     private var authIsMissing = false
 
+    /** Every path this server was asked for, in order, so a test can count the questions. */
+    private val asked = mutableListOf<String>()
+
     private fun client() = KavitaClient(
         KavitaAddress("http://localhost:${server.address.port}", "key"),
     )
@@ -143,6 +138,7 @@ class KavitaClientTest {
             val bearer = exchange.requestHeaders.getFirst("Authorization")
             val body: String
             var status = 200
+            asked += path
 
             when {
                 path.endsWith("/Plugin/authenticate") -> {
@@ -156,7 +152,6 @@ class KavitaClientTest {
                         """{"username":"ada","token":"t"}"""
                     }
                 }
-                path.endsWith("/Server/server-info") -> body = """{"kavitaVersion":"0.8.3"}"""
                 bearer == null || tokenIsStale -> {
                     status = 401
                     body = """{"message":"expired"}"""
@@ -222,10 +217,23 @@ class KavitaClientTest {
     }
 
     @Test
-    fun connectingReportsTheAccountAndVersion() = runBlocking {
-        val identity = client().connect()
-        assertEquals("ada", identity.username)
-        assertEquals(KavitaVersion(0, 8, 3), identity.version)
+    fun connectingSucceedsAgainstAServerWithNoVersionRoute() = runBlocking {
+        // No shipped Kavita answers `Server/server-info`. It is absent from the published
+        // `openapi.json` of v0.8.6, v0.8.8, v0.8.9.1, v0.9.0 and v0.9.1.4, and a live 0.9.1.4
+        // answers 404. This client asked for it anyway, and any non-2xx throws, so adding a
+        // Kavita source failed for every reader on every version. This server answers 404 to
+        // every route but the token route, as a real one does. iOS's `KavitaClientTests`
+        // makes the same claim.
+        assertEquals("ada", client().connect().username)
+    }
+
+    @Test
+    fun connectingAsksOneQuestionWhichIsWhoTheReaderIs() = runBlocking {
+        // A client cannot learn a Kavita's version by any route, and the verbs of every route
+        // either client calls are the same across those five releases. So a second request
+        // buys nothing to decide with.
+        client().connect()
+        assertEquals(listOf("/api/Plugin/authenticate"), asked)
     }
 
     @Test

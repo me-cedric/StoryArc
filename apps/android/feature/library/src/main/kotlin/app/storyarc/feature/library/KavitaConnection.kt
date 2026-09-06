@@ -179,11 +179,6 @@ internal fun hostOf(base: String): String =
  * Kavita OPDS URL pasted there is answered by Kavita.
  */
 internal fun describeKavita(context: Context, error: KavitaError): String = when (error) {
-    is KavitaError.ServerTooOld -> context.getString(
-        R.string.kavita_error_too_old,
-        error.found.toString(),
-        error.required.toString(),
-    )
     is KavitaError.RouteMissing -> context.getString(R.string.kavita_error_too_old_for_request)
     is KavitaError.KeyRejected -> context.getString(R.string.kavita_error_key_rejected)
     is KavitaError.BadAddress -> context.getString(R.string.kavita_error_not_an_address)

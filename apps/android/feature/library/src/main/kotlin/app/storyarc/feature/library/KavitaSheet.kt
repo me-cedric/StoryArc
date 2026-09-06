@@ -119,7 +119,6 @@ fun KavitaSheet(
                         text = stringResource(
                             R.string.kavita_confirmed,
                             current.identity.username,
-                            current.identity.version.toString(),
                         ),
                         style = MaterialTheme.typography.titleMedium,
                         color = palette.textPrimary,
