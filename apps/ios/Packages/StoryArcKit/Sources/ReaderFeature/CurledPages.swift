@@ -77,6 +77,9 @@ struct CurledPages: View {
             .contentShape(.rect)
             .gesture(turnGesture(in: size))
             .onTapGesture { location in onTap(location, size) }
+            // A turn the reader left mid-drag never reaches its settle, so the count is
+            // closed here instead. Android's `onDispose` is the twin.
+            .onDisappear { FrameProbe.cancel() }
         }
     }
 

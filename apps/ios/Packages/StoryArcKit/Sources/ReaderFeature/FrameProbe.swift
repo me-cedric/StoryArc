@@ -11,9 +11,9 @@ internal import QuartzCore
 /// pays one `Bool` for this whole file: ``isArmed`` is false, ``ticker`` is never created,
 /// no display link is scheduled and no frame is counted.
 ///
-/// `CADisplayLink` is the platform's own frame clock, so the count is the display's count. A
-/// timer would measure this code's idea of time instead, which is the mistake `page-transitions`
-/// asks the instrument to avoid: wall-clock seconds are not frames.
+/// `CADisplayLink` is the platform's own frame clock, so what is counted is the display's
+/// cadence rather than this code's idea of time, which is the mistake `page-transitions` asks
+/// the instrument to avoid: wall-clock seconds are not frames.
 ///
 /// **Android's `FrameProbe` is the twin, and differs in three ways the platform forces.** Its
 /// switch is read on every turn rather than once, because a `Settings.Global` key can be
@@ -52,6 +52,13 @@ enum FrameProbe {
         ticker.ended()
     }
 
+    /// The view carrying the turn went away before the turn ended. Stops, and reports
+    /// nothing. Android's `FrameTicker.cancel` is the twin, called from `onDispose`.
+    static func cancel() {
+        guard isArmed else { return }
+        ticker.cancel()
+    }
+
     private static let ticker = FrameTicker()
 }
 
@@ -82,12 +89,23 @@ private final class FrameTicker: NSObject {
 
     func ended() {
         guard run.isRecording else { return }
+        cancel()
+        FrameProbe.report(run)
+    }
+
+    /// The turn was abandoned: stop counting, and report nothing.
+    ///
+    /// A run that never reaches ``ended()`` leaves a `CADisplayLink` on the main run loop for
+    /// the life of the process, and this ticker is a singleton, so the *next* turn would then
+    /// report a span covering the abandoned drag and every idle second after it. Nothing is
+    /// reported, because a turn whose end nobody saw has no number worth printing.
+    func cancel() {
+        guard run.isRecording else { return }
         run.end()
         #if canImport(UIKit)
         link?.invalidate()
         link = nil
         #endif
-        FrameProbe.report(run)
     }
 
     #if canImport(UIKit)
@@ -95,8 +113,9 @@ private final class FrameTicker: NSObject {
     /// so a ProMotion panel reports its interval and a 60 Hz panel reports its own. Nothing
     /// here assumes either.
     ///
-    /// Android reads the interval once from `Display.getRefreshRate` instead, because
-    /// `Choreographer` reports no interval of its own.
+    /// Android reads the same interval off the view's display on every frame, because
+    /// `Choreographer` reports no interval of its own. Reading it once is wrong on both:
+    /// a panel changes its refresh rate while the app runs.
     @objc private func tick(_ link: CADisplayLink) {
         run.record(at: link.timestamp, expecting: link.targetTimestamp - link.timestamp)
     }
