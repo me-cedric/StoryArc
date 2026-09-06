@@ -60,7 +60,8 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
  */
 @Composable
 internal fun EpubChrome(
-    failure: String?,
+    /** A string-resource id, resolved here so it speaks the reader's chosen language. */
+    failure: Int?,
     isVisible: Boolean,
     onClose: () -> Unit,
     onOpenMenu: () -> Unit,
@@ -77,7 +78,7 @@ internal fun EpubChrome(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = failure,
+                text = stringResource(failure),
                 style = MaterialTheme.typography.bodyMedium,
                 color = palette.textSecondary,
                 textAlign = TextAlign.Center,

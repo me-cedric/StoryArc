@@ -127,8 +127,19 @@ class EpubReaderViewModel(
      */
     private var readingOrder: List<String> = emptyList()
 
-    private val _failure = MutableStateFlow<String?>(null)
-    val failure: StateFlow<String?> = _failure.asStateFlow()
+    /**
+     * Why the book will not open, as a string-resource id rather than a sentence.
+     *
+     * An id, because the sentence has to be resolved where the reader's language is known.
+     * `application.getString` reads the Application's resources, and the language override
+     * reaches an activity only — `InterfaceLanguage.speaking()` builds the overridden context
+     * and `EpubReaderActivity.attachBaseContext` takes it. So a reader who chose French on a
+     * German device was refused in German. `EpubChrome` resolves the id with
+     * `stringResource`, which reads `LocalContext`. `:feature:reader` holds its own failure
+     * the same way, for the same reason.
+     */
+    private val _failure = MutableStateFlow<Int?>(null)
+    val failure: StateFlow<Int?> = _failure.asStateFlow()
 
     /**
      * How far through the whole publication, 0…1.
@@ -372,14 +383,14 @@ class EpubReaderViewModel(
                 File(location).toUrl(isDirectory = false)
             }
         if (url == null) {
-            _failure.value = application.getString(R.string.epub_failure_unreachable)
+            _failure.value = R.string.epub_failure_unreachable
             return@withContext null
         }
 
         val httpClient = DefaultHttpClient()
         val assetRetriever = AssetRetriever(application.contentResolver, httpClient)
         val asset = assetRetriever.retrieve(url).getOrElse {
-            _failure.value = application.getString(R.string.epub_failure_unreachable)
+            _failure.value = R.string.epub_failure_unreachable
             return@withContext null
         }
 
@@ -395,7 +406,7 @@ class EpubReaderViewModel(
             ),
         )
         val publication = opener.open(asset, allowUserInteraction = false).getOrElse {
-            _failure.value = application.getString(R.string.epub_failure_unreadable)
+            _failure.value = R.string.epub_failure_unreadable
             return@withContext null
         }
         readingOrder = publication.readingOrder.map { it.href.toString() }
