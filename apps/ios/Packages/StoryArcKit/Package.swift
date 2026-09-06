@@ -165,9 +165,12 @@ let package = Package(
         // this repository's loop. What can be asserted without one is asserted here.
         // `Catalogue` and `Kavita` are here because what the library does with an address
         // — which of the two a pasted URL is — is asserted against both parsers.
+        // `Smb` is explicit rather than left to transitive visibility: `SmbSheetAdviceTests`
+        // puts a `SmbDiscovery` into the state a refused local-network permission leaves it
+        // in, and the method that does so is internal to that module.
         .testTarget(
             name: "LibraryFeatureTests",
-            dependencies: ["LibraryFeature", "Catalogue", "Kavita", "Persistence", "StoryArcCore"]
+            dependencies: ["LibraryFeature", "Catalogue", "Kavita", "Persistence", "StoryArcCore", "Smb"]
         ),
     ]
 )

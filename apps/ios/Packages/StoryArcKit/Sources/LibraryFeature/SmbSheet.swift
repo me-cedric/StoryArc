@@ -20,12 +20,20 @@ public struct SmbSheet: View {
     /// `network-share` marks discovery a SHOULD and is firm that "manual entry is always
     /// available and never gated behind discovery". So the list sits above the form and an
     /// empty one shows nothing at all — no spinner, no "searching", no reason to wait. A
-    /// refused local-network permission arrives here as simply no results.
-    @State private var discovery = SmbDiscovery()
+    /// refused local-network permission arrives here as no results *and* one sentence.
+    ///
+    /// Handed in rather than only built here, so a test can put this sheet in the state a
+    /// refused permission leaves it in. A caller passes nothing.
+    @State private var discovery: SmbDiscovery
 
-    public init(connection: SmbConnection, onAdd: @escaping (Source) -> Void) {
+    public init(
+        connection: SmbConnection,
+        discovery: SmbDiscovery = SmbDiscovery(),
+        onAdd: @escaping (Source) -> Void
+    ) {
         self.connection = connection
         self.onAdd = onAdd
+        _discovery = State(initialValue: discovery)
     }
 
     public var body: some View {
@@ -64,6 +72,20 @@ public struct SmbSheet: View {
                 }
             } header: {
                 Text("smb.found", bundle: .module)
+            }
+        }
+
+        // `network-share`'s *Local network permission denied* asks the app to explain "once
+        // how to enable discovery in system settings". Here rather than in an alert, and drawn
+        // where the host list would have been: it is the answer to why that list is empty, and
+        // the form below still works, so a refused permission is a normal condition and
+        // AGENTS.md section 2 keeps one out of the reader's way. ``SmbDiscovery`` writes the
+        // sentence once, so a second scan does not repeat it.
+        if let advice = discovery.advice {
+            Section {
+                Text(advice)
+                    .textRole(.footnote)
+                    .foregroundStyle(theme.palette.textPrimary)
             }
         }
 
