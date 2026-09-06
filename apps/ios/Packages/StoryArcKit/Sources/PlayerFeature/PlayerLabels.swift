@@ -2,6 +2,8 @@ public import Foundation
 
 public import Playback
 
+internal import StoryArcCore
+
 /// What a skip control states.
 ///
 /// `audio-playback`: "the interval is stated on the control itself". A synthesised voice has
@@ -95,13 +97,19 @@ public enum PlayerLabels {
     ///
     /// `Duration`'s own units format, so the words and their order are the platform's in
     /// every language rather than four more strings this project would have to keep in step.
+    ///
+    /// The platform speaks the locale it is handed, and it is handed
+    /// ``StoryArcCore/Locale/storyArc``. A formatter left on the process locale said
+    /// "1 minute, 10 seconds" to a screen reader inside a French interface.
     public static func spokenTime(_ seconds: TimeInterval) -> String {
         guard seconds.isFinite, seconds > 0 else { return format(.seconds(0)) }
         return format(.seconds(seconds.rounded()))
     }
 
     private static func format(_ duration: Duration) -> String {
-        duration.formatted(.units(allowed: [.hours, .minutes, .seconds], width: .wide))
+        duration.formatted(
+            .units(allowed: [.hours, .minutes, .seconds], width: .wide).locale(.storyArc)
+        )
     }
 
     // MARK: - The controls

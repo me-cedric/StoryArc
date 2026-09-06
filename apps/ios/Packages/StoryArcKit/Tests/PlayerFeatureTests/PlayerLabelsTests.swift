@@ -2,6 +2,7 @@ import Foundation
 import Testing
 
 import Playback
+import StoryArcCore
 @testable import PlayerFeature
 
 /// What the player states, in words.
@@ -15,6 +16,13 @@ import Playback
 /// - `audio-playback`: a publication with no chapter markers "lists its parts in playing
 ///   order instead, rather than showing an empty list".
 /// - `publication-formats`: a damaged audiobook "states how much it could not" play.
+///
+/// **`@MainActor` because one case here moves the process-wide interface language**, and
+/// every spoken-time case reads a formatter that follows it. A synchronous main-actor case
+/// runs to its end before another one starts, so no case reads a choice another case made.
+/// `ChosenLanguageFormattingTests` carries the same annotation for the same reason, and its
+/// header names every suite that depends on this.
+@MainActor
 @Suite("Player labels")
 struct PlayerLabelsTests {
 
@@ -59,6 +67,25 @@ struct PlayerLabelsTests {
     @Test("Zero is spoken as a time, not as nothing")
     func spokenZero() {
         #expect(PlayerLabels.spokenTime(0) == "0 seconds")
+    }
+
+    /// The words are the platform's, and the platform speaks the locale it is handed.
+    ///
+    /// It was handed the process locale, which the interface-language choice does not move,
+    /// so a reader on French heard "1 minute, 10 seconds" inside a French interface. The
+    /// wording follows the language alone: `fr_US` and `fr_FR` both say this sentence.
+    @Test("A screen reader hears the chosen language, not the device's")
+    func spokenTimeFollowsTheChoice() {
+        InterfaceLanguage.choose("fr")
+        defer { InterfaceLanguage.choose(nil) }
+
+        // French binds a number to its unit with a no-break space, and a literal holding one
+        // is a literal nobody can read. The spaces are made ordinary before the comparison.
+        let spoken = PlayerLabels.spokenTime(70).replacingOccurrences(of: "\u{00A0}", with: " ")
+        #expect(
+            spoken == "1 minute et 10 secondes",
+            "a French interface spoke \(spoken)"
+        )
     }
 
     @Test("No spoken position is ever a percentage")

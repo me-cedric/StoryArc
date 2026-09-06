@@ -145,7 +145,10 @@ let package = Package(
         .testTarget(name: "StoryArcCoreTests", dependencies: ["StoryArcCore"]),
         .testTarget(name: "FormatsTests", dependencies: ["Formats"]),
         .testTarget(name: "PlaybackTests", dependencies: ["Playback"]),
-        .testTarget(name: "PlayerFeatureTests", dependencies: ["PlayerFeature"]),
+        // `StoryArcCore` is explicit rather than left to transitive visibility:
+        // `PlayerLabelsTests` moves the interface language, because the spoken position is
+        // the one player label a screen reader reads in the reader's own words.
+        .testTarget(name: "PlayerFeatureTests", dependencies: ["PlayerFeature", "StoryArcCore"]),
         .testTarget(name: "PersistenceTests", dependencies: ["Persistence"]),
         .testTarget(name: "CatalogueTests", dependencies: ["Catalogue"]),
         .testTarget(name: "KavitaTests", dependencies: ["Kavita"]),

@@ -199,8 +199,9 @@ struct PageColourSection: View {
         name.trimmingCharacters(in: .whitespaces).isEmpty ? palette?.name ?? "" : name
     }
 
+    /// The ratio in the reader's own number format: "4,5" where they write a comma.
     private static func formatted(_ ratio: Double) -> String {
-        ratio.formatted(.number.precision(.fractionLength(1)))
+        ratio.formatted(.number.precision(.fractionLength(1)).locale(.storyArc))
     }
 }
 

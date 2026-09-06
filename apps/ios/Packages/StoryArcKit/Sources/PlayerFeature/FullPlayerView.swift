@@ -2,6 +2,7 @@ public import SwiftUI
 
 internal import DesignSystem
 public import Playback
+internal import StoryArcCore
 
 /// The player behind the compact bar: what is playing, where it is, and everything a
 /// listener of a book can do to it.
@@ -273,9 +274,10 @@ public struct FullPlayerView: View {
         }
     }
 
+    /// The rate in the reader's own number format: "1,75" where they write a comma.
     private var speedText: String {
         centre.speed.rate
-            .formatted(.number.precision(.fractionLength(0...2)))
+            .formatted(.number.precision(.fractionLength(0...2)).locale(.storyArc))
     }
 
     /// The remaining time, on the face of the control.

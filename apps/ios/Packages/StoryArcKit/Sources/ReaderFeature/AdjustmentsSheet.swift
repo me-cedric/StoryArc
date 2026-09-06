@@ -103,7 +103,7 @@ struct AdjustmentsSheet: View {
                     Image(systemName: icon)
                 }
                 Spacer(minLength: 0)
-                Text(value.wrappedValue.formatted(.percent.precision(.fractionLength(0))))
+                Text(value.wrappedValue.formatted(.percent.precision(.fractionLength(0)).locale(.storyArc)))
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textSecondary)
                     .monospacedDigit()
@@ -114,7 +114,7 @@ struct AdjustmentsSheet: View {
             // A signed control needs a middle a reader can find without looking. The step
             // is fine enough to be invisible and coarse enough to snap to zero.
             .accessibilityValue(
-                Text(value.wrappedValue.formatted(.percent.precision(.fractionLength(0))))
+                Text(value.wrappedValue.formatted(.percent.precision(.fractionLength(0)).locale(.storyArc)))
             )
         }
     }

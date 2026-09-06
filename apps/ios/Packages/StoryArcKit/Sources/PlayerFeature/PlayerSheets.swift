@@ -2,6 +2,7 @@ public import SwiftUI
 
 internal import DesignSystem
 public import Playback
+internal import StoryArcCore
 
 /// Every chapter, with its length, and the one being played marked.
 ///
@@ -112,8 +113,9 @@ public struct SpeedSheet: View {
         }
     }
 
+    /// The rate in the reader's own number format: "1,75" where they write a comma.
     private func number(_ speed: PlaybackSpeed) -> String {
-        speed.rate.formatted(.number.precision(.fractionLength(0...2)))
+        speed.rate.formatted(.number.precision(.fractionLength(0...2)).locale(.storyArc))
     }
 }
 

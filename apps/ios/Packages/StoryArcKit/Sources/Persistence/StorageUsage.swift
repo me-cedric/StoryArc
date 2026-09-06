@@ -101,10 +101,11 @@ public struct StorageUsage: Sendable {
 /// Powers of 1024 with the SI names, which is what every file manager on both platforms
 /// shows — matching the convention a reader already has beats being right about kibibytes.
 ///
-/// The number is formatted through `Locale.current`, not by `String(format:)`. That
-/// composes a fixed decimal point, so a French reader saw "1.4 MB" where every other app
-/// on their phone says "1,4 Mo". `localization` requires "numbers, dates and file sizes"
-/// to follow the locale, and a hand-composed float does not.
+/// The number is formatted through a locale, not by `String(format:)`. That composes a
+/// fixed decimal point, so a French reader saw "1.4 MB" where every other app on their
+/// phone says "1,4 Mo". `localization` requires "numbers, dates and file sizes" to follow
+/// the locale, and a hand-composed float does not. Which locale is `scaled(_:by:unit:)`'s
+/// answer below, and it is the reader's choice rather than the process's.
 public func formattedBytes(_ bytes: Int64) -> String {
     switch bytes {
     case ..<1: "0 kB"

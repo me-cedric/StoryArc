@@ -27,7 +27,7 @@ extension ThemeAxesSheet {
     /// why this is not a plain interpolation — a comma decimal separator is not a
     /// detail a French reader should have to work around.
     static func spoken(_ value: Double, in unit: AxisUnit?) -> Text {
-        let number = value.formatted(.number.precision(.fractionLength(0...2)))
+        let number = value.formatted(.number.precision(.fractionLength(0...2)).locale(.storyArc))
         switch unit {
         case .multiple: return Text("theme.axis.value.multiple \(number)", bundle: .module)
         case .em: return Text("theme.axis.value.em \(number)", bundle: .module)
