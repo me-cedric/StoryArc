@@ -1,4 +1,5 @@
 internal import Foundation
+internal import StoryArcCore
 
 /// One page inside a publication, before it is decoded.
 public struct PageEntry: Sendable, Equatable, Identifiable {
@@ -79,52 +80,10 @@ public enum PageOrdering {
     /// Natural-order comparison: runs of digits compare numerically, everything
     /// else compares case-insensitively.
     ///
-    /// Written by hand rather than using `localizedStandardCompare` because that
-    /// is locale-sensitive, and page order inside an archive must not depend on
-    /// the reader's language.
+    /// The rule itself is ``NaturalOrder/precedes(_:_:)`` in `StoryArcCore`, because the
+    /// library's own ordering falls back to it too and the two must not drift. This name
+    /// stays because the page order is what the format layer's callers ask for.
     public static func naturalCompare(_ lhs: String, _ rhs: String) -> Bool {
-        var left = Substring(lhs)
-        var right = Substring(rhs)
-
-        while let leftChar = left.first, let rightChar = right.first {
-            let leftIsDigit = leftChar.isNumber
-            let rightIsDigit = rightChar.isNumber
-
-            if leftIsDigit && rightIsDigit {
-                let leftRun = left.prefix(while: \.isNumber)
-                let rightRun = right.prefix(while: \.isNumber)
-                // Compared digit-by-digit rather than parsed into an integer:
-                // parsing caps at the platform's word size, and iOS's UInt64 and
-                // Android's Long do not have the same ceiling. A page number is
-                // never that long, but a latent divergence between the two
-                // implementations is exactly what this layer must not have.
-                let leftDigits = leftRun.drop(while: { $0 == "0" })
-                let rightDigits = rightRun.drop(while: { $0 == "0" })
-                if leftDigits.count != rightDigits.count {
-                    return leftDigits.count < rightDigits.count
-                }
-                if leftDigits != rightDigits {
-                    return leftDigits.lexicographicallyPrecedes(rightDigits)
-                }
-                // Same value. Fewer leading zeros sorts first, so the order is total.
-                if leftRun.count != rightRun.count { return leftRun.count < rightRun.count }
-                left = left.dropFirst(leftRun.count)
-                right = right.dropFirst(rightRun.count)
-                continue
-            }
-
-            if leftIsDigit != rightIsDigit {
-                // A digit sorts before a letter, so `p1` precedes `pa`.
-                return leftIsDigit
-            }
-
-            let leftLower = Character(leftChar.lowercased())
-            let rightLower = Character(rightChar.lowercased())
-            if leftLower != rightLower { return leftLower < rightLower }
-            left = left.dropFirst()
-            right = right.dropFirst()
-        }
-
-        return left.count < right.count
+        NaturalOrder.precedes(lhs, rhs)
     }
 }

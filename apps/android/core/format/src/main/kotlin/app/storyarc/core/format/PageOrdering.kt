@@ -1,5 +1,7 @@
 package app.storyarc.core.format
 
+import app.storyarc.core.model.NaturalOrder
+
 /** One page inside a publication, before it is decoded. */
 data class PageEntry(
     /** The entry's path inside the archive. Unique, so it is the identity. */
@@ -78,59 +80,11 @@ object PageOrdering {
      * Natural-order comparison: runs of digits compare numerically, everything
      * else compares case-insensitively.
      *
-     * Written by hand rather than using a collator because collation is
-     * locale-sensitive, and page order inside an archive must not depend on the
-     * reader's language.
+     * The rule itself is [NaturalOrder.compare] in `:core:model`, because the library's
+     * own ordering falls back to it too and the two must not drift. This name stays
+     * because the page order is what the format layer's callers ask for.
      *
      * @return negative when [lhs] sorts first, positive when [rhs] does, 0 when equal.
      */
-    fun naturalCompare(lhs: String, rhs: String): Int {
-        var left = 0
-        var right = 0
-
-        while (left < lhs.length && right < rhs.length) {
-            val leftIsDigit = lhs[left].isDigit()
-            val rightIsDigit = rhs[right].isDigit()
-
-            if (leftIsDigit && rightIsDigit) {
-                val leftEnd = runEnd(lhs, left)
-                val rightEnd = runEnd(rhs, right)
-                // Compared digit-by-digit rather than parsed into an integer:
-                // parsing caps at the platform's word size, and Android's Long
-                // and iOS's UInt64 do not have the same ceiling. A page number is
-                // never that long, but a latent divergence between the two
-                // implementations is exactly what this layer must not have.
-                val leftDigits = lhs.substring(left, leftEnd).trimStart('0')
-                val rightDigits = rhs.substring(right, rightEnd).trimStart('0')
-                if (leftDigits.length != rightDigits.length) {
-                    return leftDigits.length.compareTo(rightDigits.length)
-                }
-                if (leftDigits != rightDigits) return leftDigits.compareTo(rightDigits)
-                // Same value. Fewer leading zeros sorts first, so the order is total.
-                val leftRun = leftEnd - left
-                val rightRun = rightEnd - right
-                if (leftRun != rightRun) return leftRun.compareTo(rightRun)
-                left = leftEnd
-                right = rightEnd
-                continue
-            }
-
-            // A digit sorts before a letter, so `p1` precedes `pa`.
-            if (leftIsDigit != rightIsDigit) return if (leftIsDigit) -1 else 1
-
-            val leftChar = lhs[left].lowercaseChar()
-            val rightChar = rhs[right].lowercaseChar()
-            if (leftChar != rightChar) return leftChar.compareTo(rightChar)
-            left++
-            right++
-        }
-
-        return (lhs.length - left).compareTo(rhs.length - right)
-    }
-
-    private fun runEnd(text: String, from: Int): Int {
-        var index = from
-        while (index < text.length && text[index].isDigit()) index++
-        return index
-    }
+    fun naturalCompare(lhs: String, rhs: String): Int = NaturalOrder.compare(lhs, rhs)
 }
