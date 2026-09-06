@@ -193,6 +193,33 @@ struct KavitaLibraryTests {
         #expect(calls.count == 1)
     }
 
+    @Test("A token route that answers 404 is not remembered against the series list")
+    func aMissingTokenRouteIsNotAMissingListing() async throws {
+        // A 404 from the token route is that route missing, not the listing route. Recording
+        // it against the listing puts `Series/all-v2` in the unsupported set, and every later
+        // listing in the session refuses without asking. A proxy that answers 404 for a
+        // moment must not downgrade a route the reader never reached.
+        let auth = Calls()
+        let host = "\(UUID().uuidString).example"
+        let configuration = KavitaStub.session(host: host) { request in
+            if request.url?.path().contains("authenticate") == true {
+                return auth.isOn
+                    ? .response(status: 404, body: Data())
+                    : .response(status: 200, body: Data(#"{"username":"a","token":"t"}"#.utf8))
+            }
+            return .response(status: 200, body: Data(#"[{"id":1,"name":"Tidal Reach"}]"#.utf8))
+        }
+        let address = try #require(KavitaAddress.from(base: "https://\(host)", apiKey: "k"))
+        let client = KavitaClient(address: address, configuration: configuration)
+
+        auth.isOn = true
+        await #expect(throws: KavitaError.routeMissing(path: "Plugin/authenticate")) {
+            _ = try await client.series()
+        }
+        auth.isOn = false
+        #expect(try await client.series().count == 1)
+    }
+
     @Test("A refused key is not remembered as a server that is too old")
     func aRefusedKeyIsNotAnOldServer() async throws {
         // A 401, a 403, a 500 or a timeout is the key or the server being wrong for a moment.

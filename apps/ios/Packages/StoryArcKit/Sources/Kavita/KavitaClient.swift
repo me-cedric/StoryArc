@@ -75,7 +75,8 @@ public actor KavitaClient {
     ///
     /// **Only a 404 counts.** A 401, a 403, a 500 or a timeout is the key or the server being
     /// wrong for a moment, and reading one of those as "old server" would turn one expired
-    /// token into a permanent downgrade that no later good answer could undo.
+    /// token into a permanent downgrade that no later good answer could undo. A 404 from the
+    /// token route is not counted either: `authenticate` names that route before it travels.
     ///
     /// **There is no older shape to fall back to.** No documented v1 of these routes was
     /// found, and Kavita's controllers carry no `[Obsolete]` marker naming one. Inventing a
@@ -140,7 +141,15 @@ public actor KavitaClient {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
 
-        let data = try await send(request, authenticated: false)
+        // A 404 here is this route missing, not whichever route the caller wanted. Letting it
+        // travel outwards lets `sendVersioned` record it against a listing the reader never
+        // reached, and that listing then refuses for the rest of the session.
+        let data: Data
+        do {
+            data = try await send(request, authenticated: false)
+        } catch KavitaError.http(status: 404) {
+            throw KavitaError.routeMissing(path: "Plugin/authenticate")
+        }
         guard let account = try? JSONDecoder().decode(KavitaAccount.self, from: data) else {
             throw KavitaError.unexpectedResponse
         }
