@@ -45,6 +45,20 @@ internal fun DownloadsGroup(
      */
     bytesOnDisk: Long,
     /**
+     * What the copies the reader imported weigh, out of the total above.
+     *
+     * `local-library` asks the app to report the space an import used, and
+     * `offline-downloads` asks the storage view for the total "broken down by source". "On
+     * this device" is a source, and this is its share -- the only part of that breakdown
+     * either app can state today.
+     *
+     * Drawn only when there is something imported. A reader who has never imported a file is
+     * told nothing by a second row of zero, and the note below already says the total counts
+     * what StoryArc downloaded **or imported**, which is what relates the two figures for a
+     * reader who sees both. iOS's `DownloadsSettings` draws the same row under the same rule.
+     */
+    importedBytes: Long = 0L,
+    /**
      * What is on the device and what is still on its way.
      *
      * Handed in for the reason [bytesOnDisk] is: the downloads belong to the library that
@@ -78,6 +92,24 @@ internal fun DownloadsGroup(
             style = MaterialTheme.typography.bodyLarge,
             color = palette.textSecondary,
         )
+    }
+
+    if (importedBytes > 0L) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = StoryArcSpace.xs),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(R.string.downloads_imported),
+                style = MaterialTheme.typography.bodyLarge,
+                color = palette.textPrimary,
+            )
+            Text(
+                text = Formatter.formatShortFileSize(context, importedBytes),
+                style = MaterialTheme.typography.bodyLarge,
+                color = palette.textSecondary,
+            )
+        }
     }
 
     // Said rather than implied. A reader who came here looking for their files has to be

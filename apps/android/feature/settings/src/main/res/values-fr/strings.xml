@@ -140,6 +140,7 @@
     <string name="sources_rename_save">Enregistrer</string>
     <string name="sources_rename_action">Renommer %1$s</string>
     <string name="downloads_none">Rien n’est téléchargé. Un livre que vous ouvrez depuis une bibliothèque en ligne est conservé sur cet appareil.</string>
+    <string name="downloads_imported">Copies importées</string>
     <string name="downloads_total">Espace utilisé</string>
     <string name="downloads_pending">En cours</string>
     <string name="downloads_on_device">Sur cet appareil</string>

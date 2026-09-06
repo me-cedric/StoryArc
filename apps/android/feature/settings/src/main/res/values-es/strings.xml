@@ -140,6 +140,7 @@
     <string name="sources_rename_save">Guardar</string>
     <string name="sources_rename_action">Renombrar %1$s</string>
     <string name="downloads_none">No hay nada descargado. Un libro que abras desde una biblioteca en línea se guarda en este dispositivo.</string>
+    <string name="downloads_imported">Copias importadas</string>
     <string name="downloads_total">Espacio utilizado</string>
     <string name="downloads_pending">En curso</string>
     <string name="downloads_on_device">En este dispositivo</string>

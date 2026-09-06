@@ -1,7 +1,11 @@
 package app.storyarc
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.SourceAction
@@ -30,6 +34,13 @@ internal fun SettingsHost(
     val dependencies = host.dependencies
     val store = dependencies.downloads
     val registry by host.library.registry.collectAsStateWithLifecycle()
+    // The imported share of the downloads total. Read from the library rather than from the
+    // store, because the library is what knows which records are copies the reader brought
+    // in. Suspending, so it arrives after the first frame and the row appears with it; the
+    // total beside it is a synchronous walk the store can answer at once. iOS's
+    // `StoryArcApp` reads the same value from the same accessor.
+    var importedBytes by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(host.library) { importedBytes = host.library.importedBytes() }
     SettingsScreen(
         settings = settings,
         readerStore = dependencies.readerPreferences,
@@ -69,6 +80,7 @@ internal fun SettingsHost(
         // record, and Settings can be reached without ever having opened a catalogue.
         downloads = host.downloads.value,
         bytesOnDisk = store.bytesOnDisk(),
+        importedBytes = importedBytes,
         // Removing one download and reordering the queue left with the files: both are the
         // Downloads destination's now, which is where a reader looks for them and where
         // they are one tap away rather than four.

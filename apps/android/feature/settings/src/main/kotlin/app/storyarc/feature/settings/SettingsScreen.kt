@@ -104,6 +104,12 @@ fun SettingsScreen(
     downloads: DownloadLibrary = DownloadLibrary(),
     bytesOnDisk: Long = 0L,
     /**
+     * What the imported copies weigh, out of [bytesOnDisk]. Carried across for the same
+     * reason the total is: the copies belong to the library that made them, and a feature
+     * module never depends on another feature module.
+     */
+    importedBytes: Long = 0L,
+    /**
      * Removes every download at once, which is what the Privacy screen's "clear downloads"
      * means. The only download action left on this screen: removing one at a time belongs to
      * the Downloads destination now, and clearing is not that in a loop — the host does it in
@@ -194,6 +200,7 @@ fun SettingsScreen(
                     onOpenSource = { openSource = it.id },
                     downloads = downloads,
                     bytesOnDisk = bytesOnDisk,
+                    importedBytes = importedBytes,
                     onClearDownloads = onClearDownloads,
                 )
             }
@@ -366,6 +373,7 @@ private fun GroupDetail(
     onOpenSource: (Source) -> Unit,
     downloads: DownloadLibrary,
     bytesOnDisk: Long,
+    importedBytes: Long,
     onClearDownloads: () -> Unit,
 ) {
     Scaffold(
@@ -417,6 +425,7 @@ private fun GroupDetail(
                     )
                 SettingsGroup.DOWNLOADS -> DownloadsGroup(
                     bytesOnDisk = bytesOnDisk,
+                    importedBytes = importedBytes,
                     downloads = downloads,
                     settings = settings,
                     onChange = onChange,

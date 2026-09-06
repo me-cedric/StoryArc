@@ -145,6 +145,7 @@
     <string name="sources_rename_save">Save</string>
     <string name="sources_rename_action">Rename %1$s</string>
     <string name="downloads_none">Nothing is downloaded. A book you open from an online library is kept on this device.</string>
+    <string name="downloads_imported">Imported copies</string>
     <string name="downloads_total">Space used</string>
     <string name="downloads_pending">In progress</string>
     <string name="downloads_on_device">On this device</string>

@@ -140,6 +140,7 @@
     <string name="sources_rename_save">Sichern</string>
     <string name="sources_rename_action">%1$s umbenennen</string>
     <string name="downloads_none">Nichts ist heruntergeladen. Ein Buch, das Sie aus einer Online-Bibliothek öffnen, bleibt auf diesem Gerät.</string>
+    <string name="downloads_imported">Importierte Kopien</string>
     <string name="downloads_total">Belegter Speicher</string>
     <string name="downloads_pending">Laufend</string>
     <string name="downloads_on_device">Auf diesem Gerät</string>
