@@ -24,16 +24,26 @@ import WebKit
 /// result means nothing unless the same page, through the same window, is known to
 /// reach a host when the list is absent.
 ///
+/// **Each run opens the web view before it measures it.** WebKit starts no networking
+/// process until a page asks for the network, and that start costs whatever the machine
+/// can spare. Measured on 2026-09-06, with the first load unmeasured, the six required
+/// vectors arrive 0.8 to 1.6 seconds into the window; without it they arrived at 4.2 to
+/// 5.7 seconds on a simulator that had just booted, and on one run at over 8 seconds —
+/// past the end of the window, so ``control`` reported all six missing at once and the
+/// rule was left proven in neither direction. That signature — every vector missing
+/// together, while the page's own `style.css` was served — means the window expired,
+/// not that egress stopped. See ``render(deny:)``.
+///
 /// **Running it.** `pnpm test:ios:epub`, which needs a simulator; `swift test` cannot
 /// build this package at all. That script passes `-collect-test-diagnostics never` on
 /// purpose: a failing test otherwise sends `xcodebuild` off to collect a sysdiagnose
 /// from the simulator, and that collection times out after **600 seconds**. It turns a
 /// thirteen-second answer into an eleven-minute one at exactly the moment someone needs
 /// it quickly — when the egress rule has just broken. Budget for it: the two rendering
-/// tests take eight seconds each and run concurrently, which is what sets the floor for
-/// the whole `StoryArcEpub` suite of 36 tests — nine seconds of testing, inside about
-/// fifteen seconds of `xcodebuild` against a simulator that is already awake and a
-/// minute against one that is not.
+/// tests run concurrently and each takes the opening load plus an eight-second window,
+/// which is what sets the floor for the whole `StoryArcEpub` suite of 35 tests — about
+/// thirteen seconds of testing, inside twenty to thirty seconds of `xcodebuild` against
+/// a simulator that is already awake, and a minute against one that is not.
 @MainActor
 @Suite("Publication egress")
 struct PublicationEgressTests {
@@ -124,16 +134,42 @@ struct PublicationEgressTests {
         }
         defer { beacons.values.forEach { $0.stop() } }
 
+        let opener = try Beacon(name: "opener")
+        defer { opener.stop() }
+
         let ports = beacons.mapValues(\.port)
-        let handler = Origin(page: Self.page(ports: ports))
+        let handler = Origin(page: Self.page(ports: ports), opener: Self.openerPage(port: opener.port))
         let configuration = WKWebViewConfiguration()
         configuration.setURLSchemeHandler(handler, forURLScheme: "readium")
         let webView = WKWebView(frame: .zero, configuration: configuration)
 
         await PublicationEgress.prepare()
-        guard let url = URL(string: "readium://5C0D-publication/index.xhtml") else {
+        guard
+            let openerURL = URL(string: "readium://5C0D-publication/\(Origin.openerPath)"),
+            let url = URL(string: "readium://5C0D-publication/index.xhtml")
+        else {
             throw Failure.badURL
         }
+
+        // The first load is not measured. WebKit starts no networking process until a
+        // page asks for the network, and starting it costs whatever the machine can
+        // spare: 1.4 seconds on a warm simulator, over 8 seconds on one that has just
+        // booted. That cost used to fall inside the measured window, so ``control`` was
+        // a race against a daemon rather than a reading of the page — and on 2026-09-06
+        // it lost that race and reported all six vectors missing at once, which is the
+        // signature of the window expiring rather than of egress being stopped. This
+        // load pays the cost first; the window that follows measures the page.
+        //
+        // Twelve seconds, not sixty. A run that hangs past about thirty seconds is
+        // killed, and `Test crashed with signal kill` names nothing. Twelve covers
+        // every start measured here — the slowest was over eight — and leaves the
+        // eight-second window inside the budget. A start that takes longer than this
+        // is reported as ``Failure/networkNeverStarted``, which says what happened.
+        webView.load(URLRequest(url: openerURL))
+        guard try await arrived(at: opener, within: .seconds(12)) else {
+            throw Failure.networkNeverStarted
+        }
+
         webView.load(URLRequest(url: url))
         // Deliberately after the load is issued. `EPUBSpreadView` loads its resource
         // inside its own initialiser, and the navigator calls `setupUserScripts` on the
@@ -156,7 +192,34 @@ struct PublicationEgressTests {
         )
     }
 
-    private enum Failure: Error { case badURL }
+    /// Polls until the beacon is reached, or the ceiling passes.
+    private func arrived(at beacon: Beacon, within ceiling: Duration) async throws -> Bool {
+        let deadline = ContinuousClock.now.advanced(by: ceiling)
+        while ContinuousClock.now < deadline {
+            if beacon.wasReached { return true }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        return beacon.wasReached
+    }
+
+    private enum Failure: Error {
+        case badURL
+        /// The web view never reached loopback at all, so the measured window would
+        /// prove nothing in either direction. Read the suite's note before changing it.
+        case networkNeverStarted
+    }
+
+    /// A page whose only job is to make the web view start its networking process.
+    ///
+    /// It touches the opener's own listener and nothing else, so a vector cannot be
+    /// recorded before the measured window opens.
+    private static func openerPage(port: UInt16) -> String {
+        """
+        <!doctype html><html><body><script>
+        fetch("https://127.0.0.1:\(port)/opener").catch(function (e) {});
+        </script></body></html>
+        """
+    }
 
     /// A page that tries every way out at once.
     private static func page(ports: [Vector: UInt16]) -> String {

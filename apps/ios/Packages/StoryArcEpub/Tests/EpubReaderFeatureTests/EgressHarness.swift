@@ -11,11 +11,15 @@ import WebKit
 /// scheme and nothing else.
 @MainActor
 final class Origin: NSObject, WKURLSchemeHandler {
+    static let openerPath = "opener.xhtml"
+
     private(set) var served: [String] = []
     private let page: String
+    private let opener: String
 
-    init(page: String) {
+    init(page: String, opener: String) {
         self.page = page
+        self.opener = opener
         super.init()
     }
 
@@ -23,7 +27,8 @@ final class Origin: NSObject, WKURLSchemeHandler {
         guard let url = task.request.url else { return }
         served.append(url.absoluteString)
         let isStyle = url.path.hasSuffix(".css")
-        let body = Data((isStyle ? "p{color:red}" : page).utf8)
+        let document = url.path.hasSuffix(Self.openerPath) ? opener : page
+        let body = Data((isStyle ? "p{color:red}" : document).utf8)
         task.didReceive(
             URLResponse(
                 url: url,
