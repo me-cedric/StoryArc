@@ -4274,6 +4274,35 @@
         }
       }
     },
+    "sources.detail.transport": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc liest diese Freigabe über SMB. Die Verbindung ist nicht verschlüsselt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc reads this share over SMB. The connection is not encrypted."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc lee este recurso compartido por SMB. La conexión no está cifrada."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc lit ce partage en SMB. La connexion n’est pas chiffrée."
+          }
+        }
+      }
+    },
     "sources.kavita.systemTrust": {
       "extractionState": "manual",
       "localizations": {

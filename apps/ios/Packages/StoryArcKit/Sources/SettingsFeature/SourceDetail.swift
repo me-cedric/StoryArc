@@ -53,8 +53,19 @@ struct SourceDetail: View {
                 // than beside them, because it is a fact about the source rather than a
                 // value that changes — and it belongs on this screen rather than in the
                 // list, which describes what a kind of source *is* before one exists.
-                if statesProgressIsLocal {
-                    Text("sources.detail.progressLocalOnly", bundle: .module)
+                //
+                // The transport sentence joins it, under the same argument and for the same
+                // reason. Both are standing facts about the source, so they share one stack
+                // rather than sitting in two footers.
+                if statesProgressIsLocal || statesTransport {
+                    VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
+                        if statesProgressIsLocal {
+                            Text("sources.detail.progressLocalOnly", bundle: .module)
+                        }
+                        if statesTransport {
+                            Text("sources.detail.transport", bundle: .module)
+                        }
+                    }
                 }
             }
 
@@ -211,6 +222,29 @@ struct SourceDetail: View {
     private var statesProgressIsLocal: Bool {
         source.id != ImportedCopies.sourceID && !source.kind.syncsReadingProgress
     }
+
+    /// Whether this screen has to say how the source is reached, and whether that is encrypted.
+    ///
+    /// `network-share`' *Encrypted transport*: "the source detail screen states whether the
+    /// connection is encrypted". The sentence lived only in the add-share sheet, which a reader
+    /// sees once, before the source exists. A share is the only kind with a transport to state:
+    /// a folder is a disk, and the two servers are HTTP.
+    ///
+    /// **The sentence names encryption and never signing, which is a decision rather than an
+    /// omission.** [ADR-0016](docs/decisions/0016-ios-smb-response-signing.md) refuses a signing
+    /// line — iOS's client verifies no response and cannot answer the question, and "the app
+    /// does not explain its own weaknesses to the reader". Android's client can answer it and
+    /// says so on its own add-share sheet; this screen is drawn the same way on both platforms,
+    /// so it states the transport and the encryption alone, and a signed session reads exactly
+    /// like an unsigned one here.
+    ///
+    /// **The sentence says *not* encrypted, flatly, because nothing else is reachable.**
+    /// `SmbClient` reports `isEncrypted: false` on iOS, and Android's reports the same;
+    /// [ADR-0010](docs/decisions/0010-smb-clients.md) records why neither client encrypts. A
+    /// second sentence for the encrypted case would be a translated string no reader can see.
+    /// When a client does negotiate SMB 3 encryption, this becomes a question with two answers
+    /// and the wording moves with it.
+    private var statesTransport: Bool { source.kind == .networkShare }
 
     private var syncedAt: Text {
         guard let moment = diagnosis.lastSuccessfulSync else {
