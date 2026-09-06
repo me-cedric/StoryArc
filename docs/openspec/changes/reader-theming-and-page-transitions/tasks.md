@@ -576,6 +576,24 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       on a requirement the main spec already holds was guarded by nothing; proven by
       deleting a carried scenario, which the gate then reported by name.
 
+      **Two repairs after review.** The first suite was vacuous against the requirement
+      it was written for. It exercised `ReadingComfort.band` and the two catalogues, and
+      it never reached the sheet, so both draw calls could be deleted on both platforms
+      and every case still passed. Each suite now also reads its own section as text and
+      asserts that the band is drawn, and drawn above the ratio, in the pairing in force
+      and in the refusal. Proven by deleting the two draw calls on each platform: iOS
+      reported `PageColourBandTests.theBandLeadsTheRatio()`, and Android reported `the
+      band is drawn, and drawn above the ratio that measures it, in both places`.
+
+      The iOS refusal announcement still spoke the ratio alone. The tapped swatch does
+      not move and the reason renders at the foot of the section, so that announcement is
+      the only line that reaches a VoiceOver reader — and it gave them the arithmetic the
+      band exists to lead away from, while a sighted reader read the plain words first.
+      It now speaks the band and then the refusal, in the order the section draws them,
+      and `theRefusalIsAnnouncedBandFirst()` fails by name without it. Android posts no
+      announcement on this sheet at all. That gap is older than this change and is not
+      repaired inside it.
+
 - [x] **3.10** **Theme scope and persistence.** Added, because the
       `reading-themes` requirement of the same name had no task and the gap was
       visible in the product: the theme started at its default on every open, so
