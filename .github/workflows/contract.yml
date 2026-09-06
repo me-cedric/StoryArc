@@ -85,11 +85,14 @@ jobs:
         # than having no scanner. The device sweep cannot run here; its self-test can.
         run: pnpm a11y:selftest
 
+      - name: No sentence is drawn onto the screen outside a catalogue
+        # Wired into pnpm lint on 2026-09-06, once task 2.2 removed the two literals in
+        # App/RefusedFile.swift that had held it back. No workflow runs pnpm lint, so the
+        # check needs its own step or it runs in no automated gate.
+        run: pnpm strings:drawn
+
       - name: The drawn-strings checker's own checks still fire
-        # The check itself is not wired yet: two literals it reports are still committed, in
-        # App/RefusedFile.swift. Task 2.2 of one-vocabulary-in-four-languages removes them.
-        # The self-test does not wait on that, and a checker that stops matching reports a
-        # clean tree.
+        # A checker that stops matching reports a clean tree, which is worse than no checker.
         run: pnpm strings:drawn:selftest
 
       - name: Fixture corpus is in sync with its generator

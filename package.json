@@ -2,7 +2,7 @@
   "name": "storyarc",
   "version": "0.1.0",
   "private": true,
-  "description": "Monorepo tooling for StoryArc \u2014 native comic, manga and ebook readers for iOS and Android.",
+  "description": "Monorepo tooling for StoryArc — native comic, manga and ebook readers for iOS and Android.",
   "license": "MIT",
   "packageManager": "pnpm@11.20.0",
   "engines": {
@@ -31,7 +31,7 @@
     "openspec:workflows": "node scripts/openspec-workflows.mjs",
     "openspec:workflows:check": "node scripts/openspec-workflows.mjs --check",
     "openspec:workflows:selftest": "node scripts/openspec-workflows.mjs --self-test",
-    "lint": "pnpm lines:check && pnpm tokens:check && pnpm brand:check && pnpm spec:validate && pnpm spec:guard && pnpm delta:drop && pnpm partial:tasks && pnpm openspec:workflows:check && pnpm tokens:verify && pnpm fixtures:check && pnpm notices:check && pnpm libarchive:pin && pnpm lockfile:ios && pnpm corpus:check && pnpm kavita:check && pnpm opds:check && pnpm strings:ios",
+    "lint": "pnpm lines:check && pnpm tokens:check && pnpm brand:check && pnpm spec:validate && pnpm spec:guard && pnpm delta:drop && pnpm partial:tasks && pnpm openspec:workflows:check && pnpm tokens:verify && pnpm fixtures:check && pnpm notices:check && pnpm libarchive:pin && pnpm lockfile:ios && pnpm corpus:check && pnpm kavita:check && pnpm opds:check && pnpm strings:ios && pnpm strings:drawn",
     "lint:ios": "swiftlint lint --strict",
     "lint:android": "node scripts/gradle.mjs lint",
     "test:ios": "cd apps/ios/Packages/StoryArcKit && swift test; status=$?; node ../../../../scripts/sweep-test-debris.mjs || true; exit $status",

@@ -438,25 +438,20 @@ changes.
       reported at line 50, and the reverted copy reports nothing.
       `--self-test` passes 19 of 19 cases. Delete any one of the five position
       patterns and a named case fails.
-- [~] **5.3** Wire it into `pnpm lint` and add the `:selftest` script.
-      `package.json`, matching how `delta:drop` and `partial:tasks` are wired.
-      Verify: `pnpm lint` passes on a clean tree and fails on 5.2's mutation.
-      **Half done, and the missing half is blocked by task 2.2.** `package.json`
-      gains `strings:drawn` and `strings:drawn:selftest`. The `lint` chain is
-      **not** changed, because the check reports two literals that are already
-      committed: the refused-file alert's title and its OK button, at
-      `apps/ios/App/RefusedFile.swift:55` and `:58`. Wiring it in today fails
-      `pnpm lint` for every one of the eight in-flight changes, which is the
-      exact hazard this section is ordered last to avoid. Task 2.2 removes both
-      literals. After it lands, two edits wire the check in: add
-      `&& pnpm strings:drawn` to the `lint` script, and add a `pnpm strings:drawn`
-      step to `.github/workflows/contract.yml`. **The second edit is not
-      optional.** No workflow runs `pnpm lint`. `contract.yml` names each check
-      as its own step, so the `lint` clause alone leaves this check running in
-      no automated gate.
-      **The unblocked half is done:** `contract.yml` runs
-      `pnpm strings:drawn:selftest`, beside the four other self-test steps. The
-      self-test passes today and waits on nothing.
+- [x] **5.3** Wire it into \`pnpm lint\` and add the \`:selftest\` script.
+      \`package.json\`, matching how \`delta:drop\` and \`partial:tasks\` are wired.
+      Verify: \`pnpm lint\` passes on a clean tree and fails on 5.2's mutation.
+      **Done on 2026-09-06, after task 2.2 landed.** The \`lint\` chain now ends
+      \`&& pnpm strings:ios && pnpm strings:drawn\`. The self-test stays out of
+      \`lint\` and runs in CI, because that is how \`openspec:workflows:check\` and
+      \`openspec:workflows:selftest\` are split. \`.github/workflows/contract.yml\`
+      gains its own \`pnpm strings:drawn\` step: no workflow runs \`pnpm lint\`, so
+      the \`lint\` clause alone would leave the check in no automated gate.
+      Proved able to fail at the \`lint\` level, not only in the self-test. A
+      \`Text("This sentence was never translated")\` added to
+      \`SkippedNotice.swift\` gave \`pnpm lint\` exit 1 and this line:
+      \`SkippedNotice.swift:207  Text(  "This sentence was never translated"\`.
+      Reverted; the clean tree gives exit 0.
       A suppression list or a baseline of allowed violations is refused — it
       would turn the check into decoration.
 
