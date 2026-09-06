@@ -241,6 +241,33 @@ const ROUTES = [
   { at: '/api/Search/search', verb: 'GET', example: '/api/Search/search?queryString=a' },
 ]
 
+/**
+ * `Libraries` in Kavita's `SeriesFilterField`, and the one comparison measured to narrow.
+ *
+ * `Kavita.Models/DTOs/Filtering/v2/FilterFields/SeriesFilterField.cs` line 29 numbers
+ * `Libraries` 19. `comparison` 0 narrowed a live server on 2026-09-06; so did 5, and every
+ * other value from 1 to 10 answered the whole unfiltered list. This mock therefore claims a
+ * meaning for 0 alone -- a comparison nobody measured is not one it can speak for.
+ */
+const LIBRARY_FIELD = 19
+const MEASURED_COMPARISON = 0
+
+/**
+ * Which library a posted filter names, or 0 for "every library".
+ *
+ * The body is a `SeriesFilterV2Dto`. An empty `{}` means everything, which is what a live
+ * Kavita answered and what this mock answers. A statement this mock cannot read widens
+ * rather than refuses, because that is what the live server did with the comparisons it
+ * ignored -- a mock that refused would be stricter than the thing it stands in for.
+ */
+const libraryFiltered = (posted) => {
+  const statements = Array.isArray(posted?.statements) ? posted.statements : []
+  const named = statements.find(
+    (each) => each?.field === LIBRARY_FIELD && each?.comparison === MEASURED_COMPARISON,
+  )
+  return Number(named?.value ?? 0) || 0
+}
+
 /** The verb a route requires, or nothing when this mock asserts none for it. */
 const verbFor = (pathname) =>
   ROUTES.find(({ at }) => (typeof at === 'string' ? at === pathname : at.test(pathname)))?.verb
@@ -300,16 +327,29 @@ const server = createServer((request, response) => {
     return send(response, 200, libraries)
   }
 
+  // The series list, narrowed by the filter in the **body** and by nothing in the query.
+  // A `libraryId` query parameter is read by no live Kavita and is ignored here too.
   if (url.pathname === '/api/Series/all-v2' || url.pathname === '/api/Series') {
-    const libraryId = Number(url.searchParams.get('libraryId') ?? 0)
-    const shown = libraryId ? series.filter((each) => each.libraryId === libraryId) : series
-    return send(response, 200, shown.map((each) => ({
-      id: each.id,
-      name: each.name,
-      libraryId: each.libraryId,
-      pages: each.chapters.reduce((total, chapter) => total + chapter.pages, 0),
-      pagesRead: each.chapters.reduce((total, chapter) => total + chapter.pagesRead, 0),
-    })))
+    let body = ''
+    request.on('data', (chunk) => { body += chunk })
+    request.on('end', () => {
+      let posted
+      try {
+        posted = JSON.parse(body || '{}')
+      } catch {
+        return send(response, 400, { message: 'a filter must be json' })
+      }
+      const wanted = libraryFiltered(posted)
+      const shown = wanted ? series.filter((each) => each.libraryId === wanted) : series
+      send(response, 200, shown.map((each) => ({
+        id: each.id,
+        name: each.name,
+        libraryId: each.libraryId,
+        pages: each.chapters.reduce((total, chapter) => total + chapter.pages, 0),
+        pagesRead: each.chapters.reduce((total, chapter) => total + chapter.pagesRead, 0),
+      })))
+    })
+    return undefined
   }
 
   // One series by identity. A search result names a series without always naming the library
@@ -651,6 +691,32 @@ const drive = async () => {
   check('a get on the series list is refused',
     (await get('/api/Series/all-v2', token)).status === 405,
     (await get('/api/Series/all-v2', token)).status)
+
+  // The library filter, which Kavita reads from the body and nowhere else. Measured against
+  // a live server on 2026-09-06: `POST /api/Series/all-v2?libraryId=3` with an empty body
+  // answered all 215 series across four libraries, and the same route carrying the statement
+  // below answered 91 series from library 3 alone. This mock used to read the query
+  // parameter, so it agreed with a client that sent one there -- and a reader who picked one
+  // library was shown every library, confidently and with no error anywhere.
+  const one = libraries[0].id
+  const narrowed = await post('/api/Series/all-v2', {
+    statements: [{ comparison: 0, field: 19, value: String(one) }],
+    combination: 0,
+  }, token)
+  check('a filter statement naming one library is accepted', narrowed.status === 200,
+    narrowed.status)
+  const narrowedSeries = narrowed.status === 200 ? await narrowed.json() : []
+  check('a filter statement naming one library answers with that library alone',
+    narrowedSeries.length > 0 && narrowedSeries.every((each) => each.libraryId === one),
+    narrowedSeries.map((each) => each.libraryId))
+  check('a filter statement naming one library leaves the other libraries out',
+    narrowedSeries.length < series.length, narrowedSeries.length)
+
+  // And the parameter the clients used to send does nothing at all, which is what a live
+  // Kavita does with it. A mock that narrowed here would keep the trap armed.
+  const queried = await post(`/api/Series/all-v2?libraryId=${one}`, {}, token)
+  check('a library named in the query alone is ignored',
+    (await queried.json()).length === series.length)
 
   const lists = await post('/api/ReadingList/lists', {}, token)
   check('the reading lists answer a post', lists.status === 200, lists.status)
