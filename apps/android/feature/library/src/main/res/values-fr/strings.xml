@@ -333,7 +333,7 @@
     <string name="library_scope_all">Partout</string>
     <string name="library_more">Plus</string>
     <string name="library_filter_library">Quelle bibliothèque</string>
-    <string name="library_empty_on_device">Rien dans votre bibliothèque ne peut être lu sans connexion.</string>
+    <string name="library_empty_on_device">Rien de votre bibliothèque n’est encore sur cet appareil. Ce que vous gardez ici se lit sans connexion.</string>
     <string name="library_cell_source">De %1$s</string>
     <string name="library_match_series">Séries</string>
     <string name="library_match_publication">Titres</string>

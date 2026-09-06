@@ -331,7 +331,7 @@
     <string name="library_scope_all">Überall</string>
     <string name="library_more">Mehr</string>
     <string name="library_filter_library">Welche Bibliothek</string>
-    <string name="library_empty_on_device">Nichts in Ihrer Bibliothek lässt sich ohne Verbindung lesen.</string>
+    <string name="library_empty_on_device">Aus Ihrer Bibliothek ist noch nichts auf diesem Gerät. Was Sie hier behalten, lässt sich ohne Verbindung lesen.</string>
     <string name="library_cell_source">Aus %1$s</string>
     <string name="library_match_series">Reihen</string>
     <string name="library_match_publication">Titel</string>

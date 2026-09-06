@@ -347,7 +347,7 @@
     <string name="library_scope_all">Everywhere</string>
     <string name="library_more">More</string>
     <string name="library_filter_library">Which library</string>
-    <string name="library_empty_on_device">Nothing in your library can be read without a connection.</string>
+    <string name="library_empty_on_device">Nothing in your library is on this device yet. What you keep here can be read without a connection.</string>
     <string name="library_cell_source">From %1$s</string>
     <string name="library_match_series">Series</string>
     <string name="library_match_publication">Titles</string>
