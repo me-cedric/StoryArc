@@ -488,19 +488,8 @@ fun LibraryScreen(
 
             // Pull to refresh, and no refresh button. Android was the only platform
             // carrying both, and the gesture is the one Material names for a shelf that
-            // re-reads itself.
-            //
-            // What it re-fetches is what the shelf is showing, which [ShelfRefresh] decides
-            // and a test can reach. This used to call `rescan()` and nothing else, so a
-            // reader who pulled on a shelf showing a server got a folder walk and no
-            // catalogue fetch at all — `sources` asks a pull to "re-fetch the catalogue".
-            //
-            // ponytail: the indicator follows the walk, so a shelf narrowed to one server
-            // refreshes without a sustained spinner. `onProbeSources` is a fire-and-forget
-            // lambda into the app layer — it holds the credentials — and reports no progress
-            // this screen can read. Reading it from the sources' own `Connecting` state
-            // instead would blink the indicator on every background probe as well, which is
-            // worse; a signal that separates a pull from the backoff loop is what it needs.
+            // re-reads itself. What it re-fetches is what the shelf is showing, which
+            // [ShelfRefresh] decides, records the two costs of, and a test can reach.
             PullToRefreshBox(
                 isRefreshing = scanState is LibraryScanState.Scanning,
                 onRefresh = {

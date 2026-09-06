@@ -28,6 +28,11 @@ import app.storyarc.core.model.SourceRegistry
  * the app layer's — `LibraryScreen` is handed one `onProbeSources` lambda and no way to name a
  * source. That is the whole remaining cost, and it is bounded by the number of servers a
  * reader configured. Scoping it further means a new callback through `AppDestinations`.
+ *
+ * ponytail: the same lambda reports no progress, so `PullToRefreshBox` follows the folder
+ * walk and a shelf narrowed to one server refreshes without a sustained indicator. Driving it
+ * from the sources' own `Connecting` state instead would blink it on every background probe,
+ * which is worse. What it needs is a signal that tells a pull from the backoff loop.
  */
 data class ShelfRefresh(
     /** Whether the folders are walked again. */
