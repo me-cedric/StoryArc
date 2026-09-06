@@ -43,6 +43,7 @@ import app.storyarc.core.designsystem.theme.swatch
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Annotation
 import app.storyarc.core.model.AnnotationExport
+import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Bookmark
 import app.storyarc.core.model.ExternalLink
 import app.storyarc.core.model.HighlightColour
@@ -217,43 +218,34 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
         )
     }
 
+    /** What the reader chose in Settings › Appearance, read once when the book opens. */
+    private val settings: AppSettings by lazy {
+        SettingsStore.open(applicationContext).settings()
+    }
+
     /**
-     * Settings › Appearance, read once when the book opens.
+     * Settings › Appearance, as this screen needs it.
      *
-     * One read of one store, resolved here because "System" is a question about the device
-     * and only something holding a `Context` can answer it. [ReaderAppearance] says which
-     * of its answers wants the reader's literal choice and which wants the resolved one,
-     * and why the two differ.
+     * Resolved here because "System" is a question about the device and only something
+     * holding a `Context` can answer it. [ReaderAppearance] says which of its answers wants
+     * the reader's literal choice and which wants the resolved one, and why the two differ.
      *
-     * **Once is enough, because nothing can change the answer while this activity lives.**
-     * An earlier version of this note said the opposite -- that a reader could leave an open
-     * book by the home button, change appearance in the other activity and come back to this
-     * one still alive -- and the manifests do not bear that out. This activity declares no
-     * `launchMode`, `taskAffinity` or `documentLaunchMode`, and the `intent` above adds no
-     * flags, so it stacks on `MainActivity` in the one task: home backgrounds that task, and
-     * the launcher icon and recents resume its top activity, which is the book. Every route
-     * back to `MainActivity` ends this one first -- back and the close button `finish()`, and
-     * the launcher quick actions carry `CLEAR_TOP or SINGLE_TOP`, which clears everything
-     * above it. Nothing in this module writes appearance either, and the annotation share
-     * sheet sends `text/plain`, which the app's own `SEND` filter does not match.
-     *
-     * A cross-app handover carrying `FLAG_ACTIVITY_NEW_TASK` -- a file manager passing
-     * StoryArc a book while a book is open -- is the one candidate left, and what the
+     * **Once is enough for the *setting*.** This activity declares no `launchMode`,
+     * `taskAffinity` or `documentLaunchMode`, and the `intent` above adds no flags, so it
+     * stacks on `MainActivity` in the one task and every route back to the Appearance screen
+     * ends this activity first. Nothing in this module writes appearance either. A cross-app
+     * handover carrying `FLAG_ACTIVITY_NEW_TASK` is the one candidate left, and what the
      * framework does with it for a `standard` activity wants a device rather than a guess.
-     * Re-reading in `onResume` would not be free if it were reachable. `PaperGrainOverlay` is
-     * composed inside this activity's `StoryArcTheme` and lands on the page, and it draws on
-     * `LocalIsNaturalTheme`, which the theme computes from this value -- so a live appearance
-     * adds or withdraws Natural's grain over the reading page mid-book. And a reader who
-     * linked the reading theme to appearance would get a chrome that moved while
-     * [ReaderAppearance.linkedPreset] stayed: the true-black-chrome-over-a-paper-page pairing
-     * `settings-and-about` calls legitimate for the readers who did *not* link the two.
      *
-     * `SYSTEM` is exempt from all of it, because it is the one value the theme keeps asking
-     * about: `StoryArcTheme` reads the device's own night mode from inside the composition,
-     * so a device that flips theme mid-chapter still takes the reader's chrome with it.
+     * **Once is not enough for the *device*, and that half used to be a defect.** `uiMode` is
+     * in this activity's `configChanges`, so a night-mode switch keeps the activity alive and
+     * only the composition sees it. `SYSTEM` therefore reaches [ReaderAppearance.chrome]
+     * unresolved and `StoryArcTheme` asks the device again from inside the composition. The
+     * reading theme is read there too, by [linkedReadingTheme]: a reader who linked the two
+     * used to watch the chrome go dark and the page stay light for the rest of the book,
+     * which is the opposite of what `ebook-reader` asks for.
      */
     private val appearance: ReaderAppearance by lazy {
-        val settings = SettingsStore.open(applicationContext).settings()
         ReaderAppearance.of(settings, settings.appearance.resolved(resources.configuration))
     }
 
@@ -425,6 +417,14 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     // either half of the theme changes rather than when the sheet
                     // closes.
                     LaunchedEffect(theme, values, transition) { applyTheme() }
+
+                    // `ebook-reader`: the reading theme follows the appearance "then and
+                    // there rather than at the next open", and only for the reader who
+                    // linked the two. The first run is a no-op, because the view model was
+                    // built with this same answer. What it catches is the device turning
+                    // dark while the book is open, which the effect above puts on the page.
+                    val linked = linkedReadingTheme(settings)
+                    LaunchedEffect(linked) { model.follow(linked) }
 
                     // `page-transitions`: the reader picks a page turn *after* the book
                     // is open, so ownership changes here rather than when the navigator

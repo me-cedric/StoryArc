@@ -1,5 +1,8 @@
 package app.storyarc.feature.epubreader
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalConfiguration
+import app.storyarc.core.designsystem.theme.resolved
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.AppearanceMode
 import app.storyarc.core.model.ThemePreset
@@ -61,4 +64,47 @@ internal data class ReaderAppearance(
                 },
             )
     }
+}
+
+/**
+ * The reading theme the device's own appearance dictates, re-read on every change.
+ *
+ * `ebook-reader` / *Theme follows appearance*: the switch happens "then and there rather than
+ * at the next open". `LocalConfiguration` is what carries a night-mode change into a
+ * composition whose activity `configChanges` kept alive, so this is where the answer is live
+ * and a value read from `resources.configuration` is not. Null unless the reader linked the
+ * two, which leaves the shelf's own theme in force.
+ */
+@Composable
+internal fun linkedReadingTheme(settings: AppSettings): ThemePreset? =
+    ReaderAppearance
+        .of(settings, settings.appearance.resolved(LocalConfiguration.current))
+        .linkedPreset
+
+/**
+ * Takes the appearance's reading theme, while the book stays open.
+ *
+ * The value used to reach the view model through its constructor alone, which the activity
+ * read once, so a device that turned dark mid-chapter took the chrome with it and left the
+ * page as it was until the book was closed and reopened.
+ *
+ * `null` means the reader never linked the two, and it does nothing — the shelf's own theme
+ * stays in force. That is the scenario's second clause.
+ *
+ * It goes through [EpubReaderViewModel.adopt] rather than writing the theme itself, because
+ * that is what moves the flow the activity's `LaunchedEffect(theme, values, transition)`
+ * watches — and that effect captures the reading position, submits the preferences and goes
+ * back to the position. `reading-themes` requires the position to survive a repagination.
+ *
+ * A change that names the theme already in force does nothing either. Dark and OLED Dark both
+ * mean Quiet, so a reader moving between them would otherwise lose every axis they had moved,
+ * for an appearance change the reading theme cannot see.
+ *
+ * An extension rather than a member, for both of the reasons iOS puts its own `follow` in
+ * `LinkedPreset.swift`: this rule belongs beside the appearance it reads, and the two view
+ * models are each at their language's line cap.
+ */
+internal fun EpubReaderViewModel.follow(linked: ThemePreset?) {
+    if (linked == null || linked == theme.value.preset) return
+    adopt(linked)
 }
