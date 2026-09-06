@@ -39,6 +39,12 @@ import org.robolectric.annotation.GraphicsMode
  * way on both platforms, so it states the transport and the encryption alone. A signed session
  * and an unsigned one read alike here, which the last two tests assert in all four locales.
  *
+ * **The sentence denies encryption, and the denial is what is asserted.** Both clients hardcode
+ * `isEncrypted = false`, so the screen states a constant rather than reading the session, and
+ * ADR-0016 records why that is where this stands. The day item 1 of that ADR's *What would change
+ * this* lands, the four sentences become false and these tests fail by name, in whichever locale
+ * was edited first.
+ *
  * Composed rather than asserted through a helper, for the reason `SourceProgressNoteTest`
  * composes: a test of the predicate alone stays green when the row is deleted from the screen.
  */
@@ -134,36 +140,42 @@ class SourceTransportNoteTest {
     }
 
     @Test
-    fun `every locale states whether the connection is encrypted, and none claims signing`() {
+    fun `every locale states the connection is not encrypted, and none claims signing`() {
         // English here, and the other three below: Robolectric resolves one locale per test.
-        assertTheSentenceNamesEncryptionAndNotSigning("encrypted")
+        assertTheSentenceDeniesEncryptionAndSaysNothingOfSigning("not encrypted")
     }
 
     @Test
     @Config(qualifiers = "fr-rFR-w400dp-h1600dp")
-    fun `the French sentence states encryption and claims no signing`() =
-        assertTheSentenceNamesEncryptionAndNotSigning("chiffr")
+    fun `the French sentence denies encryption and claims no signing`() =
+        assertTheSentenceDeniesEncryptionAndSaysNothingOfSigning("pas chiffr")
 
     @Test
     @Config(qualifiers = "de-rDE-w400dp-h1600dp")
-    fun `the German sentence states encryption and claims no signing`() =
-        assertTheSentenceNamesEncryptionAndNotSigning("verschlüsselt")
+    fun `the German sentence denies encryption and claims no signing`() =
+        assertTheSentenceDeniesEncryptionAndSaysNothingOfSigning("nicht verschlüsselt")
 
     @Test
     @Config(qualifiers = "es-rES-w400dp-h1600dp")
-    fun `the Spanish sentence states encryption and claims no signing`() =
-        assertTheSentenceNamesEncryptionAndNotSigning("cifrad")
+    fun `the Spanish sentence denies encryption and claims no signing`() =
+        assertTheSentenceDeniesEncryptionAndSaysNothingOfSigning("no está cifrad")
 
     /**
-     * The word a reader is owed, and the words ADR-0016 refuses.
+     * The claim a reader is owed, and the words ADR-0016 refuses.
+     *
+     * **The negation is matched, not the word alone.** An earlier form of this test asked only
+     * whether the sentence carried the word for "encrypted", so *The connection is encrypted.*
+     * satisfied it. That is the edit someone will make the day a client negotiates SMB 3, and it
+     * is the edit that lands in one locale before the other three. The polarity is the whole of
+     * the claim, so the polarity is what is pinned.
      *
      * Every refused token is matched against every locale: a French word has no business in the
      * German sentence either, and the signing half is a promise this app makes in none of the
      * four.
      */
-    private fun assertTheSentenceNamesEncryptionAndNotSigning(encryption: String) {
+    private fun assertTheSentenceDeniesEncryptionAndSaysNothingOfSigning(denial: String) {
         val sentence = show(SourceKind.NETWORK_SHARE).lowercase()
-        assertTrue("the sentence reads \"$sentence\"", sentence.contains(encryption))
+        assertTrue("the sentence reads \"$sentence\"", sentence.contains(denial))
         for (claim in SIGNING) {
             assertFalse("the sentence mentions $claim", sentence.contains(claim))
         }
