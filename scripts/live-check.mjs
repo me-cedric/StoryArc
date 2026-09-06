@@ -79,6 +79,62 @@ if (selfTest) {
   process.exit(failures ? 1 : 0)
 }
 
+
+/**
+ * Whether the share refuses a connection that carries no encryption.
+ *
+ * Shells out to `smbclient` because the question is about a server, and a second SMB
+ * implementation written here would answer about itself. The password goes through the
+ * environment, never the command line, where `ps` would show it to anyone on this machine.
+ *
+ * A bare LAN name is tried and then the mDNS form: a TrueNAS answered to `<name>.local` and
+ * not to `<name>` on 2026-09-06, and `smbclient` reports that as NT_STATUS_NOT_FOUND, which
+ * reads like a missing share rather than a missing address.
+ *
+ * Kerberos is turned off. On a domain-joined Mac `smbclient` will otherwise try the
+ * machine's own domain account instead of the user it was handed, and report a logon
+ * failure that has nothing to do with the credentials in `.env`.
+ */
+const measureEncryption = async () => {
+  const { execFileSync } = await import('node:child_process')
+  const host = process.env.STORYARC_SMB_HOST
+  const share = process.env.STORYARC_SMB_SHARE
+  const user = process.env.STORYARC_SMB_USER
+  const password = process.env.STORYARC_SMB_PASSWORD
+  if (!host || !share || !user || !password) return { answer: 'not measured, values missing' }
+  try {
+    execFileSync('smbclient', ['--version'], { stdio: 'ignore' })
+  } catch {
+    return { answer: 'not measured', note: 'note: smbclient is not installed, so nothing asked the server.' }
+  }
+  for (const name of [host, `${host}.local`]) {
+    try {
+      const out = execFileSync('smbclient', [
+        `//${name}/${share}`, '-U', user,
+        '--option=client use kerberos=off',
+        '--option=client smb encrypt=off',
+        '-c', 'ls',
+      ], { env: { ...process.env, PASSWD: password }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+      if (out.includes('blocks available')) {
+        return {
+          answer: 'no — it accepted a connection with encryption off',
+          note: 'note: SmbError.encryptionRequired stays unreachable until a share demands encryption.',
+        }
+      }
+    } catch (error) {
+      const text = `${error.stdout ?? ''}${error.stderr ?? ''}`
+      if (/NT_STATUS_NOT_FOUND/.test(text)) continue // wrong name; try the mDNS form
+      if (/ACCESS_DENIED|NOT_SUPPORTED|protocol negotiation failed/.test(text)) {
+        return { answer: 'yes — it refused a connection with encryption off' }
+      }
+      if (/LOGON_FAILURE/.test(text)) {
+        return { answer: 'not measured', note: 'note: the credentials were refused, so encryption was never reached.' }
+      }
+    }
+  }
+  return { answer: 'not measured', note: 'note: no address answered, so the server was never asked.' }
+}
+
 if (existsSync('.env')) process.loadEnvFile('.env')
 
 const present = (names) => names.filter((n) => process.env[n])
@@ -134,11 +190,14 @@ if (present(SMB).length === 0) {
   // it. This reports only that the values are there for a device walk to use.
   console.log('\nSMB:')
   console.log(`  values for a walk     ${present(SMB).length} of ${SMB.length} set`)
-  const encrypted = process.env.STORYARC_SMB_REQUIRES_ENCRYPTION === '1'
-  console.log(`  demands encryption    ${encrypted ? 'yes — the refusal is reachable' : 'not declared'}`)
-  if (!encrypted) {
-    console.log('  note: SmbError.encryptionRequired cannot be observed until a share requires it.')
-  }
+  // **Measured, not declared.** `STORYARC_SMB_REQUIRES_ENCRYPTION` was set to 1 on
+  // 2026-09-06 and the server accepted an unencrypted connection anyway, so the flag said
+  // the refusal was reachable when it was not. A flag is a claim; this asks the server.
+  // The question is one thing only: does a connection with encryption **off** succeed? If
+  // it does, the share does not demand encryption, whatever anyone set.
+  const smbEncryption = await measureEncryption()
+  console.log(`  demands encryption    ${smbEncryption.answer}`)
+  if (smbEncryption.note) console.log(`  ${smbEncryption.note}`)
 }
 
 process.exit(failed ? 1 : 0)
