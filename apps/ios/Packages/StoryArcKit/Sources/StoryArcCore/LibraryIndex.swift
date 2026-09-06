@@ -81,7 +81,14 @@ public enum LibraryIndex {
             }
             // A stable tiebreak, always ascending: a list that reshuffles equal
             // rows when the direction flips looks broken.
-            return collate(left.displayTitle, right.displayTitle, locale) == .orderedAscending
+            //
+            // `local-library`, *Nested folder structure becomes series*: "a subfolder
+            // whose contents cannot be ordered falls back to case-insensitive natural
+            // filename order". This is that fallback. It sits here rather than inside
+            // ``compareBySeries(_:_:_:)`` because "cannot be ordered" is exactly the
+            // state this line is reached in: every key above it, the issue number
+            // included, said `orderedSame`.
+            return NaturalOrder.precedes(orderingName(of: left), orderingName(of: right))
         }
     }
 
@@ -150,6 +157,18 @@ public enum LibraryIndex {
                     && issueNumber(of: candidate) < current
             }
             .max { issueNumber(of: $0) < issueNumber(of: $1) }
+    }
+
+    /// The name a publication falls back to when every ordering key has tied.
+    ///
+    /// The filename, which is what `local-library` names, and the display title where a
+    /// publication has no file: a server chapter is not a file on disk, and a row ordered
+    /// by nothing at all would move about between launches.
+    private static func orderingName(of publication: Publication) -> String {
+        guard let path = publication.identity.normalizedPath,
+              let name = path.split(separator: "/", omittingEmptySubsequences: true).last
+        else { return publication.displayTitle }
+        return String(name)
     }
 
     /// An issue number as a number, so #10 follows #9.

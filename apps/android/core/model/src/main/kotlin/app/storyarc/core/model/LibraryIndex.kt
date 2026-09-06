@@ -75,7 +75,14 @@ object LibraryIndex {
             } else {
                 // A stable tiebreak, always ascending: a list that reshuffles
                 // equal rows when the direction flips looks broken.
-                collator.compare(sortKey(left.displayTitle, locale), sortKey(right.displayTitle, locale))
+                //
+                // `local-library`, *Nested folder structure becomes series*: "a subfolder
+                // whose contents cannot be ordered falls back to case-insensitive natural
+                // filename order". This is that fallback. It sits here rather than inside
+                // the SERIES branch because "cannot be ordered" is exactly the state this
+                // line is reached in: every key above it, the issue number included, said
+                // equal.
+                NaturalOrder.compare(orderingName(left), orderingName(right))
             }
         }
         return ordered
@@ -154,6 +161,19 @@ object LibraryIndex {
             }
             .maxByOrNull { issueNumber(it) }
     }
+
+    /**
+     * The name a publication falls back to when every ordering key has tied.
+     *
+     * The filename, which is what `local-library` names, and the display title where a
+     * publication has no file: a server chapter is not a file on disk, and a row ordered
+     * by nothing at all would move about between launches.
+     */
+    private fun orderingName(publication: Publication): String =
+        publication.identity.normalizedPath
+            ?.split('/')
+            ?.lastOrNull { it.isNotEmpty() }
+            ?: publication.displayTitle
 
     /**
      * An issue number as a number, so #10 follows #9.
