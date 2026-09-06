@@ -90,14 +90,6 @@ internal fun FilterChipMenu(
     var open by remember { mutableStateOf(false) }
     var section by remember { mutableStateOf<FilterSection?>(null) }
     val active = narrowingCount(query, downloads)
-    // The reader's language, read once per composition and handed to every facet that
-    // collates. `readerLocale()` decodes the settings blob on every call, and [SectionList]
-    // asks four facets for their values on every recomposition of the open menu, so a facet
-    // fetching its own would run four decodes a frame while the reader taps through groups.
-    // Remembering cannot go stale: a language change recreates the activity, and this
-    // composition goes with it. `ShelfDetailScreen` remembers the same locale for the same
-    // reason, and `LibraryFacetsCollateTest` pins this call.
-    val locale = remember { viewModel.readerLocale() }
 
     // The chip and its menu are one item of [LibraryControls]'s wrapping row, not two. A
     // `DropdownMenu` is a popup and measures as nothing, but it still takes a slot -- and a
@@ -129,6 +121,15 @@ internal fun FilterChipMenu(
                 section = null
             },
         ) {
+            // The reader's language, read once and handed to every facet that collates.
+            // `readerLocale()` decodes the settings blob on every call, and [SectionList] asks
+            // four facets for their values on every recomposition, so a facet fetching its own
+            // would run four decodes a frame while the reader taps through the groups. Read
+            // inside the menu rather than beside the chip, so a menu nobody opens costs
+            // nothing. Remembering cannot go stale: a language change recreates the activity,
+            // and this composition goes with it. `ShelfDetailScreen` remembers the same locale
+            // for the same reason, and `LibraryFacetsCollateTest` pins this call.
+            val locale = remember { viewModel.readerLocale() }
             when (val chosen = section) {
                 null -> SectionList(
                     query = query,
