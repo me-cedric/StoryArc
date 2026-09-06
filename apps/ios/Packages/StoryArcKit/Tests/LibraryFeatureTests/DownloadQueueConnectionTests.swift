@@ -146,10 +146,10 @@ struct DownloadQueueConnectionTests {
 
     @Test("A queue relaunched on cellular is held again, and says so")
     func theHoldComesBack() throws {
-        // The store carries no pause reason on either platform — a paused record comes back
-        // queued — so this is not a restore. The queue asks the connection in its `init` and
-        // reaches the same answer, which is what makes the reason true rather than remembered:
-        // a phone relaunched on Wi-Fi shows no hold at all.
+        // The reason is persisted now, so a second queue reads it back — and then asks the
+        // connection anyway in its `init`, which is what keeps the reason true rather than
+        // merely remembered: a phone relaunched on Wi-Fi puts the row back in the queue and
+        // shows no hold at all.
         let id = "relaunch-\(UUID().uuidString)"
         let store = try store(holding: [queued(id: id)])
         let first = queue(store)
@@ -161,6 +161,51 @@ struct DownloadQueueConnectionTests {
 
         #expect(second.library[id]?.state == .paused(.waitingForWiFi))
         #expect(second.held == .waitingForWifi)
+    }
+
+    @Test("A transfer the hold cancelled does not stop the one that replaced it")
+    func aCancelledTransferLeavesTheNewSlotAlone() async throws {
+        // The flapping case, from the transfer's side. Wi-Fi returns before the cancelled
+        // transfer has finished unwinding, so a second one is already in the slot when the
+        // first ends. Clearing the slot there would leave the running transfer with no handle
+        // to cancel it by, and the next hold would not stop it — the queue would carry one
+        // uncancellable transfer per return of Wi-Fi.
+        //
+        // The reader's own maximum is reached, so `pump` starts nothing whatever the build
+        // machine's connection is. `NWPathMonitor` is live in a host test and reports that
+        // connection whenever it likes; this test awaits, which gives it the turn the
+        // suite's synchronous tests never do.
+        let id = "stale-\(UUID().uuidString)"
+        let kept = Download(
+            id: "kept-\(UUID().uuidString)",
+            title: "Harbour Lights 01",
+            remote: URL(string: "https://example.invalid/hl01.epub")!,
+            mediaType: "application/epub+zip",
+            state: .finished,
+            downloadedBytes: 2_000
+        )
+        let queue = DownloadQueue(
+            store: try store(holding: [kept, queued(id: id)]),
+            settings: {
+                AppSettings(downloadOverWifiOnly: true, maximumDownloadBytes: 1_000)
+            }
+        )
+        onCellular(queue)
+        let download = try #require(queue.library[id])
+
+        // The transfer the return of Wi-Fi started, standing in the slot.
+        let replacement = Task<Void, Never> {}
+        queue.running[id] = replacement
+
+        // The transfer the earlier hold cancelled, unwinding late.
+        let stale = Task { @MainActor in await queue.transfer(download, seriesHint: nil) }
+        stale.cancel()
+        await stale.value
+
+        #expect(
+            queue.running[id] == replacement,
+            "A cancelled transfer took the slot of the one that replaced it."
+        )
     }
 
     @Test("A connection that drops and returns ten times moves the row ten times, not more")
