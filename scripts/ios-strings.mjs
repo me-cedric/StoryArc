@@ -100,11 +100,32 @@ export const derivedSkeleton = (literal) => {
     return skeleton(key)
 }
 
+/** A count written into a sentence: `%#@attempts@` names a block beside the value. */
+const SUBSTITUTION = /%#@([^@]+)@/g
+
+/**
+ * Every substitution a value names is present, and every form of it is translated.
+ *
+ * A substituted plural carries a `stringUnit` *and* a `substitutions` block, so a check that
+ * read the `stringUnit` and returned called the language done. A language could then ship
+ * `Échec après %#@attempts@ : %1$@` to a reader, and `xcstringstool compile` wrote that token
+ * into `fr.lproj` without a word.
+ */
+const substituted = (localization) => {
+    const named = [...(localization.stringUnit?.value ?? '').matchAll(SUBSTITUTION)]
+    return named.every(([, name]) => {
+        const forms = Object.values(localization.substitutions?.[name]?.variations?.plural ?? {})
+        return forms.length > 0 && forms.every((f) => f.stringUnit?.state === 'translated')
+    })
+}
+
 /** Whether one language has a usable value: a plain one, or every plural form. */
 const translated = (entry, language) => {
     const localization = entry.localizations?.[language]
     if (!localization) return false
-    if (localization.stringUnit) return localization.stringUnit.state === 'translated'
+    if (localization.stringUnit) {
+        return localization.stringUnit.state === 'translated' && substituted(localization)
+    }
     const plural = localization.variations?.plural
     if (plural) {
         const forms = Object.values(plural)
@@ -243,6 +264,40 @@ const selfTest = () => {
     const halfPlural = JSON.parse(JSON.stringify(plural))
     halfPlural.localizations.de.variations.plural.other.stringUnit.state = 'new'
     if (translated(halfPlural, 'de')) fail('a plural missing one form is reported translated')
+
+    // The other plural shape. A count inside a sentence is a *substitution*: the value holds
+    // `%#@name@` and the forms sit in a block beside it, not under `variations`. The entry
+    // carries a `stringUnit` too, so a check that stopped at the `stringUnit` passed a
+    // language shipping the raw `%#@attempts@` token to a reader. Measured: the French
+    // substitutions block was deleted and every gate stayed green.
+    const forms = (one, other) => ({
+        plural: {
+            one: { stringUnit: { state: 'translated', value: one } },
+            other: { stringUnit: { state: 'translated', value: other } },
+        },
+    })
+    const substitution = {
+        localizations: Object.fromEntries(
+            LANGUAGES.map((l) => [
+                l,
+                {
+                    stringUnit: { state: 'translated', value: 'Failed after %#@attempts@: %1$@' },
+                    substitutions: {
+                        attempts: { argNum: 2, formatSpecifier: 'lld', variations: forms('%arg attempt', '%arg attempts') },
+                    },
+                },
+            ]),
+        ),
+    }
+    if (!LANGUAGES.every((l) => translated(substitution, l))) {
+        fail('a fully translated substitution is reported untranslated')
+    }
+    const noBlock = JSON.parse(JSON.stringify(substitution))
+    delete noBlock.localizations.fr.substitutions
+    if (translated(noBlock, 'fr')) fail('a value naming a substitution it does not carry is reported translated')
+    const halfSubstitution = JSON.parse(JSON.stringify(substitution))
+    halfSubstitution.localizations.es.substitutions.attempts.variations.plural.other.stringUnit.state = 'new'
+    if (translated(halfSubstitution, 'es')) fail('a substitution missing one form is reported translated')
 
     console.log(ok ? 'self-test passed' : 'self-test FAILED')
     process.exitCode = ok ? 0 : 1
