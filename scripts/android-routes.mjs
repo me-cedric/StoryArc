@@ -191,6 +191,10 @@ export const ROUTES = [
 
     // --- Library: the chip row, the menus behind it, and what narrowing produces ------
     ['Library > list layout', [NAMES.library, named('library_layout_list')]],
+    // The toggle is named for the layout it offers, so this is the way back as well as a frame:
+    // the layout persists, and a list-layout capture left the next run's list step with nothing
+    // to tap until this route put the grid back.
+    ['Library > grid layout', [NAMES.library, named('library_layout_grid')]],
     // The shelf opens narrowed to what is on the device. Tapping the chip widens it.
     ['Library > everywhere', [NAMES.library, named('source_on_this_device')]],
     ['Library > sort menu', [NAMES.library, named('library_sort_chip')]],
