@@ -26,13 +26,20 @@ import WebKit
 ///
 /// **Each run opens the web view before it measures it.** WebKit starts no networking
 /// process until a page asks for the network, and that start costs whatever the machine
-/// can spare. Measured on 2026-09-06, with the first load unmeasured, the six required
-/// vectors arrive 0.8 to 1.6 seconds into the window; without it they arrived at 4.2 to
-/// 5.7 seconds on a simulator that had just booted, and on one run at over 8 seconds —
-/// past the end of the window, so ``control`` reported all six missing at once and the
+/// can spare. Measured on 2026-09-06, with the first load unmeasured, all eight vectors
+/// arrive 0.3 to 3.3 seconds into the window; without it they arrived at 4.2 to 5.7
+/// seconds on a simulator that had just booted, and on one run at over 8 seconds — past
+/// the end of the window, so ``control`` reported every vector missing at once and the
 /// rule was left proven in neither direction. That signature — every vector missing
 /// together, while the page's own `style.css` was served — means the window expired,
 /// not that egress stopped. See ``render(deny:)``.
+///
+/// **A killed run looks different, and is not a regression.** The two rendering tests
+/// are the longest in the package, so a machine short of resources kills this run before
+/// any other. `xcodebuild` then names both under `Failing tests:` and records no issue
+/// against either. A real egress regression fails one test, names it, and prints the
+/// vectors it expected. Nothing recorded means nothing was measured: run it again, and
+/// without `-quiet`, which is what hides the reason the kill was reported with.
 ///
 /// **Running it.** `pnpm test:ios:epub`, which needs a simulator; `swift test` cannot
 /// build this package at all. That script passes `-collect-test-diagnostics never` on
@@ -41,9 +48,10 @@ import WebKit
 /// thirteen-second answer into an eleven-minute one at exactly the moment someone needs
 /// it quickly — when the egress rule has just broken. Budget for it: the two rendering
 /// tests run concurrently and each takes the opening load plus an eight-second window,
-/// which is what sets the floor for the whole `StoryArcEpub` suite of 35 tests — about
-/// thirteen seconds of testing, inside twenty to thirty seconds of `xcodebuild` against
-/// a simulator that is already awake, and a minute against one that is not.
+/// which is what sets the floor for the whole `StoryArcEpub` suite — 12.5 to 18.8
+/// seconds of testing over eight measured runs on 2026-09-06, inside thirty to forty
+/// seconds of `xcodebuild` against a simulator that is already awake, and a minute
+/// against one that is not.
 @MainActor
 @Suite("Publication egress")
 struct PublicationEgressTests {
@@ -53,7 +61,7 @@ struct PublicationEgressTests {
         let run = try await render(deny: false)
 
         #expect(run.served.contains { $0.hasSuffix("/style.css") }, "the page never loaded")
-        let missing = Vector.mustReach.map(\.rawValue).filter { !run.reached.contains($0) }
+        let missing = Vector.allCases.map(\.rawValue).filter { !run.reached.contains($0) }
         #expect(missing.isEmpty, "unblocked, every one of these should have arrived")
     }
 
@@ -82,6 +90,27 @@ struct PublicationEgressTests {
 
     /// One way a page has of reaching a host. Each gets its own listener, so a run
     /// names what escaped rather than only counting it.
+    ///
+    /// ``control`` requires all eight, which is the whole set ``denied`` forbids. The
+    /// two halves therefore make the same claim about the same vectors, in opposite
+    /// directions, and no vector is forbidden without first being shown to arrive.
+    ///
+    /// It required only six until 2026-09-06, and excluded ``frame`` and ``navigation``
+    /// on the ground that a subframe load and a top-level redirect were slower than the
+    /// rest and missed the window on a loaded machine. The opening load removed that
+    /// cause. It pays the networking process's start before the window opens, so the
+    /// window measures the page rather than a daemon.
+    ///
+    /// Measured on 2026-09-06, over three runs with the opening load in place. All
+    /// eight arrived on every run. The six quick ones arrived 0.3 to 2.3 seconds into
+    /// the window and ``frame`` arrived at 0.9 to 1.9 seconds. ``navigation`` is the
+    /// slowest, because the page fires it on a two-second timer: it arrived at 2.5,
+    /// 2.7 and 3.2 seconds. The window is eight seconds, so the margin over the
+    /// slowest arrival is a factor of 2.5.
+    ///
+    /// A vector that stops arriving here *is* a defect, even though ``denied`` still
+    /// passes. The control has then quietly stopped proving that much of ``denied``,
+    /// and an empty result is also what a broken vector looks like.
     enum Vector: String, CaseIterable {
         case image
         case scriptedImage
@@ -91,35 +120,6 @@ struct PublicationEgressTests {
         case socket
         case frame
         case navigation
-
-        /// The floor an unguarded run has to clear, and only the floor.
-        ///
-        /// These six reached their listener on every run measured — six runs, across
-        /// an iOS 26.5 and an iOS 27.0 simulator on Xcode 26.6. ``frame`` and
-        /// ``navigation`` are not among them, and not because they cannot arrive:
-        /// both were seen to arrive, repeatedly, on both simulators. They are absent
-        /// because they arrive only *sometimes*. A subframe load and a top-level
-        /// redirect are slower than the other six — the redirect does not even fire
-        /// until two seconds into an eight-second window — and on a loaded machine
-        /// either can miss it.
-        ///
-        /// So the control asserts a floor rather than an exact set, which is the
-        /// difference between this suite and the version that was red. That one
-        /// asserted equality against these same six, with a comment claiming a frame
-        /// and a navigation *never* arrive from a `readium://` document. They do, most
-        /// runs, so equality failed most runs — and passed on the runs where the
-        /// simulator happened to be slow enough. It was a test that told you about the
-        /// machine's mood, not about the code.
-        ///
-        /// A vector arriving here that is not on this list is not a defect: it is one
-        /// more thing ``denied`` has to block, and does — ``denied`` asserts nothing
-        /// reaches, over all eight, and that is where a frame and a navigation are
-        /// really covered. A vector on this list that stops arriving *is* a defect,
-        /// because the control has then quietly stopped proving that much of
-        /// ``denied``.
-        static var mustReach: [Vector] {
-            [.image, .scriptedImage, .fetch, .request, .beacon, .socket]
-        }
     }
 
     private struct Run {
@@ -160,11 +160,17 @@ struct PublicationEgressTests {
         // signature of the window expiring rather than of egress being stopped. This
         // load pays the cost first; the window that follows measures the page.
         //
-        // Twelve seconds, not sixty. A run that hangs past about thirty seconds is
-        // killed, and `Test crashed with signal kill` names nothing. Twelve covers
-        // every start measured here — the slowest was over eight — and leaves the
-        // eight-second window inside the budget. A start that takes longer than this
-        // is reported as ``Failure/networkNeverStarted``, which says what happened.
+        // Twelve seconds, not sixty and not six. A run that hangs is killed, and the
+        // kill names nothing. Measured on 2026-09-06, over fifteen starts on a machine
+        // running four other build agents: the median start took 4.5 seconds, eleven
+        // took under 6, and the slowest took 10.2 seconds. That slowest start went on
+        // to pass, all eight vectors arriving inside the window that followed.
+        //
+        // So do not cut this ceiling to shorten the run. A start of 10.2 seconds is a
+        // run that works, and a ceiling under it turns that run into a
+        // ``Failure/networkNeverStarted`` that names a fault the code does not have. A
+        // wrong red costs more than a slow green. Twelve clears the slowest start
+        // measured and still fires long before a run could sit here for a minute.
         webView.load(URLRequest(url: openerURL))
         guard try await arrived(at: opener, within: .seconds(12)) else {
             throw Failure.networkNeverStarted
@@ -183,7 +189,9 @@ struct PublicationEgressTests {
         // timer. A refused connection is quicker than an accepted one, so the wait has
         // to be long enough that the control cannot pass for being slow. Both halves
         // share this window, which is the only thing that makes their two results
-        // comparable — shorten it here and ``denied`` gets easier for free.
+        // comparable — shorten it here and ``denied`` gets easier for free. The
+        // slowest vector measured on 2026-09-06 was the redirect, at 3.2 seconds, so
+        // eight seconds is a margin of 2.5 and not padding.
         try await Task.sleep(for: .seconds(8))
 
         return Run(
