@@ -272,31 +272,39 @@ looks like a music player.
   breakpoints to that count and not to any cover. `:app`'s
   `ShelvesAskOneRuleTest` holds the shape by name: a shelf drawn inside a pane
   asks its own width and never the window's, and a full-width shelf asks the
-  window. **Still open. Measured on 2026-09-06, not resolved:** the wide tier's
-  threshold. Android takes 158 at a shelf of 840 dp; iOS takes it at 900 pt
-  (`confidentShelfWidth`), and that 900 is in no register. The simulator device
-  profiles give the current iPad line 744, 820, 834, 1024 and 1032 pt in
-  portrait, and 1133, 1180, 1210, 1366 and 1376 pt in landscape. **No iPad has
-  a full-screen width between 840 and 899**, and the library shelf reaches
-  neither number, because `LibraryPanes` caps its column at 760 pt. That is not
-  enough to move 900 to 840. *Split View, Slide Over and multi-window* requires
-  a resized window to reflow continuously, and `WindowClass.swift` names Stage
-  Manager, so a window dragged to 870 pt is a full-width shelf inside the band.
-  The two numbers disagree there — on Home's *see all* grid, on a collection's
-  grid, on Search and on Downloads. Those are the iOS surfaces that are handed
-  a whole window and ask `coverMinimumWidth`. The library's own shelf is capped
-  at 760 pt, and the iOS browse grids set fixed minimums and never ask at all;
-  it is **Android** whose three remote-browse grids ask the window, as the
-  bullet below records. Moving iOS to 840 is a behaviour change on a supported
-  geometry. Neither number moves until the two are compared on one tablet — a
-  thing to settle, not a licence to copy either.
-  `CoverMinimumWidthTests` now pins every width named here, 839 and 840
-  included, so whoever takes the decision fails a test by name and comes back
-  to this paragraph. The number stays in code on both platforms and not in
-  `packages/design-tokens`: `layout.json` holds the tier *values*
-  (`grid.minCoverWidth`, 104 / 132 / 158) and no breakpoint at all, and a token
-  for one contested number would generate two app copies of a divergence rather
-  than close it.
+  window.
+- **One wide-tier threshold, 840 on both platforms. Decided on 2026-09-06.**
+  Android has always taken 158 at a shelf of 840 dp. iOS took it at 900 pt
+  (`confidentShelfWidth`), and `confidentShelfWidth` is now 840. **iOS moved;
+  Android did not.** 840 is Material's expanded breakpoint and is already this
+  app's pane-count threshold — `StoryArcWindowClass.showsTwoPanes`, true at 840,
+  the count register #4 ties the breakpoints to — while 900 appeared in no
+  register at all. The deciding argument is what a reader sees: at 840 the
+  window gains a second pane, so covers stepping at 900 gave a reader dragging a
+  window wider **two** reflows a few points apart. At one number they get one
+  change, and fewer, larger, more confident covers arriving exactly as the
+  layout gains a pane read as one deliberate step rather than two twitches.
+- **What that moved, and for whom.** This is a behaviour change, not a rename.
+  The simulator device profiles give the current iPad line 744, 820, 834, 1024
+  and 1032 pt in portrait, and 1133, 1180, 1210, 1366 and 1376 pt in landscape,
+  so **no iPad has a full-screen width in [840, 899)**. But the app sets no
+  `UIRequiresFullScreen`, *Split View, Slide Over and multi-window* asks a
+  resized window to reflow continuously, and `WindowClass.swift` names Stage
+  Manager — so a window dragged to, say, 870 pt is a full-width shelf inside the
+  band. There the covers were 132 pt and are now 158, on the four iOS surfaces
+  handed a whole window: Home's *see all* grid, a collection's grid, Search and
+  Downloads. **The library's own shelf is unaffected on both platforms**, because
+  `LibraryPanes` caps its column at 760 pt — below 840 as it was below 900, so it
+  keeps the middle tier — and Android's library grid asks its pane through
+  `ShelfColumns.of`. The iOS browse grids set fixed minimums and never ask at
+  all; it is **Android** whose three remote-browse grids ask the window, as the
+  bullet below records. Both suites pin 839, 840 and 870 under one pair of test
+  names — *the wide tier starts at 840, where a window gains its second pane* and
+  *a shelf of 870 takes the wide tier, the band iOS moved on 2026-09-06* — so the
+  two numbers cannot drift apart again. The threshold stays in code on both
+  platforms and not in `packages/design-tokens`: `layout.json` holds the tier
+  *values* (`grid.minCoverWidth`, 104 / 132 / 158) and no breakpoint at all, and
+  one number does not earn a token category.
 - **A maximum as well as a minimum, always.** A lower bound on its own lets a
   narrow window stretch one cover edge to edge. Android caps at 168 pt; iOS
   derives 1.6 × the minimum, because SwiftUI's `adaptive(minimum:maximum:)`
