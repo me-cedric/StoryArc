@@ -186,6 +186,41 @@ struct LibrarySortSpeaksTheReadersLanguageTests {
         #expect(inGerman.map(\.name) == ["Ñu", "Nube"], "the sidebar ignored the chosen language")
     }
 
+    /// Three series, so a disagreement about *Ñandú* has somewhere to show.
+    private static let threeSeries: [Publication] = ["Nube", "Ñandú", "Nuez"].map { name in
+        Publication(
+            identity: PublicationIdentity(normalizedPath: "/fixtures/\(name) #1.cbz"),
+            format: .cbz,
+            displayTitle: "\(name) #1",
+            series: name,
+            origin: .inferred
+        )
+    }
+
+    /// The column and the grid put *Ñandú* in the same place, on the screen that draws both.
+    ///
+    /// The two orders were asserted separately above and on their own that is not the property
+    /// the reader sees. An iPad draws the sidebar beside the shelf, so what is wrong when they
+    /// disagree is the *disagreement*, and a case that pins each list against its own table
+    /// stays green while both drift together. This one compares the two lists to each other, so
+    /// it fails whichever side moves.
+    @Test("The sidebar and the shelf beside it file a series in the same place")
+    func theSidebarAndTheShelfAgree() {
+        InterfaceLanguage.choose("es")
+        defer { InterfaceLanguage.choose(nil) }
+
+        let model = LibraryModel()
+        model.publications = Self.threeSeries
+        model.query = LibraryQuery(sort: .series)
+        model.rebuild()
+
+        let onTheShelf = model.visible.compactMap(\.series)
+        let inTheColumn = SidebarSeriesList.series(in: Self.threeSeries, locale: .storyArc).map(\.name)
+
+        #expect(inTheColumn == ["Nube", "Nuez", "Ñandú"], "the column is not in Spanish order")
+        #expect(onTheShelf == inTheColumn, "the sidebar and the shelf file a series differently")
+    }
+
     // MARK: - The shell, which is where a language change happens
 
     /// The shell re-files the shelf when the reader changes the language.
