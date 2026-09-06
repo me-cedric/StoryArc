@@ -61,6 +61,37 @@ struct DownloadStoreTests {
         #expect(store.library()["a"]?.state == .queued)
     }
 
+    @Test("A paused download comes back with the reason it was paused for")
+    func pauseReasonIsDurable() throws {
+        // `offline-downloads` requires a held queue to say what it is waiting for, and the
+        // settings screen reads the records rather than a live queue. A record that came
+        // back queued made every one of those sentences unreachable in the running app.
+        let store = try fixture().store
+        let library = DownloadLibrary()
+            .queueing(download("wifi"))
+            .queueing(download("space"))
+            .queueing(download("reader"))
+            .marking("wifi", as: .paused(.waitingForWiFi))
+            .marking("space", as: .paused(.outOfSpace))
+            .marking("reader", as: .paused(.byReader))
+        store.save(library)
+
+        let read = store.library()
+        #expect(read["wifi"]?.state == .paused(.waitingForWiFi))
+        #expect(read["space"]?.state == .paused(.outOfSpace))
+        #expect(read["reader"]?.state == .paused(.byReader))
+        #expect(read.hold(limit: nil) == .outOfSpace)
+    }
+
+    @Test("A record written before the reason was kept comes back queued")
+    func recordWithoutAPauseIsQueued() throws {
+        // Written by a build that had no pause field. Decoding has to tolerate its absence,
+        // because the alternative is a reader whose whole download list disappears.
+        let store = try fixture().store
+        store.save(DownloadLibrary().queueing(download("a")))
+        #expect(store.library()["a"]?.state == .queued)
+    }
+
     @Test("A failure and its count are durable")
     func failureIsDurable() throws {
         // The count is what stops the third attempt from being the first attempt again.

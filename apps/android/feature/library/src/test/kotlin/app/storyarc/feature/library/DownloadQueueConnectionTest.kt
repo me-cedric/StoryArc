@@ -148,10 +148,10 @@ class DownloadQueueConnectionTest {
 
     @Test
     fun `a queue rebuilt on mobile data is held again and says so`() {
-        // The store carries no pause reason on either platform -- a paused record comes back
-        // queued -- so this is not a restore. The queue asks the connection as it starts and
-        // reaches the same answer, which is what makes the reason true rather than remembered:
-        // a process restarted on Wi-Fi shows no hold at all.
+        // The reason is persisted now, so a rebuilt queue reads it back -- and then asks the
+        // connection anyway on its first pump, which is what keeps the reason true rather than
+        // merely remembered: a process restarted on Wi-Fi puts the row back in the queue and
+        // shows no hold at all.
         val id = "relaunch"
         val store = store(queued(id))
         val first = queue(store, MutableStateFlow(true))

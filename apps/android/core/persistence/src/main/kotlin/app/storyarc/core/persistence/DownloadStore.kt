@@ -243,6 +243,20 @@ private data class StoredDownload(
      * Defaulted, because a record written by a build before this field existed has none.
      */
     val verificationFailures: Int = 0,
+    /**
+     * Why the download stopped, when it stopped for a reason the reader can be told.
+     *
+     * `offline-downloads` requires a held queue to say what it is waiting for, and the
+     * settings screen asks the *records* rather than a live queue. Without this the reason
+     * died with the process: every paused row came back queued, so the screen could never
+     * draw the sentence the spec asks for.
+     *
+     * The enum's own `name`. Each platform's store is its own -- iOS writes its enum's case
+     * names, which are the same three reasons in Swift's spelling, and neither store ever
+     * reads the other's file. Defaulted, because a record written by a build before this
+     * field existed has none.
+     */
+    val pause: String? = null,
 ) {
     constructor(download: Download) : this(
         id = download.id,
@@ -257,22 +271,30 @@ private data class StoredDownload(
         failure = (download.state as? Download.State.Failed)?.reason,
         attempts = (download.state as? Download.State.Failed)?.attempts ?: 0,
         verificationFailures = download.verificationFailures,
+        pause = (download.state as? Download.State.Paused)?.reason?.name,
     )
 
-    fun download(): Download = Download(
-        id = id,
-        sourceId = sourceId?.let { runCatching { UUID.fromString(it) }.getOrNull() },
-        title = title,
-        remote = remote,
-        mediaType = mediaType,
-        state = when {
-            isFinished -> Download.State.Finished
-            failure != null -> Download.State.Failed(failure, attempts)
-            else -> Download.State.Queued
-        },
-        expectedBytes = expectedBytes,
-        downloadedBytes = downloadedBytes,
-        completedAt = completedAt?.let(::Date),
-        verificationFailures = verificationFailures,
-    )
+    fun download(): Download {
+        // A name this build does not know is not a reason to lose the download. Queued is the
+        // honest fallback: the queue asks the connection and the volume on its next pump and
+        // writes whichever reason is true now.
+        val paused = pause?.let { runCatching { Download.Pause.valueOf(it) }.getOrNull() }
+        return Download(
+            id = id,
+            sourceId = sourceId?.let { runCatching { UUID.fromString(it) }.getOrNull() },
+            title = title,
+            remote = remote,
+            mediaType = mediaType,
+            state = when {
+                isFinished -> Download.State.Finished
+                failure != null -> Download.State.Failed(failure, attempts)
+                paused != null -> Download.State.Paused(paused)
+                else -> Download.State.Queued
+            },
+            expectedBytes = expectedBytes,
+            downloadedBytes = downloadedBytes,
+            completedAt = completedAt?.let(::Date),
+            verificationFailures = verificationFailures,
+        )
+    }
 }

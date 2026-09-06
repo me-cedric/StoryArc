@@ -92,7 +92,13 @@ public struct Download: Sendable, Identifiable, Equatable {
     }
 
     /// Why a download is not running, in the reader's terms rather than the system's.
-    public enum Pause: Sendable, Equatable {
+    ///
+    /// Carries a raw value so ``DownloadStore`` can write the reason down: a paused record
+    /// that came back queued made every "waiting for Wi-Fi" sentence unreachable in the
+    /// running app. The case name is the spelling, and each platform's store is its own —
+    /// Android writes its enum's `name`, which is the same three reasons in Kotlin's
+    /// spelling, and neither store ever reads the other's file.
+    public enum Pause: String, Sendable, Equatable {
         /// The reader asked.
         case byReader
 

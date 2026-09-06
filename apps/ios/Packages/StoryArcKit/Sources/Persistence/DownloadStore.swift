@@ -319,6 +319,17 @@ private struct StoredDownload: Codable {
     /// existed has none, and `ignoreUnknownKeys` is not the same as a default.
     let verificationFailures: Int?
 
+    /// Why the download stopped, when it stopped for a reason the reader can be told.
+    ///
+    /// `offline-downloads` requires a held queue to say what it is waiting for, and the
+    /// settings screen asks the *records* rather than a live queue. Without this the reason
+    /// died with the process: every paused row came back queued, so the screen could never
+    /// draw the sentence the spec asks for.
+    ///
+    /// Optional for ``verificationFailures``' reason: a record written before this field
+    /// existed has none, and it comes back queued.
+    let pause: String?
+
     init(_ download: Download) {
         id = download.id
         sourceID = download.sourceID
@@ -330,6 +341,11 @@ private struct StoredDownload: Codable {
         completedAt = download.completedAt
         verificationFailures = download.verificationFailures
         isFinished = download.state.isFinished
+        if case let .paused(reason) = download.state {
+            pause = reason.rawValue
+        } else {
+            pause = nil
+        }
         if case let .failed(reason, count) = download.state {
             failure = reason
             attempts = count
@@ -357,6 +373,10 @@ private struct StoredDownload: Codable {
     private var state: Download.State {
         if isFinished { return .finished }
         if let failure { return .failed(reason: failure, attempts: attempts) }
+        // A spelling this build does not know is not a reason to lose the download. Queued
+        // is the honest fallback: the queue asks the connection and the volume on its next
+        // pump and writes whichever reason is true now.
+        if let pause, let reason = Download.Pause(rawValue: pause) { return .paused(reason) }
         return .queued
     }
 }
