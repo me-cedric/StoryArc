@@ -49,26 +49,13 @@ struct DownloadQueueConnectionTests {
         )
     }
 
-    /// How many transfers the queue began, counted where it asks for a credential.
+    /// A queue over that store, with the reader's Wi-Fi-only setting on.
     ///
-    /// `running` cannot count them: it is keyed by download id, so a second start of the same
-    /// download overwrites the first entry. `DownloadQueueWakingTests` counts the same way.
-    private final class Starts {
-        var count = 0
-    }
-
-    private func queue(
-        _ store: DownloadStore,
-        starts: Starts? = nil
-    ) -> DownloadQueue {
-        DownloadQueue(
-            store: store,
-            credential: { _ in
-                starts?.count += 1
-                return nil
-            },
-            settings: { AppSettings(downloadOverWifiOnly: true) }
-        )
+    /// Nothing counts starts here: a report that repeats the last one starting no transfer is
+    /// `NetworkCost`'s claim, and `DownloadQueueWakingTests` already counts it at the
+    /// credential. What this suite counts is what the *record* does.
+    private func queue(_ store: DownloadStore) -> DownloadQueue {
+        DownloadQueue(store: store, settings: { AppSettings(downloadOverWifiOnly: true) })
     }
 
     /// The connection the queue is built on: cellular, which the monitor also assumes until it
@@ -204,17 +191,5 @@ struct DownloadQueueConnectionTests {
         let expected: [Download.State] = (0..<5)
             .flatMap { _ in [Download.State.running, .paused(.waitingForWiFi)] }
         #expect(seen == expected, "Ten transitions did not move the row exactly ten times.")
-    }
-
-    @Test("Repeating the same connection report changes nothing")
-    func repeatedReportsAreQuiet() async throws {
-        let id = "repeats-\(UUID().uuidString)"
-        let starts = Starts()
-        let queue = queue(try store(holding: [queued(id: id)]), starts: starts)
-
-        for _ in 0..<5 { onWifi(queue) }
-        for _ in 0..<50 { await Task.yield() }
-
-        #expect(starts.count == 1, "Five identical reports started more than one transfer.")
     }
 }
