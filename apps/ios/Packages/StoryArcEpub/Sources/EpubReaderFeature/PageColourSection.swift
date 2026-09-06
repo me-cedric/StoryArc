@@ -13,6 +13,49 @@ internal import StoryArcCore
 ///
 /// It is a seventh slot, not a seventh preset: choosing it keeps the typography the
 /// reader already has, and tapping one of the six leaves it behind.
+/// What a pairing will be like to read, in words a reader can act on.
+///
+/// A reader choosing a background colour does not know what "4.7 to 1" means. A number
+/// nobody can interpret is not information; it is decoration that looks like
+/// information. So the sheet leads with one of three bands and states the measured
+/// ratio after it. Nothing is dropped: `reading-themes` requires a refused pairing to
+/// be stated "with the measured ratio stated", a reader who is refused deserves to know
+/// by how much, and a developer reading a bug report needs the number.
+///
+/// **The two boundaries are the domain's own, not new ones.** ``ReadingContrast/aaa``
+/// at 7, which a derived text colour aims for and every built-in preset clears, and
+/// ``ReadingContrast/aa`` at 4.5, below which the sheet refuses the pairing outright. A
+/// band drawn at any other number would let the words and the refusal disagree about
+/// the same pairing — the sheet calling a pairing comfortable and then refusing it.
+///
+/// The words are about reading rather than about the numbers behind them, because a
+/// reader wants to know whether a chapter will be comfortable, not whether a guideline
+/// is met. They replace `theme.pageColour.belowAAA`, which said the same thing in the
+/// arithmetic the reader could not read.
+///
+/// Android mirrors this in `PageColourSection.kt`.
+enum ReadingComfort: String, CaseIterable {
+    /// 7 to 1 and above.
+    case easy
+    /// 4.5 to 1 up to 7 to 1. Usable, and the sheet says what it costs.
+    case tiring
+    /// Below 4.5 to 1. Refused.
+    case faint
+
+    static func band(for ratio: Double) -> ReadingComfort {
+        if ratio >= ReadingContrast.aaa { return .easy }
+        return ratio >= ReadingContrast.aa ? .tiring : .faint
+    }
+
+    /// The catalogue key that says what this band will be like to read.
+    ///
+    /// Built from the case name rather than written out three times, so a band cannot
+    /// exist without a key. `PageColourBandTests` asserts the catalogue answers each of
+    /// them in all four languages, which is the check a literal at the call site would
+    /// otherwise buy from `pnpm strings:ios`.
+    var key: String { "theme.pageColour.band.\(rawValue)" }
+}
+
 struct PageColourSection: View {
     @Environment(\.theme) private var theme
 
@@ -51,6 +94,10 @@ struct PageColourSection: View {
             }
 
             if let refused {
+                // The band leads here too, so the refusal opens with what the reader
+                // can act on rather than with arithmetic.
+                band(for: refused)
+
                 // The number, not just the word. `reading-themes`: refused "with the
                 // measured ratio stated", because "that is not allowed" without a
                 // number is an obstacle rather than an explanation.
@@ -86,10 +133,25 @@ struct PageColourSection: View {
         }
     }
 
+    /// What a pairing will be like to read, said before the number that measures it.
+    ///
+    /// `textPrimary` against the ratio line's `textSecondary`: the band is the sentence
+    /// the reader is meant to read first, and the ratio is the detail under it.
+    private func band(for ratio: Double) -> some View {
+        Text(LocalizedStringKey(ReadingComfort.band(for: ratio).key), bundle: .module)
+            .textRole(.footnote)
+            .foregroundStyle(theme.palette.textPrimary)
+    }
+
     /// The pairing in force: what it looks like, what it measures, what to do next.
     private func inUse(_ palette: ReaderPalette) -> some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
             sample(palette)
+
+            // The band first, because it is the part a reader can act on, and the
+            // measured ratio under it, because the spec keeps the number and a bug
+            // report needs it.
+            band(for: palette.contrast)
 
             Text(
                 "theme.pageColour.ratio \(Self.formatted(palette.contrast))",
@@ -98,15 +160,6 @@ struct PageColourSection: View {
             .textRole(.footnote)
             .monospacedDigit()
             .foregroundStyle(theme.palette.textSecondary)
-
-            if !palette.meetsAAA {
-                // Not a refusal — 4.5 is the floor and this pairing is above it. But
-                // every built-in preset clears 7:1, so a reader should know when
-                // their own choice does not.
-                Text("theme.pageColour.belowAAA", bundle: .module)
-                    .textRole(.footnote)
-                    .foregroundStyle(theme.palette.textTertiary)
-            }
 
             // `reading-themes`: "a seventh, user-named slot". The name is the
             // reader's, so it is a field rather than something generated for them.

@@ -2335,31 +2335,92 @@
         }
       }
     },
-    "theme.pageColour.belowAAA": {
+    "theme.pageColour.band.easy": {
+      "comment": "What a page colour will be like to read. Seven to one and above.",
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lesbar, aber unter dem Verhältnis 7 zu 1, das jedes mitgelieferte Thema erreicht."
+            "value": "Angenehm zu lesen, ein ganzes Kapitel lang."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Readable, but below the 7 to 1 that every built-in theme meets."
+            "value": "Comfortable to read for a whole chapter."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Legible, pero por debajo del 7 a 1 que cumple cada tema incluido."
+            "value": "Cómodo de leer durante todo un capítulo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lisible, mais en dessous du 7 pour 1 que respecte chaque thème fourni."
+            "value": "Confortable à lire pendant tout un chapitre."
+          }
+        }
+      }
+    },
+    "theme.pageColour.band.faint": {
+      "comment": "What a page colour will be like to read. Below four point five to one, so refused.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu blass zum Lesen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too faint to read."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demasiado tenue para leer."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trop pâle pour être lu."
+          }
+        }
+      }
+    },
+    "theme.pageColour.band.tiring": {
+      "comment": "What a page colour will be like to read. Four point five to one up to seven to one.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lesbar, aber anstrengend über ein ganzes Kapitel."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Readable, but tiring over a whole chapter."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Legible, pero cansado a lo largo de un capítulo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisible, mais fatigant sur tout un chapitre."
           }
         }
       }
