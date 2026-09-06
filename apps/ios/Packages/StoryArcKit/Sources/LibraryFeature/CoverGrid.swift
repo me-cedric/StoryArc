@@ -5,12 +5,24 @@ public import StoryArcCore
 
 /// The width at or above which the shelf stops being a widened phone.
 ///
-/// **Corrected on 2026-09-06.** This said "an iPad Pro clears it in either orientation",
-/// and an 11-inch iPad Pro is 834 points across in portrait, which clears neither 900 nor
-/// Android's 840. What is true, against the widths read from the simulator device profiles
-/// that day: a full-width shelf clears this on every current iPad in landscape, and in
-/// portrait only on a 13-inch one. The *library's* shelf clears it nowhere at all, because
-/// ``LibraryPanes`` caps that column at 760 points.
+/// **Decided on 2026-09-06: 840, the number Android has always used.** This was 900, and
+/// `design.md` §4 recorded the divergence as open. 840 is Material's expanded breakpoint
+/// and the width at which a window gains its second pane, so the covers now step where the
+/// layout steps. At 900 a reader dragging a window wider met two reflows a few points
+/// apart; they now meet one.
+///
+/// **This moved behaviour, and here is whose.** No iPad has a full-screen width in
+/// [840, 899) — the current line is 744, 820, 834, 1024 and 1032 points in portrait and
+/// 1133, 1180, 1210, 1366 and 1376 in landscape — but the app sets no `UIRequiresFullScreen`
+/// and `native-experience` asks a resized window to "reflow continuously", and
+/// ``StoryArcWindowClass`` names Stage Manager as one of the events that changes the number.
+/// A window dragged to, say, 870 points is a full-width shelf inside that band, and it now
+/// draws 158 pt covers where it drew 132. `CoverMinimumWidthTests` pins 839, 840 and 870.
+///
+/// Against the widths read from the simulator device profiles on 2026-09-06: a full-width
+/// shelf clears this on every current iPad in landscape, and in portrait only on a 13-inch
+/// one. The *library's* shelf clears it nowhere at all, because ``LibraryPanes`` caps that
+/// column at 760 points.
 ///
 /// **Which surfaces the tier governs.** Exactly three call sites read this number:
 /// ``CoverGrid``, ``SectionedShelf`` and `OnDeviceShelf`. Through them the tier belongs to
@@ -21,14 +33,10 @@ public import StoryArcCore
 /// function. It is *Android* whose three remote-browse grids ask the window, and `design.md`
 /// §4 describes that arrangement, not this one.
 ///
-/// Android takes the same tier at 840 dp. `design.md` §4 records that divergence as open,
-/// and it is still open: the argument for closing it by moving this number to 840 was that
-/// no iPad geometry falls between the two, and that argument holds only for full-screen
-/// devices. `native-experience` requires a resized window to "reflow continuously", and
-/// ``StoryArcWindowClass`` names Stage Manager as one of the events that changes the
-/// number, so a window dragged to 870 points is a shelf inside the band. Moving this
-/// constant changes what a reader sees there, and that is a comparison, not a rename.
-private let confidentShelfWidth: CGFloat = 900
+/// The number stays in code rather than in `packages/design-tokens`: `layout.json` holds the
+/// tier *values* under `grid` and no breakpoint at all, and one number does not earn a token
+/// category.
+private let confidentShelfWidth: CGFloat = 840
 
 /// How much wider a cover is drawn once the reader is at an accessibility text size.
 ///

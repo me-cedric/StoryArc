@@ -37,34 +37,64 @@ struct CoverMinimumWidthTests {
         #expect(coverMinimumWidth(shelfWidth: 402, textSize: size) == 104)
         #expect(coverMinimumWidth(shelfWidth: 599, textSize: size) == 104)
         #expect(coverMinimumWidth(shelfWidth: 600, textSize: size) == 132)
-        #expect(coverMinimumWidth(shelfWidth: 899, textSize: size) == 132)
-        #expect(coverMinimumWidth(shelfWidth: 900, textSize: size) == 158)
+        #expect(coverMinimumWidth(shelfWidth: 839, textSize: size) == 132)
+        #expect(coverMinimumWidth(shelfWidth: 840, textSize: size) == 158)
         #expect(coverMinimumWidth(shelfWidth: 1366, textSize: size) == 158)
     }
 
+    /// The wide tier and the second pane are one step, not two.
+    ///
+    /// Decided on 2026-09-06 and recorded in `design.md` §4. `confidentShelfWidth` was 900
+    /// and Android's threshold has always been 840, which is Material's expanded breakpoint
+    /// and `StoryArcWindowClass.showsTwoPanes`. At 900 a reader dragging a window wider met
+    /// two reflows a few points apart: the pane arrived, then the covers stepped. They now
+    /// meet one. Android asserts this boundary under this same name, so the two numbers
+    /// cannot drift apart again.
+    ///
+    /// **760 is not a device.** It is the ceiling ``LibraryPanes`` puts on the library
+    /// column, so it is the widest the *library* shelf is ever drawn, and it still takes the
+    /// middle tier. The library grid reaches the wide tier under no number this file names.
+    @Test(
+        "The wide tier starts at 840, where a window gains its second pane",
+        arguments: ordinarySizes
+    )
+    func theWideTierStartsWhereTheSecondPaneDoes(size: DynamicTypeSize) {
+        #expect(coverMinimumWidth(shelfWidth: 839, textSize: size) == 132)
+        #expect(coverMinimumWidth(shelfWidth: 840, textSize: size) == 158)
+        #expect(coverMinimumWidth(shelfWidth: 760, textSize: size) == 132)
+    }
+
+    /// The band the decision moved, asserted at its middle.
+    ///
+    /// No iPad has a full-screen width in [840, 899), but the app sets no
+    /// `UIRequiresFullScreen` and `native-experience` asks a resized window to reflow
+    /// continuously. A window dragged to 870 pt is a full-width shelf inside the band. It
+    /// drew the 132 pt tier before this decision and draws 158 after it. Android drew 158
+    /// there already, so this test is a pin there and a changed answer here.
+    @Test(
+        "A shelf of 870 takes the wide tier, the band iOS moved on 2026-09-06",
+        arguments: ordinarySizes
+    )
+    func theBandTheDecisionMovedTakesTheWideTier(size: DynamicTypeSize) {
+        #expect(coverMinimumWidth(shelfWidth: 870, textSize: size) == 158)
+    }
+
     /// Every shelf width an iPad can hand this function from a full window, plus the one
-    /// cap the library shelf carries, plus the threshold itself.
+    /// cap the library shelf carries.
     ///
     /// The device widths are the current iPad line's own, read on 2026-09-06 from the
     /// simulator device profiles — `mainScreenWidth / mainScreenScale`, in points, portrait
     /// then landscape. 744 and 1133 are the mini, 820 and 1180 the iPad and the 11-inch
     /// Air, 834 and 1210 the 11-inch Pro, 1024 and 1366 the 13-inch Air, 1032 and 1376 the
-    /// 13-inch Pro. No iPad has a full-window width between 840 and 899.
-    ///
-    /// **760 is not a device.** It is the ceiling ``LibraryPanes`` puts on the library
-    /// column, so it is the widest the *library* shelf is ever drawn, and it takes the
-    /// middle tier. The library grid reaches the wide tier under no number this file names.
-    ///
-    /// **839 and 840 are the assertions that are not vacuous.** Every other width here
-    /// answers the same whether the wide tier starts at 840 or at 900; those two do not.
-    /// `design.md` §4 records the divergence — Android takes 158 at 840 dp, iOS at 900 pt —
-    /// as open, so a change to `confidentShelfWidth` fails here and has to say so there.
+    /// 13-inch Pro. No iPad has a full-window width in [840, 899), which is why every width
+    /// here answers the same whether the wide tier starts at 840 or at 900. The widths that
+    /// do not are 839, 840 and 870, and they are asserted above.
     @Test(
         "Each shelf width an iPad can offer takes the tier it takes",
         arguments: ordinarySizes
     )
     func everySupportedWidthTakesItsTier(size: DynamicTypeSize) {
-        for width in [CGFloat(744), 760, 820, 834, 839, 840] {
+        for width in [CGFloat(744), 760, 820, 834] {
             #expect(
                 coverMinimumWidth(shelfWidth: width, textSize: size) == 132,
                 "a shelf of \(width) pt left the middle tier"

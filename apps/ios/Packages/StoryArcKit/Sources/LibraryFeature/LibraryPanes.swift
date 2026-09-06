@@ -89,7 +89,8 @@ extension LibraryView {
                     // the cap is 760, so the library shelf never reaches that tier at all.
                     // What 760 actually buys is the middle tier, five columns of cover, and a
                     // detail column the shelf does not eat. The minimum is the floor this
-                    // refuses to go under whatever the window does.
+                    // refuses to go under whatever the window does. The wide tier moved to
+                    // 840 the same day, which 760 still does not reach.
                     .navigationSplitViewColumnWidth(min: 320, ideal: 480, max: 760)
             } detail: {
                 NavigationStack(path: $detailPath) {
