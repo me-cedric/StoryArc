@@ -182,15 +182,58 @@ class DownloadQueueConnectionTest {
     }
 
     @Test
+    fun `a failed attempt keeps the bytes the next one will carry on from`() {
+        // `offline-downloads` names network loss first among the interruptions a download
+        // resumes from, and network loss reaches the queue as a failed attempt rather than as
+        // a hold. The queue deleted the download's whole directory on every failure, so the
+        // partial file went with it and the attempt after the backoff began at zero: the
+        // interruption the scenario names first was the one it did not answer.
+        val id = "failure-keeps"
+        val store = store(queued(id))
+        val partial = store.partial(queued(id)).apply {
+            parentFile?.mkdirs()
+            writeBytes(ByteArray(4_000))
+        }
+        val queue = queue(store, MutableStateFlow(true))
+
+        val state = failure(queue, id)
+
+        assertTrue("The transfer did not fail, so nothing here was measured: $state", state is Download.State.Failed)
+        assertTrue(
+            "A failed attempt deleted the fetched bytes, so the retry after it starts at zero.",
+            partial.isFile,
+        )
+        assertEquals(4_000L, partial.length())
+    }
+
+    /**
+     * The record once its transfer has failed, or whatever it reached before the wait ran out.
+     *
+     * The address resolves to nothing, so the failure is a name lookup and arrives in
+     * milliseconds. Driven rather than awaited because the transfer's own work is on
+     * `Dispatchers.IO` and only its ending is on the looper this test can idle.
+     */
+    private fun failure(queue: DownloadQueue, id: String): Download.State? {
+        val deadline = System.currentTimeMillis() + FAILURE_WAIT_MILLIS
+        while (System.currentTimeMillis() < deadline) {
+            shadowOf(getMainLooper()).idle()
+            val state = queue.library.value[id]?.state
+            if (state is Download.State.Failed) return state
+            Thread.sleep(POLL_MILLIS)
+        }
+        return queue.library.value[id]?.state
+    }
+
+    @Test
     fun `a connection that drops and returns ten times moves the row ten times not more`() {
         // What ten transitions in ten seconds do, stated. Each *change* moves the record
         // exactly once, and nothing else: the flow reports only a connection that differs, and
         // a pass that alters no record returns the same library, so the store is not written
         // at all -- asserted on the rule itself in `DownloadWifiHoldTest`.
         //
-        // So the reader pays ten writes for ten real transitions, and five fresh starts. With
-        // no Range request anywhere in the app those five begin at zero, which is the part of
-        // this that costs them data rather than disk.
+        // So the reader pays ten writes for ten real transitions, and five fresh starts. Each
+        // of those five carries on from the partial file the hold before it left, rather than
+        // beginning at zero, which is the part of this that costs them data rather than disk.
         val id = "flapping"
         val wifi = MutableStateFlow(true)
         val queue = queue(store(queued(id)), wifi)
@@ -205,5 +248,12 @@ class DownloadQueueConnectionTest {
 
         val expected = (0 until 5).flatMap { listOf(Download.State.Running, waiting) }
         assertEquals("Ten transitions did not move the row exactly ten times.", expected, seen)
+    }
+
+    private companion object {
+        /** Long enough for a name lookup that cannot succeed, short enough to notice a hang. */
+        const val FAILURE_WAIT_MILLIS = 20_000L
+
+        const val POLL_MILLIS = 10L
     }
 }

@@ -379,9 +379,9 @@ class DownloadQueue(
      * write only when a record actually moved.
      *
      * Cancelling is not deleting. The record and the bytes counted against it stay, and the
-     * download is started again when Wi-Fi returns. What the app cannot yet do is start it
-     * again *from* those bytes: there is no Range request anywhere in either tree, so a resumed
-     * transfer begins at zero.
+     * download is started again when Wi-Fi returns -- *from* those bytes, as of the partial
+     * file [attempt] writes and the `Range` request [OpdsClient.download] asks for the rest of
+     * it with. A partial the server will not carry on from starts over.
      */
     private fun holdForConnection() {
         val next = _library.value.reconsideringWifi { mayStart(it) }
@@ -494,7 +494,6 @@ class DownloadQueue(
         pump()
     }
 
-    /** One attempt, with no opinion about whether there will be another. */
     /**
      * One fetch of one download, resumed from whatever the last one left behind.
      *
@@ -611,7 +610,13 @@ class DownloadQueue(
             _library.value.marking(id, Download.State.Failed(reason, DownloadLibrary.ATTEMPT_LIMIT))
         }
         _library.value[id]?.let { download ->
-            store?.remove(download)
+            // The bytes go only when nothing is going to ask for the rest of them. Network
+            // loss is the first interruption `offline-downloads` names, it arrives here, and
+            // deleting the partial file was what made it restart at zero: the attempt after
+            // the backoff resumes from that file, so it has to outlive the failure between
+            // them. A download with no attempts left, or one that failed for a reason a
+            // retry cannot answer, still takes its whole directory with it.
+            if (!DownloadLibrary.shouldRetry(download)) store?.remove(download)
         }
         store?.save(_library.value)
     }
