@@ -51,6 +51,12 @@ extension ThemeAxesSheet {
         model.set(axis, to: model.theme.preset.values.value(of: axis))
     }
 
+    /// How far a finger may stray and still count as a press rather than a drag.
+    ///
+    /// `LongPressGesture`'s own `maximumDistance` default, applied to the drag that follows
+    /// the press rather than to the press itself.
+    private static let pressTravel: CGFloat = 10
+
     /// The sliders. One loop rather than five blocks, because the domain answers
     /// every question a slider asks: its range, its value, and how to set it.
     var fineAxes: some View {
@@ -85,11 +91,28 @@ extension ThemeAxesSheet {
                         // double tap on a slider returns that axis to its preset
                         // value. A long press on a control is the iOS idiom, and
                         // `simultaneousGesture` runs it beside the slider's own drag
-                        // rather than instead of it. A press that travels past
-                        // `LongPressGesture`'s 10-point tolerance cancels, so a drag
-                        // that pauses does not reset the axis it is setting.
+                        // rather than instead of it.
+                        //
+                        // **The reset waits for the finger to lift, and drops when the
+                        // finger travelled.** `LongPressGesture` on its own ends the
+                        // moment its half-second elapses, with the finger still down.
+                        // A reader who rests on the thumb before dragging — reading
+                        // the value, or deciding — therefore lost the axis they were
+                        // about to set, and then had to chase a thumb that had jumped
+                        // out from under them. Sequencing a zero-distance drag after
+                        // the press moves the decision to the lift, which is the first
+                        // moment the travel is known.
                         .simultaneousGesture(
-                            LongPressGesture().onEnded { _ in Self.reset(axis, on: model) }
+                            LongPressGesture()
+                                .sequenced(before: DragGesture(minimumDistance: 0))
+                                .onEnded { phase in
+                                    guard case .second(true, let drag) = phase else { return }
+                                    let travel = drag?.translation ?? .zero
+                                    guard abs(travel.width) < Self.pressTravel,
+                                          abs(travel.height) < Self.pressTravel
+                                    else { return }
+                                    Self.reset(axis, on: model)
+                                }
                         )
                         // The same reset, without the gesture. `native-experience`
                         // requires a control to announce what it does, and VoiceOver,
