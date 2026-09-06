@@ -136,9 +136,8 @@ extension LibraryModel {
             do {
                 _ = try await SmbClient(address: page.address).connect()
                 return .connected
-            } catch SmbError.authenticationRejected {
-                return .unauthorized(reason: String(localized: "source.state.unauthorized",
-                                                    bundle: .module, locale: .storyArc))
+            } catch let refusal as SmbError {
+                return SmbSourceState.of(refusal, at: Date())
             } catch {
                 return .unreachable(since: Date())
             }
@@ -311,5 +310,39 @@ extension LibraryModel {
     func resolveSources(credentials: CredentialStore?, pins: CertificatePins) async {
         resolveLocalSources()
         await probeNetworkSources(credentials: credentials, pins: pins)
+    }
+}
+
+/// What a share's refusal means for the source that named it.
+///
+/// `network-share` asks the app to "report the specific failure". The add-a-share sheet does
+/// that through ``SmbConnection``; the health probe behind a share already saved sent every
+/// refusal but a rejected password to `unreachable`, so a share that demands SMB 3 encryption
+/// read *No answer since …*. The server answered. It refused, for a reason the reader can act
+/// on, and `sources` re-asks an unreachable source every 5 s rising to every 5 minutes — so
+/// the wrong state also asked a share that can never say yes, for as long as the library was
+/// on screen.
+///
+/// Pure, and its own type, for the reason ``ShelfRefresh`` is: a decision written inside a
+/// `catch` around a network call is a decision nothing can assert. Android's `SmbSourceState`
+/// holds the same table, and takes its two sentences as parameters because a Kotlin object
+/// has no bundle to read them from.
+enum SmbSourceState {
+    /// The state a source takes when its share refuses.
+    ///
+    /// Only a refusal the reader can do something about is `unauthorized`. An SMB 1 server
+    /// and a share that is simply not there are both offline, which is a normal state and
+    /// grey.
+    static func of(_ error: SmbError, at moment: Date) -> SourceConnectionState {
+        switch error {
+        case .authenticationRejected:
+            .unauthorized(reason: String(localized: "source.state.unauthorized",
+                                         bundle: .module, locale: .storyArc))
+        case .encryptionRequired:
+            .unauthorized(reason: String(localized: "smb.error.encryption",
+                                         bundle: .module, locale: .storyArc))
+        case .hostUnreachable, .shareNotFound, .protocolUnsupported, .unexpected:
+            .unreachable(since: moment)
+        }
     }
 }

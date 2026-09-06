@@ -571,13 +571,16 @@ class LibraryViewModel(
         }
         viewModelScope.launch {
             _registry.update { it.marking(source.id, SourceConnectionState.Connecting) }
-            val reason = getApplication<Application>().getString(R.string.source_state_unauthorized)
+            val application = getApplication<Application>()
+            val reason = application.getString(R.string.source_state_unauthorized)
+            val encryption = application.getString(R.string.smb_error_encryption)
             val state = SourceHealth.probe(
                 source,
                 credentials,
                 pins,
                 System.currentTimeMillis(),
                 reason,
+                encryption,
             )
             _registry.update { it.marking(source.id, state) }
         }

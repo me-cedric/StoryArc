@@ -40,13 +40,14 @@ object SourceHealth {
         pins: CertificatePins,
         now: Long,
         unauthorizedReason: String,
+        encryptionReason: String,
     ): SourceConnectionState {
         SmbPage.of(source, credentials)?.let { page ->
             return try {
                 SmbClient(page.address).use { it.connect() }
                 SourceConnectionState.Connected
-            } catch (error: SmbError.AuthenticationRejected) {
-                SourceConnectionState.Unauthorized(unauthorizedReason)
+            } catch (refusal: SmbError) {
+                SmbSourceState.of(refusal, now, unauthorizedReason, encryptionReason)
             } catch (error: Exception) {
                 SourceConnectionState.Unreachable(now)
             }
@@ -76,5 +77,44 @@ object SourceHealth {
 
         // Neither page could be built, so the secret this source needs has gone.
         return SourceConnectionState.Unauthorized(unauthorizedReason)
+    }
+}
+
+/**
+ * What a share's refusal means for the source that named it.
+ *
+ * `network-share` asks the app to "report the specific failure". The add-a-share sheet does
+ * that through [SmbConnection]; the health probe behind a share already saved sent every
+ * refusal but a rejected password to `Unreachable`, so a share that demands SMB 3 encryption
+ * read "No answer since ...". The server answered. It refused, for a reason the reader can act
+ * on, and `sources` re-asks an unreachable source every 5 s rising to every 5 minutes -- so the
+ * wrong state also asked a share that can never say yes, for as long as the library was on
+ * screen.
+ *
+ * Pure, and its own type, for the reason [ShelfRefresh] is: a decision written inside a `catch`
+ * around a network call is a decision nothing can assert. It takes its two sentences as
+ * parameters because an object has no `Context` to read them from; iOS's `SmbSourceState` reads
+ * its own bundle and holds the same table.
+ */
+object SmbSourceState {
+    /**
+     * The state a source takes when its share refuses.
+     *
+     * Only a refusal the reader can do something about is `Unauthorized`. An SMB 1 server and
+     * a share that is simply not there are both offline, which is a normal state and grey.
+     */
+    fun of(
+        error: SmbError,
+        now: Long,
+        unauthorizedReason: String,
+        encryptionReason: String,
+    ): SourceConnectionState = when (error) {
+        is SmbError.AuthenticationRejected -> SourceConnectionState.Unauthorized(unauthorizedReason)
+        is SmbError.EncryptionRequired -> SourceConnectionState.Unauthorized(encryptionReason)
+        is SmbError.HostUnreachable,
+        is SmbError.ShareNotFound,
+        is SmbError.ProtocolUnsupported,
+        is SmbError.Unexpected,
+        -> SourceConnectionState.Unreachable(now)
     }
 }
