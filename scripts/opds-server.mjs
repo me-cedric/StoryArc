@@ -47,6 +47,43 @@ const port = selfTest ? 0 : portFlag >= 0 ? Number(args[portFlag + 1]) : 4444
  * server agreeing with the first. 251 rather than 256 so the pattern does not repeat on a
  * power-of-two boundary — an off-by-a-block bug would land on identical bytes and pass.
  */
+/**
+ * Bytes that arrive whole and will not open.
+ *
+ * `offline-downloads` draws a line this mock could not previously put a client on: a
+ * download whose **transfer** succeeded and whose **verification** failed. The two are
+ * different events with different answers — unreadable bytes are re-queued exactly once,
+ * because the likeliest cause is the transfer, while an unsupported format is terminal,
+ * because re-fetching produces the same format. Until this route existed the failure path
+ * was, in the row's own words, "not driven": it needed a server that serves bytes that will
+ * not open, and no fixture could be reached over HTTP with a straight face.
+ *
+ * **It must sniff as a comic archive**, or the app answers the wrong question. The body opens
+ * with a real local file header, so a format sniff sees `PK\x03\x04` and calls it a CBZ;
+ * then it stops mid-entry, with no central directory and no end-of-central-directory record,
+ * which is what every ZIP reader actually needs. So the archive is *damaged*, not *foreign*,
+ * and the client is asked the question the scenario is about.
+ *
+ * The response is otherwise honest — a 200, the right type, a `Content-Length` that matches
+ * the body. A short or lying response would be a transfer failure, which is the other branch
+ * and is already covered by `/flaky/`.
+ */
+const unopenable = (() => {
+  const name = Buffer.from('01.jpg')
+  const header = Buffer.alloc(30)
+  header.writeUInt32LE(0x04034b50, 0) // PK\x03\x04
+  header.writeUInt16LE(20, 4) // version needed
+  header.writeUInt16LE(0, 6) // flags
+  header.writeUInt16LE(0, 8) // stored, not deflated
+  header.writeUInt32LE(0, 14) // crc32, left zero: the reader never gets far enough to check
+  header.writeUInt32LE(65536, 18) // compressed size it promises
+  header.writeUInt32LE(65536, 22) // uncompressed size it promises
+  header.writeUInt16LE(name.length, 26)
+  header.writeUInt16LE(0, 28)
+  // A prefix of the entry it promised, and then nothing. No central directory follows.
+  return Buffer.concat([header, name, Buffer.alloc(512, 0x7a)])
+})()
+
 const scratchCorpus = () => {
   const at = mkdtempSync(join(tmpdir(), 'storyarc-opds-test-'))
   for (const [name, size] of [
@@ -228,6 +265,15 @@ ${page === 0 && !query && title === 'All publications' ? `  <entry>
     <author><name>Ada Lovelace</name></author>
     <summary>Fails twice with 503, then succeeds. For watching the retry.</summary>
     <link rel="http://opds-spec.org/acquisition" href="/flaky/retry.cbz"
+          type="application/vnd.comicbook+zip"/>
+  </entry>
+  <entry>
+    <id>urn:storyarc:unopenable</id>
+    <title>Torn Signal</title>
+    <updated>${new Date(0).toISOString().replace(/\.\d+Z$/, 'Z')}</updated>
+    <author><name>Ada Lovelace</name></author>
+    <summary>Downloads whole and will not open. For watching a failed verification.</summary>
+    <link rel="http://opds-spec.org/acquisition" href="/unopenable/torn-signal.cbz"
           type="application/vnd.comicbook+zip"/>
   </entry>
   <entry>
@@ -576,6 +622,20 @@ const server = createServer((request, response) => {
     return send(200, entry.type, readFileSync(join(root, entry.file)))
   }
 
+  // Bytes that arrive whole and will not open — see `unopenable` above. This is the
+  // verification failure, not the transfer failure: the response is a complete, honest 200.
+  if (url.pathname.startsWith('/unopenable/')) {
+    // Written head-first rather than through `send`, which sets no `Content-Length` and so
+    // answers chunked. A download that cannot learn its own size before it starts is a
+    // different scenario again, and this route is not it.
+    response.writeHead(200, {
+      'Content-Type': 'application/vnd.comicbook+zip',
+      'Content-Length': String(unopenable.length),
+      'Cache-Control': 'no-store',
+    })
+    return response.end(unopenable)
+  }
+
   // A 302 to the file. `offline-downloads` has to survive a source that answers a range
   // request with a redirect — a captive portal, or a server that has moved the file — and
   // "survive" means degrading, not rendering whatever came back from the new address.
@@ -659,6 +719,21 @@ const drive = async () => {
   // Both dialects state the size, because a queue that cannot say how big a download is
   // cannot ask a reader to confirm it on a metered connection.
   const atom = await (await get('/opds/all')).text()
+  // The verification failure needs a transfer that succeeded, so these two checks are a
+  // pair: the response must be honest, and the bytes must still not open. Either alone
+  // would let the route drift into being a transfer failure, which is a different scenario.
+  const torn = await get('/unopenable/torn-signal.cbz')
+  const tornBytes = await bytes(torn)
+  check('bytes that will not open still arrive as a complete, honest response',
+    torn.status === 200 &&
+      torn.headers.get('content-type') === 'application/vnd.comicbook+zip' &&
+      Number(torn.headers.get('content-length')) === tornBytes.length)
+  check('bytes that will not open sniff as a comic archive and hold no directory',
+    tornBytes.subarray(0, 4).equals(Buffer.from([0x50, 0x4b, 0x03, 0x04])) &&
+      !tornBytes.includes(Buffer.from([0x50, 0x4b, 0x05, 0x06])))
+  check('the feed offers the publication that will not open',
+    atom.includes('/unopenable/torn-signal.cbz'))
+
   check('the atom acquisition link declares its length',
     atom.includes(`length="${subject.size}"`))
   const json = await (await get('/opds2')).json()
