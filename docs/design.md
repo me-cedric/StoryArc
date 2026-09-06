@@ -272,11 +272,26 @@ looks like a music player.
   breakpoints to that count and not to any cover. `:app`'s
   `ShelvesAskOneRuleTest` holds the shape by name: a shelf drawn inside a pane
   asks its own width and never the window's, and a full-width shelf asks the
-  window. **Still open, recorded rather than resolved:** the wide tier's
+  window. **Still open. Measured on 2026-09-06, not resolved:** the wide tier's
   threshold. Android takes 158 at a shelf of 840 dp; iOS takes it at 900 pt
-  (`confidentShelfWidth`), and that 900 is in no register. Neither number moves
-  until the two are compared on one tablet — a thing to settle, not a licence to
-  copy either.
+  (`confidentShelfWidth`), and that 900 is in no register. The simulator device
+  profiles give the current iPad line 744, 820, 834, 1024 and 1032 pt in
+  portrait, and 1133, 1180, 1210, 1366 and 1376 pt in landscape. **No iPad has
+  a full-screen width between 840 and 899**, and the library shelf reaches
+  neither number, because `LibraryPanes` caps its column at 760 pt. That is not
+  enough to move 900 to 840. *Split View, Slide Over and multi-window* requires
+  a resized window to reflow continuously, and `WindowClass.swift` names Stage
+  Manager, so a window dragged to 870 pt is a full-width shelf inside the band.
+  The two numbers disagree there — on Home, on Downloads and in the browse
+  grids. Moving iOS to 840 is a behaviour change on a supported geometry, and
+  it still waits on the tablet comparison the paragraph above asked for.
+  `CoverMinimumWidthTests` now pins every width named here, 839 and 840
+  included, so whoever takes the decision fails a test by name and comes back
+  to this paragraph. The number stays in code on both platforms and not in
+  `packages/design-tokens`: `layout.json` holds the tier *values*
+  (`grid.minCoverWidth`, 104 / 132 / 158) and no breakpoint at all, and a token
+  for one contested number would generate two app copies of a divergence rather
+  than close it.
 - **A maximum as well as a minimum, always.** A lower bound on its own lets a
   narrow window stretch one cover edge to edge. Android caps at 168 pt; iOS
   derives 1.6 × the minimum, because SwiftUI's `adaptive(minimum:maximum:)`
