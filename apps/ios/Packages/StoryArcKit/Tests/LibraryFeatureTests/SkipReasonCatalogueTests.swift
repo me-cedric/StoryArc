@@ -75,6 +75,23 @@ struct SkipReasonCatalogueTests {
         )
     }
 
+    /// What a prompt would have to say, in all four languages.
+    ///
+    /// A translator writes in one language, so a list of English tokens guards English alone.
+    /// The first six are the list `AudiobookIndexingTests` applied to the English sentence
+    /// before the words moved; the rest are the same four ideas — a key, a password, an
+    /// account, a way to sign in — in the three languages that sentence is now also written
+    /// in. `activation` is spelt the same in English and French.
+    ///
+    /// Every token is matched against every language, because a French word has no business
+    /// in the German refusal either.
+    private static let promptWords = [
+        "key", "password", "account", "activation", "sign in", "log in",
+        "clé", "mot de passe", "compte", "connexion", "connecter",
+        "schlüssel", "passwort", "konto", "anmeld", "aktivierung",
+        "clave", "contraseña", "cuenta", "sesión", "activación",
+    ]
+
     /// The locked refusal prompts for nothing, in every language.
     ///
     /// `publication-formats` keeps that case payload-free because there is no key to ask for
@@ -89,7 +106,7 @@ struct SkipReasonCatalogueTests {
         for language in Self.languages {
             let unit = (localizations[language] as? [String: Any])?["stringUnit"]
             let value = ((unit as? [String: Any])?["value"] as? String ?? "").lowercased()
-            for asked in ["activation", "activación", "aktivierung", "account", "sign in"] {
+            for asked in Self.promptWords {
                 #expect(!value.contains(asked), "the \(language) refusal mentions \(asked)")
             }
         }
