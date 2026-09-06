@@ -505,10 +505,14 @@ class DownloadQueue(
      */
     private suspend fun attempt(download: Download, seriesHint: String?): File? = try {
         val store = store ?: throw IOException("no download store")
+        // Read here rather than inside the block below, and before the first suspension:
+        // `DownloadQueueWakingTest` counts these calls to count started transfers, and a
+        // credential read after a suspension counts a transfer that has not started yet.
+        val credential = credential(download.id)
         val file = store.location(download)
         withContext(Dispatchers.IO) {
             store.prepare(file)
-            client.download(download.remote, credential(download.id), store.partial(download))
+            client.download(download.remote, credential, store.partial(download))
             Files.move(
                 store.partial(download).toPath(),
                 file.toPath(),

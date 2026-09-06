@@ -163,11 +163,17 @@ class DownloadQueueConnectionTest {
         // connection anyway on its first pump, which is what keeps the reason true rather than
         // merely remembered: a process restarted on Wi-Fi puts the row back in the queue and
         // shows no hold at all.
+        //
+        // The row is held before the store is read again, which is iOS's `theHoldComesBack`
+        // step for step. Reading a *running* row here instead left the first queue's transfer
+        // in flight against an address that resolves to nothing, so what the second queue read
+        // back was whichever of the two won.
         val id = "relaunch"
         val store = store(queued(id))
-        val first = queue(store, MutableStateFlow(true))
-        first.close()
-        assertEquals(Download.State.Running, first.library.value[id]?.state)
+        val wifi = MutableStateFlow(true)
+        val first = queue(store, wifi)
+        wifi.value = false
+        assertEquals(waiting, first.library.value[id]?.state)
 
         val second = queue(store, MutableStateFlow(false))
 
