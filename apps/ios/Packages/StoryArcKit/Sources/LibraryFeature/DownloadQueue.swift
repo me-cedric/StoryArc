@@ -49,12 +49,12 @@ public final class DownloadQueue {
         store: DownloadStore? = nil,
         credential: @escaping (Download.ID) -> OpdsCredential? = { _ in nil },
         origin: OpdsOrigin? = nil,
-        /// What the reader has asked of the queue.
+        /// What the reader has asked of the queue, re-asked rather than captured.
         ///
-        /// A closure rather than a value: `offline-downloads` requires a paused queue to
-        /// "resume automatically when [Wi-Fi] returns", so the answer has to be re-asked
-        /// rather than captured once at construction.
-        settings: @escaping () -> AppSettings = { .defaults }
+        /// `offline-downloads` resumes a held queue "automatically when [Wi-Fi] returns", so
+        /// the answer cannot be a value taken once. Required rather than defaulted, because
+        /// the caller that omitted the old default shipped a queue that was never held.
+        settings: @escaping () -> AppSettings
     ) {
         self.settings = settings
         self.origin = origin

@@ -58,7 +58,12 @@ public struct CatalogueBrowserView: View {
                 pins: pins,
                 store: DownloadStore(),
                 credential: { _ in credential },
-                origin: home
+                origin: home,
+                // The reader's own choices, read from the store on every pump rather than
+                // captured here. Without this the queue answers from `AppSettings.defaults`,
+                // where Wi-Fi-only is off and there is no storage limit — so it is never
+                // held, and a queue that is never held has nothing to resume.
+                settings: SettingsStore().settings
             )
         )
         self.onOpen = onOpen
