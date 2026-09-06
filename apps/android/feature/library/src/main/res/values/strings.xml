@@ -181,6 +181,9 @@
     <string name="shelves_new_list">New reading list</string>
     <string name="shelves_new_field">Name</string>
     <string name="shelves_new_stored_locally">Stored on this device. Nothing is sent anywhere.</string>
+    <string name="shelves_new_refused">The server did not take the new shelf. Nothing was created. Try again when the server answers.</string>
+    <string name="shelves_new_choose_where">Choose where to keep it. A shelf kept on a server is visible in other Kavita clients.</string>
+    <string name="shelves_new_here">Keep on this device</string>
     <string name="shelves_create">Create</string>
     <string name="shelves_cancel">Cancel</string>
     <string name="shelves_delete">Delete %1$s</string>
@@ -270,6 +273,7 @@
     <string name="shelves_server_only_body">“%1$s” can only hold what comes from that library.</string>
     <string name="shelves_server_only_local">Make a list on this device instead</string>
     <string name="shelves_pending_entry">Not saved yet</string>
+    <string name="shelves_pending_order">New order waiting for the server</string>
     <plurals name="shelves_pending">
         <item quantity="one">%1$d change not saved yet</item>
         <item quantity="other">%1$d changes not saved yet</item>

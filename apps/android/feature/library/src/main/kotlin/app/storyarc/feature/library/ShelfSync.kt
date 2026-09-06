@@ -3,6 +3,7 @@ package app.storyarc.feature.library
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.model.ShelfConflictNotice
 import app.storyarc.core.model.ShelfEdit
+import app.storyarc.core.model.ShelfEntry
 import app.storyarc.core.model.ShelfKey
 import app.storyarc.core.model.ShelfPull
 import app.storyarc.core.model.ShelfSnapshot
@@ -97,6 +98,65 @@ object ShelfSync {
 
     /** How a server's reading list is named across a restart. */
     fun key(shelf: ServerShelf): ShelfKey = ShelfKey(shelf.server.id, shelf.id)
+
+    /**
+     * Where one entry of a server reading list currently sits.
+     *
+     * Both halves are needed and neither is the other: Kavita addresses a move by the *entry*
+     * it minted, and this app knows the list by the chapters in it.
+     */
+    data class Place(val item: Int, val chapter: Int)
+
+    /** One thing to ask the server for: move this entry from here to there. */
+    data class Move(val item: Int, val from: Int, val to: Int)
+
+    /**
+     * The run of moves that turns the order a server holds into the order a reader made.
+     *
+     * Pure, and takes both sides as values, so the plan can be asserted without a server.
+     * Each move is planned against the order the moves before it leave behind, because that
+     * is the order the server will be in when it receives them -- planning every move against
+     * the original positions sends coordinates the server has already invalidated.
+     *
+     * A wanted chapter the server does not hold is left out rather than moved: it is an entry
+     * this device believes in and the server does not, which is the append queue's business,
+     * not this one's. A held chapter the wanted order does not name keeps its place after the
+     * ones that are named, because the server may have gained it since.
+     *
+     * iOS's `ShelfSync.moves` plans the same run.
+     */
+    fun moves(places: List<Place>, wanted: List<Int>): List<Move> {
+        val current = places.toMutableList()
+        val plan = mutableListOf<Move>()
+        var target = 0
+        for (chapter in wanted) {
+            val at = current.indexOfFirst { it.chapter == chapter }
+            if (at < target) continue
+            if (at != target) {
+                plan += Move(item = current[at].item, from = at, to = target)
+                current.add(target, current.removeAt(at))
+            }
+            target += 1
+        }
+        return plan
+    }
+
+    /**
+     * The rows of a server reading list, in the order the reader gave it.
+     *
+     * `collections-and-reading-lists` asks an edit made while the server is away to be
+     * "applied locally" -- for a reorder that means the reader keeps looking at their own
+     * order, not the server's, for as long as the server has not taken it.
+     *
+     * Rows the wanted order does not name follow the ones it does, in the order they arrived
+     * in. Dropping them would lose a row the reader can see.
+     */
+    fun arranged(rows: List<ShelfEntry>, wanted: List<String>): List<ShelfEntry> {
+        if (wanted.isEmpty()) return rows
+        val named = wanted.mapNotNull { id -> rows.firstOrNull { it.id == id } }
+        val taken = named.map { it.id }.toSet()
+        return named + rows.filterNot { it.id in taken }
+    }
 
     /** The same key, from the shape the add-to sheet works in. */
     fun key(list: ServerList): ShelfKey = ShelfKey(list.server.id, list.id)

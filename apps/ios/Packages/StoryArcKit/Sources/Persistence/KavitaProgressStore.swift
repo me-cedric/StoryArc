@@ -43,7 +43,8 @@ extension KavitaOrigin {
 
 /// One thing waiting to reach a server that was not there when it happened.
 ///
-/// A position, or a deliberate mark. They are held together because they are the same
+/// A position, a deliberate mark, an append to one of the server's reading lists, or the
+/// order a reader gave one of those lists. They are held together because they are the same
 /// promise — "this reaches the server when the server comes back" — and a second queue
 /// would be a second thing to forget to flush.
 public struct KavitaUnsent: Sendable, Equatable, Codable {
@@ -51,22 +52,38 @@ public struct KavitaUnsent: Sendable, Equatable, Codable {
     public let page: Int
     /// Nil for a position. True or false for a mark the reader made deliberately.
     public let mark: Bool?
-    /// Set when this is an append to one of the server's reading lists.
+    /// Set when this is an append to one of the server's reading lists, or an order for one.
     public let listID: Int?
+    /// The chapters of ``listID``, in the order this device wants them.
+    ///
+    /// Set only for a reorder. `collections-and-reading-lists` makes a reading list's order
+    /// its meaning, so the order a reader made is written down before anything is sent: a
+    /// send that fails must cost them nothing.
+    public let order: [Int]?
 
     /// What makes two held items the same thing.
     ///
     /// The chapter alone is not enough: a position, a mark and a list append can all be
-    /// waiting for the same chapter, and they are three different promises.
+    /// waiting for the same chapter, and they are three different promises. An order is a
+    /// fourth, and it belongs to the list rather than to a chapter — one list has one
+    /// wanted order, and the latest one the reader made is the one that is true.
     public var key: String {
-        "\(origin.chapterId):\(listID.map(String.init) ?? "-"):\(mark.map(String.init) ?? "-")"
+        guard order == nil else { return "order:\(listID.map(String.init) ?? "-")" }
+        return "\(origin.chapterId):\(listID.map(String.init) ?? "-"):\(mark.map(String.init) ?? "-")"
     }
 
-    public init(origin: KavitaOrigin, page: Int, mark: Bool? = nil, listID: Int? = nil) {
+    public init(
+        origin: KavitaOrigin,
+        page: Int,
+        mark: Bool? = nil,
+        listID: Int? = nil,
+        order: [Int]? = nil
+    ) {
         self.origin = origin
         self.page = page
         self.mark = mark
         self.listID = listID
+        self.order = order
     }
 
     /// A queue written before marks existed has no `mark` field, and it means "a position".
@@ -76,10 +93,11 @@ public struct KavitaUnsent: Sendable, Equatable, Codable {
         page = try container.decode(Int.self, forKey: .page)
         mark = try container.decodeIfPresent(Bool.self, forKey: .mark)
         listID = try container.decodeIfPresent(Int.self, forKey: .listID)
+        order = try container.decodeIfPresent([Int].self, forKey: .order)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case origin, page, mark, listID
+        case origin, page, mark, listID, order
     }
 }
 

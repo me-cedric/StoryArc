@@ -15,6 +15,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,6 +49,7 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ShelfEntry
 import app.storyarc.core.model.ShelfKey
 import app.storyarc.core.model.ShelfMerge
+import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.persistence.ShelfEditStore
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -115,7 +118,13 @@ fun KavitaListScreen(
     var items by remember(listId) { mutableStateOf<List<KavitaReadingListItem>>(emptyList()) }
     var fetching by remember(listId) { mutableStateOf<Int?>(null) }
 
+    // The order this device has given the list and the server has not taken yet. Read from
+    // the same queue a failed position waits in. Empty means the server holds the reader's
+    // order already, which is the ordinary case.
+    var wanted by remember(listId) { mutableStateOf<List<Int>>(emptyList()) }
+
     LaunchedEffect(listId) {
+        wanted = KavitaSync.wantedOrder(KavitaProgressStore.open(context), server.id, listId)
         items = runCatching { client.readingListItems(listId) }
             .getOrDefault(emptyList())
             .sortedBy { it.order }
@@ -128,12 +137,34 @@ fun KavitaListScreen(
     val pending = remember(listId, items) {
         ShelfEditStore.open(context).queue().pending(ShelfKey(server.id, listId))
     }
-    // The server's entries, with the outstanding ones after them. ShelfMerge decides the
-    // order, so a test can assert it without a server.
+    // The server's entries in the reader's order, with the outstanding ones after them.
+    // ShelfSync and ShelfMerge decide both orders, so a test can assert them without a server.
     val rows = ShelfMerge.projecting(
-        remote = items.map { ShelfEntry(it.chapterId.toString(), it.displayName, false) },
+        remote = ShelfSync.arranged(
+            items.map { ShelfEntry(it.chapterId.toString(), it.displayName, false) },
+            wanted.map { it.toString() },
+        ),
         pending = pending,
     )
+
+    // Applies a move, and owes the server the order it produced. The rows move first and the
+    // send is attempted after, which is the order `collections-and-reading-lists` asks for --
+    // the edit is "applied locally, marked pending, and pushed on reconnection".
+    // KavitaSync.reorder writes it down before it tries, so a refused send is a queue entry
+    // rather than a lost order.
+    fun move(from: Int, to: Int) {
+        val held = rows.filterNot { it.isPending }.map { it.id }
+        if (from !in held.indices || to !in held.indices) return
+        val next = held.toMutableList().apply { add(to, removeAt(from)) }
+        val order = next.mapNotNull { it.toIntOrNull() }
+        items = order.mapNotNull { id -> items.firstOrNull { it.chapterId == id } } +
+            items.filterNot { it.chapterId in order }
+        scope.launch {
+            val store = KavitaProgressStore.open(context)
+            KavitaSync.reorder(store, server.address, server.id, listId, order)
+            wanted = KavitaSync.wantedOrder(store, server.id, listId)
+        }
+    }
 
     Scaffold(
         containerColor = palette.surfaceCanvas,
@@ -143,13 +174,31 @@ fun KavitaListScreen(
             modifier = Modifier.fillMaxSize().padding(insets),
             contentPadding = PaddingValues(StoryArcSpace.gutter),
         ) {
+            if (wanted.isNotEmpty()) {
+                // `collections-and-reading-lists` wants a pending edit "visible on the list".
+                // An order is one edit about every row, so it is said once, above them.
+                item {
+                    Text(
+                        text = stringResource(R.string.shelves_pending_order),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = StoryArcColor.Status.offline,
+                    )
+                }
+            }
             itemsIndexed(rows, key = { _, row -> row.id }) { index, row ->
                 val entry = items.firstOrNull { it.chapterId.toString() == row.id }
+                val held = rows.count { !it.isPending }
                 EntryRow(
                     row = row,
                     number = index + 1,
                     series = entry?.seriesName?.takeIf { it != row.title },
                     isFetching = fetching?.toString() == row.id,
+                    // An entry the server has not heard of has no place in the server's own
+                    // order, so it cannot be moved into one.
+                    canMoveUp = !row.isPending && index > 0,
+                    canMoveDown = !row.isPending && index + 1 < held,
+                    onUp = { move(index, index - 1) },
+                    onDown = { move(index, index + 1) },
                 ) {
                     if (entry == null) return@EntryRow
                     scope.launch {
@@ -188,6 +237,10 @@ private fun EntryRow(
     number: Int,
     series: String?,
     isFetching: Boolean,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onUp: () -> Unit,
+    onDown: () -> Unit,
     onOpen: () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -233,6 +286,23 @@ private fun EntryRow(
         }
         if (isFetching) {
             CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.padding(2.dp))
+        }
+        // Two buttons rather than a drag, which is what a local reading list already offers
+        // here: the same control on both of this platform's reading lists beats matching the
+        // other platform on one of them.
+        IconButton(onClick = onUp, enabled = canMoveUp) {
+            Icon(
+                Icons.Filled.ArrowUpward,
+                contentDescription = stringResource(R.string.shelves_move_up, row.title),
+                tint = palette.textSecondary,
+            )
+        }
+        IconButton(onClick = onDown, enabled = canMoveDown) {
+            Icon(
+                Icons.Filled.ArrowDownward,
+                contentDescription = stringResource(R.string.shelves_move_down, row.title),
+                tint = palette.textSecondary,
+            )
         }
     }
 }

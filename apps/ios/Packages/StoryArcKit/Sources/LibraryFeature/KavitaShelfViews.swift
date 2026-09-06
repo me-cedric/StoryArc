@@ -37,10 +37,12 @@ public struct ServerShelf: Identifiable, Sendable {
     ) async -> ServerShelves {
         var found: [ServerShelf] = []
         var listCapable: [KavitaPage] = []
+        var collectionCapable: [KavitaPage] = []
         for source in registry.sources {
             guard let page = KavitaPage(source: source, credentials: credentials) else { continue }
             let client = KavitaClient(address: page.address)
-            let collections = (try? await client.collections()) ?? []
+            guard let collections = try? await client.collections() else { continue }
+            collectionCapable.append(page)
             found += collections.map {
                 ServerShelf(server: page, id: $0.id, title: $0.title, isList: false)
             }
@@ -52,7 +54,11 @@ public struct ServerShelf: Identifiable, Sendable {
                 ServerShelf(server: page, id: $0.id, title: $0.title, isList: true)
             }
         }
-        return ServerShelves(shelves: found, listCapable: listCapable)
+        return ServerShelves(
+            shelves: found,
+            listCapable: listCapable,
+            collectionCapable: collectionCapable
+        )
     }
 }
 
@@ -63,6 +69,10 @@ struct ServerShelves: Sendable {
     /// The servers that answered when asked for their reading lists — reachable, and able to
     /// hold one. A server that did not answer is simply not offered.
     let listCapable: [KavitaPage]
+
+    /// The same question about collections, kept apart from the answer about lists because
+    /// they are two different capabilities and a server can answer one and not the other.
+    var collectionCapable: [KavitaPage] = []
 }
 
 /// The series in one of a server's collections.
@@ -141,25 +151,72 @@ struct KavitaListView: View {
     @State private var items: [KavitaReadingListItem] = []
     @State private var fetching: Int?
 
-    /// The server's entries, with the outstanding ones after them. ``ShelfMerge`` decides
-    /// the order, so a test can assert it without a server.
+    /// The order this device has given the list and the server has not taken yet.
+    ///
+    /// Read from the same queue a failed position waits in. Empty means the server holds the
+    /// reader's order already, which is the ordinary case.
+    @State private var wanted: [Int] = []
+
+    /// The server's entries in the reader's order, with the outstanding ones after them.
+    ///
+    /// ``ShelfSync`` and ``ShelfMerge`` decide both orders, so a test can assert them without
+    /// a server.
     private var rows: [ShelfEntry] {
         ShelfMerge.projecting(
-            remote: items.map {
-                ShelfEntry(id: String($0.chapterId), title: $0.displayName, isPending: false)
-            },
+            remote: ShelfSync.arranged(
+                items.map {
+                    ShelfEntry(id: String($0.chapterId), title: $0.displayName, isPending: false)
+                },
+                by: wanted.map(String.init)
+            ),
             pending: pending
         )
     }
 
     var body: some View {
-        List(Array(rows.enumerated()), id: \.element.id) { index, row in
-            Button {
-                guard let entry = items.first(where: { String($0.chapterId) == row.id }) else {
-                    return
-                }
-                Task { await open(entry) }
-            } label: {
+        List {
+            if !wanted.isEmpty {
+                // `collections-and-reading-lists` wants a pending edit "visible on the list".
+                // An order is one edit about every row, so it is said once, above them.
+                Text("shelves.pending.order", bundle: .module)
+                    .textRole(.footnote)
+                    .foregroundStyle(StoryArcColor.Status.offline)
+            }
+            ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                entryRow(index: index, row: row)
+                    // An entry the server has not heard of has no place in the server's own
+                    // order, so it cannot be dragged into one.
+                    .moveDisabled(row.isPending)
+            }
+            .onMove { offsets, destination in reorder(offsets, to: destination) }
+        }
+        #if os(iOS)
+        // Reordering by drag needs edit mode, and `EditButton` is the control iOS readers
+        // already know — the same one ``ReadingListDetail`` gives a local list.
+        .toolbar { ToolbarItem(placement: .primaryAction) { EditButton() } }
+        #endif
+        .navigationTitle(title)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .task {
+            wanted = KavitaSync.wantedOrder(of: listID, on: server.id, in: KavitaProgressStore())
+            guard items.isEmpty else { return }
+            let client = KavitaClient(address: server.address)
+            items = ((try? await client.readingListItems(listID)) ?? [])
+                .sorted { $0.order < $1.order }
+        }
+    }
+
+    /// One row of the list.
+    @ViewBuilder
+    private func entryRow(index: Int, row: ShelfEntry) -> some View {
+        Button {
+            guard let entry = items.first(where: { String($0.chapterId) == row.id }) else {
+                return
+            }
+            Task { await open(entry) }
+        } label: {
                 HStack(spacing: StoryArcSpace.sm) {
                     Text(verbatim: "\(index + 1)")
                         .textRole(.caption)
@@ -187,24 +244,43 @@ struct KavitaListView: View {
 
                     if fetching.map({ String($0) == row.id }) == true { ProgressView() }
                 }
-                // Without this the row is only tappable where its text is, and the empty
-                // half of a wide row does nothing.
-                .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-            // A pending entry cannot be opened from here: the server is what would hand the
-            // file over, and it has not heard of this entry yet.
-            .disabled(fetching != nil || row.isPending)
+            // Without this the row is only tappable where its text is, and the empty
+            // half of a wide row does nothing.
+            .contentShape(.rect)
         }
-        .navigationTitle(title)
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
-        .task {
-            guard items.isEmpty else { return }
-            let client = KavitaClient(address: server.address)
-            items = ((try? await client.readingListItems(listID)) ?? [])
-                .sorted { $0.order < $1.order }
+        .buttonStyle(.plain)
+        // A pending entry cannot be opened from here: the server is what would hand the
+        // file over, and it has not heard of this entry yet.
+        .disabled(fetching != nil || row.isPending)
+    }
+
+    /// Applies a drag, and owes the server the order it produced.
+    ///
+    /// The rows move first and the send is attempted after, which is the order
+    /// `collections-and-reading-lists` asks for — the edit is "applied locally, marked
+    /// pending, and pushed on reconnection". ``KavitaSync/reorder(_:to:on:to:in:)`` writes it
+    /// down before it tries, so a refused send is a queue entry rather than a lost order.
+    private func reorder(_ offsets: IndexSet, to destination: Int) {
+        let held = rows.filter { !$0.isPending }.map(\.id)
+        guard let from = offsets.first, from < held.count, destination <= held.count else {
+            return
+        }
+        var next = held
+        next.insert(next.remove(at: from), at: destination > from ? destination - 1 : destination)
+        let order = next.compactMap(Int.init)
+        items = order.compactMap { id in items.first { $0.chapterId == id } }
+            + items.filter { !order.contains($0.chapterId) }
+
+        Task {
+            let store = KavitaProgressStore()
+            await KavitaSync.reorder(
+                listID,
+                to: order,
+                on: server.id,
+                to: server.address,
+                in: store
+            )
+            wanted = KavitaSync.wantedOrder(of: listID, on: server.id, in: store)
         }
     }
 

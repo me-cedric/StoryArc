@@ -172,6 +172,9 @@
     <string name="shelves_new_list">Nueva lista de lectura</string>
     <string name="shelves_new_field">Nombre</string>
     <string name="shelves_new_stored_locally">Se guarda en este dispositivo. No se envía nada a ninguna parte.</string>
+    <string name="shelves_new_refused">El servidor no aceptó el nuevo estante. No se creó nada. Inténtelo de nuevo cuando el servidor responda.</string>
+    <string name="shelves_new_choose_where">Elija dónde guardarlo. Un estante guardado en un servidor es visible en otros clientes de Kavita.</string>
+    <string name="shelves_new_here">Guardar en este dispositivo</string>
     <string name="shelves_create">Crear</string>
     <string name="shelves_cancel">Cancelar</string>
     <string name="shelves_delete">Eliminar %1$s</string>
@@ -254,6 +257,7 @@
     <string name="shelves_server_only_body">«%1$s» solo puede contener lo que viene de esa biblioteca.</string>
     <string name="shelves_server_only_local">Crear una lista en este dispositivo en su lugar</string>
     <string name="shelves_pending_entry">Aún no guardado</string>
+    <string name="shelves_pending_order">Nuevo orden a la espera del servidor</string>
     <plurals name="shelves_pending">
         <item quantity="one">%1$d cambio aún sin guardar</item>
         <item quantity="other">%1$d cambios aún sin guardar</item>

@@ -174,6 +174,55 @@ public enum KavitaSync {
         }
     }
 
+    /// Records the order a reader gave a server reading list, then tries to send it.
+    ///
+    /// Written down before anything is sent, which is the opposite way round from a position
+    /// and deliberately so: `collections-and-reading-lists` makes a reading list's order its
+    /// meaning, and a send that failed after the reader had dragged a row would cost them
+    /// the one thing the list is for. The record is what the list is drawn from until the
+    /// server takes it, so a refused send is a queue entry rather than a lost order.
+    ///
+    /// The send is ``flush(_:to:in:)`` rather than a call of its own, for the reason
+    /// ``ShelfSync`` gives: one push path, or every write goes twice the moment both run.
+    public static func reorder(
+        _ listID: Int,
+        to order: [Int],
+        on sourceId: String,
+        to address: KavitaAddress?,
+        in store: KavitaProgressStore
+    ) async {
+        store.hold(
+            KavitaUnsent(
+                origin: KavitaOrigin(
+                    sourceId: sourceId,
+                    libraryId: 0,
+                    seriesId: 0,
+                    volumeId: 0,
+                    chapterId: 0
+                ),
+                page: 0,
+                listID: listID,
+                order: order
+            )
+        )
+        guard let address else { return }
+        await flush(sourceId, to: address, in: store)
+    }
+
+    /// The order this device is still waiting to give one of a server's reading lists.
+    ///
+    /// Read by the screen that draws the list, so what the reader sees is the order they
+    /// made rather than the one the server has not been told about yet.
+    public static func wantedOrder(
+        of listID: Int,
+        on sourceId: String,
+        in store: KavitaProgressStore
+    ) -> [Int] {
+        store.unsent()
+            .first { $0.origin.sourceId == sourceId && $0.listID == listID && $0.order != nil }?
+            .order ?? []
+    }
+
     /// Sends everything held for one server.
     ///
     /// Held positions that still fail stay held. A server that is down now was down when the
@@ -202,6 +251,9 @@ public enum KavitaSync {
     }
 
     private static func send(_ client: KavitaClient, _ held: KavitaUnsent) async throws {
+        if let listID = held.listID, let order = held.order {
+            return try await reorder(listID, to: order, through: client)
+        }
         if let listID = held.listID {
             return try await client.append(
                 toList: listID,
@@ -217,6 +269,23 @@ public enum KavitaSync {
             chapterId: held.origin.chapterId,
             isRead: mark
         )
+    }
+
+    /// Asks the server for the moves that turn its own order into the reader's.
+    ///
+    /// The list is read first because Kavita moves an entry by position, and the positions
+    /// only mean anything against the order the server is actually in. ``ShelfSync/moves``
+    /// plans the run; anything that throws leaves the whole order held for the next flush.
+    private static func reorder(
+        _ listID: Int,
+        to order: [Int],
+        through client: KavitaClient
+    ) async throws {
+        let items = try await client.readingListItems(listID).sorted { $0.order < $1.order }
+        let places = items.map { ShelfSync.Place(item: $0.id, chapter: $0.chapterId) }
+        for move in ShelfSync.moves(from: places, to: order) {
+            try await client.moveInList(listID, item: move.item, from: move.from, to: move.to)
+        }
     }
 
     private static func position(_ origin: KavitaOrigin, _ page: Int) -> KavitaPosition {

@@ -42,7 +42,8 @@ val KavitaOrigin.serverIdentifier: PublicationIdentity.ServerIdentifier?
 /**
  * One thing waiting to reach a server that was not there when it happened.
  *
- * A position, or a deliberate mark. They are held together because they are the same
+ * A position, a deliberate mark, an append to one of the server's reading lists, or the
+ * order a reader gave one of those lists. They are held together because they are the same
  * promise -- "this reaches the server when the server comes back" -- and a second queue
  * would be a second thing to forget to flush.
  */
@@ -52,16 +53,28 @@ data class KavitaUnsent(
     val page: Int,
     /** Null for a position. True or false for a mark the reader made deliberately. */
     val mark: Boolean? = null,
-    /** Set when this is an append to one of the server's reading lists. */
+    /** Set when this is an append to one of the server's reading lists, or an order for one. */
     val listId: Int? = null,
+    /**
+     * The chapters of [listId], in the order this device wants them.
+     *
+     * Set only for a reorder. `collections-and-reading-lists` makes a reading list's order
+     * its meaning, so the order a reader made is written down before anything is sent: a
+     * send that fails must cost them nothing.
+     */
+    val order: List<Int>? = null,
 ) {
     /**
      * What makes two held items the same thing.
      *
      * The chapter alone is not enough: a position, a mark and a list append can all be
-     * waiting for the same chapter, and they are three different promises.
+     * waiting for the same chapter, and they are three different promises. An order is a
+     * fourth, and it belongs to the list rather than to a chapter -- one list has one wanted
+     * order, and the latest one the reader made is the one that is true.
      */
-    val key: String get() = listOf(origin.chapterId, listId, mark).joinToString(":")
+    val key: String get() =
+        if (order != null) "order:$listId"
+        else listOf(origin.chapterId, listId, mark).joinToString(":")
 }
 
 /**

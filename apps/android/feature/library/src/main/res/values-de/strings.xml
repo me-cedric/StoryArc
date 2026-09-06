@@ -172,6 +172,9 @@
     <string name="shelves_new_list">Neue Leseliste</string>
     <string name="shelves_new_field">Name</string>
     <string name="shelves_new_stored_locally">Auf diesem Gerät gespeichert. Es wird nichts irgendwohin gesendet.</string>
+    <string name="shelves_new_refused">Der Server hat das neue Regal nicht angenommen. Es wurde nichts erstellt. Versuchen Sie es erneut, wenn der Server antwortet.</string>
+    <string name="shelves_new_choose_where">Wählen Sie, wo es bleiben soll. Ein Regal auf einem Server ist in anderen Kavita-Clients sichtbar.</string>
+    <string name="shelves_new_here">Auf diesem Gerät behalten</string>
     <string name="shelves_create">Erstellen</string>
     <string name="shelves_cancel">Abbrechen</string>
     <string name="shelves_delete">%1$s löschen</string>
@@ -254,6 +257,7 @@
     <string name="shelves_server_only_body">„%1$s“ kann nur aufnehmen, was aus dieser Bibliothek kommt.</string>
     <string name="shelves_server_only_local">Stattdessen eine Liste auf diesem Gerät anlegen</string>
     <string name="shelves_pending_entry">Noch nicht gespeichert</string>
+    <string name="shelves_pending_order">Neue Reihenfolge wartet auf den Server</string>
     <plurals name="shelves_pending">
         <item quantity="one">%1$d Änderung noch nicht gespeichert</item>
         <item quantity="other">%1$d Änderungen noch nicht gespeichert</item>

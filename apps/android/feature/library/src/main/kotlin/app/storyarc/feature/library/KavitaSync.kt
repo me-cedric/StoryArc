@@ -171,6 +171,49 @@ object KavitaSync {
     }
 
     /**
+     * Records the order a reader gave a server reading list, then tries to send it.
+     *
+     * Written down before anything is sent, which is the opposite way round from a position
+     * and deliberately so: `collections-and-reading-lists` makes a reading list's order its
+     * meaning, and a send that failed after the reader had moved a row would cost them the
+     * one thing the list is for. The record is what the list is drawn from until the server
+     * takes it, so a refused send is a queue entry rather than a lost order.
+     *
+     * The send is [flush] rather than a call of its own, for the reason [ShelfSync] gives:
+     * one push path, or every write goes twice the moment both run.
+     */
+    suspend fun reorder(
+        store: KavitaProgressStore,
+        address: KavitaAddress?,
+        sourceId: String,
+        listId: Int,
+        order: List<Int>,
+    ) {
+        store.hold(
+            KavitaUnsent(
+                origin = KavitaOrigin(sourceId, libraryId = 0, seriesId = 0, volumeId = 0, chapterId = 0),
+                page = 0,
+                listId = listId,
+                order = order,
+            ),
+        )
+        if (address == null) return
+        flush(store, sourceId, address)
+    }
+
+    /**
+     * The order this device is still waiting to give one of a server's reading lists.
+     *
+     * Read by the screen that draws the list, so what the reader sees is the order they made
+     * rather than the one the server has not been told about yet.
+     */
+    fun wantedOrder(store: KavitaProgressStore, sourceId: String, listId: Int): List<Int> =
+        store.unsent()
+            .firstOrNull { it.origin.sourceId == sourceId && it.listId == listId && it.order != null }
+            ?.order
+            .orEmpty()
+
+    /**
      * Sends everything held for one server.
      *
      * Held positions that still fail stay held. A server that is down now was down when the
@@ -197,11 +240,28 @@ object KavitaSync {
     private suspend fun send(client: KavitaClient, held: KavitaUnsent) {
         val listId = held.listId
         val mark = held.mark
+        val order = held.order
         when {
+            listId != null && order != null -> reorder(client, listId, order)
             listId != null ->
                 client.append(listId, held.origin.seriesId, listOf(held.origin.chapterId))
             mark != null -> client.mark(held.origin.seriesId, held.origin.chapterId, mark)
             else -> client.report(position(held.origin, held.page))
+        }
+    }
+
+    /**
+     * Asks the server for the moves that turn its own order into the reader's.
+     *
+     * The list is read first because Kavita moves an entry by position, and the positions only
+     * mean anything against the order the server is actually in. [ShelfSync.moves] plans the
+     * run; anything that throws leaves the whole order held for the next flush.
+     */
+    private suspend fun reorder(client: KavitaClient, listId: Int, order: List<Int>) {
+        val items = client.readingListItems(listId).sortedBy { it.order }
+        val places = items.map { ShelfSync.Place(item = it.id, chapter = it.chapterId) }
+        for (move in ShelfSync.moves(places, order)) {
+            client.moveInList(listId, move.item, move.from, move.to)
         }
     }
 

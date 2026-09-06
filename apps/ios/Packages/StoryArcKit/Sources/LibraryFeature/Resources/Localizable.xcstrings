@@ -8425,6 +8425,35 @@
         }
       }
     },
+    "shelves.new.chooseWhere": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wählen Sie, wo es bleiben soll. Ein Regal auf einem Server ist in anderen Kavita-Clients sichtbar."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose where to keep it. A shelf kept on a server is visible in other Kavita clients."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elija dónde guardarlo. Un estante guardado en un servidor es visible en otros clientes de Kavita."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez où le conserver. Une étagère conservée sur un serveur est visible dans les autres clients Kavita."
+          }
+        }
+      }
+    },
     "shelves.new.collection": {
       "extractionState": "manual",
       "localizations": {
@@ -8483,6 +8512,35 @@
         }
       }
     },
+    "shelves.new.here": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem Gerät behalten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep on this device"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar en este dispositivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conserver sur cet appareil"
+          }
+        }
+      }
+    },
     "shelves.new.list": {
       "extractionState": "manual",
       "localizations": {
@@ -8508,6 +8566,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nouvelle liste de lecture"
+          }
+        }
+      }
+    },
+    "shelves.new.refused": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Server hat das neue Regal nicht angenommen. Es wurde nichts erstellt. Versuchen Sie es erneut, wenn der Server antwortet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server did not take the new shelf. Nothing was created. Try again when the server answers."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El servidor no aceptó el nuevo estante. No se creó nada. Inténtelo de nuevo cuando el servidor responda."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le serveur n’a pas accepté la nouvelle étagère. Rien n’a été créé. Réessayez quand le serveur répond."
           }
         }
       }
@@ -8643,6 +8730,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pas encore enregistré"
+          }
+        }
+      }
+    },
+    "shelves.pending.order": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neue Reihenfolge wartet auf den Server"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New order waiting for the server"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuevo orden a la espera del servidor"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nouvel ordre en attente du serveur"
           }
         }
       }
