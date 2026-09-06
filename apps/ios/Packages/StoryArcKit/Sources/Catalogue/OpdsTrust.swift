@@ -141,7 +141,13 @@ public final class OpdsTrustDelegate: NSObject, URLSessionDelegate, URLSessionTa
         OpdsRedirect.following(request, from: task.originalRequest)
     }
 
-    private static func leaf(of trust: SecTrust) -> SecCertificate? {
+    /// The certificate the server presented, as opposed to whatever vouches for it.
+    ///
+    /// Internal rather than private, like the two below it: `OpdsTrustTests` asserts what the
+    /// reader is shown, and `URLProtectionSpace` carries no server trust a test can build, so
+    /// these three are the only part of the decision a test can reach. Nothing outside
+    /// `Catalogue` sees them.
+    static func leaf(of trust: SecTrust) -> SecCertificate? {
         (SecTrustCopyCertificateChain(trust) as? [SecCertificate])?.first
     }
 
@@ -149,12 +155,12 @@ public final class OpdsTrustDelegate: NSObject, URLSessionDelegate, URLSessionTa
     ///
     /// The same form `openssl x509 -fingerprint -sha256` prints, so a reader can compare
     /// what the app shows against what their server told them without transcribing either.
-    private static func fingerprint(of certificate: SecCertificate) -> String {
+    static func fingerprint(of certificate: SecCertificate) -> String {
         let digest = SHA256.hash(data: SecCertificateCopyData(certificate) as Data)
         return digest.map { String(format: "%02X", $0) }.joined(separator: ":")
     }
 
-    private static func subject(of certificate: SecCertificate) -> String? {
+    static func subject(of certificate: SecCertificate) -> String? {
         SecCertificateCopySubjectSummary(certificate) as String?
     }
 
