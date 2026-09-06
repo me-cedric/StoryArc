@@ -232,7 +232,20 @@ final class ReadAloudPlayerTests: XCTestCase {
         }
         XCTAssertTrue(close.exists, "No way out of the reader.")
         close.tap()
+        backToTheShelf(in: app)
         return app
+    }
+
+    /// Closing the reader lands on the publication's page — the Library split's detail column,
+    /// collapsed to one — and tapping the Library tab does not pop it. Back until the shelf's
+    /// own bar is there, so the next book can be chosen from it.
+    private func backToTheShelf(in app: XCUIApplication) {
+        for _ in 0..<3 where !app.navigationBars["Library"].exists {
+            let back = app.navigationBars.buttons.element(boundBy: 0)
+            guard back.waitForExistence(timeout: 3) else { break }
+            back.tap()
+            settle(1)
+        }
     }
 
     /// Waits, then photographs. See `PlayerScreenshotTests.settle(_:)` for why not `sleep`.
