@@ -121,7 +121,11 @@ format layer stops being able to hold a sentence.
       `SkipReasonCatalogueTest` assert the same English on both sides.
       `AudiobookIndexingTests` asserted in English that the refusal prompts for
       nothing; that assertion moved to `SkipReasonCatalogueTests`, where it runs
-      against all four languages.
+      against all four languages. The move first narrowed it: English lost
+      `key`, `password` and `log in`, and each translated language gained one
+      token. The list now carries a key, a password, an account and a way to
+      sign in, in all four languages, and `SkipReasonCatalogueTest` runs the
+      mirror on Android, which had no such guard at all.
 - [~] **1.7** Capture both skipped notices, in Spanish, at the largest text size.
       `SkippedNotice.swift` and `SkippedNotice.kt` are compact banners and the
       translations are longer than the English. Spanish is this app's measured
@@ -151,12 +155,18 @@ format layer stops being able to hold a sentence.
         `accessibility-extra-extra-extra-large` on iOS, font scale 2.0 on Android.
       - **Control frame.** The same notice in English, same device, same moment.
       - **Language.** Spanish, and Spanish is the measured worst case here, not
-        German. The Spanish value is 73 characters against 60 in English, 72 in
-        French and 62 in German — the longest of the four.
+        German. The Spanish value is 74 characters against 61 in English, 73 in
+        French and 63 in German — the longest of the four. Counted, not
+        estimated; the four figures recorded here first were each one low.
       - **What a unit test already says, so the picture does not have to.**
         `SkipReasonWordsTest` composes the banner at font scale 2.0 in a 320dp
-        window and asserts every Spanish, German and French sentence is laid out
-        inside it. What it cannot say is whether the result reads well.
+        window and asserts every Spanish, German and French sentence is drawn
+        inside the row the banner gives it, which is that window less two
+        gutters. It reads the **unmerged** tree, so the node it measures is the
+        sentence. Through the merged tree it measured the banner's padding
+        instead, and no string of any length could fail it — this bullet claimed
+        containment for two days that the test did not assert. What it still
+        cannot say is whether the result reads well.
 - [~] **1.8** Confirm a screen reader speaks the translated words.
       Both notices group with `accessibilityElement(children: .combine)` and its
       Android equivalent, so the reason is announced as part of the notice.
