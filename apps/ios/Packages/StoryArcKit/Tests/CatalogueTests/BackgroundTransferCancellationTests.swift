@@ -18,7 +18,7 @@ import Catalogue
 ///
 /// **Nothing here awaits the transfer.** The failure being pinned is a wait that never ends —
 /// an unresumed continuation — so the outcome is read out of a box the transfer writes to, and
-/// the test waits a bounded half second for it. Awaiting the task itself would hang the whole
+/// the test waits a bounded five seconds for it. Awaiting the task itself would hang the whole
 /// suite on the very bug the test exists to catch.
 @Suite("A cancelled transfer stops the system's task")
 struct BackgroundTransferCancellationTests {
@@ -43,13 +43,17 @@ struct BackgroundTransferCancellationTests {
         }
         transfer.cancel()
 
-        for _ in 0..<50 where told.withLock({ $0 }) == nil {
+        // Five seconds, not the half second this waited until 2026-09-06. The box is written
+        // in milliseconds when the machine is idle, so a passing run costs the same as before;
+        // the budget only matters on a loaded host. Half a second was not enough there, and the
+        // test failed roughly one run in four locally and on every GitHub `macos-26` runner.
+        for _ in 0..<500 where told.withLock({ $0 }) == nil {
             try await Task.sleep(for: .milliseconds(10))
         }
 
         #expect(
             told.withLock { $0 } == "cancelled",
-            "A cancelled transfer did not stop the system's task."
+            "A cancelled transfer did not stop the system's task within five seconds."
         )
     }
 }
