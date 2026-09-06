@@ -115,21 +115,46 @@ class ShelfRefreshTest {
         val screen = file.readText()
         val pull = screen.indexOf("PullToRefreshBox(")
         assertTrue("LibraryScreen no longer draws a pull to refresh.", pull >= 0)
-        val body = screen.substring(pull)
+        val opening = screen.indexOf(REFRESH_LAMBDA, pull)
+        assertTrue("The pull to refresh no longer names an onRefresh.", opening >= 0)
+        // The lambda alone, and nothing after it. Reading to the end of the file instead
+        // made this test vacuous: `onProbeSources()` and `rescan()` occur again in the
+        // retry below, so an `onRefresh` emptied to nothing satisfied every assertion here.
+        val body = screen.substring(opening, closingBrace(screen, opening + REFRESH_LAMBDA.length - 1))
         val plan = body.indexOf("ShelfRefresh.of(")
         val walk = body.indexOf("rescan()")
         val ask = body.indexOf("onProbeSources()")
 
-        assertTrue(
-            "The pull refreshes without asking what the shelf is showing.",
-            plan in 0 until minOf(walk, ask),
-        )
         assertTrue(
             "The pull no longer re-fetches a server. That was the defect: a reader who" +
                 " pulled on a populated shelf got a folder walk and no catalogue fetch.",
             ask >= 0,
         )
         assertTrue("The pull no longer walks a folder.", walk >= 0)
+        assertTrue(
+            "The pull refreshes without asking what the shelf is showing.",
+            plan in 0 until minOf(walk, ask),
+        )
+    }
+
+    /**
+     * One past the `}` that closes the `{` at [open].
+     *
+     * Braces are counted rather than a later line being searched for, so a named argument
+     * moved above `onRefresh` cannot quietly widen the slice again.
+     */
+    private fun closingBrace(text: String, open: Int): Int {
+        var depth = 0
+        for (index in open until text.length) {
+            when (text[index]) {
+                '{' -> depth += 1
+                '}' -> {
+                    depth -= 1
+                    if (depth == 0) return index + 1
+                }
+            }
+        }
+        throw AssertionError("The block at $open in $SCREEN_SOURCE is never closed.")
     }
 
     private companion object {
@@ -137,5 +162,8 @@ class ShelfRefreshTest {
         const val MODULE_DIRECTORY = "storyarc.library.projectDir"
         const val SCREEN_SOURCE =
             "src/main/kotlin/app/storyarc/feature/library/LibraryScreen.kt"
+
+        /** The pull's own lambda. Its last character is the brace [closingBrace] matches. */
+        const val REFRESH_LAMBDA = "onRefresh = {"
     }
 }
