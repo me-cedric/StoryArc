@@ -77,12 +77,12 @@ against the source that day, every citation checked against the line it names.
 
 | Verdict | Count | Means |
 | --- | --- | --- |
-| built and tested | 218 | code on both platforms, and a test on each side asserts it |
-| built, asserted by nothing | 121 | code on both platforms, and at least one side has no test asserting it. **Widened on 2026-09-06.** The cell used to read "no test anywhere touches it". That stopped being true when `library-browsing`'s *An ordering says that it is an ordering* entered the bucket with four Android language tests and nothing on iOS |
-| one platform only | 21 | code on one side; on the other it is absent, or declared and never reached |
-| missing | 12 | no running implementation on either platform |
+| built and tested | 220 | code on both platforms, and a test on each side asserts it |
+| built, asserted by nothing | 120 | code on both platforms, and at least one side has no test asserting it. **Widened on 2026-09-06.** The cell used to read "no test anywhere touches it". That stopped being true when `library-browsing`'s *An ordering says that it is an ordering* entered the bucket with four Android language tests and nothing on iOS |
+| one platform only | 22 | code on one side; on the other it is absent, or declared and never reached |
+| missing | 10 | no running implementation on either platform |
 
-**At least six of the twenty-one `one platform only` are not gaps.** The `local-library` spec
+**At least seven of the twenty-two `one platform only` are not gaps.** The `local-library` spec
 splits *Adding a folder* and *Remembering an opened file* per platform by construction, so
 each consumes a slot while being complete on both sides — four slots. The
 `native-experience` re-audit of 2026-09-06 adds two more of the same kind: *iOS reader
