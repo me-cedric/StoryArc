@@ -1,5 +1,6 @@
 package app.storyarc.feature.epubreader
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -39,6 +40,49 @@ import app.storyarc.core.model.SUGGESTED_BACKGROUNDS
 import app.storyarc.core.model.SUGGESTED_FOREGROUNDS
 import java.text.NumberFormat
 import kotlin.math.roundToInt
+
+/**
+ * What a pairing will be like to read, in words a reader can act on.
+ *
+ * A reader choosing a background colour does not know what "4.7 to 1" means. A number
+ * nobody can interpret is not information; it is decoration that looks like
+ * information. So the sheet leads with one of three bands and states the measured ratio
+ * after it. Nothing is dropped: `reading-themes` requires a refused pairing to be
+ * stated "with the measured ratio stated", a reader who is refused deserves to know by
+ * how much, and a developer reading a bug report needs the number.
+ *
+ * **The two boundaries are the domain's own, not new ones.** [ReadingContrast.AAA] at
+ * 7, which a derived text colour aims for and every built-in preset clears, and
+ * [ReadingContrast.AA] at 4.5, below which the sheet refuses the pairing outright. A
+ * band drawn at any other number would let the words and the refusal disagree about the
+ * same pairing — the sheet calling a pairing comfortable and then refusing it.
+ *
+ * The words are about reading rather than about the numbers behind them, because a
+ * reader wants to know whether a chapter will be comfortable, not whether a guideline
+ * is met. They replace `theme_page_colour_below_aaa`, which said the same thing in the
+ * arithmetic the reader could not read.
+ *
+ * iOS mirrors this in `PageColourSection.swift`.
+ */
+internal enum class ReadingComfort(@StringRes val label: Int) {
+    /** 7 to 1 and above. */
+    EASY(R.string.theme_page_colour_band_easy),
+
+    /** 4.5 to 1 up to 7 to 1. Usable, and the sheet says what it costs. */
+    TIRING(R.string.theme_page_colour_band_tiring),
+
+    /** Below 4.5 to 1. Refused. */
+    FAINT(R.string.theme_page_colour_band_faint),
+    ;
+
+    companion object {
+        fun band(ratio: Double): ReadingComfort = when {
+            ratio >= ReadingContrast.AAA -> EASY
+            ratio >= ReadingContrast.AA -> TIRING
+            else -> FAINT
+        }
+    }
+}
 
 /**
  * A reading background of the reader's own, kept legible.
@@ -113,22 +157,21 @@ internal fun PageColourSection(
         if (palette != null) {
             Sample(palette)
 
+            // The band first, because it is what a reader can act on, and the measured
+            // ratio under it, because the spec keeps the number and a bug report needs
+            // it. `textPrimary` against the ratio line's `textSecondary` says which of
+            // the two is meant to be read first.
+            Text(
+                text = stringResource(ReadingComfort.band(palette.contrast).label),
+                style = MaterialTheme.typography.labelLarge,
+                color = tokens.textPrimary,
+            )
+
             Text(
                 text = stringResource(R.string.theme_page_colour_ratio, ratio(palette.contrast)),
                 style = MaterialTheme.typography.labelLarge,
                 color = tokens.textSecondary,
             )
-
-            if (!palette.meetsAAA) {
-                // Not a refusal — 4.5 is the floor and this pairing is above it. But
-                // every built-in preset clears 7 to 1, so a reader should know when
-                // their own choice does not.
-                Text(
-                    text = stringResource(R.string.theme_page_colour_below_aaa),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = tokens.textTertiary,
-                )
-            }
 
             // `reading-themes`: "a seventh, user-named slot". The name is the
             // reader's, so it is a field rather than something generated for them.
@@ -165,6 +208,14 @@ internal fun PageColourSection(
         }
 
         refused?.let {
+            // The band leads here too, so the refusal opens with what the reader can
+            // act on rather than with arithmetic.
+            Text(
+                text = stringResource(ReadingComfort.band(it).label),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.error,
+            )
+
             // The number, not just the word. `reading-themes`: refused "with the
             // measured ratio stated", because "that is not allowed" without a number
             // is an obstacle rather than an explanation.

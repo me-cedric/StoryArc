@@ -74,7 +74,9 @@
     <string name="theme_page_colour_untitled">La mienne</string>
     <string name="theme_page_colour_text_colour">Couleur du texte</string>
     <string name="theme_page_colour_ratio">Contraste %1$s pour 1</string>
-    <string name="theme_page_colour_below_aaa">Lisible, mais en dessous du 7 pour 1 que respecte chaque thème fourni.</string>
+    <string name="theme_page_colour_band_easy">Confortable à lire pendant tout un chapitre.</string>
+    <string name="theme_page_colour_band_tiring">Lisible, mais fatigant sur tout un chapitre.</string>
+    <string name="theme_page_colour_band_faint">Trop pâle pour être lu.</string>
     <string name="theme_page_colour_refused">Non appliqué. %1$s pour 1 est en dessous du %2$s pour 1 nécessaire pour lire confortablement.</string>
     <string name="theme_page_colour_clear">Utiliser les couleurs du thème</string>
     <string name="theme_page_colour_sample">Un texte assez long pour juger de l’association.</string>

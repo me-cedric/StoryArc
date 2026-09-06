@@ -74,7 +74,9 @@
     <string name="theme_page_colour_untitled">El mío</string>
     <string name="theme_page_colour_text_colour">Color del texto</string>
     <string name="theme_page_colour_ratio">Contraste %1$s a 1</string>
-    <string name="theme_page_colour_below_aaa">Legible, pero por debajo del 7 a 1 que cumple cada tema incluido.</string>
+    <string name="theme_page_colour_band_easy">Cómodo de leer durante todo un capítulo.</string>
+    <string name="theme_page_colour_band_tiring">Legible, pero cansado a lo largo de un capítulo.</string>
+    <string name="theme_page_colour_band_faint">Demasiado tenue para leer.</string>
     <string name="theme_page_colour_refused">No aplicado. %1$s a 1 está por debajo del %2$s a 1 necesario para leer con comodidad.</string>
     <string name="theme_page_colour_clear">Usar los colores del tema</string>
     <string name="theme_page_colour_sample">Texto lo bastante largo para juzgar la combinación.</string>

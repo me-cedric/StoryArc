@@ -74,7 +74,9 @@
     <string name="theme_page_colour_untitled">Mine</string>
     <string name="theme_page_colour_text_colour">Text colour</string>
     <string name="theme_page_colour_ratio">Contrast %1$s to 1</string>
-    <string name="theme_page_colour_below_aaa">Readable, but below the 7 to 1 that every built-in theme meets.</string>
+    <string name="theme_page_colour_band_easy">Comfortable to read for a whole chapter.</string>
+    <string name="theme_page_colour_band_tiring">Readable, but tiring over a whole chapter.</string>
+    <string name="theme_page_colour_band_faint">Too faint to read.</string>
     <string name="theme_page_colour_refused">Not applied. %1$s to 1 is below the %2$s to 1 needed to read comfortably.</string>
     <string name="theme_page_colour_clear">Use the theme’s colours</string>
     <string name="theme_page_colour_sample">Text long enough to judge the pairing by.</string>

@@ -74,7 +74,9 @@
     <string name="theme_page_colour_untitled">Meine</string>
     <string name="theme_page_colour_text_colour">Textfarbe</string>
     <string name="theme_page_colour_ratio">Kontrast %1$s zu 1</string>
-    <string name="theme_page_colour_below_aaa">Lesbar, aber unter dem Verhältnis 7 zu 1, das jedes mitgelieferte Thema erreicht.</string>
+    <string name="theme_page_colour_band_easy">Angenehm zu lesen, ein ganzes Kapitel lang.</string>
+    <string name="theme_page_colour_band_tiring">Lesbar, aber anstrengend über ein ganzes Kapitel.</string>
+    <string name="theme_page_colour_band_faint">Zu blass zum Lesen.</string>
     <string name="theme_page_colour_refused">Nicht angewendet. %1$s zu 1 liegt unter den %2$s zu 1, die zum bequemen Lesen nötig sind.</string>
     <string name="theme_page_colour_clear">Farben des Themas verwenden</string>
     <string name="theme_page_colour_sample">Text, der lang genug ist, um die Kombination zu beurteilen.</string>
