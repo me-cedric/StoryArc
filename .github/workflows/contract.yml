@@ -17,6 +17,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          # `pnpm spec:guard` runs `docs/agent-compass/scripts/openspec-guard.mjs`, which
+          # lives in a submodule. Without this the job dies on MODULE_NOT_FOUND, which is
+          # what it did on every run until 2026-09-06.
+          submodules: recursive
 
       # No `version:` — package.json's `packageManager` field is the pin, and
       # specifying it twice is a hard error in this action.
