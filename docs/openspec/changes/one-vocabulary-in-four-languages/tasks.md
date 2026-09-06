@@ -21,7 +21,7 @@ one seam, and the platform pair inside it moves together.
 The largest seam: 21 of the 30 literals, both platforms, one mirrored type. The
 format layer stops being able to hold a sentence.
 
-- [ ] **1.1** Write the failing tests first, both platforms, case for case.
+- [x] **1.1** Write the failing tests first, both platforms, case for case.
       iOS: extend the `PublicationIndexer` / `LibraryScanner` suites under
       `apps/ios/Packages/StoryArcKit/Tests/FormatsTests/` to assert each refusal
       case is *a case*, not a string — that a skipped publication's reason
@@ -32,7 +32,18 @@ format layer stops being able to hold a sentence.
       `pnpm gradle :core:format:testDebugUnitTest` both **fail**, naming the
       cases. A test that passes before the change is the vacuous shape AGENTS.md
       §5 catalogues.
-- [ ] **1.2** Close the case set on iOS.
+
+      **2026-09-06.** Two reds per platform, both watched before anything was
+      changed. The catalogue guards compile against the old tree and fail on the
+      assertion: iOS `SkipReasonCatalogueTests` — *the catalogue defines no
+      "library.skipped.reason.unsupported %@"*, 2 tests, 2 failed; Android
+      `SkipReasonCatalogueTest` — *values/strings.xml does not word
+      library_skipped_reason_unsupported*, 2 tests, 2 failed. The case-set guards
+      cannot compile against the old tree, and the compiler names each case:
+      `type 'PublicationIndexer.IndexError' has no member 'notThere'` and four
+      more, then `cannot find type 'SkipReason' in scope`; Kotlin,
+      `Unresolved reference 'NotThere'` and `Unresolved reference 'SkipReason'`.
+- [x] **1.2** Close the case set on iOS.
       `PublicationIndexer.IndexError.unreadable(reason: String)` in
       `apps/ios/Packages/StoryArcKit/Sources/Formats/PublicationIndexer.swift:23`
       becomes the closed set the code already constructs — *not there*, *format
@@ -41,26 +52,60 @@ format layer stops being able to hold a sentence.
       and `PublicationIndexer+Building.swift:67,71,182` moving to it.
       Verify: `pnpm test:ios` passes; `pnpm lint:ios` from the repository root,
       never after a `cd`.
-- [ ] **1.3** Close the case set on Android, identically.
+
+      **2026-09-06.** Seven cases: `unsupported(format:)`, `notThere`,
+      `formatNotRecognised`, `archivePasswordProtected`, `archiveUnreadable`,
+      `pdfUnopenable`, `contentProtected`. `ScanEvent.skipped` carries a new
+      `SkipReason`, which is those seven plus `unknown` for the walk's catch-all.
+      `pnpm test:ios` — *2020 tests in 257 suites failed with 7 issues*, every one
+      of the seven in `AppIconChooserAnnouncementTests` and pre-existing.
+      `swiftlint lint --strict --no-cache` — *0 violations, 0 serious in 698
+      files*.
+- [x] **1.3** Close the case set on Android, identically.
       `IndexException.Unreadable(val reason: String)` at
       `apps/android/core/format/.../PublicationIndexer.kt:23`, call sites at
       `:133,:235,:239,:329,:370,:400,:404`. Same case names as 1.2 — the mirror
       is checked by reading, so a name that differs is a defect.
       Verify: `pnpm gradle :core:format:lint :core:format:testDebugUnitTest`.
-- [ ] **1.4** Map case to key in the view module, iOS.
+
+      **2026-09-06.** Six cases, named as iOS names them. Android does not carry
+      `pdfUnopenable`: `PublicationIndexer` indexes a PDF without opening it,
+      because `PdfRenderer` is a framework class the indexer stays off, so that
+      refusal cannot arise and a seventh case would be dead code. The difference
+      is stated in both files' doc comments so the mirror still reads as one.
+      `:core:format:testDebugUnitTest` — *287 tests, 0 failures*.
+      `:core:format:lint` — *BUILD SUCCESSFUL*.
+- [x] **1.4** Map case to key in the view module, iOS.
       `LibraryScanner.swift:351`'s `skipReason(for:)` and the catch-all at
       `:315` move out of `Formats`; the keys land in
       `LibraryFeature/Resources/Localizable.xcstrings` in en, fr, de and es.
       `Formats` gains no catalogue — `pnpm strings:ios` reads one table per
       module and that module draws nothing.
       Verify: `pnpm strings:ios` reports no MISSING and no UNTRANSLATED.
-- [ ] **1.5** Map case to key in the view module, Android.
+
+      **2026-09-06.** `Sources/LibraryFeature/SkipReasonWords.swift` maps each case
+      to a `Text` literal, so `scripts/ios-strings.mjs` can see all eight keys.
+      `Formats` gained no catalogue. `pnpm strings:ios` — *every key resolves, in
+      en, fr, de, es*. The tick covers that the four locales resolve and that the
+      keys are asked for as literals. No speaker of French, German or Spanish
+      reviewed the words.
+- [x] **1.5** Map case to key in the view module, Android.
       `LibraryScanner.kt:531,582,612,661,668`'s `reasonFor(cause)` moves to
       `feature/library`, keys into `values`, `values-fr`, `values-de` and
       `values-es` `strings.xml`.
       Verify: `pnpm gradle :feature:library:lint` — a translation gap fails lint,
       which is the parity iOS needs a script for.
-- [ ] **1.6** Reconcile the content-protection sentence to Android's wording.
+
+      **2026-09-06.** `feature/library/SkipReasonWords.kt` maps each case to a name
+      in `values`, `values-fr`, `values-de` and `values-es`.
+      `:feature:library:testDebugUnitTest` — *460 tests, 0 failures*.
+      `:feature:library:lint` reports **no `MissingTranslation` and no
+      `ExtraTranslation`**, so the four locales are complete. That task fails on
+      one error, `ViewModelConstructorInComposable` at
+      `LibraryControlsAreNamedTest.kt:102` — **pre-existing**, in a file this change
+      does not touch, added by commit `6c76fc16`. The tick covers that the four
+      locales resolve. No speaker of French, German or Spanish reviewed the words.
+- [x] **1.6** Reconcile the content-protection sentence to Android's wording.
       iOS says *it is protected by its store's content protection*
       (`LibraryScanner.swift:355`); Android names the kind —
       *this audiobook is protected by its store's content protection*
@@ -69,7 +114,15 @@ format layer stops being able to hold a sentence.
       platforms.
       Verify: the mirrored assertions in 1.1 compare the same expected key on
       both sides.
-- [ ] **1.7** Capture both skipped notices, in Spanish, at the largest text size.
+
+      **2026-09-06.** One value, both platforms: *this audiobook is protected by
+      its store's content protection*. iOS dropped *it is protected by …*.
+      `SkipReasonCatalogueTests.contentProtectionIsReconciled` and
+      `SkipReasonCatalogueTest` assert the same English on both sides.
+      `AudiobookIndexingTests` asserted in English that the refusal prompts for
+      nothing; that assertion moved to `SkipReasonCatalogueTests`, where it runs
+      against all four languages.
+- [~] **1.7** Capture both skipped notices, in Spanish, at the largest text size.
       `SkippedNotice.swift` and `SkippedNotice.kt` are compact banners and the
       translations are longer than the English. Spanish is this app's measured
       worst case, not German — `localization`'s *Long translations* is the one
@@ -81,12 +134,55 @@ format layer stops being able to hold a sentence.
       **Control:** the same notice in English at the same moment on the same
       device — a Spanish banner that fits proves nothing if the English one is
       the picture that was taken.
-- [ ] **1.8** Confirm a screen reader speaks the translated words.
+
+      **2026-09-06 — the frame this owes.** The words are in and the capture is
+      not. The emulator lock is shared, so this frame belongs to the serialised
+      capture pass. What it needs:
+
+      - **Route.** Android: `SkippedNotice` above the shelf on the library
+        screen, reached by scanning a folder that holds one file of an unread
+        format. iOS: the same banner in `LibraryView`, reached by picking a folder
+        holding `packages/test-fixtures/audiobooks/protected.aax`.
+      - **The state to drive.** One skipped publication, so the notice is
+        `Notice.One` and draws the reason under the name. The longest sentence is
+        `contentProtected`, so `protected.aax` is the file to scan.
+      - **Appearance.** Light and dark, both platforms.
+      - **Text size.** Default, and the largest the accessibility settings offer:
+        `accessibility-extra-extra-extra-large` on iOS, font scale 2.0 on Android.
+      - **Control frame.** The same notice in English, same device, same moment.
+      - **Language.** Spanish, and Spanish is the measured worst case here, not
+        German. The Spanish value is 73 characters against 60 in English, 72 in
+        French and 62 in German — the longest of the four.
+      - **What a unit test already says, so the picture does not have to.**
+        `SkipReasonWordsTest` composes the banner at font scale 2.0 in a 320dp
+        window and asserts every Spanish, German and French sentence is laid out
+        inside it. What it cannot say is whether the result reads well.
+- [~] **1.8** Confirm a screen reader speaks the translated words.
       Both notices group with `accessibilityElement(children: .combine)` and its
       Android equivalent, so the reason is announced as part of the notice.
       Verify: VoiceOver on a booted simulator and TalkBack on an emulator, with
       the interface language set to French. No new string; this asserts 1.4 and
       1.5 reached the announcement and not only the label.
+
+      **2026-09-06 — the frame this owes.** A screen-reader pass, not a picture,
+      and it belongs to the serialised capture pass for the same reason as 1.7.
+      What it needs:
+
+      - **Route.** The same skipped notice as 1.7, on both platforms, with one
+        skipped publication so the notice names it and states the reason.
+      - **Screen reader.** VoiceOver on a booted simulator, TalkBack on an
+        emulator. Both on, and the swipe that reaches the notice recorded.
+      - **Language.** The interface language set to **French**, on the device and
+        not only in the app.
+      - **What to listen for.** One stop, saying the publication's name and the
+        French reason together. Two stops is the defect. English inside a French
+        announcement is the other defect, and it is the one this task exists for.
+      - **Control.** The same swipe with the interface language set to English.
+      - **What a unit test already says.**
+        `SkippedNoticeAnnouncementTests.oneFailureIsOneStop` asserts the reason's
+        **key** is inside the merged element, so the announcement and the label
+        draw the same value. It runs on the host, where `String(localized:)`
+        answers with the key, so it cannot hear a language.
 
 ## 2. The refused-file alert
 
