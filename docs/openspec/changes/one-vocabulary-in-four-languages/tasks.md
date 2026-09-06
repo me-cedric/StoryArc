@@ -199,11 +199,18 @@ format layer stops being able to hold a sentence.
 Six literals, iOS only. Android's `RefusedFileDialog.kt` is already localised and
 is the target shape.
 
-- [ ] **2.1** Write the failing test.
+- [x] **2.1** Write the failing test.
       `apps/ios/Packages/StoryArcKit/Tests/` — assert the alert's title, its
       button and each of the three `message` branches resolve through the
       catalogue. Verify: it fails first.
-- [ ] **2.2** Localise `apps/ios/App/RefusedFile.swift`.
+      **Done 2026-09-06.** `Tests/StoryArcCoreTests/RefusedFileWordingTests.swift`.
+      It reads the app's source and the app's catalogue, because the app target has
+      no test target and `pnpm test:ios` runs `swift test` over the package alone —
+      the same second choice `ShellWiringTests` takes for `AppShell.swift`.
+      It failed first with three named issues: *The alert draws no English literal*,
+      *Every branch of the alert draws a key*, *The catalogue answers every key in
+      four languages*.
+- [x] **2.2** Localise `apps/ios/App/RefusedFile.swift`.
       `:29` (the supported-format list), `:37`, `:41`, `:44` (the three message
       branches), `:55` (`Text(verbatim: "Cannot open this file")`) and `:58`
       (`Text(verbatim: "OK")`). Keys go in `App/Resources/Localizable.xcstrings`.
@@ -211,40 +218,116 @@ is the target shape.
       what get keys, and the comment at `:25-28` explaining why the list is not
       derived from the enum stays.
       Verify: `pnpm strings:ios`, then `pnpm build:ios` — this is the app target.
-- [ ] **2.3** Give the Android name fallback a key.
+      **Done 2026-09-06.** Five keys, named to pair with Android's `open_in_*`:
+      `open.in.refused.title`, `open.in.dismiss`, `open.in.protected %@`,
+      `open.in.unsupported %@ %@ %@`, `open.in.unreadable %@ %@`. The format list
+      stays a literal and shortened to `CBZ, CBR, CBT, EPUB, PDF, M4B`; the words
+      *and other audiobooks* moved into the two sentences that carry it. `message`
+      returns `Text` rather than `String`, because a `String` cannot hold a key.
+      `pnpm strings:ios`: *every key resolves, in en, fr, de, es*. `pnpm build:ios`
+      exits 0 with no `error:` line. The English values are unchanged, so the two
+      platforms' wording still diverges where it diverged before — §4.2 owns that.
+- [x] **2.3** Give the Android name fallback a key.
       `app/.../OpenedFile.kt:114`'s `"this file"` is interpolated into an
       otherwise-localised sentence, so a French dialog reads French around an
       English noun.
       Verify: `pnpm gradle :app:lint :app:testDebugUnitTest`.
-- [ ] **2.4** Capture the alert on both platforms in French, light and dark.
+      **Done 2026-09-06.** `open_in_unnamed`, in `values`, `values-fr`, `values-de`
+      and `values-es`. `OpenedFile.index` now takes the activity's `Context` rather
+      than its `ContentResolver`, because a resolver cannot answer for a string;
+      `AppIntents.kt:63` passes `activity`. The fallback is lower case in every
+      language, and the resource's comment says why. *BUILD SUCCESSFUL in 44s*.
+- [~] **2.4** Capture the alert on both platforms in French, light and dark.
       **Control:** the same alert in English, same device, same moment.
+      **Owed 2026-09-06.** Not captured: the emulator and the simulator locks are
+      shared, so captures run serialised in their own pass. The brief for that pass:
+      hand the app a file it refuses, on each platform, and photograph the alert.
+      iOS route: Files → *Open with StoryArc* on a `.txt` file, which reaches
+      `StoryArcAppActions.swift:38` and draws `open.in.unreadable`. Android route:
+      the same file through the share sheet, which reaches
+      `OpenedFile.Outcome.Unreadable` and draws `open_in_unreadable`. Appearance:
+      light and dark. Text size: default. Control frame: the same alert with the
+      interface language set to English, same device, same moment.
 
 ## 3. The Android reader failure
 
 Two literals, and the largest hidden surface behind them.
 
-- [ ] **3.1** Count what is reachable, and write it down here.
+- [x] **3.1** Count what is reachable, and write it down here.
       `ReaderViewModel.kt:437,495` assigns `cause.message` to what the reader is
       shown, so internal prose from anywhere in `core/format` can surface —
       `PdfDocumentReader.kt` alone throws *not a pdf*, *cannot open file*,
       *no file descriptor for …*, *page has no size*. The count does not change
       the approach, and an uncounted blast radius is how a one-line fix turns
       out to have been a twenty-file one. Verify: the list is in this task.
-- [ ] **3.2** Write the failing test.
+
+      **Counted 2026-09-06: 67 distinct English sentences, in 14 files.** Both
+      catches take `Exception`, so every one of them reaches the screen. Counted
+      from `core/format`'s own sources on this date; §1 is rewriting
+      `PublicationIndexer`'s seven, so that row moves.
+
+      | File | Count | The sentences |
+      | --- | --- | --- |
+      | `ZipReader.kt` | 16 | *no end of central directory record*, *archive is encrypted*, *unsupported method %d*, *inflate failed*, and *malformed zip: %s* carrying *zip64 sentinel present but no zip64 record*, *central directory outside the source*, *central directory slice invalid*, *zip64 EOCD offset outside the source*, *zip64 EOCD signature missing*, *negative uncompressed size*, *not a local header*, *implausible name length*, *local header runs past the source*, *local header signature missing*, *entry data outside the source* |
+      | `HttpSource.kt` | 8 | *server does not serve ranges*, *206 with no Content-Range*, *asked for %s, told %s*, *expected %s bytes, got %s*, *length was %s*, *no length stated*, *answered from elsewhere*, *http %d* |
+      | `PdfDocumentReader.kt` | 7 | *pdf unreadable*, *not a pdf*, *cannot open file*, *cannot open document*, *no file descriptor for %s*, *page has no size*, *no page at index %d* |
+      | `PublicationIndexer.kt` | 7 | *unsupported format: %s*, *the format was not recognised*, *the archive is password protected*, *the archive could not be read*, *the file is not there*, *%s is protected by its store's content protection*, *%s is not an audio container* |
+      | `ComicArchive.kt` | 5 | *unsupported container: %s*, *unrecognised container*, *archive is password protected*, *archive is unreadable*, *archive uses solid compression* |
+      | `TarReader.kt` | 5 | *not a tar archive*, *size overflows*, *not an octal field*, *octal field overflows*, *entry lies outside the source* |
+      | `RarReader.kt` | 4 | *not a rar archive*, *entry needs a decoder, method %d*, *archive declares too many entries*, *entry lies outside the source* |
+      | `ByteReader.kt` | 3 | *seek out of range*, *skip past end*, *read past end* |
+      | `EpubReader.kt` | 3 | *not an epub*, *no package document*, *no entry at %s* |
+      | `RandomAccessSource.kt` | 3 | *read of %d bytes at %d exceeds source length %d*, *short read at %d*, *source unreadable* |
+      | `CoverLoader.kt` | 2 | *no cover*, *cover unreadable* |
+      | `RarDecoder.kt` | 2 | *libarchive could not open %s*, *libarchive could not read '%s' from %s* |
+      | `PageDecoder.kt` | 1 | *bytes are not a recognised image* |
+      | `UriSource.kt` | 1 | *no file descriptor for %s* |
+
+      **And the set is not closed.** `catch (cause: Exception)` also catches what
+      the platform throws, which carries its own English and no catalogue at all.
+      `OpenedFile.kt` records a measured one: `FileNotFoundException:
+      /proc/self/fd/117: open failed: EACCES`. So 67 is the floor.
+- [x] **3.2** Write the failing test.
       `feature/reader`'s unit tests — assert that a failure carrying internal
       text surfaces the general refusal key and never the exception's own
       message. Verify: it fails first.
-- [ ] **3.3** Replace `cause.message` with a translated general refusal.
+      **Done 2026-09-06.** `ReaderFailureSaysNothingInternalTest`. A source guard,
+      because this module's unit tests run on a bare JVM and a `ReaderViewModel`
+      cannot be built there — `SolidArchiveHasNoNoticeTest` reads the same tree the
+      same way. It failed first with two named failures: *the reader is never shown
+      an exception's own message* and *the reader is shown a translated refusal
+      instead*. Its third test, *the view model still sets a failure*, passed both
+      times: it is the non-vacuity assertion, and a guard over nothing passes for
+      ever.
+- [x] **3.3** Replace `cause.message` with a translated general refusal.
       `ReaderViewModel.kt:437,495`. **This removes information a reader can see
       today**, deliberately: it was written for a maintainer, and the diagnostic
       export — English by explicit design — is where a maintainer gets it.
       iOS has no equivalent surface, so the handoff says Android-only.
       Verify: `pnpm gradle :feature:reader:lint :feature:reader:testDebugUnitTest`.
-- [ ] **3.4** Capture the reader's failure message in French.
+      **Done 2026-09-06.** `failure` carries a string resource id instead of a
+      sentence, so an exception message can no longer be put in it. The new key is
+      `reader_cannot_open`, in all four `values*` files, and its comment records
+      what was removed and where a maintainer now gets it. `ReaderScreen.kt:228`
+      resolves it. *BUILD SUCCESSFUL in 7s*.
+      **iOS is not clean, and the handoff's premise is wrong.**
+      `ReaderFeature/ReaderModel.swift:286,325` sets `failure = String(describing:
+      error)`, which is the same defect with a worse rendering. Left alone because
+      this task says Android-only and `Sources/ReaderFeature/` is another agent's
+      file in this wave. It wants its own task.
+- [~] **3.4** Capture the reader's failure message in French.
       Walk: open a truncated file from the corpus. Light and dark.
       **Control:** the same screen in English at the same moment — the sentence
       is what changed, so a picture of a failure screen proves nothing on its
       own.
+      **Owed 2026-09-06.** Not captured: the emulator lock is shared, so captures
+      run serialised in their own pass. The brief for that pass: open a truncated
+      file from the corpus on Android, with the interface language set to French.
+      Route: library shelf → the truncated publication → the reader, which fails in
+      `ReaderViewModel.open` and draws `reader_cannot_open` through
+      `ReaderScreen.kt:228`. Appearance: light and dark. Text size: default.
+      Control frame: the same screen with the interface language set to English,
+      same device, same moment.
 
 ## 4. One state, one name
 
