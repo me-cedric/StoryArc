@@ -95,7 +95,19 @@ public final class OpdsTrustDelegate: NSObject, URLSessionDelegate, URLSessionTa
         guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
               let trust = challenge.protectionSpace.serverTrust
         else { return (.performDefaultHandling, nil) }
+        return decision(for: trust, host: challenge.protectionSpace.host)
+    }
 
+    /// The whole rule, over the two values the challenge carries.
+    ///
+    /// Internal, and separate from the delegate method, so that `OpdsTrustTests` can call it.
+    /// `URLProtectionSpace.serverTrust` is read-only and the system sets it, so no test can
+    /// build a challenge. A `SecTrust` and a host are both buildable, so the decision itself
+    /// is testable. Nothing outside `Catalogue` sees this.
+    func decision(
+        for trust: SecTrust,
+        host: String
+    ) -> (URLSession.AuthChallengeDisposition, URLCredential?) {
         // The system first, always. A certificate that evaluates is not the reader's
         // problem, and asking them about one would teach them to tap through the question
         // that matters.
@@ -103,7 +115,6 @@ public final class OpdsTrustDelegate: NSObject, URLSessionDelegate, URLSessionTa
             return (.useCredential, URLCredential(trust: trust))
         }
 
-        let host = challenge.protectionSpace.host
         guard let leaf = Self.leaf(of: trust) else {
             return (.cancelAuthenticationChallenge, nil)
         }
@@ -144,9 +155,7 @@ public final class OpdsTrustDelegate: NSObject, URLSessionDelegate, URLSessionTa
     /// The certificate the server presented, as opposed to whatever vouches for it.
     ///
     /// Internal rather than private, like the two below it: `OpdsTrustTests` asserts what the
-    /// reader is shown, and `URLProtectionSpace` carries no server trust a test can build, so
-    /// these three are the only part of the decision a test can reach. Nothing outside
-    /// `Catalogue` sees them.
+    /// reader is shown. Nothing outside `Catalogue` sees them.
     static func leaf(of trust: SecTrust) -> SecCertificate? {
         (SecTrustCopyCertificateChain(trust) as? [SecCertificate])?.first
     }

@@ -10,19 +10,16 @@ import Testing
 /// does not trust is refused "by default", the app "explains why", and it "offers to pin that
 /// specific certificate after showing its fingerprint".
 ///
+/// The decision itself is driven here, through `OpdsTrustDelegate.decision(for:host:)`: a
+/// certificate the system refuses is refused and described, a pinned one is accepted, a pin
+/// does not travel to another host, and a certificate the system trusts is accepted whatever
+/// is pinned. Android's `OpdsTrustTest` drives the same four over the same certificate.
+///
 /// **What this suite cannot reach, and why.** `OpdsTrustDelegate.urlSession(_:didReceive:)`
 /// takes a `URLAuthenticationChallenge`, and a challenge carries the server's certificate in
 /// `URLProtectionSpace.serverTrust`, which is read-only and populated by the system alone —
-/// no public initialiser sets it. So the delegate method itself cannot be called at a desk.
-/// The alternative, a TLS listener on loopback, needs a `SecIdentity`, which needs a private
-/// key in the repository; `security.md` forbids that and it is not worth a test.
-///
-/// Every part the delegate builds its answer from is asserted here instead: that the system
-/// refuses this certificate, that the fingerprint shown is the SHA-256 of the DER, that the
-/// leaf is the certificate taken from the chain, and every rule `CertificatePins` applies.
-/// Android's `OpdsTrustTest` asserts the same fingerprint over the same certificate, and
-/// additionally drives the whole decision, because `X509TrustManager` is an interface a test
-/// can call.
+/// no public initialiser sets it. So that one method cannot be called at a desk, and it holds
+/// nothing but the guard and the two reads that hand `decision(for:host:)` its arguments.
 struct OpdsTrustTests {
     /// A self-signed certificate, `CN=storyarc-test.invalid`, generated once for this suite.
     ///
@@ -69,6 +66,18 @@ struct OpdsTrustTests {
         return try #require(made)
     }
 
+    /// The same certificate, made its own anchor, so the system evaluates it.
+    ///
+    /// This is what a certificate a certificate authority issued looks like to the decision:
+    /// `SecTrustEvaluateWithError` answers true. Anchoring one certificate is how a test gets
+    /// that answer without a real chain, which would expire and would need the network.
+    private func trustedTrust() throws -> SecTrust {
+        let trust = try trust()
+        #expect(SecTrustSetAnchorCertificates(trust, [try certificate()] as CFArray) == errSecSuccess)
+        #expect(SecTrustSetAnchorCertificatesOnly(trust, true) == errSecSuccess)
+        return trust
+    }
+
     // MARK: What the reader is shown
 
     @Test func theSystemDoesNotVouchForASelfSignedCertificate() throws {
@@ -100,6 +109,49 @@ struct OpdsTrustTests {
         )
         #expect(refusal.host == Self.host)
         #expect(refusal.fingerprint == Self.fingerprint)
+    }
+
+    // MARK: The decision
+
+    @Test func anUntrustedCertificateIsRefusedAndDescribed() throws {
+        let delegate = OpdsTrustDelegate(pins: CertificatePins())
+        let (disposition, credential) = delegate.decision(for: try trust(), host: Self.host)
+        #expect(disposition == .cancelAuthenticationChallenge)
+        #expect(credential == nil)
+        let refusal = try #require(delegate.takeRefusal())
+        #expect(refusal.host == Self.host)
+        #expect(refusal.fingerprint == Self.fingerprint)
+        #expect(refusal.subject.contains("storyarc-test.invalid"))
+    }
+
+    @Test func aPinnedCertificateIsAccepted() throws {
+        let delegate = OpdsTrustDelegate(pins: CertificatePins([Self.host: [Self.fingerprint]]))
+        let (disposition, credential) = delegate.decision(for: try trust(), host: Self.host)
+        #expect(disposition == .useCredential)
+        #expect(credential != nil)
+        // Nothing to ask the reader about: they already answered for this certificate.
+        #expect(delegate.takeRefusal() == nil)
+    }
+
+    @Test func aPinOnAnotherHostDoesNotOpenThisOne() throws {
+        let delegate = OpdsTrustDelegate(pins: CertificatePins(["other.example": [Self.fingerprint]]))
+        let (disposition, _) = delegate.decision(for: try trust(), host: Self.host)
+        #expect(disposition == .cancelAuthenticationChallenge)
+        #expect(delegate.takeRefusal()?.fingerprint == Self.fingerprint)
+    }
+
+    /// A pin is an exception the reader adds, not a restriction they impose.
+    ///
+    /// `opds-catalog` offers the pin only "WHEN a catalogue presents a certificate the system
+    /// does not trust", so a certificate the system does trust is accepted whether or not a
+    /// pin exists. Asserted rather than assumed, because the other reading — a pinned host
+    /// refusing every other certificate — is a different feature.
+    @Test func aSystemTrustedCertificateIsAcceptedWhateverIsPinned() throws {
+        let delegate = OpdsTrustDelegate(pins: CertificatePins([Self.host: ["00:11:22"]]))
+        let (disposition, credential) = delegate.decision(for: try trustedTrust(), host: Self.host)
+        #expect(disposition == .useCredential)
+        #expect(credential != nil)
+        #expect(delegate.takeRefusal() == nil)
     }
 
     // MARK: What the reader accepted
