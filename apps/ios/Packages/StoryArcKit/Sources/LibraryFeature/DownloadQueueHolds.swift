@@ -105,6 +105,11 @@ extension DownloadQueue {
     /// download is started again when Wi-Fi returns. What the app cannot yet do is start it
     /// again *from* those bytes: there is no Range request anywhere in either tree, so a
     /// resumed transfer begins at zero.
+    ///
+    /// **Cancelling the task reaches the system's transfer**, which it did not until
+    /// ``BackgroundTransfers/download(_:named:)`` was given a cancellation handler. Before
+    /// that the `URLSessionDownloadTask` ran on, the whole file arrived over cellular, and
+    /// the row this method had just written was overwritten with `finished`.
     func holdForConnection() {
         let next = library.reconsideringWifi { mayStart($0) }
         guard next != library else { return }

@@ -41,6 +41,12 @@ extension DownloadQueue {
             else { break }
             try? await Task.sleep(for: DownloadLibrary.backoff(afterAttempts: attempts))
         }
+        // A cancelled transfer leaves the row, the slot and the waiters to whoever cancelled
+        // it. Whoever that is has already written the row, and may have started a *new*
+        // transfer for this same download — a connection that returns before this one has
+        // unwound. Clearing `running` here would take that transfer's only handle away, so
+        // the next hold could not stop it.
+        guard !Task.isCancelled else { return }
         running[download.id] = nil
         finish(download.id, with: nil)
         pump()
@@ -111,6 +117,12 @@ extension DownloadQueue {
         } catch let error as OpdsError {
             fail(download.id, reason: CatalogueMessages.describe(error), retryable: error.isTransient)
         } catch {
+            // A cancelled transfer is not a failure and must not be recorded as one. The
+            // queue cancels in order to *hold* a download: `holdForConnection()` has already
+            // written `waitingForWiFi` onto the row, and `pause(_:)` and `cancel(_:)` write
+            // their own. Failing here would overwrite that reason and delete the bytes
+            // already fetched.
+            guard !Task.isCancelled else { return nil }
             fail(download.id, reason: CatalogueMessages.reachability(error))
         }
         return nil

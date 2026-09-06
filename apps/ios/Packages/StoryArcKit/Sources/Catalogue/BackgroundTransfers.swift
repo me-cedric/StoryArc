@@ -19,6 +19,9 @@ public final class BackgroundTransfers: NSObject, @unchecked Sendable {
 
     private static let instance = Mutex<BackgroundTransfers?>(nil)
 
+    /// A caller suspended on one transfer.
+    private typealias Waiter = CheckedContinuation<URL, any Error>
+
     /// The one background session for the whole app.
     ///
     /// Not a convenience: two `URLSession`s sharing a background identifier is a programmer
@@ -38,7 +41,8 @@ public final class BackgroundTransfers: NSObject, @unchecked Sendable {
     ///
     /// The identifier is the session's, and the session renumbers when it reconnects to the
     /// transfer daemon. A continuation filed under the old number is one nothing can find.
-    private let waiting = Mutex<[String: CheckedContinuation<URL, any Error>]>([:])
+    private let waiting = Mutex<[String: Waiter]>([:])
+
     private let made = Mutex<URLSession?>(nil)
 
     private let finished = Mutex<(@Sendable () -> Void)?>(nil)
@@ -79,13 +83,48 @@ public final class BackgroundTransfers: NSObject, @unchecked Sendable {
     /// `named` is written onto the task, which the system stores with it. That is what makes
     /// a transfer identifiable after the app has been killed and relaunched: the continuation
     /// waiting here does not survive that, and the task does.
+    ///
+    /// **Cancelling the caller cancels the transfer.** The download queue holds a download by
+    /// cancelling the task that awaits it — that is how `offline-downloads`' *Wi-Fi only* stops
+    /// a transfer already running. A bare `withCheckedThrowingContinuation` does not carry
+    /// cancellation to the system, so the task ran on, the whole file arrived over the
+    /// connection the reader asked the app not to use, and the row that said "waiting for
+    /// Wi-Fi" was then marked finished. Every return of Wi-Fi added another copy of the same
+    /// transfer, because the first one was never stopped.
     public func download(_ request: URLRequest, named: String) async throws -> URL {
-        try await withCheckedThrowingContinuation { continuation in
-            let task = session.downloadTask(with: request)
-            task.taskDescription = named
-            waiting.withLock { $0[named] = continuation }
-            task.resume()
+        let task = session.downloadTask(with: request)
+        task.taskDescription = named
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                // Displaced rather than dropped. Two transfers under one name is a queue bug
+                // rather than a state to support, and leaving the first continuation unresumed
+                // suspends its caller for the life of the process.
+                let displaced = waiting.withLock { waiting -> Waiter? in
+                    let displaced = waiting[named]
+                    waiting[named] = continuation
+                    return displaced
+                }
+                displaced?.resume(throwing: CancellationError())
+                // Cancelled before the continuation was filed, so the handler below found
+                // nothing to tell. Told here instead, and the task is not started.
+                guard !Task.isCancelled else {
+                    stop(task, named: named)
+                    return
+                }
+                task.resume()
+            }
+        } onCancel: {
+            stop(task, named: named)
         }
+    }
+
+    /// Stops the system's task and tells whoever is waiting, exactly once.
+    ///
+    /// The removal and the resume are one locked step, so a completion arriving at the same
+    /// moment finds no waiter and resumes nothing.
+    private func stop(_ task: URLSessionDownloadTask, named: String) {
+        task.cancel()
+        waiting.withLock { $0.removeValue(forKey: named) }?.resume(throwing: CancellationError())
     }
 
     /// The names of the transfers the system is still carrying.
