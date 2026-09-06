@@ -339,7 +339,13 @@ public struct LibraryView: View {
             // and a test can reach. This used to ask every server and walk every folder on
             // every pull, so a reader on a metered link paid for their whole library because
             // they pulled a shelf narrowed to one folder.
+            //
+            // Only the network half is scoped. Asking the filesystem whether a folder is
+            // still readable costs no data and no wait, so it is never the half a plan
+            // skips: a shelf narrowed to one server used to leave a folder that had gone
+            // reading *Connected*, and its empty shelf saying nothing had arrived yet.
             .refreshable {
+                model.resolveLocalSources()
                 let plan = ShelfRefresh.of(model.query.scope, in: model.registry)
                 if plan.asksNetwork {
                     await model.resolveSources(credentials: credentials, pins: pins)

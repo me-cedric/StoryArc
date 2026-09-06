@@ -87,6 +87,26 @@ struct ShelfRefreshTests {
         return text
     }()
 
+    /// One past the `}` that closes a block whose `{` ends at [opened], or nil if none does.
+    ///
+    /// The closure alone, and nothing after it. Android's twin read to the end of its file
+    /// and was vacuous for it: the two calls it asserted occur again in the retry below, so
+    /// an `onRefresh` emptied to nothing still passed. This file happens not to repeat them,
+    /// which is luck, and luck is not a guard.
+    private static func closingBrace(_ text: String, after opened: String.Index) -> String.Index? {
+        var depth = 1
+        var index = opened
+        while index < text.endIndex {
+            if text[index] == "{" { depth += 1 }
+            if text[index] == "}" {
+                depth -= 1
+                if depth == 0 { return text.index(after: index) }
+            }
+            index = text.index(after: index)
+        }
+        return nil
+    }
+
     /// That the pull consults the plan, which is the half a pure decision cannot prove.
     ///
     /// A rule asserted and never called is indistinguishable from a rule that works —
@@ -98,7 +118,11 @@ struct ShelfRefreshTests {
     func thePullConsultsThePlan() throws {
         let text = Self.viewSource
         let start = try #require(text.range(of: ".refreshable {"), "LibraryView no longer pulls")
-        let body = text[start.lowerBound...]
+        let end = try #require(
+            Self.closingBrace(text, after: start.upperBound),
+            "the pull's closure is never closed"
+        )
+        let body = text[start.lowerBound..<end]
         let plan = try #require(
             body.range(of: "ShelfRefresh.of("),
             "the pull refreshes without asking what the shelf is showing"
@@ -108,8 +132,13 @@ struct ShelfRefreshTests {
             "the pull no longer re-fetches a server, which is the defect Android had"
         )
         let walk = try #require(body.range(of: "rescan()"), "the pull no longer walks a folder")
+        let local = try #require(
+            body.range(of: "resolveLocalSources()"),
+            "the pull no longer asks whether the folders it shows are still readable"
+        )
         #expect(plan.lowerBound < network.lowerBound, "the servers are asked before the plan is")
         #expect(plan.lowerBound < walk.lowerBound, "the folders are walked before the plan is")
+        #expect(local.lowerBound < plan.lowerBound, "a folder is re-checked only over a network")
     }
 
     @Test("A scope naming a source that has gone is the whole shelf again")
