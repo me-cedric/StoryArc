@@ -58,6 +58,29 @@ extension LibraryModel {
             // the file the next launch reads was never written — Android has always written
             // it at the same point, at the end of its one job over every tree.
             self?.cacheLibrary(partial: partial)
+            await self?.linkScannedIdentities()
+        }
+    }
+
+    /// Tells the progress store what this scan learned about each publication.
+    ///
+    /// **The moment a reading position stops depending on a filename.** Every position
+    /// written before content digests existed carries a path and nothing else, so the first
+    /// rename lost it. ``ProgressStore/save(_:)`` fills the digest in too, but only when the
+    /// reader opens the publication again — a reader who tidies their folder first never gets
+    /// that far. The scan holds the digest already, so this is where the window closes.
+    ///
+    /// Runs after the walk, once, over the whole shelf rather than per publication as it
+    /// arrives. ``ProgressStore/link(_:)`` writes only when a record exists *and* something
+    /// about it is new, so a library that has already been linked costs one read each and no
+    /// write at all. Nothing here computes a digest: it passes on the one the scan produced.
+    ///
+    /// Android does the same at the end of `LibraryViewModel.scan`.
+    private func linkScannedIdentities() async {
+        guard let progressStore else { return }
+        for publication in publications {
+            guard !Task.isCancelled else { return }
+            try? await progressStore.link(publication.identity)
         }
     }
 
