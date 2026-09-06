@@ -211,11 +211,17 @@ fun ReadingListDetailScreen(
     // The reader's language, for the reason [LibraryViewModel.rebuild] gives: a reading list
     // sorted by title has to collate the way the shelf does, and the shelf now collates in the
     // chosen language rather than the device's.
+    //
+    // This one *is* remembered, unlike `shown` above. It reads the settings blob and decodes
+    // it, so an unremembered call ran that decode on every recomposition — once per frame while
+    // a reader drags a row. Remembering it cannot go stale: changing the language recreates the
+    // activity, and the composition this remembers in goes with it.
+    val locale = remember { viewModel.readerLocale() }
     val shown = ListOrdering.arrange(
         entries,
         order,
         publications,
-        locale = viewModel.readerLocale(),
+        locale = locale,
         progress = viewModel::stateOf,
     )
     val numbers = remember(entries) { ListOrdering.positions(entries) }

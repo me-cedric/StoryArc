@@ -178,6 +178,12 @@ class LibrarySortSpeaksTheReadersLanguageTest {
      * `ShelfDetailScreen` builds the order inside a composable, and a Robolectric composition
      * would prove the rows are drawn rather than which locale they were ordered by. The
      * behaviour above proves the rule; this proves the screen asks for it.
+     *
+     * Two facts, not one. The screen has to read the reader's locale, and it has to read it
+     * **once per composition**: `readerLocale()` decodes the settings blob on every call, so an
+     * unremembered call in a composable body runs that decode once per frame while a reader
+     * drags a row. Remembering cannot go stale, because a language change recreates the
+     * activity and the composition goes with it.
      */
     @Test
     fun `the reading list screen hands the sort the reader's locale`() {
@@ -190,9 +196,14 @@ class LibrarySortSpeaksTheReadersLanguageTest {
             )
         val file = File(module, SHELF_DETAIL_SOURCE)
         if (!file.isFile) error("$SHELF_DETAIL_SOURCE is not under ${module.absolutePath}")
+        val source = file.readText()
         assertTrue(
             "ShelfDetailScreen sorts in the device's language",
-            file.readText().contains("locale = viewModel.readerLocale()"),
+            source.contains("remember { viewModel.readerLocale() }"),
+        )
+        assertTrue(
+            "ShelfDetailScreen does not hand that locale to the sort",
+            source.contains("locale = locale,"),
         )
     }
 
