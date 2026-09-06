@@ -60,15 +60,16 @@ telemetry. If it helps you, you can [support development on Ko-fi](https://ko-fi
 library from a folder, a share, a catalogue or a Kavita server, read comics and
 EPUBs in their own readers, read aloud, and play audiobooks. What is missing is
 finish, not surface: [`docs/openspec/STATUS.md`](docs/openspec/STATUS.md) scores
-every one of the contract's 316 scenarios against both codebases — **149 built
-and tested on both, 89 built and asserted by nothing, 16 on one platform only,
-16 missing on both** — and every capability is `partial`. None is absent, none
-is done, and a good deal of what compiles has been watched working by nobody
-yet, which that document says row by row.
+295 of the contract's 367 scenarios against both codebases — **174 built
+and tested on both, 90 built and asserted by nothing, 20 on one platform only,
+13 missing on both, 1 unclear** — and every capability is `partial`. The other 72
+scenarios carry no verdict yet, and that document names which capabilities they
+belong to. None is absent, none is done, and a good deal of what compiles has been
+watched working by nobody yet, which that document says row by row.
 
 | Area | State |
 | --- | --- |
-| Capability specs | ✅ 17 capabilities, 316 scenarios, validating; every scenario audited against both apps with `path:line` evidence |
+| Capability specs | ✅ 17 capabilities, 367 scenarios, validating; 295 of them audited against both apps with `path:line` evidence |
 | Design system | ✅ OKLCH token source generating Swift + Kotlin, WCAG-gated in CI; the mark and every icon rendered from one SVG |
 | Format layer | ✅ CBZ, CBR, CBT, PDF, EPUB and image folders open on both platforms — see below |
 | Test corpus | ✅ 26 archives, 2 PDFs, 6 EPUBs and 7 audiobooks, one manifest, asserted by both suites |
