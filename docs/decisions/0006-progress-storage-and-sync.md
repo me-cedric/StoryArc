@@ -189,10 +189,25 @@ keep local, push it* — at the one moment the app has just proved it applies.
 
 ### Identity nearly always falls to the last resort
 
-**Rule 1, the server identifier, is never constructed in production.** The only
-`ServerIdentifier` built outside a test is the one each store decodes back out of
-a stored key (`ProgressStore.swift:297`, `ProgressStore.kt:296`), and nothing
-writes that key non-nil, because nothing hands a store an identity carrying one.
+**Rule 1, the server identifier, is constructed in production, at one site a
+platform.** The Kavita chapter list builds it as it opens a chapter:
+`KavitaChapterList.swift:326` and `KavitaChapters.kt:213` call `recordingServer`
+on the identity of the file they have just indexed, with the origin the browser
+already holds. The reader writes that identity through `ProgressStore.save`, so
+the stored `serverKey` is non-nil for every chapter opened that way, and
+`KavitaSync.pull` resolves by rule 1 first.
+
+**The filing key did not move with it.** `stableID` and `stableId` still rank the
+normalised path above the server identifier, because shelves, reading-list
+entries, download folders and the chapter-to-publication table all hold that
+string. Restoring a server-first order there re-keys every Kavita record on one
+launch and orphans all four.
+
+The rule is scoped, not general. Only the browser learns a chapter id, so only a
+chapter opened from a server carries a server identifier. A file the library
+scanned carries a digest and a path and nothing else, and `KavitaKeep` records no
+identifier for a kept download on purpose, because the library indexes that shelf
+copy again by its own path and digest.
 
 **Rule 2, the content digest, has one production caller in the repository.**
 `OpenedFile.kt:69`, where Android digests a file handed to it from outside the
@@ -209,11 +224,12 @@ publications. The lookup that would honour a digest is written and tested
 (`ProgressStore.swift:264`, `ProgressStore.kt:285`); it is the digest that is not
 supplied.
 
-One promised outcome does hold, by a route this ADR does not describe: a Kavita
-chapter finds its local progress record because `KavitaProgressStore` keeps its
-own chapter-id → publication-id table (`remember(_:for:)`), which `KavitaSync.pull`
-reads. That is a side mapping beside the identity, not identity rule 1, and it
-covers Kavita only.
+A Kavita chapter finds its local progress record two ways. `KavitaSync.pull`
+tries identity rule 1 first, from the server identifier the browser wrote, and
+falls back to `KavitaProgressStore`'s own chapter-id → publication-id table
+(`remember(_:for:)`). The table is a side mapping beside the identity, and it is
+the only route to a record written before the identifier was built. Both cover
+Kavita only.
 
 ## Consequences
 
