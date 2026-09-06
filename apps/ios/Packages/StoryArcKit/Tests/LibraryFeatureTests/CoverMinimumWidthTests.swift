@@ -42,6 +42,42 @@ struct CoverMinimumWidthTests {
         #expect(coverMinimumWidth(shelfWidth: 1366, textSize: size) == 158)
     }
 
+    /// Every shelf width an iPad can hand this function from a full window, plus the one
+    /// cap the library shelf carries, plus the threshold itself.
+    ///
+    /// The device widths are the current iPad line's own, read on 2026-09-06 from the
+    /// simulator device profiles — `mainScreenWidth / mainScreenScale`, in points, portrait
+    /// then landscape. 744 and 1133 are the mini, 820 and 1180 the iPad and the 11-inch
+    /// Air, 834 and 1210 the 11-inch Pro, 1024 and 1366 the 13-inch Air, 1032 and 1376 the
+    /// 13-inch Pro. No iPad has a full-window width between 840 and 899.
+    ///
+    /// **760 is not a device.** It is the ceiling ``LibraryPanes`` puts on the library
+    /// column, so it is the widest the *library* shelf is ever drawn, and it takes the
+    /// middle tier. The library grid reaches the wide tier under no number this file names.
+    ///
+    /// **839 and 840 are the assertions that are not vacuous.** Every other width here
+    /// answers the same whether the wide tier starts at 840 or at 900; those two do not.
+    /// `design.md` §4 records the divergence — Android takes 158 at 840 dp, iOS at 900 pt —
+    /// as open, so a change to `confidentShelfWidth` fails here and has to say so there.
+    @Test(
+        "Each shelf width an iPad can offer takes the tier it takes",
+        arguments: ordinarySizes
+    )
+    func everySupportedWidthTakesItsTier(size: DynamicTypeSize) {
+        for width in [CGFloat(744), 760, 820, 834, 839, 840] {
+            #expect(
+                coverMinimumWidth(shelfWidth: width, textSize: size) == 132,
+                "a shelf of \(width) pt left the middle tier"
+            )
+        }
+        for width in [CGFloat(1024), 1032, 1133, 1180, 1210, 1366, 1376] {
+            #expect(
+                coverMinimumWidth(shelfWidth: width, textSize: size) == 158,
+                "a shelf of \(width) pt left the wide tier"
+            )
+        }
+    }
+
     @Test(
         "Every tier steps once at an accessibility text size",
         arguments: accessibilitySizes
