@@ -128,6 +128,9 @@ class KavitaClientTest {
     /** A key the server refuses however often it is renewed, which is not an old server. */
     private var keyIsRefused = false
 
+    /** Whether the token route answers 404, which is that route missing and not a listing. */
+    private var authIsMissing = false
+
     private fun client() = KavitaClient(
         KavitaAddress("http://localhost:${server.address.port}", "key"),
     )
@@ -146,7 +149,12 @@ class KavitaClientTest {
                     authentications += 1
                     // The token minted after a staleness is fresh, so the retry works.
                     tokenIsStale = false
-                    body = """{"username":"ada","token":"t"}"""
+                    body = if (authIsMissing) {
+                        status = 404
+                        """{"message":"no such route"}"""
+                    } else {
+                        """{"username":"ada","token":"t"}"""
+                    }
                 }
                 path.endsWith("/Server/server-info") -> body = """{"kavitaVersion":"0.8.3"}"""
                 bearer == null || tokenIsStale -> {
@@ -296,6 +304,23 @@ class KavitaClientTest {
         assertThrows(KavitaError.KeyRejected::class.java) { runBlocking { client.series() } }
 
         keyIsRefused = false
+        assertEquals(1, client.series().size)
+    }
+
+    @Test
+    fun aTokenRouteThatAnswers404IsNotRememberedAgainstTheSeriesList() = runBlocking {
+        // A 404 from the token route is that route missing, not the listing route. Recording
+        // it against the listing puts `Series/all-v2` in the unsupported set, and every later
+        // listing in the session refuses without asking. A proxy that answers 404 for a
+        // moment must not downgrade a route the reader never reached.
+        val client = client()
+        authIsMissing = true
+        assertEquals(
+            KavitaError.RouteMissing("Plugin/authenticate"),
+            assertThrows(KavitaError.RouteMissing::class.java) { runBlocking { client.series() } },
+        )
+
+        authIsMissing = false
         assertEquals(1, client.series().size)
     }
 

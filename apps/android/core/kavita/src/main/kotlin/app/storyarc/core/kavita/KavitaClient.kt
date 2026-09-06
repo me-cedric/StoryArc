@@ -355,7 +355,8 @@ class KavitaClient(val address: KavitaAddress) {
      *
      * **Only a 404 counts.** A 401, a 403, a 500 or a timeout is the key or the server being
      * wrong for a moment. Reading one of those as "old server" would turn one expired token
-     * into a permanent downgrade that no later good answer could undo.
+     * into a permanent downgrade that no later good answer could undo. A 404 from the token
+     * route is not counted either: [authenticate] names that route before the error travels.
      *
      * **There is no older shape to fall back to.** No documented v1 of these routes was
      * found, and Kavita's controllers carry no `[Obsolete]` marker naming one. Inventing a
@@ -382,7 +383,15 @@ class KavitaClient(val address: KavitaAddress) {
             "Plugin/authenticate",
             mapOf("apiKey" to address.apiKey, "pluginName" to "StoryArc"),
         )
-        val body = request(url, method = "POST", authenticated = false)
+        // A 404 here is this route missing, not whichever route the caller wanted. Letting it
+        // travel outwards lets [listing] record it against a listing the reader never reached,
+        // and that listing then refuses for the rest of the session.
+        val body = try {
+            request(url, method = "POST", authenticated = false)
+        } catch (refused: KavitaError.Http) {
+            if (refused.status != NOT_FOUND) throw refused
+            throw KavitaError.RouteMissing("Plugin/authenticate")
+        }
         val account = runCatching { json.decodeFromString<KavitaAccount>(String(body)) }
             .getOrElse { throw KavitaError.UnexpectedResponse }
         token = account.token
