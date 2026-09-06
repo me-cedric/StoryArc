@@ -7,6 +7,7 @@ import android.net.NetworkCapabilities
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
  * What the connection costs, and what it is made of.
@@ -51,12 +52,21 @@ object NetworkCost {
      *
      * **[ConnectivityManager.NetworkCallback.onCapabilitiesChanged] rather than
      * `onAvailable`.** Both fire when an interface comes up, and the capabilities are what
-     * carry the transport this asks about. A network that stays but changes -- Wi-Fi that
-     * starts reporting itself as metered -- reports only through the capabilities.
+     * carry the transport this asks about, so this callback answers the question by itself
+     * where `onAvailable` would have to ask the manager again. It says nothing about metered
+     * Wi-Fi: [carriesWifi] reads the two transports and not
+     * [NetworkCapabilities.NET_CAPABILITY_NOT_METERED], because the cost of the link is
+     * [isCareful]'s question and this one is about the medium.
      *
      * **The opening report is sent here rather than left to the callback**, for the reason
      * [NetworkPaths] gives: the callback says nothing at all while there is no default
      * network, so a collector that started offline would never hear the first answer.
+     *
+     * **Only a changed answer is reported.** `onCapabilitiesChanged` fires on every
+     * capability of the default network -- link bandwidth and validation among them, many
+     * times over one handover -- and each report reaching the collector costs a filesystem
+     * stat and a `stopService` binder call on the main thread, because [DownloadQueue.pump]
+     * runs there. A report that repeats the last answer buys nothing and is dropped.
      *
      * The callback is unregistered when collection ends. [DownloadQueue.close] ends it.
      */
@@ -84,5 +94,5 @@ object NetworkCost {
         trySend(isOnWifi(manager))
         manager.registerDefaultNetworkCallback(callback)
         awaitClose { runCatching { manager.unregisterNetworkCallback(callback) } }
-    }
+    }.distinctUntilChanged()
 }
