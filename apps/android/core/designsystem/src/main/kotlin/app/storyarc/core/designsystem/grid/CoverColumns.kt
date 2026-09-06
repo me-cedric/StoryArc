@@ -135,9 +135,11 @@ fun Dp.steppedForFontScale(fontScale: Float): Dp =
  * shelf. Both platforms measure the shelf — iOS as `coverMinimumWidth(shelfWidth:textSize:)`,
  * Android here or through `ShelfColumns` — and 600 and 840 sort a *shelf* into its tier. The
  * window-size-class reading of the same two numbers belongs to the pane count
- * (`StoryArcWindowClass.showsTwoPanes`, true at 840) and to no cover. What still differs
- * between the platforms is the wide tier's threshold — 840 dp here, 900 pt on iOS — and
- * `design.md` §4 records that as open.
+ * (`StoryArcWindowClass.showsTwoPanes`, true at 840) and to no cover. **The wide tier's
+ * threshold is 840 on both platforms as of 2026-09-06**: it was 900 pt on iOS, `design.md`
+ * §4 recorded the divergence as open, and the decision recorded there moved iOS onto this
+ * number. Android did not move. Both test suites now pin 839, 840 and 870 under the same
+ * test names.
  *
  * Both bounds, not just the minimum: [androidx.compose.foundation.lazy.grid.GridCells.Adaptive]
  * has no maximum, so a narrow window stretches its single column to the full width and one
