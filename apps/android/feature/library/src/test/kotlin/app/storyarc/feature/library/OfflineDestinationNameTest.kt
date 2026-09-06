@@ -24,14 +24,31 @@ import java.io.File
  */
 class OfflineDestinationNameTest {
 
+    /**
+     * Settings' own row states a figure, and the figure is downloads.
+     *
+     * **This row deliberately does not name the device, and that is not an oversight.** The
+     * destination is named by its location; this figure is not the destination. It weighs the
+     * app's own downloads and imports, and not a folder the reader added, which is readable
+     * offline and counted nowhere here. A sweep on 2026-09-04 photographed "Nothing on this
+     * device" over a device holding nine publications and moved these two strings to name the
+     * transfer instead. Naming the place here would put that back.
+     */
     @Test
-    fun `both halves of the count name the location, in every language`() {
+    fun `both halves of the count name the transfer, in every language`() {
         for (key in listOf("settings_downloads_none", "settings_downloads_summary")) {
+            for ((language, word) in TRANSFER) {
+                val sentence = valueOf(key, SETTINGS, language)
+                assertTrue(
+                    "$language states $key as “$sentence”, which does not name the transfer.",
+                    sentence.lowercase().contains(word),
+                )
+            }
             for ((language, place) in LOCATION) {
                 val sentence = valueOf(key, SETTINGS, language)
                 assertTrue(
-                    "$language states $key as “$sentence”, which does not name the location.",
-                    sentence.lowercase().contains(place),
+                    "$language states $key as “$sentence”, which names a place the figure does not count.",
+                    !sentence.lowercase().contains(place),
                 )
             }
         }
@@ -88,6 +105,14 @@ class OfflineDestinationNameTest {
             "fr" to "sur cet appareil",
             "de" to "auf diesem gerät",
             "es" to "en este dispositivo",
+        )
+
+        /** The word each language uses for the act of fetching a file. */
+        val TRANSFER = mapOf(
+            "en" to "download",
+            "fr" to "téléchargé",
+            "de" to "heruntergeladen",
+            "es" to "descarga",
         )
 
         /** How each language says the promise the empty state carries. */
