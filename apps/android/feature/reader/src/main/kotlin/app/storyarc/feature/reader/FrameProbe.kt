@@ -49,8 +49,10 @@ internal object FrameProbe {
      * interval and a 60 Hz panel reports its own. A view with no display yet reports nothing,
      * and [FrameRun] infers no drops from a zero interval rather than guessing a rate.
      *
-     * Read once, because `Choreographer` reports no interval of its own. iOS takes the
-     * interval from `CADisplayLink` on every frame instead.
+     * Read on every frame, because an Android panel changes its refresh rate while the app
+     * runs: a rate sampled once can be twice or half the rate the next turn is drawn at, and
+     * every frame of that turn would then be judged against a rate no longer in force. iOS
+     * reads the interval from `CADisplayLink` on every frame for the same reason.
      */
     fun interval(view: View): Double {
         val rate = view.display?.refreshRate?.toDouble() ?: 0.0
@@ -75,22 +77,22 @@ internal object FrameProbe {
 /**
  * One `Choreographer` callback and the run it feeds.
  *
- * `Choreographer` is the platform's own frame clock, so the count is the display's count. A
- * timer would measure this code's idea of time instead, which is the mistake `page-transitions`
- * asks the instrument to avoid: wall-clock seconds are not frames.
+ * `Choreographer` is the platform's own frame clock, so what is counted is the display's
+ * cadence rather than this code's idea of time, which is the mistake `page-transitions` asks
+ * the instrument to avoid: wall-clock seconds are not frames.
+ *
+ * The view is held for its display, and the interval is read off that display on every frame.
+ * A view holds an activity, so a ticker that outlived its composition would hold an activity
+ * too: [cancel] is the way out, and the composition must call it. See `CurledPages`.
  */
-internal class FrameTicker(context: Context, private val interval: Double) :
-    Choreographer.FrameCallback {
-
-    /** The application context: this ticker outlives nothing, but it must not hold an activity. */
-    private val context = context.applicationContext
+internal class FrameTicker(private val view: View) : Choreographer.FrameCallback {
 
     private var run = FrameRun(isEnabled = false)
 
     /** A page turn started. */
     fun began() {
         if (run.isRecording) return
-        run = FrameRun(isEnabled = FrameProbe.isArmed(context))
+        run = FrameRun(isEnabled = FrameProbe.isArmed(view.context))
         run.begin()
         if (!run.isRecording) return
         Choreographer.getInstance().postFrameCallback(this)
@@ -98,16 +100,32 @@ internal class FrameTicker(context: Context, private val interval: Double) :
 
     override fun doFrame(frameTimeNanos: Long) {
         if (!run.isRecording) return
-        run.record(at = frameTimeNanos / NANOS_PER_SECOND, expecting = interval)
+        run.record(
+            at = frameTimeNanos / NANOS_PER_SECOND,
+            expecting = FrameProbe.interval(view),
+        )
         Choreographer.getInstance().postFrameCallback(this)
     }
 
     /** The page turn finished, whether it settled or sprang back. */
     fun ended() {
         if (!run.isRecording) return
+        cancel()
+        FrameProbe.report(run)
+    }
+
+    /**
+     * The turn was abandoned: stop counting, and report nothing.
+     *
+     * A run that never reaches [ended] posts itself again on every frame for the life of the
+     * process, because [doFrame] is what schedules the next frame. A drag the reader left the
+     * screen on does exactly that. Nothing is reported, because a turn whose end nobody saw
+     * has no number worth printing.
+     */
+    fun cancel() {
+        if (!run.isRecording) return
         run.end()
         Choreographer.getInstance().removeFrameCallback(this)
-        FrameProbe.report(run)
     }
 
     private companion object {

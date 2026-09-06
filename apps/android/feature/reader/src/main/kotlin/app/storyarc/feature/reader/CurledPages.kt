@@ -9,6 +9,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -18,7 +19,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.IntSize
 import kotlin.math.abs
@@ -57,9 +57,11 @@ internal fun CurledPages(
     val progress = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
     val view = LocalView.current
-    val context = LocalContext.current
     // Off unless `adb` armed it. See `FrameProbe`.
-    val frames = remember(view) { FrameTicker(context, FrameProbe.interval(view)) }
+    val frames = remember(view) { FrameTicker(view) }
+    // A turn the reader walked out of never reaches `ended`, and a ticker nobody stopped
+    // posts a frame callback for the life of the process. This is where it is stopped.
+    DisposableEffect(frames) { onDispose { frames.cancel() } }
 
     Canvas(
         modifier = modifier
