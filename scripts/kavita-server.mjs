@@ -61,7 +61,6 @@ if (!existsSync(root)) {
 /** The one key this mock accepts, and the token it mints for it. */
 const API_KEY = 'storyarc-test-key'
 const TOKEN = 'mock-session-token'
-const VERSION = '0.8.3'
 
 const TYPES = {
   '.cbz': 'application/vnd.comicbook+zip',
@@ -207,15 +206,18 @@ const authorised = (request) =>
  *
  * A route whose verb nobody has measured is left out of this table and still answers any
  * verb, because a wrong entry here makes a working client look broken -- which is worse
- * than the blindness it replaces. Three routes are left out today, and each for its own
- * reason:
+ * than the blindness it replaces. One route is left out today: `/api/Series`. This mock
+ * serves it from the `all-v2` handler and no client calls it, so neither a measurement nor
+ * an agreement between the clients states its verb. Kavita's own `openapi.json` states
+ * POST for it up to 0.8.9.1 and drops the route at 0.9.0, so this mock's GET is wrong
+ * against every one of those five releases. Nothing calls it, so nothing is broken by it.
  *
- *   - `/api/Collection/series`. Both clients GET it. Nobody has asked a live Kavita.
- *   - `/api/Server/server-info`. Both clients GET it, but `scripts/live-check.mjs` records
- *     a real Kavita answering 404 to it, so what that server does answer is unknown. A
- *     route the repository holds contrary evidence about is the last one to pin.
- *   - `/api/Series`. This mock serves it from the `all-v2` handler and no client calls it,
- *     so neither a measurement nor an agreement between the clients states its verb.
+ * This table is now written from Kavita's published `openapi.json` rather than from the
+ * clients. Two routes were removed on 2026-09-07 because no shipped Kavita has ever had
+ * them: `/api/Server/server-info` and `/api/Collection/series`. Both were absent from
+ * v0.8.6, v0.8.8, v0.8.9.1, v0.9.0 and v0.9.1.4, and a live 0.9.1.4 answers 404 to each.
+ * They survived because this mock was written from the client, so the client asked for a
+ * route it had invented and this mock answered it.
  */
 const ROUTES = [
   { at: '/api/Plugin/authenticate', verb: 'POST', example: `/api/Plugin/authenticate?apiKey=${API_KEY}` },
@@ -232,6 +234,11 @@ const ROUTES = [
   { at: '/api/Reader/mark-chapter-unread', verb: 'POST', example: '/api/Reader/mark-chapter-unread' },
   { at: '/api/Collection', verb: 'GET', example: '/api/Collection' },
   { at: '/api/Collection/update-for-series', verb: 'POST', example: '/api/Collection/update-for-series' },
+  {
+    at: '/api/Series/series-by-collection',
+    verb: 'GET',
+    example: '/api/Series/series-by-collection?collectionId=1',
+  },
   { at: '/api/ReadingList/lists', verb: 'POST', example: '/api/ReadingList/lists' },
   { at: '/api/ReadingList/items', verb: 'GET', example: '/api/ReadingList/items?readingListId=1' },
   { at: '/api/ReadingList/create', verb: 'POST', example: '/api/ReadingList/create' },
@@ -300,10 +307,6 @@ const server = createServer((request, response) => {
       return send(response, 401, { message: 'unauthorised' })
     }
     return send(response, 200, { username: 'ada', token: TOKEN, apiKey: API_KEY })
-  }
-
-  if (url.pathname === '/api/Server/server-info') {
-    return send(response, 200, { kavitaVersion: VERSION, installId: 'mock' })
   }
 
   // Kavita's image endpoints take the key in the query rather than a bearer token, so an
@@ -490,7 +493,7 @@ const server = createServer((request, response) => {
     return undefined
   }
 
-  if (url.pathname === '/api/Collection/series') {
+  if (url.pathname === '/api/Series/series-by-collection') {
     const found = collections.find((each) => each.id === Number(url.searchParams.get('collectionId')))
     if (!found) return send(response, 404, { message: 'no such collection' })
     return send(response, 200, series
@@ -917,8 +920,20 @@ const drive = async () => {
   // it. Every route in `ROUTES` is now used somewhere in this drive with the verb it states,
   // which is what makes the table a claim about Kavita rather than about itself: state the
   // wrong verb for a route and the call that uses it stops answering.
-  check('the version route answers a get',
-    (await get('/api/Server/server-info', token)).status === 200)
+  // The collection listing, at the route Kavita publishes. `Series/series-by-collection`
+  // is in v0.8.6, v0.8.8, v0.8.9.1, v0.9.0 and v0.9.1.4, and a live 0.9.1.4 answered 200.
+  const collected = await get(`/api/Series/series-by-collection?collectionId=${collections[0].id}`, token)
+  check('a collection lists its series', collected.status === 200, collected.status)
+  check('the listed series are the ones the collection holds',
+    (await collected.json()).map((each) => each.id).join() === collections[0].seriesIds.join())
+
+  // The two routes no shipped Kavita has ever had. Absent from all five published specs,
+  // and 404 on a live 0.9.1.4. This mock answered both until 2026-09-07, which is the only
+  // reason two clients could ship a call to each with every test passing.
+  check('nothing stands at the invented collection route',
+    (await get('/api/Collection/series?collectionId=1', token)).status === 404)
+  check('nothing states the server version, because no route does',
+    (await get('/api/Server/server-info', token)).status === 404)
   check('a cover answers a get',
     (await get(`/api/Image/series-cover?seriesId=${first.id}&apiKey=${API_KEY}`, token)).status === 200)
   check('a chapter download answers a get',
@@ -992,7 +1007,7 @@ if (selfTest) {
 } else {
   server.listen(port, () => {
     console.log(`kavita mock: http://localhost:${port}`)
-    console.log(`  api key: ${API_KEY}   version: ${VERSION}`)
+    console.log(`  api key: ${API_KEY}`)
     console.log(`  ${libraries.length} libraries, ${series.length} series from ${root}`)
   })
 }
