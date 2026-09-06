@@ -195,12 +195,69 @@ const send = (response, status, body, type = 'application/json') => {
 const authorised = (request) =>
   request.headers.authorization === `Bearer ${TOKEN}`
 
+/**
+ * The verb each route answers to, and one address that reaches it.
+ *
+ * This mock used to route on the path alone, so a GET, a POST, a PUT and a DELETE were all
+ * answered the same way and a client that picked the wrong verb passed every test in the
+ * suite. Two of them were wrong. Measured against a live Kavita on 2026-09-06:
+ * `GET /api/Series/all-v2` and `GET /api/ReadingList/lists` both answer 404, and a POST
+ * carrying an empty filter answers with the whole list. A reader who added their own server
+ * was shown no series and no reading lists.
+ *
+ * A route whose verb nobody has measured is left out of this table and still answers any
+ * verb, because a wrong entry here makes a working client look broken -- which is worse
+ * than the blindness it replaces. `/api/Collection/series` is the one such route today.
+ */
+const ROUTES = [
+  { at: '/api/Plugin/authenticate', verb: 'POST', example: `/api/Plugin/authenticate?apiKey=${API_KEY}` },
+  { at: '/api/Server/server-info', verb: 'GET', example: '/api/Server/server-info' },
+  { at: /^\/api\/Image\//, verb: 'GET', example: `/api/Image/series-cover?seriesId=1&apiKey=${API_KEY}` },
+  { at: '/api/Library/libraries', verb: 'GET', example: '/api/Library/libraries' },
+  { at: '/api/Series/all-v2', verb: 'POST', example: '/api/Series/all-v2' },
+  { at: '/api/Series', verb: 'POST', example: '/api/Series' },
+  { at: /^\/api\/Series\/\d+$/, verb: 'GET', example: '/api/Series/1' },
+  { at: '/api/Series/metadata', verb: 'GET', example: '/api/Series/metadata?seriesId=1' },
+  { at: '/api/Series/volumes', verb: 'GET', example: '/api/Series/volumes?seriesId=1' },
+  { at: '/api/Download/chapter', verb: 'GET', example: '/api/Download/chapter?chapterId=1' },
+  { at: '/api/Reader/continue-point', verb: 'GET', example: '/api/Reader/continue-point?seriesId=1' },
+  { at: '/api/Reader/progress', verb: 'POST', example: '/api/Reader/progress' },
+  { at: '/api/Reader/mark-chapter-read', verb: 'POST', example: '/api/Reader/mark-chapter-read' },
+  { at: '/api/Reader/mark-chapter-unread', verb: 'POST', example: '/api/Reader/mark-chapter-unread' },
+  { at: '/api/Collection', verb: 'GET', example: '/api/Collection' },
+  { at: '/api/Collection/update-for-series', verb: 'POST', example: '/api/Collection/update-for-series' },
+  { at: '/api/ReadingList/lists', verb: 'POST', example: '/api/ReadingList/lists' },
+  { at: '/api/ReadingList/items', verb: 'GET', example: '/api/ReadingList/items?readingListId=1' },
+  { at: '/api/ReadingList/create', verb: 'POST', example: '/api/ReadingList/create' },
+  { at: '/api/ReadingList/update-by-multiple', verb: 'POST', example: '/api/ReadingList/update-by-multiple' },
+  { at: '/api/ReadingList/update-position', verb: 'POST', example: '/api/ReadingList/update-position' },
+  { at: '/api/ReadingList', verb: 'DELETE', example: '/api/ReadingList?readingListId=1' },
+]
+
+/** The verb a route requires, or nothing when this mock asserts none for it. */
+const verbFor = (pathname) =>
+  ROUTES.find(({ at }) => (typeof at === 'string' ? at === pathname : at.test(pathname)))?.verb
+
 const server = createServer((request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`)
   if (!selfTest) {
     response.on('finish', () => {
       console.log(`${response.statusCode} ${request.method} ${request.url}`)
     })
+  }
+
+  // The verb, before anything else -- before the token, because a route that answered the
+  // wrong verb is the defect this gate exists for and hiding it behind a 401 would only
+  // move it. Kavita answers 404 here rather than 405; the mock says 405 because it knows
+  // the route exists and the caller needs to be told which of the two is wrong.
+  const required = verbFor(url.pathname)
+  if (required && request.method !== required) {
+    response.writeHead(405, {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+      Allow: required,
+    })
+    return response.end(JSON.stringify({ message: `${url.pathname} answers ${required}` }))
   }
 
   // Authentication is the one route that does not need a token.
@@ -576,6 +633,26 @@ const drive = async () => {
   check('the key mints a token', typeof account.token === 'string' && account.token.length > 0)
   const token = account.token
 
+  // The two routes a live Kavita answers to a POST alone. Both clients sent a GET, both got
+  // a 404 from the owner's own server on 2026-09-06, and no test here could see it because
+  // this mock routed on the path and never on the verb. A reader who added a real server was
+  // shown no series and no reading lists at all.
+  const shelf = await post('/api/Series/all-v2', {}, token)
+  check('the series list answers a post', shelf.status === 200, shelf.status)
+  check('the series list a post answers holds the whole corpus',
+    (await shelf.json()).length === series.length)
+  check('a get on the series list is refused',
+    (await get('/api/Series/all-v2', token)).status === 405,
+    (await get('/api/Series/all-v2', token)).status)
+
+  const lists = await post('/api/ReadingList/lists', {}, token)
+  check('the reading lists answer a post', lists.status === 200, lists.status)
+  check('the reading lists a post answers are the ones the server holds',
+    (await lists.json()).length === readingLists.length)
+  check('a get on the reading lists is refused',
+    (await get('/api/ReadingList/lists', token)).status === 405,
+    (await get('/api/ReadingList/lists', token)).status)
+
   const volumes = async (seriesId) => (await get(`/api/Series/volumes?seriesId=${seriesId}`, token)).json()
   const first = series[0]
   const chapter = first.chapters[0]
@@ -762,6 +839,49 @@ const drive = async () => {
   }, token)
   check('a move on a list the server does not hold is refused',
     noSuchList.status === 404, noSuchList.status)
+
+  // The routes the drive above does not otherwise reach, each asked the way the clients ask
+  // it. Every route in `ROUTES` is now used somewhere in this drive with the verb it states,
+  // which is what makes the table a claim about Kavita rather than about itself: state the
+  // wrong verb for a route and the call that uses it stops answering.
+  check('the version route answers a get',
+    (await get('/api/Server/server-info', token)).status === 200)
+  check('a cover answers a get',
+    (await get(`/api/Image/series-cover?seriesId=${first.id}&apiKey=${API_KEY}`, token)).status === 200)
+  check('a chapter download answers a get',
+    (await get(`/api/Download/chapter?chapterId=${chapter.id}`, token)).status === 200)
+
+  const kept = await post('/api/ReadingList/create', { title: 'Kept by a reader' }, token)
+  check('a list a reader made is accepted', kept.status === 200, kept.status)
+  const keptId = (await kept.json()).id
+  const dropped = await fetch(`${base}/api/ReadingList?readingListId=${keptId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  check('a list a reader made can be dropped again', dropped.status === 200, dropped.status)
+  check('a dropped list is no longer one the server lists',
+    (await (await post('/api/ReadingList/lists', {}, token)).json())
+      .every((each) => each.id !== keptId))
+
+  // And every one of them asked with a verb it does not answer. This is the check the mock
+  // never had: it routed on the path alone, so a client using the wrong verb passed the
+  // whole suite and only a live server could say otherwise.
+  const otherwise = { GET: 'POST', POST: 'GET', DELETE: 'GET' }
+  for (const route of ROUTES) {
+    const wrong = otherwise[route.verb]
+    const answered = await fetch(`${base}${route.example}`, {
+      method: wrong,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(wrong === 'POST' ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(wrong === 'POST' ? { body: '{}' } : {}),
+    })
+    const label = typeof route.at === 'string' ? route.at : String(route.at)
+    check(`${label} answers ${route.verb} and refuses a ${wrong}`,
+      answered.status === 405 && answered.headers.get('allow') === route.verb,
+      answered.status)
+  }
 
   server.close()
   if (failures.length) {
