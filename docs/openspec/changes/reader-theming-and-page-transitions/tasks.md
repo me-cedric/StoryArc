@@ -357,8 +357,16 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       their own letterforms, Bitter at Regular weight.
 - [x] **3.4** First level: presets, font-size stepper with step dots, page-mode
       control, brightness. Second level behind one "Customise" action.
-- [x] **3.5** Fine axes: line, character, word and paragraph spacing, margins,
+- [~] **3.5** Fine axes: line, character, word and paragraph spacing, margins,
       alignment, font family, bold. Long-press to reset an axis.
+      **Unticked on 2026-09-06. The axes are built; the reset gesture is not.**
+      The audit of `reading-themes` read the spec clause "a long press or a double
+      tap on a slider returns that axis to its preset value" against both readers.
+      Neither has a handler. `ThemeAxisSliders.swift` and `ThemeAxesScreen.kt`
+      build plain sliders, and a search for `onLongPress`, `longPressGesture`,
+      `combinedClickable` and `detectTapGestures` in both files returns nothing.
+      The tick claimed a gesture that no reader can perform. What remains is one
+      gesture per platform, reaching the reset the preset already knows.
 - [x] **3.6** Live preview rendered by the **real** renderer, showing a chapter
       title and body text, reflowing continuously during a drag. **Done, and what
       "the real renderer" turned out to mean is worth stating exactly, because it is

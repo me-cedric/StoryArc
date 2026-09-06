@@ -250,6 +250,7 @@ change** — never the whole repository when one module moved.
 | Changed | Run |
 | --- | --- |
 | `apps/ios/Packages/StoryArcKit` | `pnpm test:ios` (host, no simulator) |
+| `apps/ios/Packages/StoryArcEpub` | `pnpm test:ios:epub` — **needs a simulator, and no other gate runs it.** `swift test` cannot build this package, `pnpm test:ios` covers `StoryArcKit` only, and no CI workflow names it. On 2026-09-06 its `PublicationEgressTests.control` was found failing: with the rule list absent, none of the six egress vectors reached the harness, so `denied` passing proves nothing. Run it after touching the EPUB reader |
 | `packages/test-fixtures` | `pnpm fixtures:build`, then **commit the regenerated corpus and manifest**, then run both platforms' format tests |
 | `apps/ios` app target or `project.yml` | `pnpm build:ios` |
 | `apps/ios/UITests` | `pnpm build:ios:tests` — **nothing else compiles them** |
