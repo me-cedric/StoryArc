@@ -43,6 +43,33 @@ because they are the cheapest and they block the rest.
    Its instrument now exists on both platforms, so the scenario needs a measurement and a
    threshold, not new machinery.
 
+## A2. The twelve player tests, which have never passed
+
+`PlayerAuditTests` and `PlayerScreenshotTests` fail twelve cases on every CI run, all at
+`AudiobookWalk.swift:36`, with **"No audiobook on this device's shelf"**. That instruction
+lives only inside the assertion, and nothing has ever carried it out.
+
+Seeding a download does not answer it. Measured on 2026-09-07:
+
+1. `scripts/seed-simulator.mjs` seeds a comic, and the Downloads screen draws it. The
+   mechanism works.
+2. An audiobook cannot be a download record. `PublicationFormat.init(mediaType:)` maps no
+   audio type, and `PublicationFormat.mediaType` answers nil for `.audiobook`, so an
+   audiobook never round-trips through `DownloadStore`.
+3. `AudiobookWalk` looks on the **Library** tab. A download is drawn on the **Downloads**
+   tab, so even a working record would be looked for in the wrong place.
+
+Three ways out. The choice is yours, because each changes production code for a test.
+
+| Option | Cost |
+| --- | --- |
+| Give `.audiobook` a media type, so an audiobook can be a download | Smallest. Also closes a real gap: an audiobook fetched from a catalogue cannot be classified today. |
+| Add a launch argument that seeds the local library | A test-only hook in the app. |
+| Bundle an audiobook fixture in the app and import it behind a flag | Ships a fixture in the product. |
+
+Whichever is chosen, `test:ios:ui` needs the order build, install, seed, then
+`test-without-building`: a seed must land after the install and before the run.
+
 ## B. An iOS device
 
 A simulator answers none of these. Each one depends on hardware the simulator models
