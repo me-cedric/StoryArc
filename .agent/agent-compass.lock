@@ -1,6 +1,6 @@
 {
-  "version": "0.9.1",
-  "syncedAt": "2026-08-23T23:21:35.462Z",
+  "version": "0.9.2",
+  "syncedAt": "2026-09-07T16:14:08.663Z",
   "managed": {
     "docs/handoff-template.md": "8f23754c57990a81",
     "docs/work-intake-template.md": "a5d238b89d9ac7ef",
@@ -36,7 +36,7 @@
     ".mcp/angular-cli.example.json": "aa89aed87b4853a0",
     ".mcp/gemini.example.json": "1fe617693600043c",
     ".gemini/settings.example.json": "93554eb8c4362160",
-    ".mcp/headroom.example.json": "34557baf49170fa0",
+    ".mcp/headroom.example.json": "61bcbfa22ffa86d7",
     ".mcp/recommended.example.json": "93554eb8c4362160"
   }
 }
