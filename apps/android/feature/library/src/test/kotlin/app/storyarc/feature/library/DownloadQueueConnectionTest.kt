@@ -60,13 +60,19 @@ class DownloadQueueConnectionTest {
 
     private val waiting = Download.State.Paused(Download.Pause.WAITING_FOR_WIFI)
 
+    // The looper is not idled here, and idling it here breaks this suite. The record reaches
+    // the state every case asserts inside the constructor's own pump, on the main thread. What
+    // idling adds is the *ending* of the transfer -- its name lookup fails on `Dispatchers.IO`
+    // and only its continuation is on this looper -- so an idle turns a Running row into a
+    // Failed one whenever the machine let the lookup finish first. That is a race against a
+    // background thread, and a loaded CI runner loses it where this one wins it.
     private fun queue(store: DownloadStore, wifi: MutableStateFlow<Boolean>) = DownloadQueue(
         context,
         CertificatePins(),
         store,
         settings = { AppSettings(downloadOverWifiOnly = true) },
         onWifi = wifi,
-    ).also { shadowOf(getMainLooper()).idle() }
+    )
 
     @Test
     fun `a running transfer is paused when the connection becomes mobile data`() {
