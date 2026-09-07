@@ -23,6 +23,9 @@ struct DetailActions: View {
     @Binding var isKept: Bool
     /// Where the bytes are, or `nil` when the library cannot place them right now.
     let file: URL?
+    /// The chapter a started audiobook would resume inside, when the page knows it. `nil` for
+    /// everything else, which is every comic and every book never started.
+    let resuming: ChapterName?
     let onRead: () -> Void
 
     @State private var isCopying = false
@@ -112,14 +115,19 @@ struct DetailActions: View {
         }
     }
 
-    /// *Continue*, *Read*, *Listen* or *Continue listening* — and the wording is the promise.
+    /// *Continue*, *Read*, *Listen*, *Continue listening*, or the chapter it resumes inside —
+    /// and the wording is the promise.
     ///
-    /// Which of the four is ``PrimaryAction``'s decision, asserted there. It said *Read* for an
+    /// Which of the five is ``PrimaryAction``'s decision, asserted there. It said *Read* for an
     /// audiobook until `audiobooks-and-playback`, which was a promise the button never kept:
     /// `StoryArcApp.open(_:at:)` sends an audiobook to the player.
     private var primaryLabel: Text {
         PrimaryAction
-            .of(publication.format, hasProgress: (model.readFraction(of: publication) ?? 0) > 0)
+            .of(
+                publication.format,
+                hasProgress: (model.readFraction(of: publication) ?? 0) > 0,
+                chapter: resuming
+            )
             .label
     }
 

@@ -95,7 +95,7 @@ extension LibraryView {
             } detail: {
                 NavigationStack(path: $detailPath) {
                     PublicationDetailPlaceholder()
-                        .publicationPages(in: model, onOpen: onOpen)
+                        .publicationPages(in: model, onOpen: onOpen, onListen: onListen)
                         // A server browsed from the shelf's own offer lands beside the shelf
                         // too, rather than over it. It is the same verb as choosing a cover —
                         // *show me this* — and giving it the other column would put the one
@@ -124,7 +124,7 @@ extension LibraryView {
         } else {
             NavigationStack {
                 libraryColumn
-                    .publicationPages(in: model, onOpen: onOpen)
+                    .publicationPages(in: model, onOpen: onOpen, onListen: onListen)
                     .navigationDestination(item: $browsing) { id in
                         if let source = model.registry[id] { browser(for: source) }
                     }

@@ -37,6 +37,9 @@ public struct HomeScreen: View {
 
     private let model: LibraryModel
     private let onOpen: (Publication, URL) -> Void
+    /// How this screen's pages start an audiobook at a chosen chapter — see
+    /// ``PublicationDetailView/onListen``.
+    private let onListen: ((Publication, URL, Int) -> Void)?
     private let onOpenSettings: () -> Void
 
     /// Which local picker is up, if either.
@@ -63,10 +66,12 @@ public struct HomeScreen: View {
     public init(
         model: LibraryModel,
         onOpen: @escaping (Publication, URL) -> Void = { _, _ in },
+        onListen: ((Publication, URL, Int) -> Void)? = nil,
         onOpenSettings: @escaping () -> Void = {}
     ) {
         self.model = model
         self.onOpen = onOpen
+        self.onListen = onListen
         self.onOpenSettings = onOpenSettings
     }
 
@@ -113,7 +118,7 @@ public struct HomeScreen: View {
             // the series shelf on the page itself. `publication-detail` requires the page to
             // open "within the destination they were already in", which is what a push onto
             // this stack is.
-            .publicationPages(in: model, onOpen: onOpen)
+            .publicationPages(in: model, onOpen: onOpen, onListen: onListen)
             // The same soft edge the shelf uses: what passes under this app's chrome is
             // artwork, and a hard cut across a cover looks like a rendering fault.
             .scrollEdgeEffectStyle(.soft, for: .all)

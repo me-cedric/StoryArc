@@ -80,9 +80,19 @@ let package = Package(
             ],
             resources: [.process("Resources")]
         ),
+        // `Playback` because the publication page draws an audiobook's chapters from the same
+        // `PlaybackPart` list the player's own chapter list draws, so the two cannot disagree
+        // about what a part is called or how long it runs. Declared rather than left to
+        // SwiftPM's implicit module search, for the reason `Persistence` records below: an
+        // undeclared transitive module resolves under `swift build` and fails under Xcode's
+        // explicit-module build. No cycle — `Playback` depends on `StoryArcCore` and nothing
+        // else, and `Formats` already depends on it.
         .target(
             name: "LibraryFeature",
-            dependencies: ["DesignSystem", "StoryArcCore", "Formats", "Persistence", "Catalogue", "Kavita", "Smb"],
+            dependencies: [
+                "DesignSystem", "StoryArcCore", "Formats", "Playback",
+                "Persistence", "Catalogue", "Kavita", "Smb",
+            ],
             resources: [.process("Resources")]
         ),
         // One module per screen area, and no feature depends on another
@@ -168,9 +178,15 @@ let package = Package(
         // `Smb` is explicit rather than left to transitive visibility: `SmbSheetAdviceTests`
         // puts a `SmbDiscovery` into the state a refused local-network permission leaves it
         // in, and the method that does so is internal to that module.
+        // `Playback` is explicit rather than left to transitive visibility:
+        // `DetailChaptersTests` builds the `PlaybackPart` list the publication page draws its
+        // chapters from, which is the same model the player's own chapter list draws.
         .testTarget(
             name: "LibraryFeatureTests",
-            dependencies: ["LibraryFeature", "Catalogue", "Kavita", "Persistence", "StoryArcCore", "Smb"]
+            dependencies: [
+                "LibraryFeature", "Catalogue", "Kavita", "Persistence",
+                "Playback", "StoryArcCore", "Smb",
+            ]
         ),
     ]
 )

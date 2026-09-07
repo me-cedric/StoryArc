@@ -151,6 +151,8 @@ struct KavitaCardFactsTests {
             isKept: .constant(true),
             kavitaCard: kavitaCard,
             file: nil,
+            audiobook: .absent,
+            onChooseChapter: nil,
             onRead: {}
         )
     }

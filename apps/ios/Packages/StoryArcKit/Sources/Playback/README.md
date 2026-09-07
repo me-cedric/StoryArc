@@ -34,6 +34,7 @@ which pins the same session table and the same three duration cases.
 | `PlaybackAudioSession.swift` | `AVAudioSession` at `.spokenAudio`, and the notifications the file above acts on |
 | `NowPlaying.swift` | `MPNowPlayingInfoCenter` and `MPRemoteCommandCenter`, fed by the one centre |
 | `PlaybackPlatform.swift` | The four moments the platform half needs, as a protocol — which is what makes the rest host-testable |
+| `PlaybackClock.swift` | A length as digits and as words. Both surfaces that state one read it from here |
 
 Each of `PlayerPosition`, `PlayerSkip`, `PlayerSleep` and `PlayerInterruption` is an extension
 of `PlayerCentre` in a file of its own. `PlayerCentre.swift` sits against SwiftLint's 400-line
@@ -52,6 +53,7 @@ control it offers owns its own rule.
 | `PlayerCentre.onRecord` | Where a position goes — a closure, because this target must not know that `reading-progress` keeps a store |
 | `PlayerCentre.onRecallSpeed` / `onRememberSpeed` / `onRememberSkip` / `onArtwork` | The four things the app supplies |
 | `PlaybackSession` | The table itself, usable without a centre |
+| `PlaybackClock.time(_:)` / `spokenTime(_:)` / `words(_:)` | How long something runs, for a face and for a screen reader |
 
 ## Config
 

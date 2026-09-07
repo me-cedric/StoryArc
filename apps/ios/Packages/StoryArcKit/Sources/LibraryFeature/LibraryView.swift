@@ -100,6 +100,10 @@ public struct LibraryView: View {
 
     let onOpen: (Publication, URL) -> Void
 
+    /// How a page opened from this surface starts an audiobook at a chosen chapter — see
+    /// ``PublicationDetailView/onListen``. `nil` on a surface with no player behind it.
+    let onListen: ((Publication, URL, Int) -> Void)?
+
     /// Whether a reader has a publication open — see the initialiser.
     let isReading: @MainActor () -> Bool
 
@@ -127,6 +131,10 @@ public struct LibraryView: View {
         surface: LibrarySurface = .shelf,
         progress: ProgressStore? = nil,
         onOpen: @escaping (Publication, URL) -> Void = { _, _ in },
+        /// How a chosen chapter reaches the player. `audio-playback` requires a chapter
+        /// chosen on the page to start "at that chapter rather than where the book was
+        /// left", and the library knows neither what a player is nor where the audio is.
+        onListen: ((Publication, URL, Int) -> Void)? = nil,
         /// How often the app layer has asked for the shelf itself.
         ///
         /// `navigation-shell` promises that returning to a destination is a return rather
@@ -149,6 +157,7 @@ public struct LibraryView: View {
         self.progress = progress
         self.showLibrary = showLibrary
         self.onOpen = onOpen
+        self.onListen = onListen
         self.isReading = isReading
 
         _pins = State(initialValue: CertificatePins(CertificatePinStore().pins()))

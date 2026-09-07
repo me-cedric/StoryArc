@@ -166,6 +166,11 @@ struct StoryArcApp: App {
                 // One seam for every way in — see `open(_:at:)`. An audiobook goes to the
                 // player and everything else to a reader.
                 onOpen: { publication, url in open(publication, at: url) },
+                // The other request the page makes: `audio-playback` requires a chapter
+                // chosen there to start at that chapter rather than where the book was left.
+                onListen: { publication, url, part in
+                    listen(to: publication, at: url, startingAt: part)
+                },
                 onOpenSettings: {
                     // Re-read on the way in, so a download made while browsing a catalogue
                     // is on this screen rather than one launch behind it.

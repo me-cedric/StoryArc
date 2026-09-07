@@ -2,8 +2,6 @@ public import Foundation
 
 public import Playback
 
-internal import StoryArcCore
-
 /// What a skip control states.
 ///
 /// `audio-playback`: "the interval is stated on the control itself". A synthesised voice has
@@ -78,38 +76,15 @@ public enum PlayerLabels {
 
     /// A position as a player writes it: `9:59`, or `1:02:30` past the hour.
     ///
-    /// Built by hand rather than by a formatter, because this one is not prose: it is the
-    /// digits every media player in the world shows, and a locale that reordered them would
-    /// be one where a listener could not read their own book's clock.
+    /// ``Playback/PlaybackClock/time(_:)``, which the publication page's chapter list states
+    /// its lengths with. The arithmetic was written out here and again there, byte for byte.
     public static func time(_ seconds: TimeInterval) -> String {
-        guard seconds.isFinite, seconds > 0 else { return "0:00" }
-        let whole = Int(seconds.rounded(.down))
-        let hours = whole / 3600
-        let minutes = (whole % 3600) / 60
-        let secs = whole % 60
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, secs)
-        }
-        return String(format: "%d:%02d", minutes, secs)
+        PlaybackClock.time(seconds)
     }
 
     /// A position as a screen reader should hear it: "1 minute, 10 seconds".
-    ///
-    /// `Duration`'s own units format, so the words and their order are the platform's in
-    /// every language rather than four more strings this project would have to keep in step.
-    ///
-    /// The platform speaks the locale it is handed, and it is handed
-    /// ``StoryArcCore/Locale/storyArc``. A formatter left on the process locale said
-    /// "1 minute, 10 seconds" to a screen reader inside a French interface.
     public static func spokenTime(_ seconds: TimeInterval) -> String {
-        guard seconds.isFinite, seconds > 0 else { return format(.seconds(0)) }
-        return format(.seconds(seconds.rounded()))
-    }
-
-    private static func format(_ duration: Duration) -> String {
-        duration.formatted(
-            .units(allowed: [.hours, .minutes, .seconds], width: .wide).locale(.storyArc)
-        )
+        PlaybackClock.spokenTime(seconds)
     }
 
     // MARK: - The controls
@@ -126,7 +101,7 @@ public enum PlayerLabels {
     ) -> SkipLabel {
         switch unit {
         case .sentence: .sentence
-        case .time: .time(format(.seconds(intervals.interval(direction).rounded())))
+        case .time: .time(PlaybackClock.words(.seconds(intervals.interval(direction).rounded())))
         }
     }
 

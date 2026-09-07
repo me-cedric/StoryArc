@@ -103,9 +103,18 @@ extension StoryArcApp {
     /// already above the navigation control; presenting the full player over the shelf would
     /// take them away from what they were doing, which is the opposite of what playback
     /// outliving the publication is for.
-    func listen(to publication: Publication, at url: URL) {
+    ///
+    /// - Parameter part: the chapter a listener chose on the publication page, zero-based, or
+    ///   `nil` to start where the book was left. `audio-playback` requires a chosen chapter to
+    ///   start "at that chapter rather than where the book was left". A session that is
+    ///   already playing this book moves to that part, rather than being adopted where it
+    ///   stands: a control that does nothing is the control this requirement forbids.
+    func listen(to publication: Publication, at url: URL, startingAt part: Int? = nil) {
         let centre = PlayerCentre.shared
-        guard centre.handover(opening: publication.id) != .adopt else { return }
+        guard centre.handover(opening: publication.id) != .adopt else {
+            if let part { centre.play(part: part) }
+            return
+        }
 
         Task {
             // The scope has to be open for the whole session, not just the read: an
@@ -135,6 +144,9 @@ extension StoryArcApp {
                 SpokenBook(publication: publication, url: url),
                 source: NarratedSource(book)
             )
+            // After the session exists: ``PlayerCentre/play(part:)`` refuses while there is
+            // none, and it moves the running session to the start of that part.
+            if let part { centre.play(part: part) }
         }
     }
 

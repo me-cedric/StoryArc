@@ -29,6 +29,16 @@ public struct PublicationDetailView: View {
     let model: LibraryModel
     let onOpen: (Publication, URL) -> Void
 
+    /// How this page starts an audiobook at a chosen chapter.
+    ///
+    /// Separate from ``onOpen`` and optional, because they are different requests: `onOpen`
+    /// says "open this book where it was left", and `audio-playback` requires a chosen
+    /// chapter to start "at that chapter rather than where the book was left". A stack that
+    /// hands over nothing still gets the list — seeing the chapters without starting the book
+    /// is half of what the requirement asks — and its rows are text rather than buttons,
+    /// because "every control the player offers works, or is absent".
+    let onListen: ((Publication, URL, Int) -> Void)?
+
     /// The cover, once it has been decoded. `nil` is a normal state twice over: before it
     /// arrives, and for a publication that has none.
     @State private var cover: CGImage?
@@ -44,15 +54,21 @@ public struct PublicationDetailView: View {
     /// perform the read — which is what left 24 pt of nothing under every description.
     /// `nil` for everything that is not a kept Kavita chapter, which is most of the shelf.
     @State private var kavitaCard: KavitaCard?
+    /// The chapters, the length and the chapter to resume inside. ``DetailAudiobook/absent``
+    /// until the parts have been read, for every comic, and for an audiobook whose bytes this
+    /// device does not hold.
+    @State private var audiobook = DetailAudiobook.absent
 
     public init(
         publication: Publication,
         model: LibraryModel,
-        onOpen: @escaping (Publication, URL) -> Void
+        onOpen: @escaping (Publication, URL) -> Void,
+        onListen: ((Publication, URL, Int) -> Void)? = nil
     ) {
         self.publication = publication
         self.model = model
         self.onOpen = onOpen
+        self.onListen = onListen
     }
 
     public var body: some View {
@@ -65,6 +81,8 @@ public struct PublicationDetailView: View {
                     isKept: $isKept,
                     kavitaCard: kavitaCard,
                     file: file,
+                    audiobook: audiobook,
+                    onChooseChapter: chooseChapter,
                     onRead: read
                 )
                 .frame(maxWidth: SidebarLayout.maxContentWidth)
@@ -103,6 +121,17 @@ public struct PublicationDetailView: View {
             isKept = model.keptOffline.contains(publication.id)
             kavitaCard = KavitaCardStore().card(of: publication.id)
             cover = await model.cover(for: publication, maxPixelSize: 900)
+        }
+        // Its own task, and keyed on the file as well as the publication: reading an
+        // audiobook's chapter markers opens the container, which is slower than either read
+        // above and must not hold the cover behind it. A comic never starts it — the guard is
+        // ``DetailChapters/read(_:at:progress:)``'s, so it is asserted rather than assumed.
+        .task(id: file) {
+            audiobook = await DetailChapters.read(
+                publication,
+                at: file,
+                progress: model.record(of: publication)
+            )
         }
         // Keyed on the canvas as well as the cover: the wash is checked against the page it
         // is drawn on, so switching between light and dark is a different question with a
@@ -156,6 +185,15 @@ public struct PublicationDetailView: View {
 
     private func read() {
         if let file { onOpen(publication, file) }
+    }
+
+    /// Starts the book at the chapter a listener chose, when a stack handed over a way to.
+    ///
+    /// `nil` rather than a closure that does nothing, so ``DetailChapterList`` draws rows
+    /// instead of buttons: `audio-playback` requires every control to work or be absent.
+    private var chooseChapter: ((Int) -> Void)? {
+        guard let onListen, let file else { return nil }
+        return { onListen(publication, file, $0) }
     }
 
     // MARK: - Colour

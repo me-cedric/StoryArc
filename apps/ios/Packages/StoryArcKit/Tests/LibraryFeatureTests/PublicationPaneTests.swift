@@ -42,7 +42,12 @@ struct PublicationPaneTests {
     }
 
     /// Where the registration is written, one line at a time.
-    private static let registration = ".publicationPages(in: model, onOpen: onOpen)"
+    ///
+    /// `onListen` is part of the literal rather than left off it: the page builds a chapter
+    /// list nothing can start unless the stack hands that closure over, which is the state
+    /// every registration was in until 2026-09-07.
+    private static let registration =
+        ".publicationPages(in: model, onOpen: onOpen, onListen: onListen)"
 
     @Test("The Library destination is composed as a split")
     func theShelfIsASplit() {

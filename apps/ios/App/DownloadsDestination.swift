@@ -37,6 +37,8 @@ struct DownloadsDestination: View {
 
     let model: LibraryModel
     let onOpen: (Publication, URL) -> Void
+    /// How a page opened from here starts an audiobook at a chosen chapter.
+    let onListen: (Publication, URL, Int) -> Void
 
     /// The way out of the empty state. `offline-downloads`: with nothing downloaded the
     /// destination "says so in one sentence and offers the action that changes it".
@@ -112,7 +114,7 @@ struct DownloadsDestination: View {
             .frame(maxWidth: .infinity)
             .background(theme.palette.surfaceCanvas)
             // Once, at the root of this stack, for the covers on the shelf below.
-            .publicationPages(in: model, onOpen: onOpen)
+            .publicationPages(in: model, onOpen: onOpen, onListen: onListen)
             // The same soft edge the shelf and Home use: what passes under this app's
             // chrome is artwork, and a hard cut across a cover looks like a rendering fault.
             .scrollEdgeEffectStyle(.soft, for: .all)

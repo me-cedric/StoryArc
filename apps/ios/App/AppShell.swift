@@ -114,6 +114,12 @@ struct AppShell: View {
     let model: LibraryModel
     let progress: ProgressStore?
     let onOpen: (Publication, URL) -> Void
+    /// How a publication's page starts an audiobook at a chapter the listener chose.
+    ///
+    /// Apart from ``onOpen`` because they are different requests: `onOpen` opens the book
+    /// where it was left, and `audio-playback` requires a chosen chapter to start there
+    /// instead. Every destination that registers a publication page is handed it.
+    let onListen: (Publication, URL, Int) -> Void
     let onOpenSettings: () -> Void
     /// See ``LibraryView/init(model:surface:progress:onOpen:showLibrary:)``.
     let showLibrary: Int
@@ -138,6 +144,7 @@ struct AppShell: View {
                 HomeScreen(
                     model: model,
                     onOpen: onOpen,
+                    onListen: onListen,
                     onOpenSettings: onOpenSettings
                 )
             } label: {
@@ -158,6 +165,7 @@ struct AppShell: View {
                 DownloadsDestination(
                     model: model,
                     onOpen: onOpen,
+                    onListen: onListen,
                     onShowLibrary: { tab = .destination(.library) }
                 )
             } label: {
@@ -178,7 +186,9 @@ struct AppShell: View {
             // The iPad's second half of the same set: library sections and the reader's
             // shelves, under their own headers, hidden from the tab bar so the phone still
             // shows four destinations and nothing else.
-            LibrarySidebar(model: model, onOpen: onOpen) { Selection.sidebar($0) }
+            LibrarySidebar(model: model, onOpen: onOpen, onListen: onListen) {
+                Selection.sidebar($0)
+            }
         }
         .tabViewStyle(.sidebarAdaptable)
         .tabBarMinimizeBehavior(.onScrollDown)
@@ -259,6 +269,7 @@ struct AppShell: View {
             surface: surface,
             progress: progress,
             onOpen: onOpen,
+            onListen: onListen,
             showLibrary: showLibrary,
             // `sources`' automatic recovery must not interrupt reading, and the app layer is
             // the only place that knows whether a publication is open — the shelf cannot see

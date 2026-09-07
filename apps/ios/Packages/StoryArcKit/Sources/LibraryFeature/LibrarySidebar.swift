@@ -83,6 +83,9 @@ public struct LibrarySidebar<Value: Hashable>: TabContent {
 
     private let model: LibraryModel
     private let onOpen: (Publication, URL) -> Void
+    /// How the pages in these stacks start an audiobook at a chosen chapter — see
+    /// ``PublicationDetailView/onListen``.
+    private let onListen: ((Publication, URL, Int) -> Void)?
     /// How a sidebar entry is spelled in the shell's own selection type.
     ///
     /// A closure rather than a shared enum, so the shell keeps one selection type and this
@@ -92,10 +95,12 @@ public struct LibrarySidebar<Value: Hashable>: TabContent {
     public init(
         model: LibraryModel,
         onOpen: @escaping (Publication, URL) -> Void,
+        onListen: ((Publication, URL, Int) -> Void)? = nil,
         value: @escaping (SidebarEntry) -> Value
     ) {
         self.model = model
         self.onOpen = onOpen
+        self.onListen = onListen
         self.value = value
     }
 
@@ -123,7 +128,7 @@ public struct LibrarySidebar<Value: Hashable>: TabContent {
                         publications: HomeShelves.recentlyAdded(in: model.publications, limit: .max),
                         model: model
                     )
-                    .publicationPages(in: model, onOpen: onOpen)
+                    .publicationPages(in: model, onOpen: onOpen, onListen: onListen)
                 }
             } label: {
                 Label {
@@ -136,7 +141,7 @@ public struct LibrarySidebar<Value: Hashable>: TabContent {
             Tab(value: value(.series)) {
                 NavigationStack {
                     SidebarSeriesList(model: model)
-                        .publicationPages(in: model, onOpen: onOpen)
+                        .publicationPages(in: model, onOpen: onOpen, onListen: onListen)
                 }
             } label: {
                 Label {
@@ -155,7 +160,7 @@ public struct LibrarySidebar<Value: Hashable>: TabContent {
                 Tab(value: value(.collection(collection.id))) {
                     NavigationStack {
                         CollectionDetail(model: model, id: collection.id)
-                            .publicationPages(in: model, onOpen: onOpen)
+                            .publicationPages(in: model, onOpen: onOpen, onListen: onListen)
                     }
                 } label: {
                     Label {
@@ -186,7 +191,7 @@ public struct LibrarySidebar<Value: Hashable>: TabContent {
             Tab(value: value(.allShelves)) {
                 NavigationStack {
                     ShelvesView(model: model, onOpen: onOpen)
-                        .publicationPages(in: model, onOpen: onOpen)
+                        .publicationPages(in: model, onOpen: onOpen, onListen: onListen)
                 }
             } label: {
                 Label {

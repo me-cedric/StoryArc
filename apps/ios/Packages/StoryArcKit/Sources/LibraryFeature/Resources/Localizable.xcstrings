@@ -2025,6 +2025,96 @@
       },
       "comment": "Second half of the provenance line, after a comma, so lower case."
     },
+    "detail.chapter.finished": {
+      "comment": "Spoken beside a chapter the listener has already heard, on an audiobook's page.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beendet"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finished"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminé"
+          }
+        }
+      }
+    },
+    "detail.chapter.number %lld": {
+      "comment": "What a chapter with no title of its own is called. Same wording as the player's player.part.number, which names the same part on the compact bar and the lock screen.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teil %lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Part %lld"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parte %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partie %lld"
+          }
+        }
+      }
+    },
+    "detail.chapters": {
+      "comment": "Heading over an audiobook's chapter list on its page.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kapitel"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chapters"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capítulos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chapitres"
+          }
+        }
+      }
+    },
     "detail.continueListening": {
       "extractionState": "manual",
       "localizations": {
@@ -2054,6 +2144,36 @@
         }
       }
     },
+    "detail.continueListening.in %@": {
+      "comment": "The page's primary action for an audiobook already started; names the chapter it resumes inside.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weiter mit %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuer %@"
+          }
+        }
+      }
+    },
     "detail.download.working": {
       "extractionState": "manual",
       "localizations": {
@@ -2079,6 +2199,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Copie sur cet appareil…"
+          }
+        }
+      }
+    },
+    "detail.duration %@": {
+      "comment": "How long an audiobook runs, stated where it has no chapter list.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dauer %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duration %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duración %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Durée %@"
           }
         }
       }

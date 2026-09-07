@@ -88,10 +88,17 @@ extension View {
     public func publicationDetail(
         model: LibraryModel,
         onOpen: @escaping (Publication, URL) -> Void,
+        onListen: ((Publication, URL, Int) -> Void)? = nil,
         onGone: @escaping () -> Void = {}
     ) -> some View {
         navigationDestination(for: PublicationRoute.self) { route in
-            PublicationDestination(route: route, model: model, onOpen: onOpen, onGone: onGone)
+            PublicationDestination(
+                route: route,
+                model: model,
+                onOpen: onOpen,
+                onListen: onListen,
+                onGone: onGone
+            )
         }
     }
 
@@ -112,9 +119,10 @@ extension View {
     /// system's own.
     public func publicationPages(
         in model: LibraryModel,
-        onOpen: @escaping (Publication, URL) -> Void
+        onOpen: @escaping (Publication, URL) -> Void,
+        onListen: ((Publication, URL, Int) -> Void)? = nil
     ) -> some View {
-        modifier(PublicationPages(model: model, onOpen: onOpen))
+        modifier(PublicationPages(model: model, onOpen: onOpen, onListen: onListen))
     }
 }
 
@@ -122,12 +130,18 @@ extension View {
 private struct PublicationPages: ViewModifier {
     let model: LibraryModel
     let onOpen: (Publication, URL) -> Void
+    let onListen: ((Publication, URL, Int) -> Void)?
 
     @State private var isGone = false
 
     func body(content: Content) -> some View {
         content
-            .publicationDetail(model: model, onOpen: onOpen, onGone: { isGone = true })
+            .publicationDetail(
+                model: model,
+                onOpen: onOpen,
+                onListen: onListen,
+                onGone: { isGone = true }
+            )
             .alert(PublicationRoute.goneSentence, isPresented: $isGone) {}
     }
 }
@@ -150,11 +164,17 @@ private struct PublicationDestination: View {
     let route: PublicationRoute
     let model: LibraryModel
     let onOpen: (Publication, URL) -> Void
+    let onListen: ((Publication, URL, Int) -> Void)?
     let onGone: () -> Void
 
     var body: some View {
         if let publication = model.publications.first(where: { $0.id == route.publicationID }) {
-            PublicationDetailView(publication: publication, model: model, onOpen: onOpen)
+            PublicationDetailView(
+                publication: publication,
+                model: model,
+                onOpen: onOpen,
+                onListen: onListen
+            )
         } else {
             // Momentary, and it has to exist: `navigationDestination` has already committed
             // to showing something by the time this is known.

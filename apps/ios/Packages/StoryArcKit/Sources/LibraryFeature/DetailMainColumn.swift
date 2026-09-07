@@ -25,6 +25,16 @@ struct DetailMainColumn: View {
     let kavitaCard: KavitaCard?
 
     let file: URL?
+
+    /// What the page says about an audiobook and about nothing else: its chapters, its
+    /// length, and the chapter the primary action names. ``DetailAudiobook/absent`` for a
+    /// comic, so a comic cannot grow a chapter list by being composed here.
+    let audiobook: DetailAudiobook
+
+    /// What to do with the chapter a listener chose, or `nil` where nothing here can start
+    /// playback yet.
+    let onChooseChapter: ((Int) -> Void)?
+
     let onRead: () -> Void
 
     @Environment(\.theme) private var theme
@@ -41,8 +51,17 @@ struct DetailMainColumn: View {
                 model: model,
                 isKept: $isKept,
                 file: file,
+                resuming: audiobook.resuming,
                 onRead: onRead
             )
+            // Under the action rather than over it: `publication-detail` puts exactly one
+            // thing first in the reading order after the title, and a list of chapters ahead
+            // of it would put twelve.
+            DetailChapterList(chapters: audiobook.chapters, onChoose: onChooseChapter)
+            // The length only where there is no list to carry it, which is the one-part book.
+            if audiobook.chapters.isEmpty {
+                DetailBookLength(seconds: audiobook.length)
+            }
             summary
             // The two of `kavita-server`'s seven metadata fields that ``Publication`` has no
             // slot for. Nothing at all — not an empty block — for everything that is not a
