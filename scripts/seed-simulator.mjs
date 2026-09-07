@@ -24,14 +24,43 @@ import { fileURLToPath } from 'node:url'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const BUNDLE = 'app.storyarc.StoryArc'
 
-const TITLE = 'Harbour Lights'
-const ID = 'seed-harbour-lights'
-const MEDIA_TYPE = 'application/vnd.comicbook+zip'
-// `DownloadStore.extension(for:)` asks `PublicationFormat`, whose raw value for a CBZ is
-// `cbz`. The name is the store's, not the fixture's: the reader asks the store where the
-// file is, and the store computes this name from the media type.
-const EXTENSION = 'cbz'
-const FIXTURE = join(ROOT, 'packages/test-fixtures/comics/data-descriptor.cbz')
+// What gets seeded. Each entry becomes one record and one file.
+//
+// The comic is for the Downloads audit, which measures nothing on an empty screen. The
+// audiobook is for the twelve player walks, which fail at `AudiobookWalk.swift` with "No
+// audiobook on this device's shelf" and had no way to be given one until an audiobook could
+// carry a media type.
+//
+// The extension is the store's, not the fixture's: `DownloadStore.location` computes it from
+// the media type, and the reader asks the store where the file is.
+const SEEDS = [
+  {
+    id: 'seed-harbour-lights',
+    title: 'Harbour Lights',
+    mediaType: 'application/vnd.comicbook+zip',
+    extension: 'cbz',
+    fixture: 'packages/test-fixtures/comics/data-descriptor.cbz',
+  },
+  {
+    // `AudiobookWalk` matches a cover whose label contains this title.
+    id: 'seed-sea-room',
+    title: 'Sea Room',
+    mediaType: 'audio/mp4',
+    extension: 'm4b',
+    fixture: 'packages/test-fixtures/audiobooks/chaptered.m4b',
+  },
+]
+
+// An audiobook gets a folder of its own inside the download's folder. A comic does not.
+//
+// `LibraryScanner` indexes a lone audio file as the folder that holds it. An audiobook written
+// beside its record therefore becomes the publication `seed-sea-room`, and the parent directory
+// of that publication is the downloads root. `DownloadStore.download(forFileAt:in:)` matches a
+// record by that parent directory. No record matches the downloads root, so
+// `LibraryModel.adoptDownloads` drops the publication and no shelf draws it. One directory
+// deeper, the publication is `Sea Room` and its parent is the record's own folder, so the
+// record matches. A comic indexes as the file itself, so it stays beside its record.
+const needsOwnFolder = (seed) => seed.mediaType.startsWith('audio/')
 
 const run = (args) => execFileSync('xcrun', args, { encoding: 'utf8' }).trim()
 
@@ -59,37 +88,44 @@ try {
   process.exit(1)
 }
 
-if (!existsSync(FIXTURE)) {
-  console.error(`Missing fixture: ${FIXTURE}`)
-  process.exit(1)
-}
+const REFERENCE = Date.UTC(2001, 0, 1) / 1000
 
 // `DownloadStore.safe` keeps `A-Za-z0-9._ -` and replaces every other character.
 const safe = (text) => text.replace(/[^A-Za-z0-9._ -]/g, '-')
 
-const folder = join(container, 'Library/Application Support/Downloads', safe(ID))
-const file = join(folder, `${safe(TITLE).trim()}.${EXTENSION}`)
-mkdirSync(folder, { recursive: true })
-copyFileSync(FIXTURE, file)
+const record = []
+for (const seed of SEEDS) {
+  const fixture = join(ROOT, seed.fixture)
+  if (!existsSync(fixture)) {
+    console.error(`Missing fixture: ${fixture}`)
+    process.exit(1)
+  }
+  const name = safe(seed.title).trim()
+  const recordFolder = join(container, 'Library/Application Support/Downloads', safe(seed.id))
+  const folder = needsOwnFolder(seed) ? join(recordFolder, name) : recordFolder
+  const file = join(folder, `${name}.${seed.extension}`)
+  mkdirSync(folder, { recursive: true })
+  copyFileSync(fixture, file)
 
-// `StoredDownload` as `JSONEncoder` writes it. A date is seconds since the Apple reference
-// date, 2001-01-01, which is what `JSONDecoder` reads back with its default strategy.
-const REFERENCE = Date.UTC(2001, 0, 1) / 1000
-const record = [{
-  id: ID,
-  sourceID: null,
-  title: TITLE,
-  remote: `https://example.invalid/${ID}.cbz`,
-  mediaType: MEDIA_TYPE,
-  expectedBytes: null,
-  downloadedBytes: 0,
-  completedAt: Math.floor(Date.now() / 1000) - REFERENCE,
-  isFinished: true,
-  failure: null,
-  attempts: 0,
-  verificationFailures: 0,
-  pause: null,
-}]
+  // `StoredDownload` as `JSONEncoder` writes it. A date is seconds since the Apple reference
+  // date, 2001-01-01, which is what `JSONDecoder` reads back with its default strategy.
+  record.push({
+    id: seed.id,
+    sourceID: null,
+    title: seed.title,
+    remote: `https://example.invalid/${seed.id}.${seed.extension}`,
+    mediaType: seed.mediaType,
+    expectedBytes: null,
+    downloadedBytes: 0,
+    completedAt: Math.floor(Date.now() / 1000) - REFERENCE,
+    isFinished: true,
+    failure: null,
+    attempts: 0,
+    verificationFailures: 0,
+    pause: null,
+  })
+  console.log(`  ${seed.title}  <container>${file.slice(container.length)}`)
+}
 
 // The old-style plist spelling of `Data`, which is what `UserDefaults.data(forKey:)` reads.
 // Anything else arrives as a string, `DownloadStore` reads it as absent, and that looks
@@ -97,6 +133,4 @@ const record = [{
 const hex = Buffer.from(JSON.stringify(record), 'utf8').toString('hex')
 run(['simctl', 'spawn', udid, 'defaults', 'write', BUNDLE, 'app.storyarc.downloads', '-data', hex])
 
-console.log(`Seeded ${TITLE} on ${udid}`)
-console.log(`  file   <container>${file.slice(container.length)}`)
-console.log(`  record app.storyarc.downloads, ${record.length} entry`)
+console.log(`Seeded ${record.length} publications on ${udid}`)

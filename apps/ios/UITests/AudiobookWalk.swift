@@ -9,34 +9,58 @@ import XCTest
 @MainActor
 extension XCTestCase {
 
-    /// Walks to the library and starts the first audiobook it finds, then pauses it.
+    /// Walks to the first destination that has an audiobook on it, starts it, then pauses it.
     ///
-    /// Fails rather than returning when there is none: a capture of a shelf with no audiobook
-    /// on it, filed as a picture of the player, is worse than no capture — and an accessibility
-    /// audit of the same shelf, filed under "Player", is worse still.
+    /// **The library first, then downloads.** A reader with a source has their books on the
+    /// shelf. A seeded simulator has them on downloads and nowhere else: `seed-simulator.mjs`
+    /// writes a finished download, and the library adopts a download when the downloads
+    /// destination appears rather than at launch — so a walk that asked the library alone was
+    /// looking where the seed cannot put anything.
+    ///
+    /// Fails rather than returning when neither destination has one: a capture of a shelf with
+    /// no audiobook on it, filed as a picture of the player, is worse than no capture — and an
+    /// accessibility audit of the same shelf, filed under "Player", is worse still.
     ///
     /// - Returns: the audiobook's cover on the shelf, for a caller that wants to go back to it.
     @discardableResult
     func openAnAudiobook(in app: XCUIApplication) throws -> XCUIElement {
-        try XCTUnwrap(destination("Library", in: app)).tap()
-        _ = app.scrollViews.firstMatch.waitForExistence(timeout: 10)
-
-        let audiobook = app.buttons.containing(
+        // `matching` asks the cover's own label; `containing` asked its descendants and there
+        // are none. A shelf cell is a single accessibility element — `CoverCell` combines its
+        // children explicitly and the downloads shelf's link inherits the same behaviour from
+        // SwiftUI — so the title is on the cell, and a descendant query matches nothing.
+        let audiobook = app.buttons.matching(
             NSPredicate(format: "label CONTAINS[c] %@", "Sea Room")
         ).firstMatch
-        // The shelf is a grid and the audiobook is not always above the fold — at the largest
-        // accessibility text size a cover is much taller, so far fewer fit. Scroll until it is
-        // there rather than asserting on the first screenful, which is how this walk failed at
-        // that size and passed at the default one.
-        var swipes = 0
-        while !audiobook.waitForExistence(timeout: 3), swipes < 6 {
-            app.scrollViews.firstMatch.swipeUp()
-            swipes += 1
+
+        // **Downloads first, and the order is the whole point.** A seeded download reaches the
+        // library only through `LibraryModel.adoptDownloads()`, and that runs from one place:
+        // the downloads destination appearing. Visiting the library first therefore finds
+        // nothing, and a walk that then settled on downloads would leave every caller's frame
+        // and report name false — `PlayerAuditTests` says "Library with the compact bar" and
+        // `PlayerScreenshotTests` files `compact-player` as the same shelf as
+        // `library-nothing-playing`. Downloads first makes the adoption happen; the library
+        // then holds the book, and the walk ends where its callers say it ends.
+        var found = false
+        for shelf in ["Downloads", "Library"] where !found {
+            try XCTUnwrap(destination(shelf, in: app), "The shell offers no \(shelf) tab.").tap()
+            _ = app.scrollViews.firstMatch.waitForExistence(timeout: 10)
+            // The shelf is a grid and the audiobook is not always above the fold — at the largest
+            // accessibility text size a cover is much taller, so far fewer fit. Scroll until it is
+            // there rather than asserting on the first screenful, which is how this walk failed at
+            // that size and passed at the default one.
+            var swipes = 0
+            while !audiobook.waitForExistence(timeout: 3), swipes < 6 {
+                app.scrollViews.firstMatch.swipeUp()
+                swipes += 1
+            }
+            found = audiobook.exists
         }
         XCTAssertTrue(
-            audiobook.exists,
-            "No audiobook on this device's shelf. Copy packages/test-fixtures/audiobooks "
-                + "into the simulator's library folder before running this."
+            found,
+            "No audiobook on this device's library or downloads. Put one there: boot the "
+                + "simulator, install the app, then run `node scripts/seed-simulator.mjs`. A "
+                + "sweep launch clears the download record, so a sweep needs the corpus in the "
+                + "device's own library folder instead."
         )
         audiobook.tap()
 

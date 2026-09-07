@@ -124,7 +124,7 @@ final class PlayerScreenshotTests: XCTestCase {
         )
         sleepControl.tap()
 
-        let fiveMinutes = app.buttons.containing(
+        let fiveMinutes = app.buttons.matching(
             NSPredicate(format: "label CONTAINS %@", "5:00")
         ).firstMatch
         XCTAssertTrue(
