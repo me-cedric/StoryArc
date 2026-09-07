@@ -118,3 +118,14 @@ Fixed by moving the presentation to the shell's `TabView`, which outlives a sess
 `PlayerSheet.swift` carries the account. The assertion that the player survives its own play
 button is part of this same walk now, so the block cannot come back unnoticed.
 
+## Pruned on 2026-09-07
+
+This set held 7 frames and now holds 1. The rest were the comparison halves of a change
+that has since archived, and a frame nobody cites and no change is still using is 36 megabytes
+of repository that says nothing.
+
+What is left is what a change still in flight cites by path:
+- `ios-sleep-timer-set.png`, cited by `audiobooks-and-playback` in its task list.
+
+The provenance above still applies to them. `/usr/bin/git log` holds every frame that was
+removed, so a comparison is recoverable and does not need to sit in the working tree.

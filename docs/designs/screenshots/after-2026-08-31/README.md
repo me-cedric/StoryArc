@@ -428,3 +428,16 @@ and the palette must stay; Natural's own dark variant, reached by linking the re
 or choosing a dark preset, where a light speck on a dark ground is a different judgement
 from a dark speck on a light one; and **iOS entirely** — its `PaperGrain.metal` compiles and
 is present in the built metallib, and has never been executed.
+
+## Pruned on 2026-09-07
+
+This set held 35 frames and now holds 2. The rest were the comparison halves of a change
+that has since archived, and a frame nobody cites and no change is still using is 36 megabytes
+of repository that says nothing.
+
+What is left is what a change still in flight cites by path:
+- `ios-search-remote-and-away-dark.png` and `ios-search-role-morphs-dark.png`, cited by
+  `one-library-three-destinations` in its design note and its task list.
+
+The provenance above still applies to them. `/usr/bin/git log` holds every frame that was
+removed, so a comparison is recoverable and does not need to sit in the working tree.

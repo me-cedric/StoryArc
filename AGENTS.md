@@ -291,6 +291,23 @@ So: scoped by default. Broad when shared harness or a photographed view moved, a
 the file that earned it. A broad run nobody asked for and nobody explained is how a simulator
 is held for an hour with nothing to show.
 
+**The UI target is 191 cases and 183 app launches, so nearly every case pays a cold
+start.** Measured on 2026-09-07: 23.5 seconds a case on average, about **75 minutes** for the
+whole target. `AccessibilityAuditTests.testSettingsPassesTheAudit` alone took 124 seconds, and
+four `AppIconCaptureTests` cases took about 97 seconds each.
+
+The launches are structural rather than careless. `sweepLaunch` injects a different set of
+launch arguments per case — appearance, downloads, filters, recents — and a launch argument
+can only be set before a launch, so a case needing different state must relaunch. That is
+what makes each capture a photograph of a known state instead of whatever the case before it
+left behind.
+
+**The waste is that many cases pass the same arguments.** Grouping cases by their launch
+argument signature and launching once per group would collapse most of the 183. Nobody has
+done it, and it is a refactor of the capture suite rather than a tweak. Until then, read the
+per-case seconds in a run before assuming a slow suite is a hung one: watching the same
+opening walk repeat is the suite working, not the suite stuck.
+
 **A guard you add must be proved able to fail, in the same change that adds it.** Three
 checks in this repository could not fail, and each looked exactly like protection:
 
@@ -335,6 +352,30 @@ Dynamic Type setting.
 xcrun simctl io booted screenshot shot.png     # iOS, whatever is on screen
 adb exec-out screencap -p > shot.png           # Android, whatever is on screen
 ```
+
+**A frame is kept while something still needs it, and removed the day nothing does.**
+`docs/designs/screenshots/` reached 268 megabytes and 1128 files, of which **14** were cited
+by any document. It was pruned to 196 megabytes on 2026-09-07. The rule that pruned it, and
+the rule to apply next time:
+
+| Keep | Why |
+| --- | --- |
+| The latest full sweep for each platform | It is the current baseline every later frame is compared against |
+| One prior comparison set | So a regression can be seen rather than argued about |
+| Any frame a document or a task list cites by path | Removing it breaks the page that cites it |
+| Topic evidence for a change that has not archived | The frame is that task's proof |
+| Nothing else | |
+
+A `before-*` / `after-*` pair is a comparison for one change. When that change archives the
+pair has done its work, and the newest such pair is the only one worth holding.
+
+Before you remove one, grep every `.md` for its path. Three frames in the 2026-09-07 prune
+were cited by changes still in flight and were kept, with their set's README rewritten to say
+what was pruned and why — a README describing frames that are gone is worse than no README.
+
+**Git holds every removed frame**, so a comparison is always recoverable and does not need to
+sit in the working tree. Never commit an archive of them: a 242 megabyte `Archive.zip` was
+staged once and caught before it landed.
 
 On Android, prefer the harness — it walks to the screen, sets the condition, and
 **puts the device back**, which the raw command cannot do and which a person
