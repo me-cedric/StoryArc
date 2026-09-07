@@ -291,6 +291,29 @@ So: scoped by default. Broad when shared harness or a photographed view moved, a
 the file that earned it. A broad run nobody asked for and nobody explained is how a simulator
 is held for an hour with nothing to show.
 
+**A UI run against an unseeded device proves nothing, and nothing said so.** The suite needs
+two seeding steps, in this order, after the app is installed and before the tests run:
+
+```bash
+node scripts/corpus.mjs --simulator <udid>      # 17 publications into the app's Documents
+node scripts/seed-simulator.mjs --device <udid> # the download records and their files
+```
+
+Measured on 2026-09-07 without them: of 107 cases, **42 skipped and 11 failed**, every one of
+them downstream of an empty device. The suite reported that as a slow run with some red in it,
+which is indistinguishable from a broken app.
+
+**The instruction existed only inside the assertions.** "This device's shelf never showed a
+cover for Fine Print", "This device's library showed no EPUB cover at any of the six scroll
+depths", and "No audiobook on this device's shelf" each name a remedy, and a person only reads
+them after the run has already failed. `corpus.mjs` was in the repository the whole time and
+appeared in no document.
+
+Seeding is not sufficient either, and this is unfinished rather than solved. With the corpus
+in place `ReaderAuditTests.testEpubReaderPassesTheAudit` passes where it skipped, and
+`testReaderPassesTheAudit` still skips with "No publication on this device opens a page with
+an action on it". Whatever the comic path needs is not the corpus alone. Nobody has chased it.
+
 **The UI target is 191 cases and 183 app launches, so nearly every case pays a cold
 start.** Measured on 2026-09-07: 23.5 seconds a case on average, about **75 minutes** for the
 whole target. `AccessibilityAuditTests.testSettingsPassesTheAudit` alone took 124 seconds, and
