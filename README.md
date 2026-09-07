@@ -1,5 +1,6 @@
 <div align="center">
 <br />
+<img src="docs/designs/brand/storyarc-mark.svg" alt="The StoryArc mark" width="112" height="112">
 <h1>StoryArc</h1>
 <p><strong>Native comic, manga and ebook readers for iOS and Android.</strong></p>
 <p>
