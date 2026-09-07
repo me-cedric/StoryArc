@@ -52,6 +52,27 @@ struct DownloadLocationTests {
         #expect(store.location(of: download()).lastPathComponent == "Bone 6.cbz")
     }
 
+    /// `publication-formats`: "an MP3 is not written back as an M4B, because a player handed a
+    /// file whose extension disagrees with its bytes is a failure the listener sees and cannot
+    /// explain". Every audio download was written as `Sea Room.bin` while the format table
+    /// held one flat audiobook case, because that case answered no media type to read back.
+    @Test("An audiobook is written under the extension of the container it is")
+    func audioKeepsItsContainer() throws {
+        let (store, directory) = try store()
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let expected = [
+            "audio/mpeg": "Sea Room.mp3",
+            "audio/mp4": "Sea Room.m4b",
+            "audio/flac": "Sea Room.flac",
+            "audio/ogg": "Sea Room.ogg",
+        ]
+        for (mediaType, name) in expected {
+            let path = store.location(for: "urn:storyarc:9", mediaType: mediaType, title: "Sea Room")
+            #expect(path.lastPathComponent == name)
+        }
+    }
+
     @Test("Removing takes the bytes, whatever the file inside happened to be called")
     func removalIgnoresTheStem() throws {
         let (store, directory) = try store()
@@ -114,5 +135,32 @@ struct DownloadLocationTests {
         defer { try? FileManager.default.removeItem(at: directory) }
 
         #expect(store.location(of: download(title: "  ")).lastPathComponent == "urn-storyarc-6.cbz")
+    }
+
+    /// A download written under a name this build no longer computes still resolves.
+    ///
+    /// The extension is computed from the media type on every call, so giving audio its
+    /// media types on 2026-09-07 renamed the computed path of every audiobook already on a
+    /// device from `Title.bin` to `Title.mp3`. Nothing renamed the file. Without this the
+    /// book stopped opening, kept its on-device mark, and went on being counted by
+    /// `bytesOnDisk()` with nothing able to remove it.
+    @Test("A file already on disk outranks the extension this build would compute")
+    func anOlderExtensionStillResolves() throws {
+        let (store, directory) = try store()
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let id = "urn:storyarc:audio"
+        let computed = store.location(for: id, mediaType: "audio/mpeg", title: "Sea Room")
+        #expect(computed.pathExtension == "mp3", "this build computes the container's extension")
+
+        // What a build before the audio split left on disk: every audio type fell to `bin`.
+        let aged = computed.deletingPathExtension().appendingPathExtension("bin")
+        try FileManager.default.createDirectory(
+            at: aged.deletingLastPathComponent(), withIntermediateDirectories: true
+        )
+        try Data([1, 2, 3]).write(to: aged)
+
+        let resolved = store.location(for: id, mediaType: "audio/mpeg", title: "Sea Room")
+        #expect(resolved.lastPathComponent == "Sea Room.bin", "the file on disk was not found")
     }
 }

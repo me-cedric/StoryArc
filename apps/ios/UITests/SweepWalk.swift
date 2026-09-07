@@ -339,7 +339,8 @@ extension XCTestCase {
     func realCovers(in app: XCUIApplication) -> [XCUIElement] {
         // `PublicationFormat.displayName`'s nine, which is the whole set — a cover with a
         // format this misses would be silently unpickable, which is the failure above again.
-        let formats = ["CBZ", "CBR", "CB7", "CBT", "EPUB", "PDF", "Folder", "Audiobook", "Audio folder"]
+        let formats = ["CBZ", "CBR", "CB7", "CBT", "EPUB", "PDF", "Folder",
+                       "M4B", "MP3", "FLAC", "Ogg", "Audiobook folder"]
         // **One snapshot of the hierarchy, not nine.** Asking the shared helper once per
         // format enumerated every button on the screen nine times over, and at
         // `accessibilityExtraExtraExtraLarge` — where a cell is 1.4 times wider, so the shelf

@@ -178,4 +178,35 @@ struct LibraryPreferencesTests {
         preferences.save(LibraryQuery(scope: server))
         #expect(preferences.query().scope == server)
     }
+
+    /// A format this build has retired costs the reader that one filter and nothing else.
+    ///
+    /// `audiobook` was one raw value until 2026-09-07 and is four after it. `decodeIfPresent`
+    /// throws on a *present* key holding an unknown raw value, `query()` swallows the throw
+    /// with `try?`, and the reader came back to a fresh query — losing the sort, the
+    /// direction and every other facet, which is the outcome `library-browsing` forbids and
+    /// the outcome `LibraryQuery`'s own decoder exists to prevent.
+    @Test("A format this build no longer knows costs one filter, not the whole query")
+    func retiredFormatKeepsTheRest() throws {
+        let suite = try fresh()
+        defer { suite.discard() }
+
+        suite.preferences.save(
+            LibraryQuery(readStates: [.inProgress], formats: [.cbz], sort: .year, ascending: false)
+        )
+
+        // Rewritten to what a build before the audio split had stored.
+        let key = "app.storyarc.libraryQuery"
+        let stored = try #require(suite.defaults.data(forKey: key))
+        let text = try #require(String(data: stored, encoding: .utf8))
+        let aged = text.replacingOccurrences(of: "\"cbz\"", with: "\"audiobook\"")
+        #expect(aged != text, "the fixture did not contain the raw value it meant to retire")
+        suite.defaults.set(try #require(aged.data(using: .utf8)), forKey: key)
+
+        let read = suite.preferences.query()
+        #expect(read.sort == .year, "the sort was lost with the retired format")
+        #expect(read.ascending == false, "the direction was lost with the retired format")
+        #expect(read.readStates == [.inProgress], "the read-state filter was lost")
+        #expect(read.formats.isEmpty, "a format this build cannot read must not come back")
+    }
 }

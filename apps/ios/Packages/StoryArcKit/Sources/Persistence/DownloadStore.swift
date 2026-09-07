@@ -84,9 +84,11 @@ public struct DownloadStore {
         // Android's half already treated blank as absent; this is iOS catching up.
         let named = Self.safe(title).trimmingCharacters(in: .whitespacesAndNewlines)
         let stem = named.isEmpty ? Self.safe(id) : named
-        return folder
+        let computed = folder
             .appending(path: stem)
             .appendingPathExtension(Self.extension(for: mediaType))
+        guard let found = Self.extensionOnDisk(stem: stem, in: folder) else { return computed }
+        return folder.appending(path: stem).appendingPathExtension(found)
     }
 
     /// Everything one download owns on disk.

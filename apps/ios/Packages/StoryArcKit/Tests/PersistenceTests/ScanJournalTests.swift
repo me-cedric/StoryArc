@@ -104,4 +104,28 @@ struct ScanJournalTests {
         journal.record([publication("Bone"), publication("Maus")], inFolder: "/comics")
         #expect(journal.indexed(inFolder: "/comics").map(\.displayTitle) == ["Bone", "Maus"])
     }
+
+    /// A row whose format this build cannot read is re-scanned rather than opened as a comic.
+    ///
+    /// The fallback used to be `.cbz`, described as an unopenable placeholder. A CBZ is
+    /// openable and is paged images, so a journal row written before the audio split would
+    /// have resumed an audiobook into the comic reader.
+    @Test("A row this build cannot read is dropped rather than resumed as a comic")
+    func unreadableRowIsDropped() throws {
+        let defaults = try #require(UserDefaults(suiteName: "app.storyarc.tests.\(UUID())"))
+        let journal = ScanJournal(defaults: defaults)
+        let folder = "/comics"
+        journal.record([publication("Bone 01")], inFolder: folder)
+        #expect(journal.indexed(inFolder: folder).count == 1)
+
+        let key = "app.storyarc.scan-journal"
+        let stored = try #require(defaults.data(forKey: key))
+        let text = try #require(String(data: stored, encoding: .utf8))
+        let aged = text.replacingOccurrences(of: "\"format\":\"cbz\"", with: "\"format\":\"audiobook\"")
+        #expect(aged != text, "the fixture did not contain the raw value it meant to retire")
+        defaults.set(try #require(aged.data(using: .utf8)), forKey: key)
+
+        let resumed = journal.indexed(inFolder: folder)
+        #expect(resumed.isEmpty, "an unreadable row must be re-scanned, not resumed as a comic")
+    }
 }

@@ -29,7 +29,7 @@ public struct ScanJournal {
     ///
     /// Empty when the last scan finished, which is the usual case.
     public func indexed(inFolder folder: String) -> [Publication] {
-        (stored()[folder] ?? []).map(\.publication)
+        (stored()[folder] ?? []).compactMap(\.publication)
     }
 
     /// Records what a scan has produced so far.
@@ -116,12 +116,22 @@ private struct StoredPublication: Codable {
         sourceID = publication.sourceID
     }
 
-    /// A row this build cannot read comes back as an unopenable placeholder rather than
-    /// being dropped, so a resumed scan does not silently lose a file it had already done.
-    var publication: Publication {
-        Publication(
+    /// A row whose format this build cannot read is dropped, so the resumed scan reads that
+    /// file again.
+    ///
+    /// **It used to fall back to `.cbz` and call that an unopenable placeholder.** A CBZ is
+    /// openable and `isPagedImages`, so the fallback did not hold a place: it turned the row
+    /// into a comic and handed it to the comic reader. That cost nothing while no raw value
+    /// was ever retired. `audiobook` was retired on 2026-09-07, and a scan interrupted across
+    /// that upgrade would have resumed an audiobook as a comic.
+    ///
+    /// Dropping a row loses nothing a rescan does not recover, and a rescan is what the
+    /// journal exists to shorten rather than to replace.
+    var publication: Publication? {
+        guard let known = PublicationFormat(rawValue: format) else { return nil }
+        return Publication(
             identity: identity,
-            format: PublicationFormat(rawValue: format) ?? .cbz,
+            format: known,
             displayTitle: displayTitle,
             series: series,
             number: number,

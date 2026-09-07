@@ -176,7 +176,16 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         search = try container.decodeIfPresent(String.self, forKey: .search) ?? ""
         readStates = try container.decodeIfPresent(Set<ReadState>.self, forKey: .readStates) ?? []
-        formats = try container.decodeIfPresent(Set<PublicationFormat>.self, forKey: .formats) ?? []
+        // Decoded as strings and mapped, not as the enum. `decodeIfPresent` returns nil for
+        // an absent key and *throws* for a present one holding a raw value this build does
+        // not know — and one throw here discards the whole query, which is the outcome the
+        // paragraph above says this initialiser exists to prevent. A format retired between
+        // builds is exactly that case: `audiobook` became four cases on 2026-09-07, and a
+        // reader filtering on it lost their sort, their direction and every other facet.
+        formats = Set(
+            (try container.decodeIfPresent(Set<String>.self, forKey: .formats) ?? [])
+                .compactMap(PublicationFormat.init(rawValue:))
+        )
         languages = try container.decodeIfPresent(Set<String>.self, forKey: .languages) ?? []
         publishers = try container.decodeIfPresent(Set<String>.self, forKey: .publishers) ?? []
         genres = try container.decodeIfPresent(Set<String>.self, forKey: .genres) ?? []
