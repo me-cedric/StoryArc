@@ -144,10 +144,34 @@ extension StoryArcApp {
                 SpokenBook(publication: publication, url: url),
                 source: NarratedSource(book)
             )
+
+            // **The book opens where the listener left it.** `NarratedSource.place` starts at
+            // `.start` and moves only from the periodic observer that follows the audio, so
+            // without this an audiobook began at zero however far into it a listener was. The
+            // position was written the whole time and nothing read it back.
+            //
+            // A chapter the listener chose wins, and this is the other branch: `audio-playback`
+            // asks a chosen chapter to start "at that chapter rather than where the book was
+            // left", so a resume only happens when nothing was chosen.
+            if part == nil, let place = await resumePlace(of: publication) {
+                centre.play(part: place.part, offset: place.offset)
+            }
             // After the session exists: ``PlayerCentre/play(part:)`` refuses while there is
             // none, and it moves the running session to the start of that part.
             if let part { centre.play(part: part) }
         }
+    }
+
+    /// Where a listener stopped, if this publication carries a listening position.
+    ///
+    /// `nil` for a book never listened to, and `nil` for a page or a reflowable position: a
+    /// comic read to page nine says nothing about a part index, and seeking on that number
+    /// would put the listener somewhere arbitrary.
+    private func resumePlace(of publication: Publication) async -> (part: Int, offset: TimeInterval)? {
+        guard let progress else { return nil }
+        let stored = try? await progress.progress(for: publication.identity)
+        guard case let .listening(part, _, offset, _) = stored?.position else { return nil }
+        return (part, offset)
     }
 
     /// Sends the player's positions to the store, once.

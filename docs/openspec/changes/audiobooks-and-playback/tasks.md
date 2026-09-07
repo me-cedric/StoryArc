@@ -1598,10 +1598,10 @@ does". Nothing reads it back, so it survives and is never used.
 **Android does resume.** `PlaybackHost.kt:173` passes `startPositionMs = from?.offsetMillis
 ?: 0L`. The two platforms disagree, and only one of them meets the requirement.
 
-- [ ] 13.1 iOS: `listen(to:at:)` reads the recorded position for the publication and starts
+- [x] 13.1 iOS: `listen(to:at:)` reads the recorded position for the publication and starts
       there. The seam is the same one section 11 adds for a chosen chapter, so the two arrive
       together: a chapter chosen by the reader wins, and the saved position is the default.
-- [ ] 13.2 iOS: a test asserts a publication with a recorded listening position starts at
+- [x] 13.2 iOS: a test asserts a publication with a recorded listening position starts at
       that position rather than at zero. It must fail when the seek is removed.
 - [ ] 13.3 Both: confirm on a device that closing the app and reopening the book returns the
       listener to the same minute. Only a device proves this one.

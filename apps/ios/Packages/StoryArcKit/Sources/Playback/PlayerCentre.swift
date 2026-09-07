@@ -287,11 +287,16 @@ public final class PlayerCentre {
         source.seek(toPart: place.partIndex, offset: offset)
     }
 
-    /// Move to a part from the chapter list.
-    public func play(part index: Int) {
+    /// Move to a part from the chapter list, or back to where a listener stopped.
+    ///
+    /// The offset is defaulted, so a chapter chosen from a list starts at its beginning and
+    /// every existing caller is unchanged. A resumed book passes the recorded seconds into the
+    /// part, because `reading-progress` asks an audiobook's position to survive the app being
+    /// closed "exactly as a page index does", and a page index does not round to the chapter.
+    public func play(part index: Int, offset: TimeInterval = 0) {
         guard session.isActive, let source, parts.indices.contains(index) else { return }
         session = session.started()
-        source.seek(toPart: index, offset: 0)
+        source.seek(toPart: index, offset: max(0, offset))
         source.play()
         published()
     }
