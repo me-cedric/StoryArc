@@ -117,6 +117,14 @@ internal data class PlayedBook(
     val partTitles: List<String>,
     val partIndex: Int,
     val offsetMillis: Long,
+    /**
+     * How long the whole book lasts, when something said.
+     *
+     * Null for a book read back out of [PlaybackMemory], which keeps no length. A shelf row
+     * carries the length its publisher stated, and both kinds of row are drawn by one
+     * builder — see `PlaybackService.browseItem`.
+     */
+    val durationMillis: Long? = null,
 ) {
     /** What a listener is in the middle of, for the row a car or a carousel draws. */
     val partTitle: String get() = partTitles.getOrNull(partIndex).orEmpty()

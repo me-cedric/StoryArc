@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.control.StoryArcSliderTrack
+import app.storyarc.core.designsystem.format.clock
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.model.Publication
 import app.storyarc.core.playback.NowPlaying
@@ -607,15 +608,3 @@ private fun VoiceStoppedWord(spokenAudio: SpokenAudio, snackbars: SnackbarHostSt
     }
 }
 
-/** A duration as a listener reads one: `1:02:03`, or `2:03` under an hour. */
-internal fun clock(millis: Long): String {
-    val total = (millis / 1000).coerceAtLeast(0)
-    val hours = total / 3600
-    val minutes = (total % 3600) / 60
-    val seconds = total % 60
-    return if (hours > 0) {
-        "%d:%02d:%02d".format(hours, minutes, seconds)
-    } else {
-        "%d:%02d".format(minutes, seconds)
-    }
-}

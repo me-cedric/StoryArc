@@ -7,9 +7,12 @@ import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaBrowser
 import androidx.media3.session.SessionToken
 import androidx.test.platform.app.InstrumentationRegistry
+import app.storyarc.core.playback.CarBook
+import app.storyarc.core.playback.PlaybackHost
 import app.storyarc.core.playback.PlaybackService
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.ListenableFuture
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -29,6 +32,11 @@ import java.util.concurrent.TimeUnit
  * the `PackageManager`: a callback returning the right value in a unit test proves nothing
  * about a session a browser can actually connect to and query. This binds to the service the
  * way a car does.
+ *
+ * **The shelf is published from here, the way the app publishes it.** A car browses what
+ * `PlaybackHost.publishCarLibrary` wrote, so the test writes it too rather than reaching into
+ * the preferences file. Each test clears the shelf afterwards, because the file belongs to the
+ * device and not to the run.
  *
  * **Every `MediaController` call goes to the main thread and every wait comes off it.**
  * media3 checks the calling thread and throws otherwise, and blocking the main thread on a
@@ -89,6 +97,96 @@ class PlayerBrowseTreeTest {
         assertEquals(0, result.resultCode)
         assertNotNull("the children came back as an error rather than as a list", result.value)
     }
+
+    /**
+     * The audiobooks on the device are listed, which is what a car came to browse.
+     *
+     * The app publishes them; the service reads the file. That split is the whole design:
+     * `:core:playback` holds no library, and the system starts this service without the app.
+     */
+    @Test
+    fun theAudiobooksOnTheDeviceAreListed() {
+        PlaybackHost.publishCarLibrary(context, shelf)
+
+        val children = requireNotNull(childrenOfRoot().value)
+
+        assertTrue(
+            "a car browsing StoryArc was offered no shelf",
+            children.map { it.mediaId }.containsAll(shelf.map { it.id }),
+        )
+    }
+
+    /**
+     * Every row a car is offered is a playable audiobook.
+     *
+     * `audio-playback`: the surface "offers audiobooks and read-aloud sessions and nothing
+     * else". Browsable rows would also be a second level, and deep browsing is the hazard the
+     * requirement names.
+     */
+    @Test
+    fun nothingButPlayableAudiobooksIsOffered() {
+        PlaybackHost.publishCarLibrary(context, shelf)
+
+        val children = requireNotNull(childrenOfRoot().value)
+
+        children.forEach {
+            assertEquals("a car row it cannot start", true, it.mediaMetadata.isPlayable)
+            assertEquals("a second level to browse while driving", false, it.mediaMetadata.isBrowsable)
+            assertEquals(
+                "a car row that is not an audiobook",
+                MediaMetadata.MEDIA_TYPE_AUDIO_BOOK,
+                it.mediaMetadata.mediaType,
+            )
+        }
+    }
+
+    /** A car asks for the row by id before it plays it, so the id has to resolve. */
+    @Test
+    fun aBookOnTheShelfIsFetchableById() {
+        PlaybackHost.publishCarLibrary(context, shelf)
+
+        val result: LibraryResult<MediaItem> = browsing { it.getItem(shelf.first().id) }
+
+        assertEquals("a listed book could not be fetched, so choosing it cannot start it", 0, result.resultCode)
+        assertEquals("Sea Room", result.value?.mediaMetadata?.title?.toString())
+    }
+
+    /**
+     * A row a car cached and the shelf no longer names is refused.
+     *
+     * That refusal is what makes a stale shelf acceptable: the listener loses one row rather
+     * than hears a different book.
+     */
+    @Test
+    fun anIdNoStoreCanResolveIsRefused() {
+        PlaybackHost.publishCarLibrary(context, shelf)
+
+        val result: LibraryResult<MediaItem> = browsing { it.getItem("path:/books/never-downloaded") }
+
+        assertTrue("a stale car row resolved to something", result.resultCode != 0)
+    }
+
+    @After
+    fun clearTheShelf() {
+        PlaybackHost.publishCarLibrary(context, emptyList())
+    }
+
+    private fun childrenOfRoot(): LibraryResult<ImmutableList<MediaItem>> =
+        browsing { it.getChildren(PlaybackService.ROOT_ID, 0, PAGE, null) }
+
+    private val shelf = listOf(
+        CarBook(
+            id = "path:/books/sea-room",
+            title = "Sea Room",
+            durationMillis = 9_000_000,
+            uris = listOf("file:///books/sea-room/01.mp3", "file:///books/sea-room/02.mp3"),
+        ),
+        CarBook(
+            id = "path:/books/the-sea-wolf",
+            title = "The Sea Wolf",
+            uris = listOf("file:///books/the-sea-wolf.m4b"),
+        ),
+    )
 
     private companion object {
         const val PAGE = 20

@@ -63,6 +63,9 @@ class HomeCellSaysWhatIsTrueTest {
                     onShowAll = {},
                     onOpenFile = {},
                     onAddFolder = {},
+                    onAddCatalogue = {},
+                    onAddKavita = {},
+                    onAddShare = {},
                 )
             }
         }

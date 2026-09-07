@@ -212,7 +212,7 @@ private fun SearchSectionHeading(text: Int) {
  * Hand-composed rather than a port of iOS's `ContentUnavailableView`, per divergence #12:
  * Material publishes no empty-state component. The content model is the same, and so are the
  * words. It scrolls, and the sentence is width-limited, because at the largest accessibility
- * text size it is taller than the screen — which is what [HomeFirstRun] learned on the surface
+ * text size it is taller than the screen — which is what [EmptyLibrary] learned on the surfaces
  * next door.
  */
 @Composable
@@ -260,7 +260,7 @@ private fun SearchNothingToSuggest(
                 Button(onClick = onOpenComic) {
                     Text(stringResource(R.string.library_open_comic))
                 }
-                // Plain, and second, for the reason `HomeFirstRun` gives: a reader who has
+                // Plain, and second, for the reason [EmptyLibrary] gives: a reader who has
                 // just installed a comic app wants to read a comic, and the shelf full of
                 // them can wait until they know the app opens one.
                 SearchAddSourceMenu(

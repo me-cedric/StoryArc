@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -28,7 +27,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
@@ -113,6 +111,15 @@ fun HomeScreen(
     onShowAll: (HomeSection) -> Unit,
     onOpenFile: () -> Unit,
     onAddFolder: () -> Unit,
+    /**
+     * The three source kinds that need an address before they hold anything.
+     *
+     * Here because the first-run state is now [EmptyLibrary], which names all four kinds.
+     * A first launch lands on this surface, so this is the only surface that reader sees.
+     */
+    onAddCatalogue: () -> Unit,
+    onAddKavita: () -> Unit,
+    onAddShare: () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
     // The flexible bar, not the small one all twelve of the app's other bars use. Its large
@@ -150,7 +157,25 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.section),
         ) {
             if (surface.isBare) {
-                item { HomeFirstRun(onOpenFile = onOpenFile, onAddFolder = onAddFolder) }
+                // The library's own empty state, drawn here rather than copied here.
+                //
+                // A first launch lands on home, not on the library, so the surface that "has
+                // not yet asked the question the four kinds answer" is the only surface the
+                // reader sees. A separate home state named two kinds and left a reader with a
+                // Kavita server to guess that a second destination held what they came for.
+                // Recorded in `one-library-three-destinations`, "Reversed on 2026-09-07".
+                //
+                // One composable rather than two, so the pair cannot drift apart again. iOS
+                // deleted `HomeEmpty` and draws `EmptyLibraryView` for the same reason.
+                item {
+                    EmptyLibrary(
+                        onOpenComic = onOpenFile,
+                        onAddFolder = onAddFolder,
+                        onAddCatalogue = onAddCatalogue,
+                        onAddKavita = onAddKavita,
+                        onAddShare = onAddShare,
+                    )
+                }
                 return@LazyColumn
             }
 
@@ -429,56 +454,6 @@ private fun HomeCoverRun(
                     .clickable { onOpen(entry.publication) }
                     .homeCardSemantics(entry, label),
             )
-        }
-    }
-}
-
-/**
- * The first thing a reader ever sees, and the whole of it.
- *
- * `sources`: one sentence in plain language, one primary action that opens a comic from
- * the device with nothing to configure first, and one plain secondary that leads to
- * connecting a library — where, and only where, the four kinds of place are named. Nothing
- * here is a list of protocols to be understood before the app can be used.
- *
- * Hand-composed, per the divergence register #12: Material has no empty-state component,
- * and a port of iOS's would be the cross-platform habit this revamp is undoing. The *words*
- * are shared with iOS and with the library's own empty state, which is the same situation on
- * the next destination along: `library_empty_title` and `library_empty_subtitle` were two
- * near-identical pairs, differing by a word in French and a clause in English, which is how
- * one situation described twice in a four-language app comes apart.
- *
- * The secondary is a folder, not a menu of four. It is the one kind that needs no address
- * and no credentials, so it is the only one that can be finished in a single tap from a
- * screen a reader reached ten seconds after installing. The other three are named in the
- * library's own empty state, one destination along, where the reader is already looking for
- * somewhere to read from.
- */
-@Composable
-private fun HomeFirstRun(onOpenFile: () -> Unit, onAddFolder: () -> Unit) {
-    val palette = LocalStoryArcPalette.current
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.xxl),
-        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
-    ) {
-        Text(
-            text = stringResource(R.string.library_empty_title),
-            style = MaterialTheme.typography.headlineSmall,
-            color = palette.textPrimary,
-        )
-        Text(
-            text = stringResource(R.string.library_empty_subtitle),
-            style = MaterialTheme.typography.bodyLarge,
-            color = palette.textSecondary,
-            modifier = Modifier
-                .widthIn(max = 520.dp)
-                .padding(bottom = StoryArcSpace.sm),
-        )
-        Button(onClick = onOpenFile) { Text(stringResource(R.string.library_open_comic)) }
-        TextButton(onClick = onAddFolder) {
-            Text(stringResource(R.string.library_add_folder))
         }
     }
 }

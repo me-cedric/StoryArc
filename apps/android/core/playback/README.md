@@ -27,6 +27,7 @@ intended.
 | `PlaybackHost.kt` | The process-wide singleton the app observes, and the `MediaController` behind it |
 | `PlaybackService.kt` | `MediaLibraryService`: the foreground service, the notification, resumption, the browse tree |
 | `PlaybackMemory.kt` | What was playing, on disk, for a service the system started without the app |
+| `CarLibrary.kt` | The audiobooks on the device, on disk, for the same reason. `CarBook`, and the shelf order a car reads |
 | `PlaybackResumption.kt` | A remembered book turned into items and a start position |
 | `SleepTimer.kt` | A duration or end-of-chapter, as one remaining time |
 
@@ -41,19 +42,21 @@ intended.
 | `PlaybackHost.skip(direction)` | Moves by the configured interval, crossing a part boundary |
 | `PlaybackHost.skipIntervals` / `setSkipIntervals(intervals)` | How far, and changing it |
 | `PlaybackHost.sleep` / `setSleepTimer(after)` | The sleep timer, counting down |
+| `PlaybackHost.publishCarLibrary(context, books)` | The audiobooks on the device, written where a car can read them. Call it whenever the library changes and pass every book: the file is replaced, not added to |
 | `PlaybackHost.recordPosition` | Where a position goes. Set by the app once — a lambda, because this module must not know a library keeps a database |
 | `PlaybackService` | Declared in this module's own manifest. The app depends on the module; the merger does the rest |
 
 ## Config
 
-Two preferences files of its own, both because `PlaybackService` reads them and a service the
-system has just started to answer the shade carousel has no scope, no database and no time —
-and because this module deliberately does not depend on `:core:persistence`.
+Three preferences files of its own, all because `PlaybackService` reads them and a service the
+system has just started to answer the shade carousel or a car has no scope, no database and no
+time — and because this module deliberately does not depend on `:core:persistence`.
 
 | File | Holds |
 | --- | --- |
 | `app.storyarc.playback.memory` | The URIs, part titles, index and offset of the book that was playing |
 | `app.storyarc.playback.skip` | The chosen skip intervals, in seconds |
+| `app.storyarc.playback.library` | The audiobooks on the device, as a car lists them. Written by the app, read by the service |
 
 Neither is a reading position. That is `reading-progress`'s, stored by the app, and the two
 agreeing is the app's job.

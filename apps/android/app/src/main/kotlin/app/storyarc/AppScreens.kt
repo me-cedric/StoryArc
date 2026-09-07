@@ -1,9 +1,12 @@
 package app.storyarc
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.model.AppSettings
@@ -11,6 +14,8 @@ import app.storyarc.core.model.Download
 import app.storyarc.core.model.Publication
 import app.storyarc.core.persistence.removeAfterFinishing
 import app.storyarc.core.playback.PlaybackHost
+import app.storyarc.core.playback.PlaybackPosition
+import app.storyarc.feature.library.AudiobookPart
 import app.storyarc.feature.library.CatalogueBrowser
 import app.storyarc.feature.library.CatalogueBrowserScreen
 import app.storyarc.feature.library.CatalogueDetailScreen
@@ -295,12 +300,41 @@ private fun PublicationPage(
     val isRemote = location != null && PublicationAccess.isRemote(location)
     val isOnDevice = isDownloaded || (location != null && !isRemote)
 
+    // The audio half of the page, and the four scenarios nothing could reach while this was
+    // left at its defaults: the list, the marks on it, the chapter the action names, and the
+    // duration a single-part book states instead of a list.
+    val playing = PlaybackHost.nowPlaying.collectAsStateWithLifecycle().value
+    var chapters by remember(publication.id) { mutableStateOf(emptyList<AudiobookPart>()) }
+    LaunchedEffect(publication.id, location, playing?.parts) {
+        chapters = ListenedChapters.of(
+            publication = publication,
+            path = location,
+            resolver = host.activity.contentResolver,
+            playing = playing,
+        )
+    }
+    // The saved part, read from the player's own memory — the session where this book is the
+    // one playing, and `PlaybackHost.lastPosition` where it is not. Null is a book nobody has
+    // started, which is what leaves every row unmarked.
+    val saved = remember(publication.id) {
+        PlaybackHost.lastPosition(host.activity, publication.id)?.partIndex
+    }
+    val stoppedIn = playing?.takeIf { it.publicationId == publication.id }?.partIndex ?: saved
+
     PublicationDetailScreen(
         publication = publication,
         viewModel = host.library,
         isOnDevice = isOnDevice,
         isBesideList = isBesideList,
         downloadFraction = record?.takeIf { it.state != Download.State.Finished }?.fraction?.toFloat(),
+        chapters = chapters,
+        stoppedIn = stoppedIn,
+        // A different verb from `onRead`, which resumes. The chosen chapter is where the
+        // audio starts, and the saved place is left alone until the audio moves past it.
+        onListenFrom = { index ->
+            val path = location ?: return@PublicationDetailScreen
+            host.listenFrom(publication, path, index)
+        },
         onRead = { chosen ->
             val path = host.library.location(chosen) ?: return@PublicationDetailScreen
             host.open(chosen, path)
@@ -349,6 +383,27 @@ private fun PublicationPage(
  */
 internal fun AppHost.mark(publication: Publication, isRead: Boolean) {
     library.mark(publication, isRead, dependencies.kavitaProgress, dependencies.credentials)
+}
+
+/**
+ * A chapter was chosen on a publication's page.
+ *
+ * The same door `AppHost.open` uses, with one difference: the audio starts at the chosen part
+ * instead of where the listener left off. `audio-playback` asks for both verbs, and for the
+ * page to leave the saved position alone — which it does, because nothing here writes one.
+ */
+internal fun AppHost.listenFrom(publication: Publication, path: String, partIndex: Int) {
+    val audiobook = OpenedAudiobook.of(publication, path, activity.contentResolver) ?: return
+    PlayingBook.play(
+        context = activity,
+        publication = publication,
+        book = audiobook,
+        store = dependencies.progress,
+        speeds = dependencies.playbackPreferences,
+        chapterWord = activity.getString(R.string.player_chapter_word),
+        from = PlaybackPosition(partIndex = partIndex, offsetMillis = 0),
+    )
+    navigate { push(Screen.Player) }
 }
 
 /**

@@ -86,6 +86,11 @@ internal object PlayingBook {
      *
      * The store is read before the audio is prepared, because a seek after the first sound
      * is a listener hearing four seconds of the wrong chapter.
+     *
+     * @param from where to start, when the listener chose a chapter rather than resuming.
+     *   Null means the saved place, which is what tapping the cover means. The saved place is
+     *   read and not written either way — choosing a chapter moves the audio, and the writer
+     *   below records where it goes on its own tick.
      */
     fun play(
         context: Context,
@@ -94,6 +99,7 @@ internal object PlayingBook {
         store: ProgressStore,
         speeds: PlaybackPreferences,
         chapterWord: String,
+        from: PlaybackPosition? = null,
     ) {
         follow(publication, store)
         preferences = speeds
@@ -102,7 +108,8 @@ internal object PlayingBook {
             PlaybackHost.start(
                 context = context,
                 book = book,
-                from = ListenedPosition.resume(record?.position, record?.isFinished == true),
+                from = from
+                    ?: ListenedPosition.resume(record?.position, record?.isFinished == true),
                 speed = PlaybackSpeed.of(speeds.speed(publication.id, publication.series)),
                 chapterWord = chapterWord,
             )

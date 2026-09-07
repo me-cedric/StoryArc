@@ -125,6 +125,28 @@ fun PublicationDetailScreen(
     isBesideList: Boolean = false,
     /** How far a download of this publication has got, or null when none is running. */
     downloadFraction: Float? = null,
+    /**
+     * The parts an audiobook plays in, as `AudiobookChapters.parts` reports them.
+     *
+     * Empty for everything that is not an audiobook, and empty until the container has been
+     * read — a page that has no chapters yet draws no list rather than an empty one.
+     */
+    chapters: List<AudiobookPart> = emptyList(),
+    /**
+     * The part the listener stopped in, or null for an audiobook they never started.
+     *
+     * The same fact the primary action reads as *has progress*, so the button and the marks
+     * on the list cannot disagree about whether the book was started.
+     */
+    stoppedIn: Int? = null,
+    /**
+     * A chapter was chosen: start there rather than where the book was left.
+     *
+     * A different verb from [onRead], which resumes. `audio-playback` asks for both, and for
+     * looking at the list to leave the saved position alone — which it does, because this
+     * page never writes one.
+     */
+    onListenFrom: (Int) -> Unit = {},
     /** Open the book, at the start or where the reader stopped. */
     onRead: (Publication) -> Unit,
     /** Another publication's own page. A cover is the detail verb everywhere in this app. */
@@ -244,7 +266,10 @@ fun PublicationDetailScreen(
                 action = action,
                 provenance = provenance,
                 downloadFraction = downloadFraction,
+                chapters = chapters,
+                stoppedIn = stoppedIn,
                 onRead = { onRead(publication) },
+                onListenFrom = onListenFrom,
                 onDownload = onDownload.takeIf { download == DownloadControl.PRIMARY },
                 modifier = modifier,
             )
@@ -334,11 +359,19 @@ internal fun DetailMainPane(
     action: PrimaryAction,
     provenance: Provenance,
     downloadFraction: Float?,
+    chapters: List<AudiobookPart> = emptyList(),
+    stoppedIn: Int? = null,
     onRead: () -> Unit,
+    onListenFrom: (Int) -> Unit = {},
     onDownload: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
+    // The format is asked here rather than at the call site. "A comic never grows a chapter
+    // list" is a rule about this page, and a rule enforced by whoever remembers to write the
+    // `if` is a rule one caller gets wrong. iOS asks it in `DetailChapters.of(_:parts:)` for
+    // the same reason.
+    val parts = if (publication.format.isAudio) chapters else emptyList()
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),
@@ -347,6 +380,7 @@ internal fun DetailMainPane(
             DetailPrimaryAction(
                 action = action,
                 accent = accent,
+                resumeChapter = resumeChapterTitle(parts, stoppedIn),
                 onRead = onRead,
                 onDownload = onDownload,
             )
@@ -376,6 +410,10 @@ internal fun DetailMainPane(
             )
         }
 
+        // Under the summary and above the provenance line, which stays last. A listener
+        // choosing what to hear next reads what the book is, then what is in it.
+        DetailChapters(parts = parts, stoppedIn = stoppedIn, onChoose = onListenFrom)
+
         // The two of `kavita-server`'s seven metadata fields that `Publication` has no slot
         // for. Absent for everything that is not a kept Kavita chapter, which is most of the
         // shelf. See `KavitaCardFacts`.
@@ -392,11 +430,16 @@ internal fun DetailMainPane(
  * calls an accessibility feature rather than a layout preference: its label says which of
  * *read* and *continue* will happen, so a screen-reader user learns the outcome before
  * taking it.
+ *
+ * @param resumeChapter the chapter a resume lands inside, which `audio-playback` asks the
+ *   action to name. Null where naming one would say nothing: a book never started, a book
+ *   with one part, and everything that is not an audiobook.
  */
 @Composable
 private fun DetailPrimaryAction(
     action: PrimaryAction,
     accent: DetailAccent?,
+    resumeChapter: String?,
     onRead: () -> Unit,
     onDownload: (() -> Unit)?,
 ) {
@@ -429,7 +472,19 @@ private fun DetailPrimaryAction(
                 ),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(label))
+                // The chapter, where there is one to name. `audio-playback`: the action
+                // "names the chapter it will resume inside". The bare label stays for every
+                // other state, so no wording is decided twice.
+                Text(
+                    if (action == PrimaryAction.CONTINUE_LISTENING && resumeChapter != null) {
+                        stringResource(
+                            R.string.detail_action_continue_listening_chapter,
+                            resumeChapter,
+                        )
+                    } else {
+                        stringResource(label)
+                    },
+                )
             }
         }
         action.explanation()?.let { explanation ->

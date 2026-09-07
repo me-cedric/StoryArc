@@ -398,6 +398,9 @@
     <string name="detail_provenance_not_downloaded">De %1$s — pas téléchargée</string>
     <string name="detail_provenance_away">De %1$s — sans réponse pour le moment</string>
     <string name="detail_provenance_also">%1$s · aussi ailleurs dans votre bibliothèque</string>
+    <string name="detail_action_continue_listening_chapter">Reprendre « %1$s »</string>
+    <string name="detail_chapters">Chapitres</string>
+    <string name="detail_duration">Durée %1$s</string>
     <string name="detail_series_heading">Les autres numéros de cette série</string>
     <string name="detail_downloading">Téléchargement</string>
     <string name="detail_add_to_shelf">Ajouter à une étagère</string>

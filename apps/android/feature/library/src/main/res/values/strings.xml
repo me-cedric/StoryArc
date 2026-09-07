@@ -412,6 +412,9 @@
     <string name="detail_provenance_not_downloaded">From %1$s — not downloaded</string>
     <string name="detail_provenance_away">From %1$s — not answering right now</string>
     <string name="detail_provenance_also">%1$s · also elsewhere in your library</string>
+    <string name="detail_action_continue_listening_chapter">Continue “%1$s”</string>
+    <string name="detail_chapters">Chapters</string>
+    <string name="detail_duration">Duration %1$s</string>
     <string name="detail_series_heading">Other issues in this series</string>
     <string name="detail_downloading">Downloading</string>
     <string name="detail_add_to_shelf">Add to a shelf</string>

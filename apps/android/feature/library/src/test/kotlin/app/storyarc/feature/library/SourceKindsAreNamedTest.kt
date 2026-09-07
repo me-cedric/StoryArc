@@ -78,6 +78,33 @@ class SourceKindsAreNamedTest {
         compose.onNodeWithText(string(R.string.library_add_source)).performClick()
     }
 
+    /**
+     * Home's first run, which is the same empty state and not a copy of it.
+     *
+     * A first launch lands here, so this is the only surface that reader sees. Home used to
+     * draw its own two-action state and name no source kind at all.
+     */
+    private fun openHomeFirstRunMenu() {
+        compose.setContent {
+            StoryArcTheme {
+                HomeScreen(
+                    surface = HomeSurface(),
+                    cover = { _, _ -> null },
+                    onOpen = {},
+                    onResume = {},
+                    onFinish = {},
+                    onShowAll = {},
+                    onOpenFile = {},
+                    onAddFolder = {},
+                    onAddCatalogue = {},
+                    onAddKavita = {},
+                    onAddShare = {},
+                )
+            }
+        }
+        compose.onNodeWithText(string(R.string.library_add_source)).performClick()
+    }
+
     @Test
     fun `the toolbar menu names each of the four kinds`() {
         openToolbarMenu()
@@ -100,6 +127,18 @@ class SourceKindsAreNamedTest {
         // destination's own empty state". Two menus for one job is how one of them ends up a
         // row short, so both are asked for the same eight lines.
         openEmptyStateMenu()
+        for (kind in SourceKind.entries) {
+            compose.onNodeWithText(string(kind.titleRes)).assertIsDisplayed()
+            compose.onNodeWithText(string(kind.explanationRes)).assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun `home's first run names and explains the same four`() {
+        // Reversed on 2026-09-07: home draws the library's empty state rather than a state of
+        // its own. A reader with a Kavita server had to guess that a second destination held
+        // what they came for, because home named a file and a folder and nothing else.
+        openHomeFirstRunMenu()
         for (kind in SourceKind.entries) {
             compose.onNodeWithText(string(kind.titleRes)).assertIsDisplayed()
             compose.onNodeWithText(string(kind.explanationRes)).assertIsDisplayed()

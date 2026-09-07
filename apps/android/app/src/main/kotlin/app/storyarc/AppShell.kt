@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -133,6 +134,16 @@ internal fun AppShell(
             }
         },
     )
+
+    // The car shelf, kept level with the library. A scan, a finished download and a deletion
+    // all move this list, and a head unit reads what was last written — see [CarShelf].
+    LaunchedEffect(library) {
+        CarShelf.follow(
+            context = activity.applicationContext,
+            publications = library.publications,
+            locate = library::location,
+        )
+    }
 
     val host = AppHost(
         activity = activity,

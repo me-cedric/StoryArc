@@ -71,6 +71,8 @@ class PlaybackService : MediaLibraryService() {
      */
     private val skips: SkipPreferences by lazy { SkipPreferences.open(this) }
 
+    private val library: CarLibrary by lazy { CarLibrary.open(this) }
+
     override fun onCreate() {
         super.onCreate()
         val intervals = skips.intervals()
@@ -242,6 +244,21 @@ class PlaybackService : MediaLibraryService() {
          * fifteen and thirty seconds. All four are available because the notification
          * carries the seconds and a car's head unit carries the chapters, and a command
          * left undeclared is a button that does nothing.
+         *
+         * **The chapter move is a chapter move for a folder only.** `audio-playback` asks
+         * that a car's next-track control move a chapter rather than a file, and for a
+         * folder it does: `Audiobook.layout` is `FILES` there, so a part *is* a file and the
+         * next media item is the next chapter. For one file carrying chapter marks the
+         * layout is `MARKS`, the timeline holds a single window, and `BasePlayer.seekToNext`
+         * ignores the press. Declaring the command does not change that.
+         *
+         * Making it move needs a `ForwardingPlayer` that overrides `seekToNext` — the method
+         * is `final` on `BasePlayer`, so `ForwardingSimpleBasePlayer` cannot — *and* a
+         * wrapper on every registered `Player.Listener`, because `ForwardingPlayer` hands
+         * `onAvailableCommandsChanged` the wrapped player's set and `MediaSessionImpl`
+         * forwards that argument rather than re-reading this player. Measured against
+         * media3 1.11.0 on 2026-09-07, and left unbuilt because none of it can be shown to
+         * work from a host test.
          */
         override fun onConnect(
             session: MediaSession,
@@ -325,16 +342,24 @@ class PlaybackService : MediaLibraryService() {
             Futures.immediateFuture(LibraryResult.ofItem(root(), params))
 
         /**
-         * What is under the root: the book the listener is in the middle of.
+         * What is under the root: the book in progress, then the audiobooks on the device.
          *
-         * **One node, and its limits are worth stating.** A car's best use of a book player
-         * is carrying on with the book, and that is what this offers. It is *not* the
-         * library: `:core:playback` has no library in it, and a browse tree built from a
-         * copy of one would go stale the moment a download finished. Offering the whole
-         * shelf from a car needs the app to publish it, and that is not built.
+         * **The shelf is published, not read.** `:core:playback` has no library in it, and a
+         * browse tree built from a copy of one would go stale the moment a download finished.
+         * The app writes [CarLibrary] when its library changes instead, and this reads that
+         * file — which is stale between writes and safe when it is, because [onGetItem] and
+         * [onSetMediaItems] refuse an id neither store can resolve.
          *
-         * An empty list rather than an error where nothing has been played: a car showing
-         * an empty list is a car saying there is nothing to continue, which is true.
+         * The book in progress comes first and appears once: a car screen is read at a
+         * glance, so the row a listener wants is the row at the top.
+         *
+         * An empty list rather than an error where nothing has been played and nothing has
+         * been published: a car showing an empty list is a car saying there is nothing to
+         * play, which is true.
+         *
+         * **The page numbers are answered rather than ignored.** A head unit that asks for
+         * page one and receives page zero draws every book twice, so [CarShelf.page] cuts
+         * the rows the caller asked for.
          */
         override fun onGetChildren(
             session: MediaLibrarySession,
@@ -347,20 +372,28 @@ class PlaybackService : MediaLibraryService() {
             if (parentId != ROOT_ID) {
                 return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.of(), params))
             }
-            val last = memory.last()
-            val children = last?.let { ImmutableList.of(browseItem(it)) } ?: ImmutableList.of()
+            val rows = CarShelf.children(memory.last(), library.books())
+            val children = ImmutableList.copyOf(
+                CarShelf.page(rows, page, pageSize).map(::browseItem),
+            )
             return Futures.immediateFuture(LibraryResult.ofItemList(children, params))
         }
 
-        /** One item by id, which is what a head unit asks for before it plays one. */
+        /**
+         * One item by id, which is what a head unit asks for before it plays one.
+         *
+         * A row the car cached and neither store still names is refused. That is what makes a
+         * stale shelf safe: the listener loses a row rather than hears another book.
+         */
         override fun onGetItem(
             session: MediaLibrarySession,
             browser: MediaSession.ControllerInfo,
             mediaId: String,
         ): ListenableFuture<LibraryResult<MediaItem>> {
-            val last = memory.last()?.takeIf { it.id == mediaId }
+            val item = memory.last()?.takeIf { it.id == mediaId }?.let(::browseItem)
+                ?: library.books().firstOrNull { it.id == mediaId }?.asPlayed()?.let(::browseItem)
                 ?: return Futures.immediateFuture(LibraryResult.ofError<MediaItem>(SessionError.ERROR_BAD_VALUE))
-            return Futures.immediateFuture(LibraryResult.ofItem(browseItem(last), null))
+            return Futures.immediateFuture(LibraryResult.ofItem(item, null))
         }
 
         /**
@@ -370,6 +403,9 @@ class PlaybackService : MediaLibraryService() {
          * this" — so the parts and the offset come from the same memory the row was drawn
          * from, and pressing play in a car lands where the listener left off rather than at
          * the start of chapter one.
+         *
+         * A shelf row the listener has never played has no offset to carry on from, so it
+         * starts at the beginning. That is the only difference between the two stores here.
          */
         override fun onSetMediaItems(
             mediaSession: MediaSession,
@@ -379,7 +415,8 @@ class PlaybackService : MediaLibraryService() {
             startPositionMs: Long,
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
             val asked = mediaItems.singleOrNull()?.mediaId
-            val last = memory.last()?.takeIf { it.id == asked }
+            val book = memory.last()?.takeIf { it.id == asked }
+                ?: library.books().firstOrNull { it.id == asked }?.asPlayed()
                 ?: return super.onSetMediaItems(
                     mediaSession,
                     controller,
@@ -387,7 +424,7 @@ class PlaybackService : MediaLibraryService() {
                     startIndex,
                     startPositionMs,
                 )
-            return Futures.immediateFuture(resumptionOf(last).let {
+            return Futures.immediateFuture(resumptionOf(book).let {
                 MediaSession.MediaItemsWithStartPosition(it.items, it.startIndex, it.startPositionMs)
             })
         }
@@ -445,11 +482,16 @@ class PlaybackService : MediaLibraryService() {
         .build()
 
     /**
-     * The row a car draws for the book being listened to.
+     * The one row a car draws, for the book in progress and for a book on the shelf alike.
      *
      * Playable and not browsable: a car that expanded it would be asking for a chapter list
      * this tree does not carry, and choosing a chapter from a moving vehicle is not the
      * gesture — carrying on is.
+     *
+     * **One builder rather than two.** A shelf row reaches here through [CarBook.asPlayed],
+     * so the two kinds of row cannot drift apart again. The fields that differ are absent
+     * rather than special-cased: a book nothing has played is in the middle of no part and
+     * carries no subtitle, and [PlaybackMemory] states no length.
      */
     private fun browseItem(book: PlayedBook): MediaItem = MediaItem.Builder()
         .setMediaId(book.id)
@@ -459,8 +501,9 @@ class PlaybackService : MediaLibraryService() {
                 .setIsPlayable(true)
                 .setMediaType(MediaMetadata.MEDIA_TYPE_AUDIO_BOOK)
                 .setTitle(book.title)
-                .setSubtitle(book.partTitle)
+                .setSubtitle(book.partTitle.ifEmpty { null })
                 .setArtist(book.author)
+                .setDurationMs(book.durationMillis)
                 .setArtworkUri(book.artworkUri?.let(android.net.Uri::parse))
                 .build(),
         )

@@ -175,6 +175,38 @@ object PlaybackHost : SpokenAudio.Speaker {
         }
     }
 
+    /**
+     * Writes the audiobooks on the device where a car can read them.
+     *
+     * `audio-playback` asks a car surface to list them, and the system starts [PlaybackService]
+     * for that question without starting the app. The service therefore cannot ask a library
+     * that lives in the app; the app must have written the answer down first. Call this
+     * whenever the library changes — a scan, a download, a deletion — and pass every audiobook
+     * each time, because the file is replaced rather than added to.
+     *
+     * The rows are stale between calls. That is the trade `design.md` records: a car one
+     * download behind still plays every book it names, and the alternative is a car that
+     * offers nothing.
+     */
+    fun publishCarLibrary(context: Context, books: List<CarBook>) {
+        CarLibrary.open(context).publish(books)
+    }
+
+    /**
+     * Where the listener stopped in one publication, or null.
+     *
+     * A publication's page lists its chapters before anything plays, and it marks the part
+     * the listener stopped in. [PlaybackMemory] holds that part index and is internal to this
+     * module, so this is the reader the app is given.
+     *
+     * This device remembers one book at a time. Any other id answers null, which the page
+     * draws as a book nobody has started.
+     */
+    fun lastPosition(context: Context, publicationId: String): PlaybackPosition? =
+        PlaybackMemory.open(context).last()
+            ?.takeIf { it.id == publicationId }
+            ?.let { PlaybackPosition(it.partIndex, it.offsetMillis) }
+
     /** Pause and play, from wherever the listener reached for it. */
     fun toggle() = centre.toggle()
 
