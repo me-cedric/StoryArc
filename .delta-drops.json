@@ -46,5 +46,15 @@
             },
             "reason": "Rewritten longer, not removed. The delta replaces one sentence with five that say what the first screen shows, what the primary and secondary actions do, where the four source types are named and where they are not. The 'under ten seconds' figure goes with it: it was a target rather than an observable behaviour, and every requirement here is meant to be user-observable. Drains when one-library-three-destinations syncs."
         }
+    },
+    "no-version-to-ask-a-kavita-for/kavita-server": {
+        "Kavita connection": {
+            "bullets": {
+                "Adding a server": [
+                    "rejects a server whose version is older than the minimum StoryArc supports, naming the required version"
+                ]
+            },
+            "reason": "Removed because nothing can perform it. The version came from GET /api/Server/server-info, which is absent from Kavita's published openapi.json at v0.8.6, v0.8.8, v0.8.9.1, v0.9.0 and v0.9.1.4, and answers 404 on a live 0.9.1.4. No other route states the version to a reader's API key: Server/version, Health/api-version and Server/accepting-connections are absent from all five, Server/server-info-slim needs an administrator, and Health answers Ok with no version in it. The verbs of every route either client calls are identical across those five releases, so a floor would refuse nobody. The delta replaces the bullet with requirement prose that forbids the question and states what took its place: an unknown route raises the \"too old\" sentence at the request that failed. Drains when no-version-to-ask-a-kavita-for syncs."
+        }
     }
 }
