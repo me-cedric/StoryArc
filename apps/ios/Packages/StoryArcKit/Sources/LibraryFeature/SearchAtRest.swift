@@ -202,8 +202,8 @@ struct SearchNothingToSuggest: View {
         }
         .frame(maxWidth: StoryArcSpace.huge * 8)
         // At the largest Dynamic Type size the sentence is taller than the screen, and
-        // without somewhere to scroll the action sits behind the tab bar. `HomeEmpty` learned
-        // this on the surface next door.
+        // without somewhere to scroll the action sits behind the tab bar. ``EmptyLibraryView``
+        // learned this on the surface next door.
         .reachableAtEveryTextSize()
     }
 }

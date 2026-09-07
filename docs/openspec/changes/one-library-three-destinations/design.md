@@ -221,3 +221,35 @@ Stated because they are consequences of *this* design, not general good practice
 - **Dynamic Type and large text sizes are where a three-item bar earns itself.**
   The delta's largest-text-size screenshots are not decoration; a five-item bar
   at the largest text size is where labels truncate first.
+
+## Reversed 2026-09-07: home shows the same empty state as the library
+
+This change decided that the home surface's secondary action opens a folder directly, and
+that only the library destination names the four source kinds. The reason given was that "a
+reader who has not yet seen a shelf has not yet asked the question the four are an answer
+to", with the library one tap away for a reader who wants it.
+
+**The owner looked at the built screen and asked for the opposite.** That settles it, and the
+decision is reversed here rather than eroded in the code, because a screen that stops
+matching its own specification is how a specification stops being read.
+
+What the earlier reasoning missed is where a first launch lands. The reader arrives on home,
+not on the library, so the surface that "has not yet asked the question" is the only surface
+they see. Home offered a file and a folder, which are the two answers that need no
+explanation, and named none of the three that do. A reader with a Kavita server had to guess
+that a second destination held the thing they came for.
+
+The cost the earlier reasoning correctly identified is real: four kinds on a first screen is
+a taxonomy before a task. It is paid down by the shape rather than by the placement — the
+four are inside `AddSourceMenu`, behind one plain secondary action, so the first screen still
+shows one sentence, one primary action and one secondary. Opening that menu is the move that
+names them, on either surface.
+
+`EmptyLibraryView` is now drawn by both, so the two cannot drift apart again. The machinery
+behind it — three connections and their sheets — is a single view modifier rather than a copy
+per surface, which took `LibraryView.swift` from 397 lines to 372 and left it room under the
+400-line cap it was about to cross.
+
+Android carries the same pair the same way round, and its `HomeFirstRun` doc comment argues
+for the two-action shape in the words this section retires. It is not fixed here. The task
+list carries it.

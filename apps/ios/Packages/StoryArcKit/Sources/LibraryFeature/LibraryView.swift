@@ -35,9 +35,8 @@ public struct LibraryView: View {
     /// modifier applied — so *Add a folder* silently opened nothing. ``LocalPick`` and
     /// ``LocalPickerTests`` carry the rest of that story.
     @State var picking: LocalPick?
-    @State var isAddingCatalogue = false
-    @State var isAddingKavita = false
-    @State var isAddingShare = false
+    /// Which source sheet is up, if any — see ``AddedSource``, which Home shares.
+    @State var addingSource: AddedSource?
 
     /// What the shelf is narrowed to: everything, or only what opens with no network.
     ///
@@ -114,16 +113,10 @@ public struct LibraryView: View {
     ///
     /// Shared between adding a catalogue and browsing one on purpose: a certificate the
     /// reader accepted while adding a server has to still be accepted when its covers load.
+    /// ``SwiftUI/View/addingSources(to:pins:sheet:)`` is handed this one for that reason.
     @State var pins: CertificatePins
-    let pinStore = CertificatePinStore()
     let credentials = CredentialStore()
     let kavitaProgress = KavitaProgressStore()
-    @State var smb = SmbConnection(credentials: CredentialStore())
-
-    /// Held by the view rather than made per presentation, so a reader who dismisses the
-    /// sheet mid-sign-in and reopens it finds what they typed still there.
-    @State var catalogue: CatalogueConnection
-    @State var kavita: KavitaConnection
 
     /// `onOpen` is how the app layer reaches the reader. The library knows which
     /// publication was chosen and where it lives; it does not know what a reader
@@ -158,19 +151,7 @@ public struct LibraryView: View {
         self.onOpen = onOpen
         self.isReading = isReading
 
-        let store = CertificatePinStore()
-        let loaded = CertificatePins(store.pins())
-        _pins = State(initialValue: loaded)
-        _catalogue = State(
-            initialValue: CatalogueConnection(
-                pins: loaded,
-                credentials: CredentialStore(),
-                pinStore: store
-            )
-        )
-        _kavita = State(
-            initialValue: KavitaConnection(credentials: CredentialStore())
-        )
+        _pins = State(initialValue: CertificatePins(CertificatePinStore().pins()))
     }
 
     /// The search text, written straight through to the query.
@@ -225,15 +206,9 @@ public struct LibraryView: View {
             // photographed by failing to. ``LocalPickerTests`` counts the presentations so it
             // cannot come back.
             .pickingLocalLibrary(into: model, pick: $picking)
-            .sheet(isPresented: $isAddingCatalogue) {
-                CatalogueSheet(connection: catalogue) { model.add($0) }
-            }
-            .sheet(isPresented: $isAddingKavita) {
-                KavitaSheet(connection: kavita) { model.add($0) }
-            }
-            .sheet(isPresented: $isAddingShare) {
-                SmbSheet(connection: smb) { model.add($0) }
-            }
+            // The other three kinds, and the connections behind them. Shared with Home,
+            // which draws the same empty state — see ``AddingSources``.
+            .addingSources(to: model, pins: pins, sheet: $addingSource)
     }
 
     /// The library itself: the grid or the list, and the chrome that belongs to it.

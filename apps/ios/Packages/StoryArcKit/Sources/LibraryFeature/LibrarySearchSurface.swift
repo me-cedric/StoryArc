@@ -164,9 +164,9 @@ extension LibraryView {
                 scope: $searchScope,
                 addFolder: { picking = .folder },
                 importFile: { picking = .file },
-                addCatalogue: { isAddingCatalogue = true },
-                addKavita: { isAddingKavita = true },
-                addShare: { isAddingShare = true }
+                addCatalogue: { addingSource = .catalogue },
+                addKavita: { addingSource = .kavita },
+                addShare: { addingSource = .share }
             )
         }
     }

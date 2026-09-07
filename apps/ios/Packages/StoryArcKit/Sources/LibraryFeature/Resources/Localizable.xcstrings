@@ -4079,36 +4079,6 @@
         }
       }
     },
-    "library.addFolder": {
-      "comment": "The action that opens the document picker to choose a library folder.",
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ordner hinzufügen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add a folder"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Añadir una carpeta"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ajouter un dossier"
-          }
-        }
-      }
-    },
     "library.addSource": {
       "extractionState": "manual",
       "localizations": {

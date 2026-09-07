@@ -180,9 +180,9 @@ extension LibraryView {
                 EmptyLibraryView(
                     openComic: { picking = .file },
                     addFolder: { picking = .folder },
-                    addCatalogue: { isAddingCatalogue = true },
-                    addKavita: { isAddingKavita = true },
-                    addShare: { isAddingShare = true }
+                    addCatalogue: { addingSource = .catalogue },
+                    addKavita: { addingSource = .kavita },
+                    addShare: { addingSource = .share }
                 )
             } else {
                 // Sources are configured and the shelf is bare. This used to be

@@ -1,7 +1,9 @@
 public import SwiftUI
 
 public import StoryArcCore
+internal import Catalogue
 internal import DesignSystem
+internal import Persistence
 internal import UniformTypeIdentifiers
 
 /// Home: what the reader is in the middle of, and the way to everything else.
@@ -26,8 +28,10 @@ internal import UniformTypeIdentifiers
 /// lost reading to somebody who lost nothing.
 ///
 /// It degrades by *absence* rather than by emptiness — no section is ever drawn as a
-/// heading over a gap — and a library with nothing in it at all leaves one sentence and the
-/// two ways out.
+/// heading over a gap — and a library with nothing in it at all is ``EmptyLibraryView``, the
+/// shelf's own first-run state. `sources` requires that state to name the four kinds of
+/// place. `HomeEmpty` stood here instead and named none of them, on the destination the app
+/// opens on, which is where a reader with nothing configured actually lands.
 public struct HomeScreen: View {
     @Environment(\.theme) private var theme
 
@@ -43,6 +47,13 @@ public struct HomeScreen: View {
     /// *Add a folder* worked and *Open a comic* opened nothing, on the empty state a reader
     /// with nothing configured lands on first.
     @State private var picking: LocalPick?
+
+    /// Which source sheet is up, if any — see ``AddedSource``, which the shelf shares.
+    @State private var addingSource: AddedSource?
+
+    /// Loaded the way the shelf loads it: a certificate a reader accepts while adding a
+    /// catalogue from here has to still be accepted when that catalogue's covers load.
+    @State private var pins = CertificatePins(CertificatePinStore().pins())
 
     /// Which shelves the reader asked to see here. Written by ``ShelvesView``, read here —
     /// one scalar in the same `UserDefaults` as the library's other choices, and deliberately
@@ -84,9 +95,12 @@ public struct HomeScreen: View {
         NavigationStack {
             Group {
                 if model.publications.isEmpty {
-                    HomeEmpty(
-                        onOpenFile: { picking = .file },
-                        onAddFolder: { picking = .folder }
+                    EmptyLibraryView(
+                        openComic: { picking = .file },
+                        addFolder: { picking = .folder },
+                        addCatalogue: { addingSource = .catalogue },
+                        addKavita: { addingSource = .kavita },
+                        addShare: { addingSource = .share }
                     )
                 } else {
                     surface
@@ -132,6 +146,9 @@ public struct HomeScreen: View {
             // ``LocalPickerTests``. A folder picked here is reachable again after a restart,
             // and a file handed over is copied into storage the app owns.
             .pickingLocalLibrary(into: model, pick: $picking)
+            // The other three kinds the empty state above names, through the same modifier
+            // the shelf uses — see ``AddingSources``.
+            .addingSources(to: model, pins: pins, sheet: $addingSource)
         }
     }
 
