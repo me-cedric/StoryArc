@@ -341,3 +341,25 @@ waiting rather than starting.
 A car screen is read at a glance. Both platforms offer the book in progress and a flat list
 of audiobooks, and nothing else. Comics are not offered at all: there is nothing to look at
 while driving.
+
+### How a car gets a list, when the playback module has no library
+
+`:core:playback` decodes audio and holds no library, by design. Its `onGetChildren` says so
+in words and offers one node: the book in progress. A browse tree built from a copy of a
+library "would go stale the moment a download finished", which is the right worry.
+
+The app publishes instead. `PlaybackMemory` already solves the same problem for the resume
+row: a preferences file, read synchronously, because the system starts the service without
+the app and needs an answer immediately. A second, small record beside it carries the
+audiobooks on the device — an id, a title, a duration and a cover URI each — written by the
+app whenever the library changes, read by the service whenever a car asks.
+
+It is a cache and will sometimes be stale. That is acceptable here and is not acceptable for
+the shelf inside the app: a car list one download behind still plays every book it names,
+and the alternative is a car that offers nothing. `onGetItem` already refuses an id it
+cannot resolve, so a stale row fails safely rather than playing the wrong book.
+
+iOS reads the same shape from its own store, because a `CPListTemplate` is built when the
+scene connects and the app is running by then. The two platforms therefore differ in
+mechanism and agree on content, which is the pattern this repository already uses for the
+library watchers.
