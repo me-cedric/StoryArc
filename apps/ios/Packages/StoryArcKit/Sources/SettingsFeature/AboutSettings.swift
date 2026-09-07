@@ -20,7 +20,12 @@ struct AboutSettings: View {
         List {
             Section {
                 Text("about.version \(BuildInfo.version) \(BuildInfo.build)", bundle: .module)
-                Text("about.author", bundle: .module)
+                // The byline is the way to the author, so there is no second row to the
+                // same address. It stays in this block: the author is a fact about the
+                // build, like the version above it.
+                Link(destination: BuildInfo.author) {
+                    Text("about.author", bundle: .module)
+                }
                 // Stated plainly, because the spec asks for it plainly: free, open
                 // source, no paid tier, no advertising.
                 Text("about.free", bundle: .module)
@@ -45,9 +50,6 @@ struct AboutSettings: View {
             Section {
                 Link(destination: BuildInfo.repository) {
                     Text("about.repository", bundle: .module)
-                }
-                Link(destination: BuildInfo.author) {
-                    Text("about.authorLink", bundle: .module)
                 }
                 Link(destination: BuildInfo.licence) {
                     Text("about.licence", bundle: .module)

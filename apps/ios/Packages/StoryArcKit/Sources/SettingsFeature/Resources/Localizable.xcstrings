@@ -65,54 +65,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Von Cédric Meyer"
+            "value": "Von @me-cedric"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "By Cédric Meyer"
+            "value": "By @me-cedric"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Por Cédric Meyer"
+            "value": "Por @me-cedric"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Par Cédric Meyer"
-          }
-        }
-      }
-    },
-    "about.authorLink": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Der Autor auf GitHub"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The author on GitHub"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "El autor en GitHub"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "L’auteur sur GitHub"
+            "value": "Par @me-cedric"
           }
         }
       }
