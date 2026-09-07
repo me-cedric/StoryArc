@@ -23,7 +23,7 @@ struct SleepTimerRunningTests {
     private func session(_ kind: SourceKind = .narrated) -> (PlayerCentre, PlaybackSourceDouble) {
         let centre = PlayerCentre()
         let source = PlaybackSourceDouble(kind)
-        centre.begin(.stub(id: "a", title: "Sea Room", format: .audiobook), source: source)
+        centre.begin(.stub(id: "a", title: "Sea Room", format: .m4b), source: source)
         return (centre, source)
     }
 
@@ -245,7 +245,7 @@ struct SleepTimerRunningTests {
         let centre = PlayerCentre()
         let platform = PlatformDouble()
         centre.platform = platform
-        centre.begin(.stub(id: "a", title: "Sea Room", format: .audiobook), source: PlaybackSourceDouble(.narrated))
+        centre.begin(.stub(id: "a", title: "Sea Room", format: .m4b), source: PlaybackSourceDouble(.narrated))
 
         centre.setSleepTimer(.after(1))
         #expect(platform.sleepClockRunning == true)

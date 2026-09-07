@@ -30,7 +30,7 @@ struct PlayerDisplacementTests {
     /// A narrated file. Never owes one.
     private func narratingSeaRoom(_ centre: PlayerCentre) {
         centre.begin(
-            .stub(id: "sea-room", title: "Sea Room", format: .audiobook),
+            .stub(id: "sea-room", title: "Sea Room", format: .m4b),
             source: PlaybackSourceDouble(.narrated)
         )
     }

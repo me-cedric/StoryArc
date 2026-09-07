@@ -31,11 +31,11 @@ struct PrimaryActionTests {
         #expect(PrimaryAction.of(.epub, hasProgress: true) == .continueReading)
     }
 
-    /// Both audio formats, because `local-library` makes a folder of audio one audiobook and
-    /// the page cannot tell a listener a different story about it.
+    /// Every audio format, because `local-library` makes a folder of audio one audiobook and
+    /// the page cannot tell a listener a different story about an M4B, an MP3 or a folder.
     @Test("An audiobook says listen, and continue listening once it has been started")
     func audioIsListen() {
-        for format in [PublicationFormat.audiobook, .audioFolder] {
+        for format in PublicationFormat.allCases.filter(\.isAudio) {
             #expect(PrimaryAction.of(format, hasProgress: false) == .listen)
             #expect(PrimaryAction.of(format, hasProgress: true) == .continueListening)
         }
@@ -49,7 +49,7 @@ struct PrimaryActionTests {
         let listening: Set<PrimaryAction> = [.listen, .continueListening]
         let reading: Set<PrimaryAction> = [.read, .continueReading]
         for hasProgress in [true, false] {
-            #expect(listening.contains(PrimaryAction.of(.audiobook, hasProgress: hasProgress)))
+            #expect(listening.contains(PrimaryAction.of(.m4b, hasProgress: hasProgress)))
             #expect(reading.contains(PrimaryAction.of(.cbr, hasProgress: hasProgress)))
         }
     }

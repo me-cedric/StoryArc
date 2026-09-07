@@ -9,11 +9,12 @@
 // `<application support>/Downloads/<id>/<title>.<extension>`. A record with no file draws a
 // cover and opens nothing; a file with no record is not in the library at all.
 //
-// **This cannot seed an audiobook, and the twelve player tests still fail without one.**
-// `PublicationFormat.init(mediaType:)` maps no audio type, and `PublicationFormat.mediaType`
-// answers nil for `.audiobook`, so an audiobook cannot round-trip through a download record.
-// `AudiobookWalk` also looks on the Library tab, and a download is drawn on the Downloads
-// tab. Section A of `docs/mvp-device-checklist.md` carries both.
+// **This seeds a comic only, and the twelve player tests still fail without an audiobook.**
+// The format table is no longer the reason. `PublicationFormat` splits the audio containers,
+// so `audio/mpeg` round-trips and the store names the file `<title>.mp3`; what remains is
+// this script's own fixture and media type, and that `AudiobookWalk` looks on the Library tab
+// while a download is drawn on the Downloads tab. Section A of
+// `docs/mvp-device-checklist.md` carries the second half.
 
 import { execFileSync } from 'node:child_process'
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs'

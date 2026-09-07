@@ -40,7 +40,7 @@ struct ListeningRecordTests {
         let centre = PlayerCentre()
         let log = recorder(centre)
         let source = PlaybackSourceDouble(.narrated)
-        centre.begin(.stub(id: "a", title: "Sea Room", format: .audiobook), source: source)
+        centre.begin(.stub(id: "a", title: "Sea Room", format: .m4b), source: source)
 
         source.advance(toPart: 1, offset: 30)
 
@@ -75,7 +75,7 @@ struct ListeningRecordTests {
         let centre = PlayerCentre()
         let log = recorder(centre)
         let source = PlaybackSourceDouble(kind)
-        centre.begin(.stub(id: "a", title: "Sea Room", format: .audiobook), source: source)
+        centre.begin(.stub(id: "a", title: "Sea Room", format: .m4b), source: source)
 
         source.advance(toPart: 2, offset: 10)
         #expect(log.last?.isFinished == false, "not while there is more to play")
@@ -89,7 +89,7 @@ struct ListeningRecordTests {
         let centre = PlayerCentre()
         let log = recorder(centre)
         let source = PlaybackSourceDouble(.narrated)
-        centre.begin(.stub(id: "a", title: "Sea Room", format: .audiobook), source: source)
+        centre.begin(.stub(id: "a", title: "Sea Room", format: .m4b), source: source)
 
         source.advance(toPart: 1, offset: 10)
         centre.end()
@@ -105,12 +105,12 @@ struct ListeningRecordTests {
         let log = recorder(centre)
 
         let first = PlaybackSourceDouble(.narrated)
-        centre.begin(.stub(id: "a", title: "Sea Room", format: .audiobook), source: first)
+        centre.begin(.stub(id: "a", title: "Sea Room", format: .m4b), source: first)
         first.runOut()
         #expect(try #require(log.last).isFinished)
 
         let second = PlaybackSourceDouble(.narrated)
-        centre.begin(.stub(id: "b", title: "Maus", format: .audiobook), source: second)
+        centre.begin(.stub(id: "b", title: "Maus", format: .m4b), source: second)
         second.advance(toPart: 1, offset: 5)
 
         let reached = try #require(log.last)
@@ -127,7 +127,7 @@ struct ListeningRecordTests {
         let centre = PlayerCentre()
         let log = recorder(centre)
         let source = PlaybackSourceDouble(.narrated)
-        centre.begin(.stub(id: "a", title: "Sea Room", format: .audiobook), source: source)
+        centre.begin(.stub(id: "a", title: "Sea Room", format: .m4b), source: source)
 
         source.advance(toPart: 0, offset: 40)
         centre.setSleepTimer(.after(60))

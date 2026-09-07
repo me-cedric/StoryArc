@@ -19,7 +19,7 @@ struct AudiobookScanningTests {
     /// A picked library holds its publications one directory down and one stray `.m4b` at
     /// its top level. The top level therefore has no *packed* publication, so the audio
     /// branch claimed the whole folder, its subdirectories were never walked, and a shelf of
-    /// fifteen comics became one row reading "Audio folder".
+    /// fifteen comics became one row reading "Audiobook folder".
     ///
     /// A folder of ordered audio has no subdirectories. A folder that has them is a place
     /// where publications live, and the audio at its top level is one book each.
@@ -40,7 +40,7 @@ struct AudiobookScanningTests {
 
         let found = await LibraryScanner.scanAll(folderAt: library)
         #expect(found.count == 2, "the audiobook and the comic, not one folder pretending to be a book")
-        #expect(found.contains { $0.format == .audiobook })
+        #expect(found.contains { $0.format == .m4b })
         #expect(found.contains { $0.format == .cbz })
         #expect(!found.contains { $0.format == .audioFolder }, "the library is not itself an audiobook")
     }

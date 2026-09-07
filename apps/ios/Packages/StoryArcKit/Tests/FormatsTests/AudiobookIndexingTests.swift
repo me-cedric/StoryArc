@@ -17,7 +17,7 @@ struct AudiobookIndexingTests {
     @Test("A chaptered M4B opens as a publication whose parts are its chapters")
     func chapteredOpens() async throws {
         let book = try await PublicationIndexer.index(fileAt: corpus.appending(path: "chaptered.m4b"))
-        #expect(book.format == .audiobook)
+        #expect(book.format == .m4b)
         #expect(book.format.isAudio)
         #expect(book.pageCount == 3, "three parts, from the container's own chapter atom")
         #expect(book.skippedPageCount == 0)
@@ -29,10 +29,22 @@ struct AudiobookIndexingTests {
     @Test("An unchaptered audiobook opens, and reports nothing missing")
     func unchapteredOpens() async throws {
         let book = try await PublicationIndexer.index(fileAt: corpus.appending(path: "unchaptered.m4a"))
-        #expect(book.format == .audiobook)
+        #expect(book.format == .m4b)
         #expect(book.pageCount == 1)
         #expect(book.skippedPageCount == 0)
         #expect(!book.isPartial)
+    }
+
+    /// `publication-formats`: a download record carries "the media type of the container the
+    /// file actually is". The sniffer already answered MP3 here; the indexer used to throw
+    /// that away, so this file was catalogued under the same format as an M4B.
+    @Test("An MP3 keeps its own container rather than becoming an M4B")
+    func mp3KeepsItsContainer() async throws {
+        let book = try await PublicationIndexer.index(
+            fileAt: corpus.appending(path: "id3-chapters.mp3")
+        )
+        #expect(book.format == .mp3)
+        #expect(book.format.mediaType == "audio/mpeg")
     }
 
     @Test("A folder of audio opens as one audiobook, not as a comic")

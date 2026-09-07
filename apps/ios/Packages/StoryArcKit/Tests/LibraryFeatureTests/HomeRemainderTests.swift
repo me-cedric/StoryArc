@@ -64,7 +64,7 @@ struct HomeRemainderTests {
     private func audiobook(parts: Int?) -> Publication {
         Publication(
             identity: PublicationIdentity(normalizedPath: "/Sea Room.m4b"),
-            format: .audiobook,
+            format: .m4b,
             displayTitle: "Sea Room",
             origin: .inferred,
             pageCount: parts

@@ -82,6 +82,19 @@ class AudiobookFormatTest {
         }
     }
 
+    /**
+     * iOS answers these four strings and pins them the same way, in `AudiobookFormatTests`.
+     * The round trip above stays green while one platform drifts, so the literals are what
+     * holds the two tables together: a record written on one device is read on the other.
+     */
+    @Test
+    fun `the media types are the ones iOS answers`() {
+        assertEquals("audio/mp4", PublicationFormat.M4B.mediaType)
+        assertEquals("audio/mpeg", PublicationFormat.MP3.mediaType)
+        assertEquals("audio/flac", PublicationFormat.FLAC.mediaType)
+        assertEquals("audio/ogg", PublicationFormat.OGG.mediaType)
+    }
+
     @Test
     fun `a folder has no media type of its own`() {
         // The same answer `IMAGE_FOLDER` gives, and for the same reason: a folder is not a

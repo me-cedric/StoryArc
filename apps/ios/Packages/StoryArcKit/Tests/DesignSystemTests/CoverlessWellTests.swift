@@ -37,12 +37,12 @@ struct CoverlessWellTests {
     /// word *Audiobook*.
     @Test(
         "An audiobook is never drawn as a book",
-        arguments: [PublicationFormat.audiobook, .audioFolder]
+        arguments: PublicationFormat.allCases.filter(\.isAudio)
     )
     func audioIsNeverABook(format: PublicationFormat) {
         let symbol = coverlessWellSymbol(for: format)
         #expect(!symbol.hasPrefix("book"))
-        #expect(symbol == coverlessWellSymbol(for: .audiobook))
+        #expect(symbol == coverlessWellSymbol(for: .m4b))
     }
 
     /// A publication read page by page, one read as text, one that is a document and one
@@ -54,7 +54,7 @@ struct CoverlessWellTests {
             coverlessWellSymbol(for: .cbz),
             coverlessWellSymbol(for: .epub),
             coverlessWellSymbol(for: .pdf),
-            coverlessWellSymbol(for: .audiobook),
+            coverlessWellSymbol(for: .m4b),
         ]
         #expect(Set(kinds).count == kinds.count)
     }

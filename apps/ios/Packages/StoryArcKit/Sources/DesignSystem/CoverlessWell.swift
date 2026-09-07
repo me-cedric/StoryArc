@@ -126,6 +126,6 @@ public func coverlessWellSymbol(for format: PublicationFormat) -> String {
     case .cbz, .cbr, .cb7, .cbt, .imageFolder: "book.pages"
     case .epub: "book.closed"
     case .pdf: "doc.text"
-    case .audiobook, .audioFolder: "headphones"
+    case .m4b, .mp3, .flac, .ogg, .audioFolder: "headphones"
     }
 }

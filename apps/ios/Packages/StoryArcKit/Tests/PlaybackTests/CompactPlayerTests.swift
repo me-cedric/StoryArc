@@ -137,7 +137,7 @@ struct CompactPlayerTests {
 
         let toListen = PlayerCentre()
         toListen.begin(
-            .stub(id: "sea-room", title: "Sea Room", format: .audiobook),
+            .stub(id: "sea-room", title: "Sea Room", format: .m4b),
             source: PlaybackSourceDouble(kind)
         )
         #expect(try #require(toListen.compact).wayBack == .fullPlayer)

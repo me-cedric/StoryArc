@@ -164,7 +164,7 @@ final class ReadAloudPlayerTests: XCTestCase {
         // named cell is a walk that flakes.
         let app: XCUIApplication
         if let title {
-            app = sweepLaunch(formats: ["epub", "audiobook", "audioFolder"])
+            app = sweepLaunch(formats: ["epub", "m4b", "mp3", "flac", "ogg", "audioFolder"])
             try openPublication(named: title, in: app)
         } else {
             app = launch()

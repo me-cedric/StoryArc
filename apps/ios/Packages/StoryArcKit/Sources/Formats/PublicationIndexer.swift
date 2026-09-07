@@ -124,7 +124,7 @@ public enum PublicationIndexer {
             throw IndexError.unsupported(format: PublicationFormat.cb7.displayName)
         case .mp4, .mp3, .flac, .ogg:
             return await audiobook(
-                at: url, identity: found, format: .audiobook, fallback: fallback
+                at: url, identity: found, format: Self.audioFormat(container), fallback: fallback
             )
         case .protectedAudiobook:
             // Refused for being locked, not for being the wrong kind of file. The brand at
@@ -236,9 +236,10 @@ public enum PublicationIndexer {
             // `AVURLAsset` wants a file, so without a local copy this is a record: the
             // library lists it, says what it is and offers the download, rather than
             // dropping it — the same honest degradation a PDF and a RAR already get here.
-            guard let decoderPath else { return record(.audiobook, found, name, fallback) }
+            let format = Self.audioFormat(container)
+            guard let decoderPath else { return record(format, found, name, fallback) }
             return await audiobook(
-                at: decoderPath, identity: found, format: .audiobook, fallback: fallback
+                at: decoderPath, identity: found, format: format, fallback: fallback
             )
 
         case .protectedAudiobook:
@@ -246,6 +247,22 @@ public enum PublicationIndexer {
             // decoder, and the refusal is distinct from an unsupported container.
             throw IndexError.contentProtected
 
+        }
+    }
+
+    /// The domain format an audio container is.
+    ///
+    /// Total over the containers, so a new one is a compile error here rather than an
+    /// audiobook filed under the wrong media type. A protected file never reaches this:
+    /// both callers refuse it by name before they ask.
+    private static func audioFormat(_ container: FormatSniffer.Container) -> PublicationFormat {
+        switch container {
+        case .mp4: .m4b
+        case .mp3: .mp3
+        case .flac: .flac
+        case .ogg: .ogg
+        case .protectedAudiobook, .zip, .rar, .sevenZip, .pdf, .tar:
+            preconditionFailure("\(container) is not an audio container")
         }
     }
 
