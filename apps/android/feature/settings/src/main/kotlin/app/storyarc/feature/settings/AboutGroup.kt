@@ -72,11 +72,10 @@ internal fun AboutGroup(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodyMedium,
             color = palette.textPrimary,
         )
-        Text(
-            text = stringResource(R.string.about_author),
-            style = MaterialTheme.typography.bodyMedium,
-            color = palette.textPrimary,
-        )
+        // The byline is the way to the author, so there is no second row to the same
+        // address. It stays in this block: the author is a fact about the build, like
+        // the version above it.
+        LinkRow(R.string.about_author, "https://github.com/me-cedric")
         // Stated plainly, because the spec asks for it plainly: free, open source, no
         // paid tier, no advertising.
         Text(
@@ -92,7 +91,6 @@ internal fun AboutGroup(modifier: Modifier = Modifier) {
                 Text(stringResource(R.string.whats_new_about))
             }
             LinkRow(R.string.about_repository, "https://github.com/me-cedric/StoryArc")
-            LinkRow(R.string.about_author_link, "https://github.com/me-cedric")
             LinkRow(R.string.about_licence, "https://github.com/me-cedric/StoryArc/blob/main/LICENSE")
             // The one support link, on the one screen. Never a prompt.
             LinkRow(R.string.about_support, "https://ko-fi.com/mecedric")

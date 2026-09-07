@@ -38,10 +38,9 @@
     <string name="privacy_statement">StoryArc hat kein Konto, kein Backend, keine Analyse und keine Absturzberichte.</string>
     <string name="privacy_sources">Daten verlassen dieses Gerät nur zu den Bibliotheken, die Sie selbst eingerichtet haben.</string>
     <string name="about_version">StoryArc %1$s (%2$s)</string>
-    <string name="about_author">Von Cédric Meyer</string>
+    <string name="about_author">Von @me-cedric</string>
     <string name="about_free">Vollständig kostenlos und Open Source. Keine Bezahlstufe, keine Werbung.</string>
     <string name="about_repository">Repository</string>
-    <string name="about_author_link">Der Autor auf GitHub</string>
     <string name="about_licence">Lizenz</string>
     <string name="about_support">StoryArc auf Ko-fi unterstützen (optional)</string>
     <string name="about_report">Ein Problem melden</string>
