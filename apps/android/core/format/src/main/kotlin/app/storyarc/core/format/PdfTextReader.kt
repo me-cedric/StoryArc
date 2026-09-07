@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.graphics.Point
 import android.graphics.pdf.PdfRendererPreV
 import android.graphics.pdf.content.PdfPageTextContent
+import android.graphics.pdf.models.selection.PageSelection
 import android.graphics.pdf.models.selection.SelectionBoundary
 import android.net.Uri
 import android.os.Build
@@ -204,12 +205,16 @@ internal class PdfTextReader(
     override fun text(index: Int): String? {
         if (index < 0 || index >= pageCount) return null
         val joined = runCatching {
-            renderer.openPage(index).use { page ->
-                page.textContents.joinToString("\n") { it.text }
-            }
+            renderer.openPage(index).use { page -> pageText(page) }
         }.getOrNull().orEmpty()
         return joined.ifBlank { null }
     }
+
+    private fun pageText(page: PdfRendererPreV.Page): String =
+        page.textContents.joinToString("\n") { it.text }
+
+    private fun runText(contents: List<PdfPageTextContent>): String =
+        contents.joinToString(" ") { it.text }.trim()
 
     override fun selection(
         index: Int,
@@ -235,11 +240,7 @@ internal class PdfTextReader(
                     page.selectContent(SelectionBoundary(start), SelectionBoundary(stop))
                         ?: return@use null
                 described(
-                    locator = PdfLocator(
-                        page = index,
-                        start = min(selected.start.index, selected.stop.index),
-                        end = max(selected.start.index, selected.stop.index),
-                    ),
+                    locator = located(page, index, selected),
                     contents = selected.selectedTextContents,
                     width = width,
                     height = height,
@@ -265,13 +266,43 @@ internal class PdfTextReader(
         }.getOrNull()
     }
 
+    /**
+     * Where a run the reader dragged out sits in the page's text, as a locator stores it.
+     *
+     * The device's own answer wherever it gives one. It does not always give one:
+     * [SelectionBoundary.getIndex] reports -1 for a boundary defined by a point, and the
+     * boundaries a point selection returns are point-defined on Android 16 where they carried
+     * indexes on Android 15. The locator was then `-1..-1` -- a range [selection] refuses -- so a
+     * highlight the reader stored from a drag could never be painted onto the page again, on the
+     * newer platform only.
+     *
+     * The run's offset in the page's own text is the same measure, taken here rather than asked
+     * for, and it is the index space [SelectionBoundary] reads. A run the page's text does not
+     * carry verbatim keeps the device's answer, because inventing a range that resolves to other
+     * words is worse than a locator that resolves to none.
+     */
+    private fun located(
+        page: PdfRendererPreV.Page,
+        index: Int,
+        selected: PageSelection,
+    ): PdfLocator {
+        val first = min(selected.start.index, selected.stop.index)
+        val last = max(selected.start.index, selected.stop.index)
+        val stated = PdfLocator(page = index, start = first, end = last)
+        if (first >= 0 && last > first) return stated
+        val run = runText(selected.selectedTextContents)
+        if (run.isEmpty()) return stated
+        val at = pageText(page).indexOf(run)
+        return if (at < 0) stated else PdfLocator(page = index, start = at, end = at + run.length)
+    }
+
     private fun described(
         locator: PdfLocator,
         contents: List<PdfPageTextContent>,
         width: Int,
         height: Int,
     ): PdfTextSelection? {
-        val text = contents.joinToString(" ") { it.text }.trim()
+        val text = runText(contents)
         if (text.isEmpty()) return null
         return PdfTextSelection(
             locator = locator,
