@@ -302,3 +302,42 @@ must not cite a guideline for them:
   gaining a bottom-bar slot or on a hand-built anchored sheet. The full player is a
   destination until then.
 - **DRM.** `.aax`/`.aaxc` is refused by name and that will not change.
+
+## Amended 2026-09-07
+
+### Why iOS splits the audio format case
+
+Android's `PublicationFormat` carries `M4B`, `MP3`, `FLAC`, `OGG` and `AUDIO_FOLDER`. iOS
+carries one `audiobook` case and one `audioFolder`. The iOS sniffer already answers `.mp4`,
+`.mp3`, `.flac` and `.ogg`, and `PublicationIndexer` throws that answer away at two call
+sites. So the information exists and is discarded, which is the cheapest kind of divergence
+to close.
+
+A flat case cannot answer `mediaType`, and without a media type an audiobook cannot be a
+download record, cannot be offered by a catalogue, and cannot be copied back out under its
+own extension. Android refused the flat case for exactly this reason before the divergence
+existed.
+
+### Why the chapter list goes on the page rather than into a sheet
+
+A sheet is reached from the player, and the player is reached by playing. The page is where
+a listener decides. The list is the same data the player's list draws, so the two cannot
+disagree.
+
+### CarPlay cannot be run here, and that is not a reason to skip it
+
+CarPlay audio needs the `com.apple.developer.carplay-audio` entitlement, which Apple grants
+on request against a development team. [ADR-0011](../../decisions/0011-home-screen-widgets.md)
+records that this project has none, so the scene will not activate in a car or in the CarPlay
+simulator.
+
+The scene is still built, and tested the way Android's browse tree is tested: over the
+template tree, in a unit test, with no car. That is the same trade Android's
+`PlayerBrowseTreeTest` already makes, and it means the day an entitlement arrives the work is
+waiting rather than starting.
+
+### Refused: a deep browse tree in the car
+
+A car screen is read at a glance. Both platforms offer the book in progress and a flat list
+of audiobooks, and nothing else. Comics are not offered at all: there is nothing to look at
+while driving.

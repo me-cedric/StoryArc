@@ -90,3 +90,24 @@ design.md names the components and the guidance.
 - **`ebook-reader`** — read-aloud drives that player instead of its own controls,
   and survives leaving the publication.
 - **`reading-progress`** — a position measured in time.
+
+## Amended 2026-09-07
+
+Three things joined this change, because all three are its subject and it is not archived.
+
+**An audiobook could not be a download.** iOS collapses every audio container into one
+`PublicationFormat` case, so an audiobook carries no media type. Android split them and its
+own comment says why: "a copied MP3 would be written back out as an `.m4b`". iOS is catching
+up. This also unblocks the twelve player UI tests, which have never passed on any CI run,
+because nothing could put an audiobook on a clean device.
+
+**A chapter list arrived only after you pressed play.** The player lists chapters, and the
+player is reached by starting the book. A listener choosing what to hear next had to play
+something they had not chosen in order to see what was in it. The publication's page now
+lists them, and the action that starts playback names the chapter it resumes inside.
+
+**The car had no requirement.** Android already ships a media3 `MediaLibraryService` with
+`automotive_app_desc.xml` and a browse tree, asserted on a device. No requirement described
+it, so a shipped surface had no specification and iOS had no reason to match it. The
+requirement now exists, Android's surface is measured against it, and iOS gains a CarPlay
+scene.

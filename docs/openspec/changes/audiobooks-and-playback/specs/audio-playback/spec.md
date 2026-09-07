@@ -126,3 +126,60 @@ SHALL be usable at the largest text size.
 > and opens onto a surface with room. **Neither platform is excused a clause; they satisfy
 > different ones, and which one is decided by who owns the height.** Recorded 2026-09-01 after
 > `/opsx:update`; §8.4 of the task list carries the per-platform evidence.
+
+### Requirement: Chapters before the first minute
+
+A listener SHALL be able to see an audiobook's chapters without starting it, and SHALL be
+able to start at any one of them.
+
+The publication's own page SHALL list them. The player already lists them, and the player is
+reached by starting the book, so a listener choosing what to listen to next could see a
+chapter list only by first playing something they had not chosen.
+
+#### Scenario: The chapter list on the publication's page
+- **WHEN** a listener opens an audiobook's page in the library
+- **THEN** the page lists its chapters in order, each with its title and its duration
+- **AND** the chapter the listener stopped inside is marked as the one in progress
+- **AND** a chapter already finished is marked as finished
+
+#### Scenario: Starting from a chapter
+- **WHEN** a listener chooses a chapter on the publication's page
+- **THEN** playback starts at that chapter rather than where the book was left
+- **AND** the position the book was left at is not lost by looking at the list
+
+#### Scenario: An audiobook with one part
+- **WHEN** an audiobook carries no chapter markers and is a single file
+- **THEN** the page states the book's duration and offers no list, because a list of one row tells a listener nothing
+- **AND** nothing is reported as missing, by the same rule that opens an unchaptered audiobook without complaint
+
+#### Scenario: The primary action says where it will resume
+- **WHEN** a listener opens the page of an audiobook they have already started
+- **THEN** the action that starts playback names the chapter it will resume inside
+- **AND** an audiobook never started offers to start it, naming no chapter
+
+### Requirement: Listening in a car
+
+The app SHALL offer its audiobooks to the car systems each platform provides, so a listener
+can browse and control a book without handling the phone.
+
+A car surface SHALL show what the listener was in the middle of, and SHALL let them browse
+the audiobooks on the device. It SHALL NOT require the app to be open on the phone first.
+
+#### Scenario: Continuing in the car
+- **WHEN** a listener connects to a car and asks for StoryArc
+- **THEN** the book they were in the middle of is offered first, with its position kept
+- **AND** it is offered even when the app was not running, because the system starts the app for this
+
+#### Scenario: Browsing audiobooks in the car
+- **WHEN** a listener browses StoryArc on a car screen
+- **THEN** the audiobooks on the device are listed, and choosing one starts it
+- **AND** the list is short and flat, because a car screen is read at a glance and deep browsing is a driving hazard
+
+#### Scenario: The car's own transport controls
+- **WHEN** a listener uses the car's play, pause or skip controls
+- **THEN** the book responds as it does in the app, and the position is recorded the same way
+- **AND** a chapter is what a skip moves between, so a car's next-track control moves a chapter rather than a file
+
+#### Scenario: Only what a car should carry
+- **WHEN** the car surface is built
+- **THEN** it offers audiobooks and read-aloud sessions and nothing else, because a car screen is not a place to browse comics

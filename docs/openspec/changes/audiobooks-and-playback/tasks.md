@@ -1579,6 +1579,65 @@ creep — see [`design.md`](design.md).
       sleep options wrap in a `FlowRow` for the same requirement: five durations and a chapter
       do not fit across a phone at that size.
 
+## 10. An audiobook is a publication a catalogue can offer
+
+Added on 2026-09-07. iOS collapses every audio container into one `PublicationFormat` case,
+so an audiobook carries no media type and cannot be a download record. Android already
+splits them and its own comment says why: "a copied MP3 would be written back out as an
+`.m4b`". This is iOS catching up, and it is what unblocks the twelve player UI tests, which
+have never passed because no audiobook could be put on a device.
+
+- [ ] 10.1 iOS: `PublicationFormat` gains `m4b`, `mp3`, `flac` and `ogg` in place of the flat
+      `audiobook` case, matching Android's five-case shape. `audioFolder` stays as it is.
+- [ ] 10.2 iOS: `mediaType` answers `audio/mp4`, `audio/mpeg`, `audio/flac` and `audio/ogg`,
+      and `init(mediaType:)` reads all four back. Android's table is the reference.
+- [ ] 10.3 iOS: `PublicationIndexer` carries the sniffer's container into the format instead
+      of flattening it. The sniffer already answers `.mp4`, `.mp3`, `.flac` and `.ogg`, and
+      both call sites throw that away today.
+- [ ] 10.4 Both: a test asserts every audio format round-trips from format to media type and
+      back, and that a copied MP3 is written back with an `.mp3` extension.
+- [ ] 10.5 iOS: `scripts/seed-simulator.mjs` can seed an audiobook, and the twelve
+      `PlayerAuditTests` and `PlayerScreenshotTests` cases pass on a seeded simulator.
+
+## 11. Chapters before the first minute
+
+Added on 2026-09-07. The player lists chapters and the player is reached by starting the
+book, so a listener choosing what to hear next can only see the list by playing something
+they have not chosen.
+
+- [ ] 11.1 Both: the publication page of an audiobook lists its chapters, each with a title
+      and a duration.
+- [ ] 11.2 Both: the chapter in progress is marked, and a finished chapter is marked.
+- [ ] 11.3 Both: choosing a chapter starts playback there, and looking at the list does not
+      move the saved position.
+- [ ] 11.4 Both: a single-part audiobook states its duration and draws no list.
+- [ ] 11.5 Both: the action that starts playback names the chapter it resumes inside, and
+      names none for a book never started.
+- [ ] 11.6 Both: the list is announced by a screen reader, one row per chapter, with the
+      duration as the row's value.
+
+## 12. Listening in a car
+
+Added on 2026-09-07. Android already runs a media3 `MediaLibraryService` with
+`automotive_app_desc.xml` and a browse tree, and **no requirement described it**, so a
+shipped surface had no specification. iOS has nothing.
+
+- [ ] 12.1 Spec first: the car requirement now exists, so record that Android's existing
+      surface is what it describes rather than building it twice.
+- [ ] 12.2 Android: the browse tree offers the book in progress first, then the audiobooks on
+      the device, and nothing else. Assert it as `PlayerBrowseTreeTest` already asserts the
+      tree.
+- [ ] 12.3 Android: a car's next-track control moves a chapter, not a file.
+- [ ] 12.4 iOS: a CarPlay scene with a now-playing template and a list of audiobooks, built
+      against `CPTemplateApplicationScene`.
+- [ ] 12.5 iOS: a test over the template tree, the way Android tests its browse tree, so the
+      surface is asserted without a car.
+- [~] 12.6 iOS: run it in a car or in the CarPlay simulator. **Blocked.** CarPlay needs the
+      `com.apple.developer.carplay-audio` entitlement, which Apple grants on request, and
+      ADR-0011 records that this project has no Apple development team yet. The scene will
+      not activate without it. Section F of `docs/mvp-device-checklist.md` carries this
+      beside the widget blocker.
+
 ## 9. Docs and close-out
 
 - [x] 9.1 Module `README`s for the new player modules on both platforms.

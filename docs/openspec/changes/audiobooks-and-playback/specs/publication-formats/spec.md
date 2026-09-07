@@ -45,6 +45,12 @@ a protection, so the refusal will not change.
 - **THEN** it is treated as a single audiobook whose parts play in that order, by the same ordering rule that makes a folder of images one comic
 - **AND** a folder mixing audio and images is treated as the kind the majority of its entries are, and states which it chose
 
+#### Scenario: An audiobook keeps its container through a download and a copy
+- **WHEN** an audiobook is downloaded from a catalogue, or copied into the app's own storage
+- **THEN** the record carries the media type of the container the file actually is, so the file is written back under that container's own extension
+- **AND** an MP3 is not written back as an M4B, because a player handed a file whose extension disagrees with its bytes is a failure the listener sees and cannot explain
+- **AND** an audiobook is therefore a publication a catalogue can offer for download, on the same terms as a comic
+
 #### Scenario: An audiobook with no chapter markers
 - **WHEN** an audiobook carries no chapter markers
 - **THEN** it opens, and its parts — the files, or the whole of a single file — stand in for chapters
