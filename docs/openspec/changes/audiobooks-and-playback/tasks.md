@@ -1579,6 +1579,33 @@ creep — see [`design.md`](design.md).
       sleep options wrap in a `FlowRow` for the same requirement: five durations and a chapter
       do not fit across a phone at that size.
 
+## 13. An audiobook on iOS always starts at zero
+
+Found on 2026-09-07 while verifying that a listener can pick a book up where they left off.
+The position is written and never read back.
+
+`apps/ios/App/StoryArcAppActions.swift`, `listen(to:at:)`, reads the book and calls
+`centre.begin(SpokenBook(...), source: NarratedSource(book))`. It never seeks.
+`NarratedSource.place` starts at `.start` and only moves from `clock(reached:)`, a periodic
+time observer that follows the audio as it plays. No `seek(`, `play(part`, `resumeAt` or
+`.place =` exists anywhere under `apps/ios/App/`.
+
+The write half works. `wirePlayerRecording()` sends the player's positions to the store, and
+its own comment cites `reading-progress`: an audiobook's position "survives the app being
+closed, the device restarting, and the file being re-downloaded, exactly as a page index
+does". Nothing reads it back, so it survives and is never used.
+
+**Android does resume.** `PlaybackHost.kt:173` passes `startPositionMs = from?.offsetMillis
+?: 0L`. The two platforms disagree, and only one of them meets the requirement.
+
+- [ ] 13.1 iOS: `listen(to:at:)` reads the recorded position for the publication and starts
+      there. The seam is the same one section 11 adds for a chosen chapter, so the two arrive
+      together: a chapter chosen by the reader wins, and the saved position is the default.
+- [ ] 13.2 iOS: a test asserts a publication with a recorded listening position starts at
+      that position rather than at zero. It must fail when the seek is removed.
+- [ ] 13.3 Both: confirm on a device that closing the app and reopening the book returns the
+      listener to the same minute. Only a device proves this one.
+
 ## 10. An audiobook is a publication a catalogue can offer
 
 Added on 2026-09-07. iOS collapses every audio container into one `PublicationFormat` case,

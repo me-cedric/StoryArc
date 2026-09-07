@@ -24,6 +24,7 @@ import app.storyarc.feature.library.HomeScreen
 import app.storyarc.feature.library.HomeSection
 import app.storyarc.feature.library.HomeShelves
 import app.storyarc.feature.library.HomeSurface
+import app.storyarc.navigation.AppSheet
 
 /**
  * The reading room — the surface the app opens on.
@@ -172,6 +173,12 @@ internal fun HomeDestination(host: AppHost) {
         onShowAll = { section -> showAll(host, section) },
         onOpenFile = { openFile.launch(arrayOf("*/*")) },
         onAddFolder = { pickFolder.launch(null) },
+        // The same three the library destination passes. `sources` asks the first-run state
+        // to name the four kinds, and home is where a first launch lands, so home offers
+        // what the library offers rather than a file and a folder alone.
+        onAddCatalogue = { host.sheet(AppSheet.AddOnlineLibrary) },
+        onAddKavita = { host.sheet(AppSheet.AddKavita) },
+        onAddShare = { host.sheet(AppSheet.AddSharedFolder) },
     )
 }
 
