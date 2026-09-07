@@ -145,10 +145,23 @@ final class AccessibilityAuditTests: XCTestCase {
         // landed here and the suite stayed green. The count is checked by reading the run's
         // own report, and there is no assertion that can do it while the ground under this
         // shelf is a material no token is gated against.
-        XCTExpectFailure("Three captions under the glass bar. See the report below.")
+        // `reportOnly`, the way Settings below does it, and no `XCTExpectFailure`. The pin
+        // was a snapshot of one run rather than an assertion. The findings follow the
+        // position of a caption under the glass bar, and this test controls neither how many
+        // covers the shelf holds nor where they land. On a clean device the shelf holds
+        // nothing, the expectation went unsatisfied, and the test failed for the *absence* of
+        // a defect. It had failed that way on every CI run since it was written, because
+        // every CI device is clean and nothing ever seeded one.
+        //
+        // Seeding does not rescue the pin either. `scripts/seed-simulator.mjs` puts a
+        // downloaded comic on a simulator, and the audit then reported no finding at all: one
+        // cover does not reproduce a strip three captions deep.
+        //
+        // The findings still reach the log, and `pnpm why:ios:ui` reads them out of the
+        // result bundle the run now writes.
         let app = launch()
         try XCTUnwrap(destination("Downloads", in: app)).tap()
-        try audit(app, named: "Downloads")
+        try reportOnly(app, named: "Downloads")
     }
 
     // Settings is not audited here yet. The audit reports five issues across the list and
