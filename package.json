@@ -31,7 +31,7 @@
     "openspec:workflows": "node scripts/openspec-workflows.mjs",
     "openspec:workflows:check": "node scripts/openspec-workflows.mjs --check",
     "openspec:workflows:selftest": "node scripts/openspec-workflows.mjs --self-test",
-    "lint": "pnpm lines:check && pnpm tokens:check && pnpm brand:check && pnpm spec:validate && pnpm spec:guard && pnpm delta:drop && pnpm partial:tasks && pnpm openspec:workflows:check && pnpm tokens:verify && pnpm fixtures:check && pnpm notices:check && pnpm libarchive:pin && pnpm lockfile:ios && pnpm corpus:check && pnpm kavita:check && pnpm opds:check && pnpm strings:ios && pnpm strings:drawn && pnpm live:check:selftest",
+    "lint": "pnpm lines:check && pnpm tokens:check && pnpm brand:check && pnpm spec:validate && pnpm spec:guard && pnpm delta:drop && pnpm partial:tasks && pnpm openspec:workflows:check && pnpm tokens:verify && pnpm fixtures:check && pnpm notices:check && pnpm libarchive:pin && pnpm lockfile:ios && pnpm corpus:check && pnpm kavita:check && pnpm opds:check && pnpm strings:ios && pnpm strings:drawn && pnpm live:check:selftest && pnpm commitlint:guard",
     "lint:ios": "swiftlint lint --strict",
     "lint:android": "node scripts/gradle.mjs lint",
     "test:ios": "cd apps/ios/Packages/StoryArcKit && swift test; status=$?; node ../../../../scripts/sweep-test-debris.mjs || true; exit $status",
@@ -77,7 +77,8 @@
     "clean:swift": "node scripts/clean-swift-build.mjs",
     "sweep:test-debris": "node scripts/sweep-test-debris.mjs",
     "live:check": "node scripts/live-check.mjs",
-    "live:check:selftest": "node scripts/live-check.mjs --self-test"
+    "live:check:selftest": "node scripts/live-check.mjs --self-test",
+    "commitlint:guard": "node scripts/commitlint-guard.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",

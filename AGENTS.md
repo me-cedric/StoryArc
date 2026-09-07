@@ -371,6 +371,16 @@ disagrees with the rest of the app*.
   against the source length, and no length field out of a file is used to
   allocate. See [ADR-0008](docs/decisions/0008-ranged-reads-and-own-zip-reader.md).
 
+- **`agent-compass` sync can disable a gate silently.** On 2026-09-07 it created a
+  top-level `commitlint.config.js` beside `commitlint.config.mjs`. cosmiconfig takes the
+  first match, and `.js` wins, so our `scope-enum` rule went quiet: `feat(bogus): x` passed.
+  It also wrote a `tsconfig.base.json` that is invalid JSON, into a repository with no
+  TypeScript. Both files were deleted. `pnpm commitlint:guard` now asserts the scope list is
+  in force, by behaviour rather than by filename. **After any sync, run `pnpm lint` before
+  you believe the sync.** The sync also reports a file as an upstream conflict when the lock
+  simply has no hash for it; nine files were reported on 2026-09-07 and upstream had changed
+  none of them.
+
 ## 8. Commits
 
 Conventional commits, scoped by area: `feat(ios):`, `fix(android):`,
