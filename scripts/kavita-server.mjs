@@ -218,6 +218,17 @@ const authorised = (request) =>
  * v0.8.6, v0.8.8, v0.8.9.1, v0.9.0 and v0.9.1.4, and a live 0.9.1.4 answers 404 to each.
  * They survived because this mock was written from the client, so the client asked for a
  * route it had invented and this mock answered it.
+ *
+ * **Two entries below are kept against the published spec, and this is the only place that
+ * says so beside `STATUS.md`.** `/api/Reader/mark-chapter-unread` is absent from all five,
+ * so unmarking a chapter is dead against every Kavita; the nearest route is
+ * `/api/Reader/mark-multiple-unread`, whose body is a different shape from the
+ * `{seriesId, chapterId}` both clients send. `/api/Reader/mark-chapter-read` is absent from
+ * v0.8.6, v0.8.8 and v0.8.9.1 and present from v0.9.0, so it 404s on the three older
+ * releases. Both are left answering here because no replacement has been measured against a
+ * live server, and guessing a write shape is the mistake this file already records twice.
+ * A change to either caller -- `KavitaMetadata.swift:196` and `KavitaClient.kt:163` -- will
+ * pass every suite and still 404 on a real server.
  */
 const ROUTES = [
   { at: '/api/Plugin/authenticate', verb: 'POST', example: `/api/Plugin/authenticate?apiKey=${API_KEY}` },
