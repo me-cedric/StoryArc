@@ -12,20 +12,21 @@
 //        node scripts/corpus.mjs <target> --count 200   (pad it out to 200 publications)
 //
 // `--count` exists for one requirement and is deliberately not the default. `library-browsing`
-// asks for section headings "in a long library", and the seventeen publications above are a
+// asks for section headings "in a long library", and the nineteen publications above are a
 // library of one screen: enough to cross the sectioning threshold of twelve, not enough to
 // show what sectioning is *for*. Nothing in this repository could produce a long one, so the
 // frame that task asks for had never been taken and could not be.
 //
-// The seventeen are unchanged and come first. Everything `--count` adds is filler: two-page
+// The nineteen are unchanged and come first. Everything `--count` adds is filler: two-page
 // comics whose only job is to be numerous, named so the shelf sections the way a real library
 // does — runs that declare a series, standalones that do not, and enough initials that the
 // headings under a title sort are not all one letter.
 
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, copyFileSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join, resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { png, ruledPng } from './png.mjs'
 
@@ -257,7 +258,7 @@ function pdf(out, { title, pages: count }) {
 }
 
 /** How many publications [build] writes before any filler. Asserted by the self-test. */
-export const BASE_COUNT = 17
+export const BASE_COUNT = 19
 
 /** Words the filler names are built from. Fixed, so two runs produce the same library. */
 const FILLER_SERIES = [
@@ -328,6 +329,30 @@ function build(root, { count = BASE_COUNT } = {}) {
   const folder = at('Salt and Iron')
   mkdirSync(folder, { recursive: true })
   for (const page of pages(5, 5)) writeFileSync(join(folder, page.name), page.body)
+
+  // **The two audio shapes, copied rather than generated.** Everything else here is written
+  // byte by byte, and a valid MPEG-4 with chapter markers is not something to hand-roll: the
+  // committed fixtures are already byte-deterministic, `generate.py --check` holds them that
+  // way, and a second generator for the same bytes is a second thing to keep true.
+  //
+  // They were missing entirely until 2026-09-07, and this file's own opening line says it
+  // builds "one per format the app claims to read". Every walk that needed an audiobook
+  // skipped or failed on a corpus that had none, and the skip message sent a reader looking
+  // for a folder to fill rather than at the generator.
+  //
+  // `Sea Room` is the title `AudiobookWalk` looks for, so the name is load-bearing.
+  const audio = resolve(
+    dirname(fileURLToPath(import.meta.url)), '..', 'packages', 'test-fixtures', 'audiobooks'
+  )
+  copyFileSync(join(audio, 'chaptered.m4b'), at('Sea Room.m4b'))
+
+  // A folder of ordered parts is the other shape, and the one `FolderKind` has to tell from
+  // a folder of images. `PageOrdering.naturalCompare` puts part10 after part2 here.
+  const parts = at('Tidal Voices')
+  mkdirSync(parts, { recursive: true })
+  for (const part of readdirSync(join(audio, 'folder-parts'))) {
+    copyFileSync(join(audio, 'folder-parts', part), join(parts, part))
+  }
 
   epub(at('The Long Field.epub'), { title: 'The Long Field', index: 1, chapters: 6 })
   epub(at('Harbour Lights 01.epub'),
@@ -409,8 +434,8 @@ if (!target) {
 /**
  * How many publications to write, from `--count <n>`.
  *
- * Refused below [BASE_COUNT] rather than silently honoured: the seventeen are the point of
- * this script, and `--count 5` asking for a smaller corpus would get a corpus of seventeen
+ * Refused below [BASE_COUNT] rather than silently honoured: the nineteen are the point of
+ * this script, and `--count 5` asking for a smaller corpus would get a corpus of nineteen
  * and no warning.
  */
 const countFlag = process.argv.indexOf('--count')
@@ -433,6 +458,12 @@ if (target === '--self-test') {
     const checks = [
       ['Tidal Reach 01.cbz', () => head('Tidal Reach 01.cbz', 2).toString() === 'PK'],
       ['Paper Lanterns.cbt', () => statSync(join(scratch, 'Paper Lanterns.cbt')).size % 512 === 0],
+      // `ftyp` sits at offset 4 of an MPEG-4, which is what makes this an audiobook rather
+      // than a file that happens to end in `.m4b`.
+      ['Sea Room.m4b', () => head('Sea Room.m4b', 8).subarray(4).toString() === 'ftyp'],
+      ['Tidal Voices', () => readdirSync(join(scratch, 'Tidal Voices')).length === 3],
+      ['Tidal Voices parts are audio', () =>
+        readdirSync(join(scratch, 'Tidal Voices')).every((p) => p.endsWith('.mp3'))],
       ['The Long Field.epub', () => {
         const bytes = readFileSync(join(scratch, 'The Long Field.epub'))
         // The mimetype must be the first entry and stored, per OCF.
@@ -473,7 +504,7 @@ if (target === '--self-test') {
       }],
       // `BASE_COUNT` is the number `--count` subtracts from, so a publication added above
       // without it moving would make every filled corpus one short of what was asked for.
-      ['seventeen without --count', () =>
+      ['nineteen without --count', () =>
         readdirSync(scratch).length === BASE_COUNT],
 
       // The 200-publication library, checked as names rather than built as files. 183
