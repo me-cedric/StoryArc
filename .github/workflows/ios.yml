@@ -62,7 +62,16 @@ jobs:
       # collection that times out after 600 seconds, turning a thirteen-second answer
       # into an eleven-minute one at the moment the egress rule has just broken.
       - name: Test
+        id: test
         run: pnpm test:ios:epub
+
+      - name: Why the tests failed
+        # `-quiet` hides assertion text. A failing run prints the failing test names,
+        # `TEST FAILED` and exit code 65, and no expected or actual value for any case —
+        # which is all the 2026-09-07 log held. The script writes a result bundle; this
+        # reads the assertion text back out of it. A passing run stays silent.
+        if: failure() && steps.test.conclusion == 'failure'
+        run: pnpm why:ios:epub
 
   lint:
     name: SwiftLint
@@ -85,6 +94,15 @@ jobs:
 
       - run: brew install xcodegen
 
+      # The audit runs `pnpm test:ios:ui`, so this job needs pnpm. No `version:` —
+      # package.json's `packageManager` field is the pin. No `pnpm install` either: the
+      # script calls xcodegen and xcodebuild and reads nothing from `node_modules`.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
       - name: Generate project
         working-directory: apps/ios
         run: xcodegen generate
@@ -105,12 +123,33 @@ jobs:
         # Inspector uses, so this cannot drift from what iOS considers correct.
         #
         # A booted simulator, not `generic/platform`: the audit reads a live view tree.
-        working-directory: apps/ios
-        run: |
-          xcodebuild test \
-            -project StoryArc.xcodeproj \
-            -scheme StoryArc \
-            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
-            -only-testing:StoryArcUITests \
-            -collect-test-diagnostics never \
-            -quiet
+        #
+        # The script, not a copy of its command, for the reason the epub job gives. This
+        # one carries seven flags, and it is also the only way to run the audit locally:
+        # `pnpm check:devices` calls the same script.
+        id: audit
+        run: pnpm test:ios:ui
+
+      - name: Why the audit failed
+        # Twelve audit failures on 2026-09-07 named twelve tests and gave no assertion
+        # text, because `-quiet` prints none. This reads it out of the result bundle.
+        if: failure() && steps.audit.conclusion == 'failure'
+        run: pnpm why:ios:ui
+
+      - name: Archive the audit result bundle
+        # Zipped first, because `upload-artifact` roots the archive at the least common
+        # ancestor of what it matched. Handed a single directory, that ancestor is the
+        # directory itself, so the name `ui.xcresult` is stripped and the download
+        # extracts as loose `Info.plist` and `Data/`, which no tool opens.
+        if: failure() && steps.audit.conclusion == 'failure'
+        run: cd .build/xcresult && zip -qr ui.xcresult.zip ui.xcresult
+
+      - name: Upload the audit result bundle
+        # An audit failure names a view and a rule. The screenshot of the clipped label
+        # lives only in the bundle, so the summary above cannot replace this.
+        if: failure() && steps.audit.conclusion == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ui-test-results
+          path: .build/xcresult/ui.xcresult.zip
+          retention-days: 7
