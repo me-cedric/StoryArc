@@ -255,6 +255,7 @@ change** — never the whole repository when one module moved.
 | `apps/ios` app target or `project.yml` | `pnpm build:ios` |
 | `apps/ios/UITests` | `pnpm build:ios:tests` — **nothing else compiles them** |
 | Any `src/androidTest` | `pnpm build:android:tests` — **nothing else compiles them either** |
+| One `apps/ios/UITests` class | `xcodebuild test … -only-testing:StoryArcUITests/<Class>`, or `…/<Class>/<test>` for one case. **Scope it.** The whole target is the capture suite as well as the audits, it holds the simulator for minutes, and on 2026-09-07 one run of it hung for over an hour against a contended simulator. A class takes about twenty seconds |
 | One Android module | `pnpm gradle :<module>:lint :<module>:testDebugUnitTest` |
 | Android across modules | `pnpm lint:android && pnpm test:android` |
 | `packages/design-tokens` | `pnpm tokens:sync` — then **commit the regenerated app copies in the same change** |
@@ -266,6 +267,29 @@ change** — never the whole repository when one module moved.
 | `docs/openspec/config.yaml` | `pnpm spec:guard` — a broken list item makes the CLI report an empty project |
 | The `@fission-ai/openspec` version | `pnpm openspec:workflows` then commit the regenerated workflow files |
 | Any Swift or Kotlin file | `pnpm lines:check` — part of `pnpm lint`. The 800-line cap is a ratchet: five files are already over it and recorded in `scripts/line-cap.mjs` with the length they had, so they may shrink and may not grow. A sixth crossing fails the build. |
+
+**Scope a test run to what moved, and say why when you cannot.** Section 5 opens with that
+rule and the iOS UI target is where it is easiest to break, because one flag is the difference
+between twenty seconds and twenty minutes. Use `-only-testing:` with a class, or with a single
+case, and name the class from the failure you are chasing rather than from the target it lives in.
+
+**Three files are shared harness, and moving one of them earns a broad run.** They are
+`AuditWalk.swift`, `AudiobookWalk.swift` and `SweepWalk.swift`. A change inside them reaches
+classes the failure never named, so a scoped run proves nothing about the rest.
+
+`SweepWalk.realCovers` is the sharpest case and is the reason this paragraph exists.
+It picks covers by matching `PublicationFormat.displayName`, from a hard-coded list of the
+names. Get that list wrong and it matches nothing, every capture class picks **zero covers**,
+and every one of them **passes**. On 2026-09-07 the list still held `"Audiobook"` after that
+display name had been split into four, and no gate could have said so. A list that names a
+string the enum no longer answers is the failure mode; the comment above the list says as much.
+
+The same applies to a view a capture class photographs. Deleting `HomeEmpty` changed what the
+first-run walks see, and no audit class touches it.
+
+So: scoped by default. Broad when shared harness or a photographed view moved, and then state
+the file that earned it. A broad run nobody asked for and nobody explained is how a simulator
+is held for an hour with nothing to show.
 
 **A guard you add must be proved able to fail, in the same change that adds it.** Three
 checks in this repository could not fail, and each looked exactly like protection:
