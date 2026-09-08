@@ -1,6 +1,6 @@
 // What the platform does to a session, as opposed to what a listener does.
 //
-// Its own file for the reason `PlayerSkip.swift` and `PlayerSleep.swift` have one:
+// Its own file for the reason `PlayerSleep.swift` has one:
 // `PlayerCentre.swift` sits against SwiftLint's 400-line cap, and the cap keeps pointing at a
 // real seam. The centre owns *what is playing* and what a listener asks of it; this file owns
 // the events nobody in the app raises — a call arriving, headphones pulled out, another app

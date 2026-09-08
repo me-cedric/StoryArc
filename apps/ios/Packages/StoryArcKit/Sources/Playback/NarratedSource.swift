@@ -28,7 +28,7 @@ public final class NarratedSource: PlaybackSource {
     public var parts: [PlaybackPart] { timeline.playbackParts }
     public private(set) var place: PlaybackPlace = .start
 
-    /// Seconds, by the interval the listener configured. A narrated file has a clock.
+    /// Seconds, by ``SkipIntervals``. A narrated file has a clock.
     public let skipUnit: SkipUnit = .time
 
     public let unreadablePartCount: Int

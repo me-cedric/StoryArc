@@ -10,10 +10,9 @@ public import StoryArcCore
 /// one ``PlaybackSource``, and nothing it publishes says which kind of source that is.
 ///
 /// **What it owns and what it does not.** It owns the session state, the book, the parts,
-/// the place, the speed, the skip intervals and the sleep timer — everything that has to
-/// survive a screen. It does not own an engine, an audio session, or a now-playing centre:
-/// those are the platform's, and they sit either side of this in
-/// `NarratedSource` and in the app layer.
+/// the place, the speed and the sleep timer — everything that has to survive a screen. It
+/// does not own an engine, an audio session, or a now-playing centre: those are the
+/// platform's, and they sit either side of this in `NarratedSource` and in the app layer.
 ///
 /// **Not a singleton, unlike ``ReadAloudCentre`` before it.** The app makes one and hands it
 /// down, because the thing that made a singleton necessary there — a session started deep
@@ -49,9 +48,6 @@ public final class PlayerCentre {
 
     /// How fast, remembered per publication by whoever wired ``onRecallSpeed``.
     public private(set) var speed: PlaybackSpeed = .normal
-
-    /// How far a skip goes. See ``SkipIntervals`` for why the defaults are what they are.
-    public var skipIntervals: SkipIntervals = .default
 
     /// The sleep timer, while one is set. Everything that moves it is in `PlayerSleep.swift`.
     public internal(set) var sleep: SleepCountdown?
@@ -128,9 +124,6 @@ public final class PlayerCentre {
 
     /// A speed the listener chose, to be remembered against this publication.
     public var onRememberSpeed: (@MainActor (Publication, PlaybackSpeed) -> Void)?
-
-    /// Told when the listener changes how far a skip moves, so it can be kept.
-    public var onRememberSkip: (@MainActor (SkipIntervals) -> Void)?
 
     /// The artwork the system's own media controls show, as PNG bytes.
     ///
@@ -265,14 +258,14 @@ public final class PlayerCentre {
         published()
     }
 
-    /// Move by the listener's configured interval, or by one sentence.
+    /// Move by ``SkipIntervals``, or by one sentence.
     ///
     /// Skipping while paused starts playing again, which is what the gesture means: nobody
     /// skips back in order to keep hearing silence.
     public func skip(_ direction: SkipDirection) {
         guard session.isActive, let source else { return }
         session = session.started()
-        source.skip(direction, by: skipIntervals.interval(direction))
+        source.skip(direction, by: SkipIntervals.interval(direction))
         source.play()
         published()
     }

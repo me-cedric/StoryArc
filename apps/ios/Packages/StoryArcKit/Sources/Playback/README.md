@@ -3,7 +3,7 @@
 The player's model: one session, two sources, and nothing a view can see the engine through.
 
 `audio-playback` is the spec. This target holds what playing a book *is* — the state, the
-place, the speed, the skip intervals, the sleep timer — and the platform contract that a
+place, the speed, the sleep timer — and the platform contract that a
 running session needs. It draws nothing: `PlayerFeature` does that, and the split is a
 build-level fact rather than a convention, because `Formats` depends on this target for
 `AudiobookPart` and a parser has no business linking SwiftUI.
@@ -27,7 +27,6 @@ which pins the same session table and the same three duration cases.
 | `PlaybackSession.swift` | The state table: who silenced the audio, and what the end of an interruption does |
 | `PlayerCentre.swift` | The one session object. Begins, displaces, records, publishes |
 | `PlayerPosition.swift` | What a session writes down, and when |
-| `PlayerSkip.swift` | How far a skip moves, and who is told when it changes |
 | `PlayerSleep.swift` | The sleep timer's own transitions, and the only thing that moves them |
 | `PlayerInterruption.swift` | What the *platform* does to a session: a call, a route lost, audio taken for good |
 | `SleepTimer.swift` | A duration or end-of-chapter, as one remaining time |
@@ -36,7 +35,7 @@ which pins the same session table and the same three duration cases.
 | `PlaybackPlatform.swift` | The four moments the platform half needs, as a protocol — which is what makes the rest host-testable |
 | `PlaybackClock.swift` | A length as digits and as words. Both surfaces that state one read it from here |
 
-Each of `PlayerPosition`, `PlayerSkip`, `PlayerSleep` and `PlayerInterruption` is an extension
+Each of `PlayerPosition`, `PlayerSleep` and `PlayerInterruption` is an extension
 of `PlayerCentre` in a file of its own. `PlayerCentre.swift` sits against SwiftLint's 400-line
 cap and the cap keeps pointing at a real seam: the centre owns *what is playing*, and each
 control it offers owns its own rule.
@@ -48,10 +47,10 @@ control it offers owns its own rule.
 | `PlayerCentre.begin(_:source:)` | Play a book, displacing whatever was playing and recording its place first |
 | `PlayerCentre.compact` | Everything the bar draws, or `nil` — and the bar is **absent** then, never present and empty |
 | `PlayerCentre.toggle() / pause() / skip(_:) / scrub(to:) / play(part:) / setSpeed(_:)` | The transport. `pause()` is apart from `toggle()` because a pause control must never mean play |
-| `PlayerCentre.setSkipIntervals(_:)` / `setSleepTimer(_:)` | The two configurable controls |
+| `PlayerCentre.setSleepTimer(_:)` | The one configurable control. The skip interval is two constants in `SkipIntervals`, fixed on 2026-09-08 |
 | `PlayerCentre.interrupt() / resumeAfterInterruption() / routeLost() / lostAudio()` | What the platform does to a session |
 | `PlayerCentre.onRecord` | Where a position goes — a closure, because this target must not know that `reading-progress` keeps a store |
-| `PlayerCentre.onRecallSpeed` / `onRememberSpeed` / `onRememberSkip` / `onArtwork` | The four things the app supplies |
+| `PlayerCentre.onRecallSpeed` / `onRememberSpeed` / `onArtwork` | The three things the app supplies |
 | `PlaybackSession` | The table itself, usable without a centre |
 | `PlaybackClock.time(_:)` / `spokenTime(_:)` / `words(_:)` | How long something runs, for a face and for a screen reader |
 
@@ -62,7 +61,7 @@ part the container did not name. A model target carrying a catalogue is unusual 
 reason is that `audio-playback` requires the compact bar and the lock screen to say the *same*
 thing — "Part 3" has to be one answer, not two.
 
-No store of its own. The speed, the skip intervals and the position are all the app's to keep;
+No store of its own. The speed and the position are the app's to keep, and the skip interval is nobody's: it is two constants here;
 this target asks for them and hands them back.
 
 ## Data flow

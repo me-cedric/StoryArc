@@ -110,7 +110,7 @@ struct PlaybackSessionTests {
         #expect(source.calls.contains(.speed(1.5)))
     }
 
-    @Test("Skipping passes the configured interval to the source", arguments: SourceKind.allCases)
+    @Test("Skipping passes the fixed interval to the source", arguments: SourceKind.allCases)
     func skipping(_ kind: SourceKind) {
         let centre = PlayerCentre()
         let source = PlaybackSourceDouble(kind)

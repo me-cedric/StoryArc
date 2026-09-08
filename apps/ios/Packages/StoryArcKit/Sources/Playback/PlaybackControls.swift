@@ -55,7 +55,7 @@ public enum SkipDirection: Sendable, Equatable {
 /// for "sentence skip" by name. Same two buttons in the same two places; different words on
 /// them.
 public enum SkipUnit: Sendable, Equatable {
-    /// Seconds, by the interval the listener configured.
+    /// Seconds, by the fixed interval the control states.
     case time
     /// One sentence, which is all a synthesised voice can offer.
     case sentence
@@ -63,34 +63,19 @@ public enum SkipUnit: Sendable, Equatable {
 
 /// How far a skip goes.
 ///
-/// **The defaults are a product decision**, recorded as one in `design.md`: 15 seconds back
-/// and 30 seconds forward. Back is shorter because the reason to skip back is "I missed
+/// **The two numbers are a product decision**, recorded as one in `design.md`: 15 seconds
+/// back and 30 seconds forward. Back is shorter because the reason to skip back is "I missed
 /// that sentence" and the reason to skip forward is "I know this part". media3's own
 /// defaults — 5 s and 15 s — are wrong for spoken word in the other direction, and no
 /// platform guidance covers it either way.
 ///
-/// `audio-playback` requires the interval to be one "the listener can configure", which is
-/// why this is a stored value rather than two constants.
-public struct SkipIntervals: Sendable, Equatable, Codable {
-    public var back: TimeInterval
-    public var forward: TimeInterval
+/// `audio-playback` states the interval as fixed, so these are two constants and there is
+/// nothing to store, nothing to set and nothing to offer.
+public enum SkipIntervals {
+    public static let back: TimeInterval = 15
+    public static let forward: TimeInterval = 30
 
-    public init(back: TimeInterval = 15, forward: TimeInterval = 30) {
-        self.back = back
-        self.forward = forward
-    }
-
-    public static let `default` = SkipIntervals()
-
-    /// What the picker offers, in seconds.
-    ///
-    /// **The same four Android offers**, and that is the point of stating them here rather than
-    /// in the view: a listener who sets ten seconds on a phone and finds no ten on a tablet is a
-    /// listener the set has drifted under. A product decision like the defaults above, with no
-    /// platform guidance behind it either way.
-    public static let offered: [TimeInterval] = [5, 10, 15, 30]
-
-    public func interval(_ direction: SkipDirection) -> TimeInterval {
+    public static func interval(_ direction: SkipDirection) -> TimeInterval {
         switch direction {
         case .back: back
         case .forward: forward

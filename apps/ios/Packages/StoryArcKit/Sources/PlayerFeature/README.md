@@ -19,7 +19,7 @@ and `DesignSystem`. The Android mirror is `PlayerScreen.kt` and `CompactPlayerBa
 | `PlayerDock.swift` | The compact bar for `tabViewBottomAccessory`: what is playing, play/pause, and the way back |
 | `PlayerSheet.swift` | `playerSheet(isPresented:centre:)` — the full player's *presentation*, hosted by the shell rather than by the bar that opens it |
 | `FullPlayerView.swift` | The player: artwork, publication, chapter, position, the transport, and the three ways into the sheets |
-| `PlayerSheets.swift` | `ChapterListView`, `SpeedSheet`, `SleepTimerSheet`, `SkipIntervalsSheet` |
+| `PlayerSheets.swift` | `ChapterListView`, `SpeedSheet`, `SleepTimerSheet` |
 | `PlayerArtwork.swift` | The shared coverless well at the player's shape, and `PlayerArtworkImage` — the same view rendered at 512 pt for the lock screen |
 | `PlayerLabels.swift` | Every announcement and stated value as a **decision**, never as prose |
 | `PlayerText.swift` | Those decisions turned into `Text`, where the localised keys are literals a gate can read |
@@ -39,7 +39,7 @@ tests over them; `PlayerText` turns each into words.
 | `PlayerDock(centre:isShowingPlayer:onReturn:)` | The compact bar. `onReturn` is how a read-aloud session gets back to its reader |
 | `View.playerSheet(isPresented:centre:)` | Presents the full player from the shell's `TabView`, which lives as long as the app does |
 | `FullPlayerView(centre:)` | The player itself |
-| `ChapterListView`, `SpeedSheet`, `SleepTimerSheet`, `SkipIntervalsSheet` | Each takes the centre and nothing else |
+| `ChapterListView`, `SpeedSheet`, `SleepTimerSheet` | Each takes the centre and nothing else |
 | `PlayerArtwork(format:)` | The coverless treatment at the player's shape |
 | `PlayerArtworkImage.png(format:)` | The same view as bytes, for `MPMediaItemPropertyArtwork` |
 | `PlayerLabels` | The stated values, so a surface never invents one |
@@ -65,7 +65,7 @@ PlayerCentre ──► CompactPlayer ──► PlayerDock ──► playerSheet 
      ▲                                                                │
      └──────────────── toggle / skip / scrub / setSpeed / … ◄──────────┘
                                                                       │
-                                            ChapterList, Speed, Sleep, Skip sheets
+                                            ChapterList, Speed, Sleep sheets
 ```
 
 One arrow in and one arrow out. A view that took a `Publication` instead of a `PlayerCentre`

@@ -77,10 +77,10 @@ public protocol PlaybackSource: AnyObject {
     /// "present and refusing".
     func seek(toPart index: Int, offset: TimeInterval)
 
-    /// Move by the listener's configured interval, or by one sentence.
+    /// Move by an interval of seconds, or by one sentence.
     ///
-    /// - Parameter interval: the seconds the listener configured. A source whose
-    ///   ``skipUnit`` is ``SkipUnit/sentence`` ignores it.
+    /// - Parameter interval: the seconds to move. A source whose ``skipUnit`` is
+    ///   ``SkipUnit/sentence`` ignores it.
     ///
     /// The source, not the centre, decides what crossing a boundary does: `audio-playback`
     /// requires skipping past the start or end of a chapter to continue "into the

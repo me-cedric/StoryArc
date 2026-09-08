@@ -102,25 +102,16 @@ struct PlayerLabelsTests {
     /// showed an arrow would leave a listener guessing whether it moves 10 seconds or 60.
     @Test("A skip by time states its interval")
     func skipByTime() {
-        let intervals = SkipIntervals(back: 15, forward: 30)
-        #expect(PlayerLabels.skip(.back, unit: .time, intervals: intervals) == .time("15 seconds"))
-        #expect(PlayerLabels.skip(.forward, unit: .time, intervals: intervals) == .time("30 seconds"))
-    }
-
-    /// A configured interval is what is stated, not the default.
-    @Test("A configured interval is the one stated")
-    func skipStatesTheConfiguredInterval() {
-        let intervals = SkipIntervals(back: 5, forward: 60)
-        #expect(PlayerLabels.skip(.back, unit: .time, intervals: intervals) == .time("5 seconds"))
-        #expect(PlayerLabels.skip(.forward, unit: .time, intervals: intervals) == .time("1 minute"))
+        #expect(PlayerLabels.skip(.back, unit: .time) == .time("15 seconds"))
+        #expect(PlayerLabels.skip(.forward, unit: .time) == .time("30 seconds"))
     }
 
     /// A synthesised voice has no seconds to state, and `ebook-reader` asks its controls for
     /// sentence skip by name. Same two buttons, different words.
     @Test("A skip by sentence says so instead of stating seconds")
     func skipBySentence() {
-        #expect(PlayerLabels.skip(.back, unit: .sentence, intervals: .default) == .sentence)
-        #expect(PlayerLabels.skip(.forward, unit: .sentence, intervals: .default) == .sentence)
+        #expect(PlayerLabels.skip(.back, unit: .sentence) == .sentence)
+        #expect(PlayerLabels.skip(.forward, unit: .sentence) == .sentence)
     }
 
     // MARK: - Where there is no time to show

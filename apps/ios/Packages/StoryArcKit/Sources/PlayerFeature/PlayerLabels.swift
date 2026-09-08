@@ -8,7 +8,7 @@ public import Playback
 /// no seconds to state, and `ebook-reader` asks its controls for sentence skip by name — so
 /// two cases, and the surface never asks which *source* is playing to tell them apart.
 public enum SkipLabel: Equatable, Sendable {
-    /// The configured interval, already formatted: "15 seconds", "1 minute".
+    /// The interval, already formatted: "15 seconds", "30 seconds".
     case time(String)
     case sentence
 }
@@ -91,17 +91,13 @@ public enum PlayerLabels {
 
     /// What a skip control states on its face and to a screen reader.
     ///
-    /// The *configured* interval, not the default: `audio-playback` requires the interval to
-    /// be one "the listener can configure", and a control that stated the default while
-    /// moving by something else would be worse than one that stated nothing.
-    public static func skip(
-        _ direction: SkipDirection,
-        unit: SkipUnit,
-        intervals: SkipIntervals
-    ) -> SkipLabel {
+    /// The interval the audio actually moves by, read from ``Playback/SkipIntervals``: a
+    /// control that stated one number and moved by another would be worse than one that
+    /// stated nothing.
+    public static func skip(_ direction: SkipDirection, unit: SkipUnit) -> SkipLabel {
         switch unit {
         case .sentence: .sentence
-        case .time: .time(PlaybackClock.words(.seconds(intervals.interval(direction).rounded())))
+        case .time: .time(PlaybackClock.words(.seconds(SkipIntervals.interval(direction).rounded())))
         }
     }
 
