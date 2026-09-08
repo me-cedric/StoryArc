@@ -148,6 +148,13 @@ chapter.
 be provisioned without one. See [ADR-0011](decisions/0011-home-screen-widgets.md). No code
 change removes this.
 
+**CarPlay needs the same team, for the same reason.** Apple grants
+`com.apple.developer.carplay-audio` against a development team, and the scene does not
+activate without it. So iOS cannot be driven in a car or in the CarPlay simulator here. The
+rows a car draws are built and asserted on the host as `CarShelf` and `CarShelfTests`, and
+`App/CarScene.swift` holds the two templates. `audiobooks-and-playback`'s design note "The
+day an Apple team exists" lists the four steps the owner takes.
+
 ## Suggested order
 
 1. Section A, item 1. The accessibility audits gate every claim about whether the apps are

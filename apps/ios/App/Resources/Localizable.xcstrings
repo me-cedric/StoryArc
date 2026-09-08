@@ -1,6 +1,36 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "car.audiobooks": {
+      "comment": "Title of the CarPlay list of audiobooks. A car screen is read at a glance, so it names the one thing the list holds.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hörbücher"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audiobooks"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audiolibros"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Livres audio"
+          }
+        }
+      }
+    },
     "downloads.cancel": {
       "extractionState": "manual",
       "localizations": {
