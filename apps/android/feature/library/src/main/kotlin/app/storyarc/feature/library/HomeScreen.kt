@@ -152,7 +152,13 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 top = padding.calculateTopPadding(),
-                bottom = padding.calculateBottomPadding() + StoryArcSpace.xxl,
+                // The extra `xxl` is breathing room under the last shelf, so the final cover
+                // clears the navigation bar. The empty state is not a shelf: it centres itself
+                // in whatever room it is given, so an extra bottom inset moves its middle up
+                // and it stopped matching the library's, by half of `xxl`. Measured on a
+                // OnePlus 7T Pro: the title sat 55 pixels higher than the library's.
+                bottom = padding.calculateBottomPadding() +
+                    if (surface.isBare) 0.dp else StoryArcSpace.xxl,
             ),
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.section),
         ) {
@@ -169,6 +175,10 @@ fun HomeScreen(
                 // deleted `HomeEmpty` and draws `EmptyLibraryView` for the same reason.
                 item {
                     EmptyLibrary(
+                        // `fillParentMaxSize`, not `fillMaxSize`: a `LazyColumn` item measures
+                        // against unbounded height, so `fillMaxSize` collapses and the block
+                        // lands at the top. That is how home and the library came to disagree.
+                        modifier = Modifier.fillParentMaxSize(),
                         onOpenComic = onOpenFile,
                         onAddFolder = onAddFolder,
                         onAddCatalogue = onAddCatalogue,

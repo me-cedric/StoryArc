@@ -16,8 +16,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -86,21 +88,37 @@ internal fun EmptyLibrary(
 ) {
     val palette = LocalStoryArcPalette.current
 
+    // **This composable owns where its block sits, and the caller owns only how much room it
+    // has.** Home drew it as a `LazyColumn` item, which lays out at the top, and the library
+    // drew it inside a centred `Box`. One reader saw the same state in two places and the two
+    // did not agree: on a 3120-pixel phone the blocks sat 400 pixels apart. Sharing the
+    // composable was meant to stop exactly that, and sharing the content while leaving the
+    // placement to each caller left half the job undone.
+    //
+    // Centred on both axes, because iOS centres: `ContentUnavailableView` does it for free and
+    // Material publishes no empty-state component, so the alignment is stated here rather than
+    // inherited. Divergence #12 keeps the *mechanism* apart and asks the result to match.
+    //
+    // A caller must still say how tall the room is. `fillMaxSize` inside a `LazyColumn` item
+    // measures against unbounded height and collapses, so home passes `fillParentMaxSize`.
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.xxl),
-        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = stringResource(R.string.library_empty_title),
             style = MaterialTheme.typography.headlineSmall,
             color = palette.textPrimary,
+            textAlign = TextAlign.Center,
         )
         Text(
             text = stringResource(R.string.library_empty_subtitle),
             style = MaterialTheme.typography.bodyLarge,
             color = palette.textSecondary,
+            textAlign = TextAlign.Center,
             modifier = Modifier
                 .widthIn(max = FIRST_RUN_MEASURE)
                 .padding(bottom = StoryArcSpace.sm),
