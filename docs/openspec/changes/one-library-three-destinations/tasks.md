@@ -1767,8 +1767,8 @@ having moved after the task list for no visible reason.
 - [x] R.1 iOS: `HomeScreen` draws `EmptyLibraryView`, and `HomeEmpty` is deleted.
 - [x] R.2 iOS: the three source connections and their sheets are one view modifier, used by
       home and by the library, rather than a copy on each.
-- [ ] R.3 Android: `HomeFirstRun` in `HomeScreen.kt` draws the same state the library's own
+- [x] R.3 Android: `HomeFirstRun` in `HomeScreen.kt` draws the same state the library's own
       empty state draws, and its doc comment stops arguing for the retired shape.
-- [ ] R.4 Both: photograph the home first-run screen at the default text size and at the
+- [~] R.4 Both: photograph the home first-run screen at the default text size and at the
       largest accessibility size, because the menu sat behind the tab bar once already.
 
