@@ -279,8 +279,19 @@ class PlaybackService : MediaLibraryService() {
                 // The three the buttons above and the app need. A session command left
                 // undeclared is a button whose press is refused, which looks exactly like a
                 // button that does nothing.
+                //
+                // **`DEFAULT_SESSION_AND_LIBRARY_COMMANDS`, not `DEFAULT_SESSION_COMMANDS`.**
+                // The shorter constant carries no library command, so declaring it on a
+                // `MediaLibrarySession` withdrew every browse command this session exists to
+                // answer. `onGetLibraryRoot` and `onGetChildren` were then refused before they
+                // ran, and a browser read `RESULT_ERROR_PERMISSION_DENIED`. A car found the app
+                // in its launcher, was handed an error for the root, and could browse nothing.
+                //
+                // Nothing on this machine could see it: the callbacks return the right values,
+                // so every host test passed. `PlayerBrowseTreeTest` connects a real
+                // `MediaBrowser` and caught it on the first device run, on 2026-09-07.
                 .setAvailableSessionCommands(
-                    MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
+                    MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
                         .add(SessionCommand(COMMAND_SKIP_BACK, Bundle.EMPTY))
                         .add(SessionCommand(COMMAND_SKIP_FORWARD, Bundle.EMPTY))
                         .add(SessionCommand(COMMAND_REFRESH_BUTTONS, Bundle.EMPTY))
