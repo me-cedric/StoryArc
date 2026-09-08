@@ -269,11 +269,27 @@ class AudiobookSource(
         onChange?.invoke()
     }
 
-    /** Loads the audio and starts the decoder reading it. */
+    /**
+     * Loads the audio and starts the decoder reading it, at the place the listener left.
+     *
+     * **The position goes in with the items, and that is the whole of Android's resumption
+     * defect.** This used to set the items and then [seek], and a phone measured the result:
+     * `COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM` is not among a `MediaController`'s available
+     * commands while the service's player holds no audio, so `MediaController.seekTo` was
+     * dropped locally and never crossed to the session. The book began at zero every time,
+     * and `reading-progress`' "returns to where they were" was untrue on the live path —
+     * only the dead-process path in [PlaybackService.Resumption] carried a position.
+     * Measured on an HD1911, API 34: `canSeek=false`, `after=0`.
+     *
+     * One command instead of two. `setMediaItems` needs only `COMMAND_CHANGE_MEDIA_ITEMS`,
+     * which a controller does hold with an empty player, and it carries the start position
+     * itself. The index is the item's, never the part's: a single file's marks are all in
+     * item zero, and its offset is already the offset into that file.
+     */
     fun prepare(from: PlaybackPosition? = null) {
         player.addListener(listener)
-        player.setMediaItems(book.sources.map(::mediaItem))
-        from?.let { seek(it) }
+        val index = if (book.layout == PartLayout.FILES) from?.partIndex ?: 0 else 0
+        player.setMediaItems(book.sources.map(::mediaItem), index, from?.offsetMillis ?: C.TIME_UNSET)
         player.prepare()
     }
 

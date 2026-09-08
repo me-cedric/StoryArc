@@ -1624,6 +1624,36 @@ does". Nothing reads it back, so it survives and is never used.
       that position rather than at zero. It must fail when the seek is removed.
 - [ ] 13.3 Both: confirm on a device that closing the app and reopening the book returns the
       listener to the same minute. Only a device proves this one.
+      **Android holds. iOS is still owed**, because no iOS device was attached. Everything
+      below was measured on a OnePlus 7T Pro, HD1911, Android 14, API 34, on 2026-09-08.
+      *One: the live session starts where the listener stopped.*
+      `PlaybackResumeInstrumentedTest` in `:core:playback` builds an `Audiobook` over
+      `chaptered.m4b`, calls `PlaybackHost.start` at 2000 ms, and asserts the player reports
+      chapter Two. **It failed on its first hardware run, and that failure is what this task
+      existed to find.** A `MediaController` drops `seekTo` while the service's player holds
+      no audio: `COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM` is not among its available commands
+      yet, so the command never crossed to the session. A probe read `canSeek=false`, and
+      the player reported 0 ms in chapter One. `AudiobookSource.prepare` now hands the
+      position to `setMediaItems`, which needs only `COMMAND_CHANGE_MEDIA_ITEMS`. Five tests
+      pass and none fail. Removing the position again fails the same test by name.
+      *Two: the position survives the process dying.* Driven from a shell, because the test
+      runner dies with the app. `/data/data/app.storyarc.debug/databases/progress.db`, table
+      `progress`, held `part_index=1, offset_millis=24, part_count=6, is_finished=0`. Then
+      `adb shell am force-stop app.storyarc.debug` ran, `pidof` answered nothing, and the
+      same row read back unchanged with the write-ahead log checkpointed into the file.
+      *Three: reopening the book lands on that position.* Six copies of the fixture in one
+      folder make a 36 second audiobook. The store held part 1, and the reopened player
+      showed Part-02 rather than Part-01. A store seeded at part 4 plus 3000 ms reopened at
+      30021 ms of the book, which is that position plus the three seconds a shell needs to
+      press pause. A start at zero is excluded. The landing frame itself is not photographed:
+      every `adb shell input` costs about one second, so the audio always moves on first.
+      Screenshots are in `docs/designs/screenshots/android-resume-2026-09-08/`.
+      **Two findings are recorded here and fixed nowhere.** The app writes a position every
+      15 seconds and only from the last report the player published, so a recorded offset
+      follows the part boundary rather than the second — which is coarser than "the same
+      minute" for a book of half-hour parts. And a single audiobook handed over by the system
+      opens no player: `OpenedFile.index` closes the descriptor it reports, so
+      `OpenedAudiobook` is given a dead `/proc/self/fd/N`.
 
 ## 10. An audiobook is a publication a catalogue can offer
 
