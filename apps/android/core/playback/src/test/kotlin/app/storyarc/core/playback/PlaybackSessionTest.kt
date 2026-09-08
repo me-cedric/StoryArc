@@ -337,31 +337,15 @@ class PlaybackSessionTest {
     // MARK: 5.2 — the interval a skip moves
 
     /**
-     * `audio-playback`, *Skipping*: the audio moves "by a fixed interval the listener can
-     * configure".
+     * `audio-playback`, *Skipping*: the audio moves by a fixed interval.
      *
-     * The centre is where the interval is applied, as it is on iOS — a source is told how
-     * far to move and never which number that is, so a second surface cannot start skipping
-     * by a different amount than the notification does.
+     * The centre applies the interval, as it does on iOS. A source is told how far to move
+     * and never which number that is. A second surface therefore cannot skip by a different
+     * amount than the notification does. The numbers are the product decision, not media3's
+     * five and fifteen.
      */
     @Test
-    fun `a skip moves by the configured interval, and each direction has its own`() {
-        val source = narrated()
-        val centre = PlaybackCentre()
-        centre.skipIntervals = SkipIntervals.of(backSeconds = 10, forwardSeconds = 30)
-        centre.start(source)
-        source.seek(PlaybackPosition(1, 100_000))
-
-        centre.skip(SkipDirection.FORWARD)
-        assertEquals(PlaybackPosition(1, 130_000), source.position)
-
-        centre.skip(SkipDirection.BACK)
-        assertEquals(PlaybackPosition(1, 120_000), source.position)
-    }
-
-    /** And the default is the product decision, not media3's five and fifteen. */
-    @Test
-    fun `an unconfigured centre skips by fifteen and thirty`() {
+    fun `a skip moves by fifteen back and thirty forward`() {
         val source = narrated()
         val centre = PlaybackCentre()
         centre.start(source)

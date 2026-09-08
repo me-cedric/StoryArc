@@ -3,9 +3,7 @@ package app.storyarc.core.playback
 import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
-import android.os.Bundle
 import androidx.media3.session.MediaController
-import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.CoroutineScope
@@ -104,9 +102,6 @@ object PlaybackHost : SpokenAudio.Speaker {
     private var controller: MediaController? = null
     private var current: AudiobookSource? = null
     private var memory: PlaybackMemory? = null
-    private var skips: SkipPreferences? = null
-
-    private val _skipIntervals = MutableStateFlow(SkipIntervals.DEFAULT)
 
     private val _sleep = MutableStateFlow<SleepTimer?>(null)
 
@@ -150,13 +145,6 @@ object PlaybackHost : SpokenAudio.Speaker {
 
         memory = PlaybackMemory.open(context).also {
             it.remember(book, from?.partIndex ?: 0, from?.offsetMillis ?: 0)
-        }
-        // Read before the first sound, so the first press of a skip control moves by what
-        // the listener chose rather than by the default and then by their choice.
-        skips = SkipPreferences.open(context).also {
-            val intervals = it.intervals()
-            _skipIntervals.value = intervals
-            centre.skipIntervals = intervals
         }
         withController(context) { player ->
             val source = AudiobookSource(book, player, chapterWord)
@@ -287,7 +275,7 @@ object PlaybackHost : SpokenAudio.Speaker {
     }
 
     /**
-     * Skips by the listener's own interval, which is a product decision and not media3's.
+     * Skips by the fixed interval, which is a product decision and not media3's.
      *
      * **This used to do the arithmetic here, and it was wrong in two ways.** It added the
      * interval to the offset and clamped at zero, and a comment said the boundary case was
@@ -298,30 +286,6 @@ object PlaybackHost : SpokenAudio.Speaker {
      * now [PlaybackCentre.skip]'s, over [PlaybackTimeline].
      */
     fun skip(direction: SkipDirection) = centre.skip(direction)
-
-    /** How far a skip moves, for a control that has to state its own interval. */
-    val skipIntervals: StateFlow<SkipIntervals> = _skipIntervals.asStateFlow()
-
-    /**
-     * Changes how far a skip moves, and remembers it.
-     *
-     * `audio-playback` asks for an interval "the listener can configure". Written as it is
-     * chosen rather than when the book ends, for [setSpeed]'s reason: a listener who adjusts
-     * it and then loses the process would otherwise be asked the same question again.
-     *
-     * **The notification is told rather than left to notice.** Its two outer buttons carry
-     * the interval in their glyph and their label, and those are set when a controller
-     * connects — so a change made while the shade is showing the old number needs a nudge,
-     * and [PlaybackService.COMMAND_REFRESH_BUTTONS] is it.
-     */
-    fun setSkipIntervals(intervals: SkipIntervals) {
-        _skipIntervals.value = intervals
-        centre.skipIntervals = intervals
-        skips?.remember(intervals)
-        val refresh = SessionCommand(PlaybackService.COMMAND_REFRESH_BUTTONS, Bundle.EMPTY)
-        controller?.takeIf { it.isSessionCommandAvailable(refresh) }
-            ?.sendCustomCommand(refresh, Bundle.EMPTY)
-    }
 
     /**
      * How often the countdown looks at the clock.

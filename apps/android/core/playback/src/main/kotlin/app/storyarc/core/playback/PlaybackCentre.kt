@@ -27,15 +27,6 @@ class PlaybackCentre(
     /** Told whenever [nowPlaying] changes, so a surface can redraw. */
     var onChange: ((NowPlaying?) -> Unit)? = null
 
-    /**
-     * How far a skip moves. See [SkipIntervals] for why the defaults are what they are.
-     *
-     * Held here, and applied here, exactly as iOS's `PlayerCentre` holds it: a source is
-     * told how far to move and never which number that is. One place decides, so the app's
-     * control and the notification's cannot drift into skipping by different amounts.
-     */
-    var skipIntervals: SkipIntervals = SkipIntervals.DEFAULT
-
     /** The id of the publication being played, or null. Feeds [SessionHandover.opening]. */
     val playingId: String? get() = source?.publicationId
 
@@ -84,15 +75,16 @@ class PlaybackCentre(
     }
 
     /**
-     * Moves by the configured interval, crossing a part boundary rather than stopping.
+     * Moves by the fixed interval, crossing a part boundary rather than stopping.
      *
-     * The carrying is [PlayerSource.skip]'s and the interval is [skipIntervals]'s, which is
+     * The carrying is [PlayerSource.skip]'s and the interval is [SkipIntervals]'s, which is
      * the split `design.md` draws: what a skip *moves* is the source's business, and how far
-     * it moves is the session's.
+     * it moves is the session's. A source is told how far to move and never which number
+     * that is, exactly as iOS's `PlayerCentre` tells it.
      */
     fun skip(direction: SkipDirection) {
         val source = source ?: return
-        source.skip(direction, skipIntervals.millis(direction))
+        source.skip(direction, SkipIntervals.millis(direction))
         publish()
     }
 

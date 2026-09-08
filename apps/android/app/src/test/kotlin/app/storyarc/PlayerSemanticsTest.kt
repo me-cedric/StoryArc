@@ -33,7 +33,6 @@ import app.storyarc.core.playback.PlaybackDuration
 import app.storyarc.core.playback.PlaybackPart
 import app.storyarc.core.playback.PlaybackSession
 import app.storyarc.core.playback.PlaybackSpeed
-import app.storyarc.core.playback.SkipIntervals
 import app.storyarc.core.playback.SleepAfter
 import app.storyarc.core.playback.SleepTimer
 import org.junit.Assert.assertEquals
@@ -95,8 +94,6 @@ class PlayerSemanticsTest {
         duration: PlaybackDuration = PlaybackDuration.Known(300_000),
         sleep: SleepTimer? = null,
         fontScale: Float = 1f,
-        intervals: SkipIntervals = SkipIntervals.DEFAULT,
-        onIntervals: (SkipIntervals) -> Unit = {},
         publication: Publication? = audiobook(),
         cover: suspend (Publication, Int) -> Bitmap? = { _, _ -> null },
     ) {
@@ -113,8 +110,6 @@ class PlayerSemanticsTest {
                     sleep = sleep,
                     onSleep = {},
                     onBack = {},
-                    intervals = intervals,
-                    onIntervals = onIntervals,
                     publication = publication,
                     cover = cover,
                 )
@@ -200,43 +195,6 @@ class PlayerSemanticsTest {
         // a loose number.
         compose.onNodeWithContentDescription("Back 15 seconds").assertIsDisplayed()
         compose.onNodeWithContentDescription("Forward 30 seconds").assertIsDisplayed()
-    }
-
-    /**
-     * `audio-playback`: the interval is one "the listener can configure", and it is "stated
-     * on the control itself" — so the control has to state the *configured* one. A control
-     * that said fifteen while the audio moved ten would be worse than one that said nothing,
-     * which is why this is asserted rather than assumed from the default case above.
-     */
-    @Test
-    fun `the skip controls state the configured interval and not the default`() {
-        compose.setContent { Player(intervals = SkipIntervals.of(10, 5)) }
-
-        compose.onNodeWithContentDescription("Back 10 seconds").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Forward 5 seconds").assertIsDisplayed()
-        compose.onAllNodesWithContentDescription("Back 15 seconds").assertCountEquals(0)
-    }
-
-    /**
-     * And the choice is reachable: four intervals a direction, each named in full.
-     *
-     * The chip is announced in different words from the transport control it configures —
-     * "Skip forward 10 seconds" rather than "Forward 10 seconds" — which is what keeps a
-     * screen reader from offering two identically named controls, only one of which moves
-     * the audio.
-     */
-    @Test
-    fun `choosing an interval reports it for that direction alone`() {
-        var chosen: SkipIntervals? = null
-        compose.setContent {
-            Player(intervals = SkipIntervals.DEFAULT, onIntervals = { chosen = it })
-        }
-
-        // Below the artwork, the transport and the position, so brought on screen first: the
-        // column scrolls, and a chip off the bottom of a 740 dp phone is present and not tappable.
-        compose.onNodeWithContentDescription("Skip forward 10 seconds").performScrollTo().performClick()
-
-        assertEquals(SkipIntervals.of(15, 10), chosen)
     }
 
     @Test

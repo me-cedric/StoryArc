@@ -75,17 +75,6 @@
         <item quantity="other">%1$d Sekunden vor</item>
     </plurals>
     <string name="player_seconds">%1$d s</string>
-    <string name="player_skip">Sprung</string>
-    <string name="player_skip_back_interval">Zurück</string>
-    <string name="player_skip_forward_interval">Vor</string>
-    <plurals name="player_skip_back_choice">
-        <item quantity="one">Sprung %1$d Sekunde zurück</item>
-        <item quantity="other">Sprung %1$d Sekunden zurück</item>
-    </plurals>
-    <plurals name="player_skip_forward_choice">
-        <item quantity="one">Sprung %1$d Sekunde vor</item>
-        <item quantity="other">Sprung %1$d Sekunden vor</item>
-    </plurals>
     <string name="player_sleep">Sleeptimer</string>
     <string name="player_sleep_in">Schlafen in %1$s</string>
     <string name="player_sleep_off">Aus</string>

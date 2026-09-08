@@ -9,31 +9,22 @@ import org.junit.Test
 /**
  * The glyph the shade's two outer buttons wear.
  *
- * Every offered interval has a numbered icon, which is the argument for the set being what
- * it is; anything else gets an arrow rather than a number that lies about the interval.
+ * The first test ties the glyph to the interval it draws. It fails if one of the two moves
+ * without the other, which is the defect a numbered glyph invites.
  */
 @OptIn(UnstableApi::class)
 class SkipButtonsTest {
 
     @Test
-    fun `every offered interval has a numbered glyph in both directions`() {
-        val generic = setOf(CommandButton.ICON_SKIP_BACK, CommandButton.ICON_SKIP_FORWARD)
-        for (seconds in SkipIntervals.OFFERED_SECONDS) {
-            for (direction in SkipDirection.entries) {
-                val icon = skipIcon(direction, seconds)
-                assertEquals(
-                    "$direction $seconds fell back to an arrow",
-                    false,
-                    icon in generic,
-                )
-            }
-        }
-    }
-
-    @Test
-    fun `the defaults wear the numbers design_md chose`() {
-        assertEquals(CommandButton.ICON_SKIP_BACK_15, skipIcon(SkipDirection.BACK, 15))
-        assertEquals(CommandButton.ICON_SKIP_FORWARD_30, skipIcon(SkipDirection.FORWARD, 30))
+    fun `the two intervals wear the numbers the platform draws for them`() {
+        assertEquals(
+            CommandButton.ICON_SKIP_BACK_15,
+            skipIcon(SkipDirection.BACK, SkipIntervals.BACK_SECONDS),
+        )
+        assertEquals(
+            CommandButton.ICON_SKIP_FORWARD_30,
+            skipIcon(SkipDirection.FORWARD, SkipIntervals.FORWARD_SECONDS),
+        )
     }
 
     @Test

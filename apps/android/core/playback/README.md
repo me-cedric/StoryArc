@@ -17,9 +17,8 @@ intended.
 | `AudiobookChapters.kt` | `ChapterMark` and the rules over it: an unchaptered book is one part, never an empty list |
 | `PlaybackPart.kt` | `PlaybackDuration` (known, estimated, unknown), `PlaybackPosition`, `PlaybackSpeed` |
 | `PlaybackTimeline.kt` | Whole-book time, out and back, so a skip crosses a part boundary. `SkipDirection` |
-| `SkipIntervals.kt` | How far a skip goes, clamped to the offered range |
+| `SkipIntervals.kt` | How far a skip goes: fifteen seconds back, thirty forward |
 | `SkipButtons.kt` | Which media3 glyph an interval wears |
-| `SkipPreferences.kt` | The listener's chosen intervals, where the service can read them |
 | `PlaybackSession.kt` | The state table: who silenced the audio, and what the end of an interruption does |
 | `PlaybackFocus.kt` | media3's focus signals read as those states |
 | `PlaybackCentre.kt` | The one session object. Displaces, records, publishes |
@@ -39,8 +38,7 @@ intended.
 | `SpokenAudio.shared.claim(publication, by)` / `.silence()` | What a caller about to make a sound asks. `:feature:epubreader`'s `ReadAloudHost` is the second `Speaker` |
 | `PlaybackHost.nowPlaying: StateFlow<NowPlaying?>` | What every surface draws. Null when nothing plays — and the compact bar is **absent** then, not empty |
 | `PlaybackHost.toggle / seek / seekToPart / setSpeed / stop` | The transport |
-| `PlaybackHost.skip(direction)` | Moves by the configured interval, crossing a part boundary |
-| `PlaybackHost.skipIntervals` / `setSkipIntervals(intervals)` | How far, and changing it |
+| `PlaybackHost.skip(direction)` | Moves by the fixed interval, crossing a part boundary |
 | `PlaybackHost.sleep` / `setSleepTimer(after)` | The sleep timer, counting down |
 | `PlaybackHost.publishCarLibrary(context, books)` | The audiobooks on the device, written where a car can read them. Call it whenever the library changes and pass every book: the file is replaced, not added to |
 | `PlaybackHost.recordPosition` | Where a position goes. Set by the app once — a lambda, because this module must not know a library keeps a database |
@@ -48,14 +46,13 @@ intended.
 
 ## Config
 
-Three preferences files of its own, all because `PlaybackService` reads them and a service the
+Two preferences files of its own, both because `PlaybackService` reads them and a service the
 system has just started to answer the shade carousel or a car has no scope, no database and no
 time — and because this module deliberately does not depend on `:core:persistence`.
 
 | File | Holds |
 | --- | --- |
 | `app.storyarc.playback.memory` | The URIs, part titles, index and offset of the book that was playing |
-| `app.storyarc.playback.skip` | The chosen skip intervals, in seconds |
 | `app.storyarc.playback.library` | The audiobooks on the device, as a car lists them. Written by the app, read by the service |
 
 Neither is a reading position. That is `reading-progress`'s, stored by the app, and the two

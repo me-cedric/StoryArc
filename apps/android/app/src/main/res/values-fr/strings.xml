@@ -80,19 +80,6 @@
         <item quantity="other">Avancer de %1$d secondes</item>
     </plurals>
     <string name="player_seconds">%1$d s</string>
-    <string name="player_skip">Saut</string>
-    <string name="player_skip_back_interval">Reculer</string>
-    <string name="player_skip_forward_interval">Avancer</string>
-    <plurals name="player_skip_back_choice">
-        <item quantity="one">Saut arrière de %1$d seconde</item>
-        <item quantity="many">Saut arrière de %1$d secondes</item>
-        <item quantity="other">Saut arrière de %1$d secondes</item>
-    </plurals>
-    <plurals name="player_skip_forward_choice">
-        <item quantity="one">Saut avant de %1$d seconde</item>
-        <item quantity="many">Saut avant de %1$d secondes</item>
-        <item quantity="other">Saut avant de %1$d secondes</item>
-    </plurals>
     <string name="player_sleep">Minuteur de veille</string>
     <string name="player_sleep_in">Veille dans %1$s</string>
     <string name="player_sleep_off">Aucun</string>

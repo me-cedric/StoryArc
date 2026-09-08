@@ -252,10 +252,6 @@ internal fun HostedScreen(
                     sleep = PlaybackHost.sleep.collectAsStateWithLifecycle().value,
                     onSleep = PlaybackHost::setSleepTimer,
                     onBack = back,
-                    // How far a skip moves is the listener's, and the host is where it is
-                    // kept — the notification's buttons read the same store.
-                    intervals = PlaybackHost.skipIntervals.collectAsStateWithLifecycle().value,
-                    onIntervals = PlaybackHost::setSkipIntervals,
                     publication = following?.takeIf { it.id == playing.publicationId },
                     // The same cache every shelf reads, so a cover the library has drawn
                     // once is not decoded a second time for the player.

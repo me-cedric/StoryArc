@@ -62,26 +62,16 @@ class PlaybackService : MediaLibraryService() {
      */
     private val memory: PlaybackMemory by lazy { PlaybackMemory.open(this) }
 
-    /**
-     * How far the listener asked a skip to go, read from disk for the same reason.
-     *
-     * Asked again at every press rather than cached, so a change made in the app reaches
-     * the shade's own buttons without the service being restarted. `SharedPreferences`
-     * keeps the file in memory after the first read, so the cost is a map lookup.
-     */
-    private val skips: SkipPreferences by lazy { SkipPreferences.open(this) }
-
     private val library: CarLibrary by lazy { CarLibrary.open(this) }
 
     override fun onCreate() {
         super.onCreate()
-        val intervals = skips.intervals()
         val exo = ExoPlayer.Builder(this)
-            // **15 seconds back, 30 forward by default.** A *product decision*, recorded as
-            // one: media3's own defaults are 5 s and 15 s, and both are wrong for spoken
-            // word in the same direction. Back is the shorter because the reason to skip
-            // back is "I missed that sentence" and the reason to skip forward is "I know
-            // this part". No guideline says this and none is cited for it.
+            // **15 seconds back, 30 forward.** A *product decision*, recorded as one:
+            // media3's own defaults are 5 s and 15 s, and both are wrong for spoken word in
+            // the same direction. Back is the shorter because the reason to skip back is "I
+            // missed that sentence" and the reason to skip forward is "I know this part".
+            // No guideline says this and none is cited for it.
             //
             // These are the increments a *generic* seek uses — a car's voice command, an
             // Assistant, a Wear tile — and they clamp to the current item, which for a
@@ -89,8 +79,8 @@ class PlaybackService : MediaLibraryService() {
             // outer buttons do not come through here; they come through [skip], which
             // carries across the boundary. Set anyway so the one path this cannot fix at
             // least moves by the right amount.
-            .setSeekBackIncrementMs(intervals.millis(SkipDirection.BACK))
-            .setSeekForwardIncrementMs(intervals.millis(SkipDirection.FORWARD))
+            .setSeekBackIncrementMs(SkipIntervals.millis(SkipDirection.BACK))
+            .setSeekForwardIncrementMs(SkipIntervals.millis(SkipDirection.FORWARD))
             .setAudioAttributes(SPOKEN_AUDIO, /* handleAudioFocus= */ true)
             // media3 handles the focus loss, and the *meaning* of the pause it makes is
             // `PlaybackSession`'s — see `AudiobookSource.interrupted`. Pausing on a
@@ -153,13 +143,10 @@ class PlaybackService : MediaLibraryService() {
      * The icons carry the intervals, because the intervals are a **product decision** and
      * a listener reading the control needs to be told which it is.
      */
-    private fun seekButtons(): ImmutableList<CommandButton> {
-        val intervals = skips.intervals()
-        return ImmutableList.of(
-            skipButton(SkipDirection.BACK, intervals, CommandButton.SLOT_BACK),
-            skipButton(SkipDirection.FORWARD, intervals, CommandButton.SLOT_FORWARD),
-        )
-    }
+    private fun seekButtons(): ImmutableList<CommandButton> = ImmutableList.of(
+        skipButton(SkipDirection.BACK, CommandButton.SLOT_BACK),
+        skipButton(SkipDirection.FORWARD, CommandButton.SLOT_FORWARD),
+    )
 
     /**
      * One of those two, carrying its own interval in its glyph and its words.
@@ -172,14 +159,10 @@ class PlaybackService : MediaLibraryService() {
      * [LibraryCallback.onCustomCommand] instead, where the same [PlaybackTimeline] the app
      * uses decides where it lands.
      */
-    private fun skipButton(
-        direction: SkipDirection,
-        intervals: SkipIntervals,
-        slot: Int,
-    ): CommandButton {
-        val seconds = intervals.seconds(direction)
-        // A plural, not a string. The interval is a number the listener chose, and a
-        // language that inflects around it has to be able to.
+    private fun skipButton(direction: SkipDirection, slot: Int): CommandButton {
+        val seconds = SkipIntervals.seconds(direction)
+        // A plural, not a string. The label states a number, and a language that inflects
+        // around that number has to be able to.
         val label = when (direction) {
             SkipDirection.BACK ->
                 resources.getQuantityString(R.plurals.playback_skip_back, seconds, seconds)
@@ -212,7 +195,7 @@ class PlaybackService : MediaLibraryService() {
         if (timeline.isEmpty) return
         // Titles are the app's, and a skip does not need one. What it needs is the lengths.
         val parts = timeline.partDurations().map { PlaybackPart(title = "", duration = it) }
-        val interval = skips.intervals().millis(direction)
+        val interval = SkipIntervals.millis(direction)
         val by = if (direction == SkipDirection.BACK) -interval else interval
         val from = PlaybackPosition(
             partIndex = exo.currentMediaItemIndex,
@@ -276,9 +259,9 @@ class PlaybackService : MediaLibraryService() {
                         .add(Player.COMMAND_SEEK_TO_NEXT)
                         .build(),
                 )
-                // The three the buttons above and the app need. A session command left
-                // undeclared is a button whose press is refused, which looks exactly like a
-                // button that does nothing.
+                // The two the buttons above need. A session command left undeclared is a
+                // button whose press is refused, which looks exactly like a button that
+                // does nothing.
                 //
                 // **`DEFAULT_SESSION_AND_LIBRARY_COMMANDS`, not `DEFAULT_SESSION_COMMANDS`.**
                 // The shorter constant carries no library command, so declaring it on a
@@ -294,7 +277,6 @@ class PlaybackService : MediaLibraryService() {
                     MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
                         .add(SessionCommand(COMMAND_SKIP_BACK, Bundle.EMPTY))
                         .add(SessionCommand(COMMAND_SKIP_FORWARD, Bundle.EMPTY))
-                        .add(SessionCommand(COMMAND_REFRESH_BUTTONS, Bundle.EMPTY))
                         .build(),
                 )
                 .setMediaButtonPreferences(seekButtons())
@@ -441,7 +423,7 @@ class PlaybackService : MediaLibraryService() {
         }
 
         /**
-         * The two skips, and the nudge that relabels their buttons.
+         * The two skips.
          *
          * **This used to say there was nothing custom to answer**, because both skips were
          * `COMMAND_SEEK_BACK` and `COMMAND_SEEK_FORWARD` and media3 answered them itself.
@@ -466,13 +448,6 @@ class PlaybackService : MediaLibraryService() {
             }
             COMMAND_SKIP_FORWARD -> {
                 skip(SkipDirection.FORWARD)
-                Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
-            }
-            // The listener changed the interval while the shade was showing the old number.
-            // The buttons carry it in their glyph and their words, and they are only sent
-            // when a controller connects — so the app asks for them to be sent again.
-            COMMAND_REFRESH_BUTTONS -> {
-                this@PlaybackService.session?.setMediaButtonPreferences(seekButtons())
                 Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
             else -> Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))
@@ -537,13 +512,10 @@ class PlaybackService : MediaLibraryService() {
          *
          * See [LibraryCallback.onCustomCommand]: media3 answers a player seek by clamping to
          * the current item, and this player has to cross a boundary. How far they move is
-         * [SkipPreferences]'s and the defaults are `design.md`'s — 15 back, 30 forward.
+         * [SkipIntervals]'s, and the numbers are `design.md`'s — 15 back, 30 forward.
          */
         const val COMMAND_SKIP_BACK: String = "app.storyarc.playback.SKIP_BACK"
         const val COMMAND_SKIP_FORWARD: String = "app.storyarc.playback.SKIP_FORWARD"
-
-        /** Send the button preferences again, because their interval changed. */
-        const val COMMAND_REFRESH_BUTTONS: String = "app.storyarc.playback.REFRESH_BUTTONS"
 
         /**
          * Spoken word, not music.
