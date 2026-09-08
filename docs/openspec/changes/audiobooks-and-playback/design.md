@@ -363,3 +363,44 @@ iOS reads the same shape from its own store, because a `CPListTemplate` is built
 scene connects and the app is running by then. The two platforms therefore differ in
 mechanism and agree on content, which is the pattern this repository already uses for the
 library watchers.
+
+### The day an Apple team exists: what the owner does for CarPlay
+
+**What is built now.** `CarShelf` in `StoryArcKit`'s `Playback` module composes the rows as a
+value: the book in progress first, then each audiobook on the device once, flat, and no
+comic. `CarShelfTests` asserts those three rules on the host, the way `CarLibraryTest`
+asserts Android's. `App/CarScene.swift` turns those rows into a `CPListTemplate` and pushes
+`CPNowPlayingTemplate`, and `OrientationDelegate` routes the car scene role to it.
+
+**Why it cannot run.** `import CarPlay` compiles without any entitlement: the framework is in
+every iOS SDK. Activation is what needs `com.apple.developer.carplay-audio`, and the system
+creates no car scene until the app declares one in its scene manifest. Neither the
+entitlement nor the manifest is written here, because both change how the app signs or
+launches, and this repository signs ad-hoc. ADR-0011 records what an unprovisionable
+entitlement did to a build in this project.
+
+**The four steps, in this order.**
+
+1. Ask Apple for `com.apple.developer.carplay-audio` against the development team. Apple
+   grants it on request for an audio app.
+2. Set `DEVELOPMENT_TEAM` in `apps/ios/project.yml`. Then add the entitlement key to
+   `apps/ios/App/StoryArc.entitlements` as a boolean `true`. Do the two together. An
+   entitlement that no provisioning profile grants fails the build.
+3. Add `UIApplicationSceneManifest` to the `info.properties` block of the `StoryArc` target
+   in `apps/ios/project.yml`. Declare two scene configurations under
+   `UISceneConfigurations`: the phone's own `UIWindowSceneSessionRoleApplication`, and
+   `CPTemplateApplicationSceneSessionRoleApplication` with
+   `UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).CarSceneDelegate`. **Declare the window
+   role as well as the car role.** A manifest replaces the system default, so a manifest that
+   names only the car role gives the app no window.
+4. Install the two seams on `CarScene`. `onDevice` answers with the audiobooks on the device,
+   from `LibraryModel.publications` and `LibraryModel.location(of:)`. `onListen` calls the
+   app's own `listen(to:at:)`, which already resumes where the listener stopped. Both are
+   `nil` today, so the list is empty and a row does nothing. They are `nil` rather than wired
+   because a car screen is the only place either one is observable.
+
+**Then tick §12.4 and §12.6 of the task list.** §12.5 is met already: the template tree is
+asserted without a car. §12.4 is met in code and unmet on a screen, so it stays open until
+step 4 lands and a car draws the list. §12.6 is the device run itself. Section F of
+`docs/mvp-device-checklist.md` records the same block and loses its CarPlay paragraph on the
+same day.

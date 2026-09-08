@@ -58,6 +58,43 @@ class AudioSurfacesAreWiredTest {
         )
     }
 
+    /**
+     * That the marked part and the primary action answer from one store.
+     *
+     * The page used to read `PlaybackHost.lastPosition`, and `PlaybackMemory` behind it holds
+     * the last book played and nothing else — so a second started audiobook drew an unmarked
+     * chapter list while the progress store held its position, and the action, which reads
+     * that store, named a chapter the marks disagreed with.
+     */
+    @Test
+    fun `the marked part is read from the progress store, per publication`() {
+        val screens = read(APP_SCREENS)
+
+        assertTrue(
+            "The publication page no longer asks the progress store where this publication" +
+                " stopped. Only the last book played is then marked.",
+            screens.contains("host.dependencies.progress.progress(publication.identity)"),
+        )
+        assertTrue(
+            "The page no longer reads the store through `ListenedPosition.resume`. The marks" +
+                " and the primary action can then name different chapters.",
+            screens.contains("ListenedPosition.resume(listened?.position"),
+        )
+        // **Both assertions above pin a read and neither pinned the wiring.** Deleting
+        // `?: saved` stops the store's answer reaching the screen, and this suite stayed
+        // green through it. That is the gap this feature was faulted for once already.
+        assertTrue(
+            "The store's answer no longer reaches `stoppedIn`, so the page marks only the" +
+                " book that is playing.",
+            screens.contains("?.partIndex ?: saved"),
+        )
+        assertTrue(
+            "The store is no longer re-read when the session changes, so the mark goes stale" +
+                " the moment a listener stops without leaving the page.",
+            screens.contains("LaunchedEffect(publication.id, playing)"),
+        )
+    }
+
     private fun read(path: String): String {
         val file = File(androidRoot, path)
         if (!file.isFile) error("$path is not under ${androidRoot.absolutePath} — has it moved?")

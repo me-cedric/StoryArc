@@ -113,6 +113,15 @@ androidx-compose-material-icons-extended ={ group = "androidx.compose.material",
 
 androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
 androidx-media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
+# Chapter marks before playback. `MetadataRetriever` prepares a media source and reads its
+# track formats with no player, which is where a `Chapter` entry lives.
+#
+# The class moved. 1.10.0 deprecated `androidx.media3.exoplayer.MetadataRetriever` and added
+# `androidx.media3.inspector.MetadataRetriever`; 1.11.0 removed the old one. Verified against
+# the shipped artifacts on 2026-09-08: the 1.11.0 `media3-exoplayer` class list holds no
+# `MetadataRetriever`, and `media3-inspector` holds it. So this is a declaration of a class
+# the bump moved, not a new library.
+androidx-media3-inspector = { group = "androidx.media3", name = "media3-inspector", version.ref = "media3" }
 
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }

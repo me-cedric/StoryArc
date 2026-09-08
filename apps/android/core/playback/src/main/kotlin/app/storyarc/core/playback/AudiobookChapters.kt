@@ -14,7 +14,17 @@ data class ChapterMark(
     /** What the container calls it, or null when it calls it nothing. */
     val title: String?,
     val startMillis: Long,
-    val endMillis: Long,
+    /**
+     * Where the mark ends, or null when the container says only where it starts.
+     *
+     * **Null is the ordinary case for an M4B, and reading it as unusable was the defect.** An
+     * MP4 carries its chapters as a text track that a `chap` reference points at, and that
+     * track states a title and a start and no end; media3 answers `C.TIME_UNSET`. ID3 `CHAP`
+     * frames carry both ends, which is why a chaptered MP3 always listed its chapters and a
+     * chaptered M4B listed one part. [AudiobookChapters.parts] fills an unstated end from the
+     * next mark, which is what a chapter list already means.
+     */
+    val endMillis: Long?,
     /** Some containers mark a chapter as not for showing. */
     val isHidden: Boolean = false,
 )
@@ -44,12 +54,7 @@ object AudiobookChapters {
         fallbackTitle: String,
         chapterWord: String = "Chapter",
     ): List<PlaybackPart> {
-        val usable = marks
-            .filterNot { it.isHidden }
-            // A mark that ends where it starts, or before it, describes no audio. Dropped
-            // rather than kept as a zero-length row nothing can play or seek to.
-            .filter { it.endMillis > it.startMillis }
-            .sortedBy { it.startMillis }
+        val usable = usable(marks)
 
         if (usable.isEmpty()) return listOf(
             PlaybackPart(
@@ -59,9 +64,19 @@ object AudiobookChapters {
         )
 
         return usable.mapIndexed { index, mark ->
+            // Where the container stated no end, the next mark's start is the end, and the
+            // book's own length is the last mark's. Derived and not guessed: a chapter runs
+            // until the one after it begins. Where nothing says how long the book is, the
+            // last chapter states no length rather than an estimate.
+            val ends = mark.endMillis
+                ?: usable.getOrNull(index + 1)?.startMillis
+                ?: totalMillis
             PlaybackPart(
                 title = mark.title?.trim()?.ifEmpty { null } ?: "$chapterWord ${index + 1}",
-                duration = PlaybackDuration.Known(mark.endMillis - mark.startMillis),
+                duration = ends
+                    ?.takeIf { it > mark.startMillis }
+                    ?.let { PlaybackDuration.Known(it - mark.startMillis) }
+                    ?: PlaybackDuration.Unknown,
             )
         }
     }
@@ -73,11 +88,21 @@ object AudiobookChapters {
      * chaptered M4B is one item, so moving to a chapter is a seek and something has to
      * know where to. The list is index-aligned with [parts] over the same marks.
      */
-    fun offsets(marks: List<ChapterMark>): List<Long> = marks
+    fun offsets(marks: List<ChapterMark>): List<Long> = usable(marks).map { it.startMillis }
+
+    /**
+     * The marks that name a part, in playing order.
+     *
+     * One list for [parts] and [offsets], so the two cannot drop different marks and leave a
+     * chapter row seeking to its neighbour. A hidden mark is not a part. A mark that ends at
+     * or before it starts describes no audio, and some encoders write one at the end of a
+     * file, so it is dropped rather than kept as a row nothing can play. A mark with no
+     * stated end is kept: a start and a title are all a chapter row needs.
+     */
+    private fun usable(marks: List<ChapterMark>): List<ChapterMark> = marks
         .filterNot { it.isHidden }
-        .filter { it.endMillis > it.startMillis }
+        .filterNot { mark -> mark.endMillis != null && mark.endMillis <= mark.startMillis }
         .sortedBy { it.startMillis }
-        .map { it.startMillis }
 
     /**
      * Which part a position falls in.

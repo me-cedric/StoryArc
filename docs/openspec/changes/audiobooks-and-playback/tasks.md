@@ -1655,10 +1655,34 @@ shipped surface had no specification. iOS has nothing.
       the device, and nothing else. Assert it as `PlayerBrowseTreeTest` already asserts the
       tree.
 - [ ] 12.3 Android: a car's next-track control moves a chapter, not a file.
-- [ ] 12.4 iOS: a CarPlay scene with a now-playing template and a list of audiobooks, built
-      against `CPTemplateApplicationScene`.
-- [ ] 12.5 iOS: a test over the template tree, the way Android tests its browse tree, so the
-      surface is asserted without a car.
+- [~] 12.4 iOS: a CarPlay scene with a now-playing template and a list of audiobooks, built
+      against `CPTemplateApplicationScene`. **Written, and it cannot activate.**
+      `App/CarScene.swift` holds the scene delegate: it turns `CarShelf`'s rows into a
+      `CPListTemplate` and pushes `CPNowPlayingTemplate` when a row is chosen, and
+      `OrientationDelegate` routes the car scene role to it. **No entitlement and no scene
+      manifest were added**, because both change how the app signs or launches and this
+      repository signs ad-hoc — ADR-0011 records what an unprovisionable entitlement cost
+      here. `import CarPlay` needs no entitlement, which was confirmed rather than assumed:
+      the file typechecks against the iOS 26 SDK at Swift 6 with complete concurrency
+      checking. The two seams `CarScene.onDevice` and `CarScene.onListen` are `nil`, so a car
+      would draw the live session and nothing else. This stays open until a car draws the
+      list; `design.md`'s "The day an Apple team exists" lists the four steps.
+- [x] 12.5 iOS: a test over the template tree, the way Android tests its browse tree, so the
+      surface is asserted without a car. `CarShelf` in `StoryArcKit`'s `Playback` module
+      composes the rows as a value with no CarPlay import at all, and `CarShelfTests` asserts
+      the three rules `CarLibraryTest` asserts on Android: the book in progress is row zero,
+      each book appears once, and a comic never appears. Eight tests. Seven were proved able
+      to fail — dropping the audio filter fails "A comic never reaches a car screen",
+      dropping the deduplication fails "The book in progress is offered once, not twice",
+      and putting the shelf first fails "The book in progress is the first row a car draws".
+      **The eighth could not fail and this record said otherwise.** *A device that holds
+      nothing offers a car nothing* asked only for an empty answer, so it passed against
+      every mutation, an unconditional empty return included. Review found it; the case now
+      asks for a non-empty answer as well, and the sentence claiming eight proofs is gone.
+      `App/CarScene.swift` and the `OrientationDelegate` branch carry no assertion at all:
+      delete either and every test still passes. `CarSceneWiringTests` is the tripwire.
+      **A row is a `SpokenBook` rather than a new type**: the player already carries that
+      value and its `label` already states the two strings a car row shows.
 - [~] 12.6 iOS: run it in a car or in the CarPlay simulator. **Blocked.** CarPlay needs the
       `com.apple.developer.carplay-audio` entitlement, which Apple grants on request, and
       ADR-0011 records that this project has no Apple development team yet. The scene will

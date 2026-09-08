@@ -1,14 +1,11 @@
 package app.storyarc.core.playback
 
 import android.net.Uri
-import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.Tracks
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.extractor.metadata.Chapter
 
 /**
  * A narrated audiobook, played by media3.
@@ -347,31 +344,18 @@ class AudiobookSource(
      *
      * **Where they arrive is the part worth writing down.** media3 does not put chapters on
      * `MediaMetadata`; a `Chapter` is a `Metadata.Entry` hung off a track's `Format`, so
-     * they come with the tracks and not with the item. `Chapter` is `@UnstableApi` at
-     * 1.11.0 — see the change's task list — which is why the opt-in is here and at one
-     * place only.
+     * they come with the tracks and not with the item. [ChapterMarks] holds the filter and
+     * the `@UnstableApi` opt-in that reading a `Chapter` needs, because a page reads the
+     * same marks out of the same formats before anything plays — and two copies of a
+     * chapter parser is the drift this repository keeps finding.
      *
      * A folder is left alone: its parts are its files, they were ordered and named by the
      * format layer, and a chapter mark inside part three is not a part of the book.
      */
-    @OptIn(UnstableApi::class)
     private fun adoptChapters(tracks: Tracks) {
         if (book.layout != PartLayout.MARKS) return
 
-        val marks = tracks.groups
-            .flatMap { group -> (0 until group.length).map(group::getTrackFormat) }
-            .mapNotNull { it.metadata }
-            .flatMap { metadata -> (0 until metadata.length()).map(metadata::get) }
-            .filterIsInstance<Chapter>()
-            .map { chapter ->
-                ChapterMark(
-                    title = chapter.title?.value,
-                    startMillis = chapter.startTimeMs,
-                    endMillis = chapter.endTimeMs,
-                    isHidden = chapter.isHidden,
-                )
-            }
-
+        val marks = ChapterMarks.of(tracks)
         val duration = player.duration.takeIf { it != C.TIME_UNSET }
         parts = AudiobookChapters.parts(marks, duration, book.title, chapterWord)
         offsets = AudiobookChapters.offsets(marks)

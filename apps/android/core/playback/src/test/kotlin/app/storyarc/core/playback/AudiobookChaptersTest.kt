@@ -34,6 +34,40 @@ class AudiobookChaptersTest {
         )
     }
 
+    /**
+     * The shape a real M4B arrives in, which is not the shape above.
+     *
+     * An MP4 keeps its chapters in a text track that a `chap` reference points at, and that
+     * track states a title and a start and no end at all. media3 answers `C.TIME_UNSET`,
+     * `ChapterMarks` reports it as null, and while an unstated end was read as "describes no
+     * audio" every mark of the corpus's own `chaptered.m4b` was dropped — so a chaptered M4B
+     * listed one part whether it was playing or not. ID3 `CHAP` frames carry both ends, which
+     * is why a chaptered MP3 never showed it. `ChapterMarksInstrumentedTest` reads the fixture
+     * on a device and finds exactly these three.
+     */
+    private val starts = listOf(
+        ChapterMark("One", 0, null),
+        ChapterMark("Two", 2_000, null),
+        ChapterMark("Three", 4_000, null),
+    )
+
+    @Test
+    fun `a mark stating only where it starts ends where the next one begins`() {
+        val parts = AudiobookChapters.parts(starts, totalMillis = 6_000, fallbackTitle = "Sea Room")
+        assertEquals(listOf("One", "Two", "Three"), parts.map { it.title })
+        assertEquals(listOf(2_000L, 2_000L, 2_000L), parts.map { it.duration.statedMillis })
+        assertEquals(listOf(0L, 2_000L, 4_000L), AudiobookChapters.offsets(starts))
+    }
+
+    @Test
+    fun `the last mark of a book of unknown length states no length`() {
+        // `audio-playback` forbids inventing a total. The chapters before the last one still
+        // state theirs, because a neighbour's start is a fact and not a guess.
+        val parts = AudiobookChapters.parts(starts, totalMillis = null, fallbackTitle = "Sea Room")
+        assertEquals(listOf(2_000L, 2_000L, null), parts.map { it.duration.statedMillis })
+        assertEquals(PlaybackDuration.Unknown, parts.last().duration)
+    }
+
     @Test
     fun `an unchaptered book is one part, not none`() {
         // The whole of the file standing in for a chapter, named for the publication —

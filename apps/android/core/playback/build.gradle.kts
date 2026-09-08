@@ -5,7 +5,22 @@ plugins {
 android {
     namespace = "app.storyarc.core.playback"
     compileSdk = 37
-    defaultConfig { minSdk = 31 }
+    defaultConfig {
+        minSdk = 31
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // The audio fixtures, as assets of the instrumented suite. `ChapterMarks` needs the
+    // platform's own MP4 extractor, so a real M4B on a real device is the only way to prove
+    // that a chaptered container names its chapters before it plays. `:core:format` shares
+    // the same corpus the same way.
+    sourceSets {
+        getByName("androidTest") {
+            assets.srcDir(
+                rootProject.layout.projectDirectory.dir("../../packages/test-fixtures")
+            )
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
@@ -35,9 +50,14 @@ dependencies {
     // module declares, and a `SessionToken` on a public signature has to be on the
     // consumer's compile classpath.
     implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.inspector)
     api(libs.androidx.media3.session)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+
+    androidTestImplementation(libs.androidx.test.junit)
+    androidTestRuntimeOnly(libs.androidx.test.runner)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
 }

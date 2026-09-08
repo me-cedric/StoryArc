@@ -309,15 +309,29 @@ private fun PublicationPage(
         chapters = ListenedChapters.of(
             publication = publication,
             path = location,
-            resolver = host.activity.contentResolver,
+            context = host.activity,
             playing = playing,
+            chapterWord = host.activity.getString(R.string.player_chapter_word),
         )
     }
-    // The saved part, read from the player's own memory — the session where this book is the
-    // one playing, and `PlaybackHost.lastPosition` where it is not. Null is a book nobody has
-    // started, which is what leaves every row unmarked.
-    val saved = remember(publication.id) {
-        PlaybackHost.lastPosition(host.activity, publication.id)?.partIndex
+    // **The saved part comes from the progress store, which is the only place that holds one
+    // per publication.** It used to come from `PlaybackMemory`, which remembers the last book
+    // and nothing else, so every other started audiobook drew an unmarked list while the
+    // store held its position — and the primary action, which reads the store, named a
+    // chapter the marks disagreed with. `ListenedPosition.resume` is that same reader, so the
+    // button and the marks now answer from one rule: null for a book nobody started, null for
+    // a finished one the reader means to hear again, and null for a page or a reflowable
+    // position, because a comic read to page nine says nothing about a part index.
+    // **Keyed on the session as well as the publication.** `PlaybackCentre` clears
+    // `nowPlaying` after it writes the position, so a listener who plays this book and stops
+    // without leaving the page loses the live part and falls back to what the store said
+    // *before* playback. Reading again when the session changes is what keeps the mark and the
+    // store agreeing, which is the whole point of reading the store here.
+    var saved by remember(publication.id) { mutableStateOf<Int?>(null) }
+    LaunchedEffect(publication.id, playing) {
+        // Not `record`: that name is the download record twenty lines up.
+        val listened = host.dependencies.progress.progress(publication.identity)
+        saved = ListenedPosition.resume(listened?.position, listened?.isFinished == true)?.partIndex
     }
     val stoppedIn = playing?.takeIf { it.publicationId == publication.id }?.partIndex ?: saved
 
