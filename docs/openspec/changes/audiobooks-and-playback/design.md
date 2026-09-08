@@ -431,3 +431,27 @@ the neighbouring one. That clause is untouched, and it is the one with real beha
 it. Android also still needs its own back-fifteen glyph: Material ships `Replay5`, `Replay10`
 and `Replay30` and **no `Replay15`**, which this change records elsewhere as a defect it
 already cost a numbered glyph drawing the wrong number.
+
+## Amended 2026-09-08: a chapter list states progress, not only position
+
+The requirement asked for "its duration and the current one marked". Both platforms did
+exactly that and it is not enough to decide with.
+
+Measured across all four surfaces on 2026-09-08. Duration is stated on every one of them. The
+marks are not: the two publication pages carry three states — playing, finished, and not yet
+reached — and the two **player** lists mark only the current chapter. So a listener looking at
+the list while listening, which is the surface they actually use, cannot see what they have
+already heard.
+
+And no surface said how far through the current chapter the listener was. A chapter marked *in
+progress* covers a listener who has heard four seconds of it and one who has thirty seconds
+left, and those are different decisions.
+
+**The remainder is stated as time, not drawn as a bar.** A bar is prettier and a number is
+more useful: "eight minutes left" answers "can I finish this before I arrive", which is the
+question a listener is actually asking, and it reads out to a screen reader with no extra
+work. A bar would need its own accessibility value saying the same thing in words.
+
+The row stays one accessibility element. It already was on both platforms — iOS combines its
+children and Android clears and sets its own semantics — so the remainder joins the label
+rather than becoming a second thing to swipe past.

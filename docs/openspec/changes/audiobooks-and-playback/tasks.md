@@ -1579,6 +1579,23 @@ creep — see [`design.md`](design.md).
       sleep options wrap in a `FlowRow` for the same requirement: five durations and a chapter
       do not fit across a phone at that size.
 
+## 15. A chapter list states progress, not only position
+
+Added on 2026-09-08 at the owner's request: chapters should "indicate duration, and progress
+in some way". Duration was already on all four surfaces. Progress was not.
+
+- [ ] 15.1 Both: the player's chapter list marks a finished chapter, the way the publication
+      page already does. Today it marks only the current one.
+- [ ] 15.2 Both: the chapter in progress states how much of itself is left, on the player and
+      on the publication page.
+- [ ] 15.3 Both: a row stays one control to a screen reader, and the remainder is heard with
+      the chapter and its duration rather than as a separate stop.
+- [ ] 15.4 Both: a single-part book still draws no list, and a chapter whose duration the
+      container never stated still states none rather than an estimate.
+- [ ] 15.5 Both: a test asserts the three marks and the remainder, and is proved able to fail.
+- [ ] 15.6 Both: photograph the list with a finished chapter, one in progress and one not yet
+      reached, at the default text size and the largest.
+
 ## 14. The skip interval stops being a setting
 
 Added on 2026-09-08 at the owner's request: "just keep the default buttons on the player."
@@ -1589,7 +1606,7 @@ fifteen back and thirty forward, and keep their numbers.
 - [ ] 14.2 Both: the stored preference goes — `SkipPreferences` on each platform, and the
       setter on the player centre.
 - [ ] 14.3 iOS: `SkipIntervalsSheet` goes, and the route to it from `FullPlayerView`.
-- [ ] 14.4 Android: the equivalent picker and its route go.
+- [x] 14.4 Android: the equivalent picker and its route go.
 - [ ] 14.5 Both: the picker and preference tests go. The tests that assert a skip *moves* the
       audio by fifteen or thirty stay, and so does the one that carries a skip across a
       chapter boundary.

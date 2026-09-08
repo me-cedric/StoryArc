@@ -67,7 +67,11 @@ remembered where remembering it is what the listener would expect.
 
 #### Scenario: Chapters
 - **WHEN** a listener opens the chapter list
-- **THEN** every chapter is listed with its duration and the current one marked, and choosing one moves there
+- **THEN** every chapter is listed with its duration, and choosing one moves there
+- **AND** a chapter already finished is marked as finished, a chapter not yet reached carries no mark, and the chapter in progress is marked as the one in progress
+- **AND** the chapter in progress also states how much of itself is left, so a listener can tell a chapter they have just begun from one they are about to finish
+- **AND** every surface that lists chapters states all of that, the player and the publication's page alike, because a listener reads the list to decide and the player is where they read it while listening
+- **AND** a screen reader hears the chapter, its duration, its mark and the remaining time as one control
 - **AND** a publication with no chapter markers lists its parts in playing order instead, rather than showing an empty list
 
 #### Scenario: Lock screen and system controls
