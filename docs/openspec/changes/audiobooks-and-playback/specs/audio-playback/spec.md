@@ -56,7 +56,8 @@ remembered where remembering it is what the listener would expect.
 
 #### Scenario: Skipping
 - **WHEN** a listener uses skip back or skip forward
-- **THEN** the audio moves by a fixed interval the listener can configure, and the interval is stated on the control itself
+- **THEN** the audio moves by a fixed interval, stated on the control itself: fifteen seconds back and thirty seconds forward
+- **AND** the interval is not configurable, because a listener who wants a different one wants it once and then never thinks about it again, and a control that states its own number needs no explanation
 - **AND** skipping past the start or the end of a chapter continues into the neighbouring one rather than stopping at the boundary
 
 #### Scenario: Sleep timer
@@ -91,7 +92,7 @@ SHALL be usable at the largest text size.
 
 #### Scenario: Labels and values
 - **WHEN** a screen reader reaches a playback control
-- **THEN** it is announced with a name and, where it carries one, its value — the speed, the skip interval, the remaining sleep time, the position
+- **THEN** it is announced with a name and, where it carries one, its value — the speed, the remaining sleep time, the position
 - **AND** the scrub control is announced as an adjustable with its position stated in time, not as a percentage
 
 #### Scenario: The compact bar under a screen reader

@@ -404,3 +404,30 @@ asserted without a car. §12.4 is met in code and unmet on a screen, so it stays
 step 4 lands and a car draws the list. §12.6 is the device run itself. Section F of
 `docs/mvp-device-checklist.md` records the same block and loses its CarPlay paragraph on the
 same day.
+
+## Removed 2026-09-08: the skip interval is not configurable
+
+The requirement asked for "a fixed interval the listener can configure". That bought a stored
+preference on each platform, a picker offering five, ten, fifteen and thirty seconds, a sheet
+to hold the picker, a route to the sheet from the player, and a test file per platform for the
+picker and the store. The owner asked for none of it: "just keep the default buttons on the
+player."
+
+**The buttons stay and they keep their numbers.** Fifteen seconds back and thirty forward is
+the audiobook convention, it is what the defaults already were, and a control that states its
+own number explains itself. What goes is the choosing.
+
+The asymmetry is deliberate and is not a default anyone should have to discover: a listener
+skips back because they missed a sentence, and forward because they are past something. Those
+are different distances.
+
+**What this removes.** `SkipIntervals.offered`, the stored preference on both platforms, the
+picker sheet and its route, and the accessibility clause that asked the control to announce a
+*value* — a control whose label already says "back fifteen seconds" has no value to announce,
+and asking for one produced a value nobody could change.
+
+**What it must not remove.** Skipping past the start or the end of a chapter continues into
+the neighbouring one. That clause is untouched, and it is the one with real behaviour behind
+it. Android also still needs its own back-fifteen glyph: Material ships `Replay5`, `Replay10`
+and `Replay30` and **no `Replay15`**, which this change records elsewhere as a defect it
+already cost a numbered glyph drawing the wrong number.

@@ -1579,6 +1579,25 @@ creep — see [`design.md`](design.md).
       sleep options wrap in a `FlowRow` for the same requirement: five durations and a chapter
       do not fit across a phone at that size.
 
+## 14. The skip interval stops being a setting
+
+Added on 2026-09-08 at the owner's request: "just keep the default buttons on the player."
+The requirement asked for a configurable interval and that is now removed. The buttons keep
+fifteen back and thirty forward, and keep their numbers.
+
+- [ ] 14.1 Both: `SkipIntervals` holds two constants rather than a stored pair. `offered` goes.
+- [ ] 14.2 Both: the stored preference goes — `SkipPreferences` on each platform, and the
+      setter on the player centre.
+- [ ] 14.3 iOS: `SkipIntervalsSheet` goes, and the route to it from `FullPlayerView`.
+- [ ] 14.4 Android: the equivalent picker and its route go.
+- [ ] 14.5 Both: the picker and preference tests go. The tests that assert a skip *moves* the
+      audio by fifteen or thirty stay, and so does the one that carries a skip across a
+      chapter boundary.
+- [ ] 14.6 Both: every string the picker owned is removed from all four languages, and
+      `pnpm strings:ios` and the Android string checks confirm none is orphaned.
+- [ ] 14.7 Both: the control still states its own interval, and a screen reader still names
+      it. It no longer announces a *value*, because there is nothing to change.
+
 ## 13. An audiobook on iOS always starts at zero
 
 Found on 2026-09-07 while verifying that a listener can pick a book up where they left off.
