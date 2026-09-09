@@ -1,0 +1,79 @@
+name: Android promote
+
+# Manual only. This lane moves a version code that Play already holds from one track to
+# the next. It builds nothing and uploads no binary, so the bytes testers approved are the
+# bytes production gets.
+#
+# The two hops it exists for:
+#   internal -> alpha        internal testing to closed testing
+#   alpha    -> production   closed testing to everyone
+#
+# `alpha` is Play's name for the default closed track and `beta` for the default open one.
+# A closed track you created yourself has its own name; put that name in the field.
+on:
+  workflow_dispatch:
+    inputs:
+      versionCode:
+        description: 'Version code to promote. It must already be live on the source track.'
+        required: true
+      from:
+        description: 'Track the release is on now'
+        type: choice
+        options: [internal, alpha, beta]
+        default: internal
+      to:
+        description: 'Track to promote it to'
+        type: choice
+        options: [alpha, beta, production]
+        default: alpha
+      rollout:
+        description: 'Fraction of users on the target track. 1.0 is everyone; 0.1 is a staged rollout to a tenth.'
+        default: '1.0'
+
+concurrency:
+  group: android-promote
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    name: Promote a release
+    # No checkout. Nothing in the repository is read: the artefact is already on Play.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install fastlane
+        run: gem install fastlane -N -v '~> 2.228'
+
+      - name: Write the service account key
+        env:
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: printf '%s' "$PLAY_JSON" > "$RUNNER_TEMP/play.json"
+
+      - name: Promote
+        env:
+          VERSION_CODE: ${{ inputs.versionCode }}
+          FROM_TRACK: ${{ inputs.from }}
+          TO_TRACK: ${{ inputs.to }}
+          ROLLOUT: ${{ inputs.rollout }}
+        # A rollout below 1.0 makes the target release `inProgress`, which is what a staged
+        # rollout is. Raise it by running this again with the same tracks and a larger number.
+        run: |
+          fastlane supply \
+            --package_name com.mecedric.storyarc \
+            --json_key "$RUNNER_TEMP/play.json" \
+            --track "$FROM_TRACK" \
+            --version_code "$VERSION_CODE" \
+            --track_promote_to "$TO_TRACK" \
+            --rollout "$ROLLOUT" \
+            --skip_upload_apk true \
+            --skip_upload_aab true \
+            --skip_upload_metadata true \
+            --skip_upload_images true \
+            --skip_upload_screenshots true \
+            --skip_upload_changelogs true
+
+      - name: Shred the credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/play.json"

@@ -65,7 +65,7 @@ const TAG = 'StoryArcFrames'
 
 /** The iOS launch argument, and the app it is passed to. */
 const IOS_ARGUMENT = '-StoryArcFrameProbe'
-const IOS_BUNDLE = 'app.storyarc.StoryArc'
+const IOS_BUNDLE = 'com.mecedric.storyarc'
 
 const sleep = (ms) => execFileSync('/bin/sleep', [String(ms / 1000)])
 

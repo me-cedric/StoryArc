@@ -97,7 +97,7 @@ materials.
 ```bash
 xcrun simctl boot "iPhone 17 Pro"
 xcrun simctl install booted "$(find ~/Library/Developer/Xcode/DerivedData -name StoryArc.app -path '*Debug-iphonesimulator*' | head -1)"
-xcrun simctl launch booted app.storyarc.StoryArc
+xcrun simctl launch booted com.mecedric.storyarc
 xcrun simctl ui booted appearance dark
 xcrun simctl io booted screenshot shot.png
 ```
@@ -118,7 +118,7 @@ Two ways in, and the app needs neither configured before it runs:
 On a simulator the second is the quicker one:
 
 ```bash
-cp packages/test-fixtures/comics/*.cbz "$(xcrun simctl get_app_container booted app.storyarc.StoryArc data)/Documents/"
+cp packages/test-fixtures/comics/*.cbz "$(xcrun simctl get_app_container booted com.mecedric.storyarc data)/Documents/"
 ```
 
 ## Two packages, and why
@@ -164,7 +164,7 @@ because it costs an hour to rediscover.
 So a preference-driven screenshot is: terminate the app, edit or delete
 
 ```bash
-"$(xcrun simctl get_app_container booted app.storyarc.StoryArc data)/Library/Preferences/app.storyarc.StoryArc.plist"
+"$(xcrun simctl get_app_container booted com.mecedric.storyarc data)/Library/Preferences/com.mecedric.storyarc.plist"
 ```
 
 reboot the device, then launch. Deleting the file is the reliable form, because

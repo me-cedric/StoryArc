@@ -22,7 +22,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const BUNDLE = 'app.storyarc.StoryArc'
+const BUNDLE = 'com.mecedric.storyarc'
 
 // What gets seeded. Each entry becomes one record and one file.
 //

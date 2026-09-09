@@ -177,7 +177,7 @@ targets:
           without typing its address. You can always enter it by hand instead.
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: app.storyarc.StoryArc
+        PRODUCT_BUNDLE_IDENTIFIER: com.mecedric.storyarc
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # The four alternate faces `settings-and-about` lets a reader choose, and the reason
         # `setAlternateIconName` can find them at all: an `.appiconset` sitting in the
@@ -219,7 +219,7 @@ targets:
       - target: StoryArc
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: app.storyarc.StoryArcUITests
+        PRODUCT_BUNDLE_IDENTIFIER: com.mecedric.storyarc.UITests
         TEST_TARGET_NAME: StoryArc
         # Without this the target cannot be code-signed and the build fails before a
         # single test runs -- "Cannot code sign because the target does not have an

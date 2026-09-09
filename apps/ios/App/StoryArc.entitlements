@@ -10,7 +10,7 @@
     -->
     <key>keychain-access-groups</key>
     <array>
-        <string>$(AppIdentifierPrefix)app.storyarc.StoryArc</string>
+        <string>$(AppIdentifierPrefix)com.mecedric.storyarc</string>
     </array>
 </dict>
 </plist>

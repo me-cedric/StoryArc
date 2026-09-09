@@ -546,7 +546,7 @@ if (target === '--simulator') {
   const named = process.argv[3]
   const device = named && !named.startsWith('--') ? named : 'booted'
   const container = execFileSync('xcrun',
-    ['simctl', 'get_app_container', device, 'app.storyarc.StoryArc', 'data'],
+    ['simctl', 'get_app_container', device, 'com.mecedric.storyarc', 'data'],
     { encoding: 'utf8' }).trim()
   if (!existsSync(container)) throw new Error(`no booted app container: ${container}`)
   root = join(container, 'Documents', 'Corpus')

@@ -3,18 +3,28 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// The release lane hands these in — `-PversionName=0.2.0 -PversionCode=12`. Absent, they
+// keep the development values, so a local build is exactly what it was.
+val releaseVersionName = providers.gradleProperty("versionName").getOrElse("0.1.0")
+val releaseVersionCode = providers.gradleProperty("versionCode").map(String::toInt).getOrElse(1)
+
+// The upload keystore never lives in the repository. The release workflow decodes it from a
+// secret and names the path here; with no path there is no signing config and a release build
+// stays unsigned, which is what every build before the first release did.
+val uploadKeystore = providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull
+
 android {
     namespace = "app.storyarc"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "app.storyarc"
+        applicationId = "com.mecedric.storyarc"
         // ADR-0003: API 31 is the floor because that is where dynamic colour
         // starts. Compose renders Material 3 Expressive identically below 36.
         minSdk = 31
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = releaseVersionCode
+        versionName = releaseVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -24,12 +34,24 @@ android {
         localeFilters += listOf("en", "fr", "de", "es")
     }
 
+    signingConfigs {
+        if (uploadKeystore != null) {
+            create("upload") {
+                storeFile = file(uploadKeystore)
+                storePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").get()
+                keyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").get()
+                keyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").get()
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // No signing config yet — see README. Release builds are unsigned.
+            // Unsigned unless the workflow supplied a keystore — see README, "Signing and release".
+            if (uploadKeystore != null) signingConfig = signingConfigs.getByName("upload")
         }
         debug {
             applicationIdSuffix = ".debug"

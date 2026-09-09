@@ -35,7 +35,7 @@ import { join } from 'node:path'
 
 import { adbRunner, resolveAdb } from './adb.mjs'
 
-const PKG = 'app.storyarc.debug'
+const PKG = 'com.mecedric.storyarc.debug'
 const ACTIVITY = `${PKG}/app.storyarc.MainActivity`
 const PSEUDO = 'en-XA'
 const MIN_DP = 48

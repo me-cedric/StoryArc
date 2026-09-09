@@ -1,0 +1,109 @@
+name: Android release
+
+# Manual only. This lane builds one signed App Bundle and gives it to Play's internal
+# track. It never promotes: moving that build to a closed track and then to production is
+# `android-promote.yml`, which reuses the same artefact and never rebuilds.
+#
+# Secrets this needs, all four of them repository secrets:
+#   PLAY_SERVICE_ACCOUNT_JSON   Play Console service account key, the whole JSON document
+#   ANDROID_KEYSTORE_BASE64     the upload keystore, base64 encoded
+#   ANDROID_KEYSTORE_PASSWORD   the keystore password
+#   ANDROID_KEY_ALIAS           the key alias inside the keystore
+#   ANDROID_KEY_PASSWORD        the key password
+on:
+  workflow_dispatch:
+    inputs:
+      versionName:
+        description: 'Version name a reader sees, for example 0.2.0'
+        required: true
+      versionCode:
+        description: 'Version code. Must be higher than every code Play already holds.'
+        required: true
+      releaseStatus:
+        description: 'completed hands the build to internal testers. draft only for the first upload of an app Play has never seen.'
+        type: choice
+        options: [completed, draft]
+        default: completed
+
+concurrency:
+  # Two uploads at once would race for the same version code. Queue them.
+  group: android-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Build, sign, upload to internal testing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Write the upload keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+
+      - name: Bundle release
+        working-directory: apps/android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/upload.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          VERSION_NAME: ${{ inputs.versionName }}
+          VERSION_CODE: ${{ inputs.versionCode }}
+        run: ./gradlew bundleRelease -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE"
+
+      - name: Keep the bundle and the mapping
+        # R8 runs on release. Without the mapping file kept here as well as sent to Play,
+        # a crash report from a tester is unreadable stack frames.
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-${{ inputs.versionCode }}
+          path: |
+            apps/android/app/build/outputs/bundle/release/app-release.aab
+            apps/android/app/build/outputs/mapping/release/mapping.txt
+          retention-days: 90
+
+      - name: Install fastlane
+        # `supply` is the Play Developer API client both lanes use. The floor is pinned;
+        # the patch level is not, because Play's API changes under it.
+        run: gem install fastlane -N -v '~> 2.228'
+
+      - name: Write the service account key
+        env:
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: printf '%s' "$PLAY_JSON" > "$RUNNER_TEMP/play.json"
+
+      - name: Upload to internal testing
+        env:
+          RELEASE_STATUS: ${{ inputs.releaseStatus }}
+          VERSION_NAME: ${{ inputs.versionName }}
+        run: |
+          fastlane supply \
+            --package_name com.mecedric.storyarc \
+            --json_key "$RUNNER_TEMP/play.json" \
+            --aab apps/android/app/build/outputs/bundle/release/app-release.aab \
+            --mapping apps/android/app/build/outputs/mapping/release/mapping.txt \
+            --track internal \
+            --release_status "$RELEASE_STATUS" \
+            --version_name "$VERSION_NAME" \
+            --skip_upload_metadata true \
+            --skip_upload_images true \
+            --skip_upload_screenshots true \
+            --skip_upload_changelogs true
+
+      - name: Shred the credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.jks" "$RUNNER_TEMP/play.json"

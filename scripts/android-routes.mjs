@@ -16,7 +16,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-export const PKG = 'app.storyarc.debug'
+export const PKG = 'com.mecedric.storyarc.debug'
 export const ACTIVITY = `${PKG}/app.storyarc.MainActivity`
 
 export const sleep = (ms) => execFileSync('/bin/sleep', [String(ms / 1000)])

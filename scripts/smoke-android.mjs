@@ -64,7 +64,7 @@ for (const [name, steps] of routes) {
   }
 
   const crash = sh("logcat", "-d", "-b", "crash")
-  const fatal = /FATAL EXCEPTION/.test(crash) && crash.includes("app.storyarc.debug")
+  const fatal = /FATAL EXCEPTION/.test(crash) && crash.includes("com.mecedric.storyarc.debug")
   if (fatal) {
     // The exception line, which is the one that names the cause.
     const line = crash.split("\n").find((l) => /^\s*\S+\s+\S+\s+\d+\s+\d+ E AndroidRuntime: [a-z]/.test(l))

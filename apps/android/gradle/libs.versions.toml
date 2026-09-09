@@ -1,7 +1,7 @@
 # Single source of dependency versions. Never write a version literal in a
 # build script — add it here.
 [versions]
-agp = "9.3.1"
+agp = "9.4.0"
 # AGP 9 compiles Kotlin itself, but the Compose compiler is still a separate
 # plugin and its version must track the Kotlin version AGP uses.
 kotlin = "2.4.10"

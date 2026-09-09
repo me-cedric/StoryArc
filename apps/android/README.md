@@ -194,7 +194,7 @@ A change a user can see owes a screenshot from a booted emulator. A `@Preview`
 is not proof.
 
 ```bash
-adb shell am start -n app.storyarc.debug/app.storyarc.MainActivity
+adb shell am start -n com.mecedric.storyarc.debug/app.storyarc.MainActivity
 adb shell cmd uimode night yes
 adb exec-out screencap -p > shot.png
 ```
@@ -242,10 +242,77 @@ token, run `pnpm tokens:sync` from the repository root and commit the
 regenerated `core/designsystem/.../tokens/StoryArcTokens.kt` in the same change.
 Never edit that file.
 
-## Signing
+## Signing and release
 
-There is no upload keystore. Release builds are unsigned; signing lands with the
-first release.
+The application id is `com.mecedric.storyarc`, and `com.mecedric.storyarc.debug` for a
+debug build. The Kotlin packages stay `app.storyarc.*` — the two are independent, and only
+the application id reaches Play.
+
+### The keystore
+
+The upload keystore is never in this repository. A release build finds it through four
+environment variables, and without `ANDROID_KEYSTORE_PATH` there is no signing config at
+all, so a local `bundleRelease` is unsigned exactly as it always was.
+
+Create the keystore once, on a machine you trust, and back it up. Losing it means asking
+Google to reset the upload key.
+
+```bash
+keytool -genkeypair -v -keystore upload.jks -storetype PKCS12 -alias upload \
+  -keyalg RSA -keysize 4096 -validity 10000
+```
+
+Then set these five repository secrets in GitHub:
+
+| Secret | What it holds |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | `base64 -i upload.jks` — the keystore itself |
+| `ANDROID_KEYSTORE_PASSWORD` | the keystore password |
+| `ANDROID_KEY_ALIAS` | `upload` |
+| `ANDROID_KEY_PASSWORD` | the key password |
+| `PLAY_SERVICE_ACCOUNT_JSON` | the whole JSON key of a Play Console service account with the *Release manager* role |
+
+The service account comes from Play Console → *Setup* → *API access*. Grant it access to
+this app before the first run; a key with no app grant fails with a permission error that
+names no app.
+
+### The two lanes
+
+Both are manual. Neither runs on a push.
+
+| Workflow | What it does |
+| --- | --- |
+| **Android release** | Builds one signed App Bundle at the version you name and uploads it to the **internal** track, with the R8 mapping file so crash reports are readable |
+| **Android promote** | Moves a version code Play already holds from one track to the next — internal to closed (`alpha`), then closed to production. It builds nothing, so production ships the bytes the testers approved |
+
+A release therefore looks like this:
+
+1. Run **Android release** with a version name and a version code higher than any Play
+   holds. Testers on the internal track get it.
+2. Run **Android promote** with that version code, `from: internal`, `to: alpha`.
+3. Run **Android promote** again with the same version code, `from: alpha`,
+   `to: production`. Set `rollout` below `1.0` for a staged rollout, and run it again with
+   a larger number to widen it.
+
+`alpha` is Play's name for the default closed track and `beta` for the default open one. A
+closed track you created yourself carries the name you gave it.
+
+### The first upload
+
+Play refuses an API upload to an app that has never had a release. For the very first
+build, run **Android release** with `releaseStatus: draft`, then publish that draft in the
+console once. Every run after that can use `completed`.
+
+### Version numbers
+
+`versionCode` and `versionName` are Gradle properties with the development values as
+defaults, so nothing changes for a local build:
+
+```bash
+./gradlew bundleRelease -PversionName=0.2.0 -PversionCode=12
+```
+
+Play rejects a version code it already holds, and never accepts a lower one.
 
 ## The `:core:format` module
 
