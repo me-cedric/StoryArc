@@ -1579,6 +1579,59 @@ creep — see [`design.md`](design.md).
       sleep options wrap in a `FlowRow` for the same requirement: five durations and a chapter
       do not fit across a phone at that size.
 
+## 17. Android pairs a file offset with a chapter length
+
+Found on 2026-09-09 while a verifier attacked section 15, and confirmed by reading the four
+files rather than taken from the report. It is not section 15's defect; section 15 is the
+first surface that made it visible.
+
+**The measurement.** For a chaptered single-file audiobook, `Audiobook.layout` is
+`PartLayout.MARKS`. Two values then disagree about their unit:
+
+- `AudiobookChapters.parts` builds `PlaybackPart.duration` as `Known(ends - mark.startMillis)`.
+  That is the **chapter's** length.
+- `AudiobookSource.position`, for `MARKS`, returns `offsetMillis = player.currentPosition`.
+  That is the offset into the whole **file**. Its own comment says so, and gives the reason:
+  a seek takes a file time, and a saved position has to survive a re-download as one.
+
+`ListenedPosition.of` then writes those two into one record — `offsetMillis` from the position,
+`ofMillis` from the part. `ReadingPosition.Listening.fraction` divides one by the other and
+coerces the result into 0…1, so `within` saturates at **1.0** for every chapter after the
+first. The fraction becomes `(part + 1) / partCount`: the store says the listener has finished
+the chapter they have just started.
+
+**And `isFinished` follows it.** `ListenedPosition.isFinished` is `fraction >= 0.999`. For the
+last part that fraction is exactly 1.0, so a ten-chapter M4B is marked **finished the instant
+chapter ten begins** — which is the case that entry's own documentation claims it prevents:
+"the end of the last part marks the publication finished and the *start* of it does not".
+
+A folder audiobook is unaffected: `PartLayout.FILES` makes the offset part-relative already,
+and iOS is unaffected on both shapes, because `PlaybackTimeline.place(atFileTime:)` returns
+`time - parts[found].start` and `seek` converts back with `part.start + offset`.
+
+- [ ] 17.1 Android: one unit for `PlaybackPosition.offsetMillis`, matching iOS — part-relative.
+      `AudiobookSource` already holds `offsets`, so the seek converts with
+      `offsets[part] + offset` for `MARKS`. That makes the fraction, the finished rule, the
+      chapter remainder, the scrub range and the sleep timer's end of chapter all read one
+      unit.
+      **The cost is a stored offset that changes meaning**, and nothing in the record can tell
+      a pre-fix file offset from a post-fix part offset: the part index is stored beside it but
+      the part *start* is not. So this needs a migration decision, and the honest options are a
+      version bump that resets the offset to the start of the remembered chapter — a bounded
+      loss of at most one chapter, only for chaptered single-file books — or a conversion that
+      re-reads the container's marks on upgrade.
+      **Deliberately not folded into section 15 on 2026-09-09.** Section 15 fixed the same
+      arithmetic at the display seam only, where no stored value changes meaning. This entry is
+      the store, it needs a Room migration, and it touches the resume path that section 13 had
+      just fixed and proved on the phone. Doing both at once would put the position the owner
+      asked for at risk to correct a percentage.
+- [ ] 17.2 Android: a test over `PartLayout.MARKS` for each of the five readers above. Every
+      existing case builds a folder audiobook with two sources, so none of them reaches this
+      path — which is why the defect survived.
+- [ ] 17.3 Android: re-prove on the phone. Play the corpus's `Sea Room.m4b` past its second
+      mark, read the stated remainder, close the app, reopen it and confirm the resumed place.
+      A `MARKS` book is the shape a migration can break silently.
+
 ## 16. A listening position is written at the listener's moments
 
 Added on 2026-09-08 at the owner's request: "can we also save progress on pause for example?
