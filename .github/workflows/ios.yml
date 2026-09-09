@@ -53,6 +53,15 @@ jobs:
         with:
           node-version: 24
 
+      # Boot the simulator, and wait for the boot to finish, before `xcodebuild`
+      # starts testing. `xcodebuild` boots it too, but it begins the run as soon as
+      # the device answers rather than once its services are up — and the egress
+      # tests measure a WebKit networking process that starts on a cold runtime.
+      # On 2026-09-09 both of them failed with `networkNeverStarted` on a runner
+      # that had never booted the device before the run.
+      - name: Boot the simulator
+        run: xcrun simctl bootstatus 'iPhone 17 Pro' -b
+
       # This package cannot be tested on the host: Readium is iOS-only, which is
       # the whole reason it is a separate package. A simulator is required.
       #

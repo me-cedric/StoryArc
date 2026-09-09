@@ -160,20 +160,28 @@ struct PublicationEgressTests {
         // signature of the window expiring rather than of egress being stopped. This
         // load pays the cost first; the window that follows measures the page.
         //
-        // Twelve seconds, not sixty and not six. A run that hangs is killed, and the
-        // kill names nothing. Measured on 2026-09-06, over fifteen starts on a machine
-        // running four other build agents: the median start took 4.5 seconds, eleven
-        // took under 6, and the slowest took 10.2 seconds. That slowest start went on
-        // to pass, all eight vectors arriving inside the window that followed.
+        // Forty seconds, not sixty and not twelve. This ceiling is not a budget for a
+        // healthy start; it is the line past which a hang gets a name instead of an
+        // unattributed kill. It costs a passing run nothing — the poll below returns
+        // the moment the beacon is reached.
         //
-        // So do not cut this ceiling to shorten the run. A start of 10.2 seconds is a
-        // run that works, and a ceiling under it turns that run into a
-        // ``Failure/networkNeverStarted`` that names a fault the code does not have. A
-        // wrong red costs more than a slow green. Twelve clears the slowest start
-        // measured and still fires long before a run could sit here for a minute.
+        // Measured on 2026-09-06, over fifteen starts on a machine running four other
+        // build agents: the median start took 4.5 seconds, eleven took under 6, and the
+        // slowest took 10.2 seconds. It was twelve seconds then. On 2026-09-09 both
+        // rendering tests failed with ``Failure/networkNeverStarted`` on a GitHub
+        // `macos-26` runner, where the simulator boots inside the `xcodebuild` run and
+        // the runner's disk is shared — a start slower than every one of those fifteen.
+        //
+        // A start of 10.2 seconds is a run that works, and a ceiling under a working
+        // start reports a fault the code does not have. A wrong red costs more than a
+        // slow green, and this ceiling is the only place in the suite where the two
+        // trade against each other. Raise it rather than cut it. The job also boots the
+        // simulator and waits for it before `xcodebuild` runs — see `ios.yml` — which
+        // is the fix for the cause; this number only stops the symptom being a lie.
+        let startedAt = ContinuousClock.now
         webView.load(URLRequest(url: openerURL))
-        guard try await arrived(at: opener, within: .seconds(12)) else {
-            throw Failure.networkNeverStarted
+        guard try await arrived(at: opener, within: .seconds(40)) else {
+            throw Failure.networkNeverStarted(after: ContinuousClock.now - startedAt)
         }
 
         webView.load(URLRequest(url: url))
@@ -214,7 +222,10 @@ struct PublicationEgressTests {
         case badURL
         /// The web view never reached loopback at all, so the measured window would
         /// prove nothing in either direction. Read the suite's note before changing it.
-        case networkNeverStarted
+        ///
+        /// Carries how long it waited, because the number is the whole diagnosis and a
+        /// bare case name sends the next reader off to measure it again.
+        case networkNeverStarted(after: Duration)
     }
 
     /// A page whose only job is to make the web view start its networking process.
