@@ -44,7 +44,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install fastlane
-        run: gem install fastlane -N -v '~> 2.228'
+        # The runner's system gem directory is not writable by the build user.
+        run: sudo gem install fastlane -N -v '~> 2.228'
 
       - name: Write the service account key
         env:

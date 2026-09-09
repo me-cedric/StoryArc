@@ -79,7 +79,8 @@ jobs:
       - name: Install fastlane
         # `supply` is the Play Developer API client both lanes use. The floor is pinned;
         # the patch level is not, because Play's API changes under it.
-        run: gem install fastlane -N -v '~> 2.228'
+        # The runner's system gem directory is not writable by the build user.
+        run: sudo gem install fastlane -N -v '~> 2.228'
 
       - name: Write the service account key
         env:
