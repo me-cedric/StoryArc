@@ -1579,6 +1579,68 @@ creep — see [`design.md`](design.md).
       sleep options wrap in a `FlowRow` for the same requirement: five durations and a chapter
       do not fit across a phone at that size.
 
+## 16. A listening position is written at the listener's moments
+
+Added on 2026-09-08 at the owner's request: "can we also save progress on pause for example?
+or other things to diminish the possibility of offset." Section 7 stored the position and
+proved it survives. It never said *when* it is written, and both platforms wrote at a clock
+tick only — so a listener who paused and then lost the process lost up to fifteen seconds.
+
+- [x] 16.1 Both: the position is written on a pause, on a skip, on a settled scrub, on a
+      chapter chosen from the list, on a part crossing, and when the app leaves the
+      foreground. The clock keeps a fifteen-second floor under all of them, for the process
+      that dies mid-play with no event at all.
+      **iOS.** `PlayerCentre.pause` and the pause half of `toggle` write; `jumped` is the one
+      path a deliberate move takes; `sourceMoved` writes a part crossing through
+      `recordDrifted`; `StoryArcApp` writes on the scene phase reaching `background`.
+      **The scene-phase guard was `phase != .active` and is now `phase == .background`.**
+      `inactive` is a control centre pull and an incoming call — the app is still on screen
+      and the listener has decided nothing, so writing there wrote a record nobody asked for.
+      **Android.** `MainActivity.onStop` writes, and stops nothing: the audio belongs to
+      `PlaybackService` and outlives every screen. The session pause writes. The slider writes
+      on `onValueChangeFinished` rather than on `onValueChange`, because the latter fires on
+      every pixel of the drag and a store written sixty times a second is the opposite defect.
+- [x] 16.2 Both: no write happens more often than those moments.
+      **This was live on iOS.** `NarratedSource` reports its place four times a second, and
+      every report wrote a record — four writes a second into SwiftData for the length of a
+      book. `recordDrifted` now measures the floor in the audio's own seconds, which keeps the
+      rule independent of playback speed and lets a test assert it without waiting.
+      **A part change always writes**, whatever the floor says: crossing a chapter is a
+      landmark and the offset restarts at it, so a listener who crosses into chapter two and
+      loses the process must not come back to chapter one.
+- [x] 16.3 Both: every write reads the player at the moment it writes, never a value a
+      surface published earlier.
+      **This was the Android defect, and it was silent.** `PlayingBook`'s tick built a
+      `PlaybackPosition` out of `PlaybackHost.nowPlaying` — a snapshot that only moves when
+      the player raises a callback. A book playing through one long file raises none, so the
+      tick wrote, every fifteen seconds, the offset the book started at. It now calls
+      `PlaybackHost.recordReached`, which asks the player. Measured on the OnePlus 7T Pro
+      before and after.
+- [x] 16.4 iOS: a deliberate jump writes exactly once.
+      Removing the trailing `recordReached` from the three jump sites was not enough on its
+      own: a *short* jump then wrote nothing at all, because `recordDrifted`'s floor swallowed
+      it, and `ListeningMomentTests` failed on the chapter-chosen and scrub cases by name.
+      `jumped` closes both: the source moves, the report that move makes is passed over, and
+      one write follows.
+- [x] 16.5 Both: a test asserts each moment by name, and is proved able to fail.
+      `ListeningMomentTests` on iOS, seven cases: the pause, the toggle's pause half, a short
+      chosen chapter, a scrub, a skip, the floor over forty reports, a part crossing, and a
+      second book starting its own floor. Vacuity-proved by removing the suppression in
+      `sourceMoved`, which fails "A skip writes, and does not wait for the engine to report"
+      with `(log.all.count → 3) == 2` — the double-write defect, named.
+      **The double had to change for any of this to be assertable.** It only recorded the
+      skip call and never moved `place`, so no suite could tell one write per jump from two.
+      Android's half is `RecordedPositionTest` and `AudioSurfacesAreWiredTest`, which pins the
+      tick asking the player and the absence of the `nowPlaying` snapshot it used to read.
+- [x] 16.6 Android: a handed-over file carries its content `Uri`, not a descriptor path.
+      Found while proving 16.1 on the phone: `am start VIEW` on an audio `content://` URI
+      opened no player at all. `OpenedFile.Outcome.Opened` carried `source.descriptorPath`,
+      read from inside the `use` block that closes the source — so `/proc/self/fd/N` named
+      nothing by the time a caller read it. A comic and a PDF survived only because they open
+      the location again straight away; an audiobook needs it for as long as it plays. media3
+      reads a content URI through its own `ContentDataSource`, and `PublicationAccess` already
+      branches on the `content://` prefix. Photographed before and after, both halves.
+
 ## 15. A chapter list states progress, not only position
 
 Added on 2026-09-08 at the owner's request: chapters should "indicate duration, and progress
@@ -1602,17 +1664,17 @@ Added on 2026-09-08 at the owner's request: "just keep the default buttons on th
 The requirement asked for a configurable interval and that is now removed. The buttons keep
 fifteen back and thirty forward, and keep their numbers.
 
-- [ ] 14.1 Both: `SkipIntervals` holds two constants rather than a stored pair. `offered` goes.
-- [ ] 14.2 Both: the stored preference goes — `SkipPreferences` on each platform, and the
+- [x] 14.1 Both: `SkipIntervals` holds two constants rather than a stored pair. `offered` goes.
+- [x] 14.2 Both: the stored preference goes — `SkipPreferences` on each platform, and the
       setter on the player centre.
-- [ ] 14.3 iOS: `SkipIntervalsSheet` goes, and the route to it from `FullPlayerView`.
+- [x] 14.3 iOS: `SkipIntervalsSheet` goes, and the route to it from `FullPlayerView`.
 - [x] 14.4 Android: the equivalent picker and its route go.
-- [ ] 14.5 Both: the picker and preference tests go. The tests that assert a skip *moves* the
+- [x] 14.5 Both: the picker and preference tests go. The tests that assert a skip *moves* the
       audio by fifteen or thirty stay, and so does the one that carries a skip across a
       chapter boundary.
-- [ ] 14.6 Both: every string the picker owned is removed from all four languages, and
+- [x] 14.6 Both: every string the picker owned is removed from all four languages, and
       `pnpm strings:ios` and the Android string checks confirm none is orphaned.
-- [ ] 14.7 Both: the control still states its own interval, and a screen reader still names
+- [x] 14.7 Both: the control still states its own interval, and a screen reader still names
       it. It no longer announces a *value*, because there is nothing to change.
 
 ## 13. An audiobook on iOS always starts at zero
