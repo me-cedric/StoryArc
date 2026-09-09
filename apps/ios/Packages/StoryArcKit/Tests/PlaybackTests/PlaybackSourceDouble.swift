@@ -90,8 +90,17 @@ final class PlaybackSourceDouble: PlaybackSource {
         moved?()
     }
 
+    /// Moves `place` and reports it, the way `NarratedSource` does.
+    ///
+    /// It only recorded the call before, so the centre never saw a skip move anything and a
+    /// suite could not tell one write per jump from two. `NarratedSource.load` sets `place`
+    /// and then calls `moved?()`, and a double that does less makes the centre look simpler
+    /// than it is.
     func skip(_ direction: SkipDirection, by interval: TimeInterval) {
         calls.append(.skip(direction, interval))
+        let next = direction == .forward ? place.offset + interval : place.offset - interval
+        place = PlaybackPlace(partIndex: place.partIndex, offset: max(0, next))
+        moved?()
     }
 
     // MARK: - What the engine would do to it

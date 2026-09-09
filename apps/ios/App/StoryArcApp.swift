@@ -2,6 +2,7 @@ import DesignSystem
 import EpubReaderFeature
 import LibraryFeature
 import Persistence
+import Playback
 import ReaderFeature
 import SettingsFeature
 import Formats
@@ -254,7 +255,15 @@ struct StoryArcApp: App {
             // usually closed by going home, and a position that only travelled on a
             // clean exit would be the evening's reading lost.
             .onChange(of: scenePhase) { _, phase in
-                guard phase != .active else { return }
+                // `.background` alone, not "anything but active". `.inactive` arrives for a
+                // notification banner, a control-centre pull and the app switcher, none of
+                // which is the reader leaving, and each of which would write again.
+                guard phase == .background else { return }
+                // And a listener is closed the same way. `audio-playback` asks a listening
+                // position to be written when the app leaves the foreground, because this is
+                // the last moment before the system may reclaim the process. The audio itself
+                // carries on, so this writes and stops nothing.
+                PlayerCentre.shared.recordReached()
                 Task { await reportToKavita(reading?.publication ?? dismissed?.publication) }
             }
             .refusing($refusedFile)

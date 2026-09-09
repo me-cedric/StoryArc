@@ -10,6 +10,13 @@ public import StoryArcCore
 // finished. They change for different reasons, which is the only reason worth splitting on.
 //
 // Android's half of the same seam is `PlaybackHost.recordPosition`.
+
+/// How many seconds of audio may pass with no other moment to write at.
+///
+/// The same fifteen seconds Android's `PlayingBook.TICK_MILLIS` holds, and the same number
+/// `ReadingProgress` describes its own timestamp as moving on by.
+private let recordFloor: TimeInterval = 15
+
 public extension PlayerCentre {
 
     /// The reading position a place in this session is.
@@ -28,11 +35,50 @@ public extension PlayerCentre {
         )
     }
 
-    /// Writes down where the audio got to.
+    /// Writes down where the audio got to, whatever brought it there.
     ///
-    /// On every move, not only when the session ends. A process the system reclaims gets no
-    /// ending at all, and the only position that survives one is a position already written.
-    internal func recordReached() { record(at: place) }
+    /// Not only when the session ends. A process the system reclaims gets no ending at all,
+    /// and the only position that survives one is a position already written. So
+    /// `audio-playback` names the moments and this is every one of them that the listener
+    /// caused: a pause, a skip, a scrub, a chapter chosen from a list, and the app leaving
+    /// the foreground. ``PlayerCentre/finish(with:)`` calls it for each of the three endings.
+    ///
+    /// Public, because the app owns the one moment this object cannot see — the scene leaving
+    /// `active`. Android's half is `MainActivity.onStop`.
+    func recordReached() { record(at: place) }
+
+    /// The clock moved. A write only where it has moved far enough to be worth one.
+    ///
+    /// **The floor, and the reason there is one.** ``NarratedSource`` reports its place four
+    /// times a second, so a write on every report was four writes a second into SwiftData for
+    /// the length of a book. That is a different defect from a stale position, and it hides
+    /// the same fix: events plus a floor is the shape, not a write on every frame.
+    ///
+    /// Measured in the audio's own seconds rather than by a clock, which keeps the rule
+    /// independent of playback speed and lets a test assert it without waiting. A part change
+    /// always writes: crossing a chapter is a landmark, and the offset restarts at it.
+    internal func recordDrifted() {
+        guard let last = recorded else { return recordReached() }
+        guard place.partIndex != last.partIndex || place.offset - last.offset >= recordFloor
+        else { return }
+        recordReached()
+    }
+
+    /// A jump the listener chose: the source moves, then exactly one write.
+    ///
+    /// The write cannot come first — it would carry the place the listener just left. And it
+    /// cannot be left to ``recordDrifted()``, whose floor swallows a short jump: a chapter
+    /// chosen from the list, or a scrub of a few seconds, would write nothing at all. So the
+    /// report the move itself makes is passed over, and this writes once in its place.
+    ///
+    /// `audio-playback` names "a jump the listener chose" as a moment to write at, and names
+    /// it once. Two writes for one jump is the defect this shape exists to make impossible.
+    internal func jumped(_ move: () -> Void) {
+        isJumping = true
+        move()
+        isJumping = false
+        recordReached()
+    }
 
     /// Hands one place to whoever is storing positions, as the thing they have to store.
     ///
@@ -42,6 +88,7 @@ public extension PlayerCentre {
     /// wrong one.
     internal func record(at place: PlaybackPlace) {
         guard let book else { return }
+        recorded = place
         onRecord?(
             ReachedListening(
                 book: book,

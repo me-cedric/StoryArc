@@ -107,8 +107,9 @@ public final class PlayerCentre {
     ///
     /// A closure rather than a store, because `Playback` has no business knowing about
     /// SwiftData: `reading-progress` owns the record and the app layer owns the wiring. It
-    /// is called on every part change, whenever a session ends, and — the case that matters
-    /// — *before* a second book displaces the first.
+    /// is called at the moments `audio-playback` names — a pause, a jump the listener chose,
+    /// a part change, the app leaving the foreground, and every ending, one of which is a
+    /// second book displacing the first — with ``recordDrifted()`` as the floor under them.
     ///
     /// It hands over a finished ``ReachedListening`` rather than a ``PlaybackPlace``: the
     /// part count, the current part's length and whether the book ran out are all this
@@ -163,6 +164,14 @@ public final class PlayerCentre {
     /// ``session`` is: `PlayerSleep.swift` has to fade it and stop it.
     @ObservationIgnored internal var source: (any PlaybackSource)?
 
+    /// The place the last write carried, which is what the floor is measured from.
+    /// See ``recordDrifted()`` in `PlayerPosition.swift`.
+    @ObservationIgnored internal var recorded: PlaybackPlace?
+
+    /// A jump the listener chose is being made right now.
+    /// See ``jumped(_:)`` in `PlayerPosition.swift`, which is the only writer of it.
+    @ObservationIgnored internal var isJumping = false
+
     /// The one session there can be.
     ///
     /// A process-wide singleton for the reason `ReadAloudCentre.shared` is one: the session
@@ -199,6 +208,9 @@ public final class PlayerCentre {
         // it. A listener who finished one book and started another would otherwise have the
         // second marked finished at its first tick.
         hasReachedTheEnd = false
+        // A second book must not inherit the first's floor, or its opening minutes would go
+        // unwritten while the offset climbed back to where the last book stopped.
+        recorded = nil
         unreadablePartCount = source.unreadablePartCount
         self.book = book.naming(title(ofPartAt: place.partIndex))
         speed = onRecallSpeed?(book.publication) ?? .normal
@@ -235,6 +247,7 @@ public final class PlayerCentre {
         if session.isPlaying {
             session = session.pausedByListener()
             source.pause()
+            recordReached()
         } else {
             session = session.resumed()
             source.play()
@@ -255,6 +268,7 @@ public final class PlayerCentre {
         guard session.isActive, let source else { return }
         session = session.pausedByListener()
         source.pause()
+        recordReached()
         published()
     }
 
@@ -265,7 +279,7 @@ public final class PlayerCentre {
     public func skip(_ direction: SkipDirection) {
         guard session.isActive, let source else { return }
         session = session.started()
-        source.skip(direction, by: SkipIntervals.interval(direction))
+        jumped { source.skip(direction, by: SkipIntervals.interval(direction)) }
         source.play()
         published()
     }
@@ -277,7 +291,7 @@ public final class PlayerCentre {
     /// this guard is the same rule stated where a caller cannot forget it.
     public func scrub(to offset: TimeInterval) {
         guard time.isScrubbable, let source else { return }
-        source.seek(toPart: place.partIndex, offset: offset)
+        jumped { source.seek(toPart: place.partIndex, offset: offset) }
     }
 
     /// Move to a part from the chapter list, or back to where a listener stopped.
@@ -289,7 +303,7 @@ public final class PlayerCentre {
     public func play(part index: Int, offset: TimeInterval = 0) {
         guard session.isActive, let source, parts.indices.contains(index) else { return }
         session = session.started()
-        source.seek(toPart: index, offset: max(0, offset))
+        jumped { source.seek(toPart: index, offset: max(0, offset)) }
         source.play()
         published()
     }
@@ -325,7 +339,7 @@ public final class PlayerCentre {
         if let sleep, sleep.timer == .endOfChapter {
             self.sleep = sleep.ticked(by: 0, playing: time)
         }
-        recordReached()
+        if !isJumping { recordDrifted() }
         published()
     }
 
