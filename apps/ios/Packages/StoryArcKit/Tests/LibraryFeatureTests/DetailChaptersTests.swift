@@ -296,7 +296,7 @@ struct DetailChaptersTests {
     /// §11.6: one row per chapter, with the length as the row's *value*. Read as source for
     /// the reason above — an accessibility declaration draws no pixel, so nothing this suite
     /// can render would notice it going away.
-    @Test("A row is one element to a screen reader, and its length is its value")
+    @Test("A row is one element to a screen reader, and its length and its remainder are heard with it")
     func theRowIsOneElementWithAValue() {
         let code = LibraryFeatureSource.code(of: "Sources/LibraryFeature/DetailChapterList.swift")
 
@@ -308,6 +308,10 @@ struct DetailChaptersTests {
             code.contains(".accessibilityValue(Text(chapter.duration.map(PlaybackClock.spokenTime)"),
             "A chapter row no longer states its length as its value, in words."
         )
+        #expect(
+            code.contains("Text(\"detail.chapter.remaining \\(PlaybackClock.spokenTime(seconds))\""),
+            "The remainder is no longer labelled in words, so a screen reader reads it as a clock face."
+        )
     }
 
     /// The list ships in every language the app does, or it ships a key on a reader's screen.
@@ -317,6 +321,8 @@ struct DetailChaptersTests {
             "detail.chapters",
             "detail.chapter.number %lld",
             "detail.chapter.finished",
+            "detail.chapter.inProgress",
+            "detail.chapter.remaining %@",
             "detail.duration %@",
             "detail.continueListening.in %@",
         ]

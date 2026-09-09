@@ -16,13 +16,6 @@ enum ChapterName: Hashable, Sendable {
     case numbered(Int)
 }
 
-/// Where the listener is, relative to one chapter.
-enum ChapterMark: Equatable, Sendable {
-    case unplayed
-    case inProgress
-    case finished
-}
-
 /// One row of the publication page's chapter list.
 struct DetailChapter: Equatable, Sendable, Identifiable {
     let index: Int
@@ -31,6 +24,9 @@ struct DetailChapter: Equatable, Sendable, Identifiable {
     /// `0:00`, which would be a false statement about the book.
     let duration: TimeInterval?
     let mark: ChapterMark
+    /// How much of this chapter is left, on the one row that is in progress, and `nil` on
+    /// every other row and whenever the part's length is unknown.
+    let remaining: TimeInterval?
 
     var id: Int { index }
 }
@@ -51,6 +47,51 @@ struct DetailAudiobook: Equatable, Sendable {
     let resuming: ChapterName?
 
     static let absent = DetailAudiobook(chapters: [], length: nil, resuming: nil)
+}
+
+extension DetailAudiobook {
+
+    /// The rows restated from where the audio is now.
+    ///
+    /// **The page reads its rows once, and a remainder does not keep.** Measured on
+    /// 2026-09-09: a page left open stated `18:00 left` on a chapter the audio had left twenty
+    /// minutes earlier, and went on marking that chapter as the one in progress.
+    /// `audio-playback` asks the same statement of "the player and the publication's page
+    /// alike", and Android keeps its page live, so the two surfaces otherwise disagree by
+    /// however long a listener leaves the page open.
+    ///
+    /// `nil` leaves every row as the stored record made it, which is the answer for every page
+    /// but the one whose publication is playing.
+    func restated(at place: PlaybackPlace?) -> DetailAudiobook {
+        guard let place else { return self }
+        return DetailAudiobook(
+            chapters: chapters.map { $0.restated(at: place) },
+            length: length,
+            resuming: resuming
+        )
+    }
+}
+
+extension DetailChapter {
+
+    /// This row, marked and counted down from where the audio is now.
+    ///
+    /// `isFinished: false`: audio running inside a chapter is the fact, whatever the record
+    /// said before the listener started the book again.
+    func restated(at place: PlaybackPlace) -> DetailChapter {
+        let mark = ChapterProgress.mark(of: index, reached: place.partIndex, isFinished: false)
+        return DetailChapter(
+            index: index,
+            name: name,
+            duration: duration,
+            mark: mark,
+            remaining: ChapterProgress.remainder(
+                ofChapterLasting: duration,
+                mark: mark,
+                at: place.offset
+            )
+        )
+    }
 }
 
 /// The rules behind the publication page's chapter list.
@@ -79,7 +120,7 @@ enum DetailChapters {
         return DetailAudiobook(
             chapters: rows(of: parts, progress: progress),
             length: duration(of: parts),
-            resuming: name(ofPartAt: reached(in: progress), in: parts)
+            resuming: name(ofPartAt: place(in: progress)?.partIndex, in: parts)
         )
     }
 
@@ -89,15 +130,25 @@ enum DetailChapters {
     /// because a list of one row tells a listener nothing".
     static func rows(of parts: [PlaybackPart], progress: ReadingProgress?) -> [DetailChapter] {
         guard parts.count > 1 else { return [] }
-        let reached = reached(in: progress)
+        let place = place(in: progress)
         let isFinished = progress?.isFinished == true
         return parts.compactMap { part in
             guard let name = name(ofPartAt: part.index, in: parts) else { return nil }
+            let mark = ChapterProgress.mark(
+                of: part.index,
+                reached: place?.partIndex,
+                isFinished: isFinished
+            )
             return DetailChapter(
                 index: part.index,
                 name: name,
                 duration: part.duration,
-                mark: mark(of: part.index, reached: reached, isFinished: isFinished)
+                mark: mark,
+                remaining: ChapterProgress.remainder(
+                    ofChapterLasting: part.duration,
+                    mark: mark,
+                    at: place?.offset ?? 0
+                )
             )
         }
     }
@@ -114,24 +165,17 @@ enum DetailChapters {
 
     // MARK: - The answers each rule is built from
 
-    /// The part the listener stopped inside, or `nil` for a publication never listened to.
+    /// Where the listener stopped, or `nil` for a publication never listened to.
     ///
     /// Only a listening position answers. A page position belongs to a publication that was
     /// read rather than heard, and `reading-progress` keeps one position per publication —
     /// so a comic's page index must never be read as a chapter number.
-    private static func reached(in progress: ReadingProgress?) -> Int? {
-        guard case let .listening(part, _, _, _) = progress?.position else { return nil }
-        return part
-    }
-
-    /// Behind the listener, under them, or ahead.
-    private static func mark(of index: Int, reached: Int?, isFinished: Bool) -> ChapterMark {
-        // A book recorded finished has no chapter left ahead of the listener, whatever
-        // position it stopped writing at.
-        if isFinished { return .finished }
-        guard let reached else { return .unplayed }
-        if index < reached { return .finished }
-        return index == reached ? .inProgress : .unplayed
+    ///
+    /// The offset comes with the part because the remainder needs both, and `reading-progress`
+    /// already records it: a listening position "is an offset in time within a named part".
+    private static func place(in progress: ReadingProgress?) -> PlaybackPlace? {
+        guard case let .listening(part, _, offset, _) = progress?.position else { return nil }
+        return PlaybackPlace(partIndex: part, offset: offset)
     }
 
     /// What a part is called, by ``PlayerCentre``'s rule: its title, else its number.

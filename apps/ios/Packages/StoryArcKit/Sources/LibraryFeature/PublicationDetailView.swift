@@ -2,6 +2,7 @@ public import SwiftUI
 
 internal import DesignSystem
 internal import Persistence
+internal import Playback
 public import StoryArcCore
 
 /// The page a publication has.
@@ -81,7 +82,7 @@ public struct PublicationDetailView: View {
                     isKept: $isKept,
                     kavitaCard: kavitaCard,
                     file: file,
-                    audiobook: audiobook,
+                    audiobook: audiobook.restated(at: playingPlace),
                     onChooseChapter: chooseChapter,
                     onRead: read
                 )
@@ -126,7 +127,13 @@ public struct PublicationDetailView: View {
         // audiobook's chapter markers opens the container, which is slower than either read
         // above and must not hold the cover behind it. A comic never starts it — the guard is
         // ``DetailChapters/read(_:at:progress:)``'s, so it is asserted rather than assumed.
-        .task(id: file) {
+        //
+        // **And keyed on whether this book is the one playing.** ``playingPlace`` restates the
+        // rows while a session runs, and answers `nil` the moment it ends — which dropped the
+        // page back to the record read when it appeared, an hour of listening ago. The session
+        // writes a position as it ends (`audio-playback`, *Where a listening position is
+        // written*), so re-reading exactly then is what shows it.
+        .task(id: ChapterInputs(file: file, isPlaying: playingPlace != nil)) {
             audiobook = await DetailChapters.read(
                 publication,
                 at: file,
@@ -160,6 +167,32 @@ public struct PublicationDetailView: View {
         // A folder whose card was pulled still has rows on the shelf and a location in the
         // model. The page says so rather than offering to open a file that is not there.
         return FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) ? url : nil
+    }
+
+    /// Where the audio is, when it is this publication's audio, and `nil` otherwise.
+    ///
+    /// **`PlayerCentre.shared` rather than a centre handed down.** The shell reaches the one
+    /// session that way at every call site it has, and threading a centre through four browse
+    /// surfaces to reach this page would be a far wider change than the fact it carries. See
+    /// ``PlayerCentre/shared``, which the class documents as the one session there can be.
+    ///
+    /// Reading `place` observes it, so this page redraws while this book plays. That is what a
+    /// remainder counting down costs, and it is the reason the question is asked of one
+    /// publication rather than of the shelf.
+    @MainActor
+    private var playingPlace: PlaybackPlace? {
+        let centre = PlayerCentre.shared
+        guard centre.book?.id == publication.id else { return nil }
+        return centre.place
+    }
+
+    /// What makes the chapter read run again.
+    ///
+    /// A struct rather than a tuple, because ``SwiftUI/View/task(id:)`` asks for `Equatable`
+    /// and a tuple is not one. ``WashInputs`` below is the same shape for the same reason.
+    private struct ChapterInputs: Equatable {
+        let file: URL?
+        let isPlaying: Bool
     }
 
     /// The one line at the foot, computed with no network call.
