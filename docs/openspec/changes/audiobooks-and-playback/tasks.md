@@ -1699,17 +1699,54 @@ tick only — so a listener who paused and then lost the process lost up to fift
 Added on 2026-09-08 at the owner's request: chapters should "indicate duration, and progress
 in some way". Duration was already on all four surfaces. Progress was not.
 
-- [ ] 15.1 Both: the player's chapter list marks a finished chapter, the way the publication
+**Built on 2026-09-09, then refuted twice and repaired.** Three adversarial lenses per platform
+ran over the first build and over the repair. What they caught is worth recording, because two
+of the findings were defects the change *introduced* and one was older than it:
+
+- **Android stated `0:00 left` on every chapter but the first.** `AudiobookSource.position`
+  reports a file offset for `PartLayout.MARKS` and `AudiobookChapters.parts` reports a chapter
+  length, so the subtraction clamped to zero. Fixed at the display seam. The store keeps the
+  same defect and it has its own section — see §17.
+- **No Android test reached `PartLayout.MARKS` at all.** Every case built a folder audiobook,
+  where the offset is already part-relative. The arithmetic was proved and the reading of the
+  player was not.
+- **The iOS tests could not fail.** A verifier replaced the row's mark call with a hard-coded
+  glyph and `PlayerChapterListTests` still passed, because it read Swift source for a literal
+  rather than a value. `ChapterMark.glyph` and `ChapterProgress.remainder` moved into
+  `Playback` so a unit test reads what the row draws.
+- **The mark went unspoken, then was spoken twice.** The in-progress mark had only an
+  `isSelected` trait, and that trait sat inside the `Button`'s label where it reached nothing.
+  Giving the glyph a word fixed it and left both carriers, so the row said "in progress" and
+  then "selected". The word is the one carrier now, on all three marks.
+- **Android marked a playing book finished.** `progressOf` tested the sticky finished flag
+  before the place, so a listener hearing a book again saw every row marked finished and no
+  remainder anywhere. A place, from the session or the store, now always wins.
+- **The iOS page froze.** It read the record once on appearance, so a page left open kept a
+  remainder the audio had left behind, and fell back to that same stale record when the session
+  ended. The read is keyed on the session now.
+
+- [x] 15.1 Both: the player's chapter list marks a finished chapter, the way the publication
       page already does. Today it marks only the current one.
-- [ ] 15.2 Both: the chapter in progress states how much of itself is left, on the player and
+- [x] 15.2 Both: the chapter in progress states how much of itself is left, on the player and
       on the publication page.
-- [ ] 15.3 Both: a row stays one control to a screen reader, and the remainder is heard with
+- [x] 15.3 Both: a row stays one control to a screen reader, and the remainder is heard with
       the chapter and its duration rather than as a separate stop.
-- [ ] 15.4 Both: a single-part book still draws no list, and a chapter whose duration the
+- [x] 15.4 Both: a single-part book still draws no list, and a chapter whose duration the
       container never stated still states none rather than an estimate.
-- [ ] 15.5 Both: a test asserts the three marks and the remainder, and is proved able to fail.
-- [ ] 15.6 Both: photograph the list with a finished chapter, one in progress and one not yet
+- [x] 15.5 Both: a test asserts the three marks and the remainder, and is proved able to fail.
+- [~] 15.6 Both: photograph the list with a finished chapter, one in progress and one not yet
       reached, at the default text size and the largest.
+      **Owed, and it is the half no host can answer.** Both platforms stack the row at the
+      accessibility sizes — iOS at `typeSize.isAccessibilitySize`, the shape `SourceDetail`
+      took after the row of *two* was photographed wrapping mid-word on 2026-09-05, and this
+      row carries four items. The tests assert the *branch*; what a row does with the width it
+      is given is not a thing a test host can see, which is the division `SourceDetailSizeTests`
+      already draws.
+      **A VoiceOver and a TalkBack pass are owed with them.** The mark is spoken as a word on
+      all three marks, and no test can hear whether the two words sit on the right marks — a
+      swap of "finished" and "in progress" passes every gate. The keys are per-catalogue
+      literals because `pnpm strings:ios` reads literals, so a shared value cannot carry the
+      pairing the way `ChapterMark.glyph` does.
 
 ## 14. The skip interval stops being a setting
 
