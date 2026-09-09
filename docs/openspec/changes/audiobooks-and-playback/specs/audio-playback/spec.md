@@ -44,6 +44,13 @@ a reason to learn a second set of controls.
 - **THEN** the first stops and its position is recorded before the second begins, because two books speaking at once is never what was meant
 - **AND** the first is not resumed automatically when the second ends
 
+#### Scenario: Where a listening position is written
+- **WHEN** a listener pauses, skips, scrubs, chooses a chapter from a list, crosses into another part, or sends the app to the background
+- **THEN** the position is written at that moment, because each of those is a listener deciding where they are rather than the audio drifting there
+- **AND** a book left playing with none of those happening is written at least every fifteen seconds of audio, so a process the system reclaims mid-chapter costs no more than that
+- **AND** every one of those writes reads the position from the player itself at the moment it writes, never from a value a surface published earlier, because a surface is only refreshed when the engine reports something and a clock running on reports nothing
+- **AND** no write happens more often than those moments — a scrub writes when the listener lets go of the control and not while they drag it, because a position store written on every frame is a defect of its own
+
 ### Requirement: Playback controls
 
 The player SHALL offer the controls a listener of a book needs, and each SHALL be

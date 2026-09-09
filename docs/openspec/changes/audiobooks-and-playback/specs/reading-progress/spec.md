@@ -19,6 +19,7 @@ mean the same thing to the reader whichever that is.
 - **WHEN** progress is stored for an audiobook
 - **THEN** it is an offset in time within a named part, and a percentage is derived from the total duration
 - **AND** it survives the app being closed, the device restarting, and the file being re-downloaded, exactly as a page index does
+- **AND** *when* it is written is `audio-playback`'s *Where a listening position is written*, because a book has no page turn to hang a write on and "it survives" alone does not say how much of the last chapter survives
 - **AND** it is resolved through content identity like every other position, so the same audiobook from a folder and from a share is one publication
 
 #### Scenario: A publication that is both listened to and read
