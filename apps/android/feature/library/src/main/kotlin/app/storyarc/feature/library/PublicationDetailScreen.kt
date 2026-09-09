@@ -140,6 +140,19 @@ fun PublicationDetailScreen(
      */
     stoppedIn: Int? = null,
     /**
+     * How far into [stoppedIn] the listener got, so the chapter in progress states what is
+     * left of it. Zero for an audiobook nobody started, which marks no chapter anyway.
+     */
+    offsetMillis: Long = 0,
+    /**
+     * Whether this publication is finished, so every chapter of it is marked finished.
+     *
+     * Beside [stoppedIn] rather than folded into it: a finished audiobook offers to start
+     * again, so the saved position it resumes from is null and the marks would otherwise read
+     * as a book nobody had opened. See [chapterRows].
+     */
+    isFinished: Boolean = false,
+    /**
      * A chapter was chosen: start there rather than where the book was left.
      *
      * A different verb from [onRead], which resumes. `audio-playback` asks for both, and for
@@ -268,6 +281,8 @@ fun PublicationDetailScreen(
                 downloadFraction = downloadFraction,
                 chapters = chapters,
                 stoppedIn = stoppedIn,
+                offsetMillis = offsetMillis,
+                isFinished = isFinished,
                 onRead = { onRead(publication) },
                 onListenFrom = onListenFrom,
                 onDownload = onDownload.takeIf { download == DownloadControl.PRIMARY },
@@ -361,6 +376,8 @@ internal fun DetailMainPane(
     downloadFraction: Float?,
     chapters: List<AudiobookPart> = emptyList(),
     stoppedIn: Int? = null,
+    offsetMillis: Long = 0,
+    isFinished: Boolean = false,
     onRead: () -> Unit,
     onListenFrom: (Int) -> Unit = {},
     onDownload: (() -> Unit)?,
@@ -412,7 +429,13 @@ internal fun DetailMainPane(
 
         // Under the summary and above the provenance line, which stays last. A listener
         // choosing what to hear next reads what the book is, then what is in it.
-        DetailChapters(parts = parts, stoppedIn = stoppedIn, onChoose = onListenFrom)
+        DetailChapters(
+            parts = parts,
+            stoppedIn = stoppedIn,
+            onChoose = onListenFrom,
+            offsetMillis = offsetMillis,
+            isFinished = isFinished,
+        )
 
         // The two of `kavita-server`'s seven metadata fields that `Publication` has no slot
         // for. Absent for everything that is not a kept Kavita chapter, which is most of the

@@ -212,6 +212,11 @@ internal object PlayingBook {
                 // pause itself, so ticking over it would rewrite the same row for ever.
                 if (PlaybackHost.nowPlaying.value?.isPlaying != true) continue
                 PlaybackHost.recordReached()
+                // And the surfaces are told, on the beat the writer already runs on.
+                // `audio-playback` asks the chapter in progress to state "how much of
+                // itself is left"; that number is `NowPlaying.leftInPartMillis`, and a
+                // playing file publishes nothing by itself — see `PlaybackCentre.refresh`.
+                PlaybackHost.refresh()
             }
         }
     }

@@ -217,23 +217,52 @@ internal fun PlayerScreen(
         // branch on here — a source's parts are never empty, which is the whole point of
         // `AudiobookChapters` giving an unchaptered book one part.
         playing.parts.forEachIndexed { index, part ->
+            // Only the chapter being played has a remainder to state. `audio-playback` asks
+            // for it on "the chapter in progress", and a chapter nobody has reached has all
+            // of itself left, which is what its duration already says.
+            val left = playing.leftInPartMillis.takeIf { index == playing.partIndex }
             // The overload with `content` trailing. The one taking `headlineContent` first
             // is deprecated at material3 1.5.0-alpha26 and `allWarningsAsErrors` says so.
             ListItem(
                 modifier = Modifier.clickable { onChooseChapter(index) },
+                // The duration and the remainder in one line, so the merged row states one
+                // value. `audio-playback` asks a screen reader to hear "the chapter, its
+                // duration, its mark and the remaining time as one control", and
+                // `Modifier.clickable` above is what merges them.
                 supportingContent = part.duration.statedMillis?.let { millis ->
-                    { Text(clock(millis)) }
+                    {
+                        Text(
+                            text = left?.let {
+                                stringResource(R.string.player_chapter_left, clock(millis), clock(it))
+                            } ?: clock(millis),
+                        )
+                    }
                 },
-                trailingContent = if (index == playing.partIndex) {
-                    { Text(stringResource(R.string.player_current_chapter)) }
-                } else {
-                    null
+                trailingContent = chapterMark(index, playing.partIndex)?.let { mark ->
+                    { Text(stringResource(mark)) }
                 },
                 content = { Text(part.title) },
             )
         }
     }
     }
+}
+
+/**
+ * The word beside a chapter in the player's list, or none.
+ *
+ * `audio-playback`: "a chapter already finished is marked as finished, a chapter not yet
+ * reached carries no mark, and the chapter in progress is marked as the one in progress".
+ * One position marks every row, because a listener is in one place at a time.
+ *
+ * The player's own words rather than the library's read-state pair, which the publication
+ * page uses: those read *Gelesen* and *Terminado* in two of the four languages, and a
+ * chapter of an audiobook was heard rather than read.
+ */
+private fun chapterMark(index: Int, partIndex: Int): Int? = when {
+    index < partIndex -> R.string.player_chapter_finished
+    index == partIndex -> R.string.player_current_chapter
+    else -> null
 }
 
 /**
@@ -251,12 +280,17 @@ private fun Position(
     onSeekSettled: () -> Unit,
 ) {
     val total = playing.statedPartDurationMillis
+    // **The offset inside the chapter, not the seek target.** The rail is ranged over one
+    // chapter, and for a single chaptered file `offsetMillis` is a time into the whole file:
+    // a handle fed one and ranged over the other sits pinned at its own end from the second
+    // chapter on. `NowPlaying.positionInPart` is the way back to what a seek takes.
+    val offset = playing.offsetInPartMillis
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         if (playing.isScrubbable && total != null) {
             Slider(
-                value = playing.offsetMillis.toFloat(),
+                value = offset.toFloat(),
                 onValueChange = {
-                    onSeek(PlaybackPosition(playing.partIndex, it.toLong()))
+                    onSeek(playing.positionInPart(it.toLong()))
                 },
                 onValueChangeFinished = onSeekSettled,
                 valueRange = 0f..total.toFloat(),
@@ -269,7 +303,7 @@ private fun Position(
                     // "announced as an adjustable with its position stated in time, not as
                     // a percentage". A `Slider`'s own state description is a percentage,
                     // and this is what replaces it.
-                    stateDescription = "${clock(playing.offsetMillis)} of ${clock(total)}"
+                    stateDescription = "${clock(offset)} of ${clock(total)}"
                 },
             )
         } else {
@@ -280,7 +314,7 @@ private fun Position(
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
-                text = clock(playing.offsetMillis),
+                text = clock(offset),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -4,7 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -67,6 +69,8 @@ class PublicationChaptersTest {
         onRead: () -> Unit = {},
         onListenFrom: (Int) -> Unit = {},
         publication: Publication = book,
+        offsetMillis: Long = 0,
+        isFinished: Boolean = false,
     ): @Composable () -> Unit = {
         DetailMainPane(
             publication = publication,
@@ -82,6 +86,8 @@ class PublicationChaptersTest {
             downloadFraction = null,
             chapters = chapters,
             stoppedIn = stoppedIn,
+            offsetMillis = offsetMillis,
+            isFinished = isFinished,
             onRead = onRead,
             onListenFrom = onListenFrom,
             onDownload = null,
@@ -126,6 +132,60 @@ class PublicationChaptersTest {
 
         compose.onNodeWithText("Finished").assertIsDisplayed()
         compose.onNodeWithText("In progress").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a chapter nobody has reached carries no mark`() {
+        show(page(PrimaryAction.CONTINUE_LISTENING, three, stoppedIn = 1))
+
+        // The third chapter is past the position, and `audio-playback` says a chapter "not
+        // yet reached carries no mark". Asserted on the row rather than by counting words,
+        // because the marks the first two carry are the same two words.
+        compose.onAllNodes(hasText("The Return") and hasText("Finished")).assertCountEquals(0)
+        compose.onAllNodes(hasText("The Return") and hasText("In progress")).assertCountEquals(0)
+    }
+
+    @Test
+    fun `the chapter in progress states how much of itself is left, as one control`() {
+        show(page(PrimaryAction.CONTINUE_LISTENING, three, stoppedIn = 1, offsetMillis = 180_000))
+
+        // One node carrying all four facts, which is what `audio-playback` asks a screen
+        // reader to hear: "the chapter, its duration, its mark and the remaining time as one
+        // control". The duration and the remainder are the row's value, so they arrive as its
+        // state description; the title and the mark arrive as the merged text.
+        compose.onNode(hasText("The Crossing") and hasText("In progress")).assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "5:00 · 2:00 left"),
+        )
+    }
+
+    /**
+     * A book heard to the end, which no saved position describes.
+     *
+     * `ListenedPosition.resume` answers null for a finished publication — a listener
+     * reopening one means to hear it again — so `stoppedIn` is null and every row read
+     * *unplayed*, against "a chapter already finished is marked as finished". iOS marks all
+     * three, and the two pages stated opposite things about the same book.
+     */
+    @Test
+    fun `every chapter of a finished audiobook is marked finished`() {
+        show(page(PrimaryAction.LISTEN, three, stoppedIn = null, isFinished = true))
+
+        for (title in listOf("The Harbour", "The Crossing", "The Return")) {
+            compose.onNode(hasText(title) and hasText("Finished")).assertIsDisplayed()
+        }
+        compose.onAllNodes(hasText("In progress")).assertCountEquals(0)
+    }
+
+    @Test
+    fun `a chapter whose length the container never stated states neither number`() {
+        val unmeasured = listOf(part("One", null), part("Two", null))
+        show(page(PrimaryAction.CONTINUE_LISTENING, unmeasured, stoppedIn = 1, offsetMillis = 60_000))
+
+        // A folder audiobook before a decoder has measured it. No duration, so no remainder
+        // either — never a zero, which would read as a chapter about to end.
+        compose.onNodeWithText("Two").assert(
+            SemanticsMatcher.keyIsDefined(SemanticsProperties.StateDescription).not(),
+        )
     }
 
     @Test

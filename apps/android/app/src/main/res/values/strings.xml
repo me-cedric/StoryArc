@@ -46,6 +46,12 @@
     <!-- The word a chapter with no name of its own is numbered with: "Chapter 4". -->
     <string name="player_chapter_word">Chapter</string>
     <string name="player_current_chapter">Playing</string>
+    <!-- Beside a chapter the listener has passed. The player's own word, because two of the
+         library's read-state translations say "read" and an audiobook is heard. -->
+    <string name="player_chapter_finished">Finished</string>
+    <!-- A chapter's length, then how much of it is left: "5:00 · 2:00 left". Only the
+         chapter in progress states the second half. -->
+    <string name="player_chapter_left">%1$s · %2$s left</string>
     <string name="player_speed">Speed %1$s</string>
     <string name="player_nothing_playing">Nothing is playing.</string>
     <string name="player_back">Go back</string>

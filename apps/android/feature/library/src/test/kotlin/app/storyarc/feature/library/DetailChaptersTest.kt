@@ -48,10 +48,91 @@ class DetailChaptersTest {
     }
 
     @Test
+    fun `the chapter in progress states how much of itself is left`() {
+        // `audio-playback`: the chapter in progress "states how much of itself is left, so a
+        // listener can tell a chapter they have just begun from one they are about to
+        // finish". Three minutes into a five-minute chapter leaves two.
+        val rows = chapterRows(three, stoppedIn = 1, offsetMillis = 180_000)
+
+        assertEquals(120_000L, rows[1].leftMillis)
+    }
+
+    @Test
+    fun `a chapter the listener has not reached states no remainder`() {
+        // All of it is left, which is what its duration already says. A second number on
+        // every row would say the same thing three times and mark nothing.
+        val rows = chapterRows(three, stoppedIn = 1, offsetMillis = 180_000)
+
+        assertNull(rows[0].leftMillis)
+        assertNull(rows[2].leftMillis)
+    }
+
+    @Test
+    fun `a chapter whose length the container never stated states no remainder`() {
+        // A folder audiobook before a decoder has measured it. Nothing is reported as a
+        // fault, and a zero would read as a chapter about to end.
+        val unmeasured = listOf(part("One", millis = null), part("Two", millis = null))
+
+        val rows = chapterRows(unmeasured, stoppedIn = 1, offsetMillis = 180_000)
+
+        assertNull(rows[1].statedMillis)
+        assertNull(rows[1].leftMillis)
+    }
+
+    @Test
+    fun `a remainder never runs past the end of its chapter`() {
+        // A position recorded against a container since re-read with shorter parts. Zero
+        // left is honest; a negative clock reads as a chapter owing time.
+        val rows = chapterRows(three, stoppedIn = 0, offsetMillis = 500_000)
+
+        assertEquals(0L, rows[0].leftMillis)
+    }
+
+    @Test
     fun `a book nobody has started marks nothing`() {
         val rows = chapterRows(three, stoppedIn = null)
 
         assertTrue(rows.all { it.progress == ChapterProgress.UNPLAYED })
+    }
+
+    /**
+     * `audio-playback`: "a chapter already finished is marked as finished".
+     *
+     * A finished publication is the case no saved position describes — it offers to start
+     * again, so `ListenedPosition.resume` answers null and `stoppedIn` with it. The page
+     * marked every row of a book heard to the end as unplayed, and disagreed with iOS about
+     * the same book.
+     */
+    @Test
+    fun `every chapter of a finished book is marked finished`() {
+        val rows = chapterRows(three, stoppedIn = null, isFinished = true)
+
+        assertTrue(rows.all { it.progress == ChapterProgress.FINISHED })
+    }
+
+    @Test
+    fun `a finished book states no remainder on any chapter`() {
+        val rows = chapterRows(three, stoppedIn = null, offsetMillis = 60_000, isFinished = true)
+
+        assertTrue(rows.all { it.leftMillis == null })
+    }
+
+    /**
+     * Finished is sticky, and a listener who starts the book again is still in a chapter.
+     *
+     * Measured on 2026-09-09: the flag was tested before the place, so every row of the book
+     * playing right now was marked finished and no row stated a remainder. The flag answers
+     * the case where nothing else can — a finished book nobody is playing — and a place, from
+     * the session or from the store, always describes the listener better than it does.
+     */
+    @Test
+    fun `a finished book being heard again is marked from where the audio is`() {
+        val rows = chapterRows(three, stoppedIn = 1, offsetMillis = 60_000, isFinished = true)
+
+        assertEquals(ChapterProgress.FINISHED, rows[0].progress)
+        assertEquals(ChapterProgress.IN_PROGRESS, rows[1].progress)
+        assertEquals(ChapterProgress.UNPLAYED, rows[2].progress)
+        assertEquals(240_000L, rows[1].leftMillis)
     }
 
     @Test

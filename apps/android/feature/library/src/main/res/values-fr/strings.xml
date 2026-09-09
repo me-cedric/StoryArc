@@ -401,6 +401,7 @@
     <string name="detail_action_continue_listening_chapter">Reprendre « %1$s »</string>
     <string name="detail_chapters">Chapitres</string>
     <string name="detail_duration">Durée %1$s</string>
+    <string name="detail_chapter_left">%1$s · %2$s restant</string>
     <string name="detail_series_heading">Les autres numéros de cette série</string>
     <string name="detail_downloading">Téléchargement</string>
     <string name="detail_add_to_shelf">Ajouter à une étagère</string>

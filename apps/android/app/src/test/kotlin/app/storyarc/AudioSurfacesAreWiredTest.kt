@@ -44,7 +44,7 @@ class AudioSurfacesAreWiredTest {
     fun `the publication page is handed its chapters, the saved part and a way into one`() {
         val screens = read(APP_SCREENS)
 
-        for (argument in listOf("chapters = chapters,", "stoppedIn = stoppedIn,")) {
+        for (argument in listOf("chapters = chapters,", "stoppedIn = place.partIndex,")) {
             assertTrue(
                 "The publication page is no longer passed `$argument`. The page then draws no" +
                     " chapter list and marks no part, and its own tests stay green because" +
@@ -85,9 +85,10 @@ class AudioSurfacesAreWiredTest {
         // `?: saved` stops the store's answer reaching the screen, and this suite stayed
         // green through it. That is the gap this feature was faulted for once already.
         assertTrue(
-            "The store's answer no longer reaches `stoppedIn`, so the page marks only the" +
-                " book that is playing.",
-            screens.contains("?.partIndex ?: saved"),
+            "The store's answer no longer reaches the page, so it marks only the book that" +
+                " is playing. What the call decides is asserted in `ListenedPositionTest`;" +
+                " this is only that the page still asks.",
+            screens.contains("saved = saved,"),
         )
         assertTrue(
             "The store is no longer re-read when the session changes, so the mark goes stale" +
@@ -126,6 +127,32 @@ class AudioSurfacesAreWiredTest {
             "The scrub no longer writes when the drag settles, so a place the listener chose" +
                 " waits for the floor.",
             read(APP_SCREENS).contains("onSeekSettled = PlaybackHost::recordReached"),
+        )
+    }
+
+    /**
+     * `audio-playback`, *Chapters*: the chapter in progress states "how much of itself is
+     * left". Two halves of that number are wired here and nowhere a screen test can see.
+     *
+     * `RemainingChapterTimeTest` pins what a refresh then publishes, and
+     * `PublicationChaptersTest` pins what the page then draws with an offset.
+     */
+    @Test
+    fun `the remainder is fed a moving offset on both surfaces`() {
+        assertTrue(
+            "Nothing republishes where the audio reached, so the player's chapter list states" +
+                " the remainder the file started with for as long as it plays.",
+            read(PLAYING_BOOK).contains("PlaybackHost.refresh()"),
+        )
+        assertTrue(
+            "The publication page is no longer passed the offset it derived, so the chapter" +
+                " in progress states its whole length as what is left of it.",
+            read(APP_SCREENS).contains("offsetMillis = place.offsetInChapterMillis,"),
+        )
+        assertTrue(
+            "The page no longer states which publications are finished, so every chapter of" +
+                " a book heard to the end reads as one nobody has opened.",
+            read(APP_SCREENS).contains("isFinished = isFinished,"),
         )
     }
 

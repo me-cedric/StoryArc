@@ -1,9 +1,12 @@
 package app.storyarc
 
 import app.storyarc.core.model.ReadingPosition
+import app.storyarc.core.playback.NowPlaying
 import app.storyarc.core.playback.PlaybackDuration
 import app.storyarc.core.playback.PlaybackPart
 import app.storyarc.core.playback.PlaybackPosition
+import app.storyarc.core.playback.PlaybackSession
+import app.storyarc.core.playback.PlaybackSpeed
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -132,5 +135,125 @@ class ListenedPositionTest {
     fun `a position left by reading is not a place to start playing`() {
         assertNull(ListenedPosition.resume(ReadingPosition.Page(3, 20), false))
         assertNull(ListenedPosition.resume(ReadingPosition.Reflowable(0.4, "{}"), false))
+    }
+
+    // MARK: what the publication's page marks, and in which unit
+
+    /** Chapter lengths as the page lists them: two minutes, five, then four. */
+    private val chapters = listOf<Long?>(120_000, 300_000, 240_000)
+
+    /**
+     * A session playing a single chaptered file, which is the shape that used to state 0:00.
+     *
+     * `partStartMillis` is the second mark, and `offsetMillis` is a time into the whole file,
+     * exactly as `AudiobookSource` reports one for `PartLayout.MARKS`.
+     */
+    private fun playing(publicationId: String = "sea-room") = NowPlaying(
+        publicationId = publicationId,
+        title = "Sea Room",
+        parts = listOf(
+            PlaybackPart("The Harbour", PlaybackDuration.Known(120_000)),
+            PlaybackPart("The Crossing", PlaybackDuration.Known(300_000)),
+        ),
+        partIndex = 1,
+        offsetMillis = 300_000,
+        partStartMillis = 120_000,
+        session = PlaybackSession().started(),
+        speed = PlaybackSpeed.NORMAL,
+    )
+
+    @Test
+    fun `the session's own place is measured against its chapter`() {
+        val place = ListenedPosition.placeOf("sea-room", playing(), saved = null, chapters)
+
+        assertEquals(1, place.partIndex)
+        assertEquals(180_000L, place.offsetInChapterMillis)
+    }
+
+    @Test
+    fun `a session wins over what the store last wrote`() {
+        val place = ListenedPosition.placeOf(
+            publicationId = "sea-room",
+            playing = playing(),
+            saved = PlaybackPosition(0, 30_000),
+            chapterMillis = chapters,
+        )
+
+        assertEquals(1, place.partIndex)
+        assertEquals(180_000L, place.offsetInChapterMillis)
+    }
+
+    @Test
+    fun `another book's session marks nothing on this page`() {
+        val place = ListenedPosition.placeOf(
+            publicationId = "sea-room",
+            playing = playing(publicationId = "the-peregrine"),
+            saved = null,
+            chapterMillis = chapters,
+        )
+
+        assertNull(place.partIndex)
+        assertEquals(0L, place.offsetInChapterMillis)
+    }
+
+    /**
+     * The store keeps a seek target, which for one chaptered file is a whole-file time.
+     *
+     * Six minutes into the file is one minute into the second chapter, which starts at two.
+     * Reading it as an offset into the chapter would state four minutes left of five when
+     * one has passed.
+     */
+    @Test
+    fun `a stored file time is measured against the chapter it falls in`() {
+        val place = ListenedPosition.placeOf(
+            publicationId = "sea-room",
+            playing = null,
+            saved = PlaybackPosition(1, 180_000),
+            chapterMillis = chapters,
+        )
+
+        assertEquals(1, place.partIndex)
+        assertEquals(60_000L, place.offsetInChapterMillis)
+    }
+
+    @Test
+    fun `a stored place in the first chapter is already inside it`() {
+        val place = ListenedPosition.placeOf(
+            publicationId = "sea-room",
+            playing = null,
+            saved = PlaybackPosition(0, 30_000),
+            chapterMillis = chapters,
+        )
+
+        assertEquals(0, place.partIndex)
+        assertEquals(30_000L, place.offsetInChapterMillis)
+    }
+
+    /**
+     * A folder audiobook nobody is playing states no chapter length, so nothing is subtracted.
+     *
+     * `ListenedChapters.of` reports `statedMillis = null` for every part of a folder without a
+     * session, and there the stored offset is already inside its own file. Giving up on the
+     * first unmeasured chapter is what keeps a part-relative offset from being reduced twice.
+     */
+    @Test
+    fun `an unmeasured chapter list states no offset rather than a wrong one`() {
+        val place = ListenedPosition.placeOf(
+            publicationId = "sea-room",
+            playing = null,
+            saved = PlaybackPosition(1, 30_000),
+            chapterMillis = listOf(null, null),
+        )
+
+        assertEquals(1, place.partIndex)
+        assertEquals(0L, place.offsetInChapterMillis)
+    }
+
+    @Test
+    fun `a book nobody has started marks no chapter`() {
+        val place = ListenedPosition.placeOf("sea-room", playing = null, saved = null, chapters)
+
+        assertNull(place.partIndex)
+        assertEquals(0L, place.offsetInChapterMillis)
     }
 }

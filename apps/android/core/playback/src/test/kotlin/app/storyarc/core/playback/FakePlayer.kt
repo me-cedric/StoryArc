@@ -1,10 +1,18 @@
 package app.storyarc.core.playback
 
+import androidx.annotation.OptIn
 import androidx.media3.common.C
+import androidx.media3.common.Format
+import androidx.media3.common.Label
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Metadata
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
+import androidx.media3.common.TrackGroup
+import androidx.media3.common.Tracks
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.extractor.metadata.Chapter
 import java.lang.reflect.Proxy
 
 /**
@@ -179,6 +187,36 @@ internal class FakePlayer(
     /** How long the one file of a single-file book is, as the decoder eventually says. */
     fun measureFile(millis: Long) {
         durationMs = millis
+    }
+
+    /**
+     * Announces a single file's chapter marks, the way a decoder announces its tracks.
+     *
+     * The only door into `PartLayout.MARKS`, which is the shape most audiobooks arrive in:
+     * one `.m4b` with a chapter list inside it. `measureFile` first, because
+     * `AudiobookSource` reads the file's own length to close the last mark.
+     */
+    @OptIn(UnstableApi::class)
+    fun describeChapters(vararg marks: Triple<String, Long, Long>) {
+        val chapters = marks.map { (title, startMs, endMs) ->
+            Chapter.Builder()
+                .setTitle(Label(null, title))
+                .setStartTimeMs(startMs)
+                .setEndTimeMs(endMs)
+                .build()
+        }
+        val format = Format.Builder().setMetadata(Metadata(chapters)).build()
+        val tracks = Tracks(
+            listOf(
+                Tracks.Group(
+                    TrackGroup(format),
+                    false,
+                    intArrayOf(C.FORMAT_HANDLED),
+                    booleanArrayOf(true),
+                ),
+            ),
+        )
+        listeners.toList().forEach { it.onTracksChanged(tracks) }
     }
 
     /**

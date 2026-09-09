@@ -9,10 +9,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasStateDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -22,6 +24,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.Density
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.model.MetadataOrigin
@@ -31,6 +34,7 @@ import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.playback.NowPlaying
 import app.storyarc.core.playback.PlaybackDuration
 import app.storyarc.core.playback.PlaybackPart
+import app.storyarc.core.playback.PlaybackPosition
 import app.storyarc.core.playback.PlaybackSession
 import app.storyarc.core.playback.PlaybackSpeed
 import app.storyarc.core.playback.SleepAfter
@@ -71,14 +75,31 @@ class PlayerSemanticsTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private fun playing(duration: PlaybackDuration = PlaybackDuration.Known(300_000)) = NowPlaying(
+    private fun playing(
+        duration: PlaybackDuration = PlaybackDuration.Known(300_000),
+        parts: List<PlaybackPart> = listOf(
+            PlaybackPart("The Shiants", duration),
+            PlaybackPart("Bird Island", duration),
+        ),
+        partIndex: Int = 0,
+        offsetMillis: Long = 42_000,
+        partStartMillis: Long = 0,
+    ) = NowPlaying(
         publicationId = "sea-room",
         title = "Sea Room",
-        parts = listOf(PlaybackPart("The Shiants", duration), PlaybackPart("Bird Island", duration)),
-        partIndex = 0,
-        offsetMillis = 42_000,
+        parts = parts,
+        partIndex = partIndex,
+        offsetMillis = offsetMillis,
+        partStartMillis = partStartMillis,
         session = PlaybackSession().started(),
         speed = PlaybackSpeed.of(1.4),
+    )
+
+    /** Three chapters of stated length, so a list can carry all three marks at once. */
+    private val three = listOf(
+        PlaybackPart("The Harbour", PlaybackDuration.Known(120_000)),
+        PlaybackPart("The Crossing", PlaybackDuration.Known(300_000)),
+        PlaybackPart("The Return", PlaybackDuration.Known(240_000)),
     )
 
     /** The corpus's chaptered M4B as the library describes it: an audiobook with no cover. */
@@ -96,15 +117,23 @@ class PlayerSemanticsTest {
         fontScale: Float = 1f,
         publication: Publication? = audiobook(),
         cover: suspend (Publication, Int) -> Bitmap? = { _, _ -> null },
+        parts: List<PlaybackPart> = listOf(
+            PlaybackPart("The Shiants", duration),
+            PlaybackPart("Bird Island", duration),
+        ),
+        partIndex: Int = 0,
+        offsetMillis: Long = 42_000,
+        partStartMillis: Long = 0,
+        onSeek: (PlaybackPosition) -> Unit = {},
     ) {
         val density = LocalDensity.current
         CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
             StoryArcTheme {
                 PlayerScreen(
-                    playing = playing(duration),
+                    playing = playing(duration, parts, partIndex, offsetMillis, partStartMillis),
                     onToggle = {},
                     onSkip = {},
-                    onSeek = {},
+                    onSeek = onSeek,
                     onSeekSettled = {},
                     onChooseChapter = {},
                     onSpeed = {},
@@ -219,6 +248,52 @@ class PlayerSemanticsTest {
         )
     }
 
+    /**
+     * The rail is one chapter long, so the position on it is measured against that chapter.
+     *
+     * A single chaptered file reports a whole-file time — `AudiobookSource` says why — so a
+     * handle fed that time and ranged over a chapter sits pinned at its own end from the
+     * second chapter on, and states a time past the total beside it.
+     */
+    @Test
+    fun `the scrub control states a position inside the chapter, not inside the file`() {
+        compose.setContent {
+            Player(parts = three, partIndex = 1, offsetMillis = 300_000, partStartMillis = 120_000)
+        }
+
+        assertTrue(
+            "the scrub control states a file time against a chapter's length",
+            compose.onAllNodes(hasStateDescription("3:00 of 5:00")).fetchSemanticsNodes().isNotEmpty(),
+        )
+    }
+
+    /**
+     * The other half of the same round trip: what a drag asks the player to seek to.
+     *
+     * The rail reads in chapter time and `seek` takes a file time, so the offset the listener
+     * chose has the chapter's own start added back. Thirty seconds into a chapter that starts
+     * at two minutes is two minutes thirty into the file; handing the raw thirty seconds over
+     * would send the listener back to the first chapter.
+     */
+    @Test
+    fun `a drag on the scrub control seeks to the file time that offset falls at`() {
+        var sought: PlaybackPosition? = null
+        compose.setContent {
+            Player(
+                parts = three,
+                partIndex = 1,
+                offsetMillis = 300_000,
+                partStartMillis = 120_000,
+                onSeek = { sought = it },
+            )
+        }
+
+        compose.onNode(hasStateDescription("3:00 of 5:00"))
+            .performSemanticsAction(SemanticsActions.SetProgress) { it(30_000f) }
+
+        assertEquals(PlaybackPosition(1, 150_000), sought)
+    }
+
     /** The remaining sleep time is one of the four values the requirement names. */
     @Test
     fun `a running sleep timer states how long is left`() {
@@ -227,6 +302,90 @@ class PlayerSemanticsTest {
         }
 
         compose.onNodeWithText("Sleep in 12:34").performScrollTo().assertIsDisplayed()
+    }
+
+    // MARK: 15.1 / 15.2 / 15.3 — the chapter list marks its rows and states a remainder
+
+    /**
+     * `audio-playback`, *Chapters*: "a chapter already finished is marked as finished".
+     *
+     * The player had one mark before this — the chapter playing — so a listener scrolling
+     * the list could not tell what they had already heard from what they had not.
+     */
+    @Test
+    fun `a chapter the listener has passed is marked finished`() {
+        compose.setContent { Player(parts = three, partIndex = 1, offsetMillis = 180_000) }
+
+        compose.onNode(hasText("The Harbour") and hasText("Finished"))
+            .performScrollTo()
+            .assertIsDisplayed()
+    }
+
+    /**
+     * The chapter in progress, its mark and its remainder, all on one node.
+     *
+     * `audio-playback` asks the chapter in progress to state "how much of itself is left",
+     * and asks a screen reader to hear "the chapter, its duration, its mark and the
+     * remaining time as one control". `Modifier.clickable` merges the row, so a single node
+     * matching all three texts is that requirement.
+     */
+    @Test
+    fun `the chapter in progress is marked and states how much of itself is left`() {
+        compose.setContent { Player(parts = three, partIndex = 1, offsetMillis = 180_000) }
+
+        compose.onNode(
+            hasText("The Crossing") and hasText("Playing") and hasText("5:00 · 2:00 left"),
+        ).performScrollTo().assertIsDisplayed()
+    }
+
+    /**
+     * A remainder belongs to the chapter in progress and to no other row.
+     *
+     * `audio-playback` asks for it on "the chapter in progress", and a chapter already heard
+     * has none of itself left. Widening the guard to `index <= playing.partIndex` gave every
+     * finished row a remainder and no test said so. The publication page carried this guard
+     * from the start; the player did not.
+     */
+    @Test
+    fun `a chapter the listener has passed states no remainder`() {
+        compose.setContent { Player(parts = three, partIndex = 1, offsetMillis = 180_000) }
+
+        compose.onAllNodes(hasText("The Harbour") and hasText("left", substring = true))
+            .assertCountEquals(0)
+    }
+
+    /** `audio-playback`: "a chapter not yet reached carries no mark". Nor a remainder. */
+    @Test
+    fun `a chapter nobody has reached carries no mark and no remainder`() {
+        compose.setContent { Player(parts = three, partIndex = 1, offsetMillis = 180_000) }
+
+        // Its duration and nothing else, which is all a chapter nobody has begun can say.
+        compose.onNode(hasText("The Return") and hasText("4:00")).performScrollTo().assertIsDisplayed()
+        compose.onAllNodes(hasText("The Return") and hasText("Playing")).assertCountEquals(0)
+        compose.onAllNodes(hasText("The Return") and hasText("Finished")).assertCountEquals(0)
+        compose.onAllNodes(hasText("The Return") and hasText("left", substring = true))
+            .assertCountEquals(0)
+    }
+
+    /**
+     * A chapter whose length nothing stated says nothing about it.
+     *
+     * `PlaybackDuration.Estimated` answers `statedMillis` with null on purpose, so a
+     * read-aloud session and a folder audiobook nobody has measured print neither a
+     * duration nor a remainder. A zero would read as a chapter about to end.
+     */
+    @Test
+    fun `a chapter of unknown length states no duration and no remainder`() {
+        compose.setContent { Player(duration = PlaybackDuration.Estimated(300_000)) }
+
+        compose.onNode(hasText("The Shiants") and hasText("Playing"))
+            .performScrollTo()
+            .assertIsDisplayed()
+        compose.onAllNodes(hasText("The Shiants") and hasText("left", substring = true))
+            .assertCountEquals(0)
+        // Neither the estimate nor a zero. Both would be a number a listener plans around.
+        compose.onAllNodes(hasText("The Shiants") and hasText("5:00")).assertCountEquals(0)
+        compose.onAllNodes(hasText("The Shiants") and hasText("0:00")).assertCountEquals(0)
     }
 
     // MARK: absent rather than refusing
@@ -282,6 +441,25 @@ class PlayerSemanticsTest {
         compose.setContent { Player(fontScale = 2f) }
 
         compose.onAllNodesWithText("The Shiants").onFirst().assertIsDisplayed()
+    }
+
+    /**
+     * The remainder is a *stated value*, so *At the largest text size* covers it too.
+     *
+     * `audio-playback` asks the publication, the chapter "and every stated value" to be
+     * "readable in full, the surface scrolls if it must". The row is the longest line the
+     * list draws — a title, a duration, a remainder and a mark — so it is the one that runs
+     * out of room first. Scrolled to, because the list is what the requirement lets scroll.
+     */
+    @Test
+    fun `at the largest text size the remainder is readable in full`() {
+        compose.setContent {
+            Player(fontScale = 2f, parts = three, partIndex = 1, offsetMillis = 180_000)
+        }
+
+        compose.onNode(hasText("The Crossing") and hasText("5:00 · 2:00 left"))
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 
     private companion object {

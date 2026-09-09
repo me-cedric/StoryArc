@@ -415,6 +415,9 @@
     <string name="detail_action_continue_listening_chapter">Continue “%1$s”</string>
     <string name="detail_chapters">Chapters</string>
     <string name="detail_duration">Duration %1$s</string>
+    <!-- A chapter's length, then how much of it is left: "5:00 · 2:00 left". Only the
+         chapter in progress states the second half. -->
+    <string name="detail_chapter_left">%1$s · %2$s left</string>
     <string name="detail_series_heading">Other issues in this series</string>
     <string name="detail_downloading">Downloading</string>
     <string name="detail_add_to_shelf">Add to a shelf</string>

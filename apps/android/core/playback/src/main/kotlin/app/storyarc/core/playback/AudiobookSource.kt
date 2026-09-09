@@ -67,6 +67,20 @@ class AudiobookSource(
             }
         }
 
+    /**
+     * The mark the current chapter starts at, which [position] reports past rather than from.
+     *
+     * `AudiobookChapters.parts` builds a `MARKS` part's duration as `ends - startMillis` —
+     * the chapter's own length — while [position] reports a whole-file time, so the two only
+     * subtract correctly once this is taken off. `offsets` is index-aligned with `parts`, and
+     * `AudiobookChaptersTest` pins that alignment.
+     */
+    override val partStartMillis: Long
+        get() = when (book.layout) {
+            PartLayout.FILES -> 0
+            PartLayout.MARKS -> offsets.getOrElse(position.partIndex) { 0 }
+        }
+
     override var session: PlaybackSession = PlaybackSession()
         private set
 

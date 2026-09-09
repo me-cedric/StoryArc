@@ -91,6 +91,22 @@ class PlaybackCentre(
         record(source, source.position)
     }
 
+    /**
+     * Rebuilds the surface from the player, for a caller that knows time has passed.
+     *
+     * media3 raises a callback for a seek, a transition and a pause. It raises none for the
+     * clock running on, so [nowPlaying] holds the offset a file started at for as long as
+     * that file plays — measured on 2026-09-08, and pinned by `RecordedPositionTest`. A
+     * chapter list that states how much of a chapter is left reads that offset, so the
+     * number would freeze where the audio began. The app's own fifteen-second tick calls
+     * this, so no loop is added here.
+     *
+     * **Never call this from [recordReached].** [publish] calls [recordReached] on the
+     * transition into a listener pause and assigns [nowPlaying] after it, so pairing the
+     * two recurses without end.
+     */
+    fun refresh() = publish()
+
     fun seek(to: PlaybackPosition) {
         source?.seek(to)
         publish()

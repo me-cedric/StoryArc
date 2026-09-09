@@ -324,13 +324,33 @@ private fun PublicationPage(
     // without leaving the page loses the live part and falls back to what the store said
     // *before* playback. Reading again when the session changes is what keeps the mark and the
     // store agreeing, which is the whole point of reading the store here.
-    var saved by remember(publication.id) { mutableStateOf<Int?>(null) }
+    // **The whole position, not only the part.** `audio-playback` asks the chapter in
+    // progress to state "how much of itself is left", and the offset this used to throw away
+    // is the only thing that says how much. A book nobody is playing has no session to read
+    // it from, so the store's own offset is what the page states.
+    // **The finished flag travels beside it**, because a finished publication resumes from
+    // its start: `ListenedPosition.resume` answers null for one, so `stoppedIn` alone marked
+    // every chapter of a book heard to the end as unplayed.
+    var saved by remember(publication.id) { mutableStateOf<PlaybackPosition?>(null) }
+    var isFinished by remember(publication.id) { mutableStateOf(false) }
     LaunchedEffect(publication.id, playing) {
         // Not `record`: that name is the download record twenty lines up.
         val listened = host.dependencies.progress.progress(publication.identity)
-        saved = ListenedPosition.resume(listened?.position, listened?.isFinished == true)?.partIndex
+        val finished = listened?.isFinished == true
+        isFinished = finished
+        saved = ListenedPosition.resume(listened?.position, finished)
     }
-    val stoppedIn = playing?.takeIf { it.publicationId == publication.id }?.partIndex ?: saved
+    // The choice between the live session and the store is `ListenedPosition.placeOf`'s, and
+    // so is the unit the offset arrives in. Both were three expressions here, which no test
+    // could reach: a verifier replaced the offset with `0L` and every module still reported
+    // BUILD SUCCESSFUL, because `PublicationChaptersTest` composes the pane and passes its
+    // own. See `ListenedPositionTest`.
+    val place = ListenedPosition.placeOf(
+        publicationId = publication.id,
+        playing = playing,
+        saved = saved,
+        chapterMillis = chapters.map { it.statedMillis },
+    )
 
     PublicationDetailScreen(
         publication = publication,
@@ -339,7 +359,9 @@ private fun PublicationPage(
         isBesideList = isBesideList,
         downloadFraction = record?.takeIf { it.state != Download.State.Finished }?.fraction?.toFloat(),
         chapters = chapters,
-        stoppedIn = stoppedIn,
+        stoppedIn = place.partIndex,
+        offsetMillis = place.offsetInChapterMillis,
+        isFinished = isFinished,
         // A different verb from `onRead`, which resumes. The chosen chapter is where the
         // audio starts, and the saved place is left alone until the audio moves past it.
         onListenFrom = { index ->

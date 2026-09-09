@@ -48,6 +48,13 @@ internal data class DetailChapter(
     val title: String,
     val statedMillis: Long?,
     val progress: ChapterProgress,
+    /**
+     * How much of this chapter is left, for the one in progress. Null for every other row.
+     *
+     * Null as well for a chapter whose length nothing stated — a folder audiobook states no
+     * duration until a decoder measures it, and half a subtraction is not a remainder.
+     */
+    val leftMillis: Long? = null,
 )
 
 /**
@@ -62,17 +69,31 @@ internal data class DetailChapter(
  * @param stoppedIn the part the listener stopped in, or null for a book they never started.
  *   The caller passes null for the same fact the primary action calls *no progress*, so the
  *   button and the marks cannot disagree about whether the book was started.
+ * @param offsetMillis how far into [stoppedIn] the listener got. `audio-playback` asks the
+ *   chapter in progress to state "how much of itself is left", and that is this taken from
+ *   the chapter's own length. Zero for a book nobody started, which marks nothing anyway.
+ * @param isFinished whether the whole publication is finished. Separate from [stoppedIn]
+ *   because the two answer different questions: a finished book resumes from its start, so
+ *   `ListenedPosition.resume` answers null and [stoppedIn] with it. Without this the page
+ *   marked every row of a finished audiobook unplayed, against *a chapter already finished
+ *   is marked as finished*, and disagreed with iOS about the same book.
  */
 internal fun chapterRows(
     parts: List<AudiobookPart>,
     stoppedIn: Int?,
+    offsetMillis: Long = 0,
+    isFinished: Boolean = false,
 ): List<DetailChapter> {
     if (parts.size < 2) return emptyList()
     return parts.mapIndexed { index, part ->
+        val progress = progressOf(index, stoppedIn, isFinished)
         DetailChapter(
             title = part.title,
             statedMillis = part.statedMillis,
-            progress = progressOf(index, stoppedIn),
+            progress = progress,
+            leftMillis = part.statedMillis
+                ?.takeIf { progress == ChapterProgress.IN_PROGRESS }
+                ?.let { (it - offsetMillis).coerceAtLeast(0) },
         )
     }
 }
@@ -83,9 +104,19 @@ internal fun chapterRows(
  * Everything before the part they stopped in is behind them and is marked finished; the part
  * they stopped in is the one in progress. Nothing after it is marked at all — a chapter
  * nobody has reached is the ordinary state of a chapter and carries no word.
+ *
+ * A finished publication is the one case no saved position describes: it has been heard to
+ * the end and offers to start again, so every row is behind the listener at once. iOS asks
+ * the same of `ChapterProgress.mark(of:reached:isFinished:)`. It is the *last* answer and not
+ * the first: a place, whether the session's or the store's, always describes the listener
+ * better than a flag that stays set for ever.
  */
-private fun progressOf(index: Int, stoppedIn: Int?): ChapterProgress = when {
-    stoppedIn == null -> ChapterProgress.UNPLAYED
+private fun progressOf(index: Int, stoppedIn: Int?, isFinished: Boolean): ChapterProgress = when {
+    // **A known place beats the flag, and the flag was tested first.** Finished is sticky in
+    // the store, so a listener hearing a book again arrived with it still set: measured on
+    // 2026-09-09, every row of the book playing right now was marked finished and no row
+    // stated a remainder. The flag answers the one case above, where nothing else can.
+    stoppedIn == null -> if (isFinished) ChapterProgress.FINISHED else ChapterProgress.UNPLAYED
     index < stoppedIn -> ChapterProgress.FINISHED
     index == stoppedIn -> ChapterProgress.IN_PROGRESS
     else -> ChapterProgress.UNPLAYED
@@ -133,9 +164,13 @@ internal fun DetailChapters(
     /** Start at this part rather than where the book was left. */
     onChoose: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    /** How far into [stoppedIn] the listener got. See [chapterRows]. */
+    offsetMillis: Long = 0,
+    /** Whether the whole publication is finished. See [chapterRows]. */
+    isFinished: Boolean = false,
 ) {
     val palette = LocalStoryArcPalette.current
-    val rows = chapterRows(parts, stoppedIn)
+    val rows = chapterRows(parts, stoppedIn, offsetMillis, isFinished)
 
     if (rows.isEmpty()) {
         val whole = wholeBookMillis(parts) ?: return
@@ -168,10 +203,20 @@ internal fun DetailChapters(
  * description and the printed copy of it is taken out of the semantics — otherwise a screen
  * reader states the same number twice in one breath. `Modifier.clickable` merges the rest,
  * so the row announces its title and its mark and then its duration.
+ *
+ * The remainder joins that value rather than becoming a second line, because the same
+ * requirement asks a screen reader to hear all four facts "as one control".
  */
 @Composable
 private fun ChapterRow(row: DetailChapter, onChoose: () -> Unit) {
-    val stated = row.statedMillis?.let(::clock)
+    // The duration and the remainder are one string, so the eye and the screen reader read
+    // the same value. `chapterRows` sets `leftMillis` only where a duration was stated, so
+    // the second form never states a remainder against a chapter of unknown length.
+    val stated = row.statedMillis?.let { millis ->
+        row.leftMillis
+            ?.let { left -> stringResource(R.string.detail_chapter_left, clock(millis), clock(left)) }
+            ?: clock(millis)
+    }
     ListItem(
         modifier = Modifier
             .clickable(onClick = onChoose)
@@ -182,7 +227,7 @@ private fun ChapterRow(row: DetailChapter, onChoose: () -> Unit) {
     )
 }
 
-/** The printed duration, silent because the row already carries it as its value. */
+/** The printed value, silent because the row already carries it as its state description. */
 @Composable
 private fun DurationLine(stated: String) {
     Text(text = stated, modifier = Modifier.clearAndSetSemantics {})

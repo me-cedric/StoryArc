@@ -53,7 +53,17 @@ object PlaybackHost : SpokenAudio.Speaker {
      */
     var recordPosition: ((publicationId: String, position: PlaybackPosition, parts: List<PlaybackPart>) -> Unit)? = null
 
-    private val centre = PlaybackCentre(
+    /**
+     * Internal rather than private so a test can start a source in this object.
+     *
+     * [start] needs a bound `MediaController` before it holds anything, so every delegation
+     * below was reachable by no test at all: a verifier replaced [refresh] with `= Unit` on
+     * 2026-09-08 and both `:core:playback` and `:app` reported BUILD SUCCESSFUL, which is
+     * the tick silently stopping. `RemainingChapterTimeTest` now drives [refresh] through
+     * here. Nothing outside this module can see it, and nothing inside it may use it to
+     * bypass the host.
+     */
+    internal val centre = PlaybackCentre(
         record = { source, position ->
             recordPosition?.invoke(source.publicationId, position, source.parts)
         },
@@ -278,6 +288,14 @@ object PlaybackHost : SpokenAudio.Speaker {
      * [PlaybackCentre.recordReached] for why the read must reach the player.
      */
     fun recordReached() = centre.recordReached()
+
+    /**
+     * Republishes where the audio has reached, so a stated remainder moves with it.
+     *
+     * The app calls this on the same tick it writes a position on. See
+     * [PlaybackCentre.refresh] for why a playing file publishes nothing by itself.
+     */
+    fun refresh() = centre.refresh()
 
     /** Moves to the start of a part, whichever way this publication's parts are laid out. */
     fun seekToPart(index: Int) {

@@ -70,7 +70,7 @@ data class SleepTimer(
         // has moved the end nearer, and a timer that kept its own count would stop them in
         // the middle of the next one.
         SleepAfter.EndOfChapter ->
-            copy(remainingMillis = leftInPart(playing) ?: remainingMillis)
+            copy(remainingMillis = playing?.leftInPartMillis ?: remainingMillis)
     }
 
     companion object {
@@ -107,13 +107,7 @@ data class SleepTimer(
             is SleepAfter.Duration ->
                 after.millis.takeIf { it > 0 }?.let { SleepTimer(after, it) }
             SleepAfter.EndOfChapter ->
-                leftInPart(playing)?.let { SleepTimer(after, it) }
-        }
-
-        /** How much of the current part is left, when the container says how long it is. */
-        private fun leftInPart(playing: NowPlaying?): Long? {
-            val total = playing?.statedPartDurationMillis ?: return null
-            return (total - playing.offsetMillis).coerceAtLeast(0)
+                playing?.leftInPartMillis?.let { SleepTimer(after, it) }
         }
     }
 }

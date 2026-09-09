@@ -83,6 +83,8 @@
     <string name="player_chapters">Kapitel</string>
     <string name="player_chapter_word">Kapitel</string>
     <string name="player_current_chapter">Läuft</string>
+    <string name="player_chapter_finished">Fertig</string>
+    <string name="player_chapter_left">%1$s · %2$s übrig</string>
     <string name="player_speed">Geschwindigkeit %1$s</string>
     <string name="player_nothing_playing">Es wird nichts abgespielt.</string>
     <string name="player_back">Zurück</string>

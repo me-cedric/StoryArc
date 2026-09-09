@@ -321,9 +321,12 @@ internal fun AppShell(
                     // Through the current part, and null where nothing knows how long it
                     // is — `audio-playback` allows a position with no total and forbids
                     // inventing one, and a line drawn against a guess is inventing one.
+                    // `offsetInPartMillis`, not `offsetMillis`: the fourth reader of the
+                    // two units the remainder mixed. A single chaptered file reports a
+                    // whole-file time, so the line sat full from the second chapter on.
                     progress = playing.statedPartDurationMillis
                         ?.takeIf { it > 0 }
-                        ?.let { (playing.offsetMillis.toFloat() / it).coerceIn(0f, 1f) },
+                        ?.let { (playing.offsetInPartMillis.toFloat() / it).coerceIn(0f, 1f) },
                     labels = CompactPlayerLabels(
                         play = stringResource(R.string.player_play),
                         pause = stringResource(R.string.player_pause),

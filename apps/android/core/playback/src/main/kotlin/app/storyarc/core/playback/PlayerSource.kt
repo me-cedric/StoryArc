@@ -33,6 +33,17 @@ interface PlayerSource {
     /** Where the audio is now. */
     val position: PlaybackPosition
 
+    /**
+     * Where the current part starts, in the same time base [position] reports.
+     *
+     * Zero wherever a part is its own file, because there an offset is already inside its
+     * own part. A single chaptered file is one item with one time base, so `AudiobookSource`
+     * reports a whole-file time for [PartLayout.MARKS] — deliberately, because that time is
+     * also the seek target and survives a re-download. Anything measured against a *chapter*
+     * therefore has to take the chapter's own start off first, and this is that start.
+     */
+    val partStartMillis: Long get() = 0
+
     /** Whether it is playing, paused or idle, and what silenced it. */
     val session: PlaybackSession
 
@@ -109,6 +120,8 @@ data class NowPlaying(
     val parts: List<PlaybackPart>,
     val partIndex: Int,
     val offsetMillis: Long,
+    /** See [PlayerSource.partStartMillis]. Zero for a source whose parts are files. */
+    val partStartMillis: Long = 0,
     val session: PlaybackSession,
     val speed: PlaybackSpeed,
     val skippedPartCount: Int = 0,
@@ -135,6 +148,40 @@ data class NowPlaying(
     /** The current part's total, when there is one a surface may state. */
     val statedPartDurationMillis: Long? get() = partDuration.statedMillis
 
+    /**
+     * How far into the current part the audio is.
+     *
+     * **Not [offsetMillis], which is a seek target.** For a single chaptered file that target
+     * is a time into the whole file, so a remainder built from it subtracts a file time from
+     * a chapter length: measured on 2026-09-08, every chapter after the first stated 0:00
+     * left from its own first second. One value, derived once here, so the remainder, the
+     * scrub range and the sleep timer's *end of chapter* cannot disagree.
+     */
+    val offsetInPartMillis: Long get() = (offsetMillis - partStartMillis).coerceAtLeast(0)
+
+    /**
+     * The seek target for a chosen offset inside the current part.
+     *
+     * The way back from [offsetInPartMillis] to what [PlayerSource.seek] takes, so the scrub
+     * control can range over the chapter and still land in the right place in the file.
+     */
+    fun positionInPart(offsetInPartMillis: Long): PlaybackPosition =
+        PlaybackPosition(partIndex, partStartMillis + offsetInPartMillis)
+
+    /**
+     * How much of the current part is left, when the container says how long it lasts.
+     *
+     * `audio-playback`, *Chapters*: the chapter in progress "states how much of itself is
+     * left, so a listener can tell a chapter they have just begun from one they are about
+     * to finish". Null where nothing measured the part, because
+     * [statedPartDurationMillis] answers an estimate with null and a listener plans the
+     * next twenty minutes around this number.
+     *
+     * The sleep timer's *end of chapter* asks the same question, and asks it here.
+     */
+    val leftInPartMillis: Long?
+        get() = statedPartDurationMillis?.let { (it - offsetInPartMillis).coerceAtLeast(0) }
+
     /** Whether the scrub control may be offered. */
     val isScrubbable: Boolean get() = partDuration.isScrubbable
 
@@ -155,7 +202,7 @@ data class NowPlaying(
         get() {
             if (statedTotalMillis == null) return null
             val before = parts.take(partIndex).sumOf { it.duration.statedMillis ?: 0L }
-            return before + offsetMillis
+            return before + offsetInPartMillis
         }
 
     /** Whether some parts are missing from what the listener will hear. */
@@ -169,6 +216,7 @@ data class NowPlaying(
             parts = source.parts,
             partIndex = source.position.partIndex,
             offsetMillis = source.position.offsetMillis,
+            partStartMillis = source.partStartMillis,
             session = source.session,
             speed = source.speed,
             skippedPartCount = source.skippedPartCount,
