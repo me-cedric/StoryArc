@@ -64,7 +64,7 @@ internal fun AppIntents(
             // The same door the library goes through, so a file that arrives from a file
             // manager is routed to a reader by what it *is*, exactly as one chosen from a
             // shelf would be.
-            is OpenedFile.Outcome.Opened -> host.open(outcome.publication, outcome.decoderPath)
+            is OpenedFile.Outcome.Opened -> host.open(outcome.publication, outcome.location)
             else -> onRefusedFile(outcome)
         }
     }

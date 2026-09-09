@@ -62,11 +62,33 @@ class PlaybackCentre(
     fun adopt(publicationId: String): NowPlaying? =
         if (playingId == publicationId) nowPlaying else null
 
-    /** Pause and play, from wherever the listener reached for it. */
+    /**
+     * Pause and play, from wherever the listener reached for it.
+     *
+     * The pause's own write is not here. It is in [publish], because this is only one of the
+     * ways a book is paused — see the note there.
+     */
     fun toggle() {
         val source = source ?: return
         if (source.session.isPlaying) source.pause() else source.play()
         publish()
+    }
+
+    /**
+     * Writes where the audio has reached, read from the player at this moment.
+     *
+     * **The read is the whole of it.** [PlayerSource.position] asks the player itself, so
+     * this is the position the audio is at. A caller that built one from [nowPlaying] would
+     * store a snapshot instead — that value only moves when the player reports a callback,
+     * so a book playing steadily through one long file holds the offset it started at, and a
+     * write of it looks like a fix and stores nothing new.
+     *
+     * For the moments a listener expects to be remembered: a pause, a jump they chose, the
+     * app leaving the foreground, and the periodic floor underneath all three.
+     */
+    fun recordReached() {
+        val source = source ?: return
+        record(source, source.position)
     }
 
     fun seek(to: PlaybackPosition) {
@@ -85,6 +107,11 @@ class PlaybackCentre(
     fun skip(direction: SkipDirection) {
         val source = source ?: return
         source.skip(direction, SkipIntervals.millis(direction))
+        // The audio did not drift here, the listener chose it. [seek] deliberately does not
+        // do this: the scrub control calls it on every pixel of a drag, and a position store
+        // written sixty times a second is a different defect. The scrub writes when the drag
+        // settles instead — see `PlayerScreen`'s `onValueChangeFinished`.
+        recordReached()
         publish()
     }
 
@@ -166,7 +193,21 @@ class PlaybackCentre(
             else -> NowPlaying.of(source)
         }
         if (next == nowPlaying) return
+        // **The listener silenced it, so the position is written.** `audio-playback` asks for
+        // a pause to be recorded, and here rather than in [toggle] because a toggle is only
+        // one of the ways a book is paused: media3 hands a lock-screen, shade, car or headset
+        // pause straight to the player it wraps, and this centre never hears the call — it
+        // hears the *result*, which is this transition.
+        //
+        // A pause the *platform* made is left alone. An interruption is a book the listener
+        // still means to hear, and the one that ends for good is recorded by
+        // [recordAndRelease] on its way out.
+        if (next.isListenerPause() && !nowPlaying.isListenerPause()) recordReached()
         nowPlaying = next
         onChange?.invoke(next)
     }
+
+    /** Whether this surface is a book the listener has silenced. */
+    private fun NowPlaying?.isListenerPause(): Boolean =
+        this != null && !isPlaying && session.pausedBy == PauseCause.LISTENER
 }

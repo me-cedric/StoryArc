@@ -21,6 +21,7 @@ import app.storyarc.core.model.QuickActionRequest
 import app.storyarc.core.persistence.SettingsStore
 import app.storyarc.core.persistence.chosenLanguage
 import app.storyarc.core.persistence.speaking
+import app.storyarc.core.playback.PlaybackHost
 import app.storyarc.feature.settings.BuildInfo
 
 /**
@@ -87,6 +88,19 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         OpenedFile.uriFrom(intent)?.let { handedOver.value = it }
         HomeScreenActions.requestFrom(intent)?.let { quickAction.value = it }
+    }
+
+    /**
+     * The last moment before the system may reclaim the process.
+     *
+     * `audio-playback` asks a listening position to be written when the app leaves the
+     * foreground, because a process the system trims raises no ending at all. The audio
+     * itself carries on — it belongs to `PlaybackService` — so this writes and stops nothing.
+     * `ReaderHost` reports to Kavita on the same event, for the same reason.
+     */
+    override fun onStop() {
+        super.onStop()
+        PlaybackHost.recordReached()
     }
 
     /**

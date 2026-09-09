@@ -35,13 +35,19 @@ import kotlinx.coroutines.withContext
  * **Written while playing, not only on leaving.** ADR-0006 makes the local store
  * authoritative and `ReaderViewModel` writes a page on every turn for the same reason: an
  * app killed in the background is the normal way a phone closes one, and a position that
- * only travelled on a clean exit would be the walk home lost. A book has no page turns to
- * hang that on, so it is a tick — the same fifteen seconds `ReadingProgress` describes its
- * own `updatedAtEpochMillis` as moving on.
+ * only travelled on a clean exit would be the walk home lost.
+ *
+ * **A book has no page turns, so `audio-playback` names the moments instead.** A pause, a
+ * jump the listener chose, the app leaving the foreground, the end of the session — and the
+ * tick below as the floor under all of them, for the process that dies mid-play with no
+ * event at all. Every one of those reads the player, never a published report: see
+ * `PlaybackCentre.recordReached`, which this used to work around by building a position out
+ * of `PlaybackHost.nowPlaying` — a snapshot that only moves when the player raises a
+ * callback, so a book playing through one long file wrote the offset it started at.
  */
 internal object PlayingBook {
 
-    /** How often a playing book writes down where it has reached. */
+    /** The floor: how long a playing book may go with no other moment to write at. */
     private const val TICK_MILLIS = 15_000L
 
     /** Where the player's own picture of a book is written for the session to load. */
@@ -90,7 +96,7 @@ internal object PlayingBook {
      * @param from where to start, when the listener chose a chapter rather than resuming.
      *   Null means the saved place, which is what tapping the cover means. The saved place is
      *   read and not written either way — choosing a chapter moves the audio, and the writer
-     *   below records where it goes on its own tick.
+     *   below records where it goes at the next moment it writes at.
      */
     fun play(
         context: Context,
@@ -202,15 +208,10 @@ internal object PlayingBook {
         ticker = scope.launch {
             while (isActive) {
                 delay(TICK_MILLIS)
-                val playing = PlaybackHost.nowPlaying.value ?: continue
-                val known = _following.value ?: continue
-                if (!playing.isPlaying || playing.publicationId != known.id) continue
-                write(
-                    store,
-                    known,
-                    PlaybackPosition(playing.partIndex, playing.offsetMillis),
-                    playing.parts,
-                )
+                // `isPlaying` and nothing else. A paused book has already been written by the
+                // pause itself, so ticking over it would rewrite the same row for ever.
+                if (PlaybackHost.nowPlaying.value?.isPlaying != true) continue
+                PlaybackHost.recordReached()
             }
         }
     }

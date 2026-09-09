@@ -1,6 +1,7 @@
 package app.storyarc
 
 import java.io.File
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -95,6 +96,39 @@ class AudioSurfacesAreWiredTest {
         )
     }
 
+    /**
+     * `audio-playback`, *Where a listening position is written*: the three moments only the
+     * app layer can see, and the one that used to read a snapshot instead of the player.
+     *
+     * `RecordedPositionTest` pins what each write then stores. This asserts that the calls
+     * exist at all, which is the half the shipped app got wrong: the tick was wired and read
+     * `nowPlaying`, and nothing was wired to a pause, a settled scrub or the background.
+     */
+    @Test
+    fun `the app writes a listening position at the moments only it can see`() {
+        val ticker = read(PLAYING_BOOK)
+        assertTrue(
+            "The tick no longer asks the player where it is, so a book playing through one" +
+                " long file writes the offset it started at.",
+            ticker.contains("PlaybackHost.recordReached()"),
+        )
+        assertFalse(
+            "The tick builds a position out of `nowPlaying` again, which only moves when the" +
+                " player raises a callback — see `RecordedPositionTest`.",
+            ticker.contains("PlaybackPosition(playing.partIndex"),
+        )
+        assertTrue(
+            "Nothing writes the position when the activity leaves the foreground, which is" +
+                " the last moment before the system may reclaim the process.",
+            read(MAIN_ACTIVITY).contains("override fun onStop()"),
+        )
+        assertTrue(
+            "The scrub no longer writes when the drag settles, so a place the listener chose" +
+                " waits for the floor.",
+            read(APP_SCREENS).contains("onSeekSettled = PlaybackHost::recordReached"),
+        )
+    }
+
     private fun read(path: String): String {
         val file = File(androidRoot, path)
         if (!file.isFile) error("$path is not under ${androidRoot.absolutePath} — has it moved?")
@@ -105,6 +139,8 @@ class AudioSurfacesAreWiredTest {
         const val APP_SHELL = "app/src/main/kotlin/app/storyarc/AppShell.kt"
         const val APP_SCREENS = "app/src/main/kotlin/app/storyarc/AppScreens.kt"
         const val CAR_SHELF = "app/src/main/kotlin/app/storyarc/CarShelf.kt"
+        const val PLAYING_BOOK = "app/src/main/kotlin/app/storyarc/PlayingBook.kt"
+        const val MAIN_ACTIVITY = "app/src/main/kotlin/app/storyarc/MainActivity.kt"
 
         /**
          * The Gradle root, found by walking up from the working directory, per

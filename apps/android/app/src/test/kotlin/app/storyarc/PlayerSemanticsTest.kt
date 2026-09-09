@@ -105,6 +105,7 @@ class PlayerSemanticsTest {
                     onToggle = {},
                     onSkip = {},
                     onSeek = {},
+                    onSeekSettled = {},
                     onChooseChapter = {},
                     onSpeed = {},
                     sleep = sleep,

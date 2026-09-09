@@ -92,6 +92,7 @@ class VoiceStoppedWordTest {
                 onToggle = {},
                 onSkip = {},
                 onSeek = {},
+                onSeekSettled = {},
                 onChooseChapter = {},
                 onSpeed = {},
                 sleep = null,

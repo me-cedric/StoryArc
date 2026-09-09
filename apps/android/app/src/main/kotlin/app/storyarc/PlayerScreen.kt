@@ -99,6 +99,15 @@ internal fun PlayerScreen(
     onToggle: () -> Unit,
     onSkip: (SkipDirection) -> Unit,
     onSeek: (PlaybackPosition) -> Unit,
+    /**
+     * The drag ended, so the position the listener chose may be written down.
+     *
+     * Apart from [onSeek], which fires on every pixel of the drag: a scrub is a deliberate
+     * jump and `audio-playback` asks for one to be recorded, and a store written sixty times
+     * a second is a different defect. Required rather than defaulted, like every other verb
+     * here: a screen that quietly wrote nothing is the defect this exists to remove.
+     */
+    onSeekSettled: () -> Unit,
     onChooseChapter: (Int) -> Unit,
     onSpeed: (PlaybackSpeed) -> Unit,
     sleep: SleepTimer?,
@@ -191,7 +200,7 @@ internal fun PlayerScreen(
             )
         }
 
-        Position(playing, onSeek)
+        Position(playing, onSeek, onSeekSettled)
         Transport(playing.isPlaying, onToggle, onSkip)
         Speed(playing.speed, onSpeed)
         Sleep(playing, sleep, onSleep)
@@ -236,7 +245,11 @@ internal fun PlayerScreen(
  * shown instead is the position without a total, which is the spec's own answer.
  */
 @Composable
-private fun Position(playing: NowPlaying, onSeek: (PlaybackPosition) -> Unit) {
+private fun Position(
+    playing: NowPlaying,
+    onSeek: (PlaybackPosition) -> Unit,
+    onSeekSettled: () -> Unit,
+) {
     val total = playing.statedPartDurationMillis
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         if (playing.isScrubbable && total != null) {
@@ -245,6 +258,7 @@ private fun Position(playing: NowPlaying, onSeek: (PlaybackPosition) -> Unit) {
                 onValueChange = {
                     onSeek(PlaybackPosition(playing.partIndex, it.toLong()))
                 },
+                onValueChangeFinished = onSeekSettled,
                 valueRange = 0f..total.toFloat(),
                 // The handle stands on the rail. See `StoryArcSliderTrack`: at the start of
                 // a chapter there is no active half to hold Material's gap open.

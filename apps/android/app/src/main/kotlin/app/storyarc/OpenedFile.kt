@@ -30,7 +30,12 @@ internal object OpenedFile {
 
     /** What came of a file the system handed over. */
     sealed interface Outcome {
-        data class Opened(val publication: Publication, val decoderPath: String) : Outcome
+        /**
+         * @param location the content `Uri`, as a string. The same shape a library-held
+         *   publication carries, so a caller routes it through `PublicationAccess` or hands
+         *   it to media3 without asking where it came from.
+         */
+        data class Opened(val publication: Publication, val location: String) : Outcome
 
         /** The format was recognised and StoryArc does not read it. */
         data class Unsupported(val name: String, val detected: String) : Outcome
@@ -66,9 +71,21 @@ internal object OpenedFile {
     /**
      * Indexes a handed-over file.
      *
-     * The source stays open for the whole index, because the decoder path it exposes is
-     * `/proc/self/fd/N` and that resolves only while the descriptor is open. The caller
-     * gets the path back so the reader can open the same bytes without a copy.
+     * The source stays open for the whole index, because a provider's descriptor reads only
+     * while it is open. The caller gets the `Uri` back, so it opens the same bytes again
+     * without a copy.
+     *
+     * **The outcome carries the `Uri`, never the descriptor path.** The `use` block below
+     * closes the source, so `/proc/self/fd/N` names nothing by the time a caller reads it. A
+     * comic and a PDF survived that because they open the location again straight away; an
+     * audiobook does not, because the player needs the location for as long as it plays. So
+     * `am start VIEW` on an audio `content://` URI opened no player at all. media3 reads a
+     * content URI through its own `ContentDataSource`, and `PublicationAccess` already
+     * branches on the `content://` prefix for every reader — see `OpenedAudiobook.uriOf`.
+     *
+     * `local-library` settles the lifetime and forbids a copy: the publication "is not kept,
+     * because the access that came with the intent ends with the process", and "the user keeps
+     * such a publication by importing it". So this has to open now, and nothing more.
      *
      * Takes the activity's [Context] rather than its `ContentResolver`, because a file the
      * provider does not name is named by [displayName] from `strings.xml`, and a resolver
@@ -102,7 +119,7 @@ internal object OpenedFile {
                     name = name,
                     identity = PublicationIdentity(contentDigest = digest),
                 )
-                Outcome.Opened(publication, source.descriptorPath)
+                Outcome.Opened(publication, uri.toString())
             }
         }.getOrElse { error ->
             when (error) {

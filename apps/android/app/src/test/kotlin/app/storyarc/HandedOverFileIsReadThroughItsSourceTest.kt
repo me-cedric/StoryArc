@@ -46,13 +46,36 @@ class HandedOverFileIsReadThroughItsSourceTest {
 
     @Test
     fun `nothing re-opens the handed-over file by its descriptor path`() {
-        // `descriptorPath` is still handed *onward* — libarchive and `PdfRenderer` want a
-        // path and a descriptor path is the only one a provider can offer. What must not
-        // happen is this file opening it itself.
+        // Wider than the `File(...)` call that failed, and deliberately: the path is dead in
+        // two different ways. A provider's grant does not permit opening it by name at all,
+        // and `use` closes the descriptor the moment the index returns. `:core:format` still
+        // reads one — libarchive and `PdfRenderer` want a path — but it reads it while the
+        // source is open, which is the difference.
         assertFalse(
-            "OpenedFile constructs a File from a descriptor path, which a provider's grant" +
-                " does not permit — see the EACCES this test's comment records",
-            withoutComments(code()).contains("File(source.descriptorPath)"),
+            "OpenedFile reaches for a descriptor path, which a provider's grant does not" +
+                " permit and which `use` closes anyway — see the EACCES recorded above",
+            withoutComments(code()).contains("source.descriptorPath"),
+        )
+    }
+
+    /**
+     * The second defect on the same line, measured on an HD1911 on 2026-09-08.
+     *
+     * `Outcome.Opened` carried `source.descriptorPath` and was built *inside* the `use` block,
+     * so every caller received a path that closed as the index returned. A comic and a PDF
+     * survived it by opening the location straight away. An audiobook did not, because the
+     * player needs the location for as long as it plays — so `am start VIEW` on an audio
+     * content URI opened no player.
+     *
+     * The `Uri` is the fix. It outlives the descriptor, media3 reads it through
+     * `ContentDataSource`, and `PublicationAccess` already branches on the `content://` prefix
+     * for both readers.
+     */
+    @Test
+    fun `the location a caller keeps is the content Uri`() {
+        assertTrue(
+            "OpenedFile no longer hands back the Uri, so a handed-over audiobook opens nothing",
+            withoutComments(code()).contains("Outcome.Opened(publication, uri.toString())"),
         )
     }
 

@@ -247,6 +247,7 @@ internal fun HostedScreen(
                     onToggle = PlaybackHost::toggle,
                     onSkip = PlaybackHost::skip,
                     onSeek = PlaybackHost::seek,
+                    onSeekSettled = PlaybackHost::recordReached,
                     onChooseChapter = PlaybackHost::seekToPart,
                     onSpeed = PlayingBook::setSpeed,
                     sleep = PlaybackHost.sleep.collectAsStateWithLifecycle().value,

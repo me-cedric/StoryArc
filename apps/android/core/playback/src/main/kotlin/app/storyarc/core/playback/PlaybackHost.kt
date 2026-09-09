@@ -269,9 +269,22 @@ object PlaybackHost : SpokenAudio.Speaker {
 
     fun setSpeed(speed: PlaybackSpeed) = centre.setSpeed(speed)
 
+    /**
+     * Writes where the audio has reached, read from the player at this moment.
+     *
+     * The app calls this at the moments a listener expects to be remembered and the session
+     * itself cannot see: the activity leaving the foreground, a scrub settling, and the
+     * periodic floor. The pause and the skip are [PlaybackCentre]'s own — see
+     * [PlaybackCentre.recordReached] for why the read must reach the player.
+     */
+    fun recordReached() = centre.recordReached()
+
     /** Moves to the start of a part, whichever way this publication's parts are laid out. */
     fun seekToPart(index: Int) {
         current?.seekToPart(index)
+        // A chapter chosen from a list is a place the listener picked, not one the audio
+        // drifted to.
+        centre.recordReached()
     }
 
     /**
