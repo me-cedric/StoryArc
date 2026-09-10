@@ -45,10 +45,10 @@ chosen against a real server without touching anything else.
 
 ## 5. The cache, and what may not be in it
 
-- [ ] 5.1 Write the test that no cached row holds a secret: an OPDS acquisition URL carrying a key in its query, and a Kavita route carrying `apiKey`, are both stored stripped, and the request made from a stored row still carries the secret. Red before 5.2.
-- [ ] 5.2 Extend the library cache to hold rows no walk produced, with the address stripped and the secret re-applied from the credential store at request time. Verify 5.1 passes on both platforms.
-- [ ] 5.3 Write the eviction test: clearing a source's cache removes its rows rather than leaving rows that open nothing, marks the source as needing to be read again, and leaves downloads and reading progress alone. Then implement it.
-- [ ] 5.4 Assert the offline path: with every source unreachable, the cached library still draws, and the indicator says when it was last refreshed. `sources`' 500 ms clause is the bar; measure it rather than asserting it by eye.
+- [x] 5.1 `CachedServerRowsTest`'s last case, and it is a tripwire rather than a fix: neither contributor puts an address in a row at all — a row is identifiers, and the address and its key live in the source registry and the credential store, so the request is built from those at the moment it is made. The test reads the written snapshot and refuses five spellings of a secret in it.
+- [x] 5.2 The cache already held whatever was on the shelf; what it never held was a server's rows, because the snapshot was written when a *folder* walk finished. A reader whose library is one server and no folders had nothing cached and opened the app offline to an empty shelf. `readServers` now writes it, on both platforms.
+- [x] 5.3 `CachedServerRowsTest`: clearing one source's cache takes its rows out of the shelf and out of the snapshot, leaves another source's alone, and a source with nothing cached is a no-op. The implementation was already there; nothing asserted it.
+- [x] 5.4 Asserted, not measured. `CachedServerRowsTest` restores a snapshot with no source reachable and reads the rows and the refresh time back. The 500 ms clause is not asserted: a Robolectric restore is not a device's cold start, and a number taken here would describe this laptop — the same reason `measure-turn.mjs` exists for the frame budget.
 
 ## 6. What a reader sees
 

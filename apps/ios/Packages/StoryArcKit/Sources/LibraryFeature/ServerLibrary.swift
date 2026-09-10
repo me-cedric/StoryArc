@@ -82,5 +82,11 @@ extension LibraryModel {
         for (publication, sourceID) in found {
             _ = adopt(publication, from: sourceID)
         }
+        guard !found.isEmpty else { return }
+        // And written down, which nothing did: the snapshot was written when a *folder*
+        // walk finished, so a reader whose library is one server and no folders had nothing
+        // cached and opened the app offline to an empty shelf. A server's row has no file
+        // behind it, so this is the only thing that carries it across a launch.
+        cacheLibrary()
     }
 }

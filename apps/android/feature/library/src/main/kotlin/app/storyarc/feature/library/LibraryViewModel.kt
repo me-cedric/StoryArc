@@ -364,7 +364,13 @@ class LibraryViewModel(
     internal fun readServers() = viewModelScope.launch {
         val found = ServerLibrary.read(_registry.value.sources, credentials)
         found.forEach { (publication, sourceId) -> adopt(publication, sourceId) }
-        if (found.isNotEmpty()) rebuild()
+        if (found.isEmpty()) return@launch
+        rebuild()
+        // And written down, which nothing did: the snapshot was written when a *folder*
+        // walk finished, so a reader whose library is one server and no folders had nothing
+        // cached and opened the app offline to an empty shelf. A server's row has no file
+        // behind it, so this is the only thing that carries it across a launch.
+        cacheLibrary()
     }
 
     /**
@@ -1478,18 +1484,11 @@ class LibraryViewModel(
      * reason a reader could see.
      */
     private fun cacheLibrary(partial: Boolean = false) {
-        // **The honest limit this change closes.** The notice said "cached, refreshed at X"
-        // and left the moment a walk finished — including a walk that saw nothing because it
-        // could see nothing, which is when a reader most needs to be told the shelf is last
-        // session's. `sources` asks the indicator to say the content is cached and when it
-        // was last refreshed; a walk that could not list a directory has refreshed nothing,
-        // and writing `now` into the snapshot would put that lie on disk for the next launch
-        // as well.
-        if (partial) return
-        // Same reason as the reconciliation above: a walk that found nothing must not
-        // replace a good snapshot with an empty one, or one unreadable folder costs the
-        // reader their whole cached shelf on the next launch too.
-        if (_publications.value.isEmpty() && libraryCache.read()?.publications?.isNotEmpty() == true) return
+        // [LibrarySnapshot.worthWriting] is the decision and where both refusals are
+        // explained: a partial walk, and a walk that found nothing where a good snapshot
+        // already exists.
+        val cached = libraryCache.read()?.publications?.size ?: 0
+        if (!LibrarySnapshot.worthWriting(partial, _publications.value.size, cached)) return
         libraryCache.write(
             LibraryCache.Snapshot(
                 refreshedAtEpochMillis = System.currentTimeMillis(),

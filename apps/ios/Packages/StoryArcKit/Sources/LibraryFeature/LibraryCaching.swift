@@ -103,11 +103,12 @@ extension LibraryModel {
     ///   launch. ``LibraryScanner`` reports the fact per directory; ``LibraryScanning`` is
     ///   where it is gathered.
     func cacheLibrary(partial: Bool = false) {
-        guard !partial else { return }
-        // Same reason as the reconciliation: a walk that found nothing must not replace a
-        // good snapshot with an empty one, or one unreadable folder costs the reader their
-        // whole cached shelf on the next launch too.
-        if publications.isEmpty, libraryCache.read()?.publications.isEmpty == false { return }
+        // ``LibrarySnapshot/worthWriting(partial:shelf:cached:)`` is the decision, and
+        // Android's `LibrarySnapshot` is the same two refusals in the same order.
+        let cached = libraryCache.read()?.publications.count ?? 0
+        guard LibrarySnapshot.worthWriting(
+            partial: partial, shelf: publications.count, cached: cached
+        ) else { return }
         libraryCache.write(
             LibraryCache.Snapshot(
                 refreshedAt: .now,
