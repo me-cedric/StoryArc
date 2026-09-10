@@ -131,7 +131,11 @@ internal fun DownloadsDestination(host: AppHost) {
                 start = StoryArcSpace.gutter,
                 end = StoryArcSpace.gutter,
                 top = padding.calculateTopPadding() + StoryArcSpace.md,
-                bottom = StoryArcSpace.xxl,
+                // The Scaffold's own bottom, not a constant standing in for it. The shell
+                // consumes the navigation inset now, so this is zero under a bar and the
+                // rail's own room under a rail -- where the fixed 32 dp used to be all the
+                // grid had, and the last row sat under the bar.
+                bottom = padding.calculateBottomPadding() + StoryArcSpace.xxl,
             ),
             horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),

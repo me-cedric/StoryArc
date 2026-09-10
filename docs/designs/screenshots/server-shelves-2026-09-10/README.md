@@ -38,10 +38,16 @@ navigating again.
 
 ## What these frames also show, and this change does not fix
 
-The last row sits under the navigation bar in every frame, before and after: the
-list's content is not inset for it. It is visible at row 10 of
-`android-list-dark-after.png` and at row 12 of `android-list-dark-before.png`,
-so it predates this change and is not caused by it.
+**This section was wrong, and is corrected here.** It said the last row sits
+*under* the navigation bar. Measuring the frames says the opposite: the list
+viewport ends 24.0 dp *above* the bar, leaving a band of dead background. The
+bar covers nothing — the layout reserves its height — but the gesture inset was
+being paid twice, once inside the bar's height and again by every screen's own
+`Scaffold`.
+
+It predates this change and is not caused by it, which is the one thing the
+original note got right. It is fixed separately, with its own measurements, at
+[`../navigation-inset-2026-09-10/`](../navigation-inset-2026-09-10/README.md).
 
 ## Repeating it
 

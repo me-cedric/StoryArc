@@ -2,6 +2,11 @@ package app.storyarc.core.designsystem.navigation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -204,7 +209,38 @@ fun AdaptiveNavigationShell(
             // The ground the content stands on, painted here because this layout has no
             // container of its own to paint. StoryArc's canvas, not Material's surface: the
             // colour rule scopes dynamic colour to chrome and keeps it off the artwork.
-            Box(modifier = modifier.fillMaxSize().background(palette.surfaceCanvas)) {
+            Box(
+                modifier = modifier
+                    // Consumed here, once, because nothing else consumes it.
+                    //
+                    // The layout above measures the content at `layoutHeight - bar height`
+                    // and places the bar below it, so the bar can never cover a row -- that
+                    // half of the comment on the navigation slot is true. The *other* half
+                    // is not: the modifier that consumes the bar's window insets lives in
+                    // `NavigationSuiteScaffold`, the wrapper, and this shell calls the bare
+                    // `NavigationSuiteScaffoldLayout` instead. So the gesture inset was
+                    // inside the bar's own height *and* still reported to every screen's
+                    // `Scaffold`, which paid it a second time -- 24 dp of dead background
+                    // between the last row and the bar, measured on the device at
+                    // `docs/designs/screenshots/server-shelves-2026-09-10/`.
+                    //
+                    // The side follows the layout: the bar takes the bottom, the rail takes
+                    // the start edge. Nothing is consumed when there is no navigation at
+                    // all, because then nothing has been paid for.
+                    .then(
+                        if (!showsNavigation) {
+                            Modifier
+                        } else {
+                            Modifier.consumeWindowInsets(
+                                WindowInsets.systemBars.only(
+                                    if (isRail) WindowInsetsSides.Start else WindowInsetsSides.Bottom,
+                                ),
+                            )
+                        },
+                    )
+                    .fillMaxSize()
+                    .background(palette.surfaceCanvas),
+            ) {
                 // A column in both cases, and the bar drawn in it only on a rail. The
                 // content takes the remaining height rather than the whole of it, which is
                 // what makes the bar take its own room out of the content here exactly as

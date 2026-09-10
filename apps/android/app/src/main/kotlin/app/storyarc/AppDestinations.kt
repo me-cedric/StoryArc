@@ -160,9 +160,14 @@ internal fun AppHost.goToLibrary() {
  * A destination's own frame: its large title, and the content under it.
  *
  * Material's `Scaffold` rather than a bare column, for the window insets alone — the
- * navigation shell has already taken the bottom one, and the status bar is still to pay
- * for. The flexible app bars the design direction asks for belong to the Home and Downloads
- * slices; what this owes them is a frame that is already correct about insets.
+ * navigation shell consumes the bottom one now, and the status bar is still to pay for. The
+ * flexible app bars the design direction asks for belong to the Home and Downloads slices;
+ * what this owes them is a frame that is already correct about insets.
+ *
+ * It used to say the shell "has already taken" the bottom inset and then discard the
+ * Scaffold's bottom padding for a fixed 32 dp. The first half was half true — the shell took
+ * the bar's *height* and not its *inset* — and the second half is why the belief was never
+ * caught. Both halves are fixed: the shell consumes, and this reads what it is given.
  */
 @Composable
 internal fun DestinationScaffold(title: String, content: LazyListScope.() -> Unit) {
@@ -172,7 +177,7 @@ internal fun DestinationScaffold(title: String, content: LazyListScope.() -> Uni
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 top = padding.calculateTopPadding() + StoryArcSpace.md,
-                bottom = StoryArcSpace.xxl,
+                bottom = padding.calculateBottomPadding() + StoryArcSpace.xxl,
             ),
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),
         ) {
