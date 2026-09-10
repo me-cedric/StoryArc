@@ -77,6 +77,14 @@ data class KavitaSeries(
      */
     val pages: Int = 0,
     val pagesRead: Int = 0,
+    /**
+     * Kavita's `MangaFormat`: 0 image, 1 archive, 2 unknown, 3 epub, 4 pdf.
+     *
+     * Defaulted, because a search result does not carry it. Read by the library, which has
+     * to file a server's publication under a format before anything is downloaded --
+     * `KavitaContributor.format` is where the mapping and its one guess live.
+     */
+    val format: Int = 0,
 ) {
     /**
      * How far through, for the progress a series row shows.

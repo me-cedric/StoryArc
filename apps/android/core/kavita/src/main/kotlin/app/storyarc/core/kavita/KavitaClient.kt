@@ -118,6 +118,18 @@ class KavitaClient(val address: KavitaAddress) {
      */
     suspend fun seriesDetail(id: Int): KavitaSeries = decode(get("Series/$id"))
 
+    /**
+     * The series a server added most recently, newest first, one page at a time.
+     *
+     * The library reads a server through this rather than through [series]: a server with
+     * forty thousand series is minutes of requests and a cache nobody asked for, and what a
+     * reader recognises on opening the app is what arrived last. `Series/recently-added-v2`
+     * is a POST with a filter body, like every other Kavita listing, and it pages.
+     */
+    suspend fun recentSeries(page: Int = 1, size: Int = 20): List<KavitaSeries> = decode(
+        listing("Series/recently-added-v2?pageNumber=$page&pageSize=$size", EMPTY_FILTER),
+    )
+
     /** The volumes of one series, each with its chapters. */
     suspend fun volumes(seriesId: Int): List<KavitaVolume> =
         decode(get("Series/volumes", mapOf("seriesId" to seriesId.toString())))

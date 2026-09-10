@@ -130,6 +130,9 @@ internal fun AppShell(
                     dependencies.downloads,
                     dependencies.scanJournal,
                     dependencies.kavitaCards,
+                    // What lets the library ask a server for its publications rather than
+                    // waiting to be browsed to. See LibraryViewModel.readServers.
+                    dependencies.credentials,
                 )
             }
         },

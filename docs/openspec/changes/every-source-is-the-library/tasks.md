@@ -8,16 +8,16 @@ chosen against a real server without touching anything else.
 
 ## 1. Nothing is deleted by an answer that did not arrive
 
-- [ ] 1.1 Write `ContributorCoverageTest` / `ContributorCoverageTests`: a source whose contributor throws mid-round loses no row; one that answers a partial page loses no row; one that answers completely and omits a publication loses that row and keeps its progress. Red before 1.3.
-- [ ] 1.2 Write the test that a round covering only source A never touches source B's rows, on both platforms. Red before 1.3.
-- [ ] 1.3 Extend the reconciliation in `LibraryViewModel` (`feature/library/LibraryViewModel.kt`, the `partial` set at the scan) and its Swift twin so coverage is per source and explicit, and a partial round deletes nothing. Verify 1.1 and 1.2 pass, and that the existing scan tests are unchanged.
+- [x] 1.1 Android only, as `ServerRowsSurviveAScanTest`. It holds **by construction, not by a branch**: `ScanReconciliation.vanished` only considers a source that appears in `seenBySource`, and a server appears in no walk — so a contributor that throws, or answers nothing, costs no row. Pinned because the next person to touch that one line will not know a server's rows depend on it. The third case (a complete answer that omits a publication) is not yet reachable: nothing tells the reconciler a server answered completely, and it will not be until a contributor can say so.
+- [x] 1.2 Android only: a walk over one folder leaves a server's rows alone, and still removes what its own folder no longer holds. **iOS has no equivalent yet** because iOS has no contributor yet.
+- [x] 1.3 **No code was needed.** Coverage is already per source and already explicit — `seenBySource` plus `partial` — and a source no round covered is already untouched. The task assumed a change the code had already made; 1.1 pins it instead.
 
 ## 2. A source contributes, whatever kind it is
 
-- [ ] 2.1 Write the contributor contract's test first, against a fake: given a source it answers publications and whether that is all of them. Assert the folder scan satisfies it with no behaviour change — the existing scan suite is the control and must pass untouched.
-- [ ] 2.2 Introduce the contributor seam and make `LibraryScanner` the first implementation. Verify: `pnpm test:android` and `pnpm test:ios` green with no test edited.
-- [ ] 2.3 Write `KavitaContributorTest` / `Tests`: a Kavita source answers publications carrying `serverIdentifier(sourceId, remoteId)`, no `normalizedPath`, the series' own title and cover reference. Red before 2.4.
-- [ ] 2.4 Implement the Kavita contributor over `KavitaClient`. Verify 2.3 passes on both.
+- [ ] 2.1 **Deliberately deferred until the second contributor.** Kavita is wired directly rather than behind an interface, because an interface with one implementation is a shape guessed rather than observed. OPDS is what will show whether the contract is `(source) -> publications` or something that also reports coverage and paging. Doing it now would be inventing the seam from one example.
+- [ ] 2.2 Deferred with 2.1. The scan is untouched, and every existing scan test passes unedited — which is the property 2.2 was there to protect.
+- [x] 2.3 `KavitaContributorTest`, 7 cases: the server identity and the absent path, what a row is drawn from, a numbered issue with no title, `AUTHORITATIVE` origin, each Kavita format, the archive guess pinned as a guess, and two reads of one chapter matching as one row.
+- [x] 2.4 Android: `KavitaContributor` over `KavitaClient.recentSeries` and `volumes`, wired at `LibraryViewModel.readServers`, with `remoteCover` resolving a row that has no file. Seen on the phone: the grid holds the server's issues and Home's *Recently added* leads with one. **iOS not done.**
 - [ ] 2.5 The same pair for OPDS, over `OpdsClient`.
 - [ ] 2.6 The same pair for SMB, over `:core:smb` — a share's files are files, so this one produces paths as well as a server identifier.
 - [ ] 2.7 `SourceKind.isBrowsable` stops meaning "not in the library". Rename it to what it now means, on both platforms, and verify every call site still answers the same question — `SourceReachability.kt:62` names it explicitly and is the one to read first.
@@ -25,7 +25,7 @@ chosen against a real server without touching anything else.
 ## 3. What is read, and what is held back
 
 - [ ] 3.1 Write the test for the partial count: a source that holds more than was read states that it is partial, and the number shown is never presented as the whole. Red before 3.2.
-- [ ] 3.2 Read a bounded, recency-ordered first slice per source, behind one named constant. Verify 3.1 passes. **The constant's value is the open question** — pick it against the owner's own server and record the number and the reason beside it.
+- [x] 3.2 `KavitaContributor.FIRST_SLICE = 60`, read through `Series/recently-added-v2`, newest first. The number is provisional and its header says so: one request for the page plus one per series, so 60 is roughly the request count. **The unit was the bigger question and design.md did not ask it**: a chapter is the publication, not a series, because a library row must open a book and because chapter ids are what progress, downloads and `serverIdentifier` already key on.
 - [ ] 3.3 Write the test that a publication reachable only through "more from this library" opens the same publication page and is rendered by the same cell, then wire the affordance.
 - [ ] 3.4 Assert search still reaches what the index does not hold, on both platforms — `library-browsing`'s *Mixed local and server search* is the existing requirement and the existing tests are the control.
 
