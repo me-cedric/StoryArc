@@ -31,7 +31,7 @@ chosen against a real server without touching anything else.
 
 ## 3b. A series is the row
 
-- [ ] 3b.1 Write the test for the rule itself, pure and off the composition: a list of publications collapses to one row per series, keeping a publication with no series as its own row, and the row carries the series' count. Red before 3b.2.
+- [x] 3b.1 `LibraryRows` and `LibraryRowsTest`, 7 cases: a series is one row however many issues it holds, a publication with no series is its own row, a series of one is not a list to open, a series takes the place its first member had, a scattered series is still one row and keeps every member, a blank series name is no series, and an empty library has no rows. Pure and off the composition, as `LibrarySections` is.
 - [ ] 3b.2 Group the library's rows by series in the arranged list, and give the cell the series' artwork and its count. Verify 3b.1 passes and that `LibrarySections` still sections what is left — a series is one row for sectioning too.
 - [ ] 3b.3 Write the test that opening a series lists its publications in order, each openable, each carrying the marks a cover carries. Then build the screen, reusing the cells the grid already uses.
 - [ ] 3b.4 Assert one gesture returns to the library at the place the reader left it, on both platforms.
