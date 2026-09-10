@@ -26,13 +26,26 @@ public struct KavitaSeries: Sendable, Equatable, Hashable, Identifiable, Decodab
     /// Pages in the whole series, and how many of them the server says are read.
     public let pages: Int
     public let pagesRead: Int
+    /// Kavita's `MangaFormat`: 0 image, 1 archive, 2 unknown, 3 epub, 4 pdf.
+    ///
+    /// Defaulted, because a search result does not carry it. Read by the library, which has
+    /// to file a server's publication under a format before anything is downloaded.
+    public let format: Int
 
-    public init(id: Int, name: String, libraryId: Int, pages: Int = 0, pagesRead: Int = 0) {
+    public init(
+        id: Int,
+        name: String,
+        libraryId: Int,
+        pages: Int = 0,
+        pagesRead: Int = 0,
+        format: Int = 0
+    ) {
         self.id = id
         self.name = name
         self.libraryId = libraryId
         self.pages = pages
         self.pagesRead = pagesRead
+        self.format = format
     }
 
     /// Page counts default to nothing rather than being required.
@@ -51,10 +64,11 @@ public struct KavitaSeries: Sendable, Equatable, Hashable, Identifiable, Decodab
         libraryId = try container.decodeIfPresent(Int.self, forKey: .libraryId) ?? 0
         pages = try container.decodeIfPresent(Int.self, forKey: .pages) ?? 0
         pagesRead = try container.decodeIfPresent(Int.self, forKey: .pagesRead) ?? 0
+        format = try container.decodeIfPresent(Int.self, forKey: .format) ?? 0
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, libraryId, pages, pagesRead
+        case id, name, libraryId, pages, pagesRead, format
 
         /// What a search result calls a series' identity.
         case seriesId
@@ -237,6 +251,25 @@ extension KavitaClient {
             [KavitaSeries].self,
             from: try await sendVersioned(request, path: "Series/all-v2")
         )
+    }
+
+    /// The series a server added most recently, newest first, one page at a time.
+    ///
+    /// The library reads a server through this rather than through ``series(inLibrary:)``:
+    /// a server with forty thousand series is minutes of requests and a cache nobody asked
+    /// for, and what a reader recognises on opening the app is what arrived last. Android's
+    /// `recentSeries` is its twin.
+    public func recentSeries(page: Int = 1, size: Int = 20) async throws -> [KavitaSeries] {
+        let path = "Series/recently-added-v2"
+        guard let url = address.endpoint(path, query: [
+            URLQueryItem(name: "pageNumber", value: String(page)),
+            URLQueryItem(name: "pageSize", value: String(size)),
+        ]) else { throw KavitaError.badAddress }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Data("{}".utf8)
+        return try decode([KavitaSeries].self, from: try await sendVersioned(request, path: path))
     }
 
     /// One series, asked for by identity.
