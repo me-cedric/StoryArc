@@ -89,6 +89,21 @@ struct SearchListingTests {
         #expect(listing.rows.map(\.origin) == [Self.folder, Self.server])
     }
 
+    @Test("A book the shelf's slice never saw is still found, because the source is asked")
+    func pastTheSlice() {
+        // The half that makes a bounded read honest. Every source puts a *slice* on the
+        // shelf — sixty series from a Kavita server, one feed page from a catalogue — so a
+        // library the reader can see is not the whole of what the source holds. Search is
+        // where the rest stays reachable: `library-browsing`'s *More from a source than the
+        // library holds* asks for exactly that, and a search that only read the local index
+        // would make the slice a ceiling instead of a head start.
+        let listing = SearchListing(term: "bone", local: [], asking: ["server"])
+            .answered("server", with: [away("Bone")])
+
+        #expect(listing.rows.map(\.result.title) == ["Bone"])
+        #expect(listing.rows.map(\.origin) == [Self.server])
+    }
+
     @Test("A library that says the same thing twice is folded into one row")
     func foldsWithinOneLibrary() {
         let listing = SearchListing(term: "bone", asking: ["server"])

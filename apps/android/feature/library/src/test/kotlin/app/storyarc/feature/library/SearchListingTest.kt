@@ -106,6 +106,26 @@ class SearchListingTest {
     }
 
     @Test
+    fun `a book the shelf's slice never saw is still found, because the source is asked`() {
+        // The half that makes a bounded read honest. Every source puts a *slice* on the
+        // shelf — sixty series from a Kavita server, one feed page from a catalogue — so a
+        // library the reader can see is not the whole of what the source holds. Search is
+        // where the rest stays reachable: `library-browsing`'s *More from a source than the
+        // library holds* asks for exactly that, and a search that only read the local index
+        // would make the slice a ceiling instead of a head start.
+        val listing = SearchListing.of("bone", local = emptyList(), asking = listOf("server"))
+            .answered("server", listOf(away("Bone")))
+
+        assertEquals(listOf("Bone"), listing.rows.map { it.result.title })
+        assertEquals(
+            "A row nothing on the shelf matched was dropped. The shelf is a slice, and the" +
+                " source's own answer is how a reader reaches past it.",
+            listOf(server),
+            listing.rows.map { it.origin },
+        )
+    }
+
+    @Test
     fun `a library that says the same thing twice is folded into one row`() {
         val listing = SearchListing.of("bone", asking = listOf("server"))
             .answered("server", listOf(away("Bone"), away("Bone")))

@@ -27,7 +27,7 @@ chosen against a real server without touching anything else.
 - [x] 3.1 `SourceSliceTest` / `SourceSliceTests`, and the implementation the test needed: `SourceSlice` carries `holdsMore`, each contributor answers it its own way — a full page from Kavita, a `next` link from a catalogue, any of three budgets running out on a share — and `SourceDiagnosis.isPartial` makes the source screen say *at least %d titles* rather than a bare number, in four languages on both platforms.
 - [x] 3.2 `KavitaContributor.FIRST_SLICE = 60`, read through `Series/recently-added-v2`, newest first. The number is provisional and its header says so: one request for the page plus one per series, so 60 is roughly the request count. **The unit was the bigger question and design.md did not ask it**: a chapter is the publication, not a series, because a library row must open a book and because chapter ids are what progress, downloads and `serverIdentifier` already key on.
 - [ ] 3.3 Write the test that a publication reachable only through "more from this library" opens the same publication page and is rendered by the same cell, then wire the affordance.
-- [ ] 3.4 Assert search still reaches what the index does not hold, on both platforms — `library-browsing`'s *Mixed local and server search* is the existing requirement and the existing tests are the control.
+- [x] 3.4 One case per platform, beside the merge cases that are the control: a row a source answers with, that nothing on the shelf matched, reaches the screen. That is what makes a bounded read honest — the slice is a head start and not a ceiling.
 
 ## 3b. A series is the row
 
