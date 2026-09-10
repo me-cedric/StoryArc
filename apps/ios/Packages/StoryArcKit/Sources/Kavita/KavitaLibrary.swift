@@ -197,11 +197,36 @@ public struct KavitaVolume: Sendable, Equatable, Identifiable, Decodable {
 
     /// Whether this is Kavita's holder for chapters that belong to no volume.
     ///
-    /// Kavita models loose chapters as a volume numbered zero. `kavita-server` requires the
-    /// detail screen to list "volumes and loose chapters in Kavita's own order, clearly
-    /// distinguishing the two", and this is the distinction — without it, every series with
-    /// loose chapters shows a phantom "Volume 0".
-    public var isLooseChapters: Bool { number == 0 }
+    /// `kavita-server` requires the detail screen to list "volumes and loose chapters in
+    /// Kavita's own order, clearly distinguishing the two", and this is the distinction —
+    /// without it, every series with loose chapters shows a heading the server never meant
+    /// as one.
+    ///
+    /// **Two numbers, because Kavita changed its mind.** Older servers held loose chapters
+    /// in a volume numbered zero; current ones use ``looseLeafVolume``. Both are accepted,
+    /// so a reader on either server sees the same screen. Android's `isLooseChapters` is
+    /// the twin.
+    public var isLooseChapters: Bool { number == KavitaVolume.looseLeafVolume || number == 0 }
+
+    /// Whether this is Kavita's holder for specials — annuals, one-shots, anything filed
+    /// outside the run.
+    ///
+    /// A third kind, and the reason the heading needs three cases rather than two: this
+    /// volume had no case of its own, so a reader met "100000" as a heading.
+    public var isSpecials: Bool { number == KavitaVolume.specialVolume }
+
+    /// Kavita's holder for chapters that belong to no volume.
+    ///
+    /// Quoted from `Kavita.Models/Constants/ParserConstants.cs`:
+    /// `public const int LooseLeafVolumeNumber = -100_000;`
+    public static let looseLeafVolume = -100_000
+
+    /// Kavita's holder for specials.
+    ///
+    /// Quoted from the same file: `public const int SpecialVolumeNumber = 100_000;`.
+    /// **It is positive**, so a guard written against negative sentinels does not catch it.
+    /// That is how this one was missed while the chapter sentinel beside it was guarded.
+    public static let specialVolume = 100_000
 }
 
 /// Kavita's `SeriesFilterV2Dto`, of the parts this app sends.

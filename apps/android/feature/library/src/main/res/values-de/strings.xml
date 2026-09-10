@@ -236,6 +236,7 @@
     <string name="kavita_error_key_not_stored">Dieses Gerät wollte den API-Schlüssel nicht speichern, daher wurde der Server nicht hinzugefügt. Es wurde nichts halbfertig gespeichert.</string>
     <string name="kavita_empty">Diese Bibliothek ist leer.</string>
     <string name="kavita_loose_chapters">Kapitel</string>
+    <string name="kavita_specials">Specials</string>
     <string name="kavita_status">Status: %1$s</string>
     <string name="kavita_status_ongoing">Laufend</string>
     <string name="kavita_status_hiatus">Pausiert</string>

@@ -240,13 +240,16 @@ fun KavitaChapters(
 
         volumes.forEach { volume ->
             item(key = "volume-${volume.id}") {
-                // Loose chapters are not a volume, and labelling them as one would invent a
-                // "Volume 0" the server never had.
+                // Three kinds, not two. Loose chapters and specials are not volumes, and
+                // Kavita numbers each of them with a sentinel -- so drawing the number
+                // headed a screen with "-100000" and "100000". The server's own name is no
+                // safer: Kavita writes the name from the number, so it says the same thing.
                 Text(
-                    text = if (volume.isLooseChapters) {
-                        stringResource(R.string.kavita_loose_chapters)
-                    } else {
-                        volume.name ?: volume.number.toString()
+                    text = when {
+                        volume.isLooseChapters ->
+                            stringResource(R.string.kavita_loose_chapters)
+                        volume.isSpecials -> stringResource(R.string.kavita_specials)
+                        else -> volume.name ?: volume.number.toString()
                     },
                     style = MaterialTheme.typography.labelLarge,
                     color = palette.textSecondary,

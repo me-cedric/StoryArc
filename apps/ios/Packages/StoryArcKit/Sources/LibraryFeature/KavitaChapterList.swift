@@ -148,13 +148,11 @@ struct KavitaChapterList: View {
                         row(chapter)
                     }
                 } header: {
-                    // Loose chapters are not a volume, and labelling them as one would
-                    // invent a "Volume 0" the server never had.
-                    Text(
-                        volume.isLooseChapters
-                            ? String(localized: "kavita.looseChapters", bundle: .module, locale: .storyArc)
-                            : (volume.name ?? "\(volume.number)")
-                    )
+                    // Three kinds, not two. Loose chapters and specials are not volumes,
+                    // and Kavita numbers each of them with a sentinel — so drawing the
+                    // number headed a screen with "-100000" and "100000". The server's own
+                    // name is no safer: Kavita writes the name from the number.
+                    Text(heading(volume))
                 }
             }
         }
@@ -242,6 +240,20 @@ struct KavitaChapterList: View {
     /// is the screen: a row saying *Unnumbered* under a series' own heading says what is
     /// true, where the sentinel said "-100000" and an empty row would say nothing at all.
     /// Android's `chapterLabel` is the twin.
+    /// What to head a group of chapters with.
+    ///
+    /// Three cases, because Kavita has three kinds of group and numbers two of them with a
+    /// sentinel. Only a real volume is headed by what the server called it.
+    private func heading(_ volume: KavitaVolume) -> String {
+        if volume.isLooseChapters {
+            return String(localized: "kavita.looseChapters", bundle: .module, locale: .storyArc)
+        }
+        if volume.isSpecials {
+            return String(localized: "kavita.specials", bundle: .module, locale: .storyArc)
+        }
+        return volume.name ?? "\(volume.number)"
+    }
+
     private func label(_ chapter: KavitaChapter) -> String {
         let name = chapter.displayName
         guard name.isEmpty else { return name }

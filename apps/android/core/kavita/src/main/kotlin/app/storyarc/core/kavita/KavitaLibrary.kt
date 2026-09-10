@@ -156,13 +156,42 @@ data class KavitaVolume(
     /**
      * Whether this is Kavita's holder for chapters that belong to no volume.
      *
-     * Kavita models loose chapters as a volume numbered zero. `kavita-server` requires the
-     * detail screen to list "volumes and loose chapters in Kavita's own order, clearly
-     * distinguishing the two" -- without the distinction, every series with loose chapters
-     * shows a phantom "Volume 0".
+     * `kavita-server` requires the detail screen to list "volumes and loose chapters in
+     * Kavita's own order, clearly distinguishing the two" -- without the distinction, every
+     * series with loose chapters shows a heading the server never meant as one.
+     *
+     * **Two numbers, because Kavita changed its mind.** Older servers held loose chapters in
+     * a volume numbered zero; current ones use [LOOSE_LEAF_VOLUME]. Both are accepted, so a
+     * reader on either server sees the same screen.
      */
-    val isLooseChapters: Boolean get() = number == 0
+    val isLooseChapters: Boolean get() = number == LOOSE_LEAF_VOLUME || number == 0
+
+    /**
+     * Whether this is Kavita's holder for specials -- annuals, one-shots, anything filed
+     * outside the run.
+     *
+     * A third kind, and the reason the heading needs three cases rather than two: this
+     * volume has no case of its own, so a reader met "100000" as a heading.
+     */
+    val isSpecials: Boolean get() = number == SPECIAL_VOLUME
 }
+
+/**
+ * Kavita's holder for chapters that belong to no volume.
+ *
+ * Quoted from `Kavita.Models/Constants/ParserConstants.cs`:
+ * `public const int LooseLeafVolumeNumber = -100_000;`
+ */
+const val LOOSE_LEAF_VOLUME: Int = -100_000
+
+/**
+ * Kavita's holder for specials.
+ *
+ * Quoted from the same file: `public const int SpecialVolumeNumber = 100_000;`. **It is
+ * positive**, so a guard written against negative sentinels does not catch it. That is how
+ * this one was missed while the chapter sentinel beside it was already guarded.
+ */
+const val SPECIAL_VOLUME: Int = 100_000
 
 /** A name the server holds for a genre, a tag, a person or a publisher. */
 @Serializable

@@ -245,6 +245,7 @@
     <string name="kavita_error_key_not_stored">This device would not store the API key, so the server was not added. Nothing was saved half-finished.</string>
     <string name="kavita_empty">This library is empty.</string>
     <string name="kavita_loose_chapters">Chapters</string>
+    <string name="kavita_specials">Specials</string>
     <string name="kavita_status">Status: %1$s</string>
     <string name="kavita_status_ongoing">Ongoing</string>
     <string name="kavita_status_hiatus">On hiatus</string>
