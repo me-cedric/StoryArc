@@ -71,3 +71,24 @@ internal fun StillBeingReadNotice(
             .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.xs),
     )
 }
+
+/**
+ * The quiet things the shelf says about itself, in one place.
+ *
+ * Two lines that never both apply: one says the shelf is last session's, the other says a
+ * source has not finished being read. A shelf that is *both* cached and mid-read is
+ * showing what it had while it waits, and the second line is the more useful of the two --
+ * it is about now, where the first is about the last time anything was.
+ */
+@Composable
+internal fun LibraryNotices(
+    cachedAtEpochMillis: Long?,
+    sources: List<Source>,
+    publications: List<Publication>,
+) {
+    if (sourcesStillBeingRead(sources, publications) > 0) {
+        StillBeingReadNotice(sources, publications)
+    } else {
+        cachedAtEpochMillis?.let { CachedNotice(it) }
+    }
+}

@@ -67,6 +67,7 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.MatchGroup
 import app.storyarc.core.model.MatchKind
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.Source
 
 /**
  * How wide one shortcut in the continue-reading row is at an ordinary font scale.
@@ -135,6 +136,15 @@ internal fun CoverGrid(
     seriesRows: Map<String, LibraryRow.Series> = emptyMap(),
     /** What a tap on a series does: open it, rather than open the issue standing for it. */
     onOpenSeries: (LibraryRow.Series) -> Unit = {},
+    /**
+     * What a tap on *more from this library* does: open that source's own browser.
+     *
+     * Nothing by default, which draws no footer at all — the grid is used by screens that
+     * have no way into a source, and offering one there would lead nowhere.
+     */
+    onBrowse: ((Source) -> Unit)? = null,
+    /** The registry's sources, for the footer. Collected by the caller, not read here. */
+    sources: List<Source> = emptyList(),
     /**
      * What to do when a cover is tapped: show that publication's page.
      *
@@ -248,6 +258,18 @@ internal fun CoverGrid(
                     }
                     items(group.publications, key = { it.id }) { cell(it) }
                 }
+            }
+
+            // At the foot, per `library-browsing`: what a source holds beyond its slice is
+            // reachable "from search and from an explicit 'more from this library'
+            // affordance at the foot of the shelf". [MoreFromTheLibrary] decides which
+            // sources earn one; a shelf where every source gave everything draws none.
+            item(span = { GridItemSpan(maxLineSpan) }, key = "more-from") {
+                MoreFromTheLibrary(
+                    sources = sources,
+                    isPartial = viewModel::isPartial,
+                    onBrowse = onBrowse,
+                )
             }
         }
     }

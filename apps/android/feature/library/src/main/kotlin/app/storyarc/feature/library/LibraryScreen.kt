@@ -484,8 +484,7 @@ fun LibraryScreen(
                     },
                     viewModel = viewModel,
                 )
-                cachedAt?.let { CachedNotice(it) }
-                StillBeingReadNotice(registry.sources, publications)
+                LibraryNotices(cachedAt, registry.sources, publications)
             }
 
             // Pull to refresh, and no refresh button. Android was the only platform
@@ -522,6 +521,8 @@ fun LibraryScreen(
                             onOpenPage = onOpenPage,
                             onOpenSeries = onOpenSeries,
                             onAddToShelf = { shelving = it },
+                            onBrowse = onBrowse,
+                            sources = registry.sources,
                         )
 
                         // A library that is not empty but looks it. `library-browsing`
@@ -686,6 +687,10 @@ private fun Shelf(
     onOpenPage: (Publication) -> Unit,
     onOpenSeries: (String) -> Unit,
     onAddToShelf: (Publication) -> Unit,
+    /** Opens a source's own browser, from *more from this library* at the foot. */
+    onBrowse: (Source) -> Unit,
+    /** The registry's sources, for that footer. Collected once, above. */
+    sources: List<Source>,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         val resume: (Publication) -> Unit = { publication ->
@@ -715,6 +720,8 @@ private fun Shelf(
         val sections = remember(shelved, query.sort, long, other, locale) {
             if (long) LibrarySections.divide(shelved, query.sort, other, locale) else emptyList()
         }
+        val narrowing = query.isNarrowed || selection.isActive ||
+            availability.isNarrowing || downloads.isActive
         if (layout == LibraryLayout.GRID) {
             CoverGrid(
                 publications = shelved,
@@ -723,19 +730,12 @@ private fun Shelf(
                 // what you were reading, and showing publications the query excluded
                 // reads as a bug. Hidden while picking as well: a cover that opened one
                 // mid-selection would throw away everything the reader had chosen.
-                continueReading = if (
-                    query.isNarrowed ||
-                    selection.isActive ||
-                    availability.isNarrowing ||
-                    downloads.isActive
-                ) {
-                    emptyList()
-                } else {
-                    continueReading
-                },
+                continueReading = if (narrowing) emptyList() else continueReading,
                 sections = sections,
                 seriesRows = rows.series,
                 onOpenSeries = { onOpenSeries(it.name) },
+                onBrowse = onBrowse,
+                sources = sources,
                 onOpen = onOpenPage,
                 onResume = resume,
                 onAddToShelf = onAddToShelf,

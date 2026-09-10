@@ -416,4 +416,5 @@
         <item quantity="one">Se está leyendo %1$d biblioteca</item>
         <item quantity="other">Se están leyendo %1$d bibliotecas</item>
     </plurals>
+    <string name="library_more_from">Más de %1$s</string>
 </resources>

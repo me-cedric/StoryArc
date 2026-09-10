@@ -434,4 +434,5 @@
         <item quantity="one">%1$d library is still being read</item>
         <item quantity="other">%1$d libraries are still being read</item>
     </plurals>
+    <string name="library_more_from">More from %1$s</string>
 </resources>

@@ -165,6 +165,11 @@ extension LibraryView {
                         selection: selection.isActive ? selection.ids : nil,
                         onToggle: { selection.toggle($0.id) }
                     )
+                    MoreFromTheLibrary(
+                        sources: model.registry.sources,
+                        isPartial: model.isPartial,
+                        onBrowse: { browsing = $0.id }
+                    )
                 } else {
                     CoverList(
                         publications: shown,

@@ -418,4 +418,5 @@
         <item quantity="one">%1$d bibliothèque est encore en cours de lecture</item>
         <item quantity="other">%1$d bibliothèques sont encore en cours de lecture</item>
     </plurals>
+    <string name="library_more_from">Plus depuis %1$s</string>
 </resources>
