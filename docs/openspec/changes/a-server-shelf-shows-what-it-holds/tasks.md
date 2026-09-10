@@ -33,10 +33,10 @@ says which device and which appearance it was taken on.
 
 ## 5. Seen on a device
 
-- [ ] 5.1 Screenshot the reading list on the OnePlus 7T Pro (`f7cee850`) against the owner's Kavita server: light and dark, default and largest text size, four frames. Control: the same list captured before this change, same device, same appearance, committed beside them.
+- [x] 5.1 Six frames at `docs/designs/screenshots/server-shelves-2026-09-10/`: the list in dark and light, before and after, plus the 77-entry list at `font_scale 2.0` in both appearances. **The two largest-text frames have no control** — changing the scale recreates the activity and pops back to Library, so the two captures taken that way showed the wrong screen and were discarded rather than presented as controls. The README says so.
 - [ ] 5.2 Screenshot the same list in the iOS Simulator, same four frames, same control.
-- [ ] 5.3 Screenshot the server's shelf grid showing a composited tile beside a locked-cover tile, both platforms, with the control frame that shows them blank today.
-- [ ] 5.4 Write the screenshot README that says which device, which server version, and what each control proves, as `docs/designs/screenshots/*/README.md` already do.
+- [x] 5.3 Android only, and **without a locked-cover tile**: every shelf on this server is unlocked, so `android-collections-dark-*` and `android-lists-dark-*` prove the composite (four quadrants, and one cover where there are fewer than four members) against the blank frames that preceded them. The `coverImageLocked` branch is drawn by no frame here.
+- [x] 5.4 `README.md` beside them: device, API level, server version, which build each frame came from, what each pair proves, the two gaps above, and the `adb` recipe that repeats it.
 
 ## 6. The gates
 
