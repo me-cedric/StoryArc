@@ -206,7 +206,14 @@ struct SourcesSettings: View {
                 // The state and the count, which is what `sources` asks a source's own
                 // screen to show. Downloads are absent because nothing downloads yet, and
                 // the count is what exists in their place.
-                Text("sources.detail \(itemCount(source.id))", bundle: .module)
+                // *At least*, for a source read in a bounded first helping. The detail
+                // screen says the same, and a list that stated a slice as a total would
+                // contradict the screen it opens.
+                (
+                    isPartial(source.id)
+                        ? Text("sources.detail.partial \(itemCount(source.id))", bundle: .module)
+                        : Text("sources.detail \(itemCount(source.id))", bundle: .module)
+                )
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textTertiary)
 

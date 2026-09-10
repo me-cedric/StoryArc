@@ -196,6 +196,7 @@ fun SettingsScreen(
                     modifier = modifier,
                     sources = sources,
                     itemCount = itemCount,
+                    isPartial = isPartial,
                     diagnose = diagnose,
                     onRemoveSource = onRemoveSource,
                     onRenameSource = onRenameSource,
@@ -369,6 +370,8 @@ private fun GroupDetail(
     modifier: Modifier = Modifier,
     sources: List<Source>,
     itemCount: (Source) -> Int,
+    /** Whether that count is a slice of what the source holds. `SourceSlice` says why. */
+    isPartial: (Source) -> Boolean,
     diagnose: (Source) -> SourceDiagnosis,
     onRemoveSource: (Source) -> Unit,
     onRenameSource: (Source, String) -> Unit,
@@ -420,6 +423,7 @@ private fun GroupDetail(
                     SourcesGroup(
                         sources = sources,
                         itemCount = itemCount,
+                        isPartial = isPartial,
                         diagnose = diagnose,
                         onRemove = onRemoveSource,
                         onRename = onRenameSource,

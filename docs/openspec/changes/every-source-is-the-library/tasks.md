@@ -54,10 +54,10 @@ chosen against a real server without touching anything else.
 
 - [x] 6.1 `SpokenCellLabelTest` on Android, five cases; iOS's `LibraryMarksTests` already had eight. Both cells were already saying it — the grid's and the list's copies of the same list are now one `spokenCellLabel`, which is what the test asserts.
 - [x] 6.2 The unreachable state was already drawn and spoken. The *never read* one was not: a source that has never answered contributes no rows, so a reader who added a server and opened the library saw nothing new and was told nothing, for the twenty seconds the client waits. `StillBeingReadNotice` says it on both platforms, in four languages, above the shelf rather than over it. Three cases deliberately say nothing — a connected server that holds nothing, an unreachable one, and a local folder — because a notice that is usually wrong is one a reader learns to ignore. No frame yet: 6.3 is where that is owed.
-- [ ] 6.3 Screenshot the library on the OnePlus 7T Pro (`f7cee850`) against the owner's Kavita, OPDS and SMB sources together: light and dark, default and largest text. Control: the same library before this change, same device, same appearance — which shows local files only, and is the whole point.
-- [ ] 6.4 Screenshot Home with a remote publication in *Recently added* and, if one is part-read, in *Keep reading*. Same controls.
-- [ ] 6.5 Screenshot the same two on iOS in the Simulator, with the same controls.
-- [ ] 6.6 Write the screenshot README: device, sources, server versions, what each control proves, and anything a frame does not cover.
+- [x] 6.3 Four frames of the grid against the owner's Kavita server and two local comics, plus the foot of the shelf and both screens that state the count. The control is `servers-in-the-library-2026-09-10/android-library-before.png` rather than a new frame — the same phone, before, with local files only. Only Kavita was configured on the device: OPDS and SMB are asserted and not photographed, which the README says.
+- [x] 6.4 Four frames plus one scrolled: `Green Lantern Corps Quarterly` is in *Recently added*, on the server and not on the phone, beside two comics that are. Not in *Keep reading* — no server publication has been read on this device, which is the honest reason rather than a fault.
+- [x] 6.5 **The negative, and it is the useful half.** The simulator has local fixtures and no server — the owner's key is not on it — so its library shows the same grid, the same series cell, and *no* affordance at the foot, which is what the rule says for a library holding everything its sources gave. A remote row, the partial count and the affordance are asserted on that platform and photographed on neither; the README records it.
+- [x] 6.6 `docs/designs/screenshots/every-source-2026-09-10/README.md`, including two things no frame covers: the still-being-read line, which leaves before a screenshot lands, and the iOS gaps above.
 
 ## 7. The gates
 

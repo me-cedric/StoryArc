@@ -62,6 +62,8 @@ import app.storyarc.core.model.SourceRemovalWording
 internal fun SourcesGroup(
     sources: List<Source>,
     itemCount: (Source) -> Int,
+    /** Whether that count is a slice of what the source holds. `SourceSlice` says why. */
+    isPartial: (Source) -> Boolean = { false },
     /**
      * Everything the detail screen says about one source, asked of the same function that
      * screen is given, so the removal confirmation raised here and the one raised there cannot
@@ -208,7 +210,14 @@ internal fun SourcesGroup(
                     Text(
                         text = stringResource(status(source.state)) + " · " +
                             pluralStringResource(
-                                R.plurals.sources_detail,
+                                // *At least*, for a source read in a bounded first helping.
+                                // The detail screen says the same, and a list that stated a
+                                // slice as a total would contradict the screen it opens.
+                                if (isPartial(source)) {
+                                    R.plurals.sources_detail_partial
+                                } else {
+                                    R.plurals.sources_detail
+                                },
                                 itemCount(source),
                                 itemCount(source),
                             ),
