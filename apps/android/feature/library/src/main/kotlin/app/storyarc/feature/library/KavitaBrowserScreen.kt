@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -106,6 +108,13 @@ fun KavitaBrowserScreen(
     var libraries by remember(address) { mutableStateOf<List<KavitaLibraryFolder>>(emptyList()) }
     var series by remember(address) { mutableStateOf<List<KavitaSeries>>(emptyList()) }
 
+    // A list that is empty and a list that has not arrived draw the same page, and the second
+    // one lasts as long as the request does -- up to the twenty seconds `KavitaClient` allows.
+    // A reader who has just added a server met a blank page with nothing to explain it, and a
+    // reader who opened a library was told the library was empty while it was still being read.
+    var askingLibraries by remember(address) { mutableStateOf(true) }
+    var askingSeries by remember(address) { mutableStateOf(false) }
+
     // One search for the whole server rather than one per level: `kavita-server` asks for a
     // search of the *source*, not of whichever list happens to be on screen.
     val finder = remember(address) { KavitaFinder() }
@@ -127,6 +136,7 @@ fun KavitaBrowserScreen(
     }
 
     LaunchedEffect(client) {
+        askingLibraries = true
         runCatching { client.libraries() }
             .onSuccess {
                 libraries = it
@@ -138,11 +148,16 @@ fun KavitaBrowserScreen(
             // whose key had been revoked saw a server with no libraries in it and nothing at
             // all to say why. `kavita-server` asks for an explanation, and this is it.
             .onFailure { failure = KavitaMessage.of(context, it, title) }
+        askingLibraries = false
     }
 
     val current = level
     LaunchedEffect(current) {
         if (current is KavitaLevel.Series) {
+            // Cleared rather than left standing: the previous library's series would otherwise
+            // be the page for as long as this library takes to answer.
+            series = emptyList()
+            askingSeries = true
             // Said rather than swallowed, for the reason the library list above gives. This
             // used to fall back to an empty list, so a server too old to answer the listing
             // at all looked exactly like a library with nothing in it.
@@ -155,6 +170,7 @@ fun KavitaBrowserScreen(
                     series = emptyList()
                     seriesFailure = KavitaMessage.of(context, it, current.library.name)
                 }
+            askingSeries = false
         }
     }
 
@@ -256,7 +272,9 @@ fun KavitaBrowserScreen(
             return@Scaffold
         }
         when (current) {
-            is KavitaLevel.Libraries -> LazyColumn(modifier = body, contentPadding = edges) {
+            is KavitaLevel.Libraries -> if (askingLibraries) {
+                KavitaWaiting(body)
+            } else LazyColumn(modifier = body, contentPadding = edges) {
                 failure?.let { message ->
                     item(key = "failure") {
                         Text(
@@ -272,7 +290,9 @@ fun KavitaBrowserScreen(
                 }
             }
 
-            is KavitaLevel.Series -> LazyVerticalGrid(
+            is KavitaLevel.Series -> if (askingSeries) {
+                KavitaWaiting(body)
+            } else LazyVerticalGrid(
                 columns = rememberCoverColumns(),
                 contentPadding = edges,
                 horizontalArrangement =
@@ -317,6 +337,17 @@ fun KavitaBrowserScreen(
             )
         }
     }
+}
+
+/**
+ * Drawn while the server has been asked and has not answered.
+ *
+ * `kavita-server` asks that a reader is told why a page is empty. Silence for twenty seconds
+ * is the one case where nothing was saying anything at all.
+ */
+@Composable
+private fun KavitaWaiting(modifier: Modifier) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator() }
 }
 
 @Composable
