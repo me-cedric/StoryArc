@@ -37,15 +37,27 @@ internal object ServerLibrary {
         sources: List<Source>,
         credentials: CredentialStore?,
     ): List<Pair<Publication, UUID>> = withContext(Dispatchers.IO) {
-        sources
-            .filter { it.kind == SourceKind.KAVITA_SERVER }
-            .flatMap { source ->
-                val address = KavitaPage.of(source, credentials)?.address
-                    ?: return@flatMap emptyList()
-                runCatching {
-                    KavitaContributor.publications(source.id, KavitaClient(address))
-                }.getOrDefault(emptyList()).map { it to source.id }
-            }
+        sources.flatMap { source ->
+            runCatching {
+                when (source.kind) {
+                    SourceKind.KAVITA_SERVER -> KavitaPage.of(source, credentials)?.address
+                        ?.let { KavitaContributor.publications(source.id, KavitaClient(it)) }
+
+                    SourceKind.OPDS_CATALOG -> CataloguePage.of(source, credentials)
+                        ?.let { OpdsContributor.publications(source.id, it) }
+
+                    // A share is a filesystem, and a filesystem is walked rather than
+                    // asked. `local-library`'s scan already knows how; what it does not
+                    // have is an incremental index for a tree it reaches over a network,
+                    // and a blind walk of a share is unbounded. Named here rather than
+                    // silently skipped.
+                    SourceKind.NETWORK_SHARE -> null
+
+                    // Already in the library: its files are what the scan walks.
+                    SourceKind.LOCAL_FOLDER -> null
+                }
+            }.getOrNull().orEmpty().map { it to source.id }
+        }
     }
 
     /**

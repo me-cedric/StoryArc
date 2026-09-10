@@ -18,8 +18,8 @@ chosen against a real server without touching anything else.
 - [ ] 2.2 Deferred with 2.1. The scan is untouched, and every existing scan test passes unedited — which is the property 2.2 was there to protect.
 - [x] 2.3 `KavitaContributorTest`, 7 cases: the server identity and the absent path, what a row is drawn from, a numbered issue with no title, `AUTHORITATIVE` origin, each Kavita format, the archive guess pinned as a guess, and two reads of one chapter matching as one row.
 - [x] 2.4 Android: `KavitaContributor` over `KavitaClient.recentSeries` and `volumes`, wired at `LibraryViewModel.readServers`, with `remoteCover` resolving a row that has no file. Seen on the phone: the grid holds the server's issues and Home's *Recently added* leads with one. **iOS not done.**
-- [ ] 2.5 The same pair for OPDS, over `OpdsClient`.
-- [ ] 2.6 The same pair for SMB, over `:core:smb` — a share's files are files, so this one produces paths as well as a server identifier.
+- [x] 2.5 `OpdsContributor` and `OpdsContributorTest`, 7 cases. **One feed, not a crawl** — the root the reader saved; what is deeper stays in the browser and in search, because a catalogue may be a thousand pages deep. A navigation entry is not a publication and is dropped. **No acquisition address survives into a row**, asserted directly: an OPDS link can carry a key in its query and `sources` forbids a cached catalogue holding one. The test caught a real bug — `application/epub+zip` contains "zip", so every book on every catalogue was filing as a comic.
+- [ ] 2.6 **Not done, and named rather than skipped.** A share is a filesystem, and a filesystem is walked rather than asked. `local-library`'s scan already knows how to walk one; what it has no answer for is an incremental index of a tree reached over a network, so a blind walk of a share is unbounded in a way a feed and a page of series are not. `ServerLibrary` returns nothing for `NETWORK_SHARE` with that reason written beside it.
 - [ ] 2.7 `SourceKind.isBrowsable` stops meaning "not in the library". Rename it to what it now means, on both platforms, and verify every call site still answers the same question — `SourceReachability.kt:62` names it explicitly and is the one to read first.
 
 ## 3. What is read, and what is held back
@@ -35,7 +35,7 @@ chosen against a real server without touching anything else.
 - [x] 3b.2 Android: `rememberShelfRows` collapses the arranged list, `CoverGrid` draws a series cell named for the series and captioned with `shelves_count` — a plural that already existed in all four languages — and `LibrarySections` now divides rows. Seen on the phone.
 - [x] 3b.3 `SeriesShelfScreen`, drawing the same `CoverGrid` over one series' members, reached by `Screen.SeriesShelf`. **No test asserts the screen** — it reads the view model's flow and composing it needs one; the frame is the evidence for now.
 - [ ] 3b.4 Not asserted. The back arrow is there and works on the phone; that the library returns *at the place the reader left it* is the navigation stack's behaviour and nothing pins it.
-- [ ] 3b.5 The Kavita contributor stops fetching every chapter of every series up front: a series row needs the series, and its issues are fetched when the reader opens it. Verify the request count on first read drops to one page.
+- [ ] 3b.5 **Deferred, with the reason.** A row exists today only where a publication does, so a series the app knows of but has fetched no issues for has nothing to draw. Making it lazy needs a row that can exist without members — a real model addition, not a smaller fetch. The cost it would save is bounded and measured: one page plus one call per series in the slice, sixty of them, seconds on the owner's server.
 - [ ] 3b.6 Mirror all of 3b on iOS.
 
 ## 4. One row, not two
