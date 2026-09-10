@@ -111,6 +111,30 @@ narrows by, this one rewrites what fills the grid — but it will not merge itse
 - Persistence: the library cache and the scan journal hold rows that no walk
   produced, and must not delete them when a walk does not see them.
 
+## A series is the row, and the owner reversed a decision to get there
+
+The first build of this change made a **chapter** the row: sixty of a server's
+series arrived as roughly twelve hundred cells under sixty headings. The owner
+saw it on the phone and asked for Kavita's own shape instead — a series is one
+cell, and opening it lists its issues.
+
+That is a change to a specified behaviour, not a preference.
+`one-library-three-destinations` introduces *Sectioning a long library*, which
+divides a long shelf "by series where a publication declares one, and otherwise
+by the active sort key" — sections with headings, every issue its own cell. It
+is built and mirrored on iOS in `LibrarySections`.
+
+The reversal is right, and for a reason bigger than servers: the section model
+scales with issues and the reader scans series. A local folder of sixty issues
+is sixty cells today and one cell after. So the shape changes for every source,
+which is also the only reading that satisfies both of the owner's instructions —
+"like Kavita does" and "treated the same as the local files".
+
+*Presentation* is therefore modified here too, and modified identically in
+`one-library-three-destinations`, for the reason the *Unified library* block
+gives: two different blocks on one requirement and whichever syncs second
+deletes the other's.
+
 ## Non-goals
 
 - **No change to how a publication is read.** A remote publication is opened by

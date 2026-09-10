@@ -209,10 +209,22 @@ they can name.
 - **THEN** its cover carries one small mark saying so, in the colour the design tokens reserve for it
 - **AND** no third mark is added to a cover for any reason, and origin is never one of them
 
+#### Scenario: A series is one row
+- **WHEN** publications in the library belong to a series
+- **THEN** the library lists that series once, as a single cell carrying the series' own artwork and how many publications it holds
+- **AND** the issues inside it are not listed beside it, whatever source they came from
+- **AND** a publication that belongs to no series is a row of its own, as it always was
+
+#### Scenario: Opening a series
+- **WHEN** a reader opens a series
+- **THEN** its publications are listed in their own order, each openable, each carrying the marks a cover carries in the grid
+- **AND** one gesture returns to the library, at the place the reader left it
+
 #### Scenario: Sectioning a long library
-- **WHEN** the library holds more publications than a reader can scan
-- **THEN** it is divided by series where a publication declares one, and otherwise by the active sort key, with headings that stay visible while their section is on screen
+- **WHEN** the library holds more rows than a reader can scan
+- **THEN** it is divided by the active sort key, with headings that stay visible while their section is on screen
 - **AND** the sections follow the sort rather than replacing it
+- **AND** a series is one row for this purpose, because it is one row everywhere else
 
 #### Scenario: A publication that cannot be read now
 - **WHEN** a publication is neither on the device nor currently reachable
