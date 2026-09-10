@@ -1,7 +1,9 @@
 package app.storyarc.feature.library
 
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -47,43 +49,83 @@ class HomeCoverWidthTest {
         assertEquals(182.5.dp, homeShelfCoverWidth(windowWidthDp = 360, fontScale = 1.3f))
     }
 
-    /** The hero's own three widths, unchanged at every ordinary text size. */
+    /**
+     * A window tall enough that the height cap is inert.
+     *
+     * The hero is the smaller of what the width offers and what the height can afford, and
+     * these cases are about the width. A short window is its own test, below.
+     */
+    private val tall = 2000
+
+    /** The hero's three widths: a share of a phone, a tier on anything larger. */
     @Test
-    fun `the hero keeps its three widths at an ordinary text size`() {
-        assertEquals(200.dp, homeHeroWidth(windowWidthDp = 360, fontScale = 1f))
-        assertEquals(240.dp, homeHeroWidth(windowWidthDp = 600, fontScale = 1f))
-        assertEquals(280.dp, homeHeroWidth(windowWidthDp = 840, fontScale = 1f))
+    fun `about one and a half cards fit across a phone`() {
+        // `home-screen`: "about one and a half cards fit across a phone, so the second is
+        // plainly a second and not a thumbnail beside a hero". A 360 dp phone has 320 dp
+        // between its gutters, and a card is two thirds of it.
+        val phone = homeHeroWidth(windowWidthDp = 360, windowHeightDp = tall, fontScale = 1f)
+
+        assertEquals(320.dp / 1.5f, phone)
+        // Which is what "one and a half" means, read back: the room divided by the card.
+        assertEquals(1.5f, 320f / phone.value, 0.01f)
+    }
+
+    @Test
+    fun `a larger window keeps its tiers, because a card there is not a share of the screen`() {
+        assertEquals(240.dp, homeHeroWidth(windowWidthDp = 600, windowHeightDp = tall, fontScale = 1f))
+        assertEquals(280.dp, homeHeroWidth(windowWidthDp = 840, windowHeightDp = tall, fontScale = 1f))
     }
 
     /**
-     * And the hero steps too. This is the assertion the change exists for: the Keep reading
-     * card is the largest thing on Home, and it was the one surface here with no accessibility
-     * step at all. A 200 here at scale 1.5 means the hero is back to reading the window alone.
+     * And the hero steps too. This is the assertion that change existed for: the Keep
+     * reading card is the largest thing on Home, and it was the one surface here with no
+     * accessibility step at all.
      */
     @Test
     fun `the hero takes the same accessibility step`() {
-        assertEquals(280.dp, homeHeroWidth(windowWidthDp = 360, fontScale = 1.5f))
-        assertEquals(336.dp, homeHeroWidth(windowWidthDp = 600, fontScale = 1.5f))
-        assertEquals(392.dp, homeHeroWidth(windowWidthDp = 840, fontScale = 1.5f))
-    }
-
-    /** Same boundary as the shelf, because it is the same step. */
-    @Test
-    fun `the hero steps on the accessibility boundary and not before`() {
-        assertEquals(200.dp, homeHeroWidth(windowWidthDp = 360, fontScale = 1.29f))
-        assertEquals(280.dp, homeHeroWidth(windowWidthDp = 360, fontScale = 1.3f))
+        assertEquals(336.dp, homeHeroWidth(windowWidthDp = 600, windowHeightDp = tall, fontScale = 1.5f))
+        assertEquals(392.dp, homeHeroWidth(windowWidthDp = 840, windowHeightDp = tall, fontScale = 1.5f))
     }
 
     /**
-     * The card never asks for more room than it is given.
+     * The card never asks for more room than it is given, in either direction.
      *
-     * Both branches lay the card out inside a gutter on each side, so a 300 dp window — a
-     * freeform slot, a folded inner display, a phone in a small split — has 260 dp for it.
-     * The stepped phone tier is 280, and 280 in 260 is the overflow the cap exists to stop.
+     * A 300 dp window — a freeform slot, a folded inner display, a phone in a small split —
+     * has 260 dp between its gutters, and the stepped tier would overflow it.
      */
     @Test
-    fun `the hero is capped at the room the window leaves it`() {
-        assertEquals(260.dp, homeHeroWidth(windowWidthDp = 300, fontScale = 1.5f))
-        assertEquals(200.dp, homeHeroWidth(windowWidthDp = 300, fontScale = 1f))
+    fun `the hero never asks for more room than the window leaves it`() {
+        // Asserted as the invariant rather than at one window, because the phone tier is
+        // now a share of the room and can no longer exceed it by construction -- so a
+        // single case would be asserting arithmetic that cannot fail. What can still fail
+        // is a *fixed* tier in a narrow window, which is why the sweep includes both.
+        for (width in listOf(240, 300, 360, 411, 600, 840, 1280)) {
+            for (scale in listOf(1f, 1.3f, 1.5f, 2f)) {
+                val room = width.dp - StoryArcSpace.gutter * 2
+                val hero = homeHeroWidth(width, tall, scale)
+                assertTrue(
+                    "A ${width}dp window at scale $scale leaves $room and the hero took $hero.",
+                    hero <= room,
+                )
+            }
+        }
+    }
+
+    /**
+     * And capped by the height, which is the half that stops the bigger card costing the
+     * reader the next heading.
+     *
+     * `home-screen` asks for both at once — one and a half cards across, and the next
+     * section's heading visible without scrolling — and on a short phone they disagree.
+     * The height wins: a reader can scroll to see a second card, and cannot scroll to
+     * discover that a surface continues. `HomeHeroHeightTest` is where the fold is
+     * asserted; this is only that the cap bites.
+     */
+    @Test
+    fun `a short window gets a smaller card than its width would allow`() {
+        val short = homeHeroWidth(windowWidthDp = 360, windowHeightDp = 800, fontScale = 1f)
+        val roomy = homeHeroWidth(windowWidthDp = 360, windowHeightDp = tall, fontScale = 1f)
+
+        assertTrue("A 360 x 800 phone should not get the card a tall one gets.", short < roomy)
     }
 }

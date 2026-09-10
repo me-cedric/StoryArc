@@ -28,7 +28,7 @@ import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
+import androidx.compose.material3.carousel.HorizontalUncontainedCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -256,7 +256,11 @@ private fun LazyListScope.keepReading(
             HomeKeepReadingCard(
                 entry = entry,
                 cover = cover,
-                width = homeHeroWidth(homeWindowWidthDp(), LocalDensity.current.fontScale),
+                width = homeHeroWidth(
+                    homeWindowWidthDp(),
+                    homeWindowHeightDp(),
+                    LocalDensity.current.fontScale,
+                ),
                 onResume = { onResume(entry.publication) },
                 onFinish = { onFinish(entry.publication) },
                 onOpenNext = onOpen,
@@ -270,11 +274,21 @@ private fun LazyListScope.keepReading(
     }
 
     item {
-        val width = homeHeroWidth(homeWindowWidthDp(), LocalDensity.current.fontScale)
+        val width = homeHeroWidth(
+            homeWindowWidthDp(),
+            homeWindowHeightDp(),
+            LocalDensity.current.fontScale,
+        )
         val state = rememberCarouselState { surface.keepReading.size }
-        HorizontalMultiBrowseCarousel(
+        // Uncontained, not multi-browse. A multi-browse carousel masks its items to
+        // large, medium and small on purpose -- which is what it is for, and is not what
+        // this row is: `home-screen` asks that "every card in the row has the same width
+        // and the same height, whatever its title, its byline or its artwork". The reader
+        // met three cards at three sizes and reported it as cards that are "not the same
+        // size every time".
+        HorizontalUncontainedCarousel(
             state = state,
-            preferredItemWidth = width,
+            itemWidth = width,
             itemSpacing = StoryArcSpace.md,
             contentPadding = PaddingValues(horizontal = StoryArcSpace.gutter),
             modifier = Modifier
@@ -493,15 +507,69 @@ private fun HomeCoverRun(
  * Not `@Composable`, so the arithmetic can be asserted without a window — `HomeCoverWidthTest`
  * is the only reach a plain JVM suite has into what this screen draws.
  */
-internal fun homeHeroWidth(windowWidthDp: Int, fontScale: Float): Dp {
+internal fun homeHeroWidth(
+    windowWidthDp: Int,
+    windowHeightDp: Int,
+    fontScale: Float,
+): Dp {
+    val room = windowWidthDp.dp - StoryArcSpace.gutter * 2
     val tier = when {
         windowWidthDp >= 840 -> 280.dp
         windowWidthDp >= 600 -> 240.dp
-        else -> 200.dp
+        // A share of the window rather than a fixed 200 dp. `home-screen`: "about one and
+        // a half cards fit across a phone, so the second is plainly a second and not a
+        // thumbnail beside a hero". 200 dp put two and a half on a 411 dp phone, which is
+        // where the reader met three cards at three sizes.
+        else -> room / HERO_CARDS_ACROSS
     }
-    val room = windowWidthDp.dp - StoryArcSpace.gutter * 2
-    return minOf(tier.steppedForFontScale(fontScale), room)
+    // Whichever is smaller: the share the width offers, and the width whose card the
+    // *height* can afford. Both halves of the same scenario have to hold at once — a card
+    // one and a half across is the reader's request, and a next heading still on screen is
+    // the requirement, and on a short phone they disagree. The height wins there, which is
+    // the only order that keeps the surface legible: a reader can scroll to see a second
+    // card and cannot scroll to discover that a surface continues.
+    val affordable = heroWidthTheHeightAffords(windowHeightDp, fontScale)
+    return minOf(tier.steppedForFontScale(fontScale), room, affordable)
 }
+
+/**
+ * The widest card whose block still leaves the next heading on screen.
+ *
+ * [homeHeroBlockHeight] inverted. The block is the artwork -- the card's width less its
+ * padding, at [HOME_COVER_ASPECT] -- plus a caption budget, the container's bottom padding
+ * and the resume row; so given the height that is going spare, this is the width that
+ * exactly spends it.
+ *
+ * The chrome numbers are `HomeHeroHeightTest`'s, which is where they are explained and
+ * where a change to either is caught.
+ */
+private fun heroWidthTheHeightAffords(windowHeightDp: Int, fontScale: Float): Dp {
+    val forTheCard = (windowHeightDp - HOME_CHROME_DP - HOME_NEXT_HEADING_DP).dp
+    val forTheArt = forTheCard - homeCaptionHeight(lines = 6, fontScale = fontScale) -
+        StoryArcSpace.xxl - HOME_RESUME_ROW
+    return forTheArt / HOME_COVER_ASPECT + StoryArcSpace.md * 2
+}
+
+/**
+ * How many Keep reading cards fit across a phone.
+ *
+ * One and a half: enough of the second to say the row scrolls, not so much that the first
+ * stops being the surface's one emphasis. `HomeCoverWidthTest` pins both ends of that.
+ */
+private const val HERO_CARDS_ACROSS = 1.5f
+
+/**
+ * What Home spends above and below the hero, in dp.
+ *
+ * The expanded top bar including its status-bar padding, the navigation bar including its
+ * gesture inset, and the *Keep reading* heading with its air. `HomeHeroHeightTest` is where
+ * each number comes from; it is repeated here rather than shared because the test asserting
+ * against a constant the code reads would be asserting its own arithmetic.
+ */
+private const val HOME_CHROME_DP = 112 + 88 + 56
+
+/** A section heading and the air above it, which is what has to stay on screen. */
+private const val HOME_NEXT_HEADING_DP = 56
 
 /**
  * How much room the window has, in dp.
@@ -515,6 +583,14 @@ internal fun homeWindowWidthDp(): Int {
     val density = LocalDensity.current
     val size = LocalWindowInfo.current.containerSize
     return with(density) { size.width.toDp() }.value.toInt()
+}
+
+/** The window's height in dp, for the half of the hero's size the width cannot decide. */
+@Composable
+internal fun homeWindowHeightDp(): Int {
+    val density = LocalDensity.current
+    val size = LocalWindowInfo.current.containerSize
+    return with(density) { size.height.toDp() }.value.toInt()
 }
 
 /**

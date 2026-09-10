@@ -6,12 +6,15 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -46,6 +49,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.storyarc.core.designsystem.cover.CoverlessWell
@@ -57,6 +61,21 @@ import app.storyarc.core.model.ReadState
 
 /** The proportions of a comic cover, near enough for every publisher. */
 internal const val HOME_COVER_ASPECT = 3f / 2f
+
+/**
+ * The room a cover takes in a card whose artwork slot is [width] wide.
+ *
+ * The cover keeps its own shape, so nothing is letterboxed and nothing is cropped. A cover
+ * taller than the 2:3 bound is scaled down until it fits the bound -- both sides shrink
+ * together, which is what keeps it uncropped. A cover of an unknown shape is given the
+ * 2:3 box, because that is what the coverless well draws.
+ */
+internal fun homeArtSize(width: Dp, coverWidth: Int, coverHeight: Int): DpSize {
+    if (coverWidth <= 0 || coverHeight <= 0) return DpSize(width, width * HOME_COVER_ASPECT)
+    val ratio = coverWidth.toFloat() / coverHeight.toFloat()
+    val height = minOf(width / ratio, width * HOME_COVER_ASPECT)
+    return DpSize(height * ratio, height)
+}
 
 /**
  * The room the hero's resume button takes, for a carousel that must state its height before
@@ -143,18 +162,28 @@ internal fun HomeCoverArt(
     LaunchedEffect(publication.id, pixels) { bitmap = cover(publication, pixels) }
 
     Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(StoryArcRadius.cover))
-            .background(palette.surfaceSunken),
-        contentAlignment = Alignment.Center,
+        modifier = modifier.clip(RoundedCornerShape(StoryArcRadius.cover)),
+        contentAlignment = Alignment.TopCenter,
     ) {
         val art = bitmap
         if (art != null) {
+            // At the cover's own proportions, and the frame is only a bound on how tall it
+            // may be. `home-screen`: "the cover is drawn whole at its own proportions with
+            // no bar of background above, below or beside it", and it "is never cropped".
+            //
+            // This used to be `fillMaxSize` over a `surfaceSunken` box, which honoured the
+            // second half and not the first: a cover that is not the frame's shape was
+            // centred in it with a bar above and below, and on a dark theme that bar is
+            // the black border a reader reported. The bar is gone rather than filled,
+            // because a bar in the card's own colour is still a bar.
+            val size = homeArtSize(width, art.width, art.height)
             Image(
                 bitmap = art.asImageBitmap(),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .size(size.width, size.height)
+                    .clip(RoundedCornerShape(StoryArcRadius.cover)),
             )
         } else {
             // This branch used to be absent, so a publication with no artwork was a bare
@@ -162,7 +191,16 @@ internal fun HomeCoverArt(
             // reader back a book they already know. The title is what identifies it; no
             // format, because nothing on Home names one — its captions are the title and
             // either what is left to read or why the book is away.
-            CoverlessWell(title = publication.displayTitle, format = null)
+            // The one case that still fills the frame: there is no artwork to be whole,
+            // so the well *is* the artwork.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f / HOME_COVER_ASPECT)
+                    .background(palette.surfaceSunken),
+            ) {
+                CoverlessWell(title = publication.displayTitle, format = null)
+            }
         }
     }
 }
@@ -222,6 +260,7 @@ internal fun HomeKeepReadingCard(
     Column(
         modifier = modifier
             .width(width)
+            .fillMaxHeight()
             .clip(RoundedCornerShape(StoryArcRadius.xl))
             .background(palette.surfaceRaised)
             .padding(StoryArcSpace.md),
@@ -233,7 +272,11 @@ internal fun HomeKeepReadingCard(
             width = art,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(art * HOME_COVER_ASPECT)
+                // A bound, not a height. A cover shorter than 2:3 takes less and leaves the
+                // rest to the space above the actions; a taller one scales down to fit,
+                // which is still whole and still uncropped. `heightIn` rather than `height`
+                // is the whole of the letterbox fix.
+                .heightIn(max = art * HOME_COVER_ASPECT)
                 .alpha(dim),
         )
 
@@ -254,6 +297,13 @@ internal fun HomeKeepReadingCard(
                 overflow = TextOverflow.Ellipsis,
             )
         }
+
+        // Everything above is what the book *is*; everything below is what the reader can
+        // *do*. The card's height is fixed, a title wraps to one line or two and a byline
+        // is sometimes missing, so the difference has to land somewhere -- and between the
+        // two halves it reads as spacing. Landing at the bottom instead is what put the
+        // resume button at a different height on every card in the row.
+        Spacer(Modifier.weight(1f))
 
         LinearWavyProgressIndicator(
             progress = { entry.fraction.toFloat() },

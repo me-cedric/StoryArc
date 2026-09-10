@@ -65,13 +65,13 @@ class HomeHeroHeightTest {
 
     private fun room(heightDp: Int): Dp = (heightDp - CHROME_DP).dp
 
-    private fun hero(widthDp: Int, fontScale: Float = 1f): Dp =
-        homeHeroBlockHeight(homeHeroWidth(widthDp, fontScale), fontScale)
+    private fun hero(widthDp: Int, heightDp: Int, fontScale: Float = 1f): Dp =
+        homeHeroBlockHeight(homeHeroWidth(widthDp, heightDp, fontScale), fontScale)
 
     @Test
     fun `the next heading is visible without scrolling at the default text size`() {
         val room = room(REFERENCE_HEIGHT_DP)
-        val hero = hero(REFERENCE_WIDTH_DP)
+        val hero = hero(REFERENCE_WIDTH_DP, REFERENCE_HEIGHT_DP)
 
         assertTrue(
             "The hero block is $hero in $room of room, leaving ${room - hero} — the next" +
@@ -88,7 +88,7 @@ class HomeHeroHeightTest {
         // it draw covers about a third of this size, and a hero that had shrunk to theirs
         // would be a fourth shelf rather than the surface's one emphasis.
         val room = room(REFERENCE_HEIGHT_DP)
-        val hero = hero(REFERENCE_WIDTH_DP)
+        val hero = hero(REFERENCE_WIDTH_DP, REFERENCE_HEIGHT_DP)
 
         assertTrue(
             "The hero block is $hero in $room of room — that is a shelf cell, not a hero.",
@@ -103,7 +103,7 @@ class HomeHeroHeightTest {
         // of the shortfall, so that a change which makes it *much* worse fails here instead
         // of being found on a device three weeks later.
         val room = room(SMALL_HEIGHT_DP)
-        val hero = hero(SMALL_WIDTH_DP)
+        val hero = hero(SMALL_WIDTH_DP, SMALL_HEIGHT_DP)
         val left = room - hero
 
         assertTrue(
@@ -122,7 +122,8 @@ class HomeHeroHeightTest {
         // moves at all.
         assertTrue(
             "The height budget ignores the reader's text size.",
-            hero(REFERENCE_WIDTH_DP, fontScale = 2f) > hero(REFERENCE_WIDTH_DP),
+            hero(REFERENCE_WIDTH_DP, REFERENCE_HEIGHT_DP, fontScale = 2f) >
+                hero(REFERENCE_WIDTH_DP, REFERENCE_HEIGHT_DP),
         )
     }
 }
