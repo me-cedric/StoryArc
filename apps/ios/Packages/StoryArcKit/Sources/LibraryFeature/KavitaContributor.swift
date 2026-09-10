@@ -57,7 +57,7 @@ enum KavitaContributor {
             format: format(series.format),
             displayTitle: title(series: series, chapter: chapter),
             series: series.name,
-            number: chapter.number.isEmpty ? nil : chapter.number,
+            number: issueNumber(of: chapter),
             origin: .authoritative,
             pageCount: chapter.pages > 0 ? chapter.pages : nil,
             sourceID: source
@@ -75,10 +75,23 @@ enum KavitaContributor {
         // `<series> #<number>`, the house format `seriesLine` composes, so a server's issue
         // and a scanned one read the same. The bare number was the bug: a shelf of cells
         // headed "43" names nothing.
-        if !chapter.number.isEmpty, !chapter.number.hasPrefix("-") {
-            return "\(series.name) #\(chapter.number)"
-        }
+        if let number = issueNumber(of: chapter) { return "\(series.name) #\(number)" }
         return series.name
+    }
+
+    /// The chapter's issue number, where it has one.
+    ///
+    /// The same question ``title(series:chapter:)`` asks, and it has to be the same answer:
+    /// `Publication.number` is drawn on its own as `#<number>` under a row, so a sentinel
+    /// stored here comes back beside a title that had correctly left it out — a row reading
+    /// the series' name over a line reading that name and "#-100000".
+    ///
+    /// Kavita writes `-100000` for a chapter with no number at all: a collected edition, or
+    /// a volume with one part. Any negative is treated the same way, because none of them is
+    /// an issue number.
+    private static func issueNumber(of chapter: KavitaChapter) -> String? {
+        guard !chapter.number.isEmpty, !chapter.number.hasPrefix("-") else { return nil }
+        return chapter.number
     }
 
     /// Kavita's `MangaFormat` as this app's own.

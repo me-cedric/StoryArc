@@ -83,35 +83,15 @@ internal object KavitaContributor {
         // file is fetched. A reader who downloads it gets the container's own answer, and
         // the row is re-indexed from the file at that point.
         format = format(series.format),
-        displayTitle = title(series, chapter),
+        displayTitle = KavitaNaming.title(series, chapter),
         series = series.name,
-        number = chapter.number.takeIf { it.isNotEmpty() },
+        number = KavitaNaming.issueNumber(chapter),
         pageCount = chapter.pages.takeIf { it > 0 },
         // The server owns these answers, which is what `AUTHORITATIVE` means and why a
         // downloaded copy's embedded metadata does not overwrite them.
         origin = MetadataOrigin.AUTHORITATIVE,
         sourceId = sourceId,
     )
-
-    /**
-     * What to call one chapter.
-     *
-     * Three cases, and the first two were wrong before this. A chapter with a title of its
-     * own keeps it. A numbered one reads `<series> #<number>`, the house format, because a
-     * cell headed "43" names nothing. And Kavita writes `-100000` for a chapter that has no
-     * number at all -- a collected edition, a volume with one part -- which is not a number
-     * and leaves the series' own name, which is what the reader would have called it.
-     */
-    private fun title(series: KavitaSeries, chapter: KavitaChapter): String {
-        chapter.title?.takeIf { it.isNotBlank() }?.let { return it }
-        val numbered = chapter.number.takeIf { it.isNotBlank() && !it.startsWith("-") }
-        // `<series> #<number>`, which is the house format `seriesLine` composes and what a
-        // filename-derived title already looks like -- so a server's issue and a scanned
-        // one read the same, and the caption below suppresses itself as it does for a file.
-        // The bare number was the bug: a shelf of cells headed "43" says nothing, and the
-        // caption under it then carried the only words on the cell.
-        return numbered?.let { "${series.name} #$it" } ?: series.name
-    }
 
     /**
      * Kavita's `MangaFormat` as this app's own.

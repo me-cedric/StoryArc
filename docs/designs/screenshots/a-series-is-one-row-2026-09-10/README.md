@@ -51,3 +51,15 @@ is type-erased so one column can hold both destinations.
 - **Android only.** iOS has neither the rule nor the screen.
 - The contributor still fetches every chapter of every series in its slice up
   front. A series row only needs the series, so that is the next thing to go.
+
+## The sentinel came back in the caption — 2026-09-10, later
+
+`android-library-no-sentinel-after.png`.
+
+The title was fixed and the caption was not. `Publication.number` still held
+Kavita's `-100000`, and the library row draws `#<number>` beneath the title —
+so a row read "01 - Green Lantern - Rage of the Red Lanterns" over a line
+reading the same name and "#-100000". The frame is the same list after
+`KavitaNaming` became the one place that answers both questions: the caption
+is now the format alone, and an issue that really has a number keeps it
+("02 - Green Lantern Corps #61").

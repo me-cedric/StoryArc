@@ -63,7 +63,7 @@ object KavitaKeep {
         cards: KavitaCardStore = KavitaCardStore.open(context),
         progress: KavitaProgressStore = KavitaProgressStore.open(context),
     ): Kept? = runCatching {
-        val title = chapter.displayName.ifEmpty { "${series.name} ${chapter.number}" }
+        val title = KavitaNaming.title(series, chapter)
         val fetched = client.chapter(chapter.id)
         val staged = withContext(Dispatchers.IO) {
             kavitaCacheFile(context, chapter.id, fetched.mediaType).apply { writeBytes(fetched.bytes) }

@@ -56,6 +56,10 @@ class KavitaContributorTest {
         val publication = row(chapter = KavitaChapter(id = 1, number = "-100000", title = ""))
 
         assertEquals("Lantern Green", publication.displayTitle)
+        // And the sentinel is not kept as the number either. It was, and `#<number>` is
+        // drawn on its own beneath the title -- so the row read "Lantern Green" and the
+        // line under it read "Lantern Green #-100000", which is what a reader reported.
+        assertNull(publication.number)
     }
 
     @Test

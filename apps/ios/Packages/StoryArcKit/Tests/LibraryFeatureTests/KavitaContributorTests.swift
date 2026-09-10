@@ -50,6 +50,10 @@ struct KavitaContributorTests {
         let publication = row(chapter: KavitaChapter(id: 1, number: "-100000", title: ""))
 
         #expect(publication.displayTitle == "Lantern Green")
+        // And the sentinel is not kept as the number either. It was, and `#<number>` is
+        // drawn on its own under the title — so the row read "Lantern Green" over a line
+        // reading "Lantern Green #-100000", which is what a reader reported.
+        #expect(publication.number == nil)
     }
 
     @Test("A numbered chapter is named for its series and its number, not the number alone")
