@@ -49,6 +49,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -123,6 +124,17 @@ internal fun CoverGrid(
      * one question. The caller settles that — see `LibraryScreen`.
      */
     sections: List<LibrarySection> = emptyList(),
+    /**
+     * The rows that are a series rather than a publication, by the id of the cell that
+     * stands for them.
+     *
+     * `library-browsing`: a series "is listed once, as a single cell carrying the series'
+     * own artwork and how many publications it holds". [LibraryRows] decides which cell
+     * that is and what it holds; this only draws it and sends a tap somewhere else.
+     */
+    seriesRows: Map<String, LibraryRow.Series> = emptyMap(),
+    /** What a tap on a series does: open it, rather than open the issue standing for it. */
+    onOpenSeries: (LibraryRow.Series) -> Unit = {},
     /**
      * What to do when a cover is tapped: show that publication's page.
      *
@@ -203,14 +215,16 @@ internal fun CoverGrid(
             // the reader is looking at their library with a word typed over it, not somewhere
             // else.
             val cell: @Composable (Publication) -> Unit = { publication ->
+                val series = seriesRows[publication.id]
                 CoverCell(
                     publication,
                     viewModel,
-                    onOpen,
+                    onOpen = if (series == null) onOpen else { _ -> onOpenSeries(series) },
                     maxPixelSize,
                     onAddToShelf,
                     isPicked = selection?.contains(publication.id),
                     onToggle = onToggle,
+                    seriesCount = series?.count,
                 )
             }
             if (groups.isEmpty() && sections.isEmpty()) {
@@ -383,6 +397,14 @@ private fun CoverCell(
     isPicked: Boolean? = null,
     onToggle: (Publication) -> Unit = {},
     modifier: Modifier = Modifier,
+    /**
+     * How many publications this cell stands for, when it stands for a series.
+     *
+     * Null for an ordinary publication, which is most of them. A count replaces the
+     * caption rather than joining it: the caption already names the series, and a cell
+     * reading "Lantern · Lantern · 24 titles" says one thing three times.
+     */
+    seriesCount: Int? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     var cover by remember(publication.id) { mutableStateOf<Bitmap?>(null) }
@@ -391,7 +413,16 @@ private fun CoverCell(
         cover = viewModel.cover(publication, maxPixelSize)
     }
 
-    val subtitle = cellSubtitle(publication)
+    // A cell standing for a series is named for the series, not for whichever issue leads
+    // it: "0" over "9 titles" tells a reader nothing about what they are looking at.
+    val title = if (seriesCount == null) {
+        publication.displayTitle
+    } else {
+        publication.series ?: publication.displayTitle
+    }
+    val subtitle = seriesCount
+        ?.let { pluralStringResource(R.plurals.shelves_count, it, it) }
+        ?: cellSubtitle(publication)
     val isKept = viewModel.isOnDevice(publication)
     val isReadable = viewModel.isReadableNow(publication)
     // `library-browsing`: a publication that is neither on the device nor currently
@@ -440,7 +471,7 @@ private fun CoverCell(
                 // spoken label is the same leak, read aloud. The publication's own page
                 // carries the one provenance line, for every reader alike.
                 contentDescription = listOfNotNull(
-                    publication.displayTitle,
+                    title,
                     subtitle,
                     publication.format.displayName,
                     // Spoken for the reason the progress is: a mark in the corner of a cover
@@ -508,7 +539,7 @@ private fun CoverCell(
                 // this cell is private to this module and three other shelves that should
                 // have been drawing the same thing were drawing nothing.
                 CoverlessWell(
-                    title = publication.displayTitle,
+                    title = title,
                     format = publication.format.displayName,
                 )
             }
@@ -573,7 +604,7 @@ private fun CoverCell(
 
         Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair)) {
             Text(
-                text = publication.displayTitle,
+                text = title,
                 style = MaterialTheme.typography.bodyMedium,
                 color = palette.textPrimary,
                 maxLines = 2,

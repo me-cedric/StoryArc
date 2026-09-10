@@ -83,7 +83,7 @@ internal object KavitaContributor {
         // file is fetched. A reader who downloads it gets the container's own answer, and
         // the row is re-indexed from the file at that point.
         format = format(series.format),
-        displayTitle = chapter.displayName.ifEmpty { series.name },
+        displayTitle = title(series, chapter),
         series = series.name,
         number = chapter.number.takeIf { it.isNotEmpty() },
         pageCount = chapter.pages.takeIf { it > 0 },
@@ -92,6 +92,20 @@ internal object KavitaContributor {
         origin = MetadataOrigin.AUTHORITATIVE,
         sourceId = sourceId,
     )
+
+    /**
+     * What to call one chapter.
+     *
+     * Kavita writes `-100000` for a chapter that has no number -- a collected edition, a
+     * volume with one part -- and `displayName` hands that straight back, so the library
+     * drew shelves of cells titled "-100000". A number that is not a number is no title at
+     * all, and the series' own name is what the reader would have called it anyway.
+     */
+    private fun title(series: KavitaSeries, chapter: KavitaChapter): String {
+        val named = chapter.title?.takeIf { it.isNotBlank() }
+        val numbered = chapter.number.takeIf { it.isNotBlank() && !it.startsWith("-") }
+        return named ?: numbered ?: series.name
+    }
 
     /**
      * Kavita's `MangaFormat` as this app's own.

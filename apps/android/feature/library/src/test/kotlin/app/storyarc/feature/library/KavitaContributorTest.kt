@@ -50,10 +50,21 @@ class KavitaContributorTest {
     }
 
     @Test
-    fun `a numbered issue with no title of its own is called by its number`() {
-        val publication = row(chapter = KavitaChapter(id = 1, number = "7", title = ""))
+    fun `a chapter Kavita gave no number is called by its series`() {
+        // Kavita writes -100000 for a chapter with no number -- a collected edition, a
+        // volume with one part. The library drew shelves of cells titled "-100000".
+        val publication = row(chapter = KavitaChapter(id = 1, number = "-100000", title = ""))
 
-        assertEquals("7", publication.displayTitle)
+        assertEquals("Lantern Green", publication.displayTitle)
+    }
+
+    @Test
+    fun `a chapter with a real title keeps it, and a numbered one keeps its number`() {
+        assertEquals("Issue #43", row().displayTitle)
+        assertEquals(
+            "7",
+            row(chapter = KavitaChapter(id = 1, number = "7", title = "")).displayTitle,
+        )
     }
 
     @Test

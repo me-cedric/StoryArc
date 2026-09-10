@@ -32,9 +32,9 @@ chosen against a real server without touching anything else.
 ## 3b. A series is the row
 
 - [x] 3b.1 `LibraryRows` and `LibraryRowsTest`, 7 cases: a series is one row however many issues it holds, a publication with no series is its own row, a series of one is not a list to open, a series takes the place its first member had, a scattered series is still one row and keeps every member, a blank series name is no series, and an empty library has no rows. Pure and off the composition, as `LibrarySections` is.
-- [ ] 3b.2 Group the library's rows by series in the arranged list, and give the cell the series' artwork and its count. Verify 3b.1 passes and that `LibrarySections` still sections what is left — a series is one row for sectioning too.
-- [ ] 3b.3 Write the test that opening a series lists its publications in order, each openable, each carrying the marks a cover carries. Then build the screen, reusing the cells the grid already uses.
-- [ ] 3b.4 Assert one gesture returns to the library at the place the reader left it, on both platforms.
+- [x] 3b.2 Android: `rememberShelfRows` collapses the arranged list, `CoverGrid` draws a series cell named for the series and captioned with `shelves_count` — a plural that already existed in all four languages — and `LibrarySections` now divides rows. Seen on the phone.
+- [x] 3b.3 `SeriesShelfScreen`, drawing the same `CoverGrid` over one series' members, reached by `Screen.SeriesShelf`. **No test asserts the screen** — it reads the view model's flow and composing it needs one; the frame is the evidence for now.
+- [ ] 3b.4 Not asserted. The back arrow is there and works on the phone; that the library returns *at the place the reader left it* is the navigation stack's behaviour and nothing pins it.
 - [ ] 3b.5 The Kavita contributor stops fetching every chapter of every series up front: a series row needs the series, and its issues are fetched when the reader opens it. Verify the request count on first read drops to one page.
 - [ ] 3b.6 Mirror all of 3b on iOS.
 

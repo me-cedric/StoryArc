@@ -26,6 +26,7 @@ import app.storyarc.feature.library.KavitaBrowserScreen
 import app.storyarc.feature.library.KavitaCollectionScreen
 import app.storyarc.feature.library.KavitaLevel
 import app.storyarc.feature.library.KavitaListScreen
+import app.storyarc.feature.library.SeriesShelfScreen
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.ListPromoter
 import app.storyarc.feature.library.OfflineSourceScreen
@@ -179,6 +180,13 @@ internal fun HostedScreen(
                     host.library.withdrawList(sourceId, listId, dependencies.credentials)
                 },
             ),
+        )
+
+        is Screen.SeriesShelf -> SeriesShelfScreen(
+            name = screen.name,
+            viewModel = host.library,
+            onOpen = host.openPage,
+            onBack = back,
         )
 
         is Screen.ServerShelfPage -> if (screen.shelf.isList) {

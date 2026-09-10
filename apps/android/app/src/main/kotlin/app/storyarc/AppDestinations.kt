@@ -97,6 +97,8 @@ private fun LibraryDestination(host: AppHost) {
         // the list and the search results reaches `onOpenPage` instead.
         onOpen = host.open,
         onOpenPage = host.openPage,
+        // `library-browsing`: a series is one row, and opening it lists its publications.
+        onOpenSeries = { host.navigate { push(Screen.SeriesShelf(it)) } },
         onOpenSettings = {
             // Re-read on the way in, so a download made since the last look is on the
             // screen rather than one visit behind it.

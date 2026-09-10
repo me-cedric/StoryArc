@@ -83,3 +83,40 @@ internal object LibraryRows {
         return rows
     }
 }
+
+/**
+ * What the shelf draws and which of its cells stand for a series.
+ *
+ * One value rather than three `remember`s at the call site: `LibraryScreen` is at its line
+ * cap, and this is one decision -- how the arranged list becomes cells -- not three.
+ */
+internal data class ShelfRows(
+    /** One publication per cell: itself, or the one standing for its series. */
+    val shelved: List<Publication>,
+    /** The cells that are a series, by the id of the publication standing for them. */
+    val series: Map<String, LibraryRow.Series>,
+)
+
+/**
+ * The arranged list as cells.
+ *
+ * Not while a search is running or a selection is open: results are already grouped by why
+ * they matched, and a cell that opened a list mid-selection would throw away what the
+ * reader had picked. In both cases the shelf lists publications, as it always did.
+ */
+@androidx.compose.runtime.Composable
+internal fun rememberShelfRows(
+    publications: List<Publication>,
+    isGrouped: Boolean,
+    isPicking: Boolean,
+): ShelfRows = androidx.compose.runtime.remember(publications, isGrouped, isPicking) {
+    if (isGrouped || isPicking) {
+        ShelfRows(publications, emptyMap())
+    } else {
+        val rows = LibraryRows.of(publications)
+        ShelfRows(
+            shelved = rows.map { it.lead },
+            series = rows.filterIsInstance<LibraryRow.Series>().associateBy { it.lead.id },
+        )
+    }
+}

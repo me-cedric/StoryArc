@@ -96,6 +96,7 @@ fun LibraryScreen(
      * that offers to resume, the continue-reading row.
      */
     onOpenPage: (Publication) -> Unit = {},
+    onOpenSeries: (String) -> Unit = {},
     /**
      * How the app layer reaches Settings.
      *
@@ -518,6 +519,7 @@ fun LibraryScreen(
                             onSelectionChange = { selection = it },
                             onOpen = onOpen,
                             onOpenPage = onOpenPage,
+                            onOpenSeries = onOpenSeries,
                             onAddToShelf = { shelving = it },
                         )
 
@@ -681,6 +683,7 @@ private fun Shelf(
     onOpen: (Publication, String) -> Unit,
     /** Opens a publication's page. Reached from every cover, in either layout. */
     onOpenPage: (Publication) -> Unit,
+    onOpenSeries: (String) -> Unit,
     onAddToShelf: (Publication) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -703,16 +706,17 @@ private fun Shelf(
         // blob is decoded on every call, and a language change recreates the activity, which
         // takes this composition with it.
         val locale = remember { viewModel.readerLocale() }
-        val sections = remember(publications, query.sort, groups, other, locale) {
-            if (groups.isNotEmpty() || publications.size <= LibrarySections.THRESHOLD) {
-                emptyList()
-            } else {
-                LibrarySections.divide(publications, query.sort, other, locale)
-            }
+
+        // `library-browsing`: a series is one cell. See [ShelfRows].
+        val rows = rememberShelfRows(publications, groups.isNotEmpty(), selection.isActive)
+        val shelved = rows.shelved
+        val long = groups.isEmpty() && shelved.size > LibrarySections.THRESHOLD
+        val sections = remember(shelved, query.sort, long, other, locale) {
+            if (long) LibrarySections.divide(shelved, query.sort, other, locale) else emptyList()
         }
         if (layout == LibraryLayout.GRID) {
             CoverGrid(
-                publications = publications,
+                publications = shelved,
                 viewModel = viewModel,
                 // Hidden while a search or filter is running: the row is a shortcut to
                 // what you were reading, and showing publications the query excluded
@@ -729,6 +733,8 @@ private fun Shelf(
                     continueReading
                 },
                 sections = sections,
+                seriesRows = rows.series,
+                onOpenSeries = { onOpenSeries(it.name) },
                 onOpen = onOpenPage,
                 onResume = resume,
                 onAddToShelf = onAddToShelf,
@@ -737,7 +743,7 @@ private fun Shelf(
             )
         } else {
             CoverList(
-                publications = publications,
+                publications = shelved,
                 viewModel = viewModel,
                 onOpen = onOpenPage,
                 selection = selection.ids.takeIf { selection.isActive },

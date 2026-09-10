@@ -167,6 +167,14 @@ sealed interface Screen {
     /** One of a server's own shelves. */
     data class ServerShelfPage(val shelf: ServerShelf) : Screen
 
+    /**
+     * One series, and the publications inside it.
+     *
+     * By name rather than by id, because a series has no id of its own: it is what a set of
+     * publications agree they belong to, whichever source each of them came through.
+     */
+    data class SeriesShelf(val name: String) : Screen
+
     data class Settings(val opensAtDownloads: Boolean = false) : Screen {
         override val hidesNavigation: Boolean = true
     }

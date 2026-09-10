@@ -993,12 +993,12 @@ class LibraryViewModel(
             // had every publication found with no source at all -- and a source holding eleven
             // books reported nought. Null ranks last, so the source wins.
             val existing = _publications.value[seen]
-            if (!SourcePrecedence.prefers(sourceId, existing.sourceId, _registry.value.sources)) {
+            if (!LibraryMerge.replaces(sourceId, existing.sourceId, _registry.value.sources)) {
                 return false
             }
             _publications.update { current ->
                 current.mapIndexed { index, each ->
-                    if (index == seen) each.copy(sourceId = sourceId) else each
+                    if (index != seen) each else LibraryMerge.merged(each, publication, sourceId, existing.id in locations)
                 }
             }
             // The file goes with the attribution. A row that says one source and opens the
