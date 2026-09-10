@@ -67,13 +67,26 @@ where declared, its description where one exists, and the rest of its series.
 
 ### Requirement: One primary action
 
-The page SHALL offer exactly one primary action — to read, or to continue where
-the reader stopped — and SHALL keep every other action secondary.
+The page SHALL offer exactly one primary action — to read, to continue where the
+reader stopped, or to obtain the copy that reading needs — and SHALL keep every
+other action secondary. The primary action SHALL never be one that fails when it
+is taken.
 
 #### Scenario: Reading from here
 - **WHEN** a reader takes the primary action
 - **THEN** the book opens: at the start if it has not been read, at the recorded position if it has
 - **AND** the action's wording says which of those will happen before it is taken
+
+#### Scenario: No copy on the device, and a library that answers
+- **WHEN** the page opens for a publication with no copy on this device, its library answers, and the app cannot read the publication where it stands
+- **THEN** the primary action is to obtain the copy, and its wording says so rather than offering to read
+- **AND** one sentence beside it says the publication has to be on the device before it opens
+- **AND** no action on the page offers to read it, in the primary position or anywhere else
+
+#### Scenario: A publication the app reads where it stands
+- **WHEN** the page opens for a publication with no copy on this device that the app can read where it stands
+- **THEN** the primary action opens it
+- **AND** obtaining a copy is offered beside that action rather than in place of it
 
 #### Scenario: Everything else
 - **WHEN** a reader wants to download it, remove its download, add it to a shelf, mark it read or unread, or remove it
@@ -81,14 +94,22 @@ the reader stopped — and SHALL keep every other action secondary.
 - **AND** an action that does not apply is absent, not shown disabled without explanation
 
 #### Scenario: Downloading from here
-- **WHEN** a reader downloads the publication from this page
-- **THEN** progress is shown on this page, and the primary action stays usable, because [`offline-downloads`](../offline-downloads/spec.md) allows reading while downloading
-- **AND** when it completes the page states it is now readable with no network, without the reader refreshing anything
+- **WHEN** a reader takes the download from this page
+- **THEN** the copy joins the same queue as every other download, and the network rules in [`offline-downloads`](../offline-downloads/spec.md) hold and release it: the reader is asked once with the size before mobile data is spent on this publication, a transfer that is waiting says what it is waiting for, and the transfer continues after the reader leaves the page
+- **AND** progress is shown on this page, and says how far the copy has come as soon as the library states a size
+- **AND** stopping and resuming stay where [`offline-downloads`](../offline-downloads/spec.md) puts them, so the page states the transfer rather than carrying a second set of controls for it
+- **AND** where the app can read the publication where it stands the primary action stays usable while the copy travels, and where a copy is what reading needs the primary action remains the copy and says it is on its way
+
+#### Scenario: The copy arrives while the page is open
+- **WHEN** the copy completes while the page is shown
+- **THEN** the primary action becomes the read, and takes the reader into the copy on the device
+- **AND** the page states it is now readable with no network, without the reader refreshing anything
 
 #### Scenario: The primary action cannot be honoured
-- **WHEN** the publication is neither on the device nor currently reachable
+- **WHEN** the publication is neither on the device nor in a library that answers
 - **THEN** the primary action states what it needs in plain language rather than failing when taken
-- **AND** the download action is offered in its place, queued for when the source returns
+- **AND** the download action is offered in its place, queued for when the source returns, wherever the app can address the file without its library answering
+- **AND** where the library must answer before a copy can be asked for at all, the page offers no action rather than one that fails when it is taken
 
 ### Requirement: Where it came from
 

@@ -485,6 +485,7 @@ fun LibraryScreen(
                     viewModel = viewModel,
                 )
                 cachedAt?.let { CachedNotice(it) }
+                StillBeingReadNotice(registry.sources, publications)
             }
 
             // Pull to refresh, and no refresh button. Android was the only platform

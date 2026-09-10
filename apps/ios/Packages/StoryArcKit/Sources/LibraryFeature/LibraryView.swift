@@ -352,6 +352,17 @@ public struct LibraryView: View {
                     // Named, per `local-library`. "A folder is no longer available"
                     // sends someone hunting through four of them.
                     UnavailableFolderNotice(name: missing) { picking = .folder }
+                } else if sourcesStillBeingRead(
+                    sources: model.registry.sources, publications: model.publications
+                ) > 0 {
+                    // Above the cached line and below the two urgent ones: a source still
+                    // being read is a fact about *now*, where the cached line is about the
+                    // last time anything was. `StillBeingRead` is where the rule lives.
+                    StillBeingReadNotice(
+                        waiting: sourcesStillBeingRead(
+                            sources: model.registry.sources, publications: model.publications
+                        )
+                    )
                 } else if let cachedAt = model.cachedAt {
                     // Last, because it is the quietest thing this strip has to say: a
                     // selection in progress or a folder that has gone missing both need the

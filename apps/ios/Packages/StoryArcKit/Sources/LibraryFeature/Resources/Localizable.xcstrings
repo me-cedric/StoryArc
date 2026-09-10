@@ -2055,36 +2055,6 @@
         }
       }
     },
-    "detail.chapter.number %lld": {
-      "comment": "What a chapter with no title of its own is called. Same wording as the player's player.part.number, which names the same part on the compact bar and the lock screen.",
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Teil %lld"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Part %lld"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Parte %lld"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Partie %lld"
-          }
-        }
-      }
-    },
     "detail.chapter.inProgress": {
       "comment": "Spoken beside the chapter the listener is in the middle of, on an audiobook's page.",
       "extractionState": "manual",
@@ -2111,6 +2081,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "En cours"
+          }
+        }
+      }
+    },
+    "detail.chapter.number %lld": {
+      "comment": "What a chapter with no title of its own is called. Same wording as the player's player.part.number, which names the same part on the compact bar and the lock screen.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teil %lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Part %lld"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parte %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partie %lld"
           }
         }
       }
@@ -7446,6 +7446,83 @@
           "stringUnit": {
             "state": "translated",
             "value": "Année"
+          }
+        }
+      }
+    },
+    "library.stillBeingRead %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Eine Bibliothek wird noch gelesen"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Bibliotheken werden noch gelesen"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "One library is still being read"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld libraries are still being read"
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Se está leyendo una biblioteca"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Se están leyendo %lld bibliotecas"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Une bibliothèque est encore en cours de lecture"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld bibliothèques sont encore en cours de lecture"
+                }
+              }
+            }
           }
         }
       }

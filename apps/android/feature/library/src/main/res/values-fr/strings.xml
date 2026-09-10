@@ -414,4 +414,8 @@
     <string name="search_retry">Réessayer</string>
     <string name="library_away_body">Aucun des endroits que vous avez ajoutés n’est joignable pour le moment. Tout ce qui est déjà sur cet appareil reste lisible.</string>
     <string name="library_pending_body">Rien n’est encore arrivé des endroits que vous avez ajoutés.</string>
+    <plurals name="library_still_being_read">
+        <item quantity="one">Une bibliothèque est encore en cours de lecture</item>
+        <item quantity="other">%1$d bibliothèques sont encore en cours de lecture</item>
+    </plurals>
 </resources>
