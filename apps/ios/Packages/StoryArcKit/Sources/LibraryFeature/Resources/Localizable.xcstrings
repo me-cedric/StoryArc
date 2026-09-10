@@ -7459,7 +7459,7 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Eine Bibliothek wird noch gelesen"
+                  "value": "%lld Bibliothek wird noch gelesen"
                 }
               },
               "other": {
@@ -7477,7 +7477,7 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "One library is still being read"
+                  "value": "%lld library is still being read"
                 }
               },
               "other": {
@@ -7495,7 +7495,7 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Se está leyendo una biblioteca"
+                  "value": "Se está leyendo %lld biblioteca"
                 }
               },
               "other": {
@@ -7513,7 +7513,7 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Une bibliothèque est encore en cours de lecture"
+                  "value": "%lld bibliothèque est encore en cours de lecture"
                 }
               },
               "other": {

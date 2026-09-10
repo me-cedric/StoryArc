@@ -413,7 +413,7 @@
     <string name="library_away_body">Keiner der Orte, die Sie hinzugefügt haben, ist gerade erreichbar. Alles, was schon auf diesem Gerät liegt, bleibt lesbar.</string>
     <string name="library_pending_body">Von den Orten, die Sie hinzugefügt haben, ist noch nichts eingetroffen.</string>
     <plurals name="library_still_being_read">
-        <item quantity="one">Eine Bibliothek wird noch gelesen</item>
+        <item quantity="one">%1$d Bibliothek wird noch gelesen</item>
         <item quantity="other">%1$d Bibliotheken werden noch gelesen</item>
     </plurals>
 </resources>

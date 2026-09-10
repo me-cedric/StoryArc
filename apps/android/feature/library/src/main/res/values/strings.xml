@@ -431,7 +431,7 @@
     <string name="library_away_body">None of the places you added can be reached right now. Anything already on this device is still here to read.</string>
     <string name="library_pending_body">Nothing has arrived from the places you added yet.</string>
     <plurals name="library_still_being_read">
-        <item quantity="one">One library is still being read</item>
+        <item quantity="one">%1$d library is still being read</item>
         <item quantity="other">%1$d libraries are still being read</item>
     </plurals>
 </resources>
