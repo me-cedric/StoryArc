@@ -66,13 +66,18 @@ enum KavitaContributor {
 
     /// What to call one chapter.
     ///
-    /// Kavita writes `-100000` for a chapter that has no number — a collected edition, a
-    /// volume with one part — and handing that back titled shelves of cells "-100000". A
-    /// number that is not a number is no title, and the series' own name is what the reader
-    /// would have called it anyway.
+    /// Three cases, and the first two were wrong before this. A chapter with a title of
+    /// its own keeps it. A numbered one reads `<series> #<number>`, the house format,
+    /// because a cell headed "43" names nothing. And Kavita writes `-100000` for a chapter
+    /// with no number at all, which is not a number and leaves the series' own name.
     private static func title(series: KavitaSeries, chapter: KavitaChapter) -> String {
         if let named = chapter.title, !named.isEmpty { return named }
-        if !chapter.number.isEmpty, !chapter.number.hasPrefix("-") { return chapter.number }
+        // `<series> #<number>`, the house format `seriesLine` composes, so a server's issue
+        // and a scanned one read the same. The bare number was the bug: a shelf of cells
+        // headed "43" names nothing.
+        if !chapter.number.isEmpty, !chapter.number.hasPrefix("-") {
+            return "\(series.name) #\(chapter.number)"
+        }
         return series.name
     }
 

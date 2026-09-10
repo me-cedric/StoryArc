@@ -197,7 +197,12 @@ public struct LibraryView: View {
     ///
     /// Owned here because the shelf column has to write it — a cover there cannot push into
     /// a stack it is not inside. See ``OpenPublicationRoute``.
-    @State var detailPath: [PublicationRoute] = []
+    /// What is open beside the shelf.
+    ///
+    /// Type-erased rather than `[PublicationRoute]`, because a cell standing for a series
+    /// opens the series here and a cell standing for a publication opens its page, and one
+    /// column shows both. Both destinations are registered on it — see `publicationPages`.
+    @State var detailPath = NavigationPath()
 
     public var body: some View {
         container

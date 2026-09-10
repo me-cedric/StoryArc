@@ -78,7 +78,15 @@ extension LibraryView {
                     // photographs as *second choice keeps the shelf still*. A collapsed window
                     // then shows the detail column.
                     .environment(\.openPublicationRoute, OpenPublicationRoute { route in
-                        detailPath = [route]
+                        detailPath = NavigationPath([route])
+                        compactColumn = .detail
+                    })
+                    // A series opens beside the shelf as a publication does. Type-erased
+                    // rather than a second stack: both destinations are registered on the
+                    // detail column already, and `NavigationPath` is what lets one path
+                    // hold both.
+                    .environment(\.openSeriesRoute, OpenSeriesRoute { route in
+                        detailPath = NavigationPath([route])
                         compactColumn = .detail
                     })
                     // The leading column is the *shelf*, not a list of places to go, so it is

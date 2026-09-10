@@ -59,12 +59,20 @@ class KavitaContributorTest {
     }
 
     @Test
-    fun `a chapter with a real title keeps it, and a numbered one keeps its number`() {
+    fun `a chapter with a real title keeps it`() {
         assertEquals("Issue #43", row().displayTitle)
-        assertEquals(
-            "7",
-            row(chapter = KavitaChapter(id = 1, number = "7", title = "")).displayTitle,
-        )
+    }
+
+    @Test
+    fun `a numbered chapter is named for its series and its number, not the number alone`() {
+        // A shelf of cells headed "43" names nothing, and the caption under one then
+        // carried the only words on the cell. `<series> #<number>` is the house format --
+        // what `seriesLine` composes, and what a filename-derived title already looks
+        // like -- so a server's issue and a scanned one read the same.
+        val publication = row(chapter = KavitaChapter(id = 1, number = "7", title = ""))
+
+        assertEquals("Lantern Green #7", publication.displayTitle)
+        assertEquals("7", publication.number)
     }
 
     @Test

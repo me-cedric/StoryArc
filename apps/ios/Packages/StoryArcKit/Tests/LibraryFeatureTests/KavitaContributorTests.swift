@@ -52,9 +52,14 @@ struct KavitaContributorTests {
         #expect(publication.displayTitle == "Lantern Green")
     }
 
-    @Test("A numbered issue with no title of its own is called by its number")
+    @Test("A numbered chapter is named for its series and its number, not the number alone")
     func numbered() {
-        #expect(row(chapter: KavitaChapter(id: 1, number: "7", title: "")).displayTitle == "7")
+        // A shelf of cells headed "43" names nothing. `<series> #<number>` is the house
+        // format, so a server's issue and a scanned one read the same.
+        let publication = row(chapter: KavitaChapter(id: 1, number: "7", title: ""))
+
+        #expect(publication.displayTitle == "Lantern Green #7")
+        #expect(publication.number == "7")
     }
 
     @Test("The server owns the metadata, so a downloaded file does not overwrite it")

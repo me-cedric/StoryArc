@@ -27,6 +27,24 @@ re-read could never correct what it had already written. A source now replaces
 its own rows, and a row with a downloaded file still keeps the file's own
 metadata over a server's description of it.
 
+## iOS, on a simulator
+
+`ios-library-after.png` and `ios-series-open-after.png` are an **iPhone 17 Pro**
+simulator on iOS 26.2, seeded with four local comics rather than a server —
+three named `Lantern Green 001..003.cbz` and one standalone — because pointing
+it at the owner's Kavita would mean typing their API key into the app. The rule
+does not care where a publication came from, which is the point of it.
+
+The library lists *Lantern Green — 3 titles* and *The Third Chapter* beside it;
+opening the series lists *Lantern Green #1*, *#2* and *#3*.
+
+**The simulator caught a bug every unit test had passed.** A series cell inside
+the Library split opened the *issue leading the series* instead of the series:
+the split hands cells an `openPublicationRoute` closure because a value link in
+its shelf column goes nowhere, and the series branch was only on the value-link
+path. There is an `openSeriesRoute` beside it now, and the detail column's path
+is type-erased so one column can hold both destinations.
+
 ## What these frames do not show
 
 - **Only Kavita.** OPDS and SMB have no contributor yet.

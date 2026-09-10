@@ -27,3 +27,26 @@ extension View {
         }
     }
 }
+
+/// How a cell in the Library split opens a series, where a value link cannot.
+///
+/// The shelf column declares no destination of its own, so a ``NavigationLink`` there goes
+/// nowhere — the same reason ``OpenPublicationRoute`` exists, and the reason a series cell
+/// silently opened the wrong screen until a simulator was pointed at it: the cell fell
+/// through to the publication branch and showed the issue leading the series.
+public struct OpenSeriesRoute {
+    private let open: (SeriesRoute) -> Void
+
+    public init(_ open: @escaping (SeriesRoute) -> Void) {
+        self.open = open
+    }
+
+    public func callAsFunction(_ route: SeriesRoute) {
+        open(route)
+    }
+}
+
+extension EnvironmentValues {
+    /// The way a series cell in the Library split opens, or nil where a value link works.
+    @Entry public var openSeriesRoute: OpenSeriesRoute?
+}

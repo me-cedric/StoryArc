@@ -18,6 +18,7 @@ struct CoverCell: View {
     @Environment(\.theme) private var theme
     /// Set by the Library split's shelf column, where a value link finds no destination.
     @Environment(\.openPublicationRoute) private var openRoute
+    @Environment(\.openSeriesRoute) private var openSeries
     /// A source coming back should not make a cover flick to full brightness — but a reader
     /// who asked for less motion gets the change with no crossfade at all.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -72,8 +73,17 @@ struct CoverCell: View {
                 if let openRoute {
                     // Inside the Library split, whose shelf column declares no destination and
                     // whose value links therefore go nowhere — see ``OpenPublicationRoute``.
-                    Button { openRoute(PublicationRoute(publication)) } label: { cell }
-                        .buttonStyle(.plain)
+                    //
+                    // A series takes the same road. Falling through to the publication
+                    // branch here is what made a series cell open the issue leading it,
+                    // which every unit test passed and a simulator caught in one tap.
+                    if let series, let openSeries {
+                        Button { openSeries(SeriesRoute(name: series.name)) } label: { cell }
+                            .buttonStyle(.plain)
+                    } else {
+                        Button { openRoute(PublicationRoute(publication)) } label: { cell }
+                            .buttonStyle(.plain)
+                    }
                 } else {
                     // A cell standing for a series leads to the series, not to whichever
                     // issue happens to lead it.
