@@ -224,9 +224,11 @@ extension LibraryModel {
     /// ``refresh(_:)`` on a single source does that.
     public func rescan() async {
         scan(folders.isEmpty ? [documentsFolder] : folders)
+        await readServers()
         await scanTask?.value
         await refreshProgress()
     }
+
 
     /// Everything a finished scan settles.
     ///
@@ -346,51 +348,4 @@ extension LibraryModel {
 
     // Internal, not private: `private` is file-scoped, and the imported copies sit in
     // another file.
-    /// Puts a publication in the library under the source it was reached through, and
-    /// says whether it was new.
-    ///
-    /// Shared by the folder scan and by the imported copies, which find publications two
-    /// entirely different ways and have to agree about what one row means.
-    @discardableResult
-    func adopt(_ publication: Publication, from sourceID: UUID?) -> Bool {
-        var attributed = publication
-        attributed.sourceID = sourceID
-
-        // A publication already present from another folder is not added twice.
-        // Identity is what decides, not the path, so the same file reached two ways
-        // is one row (ADR-0006).
-        if let seen = publications.firstIndex(
-            where: { $0.identity.matches(publication.identity) }
-        ) {
-            // Unless this find came through a source the reader put higher. `sources`: the
-            // combined view "lists titles from higher sources first when two sources hold
-            // the same publication" — so the registry's order decides which copy the row is,
-            // not which scan happened to reach it first. ``SourcePrecedence`` is where that
-            // comparison lives and where it is asserted.
-            //
-            // The unattributed case falls out of the same rule: the app's own Documents
-            // folder is scanned before any source is restored, so a reader whose library
-            // lives there had every publication found with no source at all — and a source
-            // holding eleven books reported nought. Nil ranks last, so the source wins.
-            guard SourcePrecedence.prefers(
-                attributed.sourceID,
-                over: publications[seen].sourceID,
-                in: registry.sources
-            ) else { return false }
-
-            publications[seen].sourceID = attributed.sourceID
-            // The file goes with the attribution. A row that says one source and opens the
-            // other source's copy is the same bug wearing a different hat.
-            if let path = publication.identity.normalizedPath {
-                locations[publications[seen].id] = URL(fileURLWithPath: path)
-            }
-            return false
-        }
-
-        publications.append(attributed)
-        if let path = publication.identity.normalizedPath {
-            locations[publication.id] = URL(fileURLWithPath: path)
-        }
-        return true
-    }
 }

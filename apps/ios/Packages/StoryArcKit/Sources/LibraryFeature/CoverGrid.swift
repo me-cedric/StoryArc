@@ -115,6 +115,11 @@ struct CoverGrid: View {
     /// the shelf is drawn as one run of covers.
     var groups: [MatchGroup] = []
     let model: LibraryModel
+    /// The cells that stand for a series, by the id of the publication standing for them.
+    ///
+    /// `library-browsing`: a series "is listed once, as a single cell". ``LibraryRows``
+    /// decides which cell that is and what it holds; the grid only draws it.
+    var seriesRows: [String: LibraryRow] = [:]
 
     // No `onOpen`. A cover leads to the publication's page now — `publication-detail` makes
     // that the rule for every cover on every surface — and ``CoverCell`` pushes the route
@@ -202,7 +207,11 @@ struct CoverGrid: View {
                     // blurry on every device made since 2010.
                     maxPixelSize: Int(maximumWidth * displayScale),
                     isPicked: selection?.contains(publication.id),
-                    onToggle: onToggle
+                    onToggle: onToggle,
+                    series: seriesRows[publication.id].flatMap { row in
+                        guard case let .series(name, members) = row else { return nil }
+                        return (name: name, count: members.count)
+                    }
                 )
             }
         }

@@ -142,6 +142,10 @@ private struct PublicationPages: ViewModifier {
                 onListen: onListen,
                 onGone: { isGone = true }
             )
+            // Beside the page and not in a second modifier every stack would have to
+            // remember: a cell that stands for a series is a link like any other, and the
+            // stack that registers one destination registers both.
+            .seriesShelf(model: model)
             .alert(PublicationRoute.goneSentence, isPresented: $isGone) {}
     }
 }

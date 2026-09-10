@@ -29,6 +29,13 @@ struct CoverCell: View {
     /// Whether this one is picked, or `nil` when the library is not in selection mode.
     var isPicked: Bool?
     var onToggle: (Publication) -> Void = { _ in }
+    /// The series this cell stands for, when it stands for one.
+    ///
+    /// `library-browsing`: a series "is listed once, as a single cell carrying the series'
+    /// own artwork and how many publications it holds". A cell that stands for a series is
+    /// named for the series, captioned with the count, and leads to the series rather than
+    /// to whichever issue happens to lead it.
+    var series: (name: String, count: Int)?
 
     @State private var cover: CGImage?
     @State private var didAttemptLoad = false
@@ -68,8 +75,15 @@ struct CoverCell: View {
                     Button { openRoute(PublicationRoute(publication)) } label: { cell }
                         .buttonStyle(.plain)
                 } else {
-                    NavigationLink(value: PublicationRoute(publication)) { cell }
-                        .buttonStyle(.plain)
+                    // A cell standing for a series leads to the series, not to whichever
+                    // issue happens to lead it.
+                    if let series {
+                        NavigationLink(value: SeriesRoute(name: series.name)) { cell }
+                            .buttonStyle(.plain)
+                    } else {
+                        NavigationLink(value: PublicationRoute(publication)) { cell }
+                            .buttonStyle(.plain)
+                    }
                 }
             } else {
                 cell
@@ -184,13 +198,13 @@ struct CoverCell: View {
                 )
 
             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                Text(publication.displayTitle)
+                Text(series?.name ?? publication.displayTitle)
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
-                if let subtitle {
+                if let subtitle = seriesCaption ?? subtitle {
                     Text(subtitle)
                         .textRole(.caption)
                         .foregroundStyle(theme.palette.textTertiary)
@@ -252,6 +266,17 @@ struct CoverCell: View {
     /// Internal rather than private so the fall-through can be asserted without a window:
     /// which of the two facts a cover states under its title is the substance of the
     /// caption, and a view body is not somewhere that can be checked.
+    /// The caption: what the series holds, or what the publication is.
+    var seriesCaption: String? {
+        series.map {
+            String(
+                localized: "shelves.count \($0.count)",
+                bundle: .module,
+                locale: .storyArc
+            )
+        }
+    }
+
     var subtitle: String? {
         if !publication.isOpenable {
             // Said plainly rather than shown as a broken cover. `publication-formats`
@@ -278,7 +303,7 @@ struct CoverCell: View {
     private var accessibilityLabel: String {
         LibraryMarks.spoken(
             [
-                publication.displayTitle,
+                series?.name ?? publication.displayTitle,
                 subtitle,
                 publication.format.displayName,
                 // Progress is spoken, because a bar at the foot of a cover is invisible to

@@ -45,19 +45,45 @@ extension LibraryView {
     // which is how one of the app's three shelves came to dim and the other two not.
     // ``LibraryModel/isReachableNow(_:)`` is the same rule, asked by the cell that draws it.
 
+    /// The shelf as rows: a series is one cell, and a publication with none is its own.
+    ///
+    /// `library-browsing`: a series "is listed once, as a single cell". Not while a search
+    /// is running or a selection is open — results are already grouped by why they
+    /// matched, and a cell that opened a list mid-selection would throw away what the
+    /// reader had picked. Android's `rememberShelfRows` makes the same two exceptions.
+    var rows: [LibraryRow] {
+        guard model.matchGroups.isEmpty, !selection.isActive else { return [] }
+        return LibraryRows.of(shown)
+    }
+
+    /// One publication per cell: itself, or the one standing for its series.
+    var shelved: [Publication] {
+        let rows = rows
+        return rows.isEmpty ? shown : rows.map(\.lead)
+    }
+
+    /// The cells that stand for a series, by the id of the publication standing for them.
+    var seriesRows: [String: LibraryRow] {
+        Dictionary(uniqueKeysWithValues: rows.compactMap { row in
+            guard case .series = row else { return nil }
+            return (row.lead.id, row)
+        })
+    }
+
     /// How this shelf divides, or nothing when it is short enough to take in at a glance.
     ///
     /// Never while a search is running: the results are already grouped by why they matched,
     /// and a second set of headings cutting across the first would be two answers to one
     /// question.
     var sections: [LibrarySection] {
-        guard surface == .shelf, model.matchGroups.isEmpty, shown.count > LibrarySections.threshold
+        guard surface == .shelf, model.matchGroups.isEmpty,
+              shelved.count > LibrarySections.threshold
         else { return [] }
         // The reader's language, for the reason ``LibraryModel/rebuild()`` gives. A heading
         // is the initial of the sort key, and which article the sort key drops is a fact about
         // the reader's language — so a heading read in the device's would name a letter the
         // shelf did not sort on.
-        return LibrarySections.divide(shown, by: model.query.sort, locale: .storyArc)
+        return LibrarySections.divide(shelved, by: model.query.sort, locale: .storyArc)
     }
 
     /// Whether it is the device axis that is hiding the library, rather than a filter.
@@ -129,12 +155,13 @@ extension LibraryView {
                     )
                 } else if model.layout == .grid {
                     CoverGrid(
-                        publications: shown,
+                        publications: shelved,
                         // `library-browsing`: while a search is running, results are
                         // "grouped by match kind". Empty when nothing is typed, and then
                         // the shelf is one run of covers.
                         groups: model.matchGroups,
                         model: model,
+                        seriesRows: seriesRows,
                         selection: selection.isActive ? selection.ids : nil,
                         onToggle: { selection.toggle($0.id) }
                     )
