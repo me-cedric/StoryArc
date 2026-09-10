@@ -866,14 +866,10 @@ class LibraryViewModel(
                     val path = publication.identity.normalizedPath ?: return@collect
                     val record = store.download(File(path), downloads) ?: return@collect
                     if (!record.state.isFinished) return@collect
-                    // What the server said wins over what the file says. `kavita-server` is
-                    // explicit: the server is the curated source, and a downloaded Kavita
-                    // title read with the server unreachable shows "the cached server
-                    // metadata, not the file's embedded metadata". The card is the cache,
-                    // written when the chapter was kept, and this is the one place every
-                    // kept download passes through on its way to the shelf.
-                    val described = cards?.card(publication.id)?.appliedTo(publication)
-                        ?: publication
+                    // What the server said wins over what the file says, and the card also
+                    // names the row this file is a copy of. Both in [DownloadFold.described];
+                    // this is the one place every kept download passes through.
+                    val described = DownloadFold.described(publication, cards?.card(publication.id))
                     if (adopt(described, record.sourceId, path)) added = true
                 }
             }
@@ -899,8 +895,8 @@ class LibraryViewModel(
      * not, whichever found it first.
      */
     private fun adopt(publication: Publication, sourceId: UUID?, path: String): Boolean {
-        val seen = _publications.value.indexOfFirst { it.identity.matches(publication.identity) }
-        if (seen >= 0) {
+        val seen = DownloadFold.rowFor(_publications.value, publication)
+        if (seen != null) {
             if (_publications.value[seen].sourceId == null && sourceId != null) {
                 _publications.update { current ->
                     current.mapIndexed { index, existing ->
@@ -908,6 +904,8 @@ class LibraryViewModel(
                     }
                 }
             }
+            // The row learns where its bytes are and keeps everything else, key included.
+            locations[_publications.value[seen].id] = path
             return false
         }
 

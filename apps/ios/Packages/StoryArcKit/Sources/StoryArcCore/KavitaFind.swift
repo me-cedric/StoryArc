@@ -208,6 +208,23 @@ public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
         (releaseYear > 0 ? [String(releaseYear)] : []) + people + subjects
     }
 
+    /// The row this download is a copy of, as the library's own identifier for it.
+    ///
+    /// `library-browsing`: a publication a source offers and the same publication
+    /// downloaded are one row. They were two, and the reason was spelling — a server row is
+    /// identified by `ServerIdentifier(sourceID, "chapter:<id>")` and a downloaded file by
+    /// its path and its digest, so `PublicationIdentity.matches` had nothing in common to
+    /// match on. The card bridges them because it is written when the chapter is kept and
+    /// holds both the source and the chapter.
+    ///
+    /// The spelling has to be the one ``KavitaContributor`` uses; `DownloadFoldTests` is
+    /// what holds the two together. `nil` when the card's source is not a UUID, which is a
+    /// card written by something that was not this app.
+    public var remoteIdentity: PublicationIdentity.ServerIdentifier? {
+        guard let source = UUID(uuidString: sourceId) else { return nil }
+        return PublicationIdentity.ServerIdentifier(sourceID: source, remoteID: "chapter:\(chapterId)")
+    }
+
     /// This publication as the server describes it, rather than as its file does.
     ///
     /// **Both of `kavita-server`'s metadata scenarios are this one function.** "When a

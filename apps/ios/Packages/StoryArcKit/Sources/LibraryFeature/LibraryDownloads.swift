@@ -65,21 +65,21 @@ extension LibraryModel {
     /// folder scan hands one over — a row that knows where it came from beats one that does
     /// not, whichever found it first.
     private func adopt(_ publication: Publication, from record: Download, at url: URL) -> Bool {
-        // What the server said wins over what the file says. `kavita-server` is explicit:
-        // the server is the curated source, and a downloaded Kavita title read with the
-        // server unreachable shows "the cached server metadata, not the file's embedded
-        // metadata". The card is the cache, written when the chapter was kept, and this is
-        // the one place every kept download passes through on its way to the shelf.
-        var attributed = KavitaCardStore().card(of: publication.id)?.applied(to: publication)
-            ?? publication
+        // What the server said wins over what the file says, and the card also names the
+        // row this file is a copy of. Both in `DownloadFold.described`; this is the one
+        // place every kept download passes through on its way to the shelf.
+        var attributed = DownloadFold.described(
+            publication,
+            card: KavitaCardStore().card(of: publication.id)
+        )
         attributed.sourceID = record.sourceID
 
-        if let seen = publications.firstIndex(
-            where: { $0.identity.matches(publication.identity) }
-        ) {
+        if let seen = DownloadFold.rowFor(publications, downloaded: attributed) {
             if publications[seen].sourceID == nil, attributed.sourceID != nil {
                 publications[seen].sourceID = attributed.sourceID
             }
+            // The row learns where its bytes are and keeps everything else, key included.
+            locations[publications[seen].id] = url
             return false
         }
 

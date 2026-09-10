@@ -40,8 +40,8 @@ chosen against a real server without touching anything else.
 
 ## 4. One row, not two
 
-- [ ] 4.1 Write `RemoteAndDownloadedAreOneRowTest` / `Tests`: a publication a source offers and the same publication downloaded are one row; the row is readable with no network; and its `key` does not change when the path arrives. Red before 4.2.
-- [ ] 4.2 Fold a downloaded copy into the remote row using `PublicationIdentity.matches`, keeping the original key. Verify 4.1 passes, and that `PublicationIdentity` itself is unchanged — `git diff core/model/PublicationIdentity.kt` is empty.
+- [x] 4.1 `DownloadFoldTest` / `DownloadFoldTests`, seven cases each rather than the three asked for — the control (the two identities share nothing, which is the defect), the spelling the card and the contributor have to agree on, and a card from another app. Named for the seam rather than the claim: a publication a source offers and the same publication downloaded are one row; the row is readable with no network; and its `key` does not change when the path arrives. Red before 4.2.
+- [x] 4.2 `KavitaCard.remoteIdentity` is the bridge — the card is written when the chapter is kept and holds the source and the chapter, which is the pair the contributor builds an identifier from. `DownloadFold.described` records it on the file's identity and `adopt` records the path against the row already on the shelf. `PublicationIdentity` is unchanged. Verify 4.1 passes, and that `PublicationIdentity` itself is unchanged — `git diff core/model/PublicationIdentity.kt` is empty.
 
 ## 5. The cache, and what may not be in it
 

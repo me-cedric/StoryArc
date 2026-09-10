@@ -1,5 +1,6 @@
 package app.storyarc.core.model
 
+import java.util.UUID
 import kotlinx.serialization.Serializable
 
 /**
@@ -166,6 +167,28 @@ data class KavitaCard(
      * screen reads them from it -- the same shape the live path uses, where they are named
      * lines rather than members of the run of facts.
      */
+    /**
+     * The row this download is a copy of, as the library's own identifier for it.
+     *
+     * `library-browsing`: a publication a source offers and the same publication downloaded
+     * are one row. They were two, and the reason was spelling: a server row is identified by
+     * `ServerIdentifier(sourceId, "chapter:<id>")`, and a downloaded file is identified by
+     * its path and its digest -- so `PublicationIdentity.matches` had nothing in common to
+     * match on and the library drew the download beside the row it came from.
+     *
+     * The card is what bridges them, because it is written at the moment the chapter is kept
+     * and holds both the source and the chapter. The spelling here has to be the one
+     * `KavitaContributor` uses, and `KavitaDownloadIsOneRowTest` is what holds the two
+     * together.
+     *
+     * Null when the card's source is not a UUID, which is a card written by something that
+     * was not this app.
+     */
+    val remoteIdentity: PublicationIdentity.ServerIdentifier?
+        get() = runCatching { UUID.fromString(sourceId) }.getOrNull()?.let { source ->
+            PublicationIdentity.ServerIdentifier(sourceId = source, remoteId = "chapter:$chapterId")
+        }
+
     fun appliedTo(publication: Publication): Publication = publication.copy(
         displayTitle = chapterName.ifEmpty { publication.displayTitle },
         series = seriesName.ifEmpty { null } ?: publication.series,
