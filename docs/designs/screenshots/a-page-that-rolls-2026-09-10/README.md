@@ -44,11 +44,24 @@ only seems to work in one direction, sliding to the previous page does nothing".
 
 ## iOS
 
-**Not captured, and the reason is the simulator rather than the shader.** A mid-gesture
-frame needs the finger held still, and the simulator's injected touches complete the drag
-before a `simctl` screenshot lands — three attempts produced the page before the turn and
-the page after it, never the turn. The fixtures there are flat colour pages, so even a
-caught frame would show two rectangles and a band.
+**Not captured, and the reason is the simulator rather than the shader.** Three techniques,
+and what each one hit:
+
+1. **A held drag.** The simulator's injected touches complete before a `simctl` screenshot
+   lands, at every timing tried — the frames come back as the page before the turn or the
+   page after it, never the turn.
+2. **Slow animations.** Toggled from the Simulator's own Debug menu, which needs a
+   keystroke, which needs an accessibility permission this session will not ask the system
+   for.
+3. **Video capture, which works.** `xcrun simctl io … recordVideo` during a swipe, then
+   `ffmpeg -vf fps=20` and pick the frame where both pages are on screen — that produced
+   clean mid-transition frames. What it produced was a *slide*, not a roll: the simulator's
+   reader is in Slide mode, and the mode is set from the reader menu, whose chrome hides
+   faster than two tool round trips can reach the button.
+
+**So the shortest path for whoever picks this up**: on the simulator, open a comic and set
+*Page turn → Curl* by hand, then record and extract as in 3. The technique is proven; only
+the mode was wrong.
 
 What stands behind the iOS shader instead: `PageCurlShaderTests` asserts that the Metal
 and the AGSL are the same code, expression by expression, and `PageRollTests` asserts the

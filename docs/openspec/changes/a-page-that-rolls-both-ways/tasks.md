@@ -32,7 +32,7 @@ device and the refresh rate they were taken at.
 
 - [x] 5.1 Capture a forward turn mid-gesture at progress ≈ 0.5 on the phone, light and dark, default and largest text size. Control: the same page at the same progress with the fold, captured before section 3, same device and appearance.
 - [x] 5.2 Capture a backwards turn mid-gesture, both appearances. Control: the same drag today, which moves nothing — the control is the point.
-- [ ] 5.3 **Not captured.** A mid-gesture frame needs the finger held still, and the simulator's injected touches complete the drag before a `simctl` screenshot lands — three attempts produced the page before the turn and the page after it. `PageCurlShaderTests` asserts the Metal is the same code as the AGSL, and `PageRollTests` asserts the same arithmetic; the screenshot README says plainly what has not been seen.
+- [ ] 5.3 **Not captured, and the README now says what was tried.** A held drag: the simulator's injected touches finish before a screenshot lands, at every timing. Slow animations: needs a keystroke, which needs an accessibility permission this session will not ask for. Video capture: *works* — `recordVideo` plus `ffmpeg -vf fps=20` gave clean mid-transition frames — but the simulator's reader is in Slide mode and the reader chrome hides faster than two tool round trips can reach the mode control. Whoever picks this up should set Curl by hand and record; the technique is proven. `PageCurlShaderTests` holds the Metal to the same expressions as the AGSL in the meantime.
 - [x] 5.4 Write the screenshot README naming the device, the refresh rate, the progress each frame was taken at, and what each control proves.
 
 ## 6. The record
