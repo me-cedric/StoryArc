@@ -23,7 +23,13 @@ internal import UIKit
 struct ZoomablePage: View {
     /// A quarter of the width each side: hittable on a phone, and the centre still
     /// has room. Shared with the reader, which decides what an edge tap means.
-    static let edgeZoneFraction: CGFloat = 0.25
+    /// How much of the width each turn zone takes.
+    ///
+    /// A third, so the three zones are equal and the middle one is where a thumb lands on
+    /// a phone held in one hand. It was a quarter, which left half the screen doing
+    /// nothing but toggling the chrome. `page-transitions`: "each zone is a third of the
+    /// screen's width". Android's `EDGE_ZONE_FRACTION` is the same number.
+    static let edgeZoneFraction: CGFloat = 1.0 / 3.0
 
     let image: CGImage
     /// Changes when the page does, so the zoom resets rather than carrying a

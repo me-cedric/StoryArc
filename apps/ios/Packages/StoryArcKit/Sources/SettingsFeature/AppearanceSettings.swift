@@ -135,6 +135,19 @@ struct ReadingSettings: View {
                     .settingsHighlight(.volumeButtons, when: highlight)
             }
 
+            Section {
+                // On by default, unlike the row above it, and for the opposite reason:
+                // tapping the side of a page is how most readers turn one. The footnote
+                // says what the thirds are, because the label alone does not say what
+                // turning them off costs.
+                Toggle(isOn: $settings.turnPagesByTappingTheEdges) {
+                    Text("reading.tapZones", bundle: .module)
+                }
+                Text("reading.tapZones.note", bundle: .module)
+                    .textRole(.footnote)
+                    .foregroundStyle(theme.palette.textTertiary)
+            }
+
             // The whole group of sections, not its first row: the reading defaults are one
             // setting to a reader and several sections to the layout, and a tint that
             // covered only the first would point at "Comics" rather than at the defaults.

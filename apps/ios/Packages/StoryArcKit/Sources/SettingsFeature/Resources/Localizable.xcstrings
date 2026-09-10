@@ -2902,6 +2902,64 @@
         }
       }
     },
+    "reading.tapZones": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippen auf die Seite blättert um"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tapping the page turns it"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tocar la página la pasa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toucher la page la tourne"
+          }
+        }
+      }
+    },
+    "reading.tapZones.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standardmäßig an: Tippen Sie auf das linke oder rechte Drittel der Seite, um umzublättern, und auf das mittlere Drittel, um die Bedienelemente zu zeigen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On by default: tap the left or right third of the page to turn it, and the middle third to show the controls."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activado por defecto: toque el tercio izquierdo o derecho de la página para pasarla, y el tercio central para mostrar los controles."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activé par défaut : touchez le tiers gauche ou droit de la page pour la tourner, et le tiers central pour afficher les commandes."
+          }
+        }
+      }
+    },
     "reading.volumeButtons": {
       "extractionState": "manual",
       "localizations": {

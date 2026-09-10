@@ -38,6 +38,17 @@ internal fun ReadingGroup(
             modifier = Modifier.settingsHighlight(SettingsAnchor.VOLUME_BUTTONS, highlight),
         )
 
+        // On by default, unlike the row above, and for the opposite reason: tapping the
+        // side of a page is how most readers turn one, where a volume key that stops
+        // changing the volume is a surprise. The note says what the thirds are, because
+        // "Tap zones" alone does not say what turning them off costs.
+        SettingsSwitchRow(
+            title = stringResource(R.string.reading_tap_zones),
+            note = stringResource(R.string.reading_tap_zones_note),
+            checked = settings.turnPagesByTappingTheEdges,
+            onChange = { onChange(settings.copy(turnPagesByTappingTheEdges = it)) },
+        )
+
         // The whole block, not its first row: the reading defaults are one setting to a
         // reader and several sections to the layout, and a tint that covered only the first
         // would point at "Books" rather than at the defaults.

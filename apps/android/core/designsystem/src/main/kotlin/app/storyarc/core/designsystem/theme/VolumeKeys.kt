@@ -29,3 +29,16 @@ class VolumeTurns {
 }
 
 val LocalVolumeTurns = staticCompositionLocalOf { VolumeTurns() }
+
+/**
+ * Whether a tap in the leading or trailing third of a page turns it.
+ *
+ * `page-transitions` makes this a setting, and the setting lives on `AppSettings` at the
+ * app layer while the gesture is answered inside the reader. A composition local rather
+ * than a parameter threaded through five composables, for the reason [LocalVolumeTurns]
+ * is one: the reader is a feature module and does not read the app's settings store.
+ *
+ * True by default, which is both the setting's default and the right answer for a
+ * composition that has no shell above it -- a preview, or a test of the reader alone.
+ */
+val LocalTapTurnsPages = staticCompositionLocalOf { true }

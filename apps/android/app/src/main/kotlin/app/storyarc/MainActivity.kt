@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import app.storyarc.core.designsystem.theme.LocalTapTurnsPages
 import app.storyarc.core.designsystem.theme.LocalVolumeTurns
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.designsystem.theme.VolumeTurns
@@ -164,7 +165,12 @@ class MainActivity : ComponentActivity() {
                 // `onKeyDown` has something to read. Volume-down turns forward, which is the
                 // convention every reader app that offers this uses — down is "next", like a
                 // scroll.
-                CompositionLocalProvider(LocalVolumeTurns provides volumeTurns) {
+                CompositionLocalProvider(
+                    LocalVolumeTurns provides volumeTurns,
+                    // `page-transitions` makes the turn zones a setting, and the reader
+                    // is a feature module that does not read the settings store.
+                    LocalTapTurnsPages provides settings.turnPagesByTappingTheEdges,
+                ) {
                     AppShell(
                         activity = this,
                         dependencies = dependencies,

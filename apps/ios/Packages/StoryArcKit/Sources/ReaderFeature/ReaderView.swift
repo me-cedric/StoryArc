@@ -19,6 +19,8 @@ public struct ReaderView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.displayScale) private var displayScale
     @Environment(\.accessibilityReduceMotion) var reduceMotion
+    /// `page-transitions` makes the turn zones a setting. See `handleTap(at:in:)`.
+    @Environment(\.turnPagesByTappingTheEdges) var tapTurnsPages
     /// Read here rather than in `ReaderChrome.swift`: an extension cannot hold state.
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
 

@@ -23,6 +23,8 @@ import kotlinx.serialization.Serializable
  * @property turnPagesWithVolumeButtons whether the volume buttons turn pages. Off by
  *   default, and `page-transitions` is the reason it is a setting at all: volume keys
  *   that silently stop changing the volume are a defect rather than a feature.
+ * @property turnPagesByTappingTheEdges whether a tap in the leading or trailing third of
+ *   the page turns it. On by default -- see the property for why the two defaults differ.
  * @property linkReadingThemeToAppearance whether the reading theme follows the app's
  *   appearance. Off by default, because `settings-and-about` is explicit that the two are
  *   separate — "a dark app chrome with a paper-white page is a legitimate preference" —
@@ -33,6 +35,19 @@ data class AppSettings(
     val appearance: AppearanceMode = AppearanceMode.SYSTEM,
     val language: String? = null,
     val turnPagesWithVolumeButtons: Boolean = false,
+    /**
+     * Whether tapping the side of a page turns it.
+     *
+     * `page-transitions`: each zone is a third of the width, and with this off "a tap
+     * anywhere toggles the chrome, and no tap turns a page" -- every other trigger still
+     * works. **On by default**, because tapping the side of the page is how most readers
+     * turn one; the sibling above is off by default for the opposite reason, that volume
+     * keys which stop changing the volume are a surprise.
+     *
+     * A setting at all because a tap on a page is not always a turn: a reader panning a
+     * zoomed page, or using a stylus, is doing something else with the same gesture.
+     */
+    val turnPagesByTappingTheEdges: Boolean = true,
     val linkReadingThemeToAppearance: Boolean = false,
     /**
      * `offline-downloads`: downloads "pause and state that they are waiting for Wi-Fi" on

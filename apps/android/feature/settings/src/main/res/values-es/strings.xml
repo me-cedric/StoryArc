@@ -34,6 +34,8 @@
     <string name="appearance_link_theme_note">Desactivado por defecto. Una app oscura con una página blanca es una preferencia legítima.</string>
     <string name="reading_volume_buttons">Los botones de volumen cambian de página</string>
     <string name="reading_volume_buttons_note">Desactivado por defecto: al leer, los botones de volumen dejarían de ajustar el volumen.</string>
+    <string name="reading_tap_zones">Tocar la página la pasa</string>
+    <string name="reading_tap_zones_note">Activado por defecto: toque el tercio izquierdo o derecho de la página para pasarla, y el tercio central para mostrar los controles.</string>
     <string name="reading_defaults_pending">Los ajustes de lectura por defecto aún no están aquí. Un tema elegido al leer ya se aplica a toda la serie.</string>
     <string name="privacy_statement">StoryArc no tiene cuenta, ni backend, ni analítica, ni informes de errores.</string>
     <string name="privacy_sources">Los datos solo salen de este dispositivo hacia las bibliotecas que tú mismo configuraste.</string>

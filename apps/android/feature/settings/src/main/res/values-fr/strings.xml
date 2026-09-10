@@ -34,6 +34,8 @@
     <string name="appearance_link_theme_note">Désactivé par défaut. Une application sombre avec une page blanche est une préférence légitime.</string>
     <string name="reading_volume_buttons">Les touches de volume tournent les pages</string>
     <string name="reading_volume_buttons_note">Désactivé par défaut : pendant la lecture, les touches de volume ne régleraient plus le volume.</string>
+    <string name="reading_tap_zones">Toucher la page la tourne</string>
+    <string name="reading_tap_zones_note">Activé par défaut : touchez le tiers gauche ou droit de la page pour la tourner, et le tiers central pour afficher les commandes.</string>
     <string name="reading_defaults_pending">Les réglages de lecture par défaut ne sont pas encore ici. Un thème choisi pendant la lecture s’applique déjà à toute la série.</string>
     <string name="privacy_statement">StoryArc n’a aucun compte, aucun serveur, aucune analyse et aucun rapport de plantage.</string>
     <string name="privacy_sources">Les données ne quittent cet appareil que vers les bibliothèques que vous avez ajoutées vous-même.</string>

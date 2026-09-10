@@ -113,6 +113,7 @@ import app.storyarc.core.designsystem.feedback.rememberHaptics
 import app.storyarc.core.designsystem.navigation.StoryArcSupportingPanes
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.rememberWindowClass
+import app.storyarc.core.designsystem.theme.LocalTapTurnsPages
 import app.storyarc.core.designsystem.theme.LocalVolumeTurns
 import app.storyarc.core.designsystem.theme.swatch
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -495,6 +496,11 @@ private fun Pager(
     // again after four seconds of no interaction.
     var isChromeVisible by remember { mutableStateOf(true) }
 
+    // `page-transitions` makes the turn zones a setting, on by default. Read here rather
+    // than passed in: the reader is a feature module and the setting lives at the app
+    // layer, which is the arrangement `LocalVolumeTurns` already uses for the same reason.
+    val tapTurnsPages = LocalTapTurnsPages.current
+
     // And the system's bars go with them, so "nothing is on screen while reading" is true
     // of the clock too. One state drives both — see `SystemBarsFollowChrome`, which also
     // hands the window back when the reader leaves.
@@ -695,12 +701,17 @@ private fun Pager(
     fun handleTap(point: Offset, size: IntSize) {
         val edge = size.width * EDGE_ZONE_FRACTION
         val target = when {
+            // `page-transitions`: with the zones off "a tap anywhere toggles the chrome,
+            // and no tap turns a page". Not "no tap does anything" -- the way back to the
+            // menu is the one thing a reader still needs from a tap.
+            !tapTurnsPages -> null
             point.x < edge -> paging.current - 1
             point.x > size.width - edge -> paging.current + 1
-            else -> {
-                isChromeVisible = !isChromeVisible
-                return
-            }
+            else -> null
+        }
+        if (target == null) {
+            isChromeVisible = !isChromeVisible
+            return
         }
         turn(target)
     }
@@ -1351,7 +1362,11 @@ private fun ZoomablePage(
             .transformable(state = transform, canPan = { page.slack(zoom.scale) != Offset.Zero })
             // Centred on what was tapped, not on the middle of the screen: the
             // point of a double-tap is to magnify *that* panel.
-            .tappable(onTap = onTap, onDoubleTap = { zoom = zoom.doubleTapped(it, page) })
+            .tappable(
+                onTap = onTap,
+                onDoubleTap = { zoom = zoom.doubleTapped(it, page) },
+                turns = LocalTapTurnsPages.current,
+            )
             .selectable(onSelect, zoom, page)
             .graphicsLayer {
                 scaleX = zoom.scale
@@ -1448,13 +1463,15 @@ private const val SELECTION_OPACITY = 0.32f
 private fun Modifier.tappable(
     onTap: (Offset, IntSize) -> Unit,
     onDoubleTap: ((Offset) -> Unit)? = null,
-): Modifier = this.pointerInput(onTap, onDoubleTap) {
+    /** Whether an edge tap turns a page, and so cannot be the first half of a double-tap. */
+    turns: Boolean = true,
+): Modifier = this.pointerInput(onTap, onDoubleTap, turns) {
     awaitEachGesture {
         awaitFirstDown()
         val up = waitForUpOrCancellation() ?: return@awaitEachGesture
         val point = up.position
 
-        if (onDoubleTap == null || isEdgeTap(point, size)) {
+        if (onDoubleTap == null || isEdgeTap(point, size, turns)) {
             onTap(point, size)
             return@awaitEachGesture
         }
@@ -1471,7 +1488,15 @@ private fun Modifier.tappable(
     }
 }
 
-private fun PointerInputScope.isEdgeTap(point: Offset, area: IntSize): Boolean {
+/**
+ * Whether a press landed where a turn would happen.
+ *
+ * Used to decide whether a press should be held waiting for a second tap. With the zones
+ * off there is no turn to protect, so no tap is an edge tap and every one is free to
+ * become a double-tap zoom.
+ */
+private fun PointerInputScope.isEdgeTap(point: Offset, area: IntSize, turns: Boolean): Boolean {
+    if (!turns) return false
     val edge = area.width * EDGE_ZONE_FRACTION
     return point.x < edge || point.x > area.width - edge
 }
@@ -1692,7 +1717,18 @@ internal fun trimPressure(level: Int): MemoryPressure = when {
     else -> MemoryPressure.NORMAL
 }
 
-private const val EDGE_ZONE_FRACTION = 0.25f
+/**
+ * How much of the width each turn zone takes.
+ *
+ * A third, so the three zones are equal and the middle one is where a thumb lands on a
+ * phone held in one hand. It was a quarter, which left half the screen doing nothing but
+ * toggling the chrome -- the gesture a reader uses least occupying the part they hit most.
+ *
+ * `page-transitions`: "each zone is a third of the screen's width, leaving the middle third
+ * to the chrome". iOS's `ZoomablePage.edgeZoneFraction` is the same number, and
+ * `ReaderTapZonesTest` on each platform is what stops the two drifting.
+ */
+internal const val EDGE_ZONE_FRACTION = 1f / 3f
 
 /**
  * The cross-dissolve, short enough not to read as an animation.

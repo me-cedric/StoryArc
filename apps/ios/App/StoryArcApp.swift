@@ -332,6 +332,9 @@ struct StoryArcApp: App {
                             ? { Task { await keepForOffline(selection) } }
                             : nil
                     )
+                    // `page-transitions` makes the turn zones a setting, and the reader is a
+                    // module that does not read the settings store.
+                    .environment(\.turnPagesByTappingTheEdges, settings.turnPagesByTappingTheEdges)
                     .storyArcTheme(appearance: settings.appearance)
                     .speaking(settings.language)
                 }

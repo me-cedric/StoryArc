@@ -34,6 +34,8 @@
     <string name="appearance_link_theme_note">Standardmäßig aus. Eine dunkle App mit einer papierweißen Seite ist eine legitime Vorliebe.</string>
     <string name="reading_volume_buttons">Lautstärketasten blättern</string>
     <string name="reading_volume_buttons_note">Standardmäßig aus: beim Lesen würden die Lautstärketasten die Lautstärke nicht mehr ändern.</string>
+    <string name="reading_tap_zones">Tippen auf die Seite blättert um</string>
+    <string name="reading_tap_zones_note">Standardmäßig an: Tippen Sie auf das linke oder rechte Drittel der Seite, um umzublättern, und auf das mittlere Drittel, um die Bedienelemente zu zeigen.</string>
     <string name="reading_defaults_pending">Lesevorgaben für neue Serien fehlen noch. Ein beim Lesen gewähltes Thema gilt bereits für die ganze Serie.</string>
     <string name="privacy_statement">StoryArc hat kein Konto, kein Backend, keine Analyse und keine Absturzberichte.</string>
     <string name="privacy_sources">Daten verlassen dieses Gerät nur zu den Bibliotheken, die Sie selbst eingerichtet haben.</string>

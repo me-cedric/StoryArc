@@ -34,6 +34,8 @@
     <string name="appearance_link_theme_note">Off by default. A dark app with a paper-white page is a legitimate preference.</string>
     <string name="reading_volume_buttons">Volume buttons turn pages</string>
     <string name="reading_volume_buttons_note">Off by default: while reading, the volume buttons would stop changing the volume.</string>
+    <string name="reading_tap_zones">Tapping the page turns it</string>
+    <string name="reading_tap_zones_note">On by default: tap the left or right third of the page to turn it, and the middle third to show the controls.</string>
     <string name="reading_defaults_pending">Reading defaults for new series are not here yet. A theme you set while reading already applies to the whole series.</string>
     <string name="privacy_statement">StoryArc has no account, no backend, no analytics and no crash reporting.</string>
     <string name="privacy_sources">Data leaves this device only to the libraries you set up yourself.</string>

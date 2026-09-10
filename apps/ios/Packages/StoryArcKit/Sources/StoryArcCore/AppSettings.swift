@@ -29,6 +29,17 @@ public struct AppSettings: Sendable, Equatable, Codable {
     /// feature, so this is opt-in and stays opt-in.
     public var turnPagesWithVolumeButtons: Bool
 
+    /// Whether tapping the side of a page turns it.
+    ///
+    /// `page-transitions`: each zone is a third of the width, and with this off "a tap
+    /// anywhere toggles the chrome, and no tap turns a page" — every other trigger still
+    /// works. **On by default**, because tapping the side of the page is how most readers
+    /// turn one; the sibling above is off by default for the opposite reason.
+    ///
+    /// A setting at all because a tap on a page is not always a turn: a reader panning a
+    /// zoomed page, or using a stylus, is doing something else with the same gesture.
+    public var turnPagesByTappingTheEdges: Bool
+
     /// Whether the reading theme follows the app's appearance.
     ///
     /// Off by default, because `settings-and-about` is explicit that the two are
@@ -56,6 +67,7 @@ public struct AppSettings: Sendable, Equatable, Codable {
         appearance: AppearanceMode = .system,
         language: String? = nil,
         turnPagesWithVolumeButtons: Bool = false,
+        turnPagesByTappingTheEdges: Bool = true,
         linkReadingThemeToAppearance: Bool = false,
         downloadOverWifiOnly: Bool = false,
         maximumDownloadBytes: Int64? = nil,
@@ -64,6 +76,7 @@ public struct AppSettings: Sendable, Equatable, Codable {
         self.appearance = appearance
         self.language = language
         self.turnPagesWithVolumeButtons = turnPagesWithVolumeButtons
+        self.turnPagesByTappingTheEdges = turnPagesByTappingTheEdges
         self.linkReadingThemeToAppearance = linkReadingThemeToAppearance
         self.downloadOverWifiOnly = downloadOverWifiOnly
         self.maximumDownloadBytes = maximumDownloadBytes

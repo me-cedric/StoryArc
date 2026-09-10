@@ -56,7 +56,11 @@ class ReaderGestureTest {
 
     /** Every gesture the reader answered before the chrome was cut down. */
     private val gestures = listOf(
-        Triple("the edge tap that turns a page", "ReaderScreen.kt", "isEdgeTap(point, size)"),
+        // The call gained an argument when `page-transitions` made the zones a setting:
+        // with them off there is no turn to protect, so no tap is an edge tap and every
+        // one is free to become a double-tap. The gesture is what this guards, not the
+        // arity, so the literal is the name and the first two arguments.
+        Triple("the edge tap that turns a page", "ReaderScreen.kt", "isEdgeTap(point, size,"),
         Triple("the edge zones themselves", "ReaderScreen.kt", "EDGE_ZONE_FRACTION"),
         Triple("the centre tap that reveals the chrome", "ReaderScreen.kt", "fun handleTap("),
         Triple("the double tap to zoom", "ReaderScreen.kt", "onDoubleTap"),

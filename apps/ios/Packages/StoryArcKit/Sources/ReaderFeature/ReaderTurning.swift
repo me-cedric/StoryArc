@@ -1,10 +1,23 @@
-internal import SwiftUI
+public import SwiftUI
 
 // Where a tap lands and what a page turn does.
 //
 // Split out of `ReaderView.swift`, which had reached the 400-line cap this project
 // enforces. The division is not arbitrary: everything here answers "what did the reader
 // just ask for", and everything left there answers "what is on screen".
+
+extension EnvironmentValues {
+    /// Whether a tap in the leading or trailing third of a page turns it.
+    ///
+    /// `page-transitions` makes it a setting, and the setting lives on `AppSettings` at
+    /// the app layer while the gesture is answered here. An environment value rather than
+    /// a parameter threaded through the reader's views, which is what Android's
+    /// `LocalTapTurnsPages` is for the same reason.
+    ///
+    /// True by default: the setting's own default, and the right answer for a preview or
+    /// a test that composes the reader with no app above it.
+    @Entry public var turnPagesByTappingTheEdges: Bool = true
+}
 
 extension ReaderView {
 
@@ -17,9 +30,12 @@ extension ReaderView {
     /// the story runs.
     func handleTap(at location: CGPoint, in size: CGSize) {
         let edge = size.width * edgeZoneFraction
-        if location.x < edge {
+        // `page-transitions`: with the zones off "a tap anywhere toggles the chrome, and
+        // no tap turns a page". Not "no tap does anything" — the way back to the menu is
+        // the one thing a reader still needs from a tap.
+        if tapTurnsPages, location.x < edge {
             turn(by: -1)
-        } else if location.x > size.width - edge {
+        } else if tapTurnsPages, location.x > size.width - edge {
             turn(by: 1)
         } else {
             withAnimation(.easeInOut(duration: 0.2)) { wantsChrome.toggle() }
