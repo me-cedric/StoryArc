@@ -55,4 +55,4 @@ chosen against a real server without touching anything else.
 - [ ] 7.1 `pnpm test:android`, `pnpm test:ios`, `./gradlew lint` clean for every module touched.
 - [ ] 7.2 `pnpm lint` green, including `strings:drawn` and `strings:ios` for every new string in all four languages.
 - [ ] 7.3 `pnpm spec:validate && pnpm spec:guard` green.
-- [ ] 7.4 Reconcile with `one-library-three-destinations` before either is archived: both modify *Unified library*, and whichever archives second must carry the other's scenarios. Read both deltas side by side and say in writing which wins where.
+- [x] 7.4 Reconciled before any code was written, because `pnpm delta:drop` fails the build on it rather than waiting for archive. Both changes now carry one identical *Unified library* block — the union of one-library's origin-invisible clause and availability axis with this change's five additions — so the order they sync in no longer matters. The three bullets the union deliberately drops are recorded in `.delta-drops.json` under this change as well as under one-library's.

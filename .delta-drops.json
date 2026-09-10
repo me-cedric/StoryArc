@@ -1,60 +1,74 @@
 {
-    "collisions": {
-        "native-experience → \"Adaptive layout\"": {
-            "order": [
-                "reader-theming-and-page-transitions",
-                "one-library-three-destinations"
-            ],
-            "reason": "reader-theming's block is already a subset of one-library-three-destinations', which adds two scenarios about reaching destinations and a window too small for a layout. Nothing needed merging; the order is recorded because no tool can infer it and syncing one-library first would leave reader-theming's later sync deleting those two scenarios."
-        },
-        "reading-progress → \"Resuming\"": {
-            "order": [
-                "publication-detail",
-                "two-taps-back-to-the-book"
-            ],
-            "reason": "publication-detail's block is carried into two-taps-back-to-the-book word for word, so the later block is a strict superset. two-taps adds one paragraph requiring the cost of each resume verb to be stated and bounding it, and two bullets stating it: one action from a resume affordance, two from a cover, on both platforms. Nothing needed merging. The order is recorded because no tool can infer it, and syncing two-taps first would leave publication-detail's later sync deleting that sentence and those bullets."
-        }
+  "collisions": {
+    "native-experience → \"Adaptive layout\"": {
+      "order": [
+        "reader-theming-and-page-transitions",
+        "one-library-three-destinations"
+      ],
+      "reason": "reader-theming's block is already a subset of one-library-three-destinations', which adds two scenarios about reaching destinations and a window too small for a layout. Nothing needed merging; the order is recorded because no tool can infer it and syncing one-library first would leave reader-theming's later sync deleting those two scenarios."
     },
-    "one-library-three-destinations/library-browsing": {
-        "Unified library": {
-            "bullets": {
-                "Default view": [
-                    "each shows its source only when more than one source is configured"
-                ],
-                "Scoping to one source": [
-                    "the view, its search, and its filters apply to that source alone",
-                    "the scope persists until changed"
-                ]
-            },
-            "reason": "Both are reversed on purpose, and the delta says the opposite in the same scenario. The shelf used to name a publication's source when more than one was configured; this change's whole premise is one library, so nothing on the shelf states which source a publication came from. And scoping is replaced by filtering: the delta says in as many words that a source is offered 'as a filter … and not as a scope the view is in', which is why 'the scope persists until changed' cannot be carried - there is no scope left to persist. Drains when one-library-three-destinations syncs."
-        },
-        "Search": {
-            "bullets": {
-                "Mixed local and server search": [
-                    "server results and local results are merged into one ranked list, each labelled with its source"
-                ]
-            },
-            "reason": "Superseded by a more precise clause in the same scenario rather than dropped. The delta keeps the merging and refines the labelling: each result names the library that supplied it 'but only where more than one place could have answered', because where only one place could answer every row would carry the same words. Carrying the old sentence beside the new one would publish two rules for the same label. Drains when one-library-three-destinations syncs."
-        }
-    },
-    "one-library-three-destinations/sources": {
-        "Source registry": {
-            "bullets": {
-                "Adding the first source": [
-                    "offers to open a local file or folder without configuring anything, so the app is usable in under ten seconds"
-                ]
-            },
-            "reason": "Rewritten longer, not removed. The delta replaces one sentence with five that say what the first screen shows, what the primary and secondary actions do, where the four source types are named and where they are not. The 'under ten seconds' figure goes with it: it was a target rather than an observable behaviour, and every requirement here is meant to be user-observable. Drains when one-library-three-destinations syncs."
-        }
-    },
-    "no-version-to-ask-a-kavita-for/kavita-server": {
-        "Kavita connection": {
-            "bullets": {
-                "Adding a server": [
-                    "rejects a server whose version is older than the minimum StoryArc supports, naming the required version"
-                ]
-            },
-            "reason": "Removed because nothing can perform it. The version came from GET /api/Server/server-info, which is absent from Kavita's published openapi.json at v0.8.6, v0.8.8, v0.8.9.1, v0.9.0 and v0.9.1.4, and answers 404 on a live 0.9.1.4. No other route states the version to a reader's API key: Server/version, Health/api-version and Server/accepting-connections are absent from all five, Server/server-info-slim needs an administrator, and Health answers Ok with no version in it. The verbs of every route either client calls are identical across those five releases, so a floor would refuse nobody. The delta replaces the bullet with requirement prose that forbids the question and states what took its place: an unknown route raises the \"too old\" sentence at the request that failed. Drains when no-version-to-ask-a-kavita-for syncs."
-        }
+    "reading-progress → \"Resuming\"": {
+      "order": [
+        "publication-detail",
+        "two-taps-back-to-the-book"
+      ],
+      "reason": "publication-detail's block is carried into two-taps-back-to-the-book word for word, so the later block is a strict superset. two-taps adds one paragraph requiring the cost of each resume verb to be stated and bounding it, and two bullets stating it: one action from a resume affordance, two from a cover, on both platforms. Nothing needed merging. The order is recorded because no tool can infer it, and syncing two-taps first would leave publication-detail's later sync deleting that sentence and those bullets."
     }
+  },
+  "one-library-three-destinations/library-browsing": {
+    "Unified library": {
+      "bullets": {
+        "Default view": [
+          "each shows its source only when more than one source is configured"
+        ],
+        "Scoping to one source": [
+          "the view, its search, and its filters apply to that source alone",
+          "the scope persists until changed"
+        ]
+      },
+      "reason": "Both are reversed on purpose, and the delta says the opposite in the same scenario. The shelf used to name a publication's source when more than one was configured; this change's whole premise is one library, so nothing on the shelf states which source a publication came from. And scoping is replaced by filtering: the delta says in as many words that a source is offered 'as a filter … and not as a scope the view is in', which is why 'the scope persists until changed' cannot be carried - there is no scope left to persist. Drains when one-library-three-destinations syncs."
+    },
+    "Search": {
+      "bullets": {
+        "Mixed local and server search": [
+          "server results and local results are merged into one ranked list, each labelled with its source"
+        ]
+      },
+      "reason": "Superseded by a more precise clause in the same scenario rather than dropped. The delta keeps the merging and refines the labelling: each result names the library that supplied it 'but only where more than one place could have answered', because where only one place could answer every row would carry the same words. Carrying the old sentence beside the new one would publish two rules for the same label. Drains when one-library-three-destinations syncs."
+    }
+  },
+  "one-library-three-destinations/sources": {
+    "Source registry": {
+      "bullets": {
+        "Adding the first source": [
+          "offers to open a local file or folder without configuring anything, so the app is usable in under ten seconds"
+        ]
+      },
+      "reason": "Rewritten longer, not removed. The delta replaces one sentence with five that say what the first screen shows, what the primary and secondary actions do, where the four source types are named and where they are not. The 'under ten seconds' figure goes with it: it was a target rather than an observable behaviour, and every requirement here is meant to be user-observable. Drains when one-library-three-destinations syncs."
+    }
+  },
+  "no-version-to-ask-a-kavita-for/kavita-server": {
+    "Kavita connection": {
+      "bullets": {
+        "Adding a server": [
+          "rejects a server whose version is older than the minimum StoryArc supports, naming the required version"
+        ]
+      },
+      "reason": "Removed because nothing can perform it. The version came from GET /api/Server/server-info, which is absent from Kavita's published openapi.json at v0.8.6, v0.8.8, v0.8.9.1, v0.9.0 and v0.9.1.4, and answers 404 on a live 0.9.1.4. No other route states the version to a reader's API key: Server/version, Health/api-version and Server/accepting-connections are absent from all five, Server/server-info-slim needs an administrator, and Health answers Ok with no version in it. The verbs of every route either client calls are identical across those five releases, so a floor would refuse nobody. The delta replaces the bullet with requirement prose that forbids the question and states what took its place: an unknown route raises the \"too old\" sentence at the request that failed. Drains when no-version-to-ask-a-kavita-for syncs."
+    }
+  },
+  "every-source-is-the-library/library-browsing": {
+    "Unified library": {
+      "bullets": {
+        "Default view": [
+          "each shows its source only when more than one source is configured"
+        ],
+        "Scoping to one source": [
+          "the view, its search, and its filters apply to that source alone",
+          "the scope persists until changed"
+        ]
+      },
+      "reason": "The same three bullets one-library-three-destinations drops, for the same reasons, and dropped here only because both changes now carry one identical block. `delta-drop` found the two blocks differing: whichever synced second would have deleted the other's scenarios. They were merged into their union and written word for word into both files, so the order they sync in no longer matters -- which is the safer fix, because an order recorded under `collisions` still relies on someone honouring it. The union inherits this change's five additions (every kind of source contributes, browsing is a second way in, a source never reached, a publication also downloaded, a partial count) on top of one-library's origin-invisible clause and availability axis, and it inherits these three deliberate removals with them."
+    }
+  }
 }
