@@ -32,11 +32,11 @@ device and the refresh rate they were taken at.
 
 - [x] 5.1 Capture a forward turn mid-gesture at progress ≈ 0.5 on the phone, light and dark, default and largest text size. Control: the same page at the same progress with the fold, captured before section 3, same device and appearance.
 - [x] 5.2 Capture a backwards turn mid-gesture, both appearances. Control: the same drag today, which moves nothing — the control is the point.
-- [ ] 5.3 **Not captured, and the README now says what was tried.** A held drag: the simulator's injected touches finish before a screenshot lands, at every timing. Slow animations: needs a keystroke, which needs an accessibility permission this session will not ask for. Video capture: *works* — `recordVideo` plus `ffmpeg -vf fps=20` gave clean mid-transition frames — but the simulator's reader is in Slide mode and the reader chrome hides faster than two tool round trips can reach the mode control. Whoever picks this up should set Curl by hand and record; the technique is proven. `PageCurlShaderTests` holds the Metal to the same expressions as the AGSL in the meantime.
+- [x] 5.3 Captured on 2026-09-11, on an iPhone 17 Pro simulator, at turn 0.20, 0.53 and 0.78 with a detail crop of the lip. The blocker recorded here was wrong: it said the reader had to be put in Curl by hand, and `UITests/CurlWalkTests` already drives that picker itself. `recordVideo` around that walk, then `select='between(t,...)'` to pull the frames — `-ss` before `-i` seeks to a keyframe and returns the wrong seconds. The walk **skips** rather than fails when the corpus is absent, and a skip exits 0, so seed it with `node scripts/corpus.mjs --simulator <udid>` first. Measured across the gesture the turn runs 0.03 to 0.94 monotonically. Still uncaptured on iOS: the backward roll and a dark frame, both of which need a walk that does not exist; the README says so.
 - [x] 5.4 Write the screenshot README naming the device, the refresh rate, the progress each frame was taken at, and what each control proves.
 
 ## 6. The record
 
 - [x] 6.1 Mark the *"It is a fold, and the crease draws nothing"* section of `docs/decisions/0009-page-curl-as-a-fragment-shader.md` superseded, pointing at this change, with one sentence saying the argument holds for a crease of no radius and not for a bend of finite radius. Do not delete the section. Verify: the ADR still states what was decided and why it changed.
 - [x] 6.2 `pnpm test:android`, `pnpm test:ios`, `./gradlew lint` and `pnpm lint` green.
-- [ ] 6.3 `pnpm spec:validate && pnpm spec:guard` green for this change.
+- [x] 6.3 `pnpm spec:validate && pnpm spec:guard` green for this change.

@@ -44,30 +44,58 @@ only seems to work in one direction, sliding to the previous page does nothing".
 
 ## iOS
 
-**Not captured, and the reason is the simulator rather than the shader.** Three techniques,
-and what each one hit:
+Captured on 2026-09-11, on an iPhone 17 Pro simulator (1206 × 2622, iOS 26.2),
+from the same 3-page fixed-layout fixture the reader walk uses (*Fine Print*).
 
-1. **A held drag.** The simulator's injected touches complete before a `simctl` screenshot
-   lands, at every timing tried — the frames come back as the page before the turn or the
-   page after it, never the turn.
-2. **Slow animations.** Toggled from the Simulator's own Debug menu, which needs a
-   keystroke, which needs an accessibility permission this session will not ask the system
-   for.
-3. **Video capture, which works.** `xcrun simctl io … recordVideo` during a swipe, then
-   `ffmpeg -vf fps=20` and pick the frame where both pages are on screen — that produced
-   clean mid-transition frames. What it produced was a *slide*, not a roll: the simulator's
-   reader is in Slide mode, and the mode is set from the reader menu, whose chrome hides
-   faster than two tool round trips can reach the button.
+| Frame | Turned | What it shows |
+| --- | --- | --- |
+| `ios-roll-forward-early.png` | 0.20 | the fold near the trailing edge |
+| `ios-roll-forward-light.png` | 0.53 | the half-turn |
+| `ios-roll-forward-late.png` | 0.78 | the fold near the leading edge |
+| `ios-roll-forward-detail.png` | 0.53 | the same frame, cropped to the lip |
 
-**So the shortest path for whoever picks this up**: on the simulator, open a comic and set
-*Page turn → Curl* by hand, then record and extract as in 3. The technique is proven; only
-the mode was wrong.
+Read the detail crop left to right and it is the Android crop's description word
+for word: the page's unturned front; the crease, which **leans** rather than
+standing vertical; the sheet's flat back face, dimmed; the lip, where the
+artwork compresses towards the rim and the surface turns into the light; the
+dark rim, which is the page's own thickness; and the page beneath, with the
+lip's shadow on it.
 
-What stands behind the iOS shader instead: `PageCurlShaderTests` asserts that the Metal
-and the AGSL are the same code, expression by expression, and `PageRollTests` asserts the
-projection's own arithmetic against the same table of numbers Android's `PageRollTest`
-uses. Both are tripwires rather than proofs, and this paragraph is the honest statement
-of what has not been seen.
+The three frames together are the claim the reader made — *the curl follows the
+finger* — because the fold is in a different place in each and the order is the
+order the finger moved. Measured across the whole gesture the turn runs 0.03,
+0.15, 0.20, 0.27, 0.34, 0.42, 0.53, 0.63, 0.78, 0.85, 0.94: monotonic, with no
+jump and no spring-back.
+
+### How, so the next person does not repeat the search
+
+Three techniques failed before this one, and the note that replaced them named
+the wrong blocker. It said the reader had to be put in Curl by hand and that
+the chrome hid faster than two tool round trips could reach the button. The
+answer was already in the repository: `UITests/CurlWalk.swift` drives the
+picker to Curl itself and then drags.
+
+```bash
+node scripts/corpus.mjs --simulator <udid>          # or the walk skips: no Fine Print
+xcrun simctl io <udid> recordVideo --force curl.mp4 &
+xcodebuild test-without-building -project apps/ios/StoryArc.xcodeproj \
+  -scheme StoryArc -destination "platform=iOS Simulator,id=<udid>" \
+  -only-testing:StoryArcUITests/CurlWalkTests/testCaptureCurlSettled
+kill -INT %1
+ffmpeg -i curl.mp4 -vf "select='between(t,50.02,50.42)'" -fps_mode passthrough m-%02d.png
+```
+
+Two things cost the most time. The walk **skips rather than fails** when the
+corpus is absent, and a skip reports exit code 0 — the first run recorded 72
+seconds of a library with two books in it and looked like a success. And
+`ffmpeg -ss` before `-i` seeks to a keyframe, which silently returned the wrong
+four seconds; `select='between(t,...)'` returns the right ones.
+
+**Still not captured on iOS**: the backward roll, and a dark-mode frame. Both
+need a walk that does not exist yet — `CurlWalkTests` has one drag, forwards,
+in whatever appearance the simulator is set to. `CurledPagesTests` asserts the
+backward turn's arithmetic on that platform, and this sentence is the record
+that no frame does.
 
 ## What it costs
 
