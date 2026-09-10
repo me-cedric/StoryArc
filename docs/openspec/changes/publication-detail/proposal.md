@@ -52,8 +52,10 @@ The screen, and the rules that make it the seam:
   opens the book. The two are different verbs and the delta says which is which.
 - **What it shows.** Cover, title, series, year, description, and the rest of the
   series as a shelf that behaves like every other shelf.
-- **One primary action.** *Continue* or *Read*, with everything else secondary.
-  The screen has one thing it wants you to do.
+- **One primary action.** *Continue*, *Read*, or — where reading needs a copy the
+  device does not hold — the copy itself, with everything else secondary. The
+  screen has one thing it wants you to do, and it is never a thing that fails
+  when it is taken.
 - **One provenance line.** The only place on the browse path where origin is
   named, stating both where it lives and whether it can be opened right now.
 - **A publication that cannot be opened.** The screen still opens, from cached
@@ -132,6 +134,16 @@ answered. The full reasoning is in
 [`one-library-three-destinations`](../one-library-three-destinations/design.md),
 whose own delta said the opposite and was settled the same day; that change owns
 `library-browsing` and this one only had to stop contradicting it.
+
+**The page had a download route of its own, and it was the wrong one.** Found in
+the field on 2026-09-10: the page drew *Read* for a catalogue publication it held
+no copy of, and the tap did nothing — while its download route, when offered at
+all, copied the file in one call outside the download queue, so it honoured no
+Wi-Fi or data-saver setting, reported no progress, and never started the
+foreground service. Two rules meet here. A page's primary action must never fail
+when it is taken, and a transfer a page starts is a transfer the queue owns. The
+delta now says both, and Phase 6 builds them. The four adjacent defects found
+with it are named in that phase and left to their own changes.
 
 **The provenance line carries the whole argument, and it is one line.** If it is
 wrong the seam leaks: too technical and the browse path has a protocol name on it

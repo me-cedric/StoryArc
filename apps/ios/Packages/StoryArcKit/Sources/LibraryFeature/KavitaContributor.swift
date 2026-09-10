@@ -29,7 +29,7 @@ enum KavitaContributor {
     /// The chapters of a server's most recently added series, as publications.
     ///
     /// A series whose chapters cannot be read is skipped rather than failing the round.
-    static func publications(source: UUID, client: KavitaClient) async throws -> [Publication] {
+    static func publications(source: UUID, client: KavitaClient) async throws -> SourceSlice {
         let series = try await client.recentSeries(page: 1, size: firstSlice)
         var found: [Publication] = []
         for each in series {
@@ -38,7 +38,11 @@ enum KavitaContributor {
                 found.append(publication(source: source, series: each, chapter: chapter))
             }
         }
-        return found
+        // A full page is the only evidence a server has more, and it is evidence rather
+        // than proof: a library of exactly sixty series reads as partial once, and says so
+        // until the page comes back short. Overstating what is held back is the safe way
+        // round — the other way tells a reader their five-thousand-title server has 137.
+        return SourceSlice(publications: found, holdsMore: series.count >= firstSlice)
     }
 
     /// One chapter as a row in the library.

@@ -22,9 +22,10 @@ for something the change has since decided against is left unticked with the
 decision cited, never ticked and never dropped. **A `[~]` is a third state**: the code and
 its tests have landed and a named capture has not. `pnpm partial:tasks` counts all three,
 because `openspec-guard` counts only the first two and would otherwise call this change
-archivable. **Twelve of twenty-three are ticked, nine are partial, two are open**, which is what
-`pnpm partial:tasks` counts. The previous wording said eight and three; task 4.1 moved from
-open to partial when the iPad detail column landed.
+archivable. **Twelve of twenty-nine are ticked, nine are partial, eight are open**, which is what
+`pnpm partial:tasks` counts. Phase 6 added six open tasks on 2026-09-10, from a defect found
+in the field; before it the count was twelve, nine and two. The wording before that said
+eight and three; task 4.1 moved from open to partial when the iPad detail column landed.
 
 **Audited against `main` at `6c931e61`, 2026-08-31**, with `path:line` evidence
 read from the source rather than from any note. Two ticks were **withdrawn** in
@@ -1619,6 +1620,127 @@ when a cover was the resume affordance. Whoever syncs should add a
       which walk, and what the frame has to *show* rather than merely contain. Three of the
       nine are sequences or pairs rather than single frames, and that distinction was not in
       this list before; a single frame would have been taken and would have proved nothing.
+
+## Phase 6 — The primary action a reader can take
+
+**Added 2026-09-10, from a defect found in the field**, and the artifacts moved
+first: the delta's *One primary action* now carries the copy as a third verb and
+forbids an action that fails when it is taken, and `design.md` carries the two
+sections above the provenance line.
+
+**What a tick means in this phase, and it differs from the rest of the file.**
+This defect was found on Android and is fixed there. A tick here means the
+Android code and its unit tests have landed, and every capture the task names
+exists. **iOS is task 6.6 and is not a precondition for the others** — the Swift
+side has the same silent-return shape (`PublicationDetailView.swift:219-221`) and
+no mirrored decision function to correct, so pretending one fix covers both would
+tick a claim rather than record a fact.
+
+**Four adjacent defects were found with this one and are deliberately not in this
+phase.** Each is real, each is cited, and absorbing them would make this change a
+sweep:
+
+1. **A `fetch` on a Wi-Fi-held row waits for ever.** `DownloadQueue.fetch` awaits
+   with no timeout (`:199-207`), `transfer` has no `finally`, `attempt` catches
+   only three exception types (`:533`, `:581`, `:584`), and `finish` (`:625`) is
+   the only completion. The catalogue *Read* button calls `fetch`
+   (`CatalogueDetailScreen.kt:449`), so that surface hangs today. Its own change.
+2. **Two definitions of a costly connection.** The question asks
+   `NetworkCost.isCareful` — metered plus Data Saver (`DownloadQueue.kt:117`,
+   `:136`) — and the hold asks `!isOnWifi`, a transport flag (`:154`,
+   `NetworkCost.kt:42-44`). On a metered hotspot the app asks and then never
+   holds.
+3. **Bulk keep-offline copies nothing for a remote row and reports success.**
+   `KeepOffline.kt:69-71` skips it, and `LibrarySelectionTopBar.kt:297` still
+   wraps the empty result in an undo.
+4. **`canOpen` answers true for a remote PDF.** `openPdf` has no remote branch
+   (`PublicationAccess.kt:62-67`).
+
+- [ ] **6.1** The decision offers no read it cannot honour.
+
+      Test first, in
+      `apps/android/feature/library/src/test/kotlin/app/storyarc/feature/library/DetailActionsTest.kt`:
+      a publication that is not on the device, whose source is connected, and
+      which cannot be read where it lies, asks for the copy. The existing case
+      that asserts the opposite pins the defect and is replaced, not kept.
+
+      Then `primaryActionOf`
+      (`apps/android/feature/library/src/main/kotlin/app/storyarc/feature/library/DetailActions.kt`)
+      asks `StreamingOffer.of` rather than testing `DOWNLOAD_ONLY` itself, and its
+      tail returns the copy rather than the read. `readsWhereItLies` is the
+      platform truth the type documents, supplied by the caller.
+
+      Validation: `cd apps/android && ./gradlew :feature:library:testDebugUnitTest`.
+
+- [ ] **6.2** The page draws the copy, and offers no read anywhere.
+
+      Test first, a Robolectric composition beside the existing detail tests in
+      `apps/android/feature/library/src/test/kotlin/app/storyarc/feature/library/`:
+      composed for an absent publication whose library answers, the page shows the
+      download as its primary action, shows the sentence saying the publication
+      has to be on the device first, and shows no read control in the hero or in
+      the overflow. All five existing compositions pass `onDownload = null`, so
+      this state has never been composed in a test.
+
+      Validation: the same Gradle task, and the capture named in 6.5.
+
+- [ ] **6.3** A download from this page is a queued download.
+
+      Test first, beside `DownloadQueueConnectionTest` in
+      `apps/android/feature/library/src/test/kotlin/app/storyarc/feature/library/`:
+      a download started for a publication records which source it came from, and
+      the queue asks the foreground service to follow it. Then the page's route
+      leaves `KeepForOffline` for the queue, and the metered confirmation the two
+      catalogue surfaces already draw is drawn here as well.
+
+      **The wiring itself is asserted by reading the source**, in the shape
+      `AudioSurfacesAreWiredTest.kt:159-170` already uses, because the `:app`
+      module composes no test: `AppScreens.kt` passes the page a live download
+      record and a start action, and no longer calls `keepForOffline` from the
+      publication page.
+
+      Validation: `cd apps/android && ./gradlew :feature:library:testDebugUnitTest :app:testDebugUnitTest`.
+
+- [ ] **6.4** One queue per source, owned in one place.
+
+      The catalogue screens stop building their own with `remember(page.url)`
+      (`apps/android/app/src/main/kotlin/app/storyarc/AppScreens.kt`) and take the
+      shared one. A test asserts that two surfaces over one source get one queue,
+      so a running row is not reclaimed and re-queued by a second, and the
+      service's own count is not driven from two places.
+
+      **This task deletes a construction site.** If it adds one, it is wrong.
+
+      Validation: the Gradle task above, plus the capture in 6.5, which is what
+      shows the notification surviving the reader leaving the page.
+
+- [ ] **6.5** Captures, Android, light and dark at the default and the largest text size.
+
+      1. The page for an absent publication whose library answers — the copy as
+         the primary action, and the sentence beside it.
+      2. The page while the copy travels — a stated fraction once the feed
+         declares a length, and no read offered.
+      3. The page once the copy has landed — the read as the primary action, and
+         the provenance line saying it is on this device.
+      4. **The notification shade while the copy travels, after leaving the app.**
+         This one is not decoration: it is the evidence that the transfer joined
+         the queue and the foreground service, and it is what the Play Console
+         asks for to justify `FOREGROUND_SERVICE_DATA_SYNC`.
+
+      Filed under `docs/designs/screenshots/` with a README naming what each frame
+      shows, per AGENTS.md §6.
+
+- [ ] **6.6** iOS: verify the same shape, then mirror or record why not.
+
+      Read `PublicationDetailView.swift` and say in the handoff whether the Swift
+      page can draw a read for a publication it holds no file for. `read()` at
+      `:219-221` does nothing without a file, so the silent tap is reachable; what
+      is unverified is whether that state is drawn. There is no Swift
+      `primaryActionOf`, so mirroring means deciding where the answer lives — and
+      `StreamingOffer` already exists on both sides, which is the argument for
+      putting it in the shared type rather than in a view.
+
+      Validation: `pnpm test:ios`, plus the iOS captures if the fix lands there.
 
 ## Delta merge, 2026-09-04 — not this change's own work
 

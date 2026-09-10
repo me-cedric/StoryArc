@@ -200,6 +200,7 @@ struct StoryArcApp: App {
                     opensAtDownloads: isShowingDownloads,
                     sources: library.registry.sources,
                     itemCount: { library.itemCount(of: $0) },
+                    isPartial: { library.isPartial($0) },
                     onRemoveSource: removeSource,
                     onRenameSource: { library.rename($0, to: $1) },
                     onReorderSource: { library.move($0, to: $1) },

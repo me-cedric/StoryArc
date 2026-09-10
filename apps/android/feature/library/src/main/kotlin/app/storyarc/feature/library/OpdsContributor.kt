@@ -29,9 +29,13 @@ import java.util.UUID
 internal object OpdsContributor {
 
     /** The entries of the feed a reader saved, as publications. */
-    suspend fun publications(sourceId: UUID, page: CataloguePage): List<Publication> {
+    suspend fun publications(sourceId: UUID, page: CataloguePage): SourceSlice {
         val feed = OpdsClient(origin = page.origin).feed(page.url, page.credential)
-        return feed.publications.mapNotNull { entry -> publication(sourceId, entry) }
+        val publications = feed.publications.mapNotNull { entry -> publication(sourceId, entry) }
+        // The feed says so itself. A `next` link is the catalogue's own statement that this
+        // page is not the whole of it, which is a better answer than counting entries
+        // against a limit this side invented.
+        return SourceSlice(publications, holdsMore = feed.next != null)
     }
 
     /**

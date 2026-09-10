@@ -211,4 +211,8 @@
     <string name="app_icon_bloom">Bloom</string>
     <string name="app_icon_arc">Arc</string>
     <string name="app_icon_mono">Mono</string>
+    <plurals name="sources_detail_partial">
+        <item quantity="one">At least %1$d title</item>
+        <item quantity="other">At least %1$d titles</item>
+    </plurals>
 </resources>

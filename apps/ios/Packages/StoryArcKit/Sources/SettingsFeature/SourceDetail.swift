@@ -36,7 +36,17 @@ struct SourceDetail: View {
                 if let failure = diagnosis.failure {
                     field("sources.detail.lastError", value: message(for: failure))
                 }
-                field("sources.detail.items", value: Text("sources.detail \(diagnosis.itemCount)", bundle: .module))
+                // *At least*, where the read stopped at its own limit. `library-browsing`
+                // asks that "the number shown is never presented as the whole", and every
+                // source is read in a bounded first helping — so a reader whose server
+                // holds five thousand titles was shown "137 titles" with no way to tell
+                // that from a server that holds 137. `SourceSlice` is where the flag from.
+                field(
+                    "sources.detail.items",
+                    value: diagnosis.isPartial
+                        ? Text("sources.detail.partial \(diagnosis.itemCount)", bundle: .module)
+                        : Text("sources.detail \(diagnosis.itemCount)", bundle: .module)
+                )
                 // ``Persistence/DownloadStore/formatted(_:)`` rather than `.byteCount` here,
                 // and the difference is only ever visible at zero — which is every source a
                 // reader has just added. The platform style spells zero out unless told not

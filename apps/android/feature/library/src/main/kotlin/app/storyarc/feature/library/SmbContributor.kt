@@ -42,7 +42,7 @@ internal object SmbContributor {
     const val MAX_FOLDERS = 40
 
     /** The publications a bounded walk of the share finds. */
-    suspend fun publications(sourceId: UUID, client: SmbClient, root: String): List<Publication> {
+    suspend fun publications(sourceId: UUID, client: SmbClient, root: String): SourceSlice {
         val found = mutableListOf<Publication>()
         val queue = ArrayDeque(listOf(root))
         var listings = 0
@@ -62,7 +62,13 @@ internal object SmbContributor {
                 publication(sourceId, entry, folder = path)?.let(found::add)
             }
         }
-        return found
+        // Either budget running out is the walk stopping before the share did, and so is a
+        // queue with folders still in it. All three mean the same thing to a reader: there
+        // is more on the share than the number on the screen.
+        return SourceSlice(
+            publications = found,
+            holdsMore = queue.isNotEmpty() || found.size >= FIRST_SLICE || listings >= MAX_FOLDERS,
+        )
     }
 
     /**

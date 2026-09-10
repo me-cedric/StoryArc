@@ -166,8 +166,14 @@ internal fun SourceDetailScreen(
             }
             Field(
                 label = stringResource(R.string.sources_detail_items),
+                // *At least*, where the read stopped at its own limit. `library-browsing`
+                // asks that "the number shown is never presented as the whole", and every
+                // source is read in a bounded first helping — so a reader whose server
+                // holds five thousand titles was shown "137 titles" with no way to tell
+                // that from a server that holds 137. `SourceSlice` is where the flag comes
+                // from.
                 value = pluralStringResource(
-                    R.plurals.sources_detail,
+                    if (diagnosis.isPartial) R.plurals.sources_detail_partial else R.plurals.sources_detail,
                     diagnosis.itemCount,
                     diagnosis.itemCount,
                 ),

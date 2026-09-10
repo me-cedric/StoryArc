@@ -23,6 +23,8 @@ struct SourcesSettings: View {
     let sources: [Source]
     /// How many publications each source holds, for the removal statement.
     let itemCount: (Source.ID) -> Int
+    /// Whether that count is a slice of what the source holds. `SourceSlice` says why.
+    let isPartial: (Source.ID) -> Bool
     let onRemove: (Source) -> Void
     let onRename: (Source, String) -> Void
 
@@ -261,7 +263,8 @@ struct SourcesSettings: View {
             source,
             itemCount: itemCount(source.id),
             downloads: downloads.downloads,
-            isRemovable: source.id != ImportedCopies.sourceID
+            isRemovable: source.id != ImportedCopies.sourceID,
+            isPartial: isPartial(source.id)
         )
     }
 }

@@ -28,6 +28,20 @@ import kotlinx.coroutines.withContext
 internal object ServerLibrary {
 
     /**
+     * Every server's rows, with the source each came through, and which sources held back
+     * more than they gave.
+     *
+     * @property rows every publication read, paired with its source.
+     * @property partial the sources whose read stopped at its own limit rather than at the
+     *   end of the source. [SourceSlice] is where that distinction is explained, and the
+     *   source screen is what says it out loud.
+     */
+    data class Reading(
+        val rows: List<Pair<Publication, UUID>> = emptyList(),
+        val partial: Set<UUID> = emptySet(),
+    )
+
+    /**
      * Every server's slice, in one list, with the source each row came through.
      *
      * Per source and off the main thread, so one slow server does not hold up another or
@@ -37,30 +51,35 @@ internal object ServerLibrary {
     suspend fun read(
         sources: List<Source>,
         credentials: CredentialStore?,
-    ): List<Pair<Publication, UUID>> = withContext(Dispatchers.IO) {
-        sources.flatMap { source ->
-            runCatching {
-                when (source.kind) {
-                    SourceKind.KAVITA_SERVER -> KavitaPage.of(source, credentials)?.address
-                        ?.let { KavitaContributor.publications(source.id, KavitaClient(it)) }
-
-                    SourceKind.OPDS_CATALOG -> CataloguePage.of(source, credentials)
-                        ?.let { OpdsContributor.publications(source.id, it) }
-
-                    SourceKind.NETWORK_SHARE -> SmbPage.of(source, credentials)?.let { page ->
-                        SmbContributor.publications(
-                            source.id,
-                            SmbClient(page.address),
-                            page.address.path,
-                        )
-                    }
-
-                    // Already in the library: its files are what the scan walks.
-                    SourceKind.LOCAL_FOLDER -> null
-                }
-            }.getOrNull().orEmpty().map { it to source.id }
+    ): Reading = withContext(Dispatchers.IO) {
+        val slices = sources.map { source ->
+            source.id to runCatching { slice(source, credentials) }.getOrNull().orEmpty()
         }
+        Reading(
+            rows = slices.flatMap { (id, slice) -> slice.publications.map { it to id } },
+            partial = slices.filter { (_, slice) -> slice.holdsMore }.map { it.first }.toSet(),
+        )
     }
+
+    /** What one source gives, by the kind of thing it is. */
+    private suspend fun slice(source: Source, credentials: CredentialStore?): SourceSlice? =
+        when (source.kind) {
+            SourceKind.KAVITA_SERVER -> KavitaPage.of(source, credentials)?.address
+                ?.let { KavitaContributor.publications(source.id, KavitaClient(it)) }
+
+            SourceKind.OPDS_CATALOG -> CataloguePage.of(source, credentials)
+                ?.let { OpdsContributor.publications(source.id, it) }
+
+            SourceKind.NETWORK_SHARE -> SmbPage.of(source, credentials)?.let { page ->
+                SmbContributor.publications(source.id, SmbClient(page.address), page.address.path)
+            }
+
+            // Already in the library: its files are what the scan walks.
+            SourceKind.LOCAL_FOLDER -> null
+        }
+
+    /** A source that refused, or was never configured, gave nothing and held nothing back. */
+    private fun SourceSlice?.orEmpty(): SourceSlice = this ?: SourceSlice.none
 
     /**
      * A cover for a row with nothing on disk.

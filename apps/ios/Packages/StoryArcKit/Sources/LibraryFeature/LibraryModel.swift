@@ -29,6 +29,10 @@ public enum LibraryScanState: Sendable, Equatable {
 public final class LibraryModel {
     public internal(set) var publications: [Publication] = []
 
+    /// Sources whose last read stopped at its own limit. ``SourceSlice`` explains what that
+    /// is, and ``isPartial(_:)`` is how a screen asks.
+    var partialSources: Set<UUID> = []
+
     /// What the user is looking at. Setting it re-arranges the shelf.
     public var query = LibraryQuery() {
         didSet {

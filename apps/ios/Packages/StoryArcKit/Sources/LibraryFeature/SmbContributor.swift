@@ -29,7 +29,7 @@ enum SmbContributor {
     static let maxFolders = 40
 
     /// The publications a bounded walk of the share finds.
-    static func publications(source: UUID, client: SmbClient, root: String) async -> [Publication] {
+    static func publications(source: UUID, client: SmbClient, root: String) async -> SourceSlice {
         var found: [Publication] = []
         var queue = [root]
         var listings = 0
@@ -51,7 +51,13 @@ enum SmbContributor {
                 }
             }
         }
-        return found
+        // Either budget running out is the walk stopping before the share did, and so is a
+        // queue with folders still in it. All three mean the same thing to a reader: there
+        // is more on the share than the number on the screen.
+        return SourceSlice(
+            publications: found,
+            holdsMore: !queue.isEmpty || found.count >= firstSlice || listings >= maxFolders
+        )
     }
 
     /// One file as a row, or nil for a file this app cannot open.

@@ -27,6 +27,17 @@ public struct SourceDiagnosis: Sendable, Equatable {
     /// How many publications the library holds from this source.
     public let itemCount: Int
 
+    /// Whether ``itemCount`` is a slice of what the source holds rather than the whole of
+    /// it.
+    ///
+    /// Every source is read in a bounded first helping — sixty series from a Kavita
+    /// server, one feed page from a catalogue, two hundred files from a share — so the
+    /// count is what was *read*. A reader whose server holds five thousand titles was shown
+    /// "137 titles" with no way to tell that from a server that holds 137.
+    /// `library-browsing` asks that "the number shown is never presented as the whole", and
+    /// this is the flag that makes the screen say *at least*.
+    public let isPartial: Bool
+
     /// How many of them are downloaded, and what they weigh.
     ///
     /// Counted from the finished downloads alone: a queued one has no bytes on disk to
@@ -42,6 +53,7 @@ public struct SourceDiagnosis: Sendable, Equatable {
         lastSuccessfulSync: Date?,
         failure: SourceFailure?,
         itemCount: Int,
+        isPartial: Bool = false,
         downloadCount: Int,
         downloadedBytes: Int64,
         actions: [SourceAction]
@@ -50,6 +62,7 @@ public struct SourceDiagnosis: Sendable, Equatable {
         self.lastSuccessfulSync = lastSuccessfulSync
         self.failure = failure
         self.itemCount = itemCount
+        self.isPartial = isPartial
         self.downloadCount = downloadCount
         self.downloadedBytes = downloadedBytes
         self.actions = actions
@@ -64,7 +77,8 @@ public struct SourceDiagnosis: Sendable, Equatable {
         _ source: Source,
         itemCount: Int,
         downloads: [Download],
-        isRemovable: Bool = true
+        isRemovable: Bool = true,
+        isPartial: Bool = false
     ) -> SourceDiagnosis {
         let mine = downloads.filter { $0.sourceID == source.id && $0.state.isFinished }
         var actions: [SourceAction] = []
@@ -84,6 +98,7 @@ public struct SourceDiagnosis: Sendable, Equatable {
             lastSuccessfulSync: source.lastSuccessfulSync,
             failure: SourceFailure(source.state),
             itemCount: itemCount,
+            isPartial: isPartial,
             downloadCount: mine.count,
             downloadedBytes: mine.reduce(0) { $0 + $1.downloadedBytes },
             actions: actions

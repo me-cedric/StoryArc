@@ -88,6 +88,8 @@ fun SettingsScreen(
      */
     sources: List<Source> = emptyList(),
     itemCount: (Source) -> Int = { 0 },
+    /** Whether that count is a slice of what the source holds. `SourceSlice` says why. */
+    isPartial: (Source) -> Boolean = { false },
     onRemoveSource: (Source) -> Unit = {},
     onRenameSource: (Source, String) -> Unit = { _, _ -> },
     /** Moves a source one place, up or down. `sources`: the order persists and decides precedence. */
@@ -141,6 +143,7 @@ fun SettingsScreen(
             itemCount = itemCount(source),
             downloads = downloads.downloads,
             isRemovable = source.id != ImportedCopies.SOURCE_ID,
+            isPartial = isPartial(source),
         )
     }
 

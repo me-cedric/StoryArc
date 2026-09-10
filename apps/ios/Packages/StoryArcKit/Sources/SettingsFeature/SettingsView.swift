@@ -39,6 +39,7 @@ public struct SettingsView: View {
     /// feature module never depends on another feature module.
     private let sources: [Source]
     private let itemCount: (Source.ID) -> Int
+    private let isPartial: (Source.ID) -> Bool
     private let onRemoveSource: (Source) -> Void
     private let onRenameSource: (Source, String) -> Void
     /// Moves a source to the position a drag reports. `sources`: the order persists, and
@@ -88,6 +89,7 @@ public struct SettingsView: View {
         opensAtDownloads: Bool = false,
         sources: [Source] = [],
         itemCount: @escaping (Source.ID) -> Int = { _ in 0 },
+        isPartial: @escaping (Source.ID) -> Bool = { _ in false },
         onRemoveSource: @escaping (Source) -> Void = { _ in },
         onRenameSource: @escaping (Source, String) -> Void = { _, _ in },
         onReorderSource: @escaping (Source.ID, Int) -> Void = { _, _ in },
@@ -103,6 +105,7 @@ public struct SettingsView: View {
         _path = State(initialValue: opensAtDownloads ? [SettingMatch(group: .downloads)] : [])
         self.sources = sources
         self.itemCount = itemCount
+        self.isPartial = isPartial
         self.onRemoveSource = onRemoveSource
         self.onRenameSource = onRenameSource
         self.onReorderSource = onReorderSource
@@ -220,6 +223,7 @@ public struct SettingsView: View {
             SourcesSettings(
                 sources: sources,
                 itemCount: itemCount,
+                isPartial: isPartial,
                 onRemove: onRemoveSource,
                 onRename: onRenameSource,
                 downloads: downloads,

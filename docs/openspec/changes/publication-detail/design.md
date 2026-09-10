@@ -97,6 +97,86 @@ ships as a phone-only push and the pane presentation waits — which is a partia
 delivery, and the handoff has to say so rather than quietly dropping the
 large-screen requirement.
 
+## The primary action may be the copy, and it may not rest on an assumption
+
+Added 2026-09-10, after the page was found drawing *Read* for a publication it had
+no copy of and no way to obtain — the tap did nothing at all, and the download
+was absent from the page and from its overflow at the same time.
+
+**The decision's tail was the bug.** Android's `primaryActionOf`
+(`DetailActions.kt:63-73`) asks two questions before it offers a copy: is the
+source away, and did the container report `DOWNLOAD_ONLY`. Neither is true for a
+catalogue publication whose library answers — a reachable source yields
+`NOT_DOWNLOADED` (`PublicationProvenance.kt:115`) and an OPDS row keeps the
+`STREAMS` default (`Publication.kt:266`), because nothing has opened it to learn
+otherwise. So the `when` fell to `else` and returned *read*. **A publication was
+treated as readable unless something had proved it was not**, and a catalogue row
+proves nothing either way: it carries a server identifier and no path
+(`OpdsContributor.kt:47-48`), so `location()` answers `nil`, `isRemote` and
+`isOnDevice` are both false (`AppScreens.kt:305-306`), and the read reaches
+`location(chosen) ?: return` (`AppScreens.kt:380`) and stops.
+
+**The answer already exists, mirrored, and this decision was always meant to read
+it.** `StreamingOffer` is the pure type both platforms share for exactly this
+question — `open`, `download(bytes)`, or `refuse` — and its own documentation
+names `primaryActionOf` as one of its two readers
+(`StreamingOffer.swift:20`, `StreamingOffer.kt`). Its `of(streaming, isLocal,
+readsWhereItLies, bytes)` returns `Download` for a publication that is not local
+and cannot be read where it lies, which is the OPDS row. So the fix is not a new
+boolean on the decision: it is `primaryActionOf` asking the type the project
+already wrote, with `readsWhereItLies` supplied as the platform truth it is
+documented to be, and its tail inverted so a *read* is offered only where
+something answered `open`. That deletes a duplicated judgement, gives the metered
+dialog its size from the same answer, and keeps the two apps deciding alike.
+
+**An acquisition URL is not a location.** Recording one to make the page believe
+the file is addressable would replace a silent tap with a missing-file failure:
+only `smb` is registered as a remote scheme in production
+(`AppDependencies.kt:80`), and an unregistered scheme falls through to the
+local-file branch (`PublicationAccess.kt:57`, `:67`). The location the page may
+use is the finished copy's own file, and nothing before it.
+
+## A download from this page is a queued download
+
+**The page's current route never enters the queue.** `KeepForOffline.kt:22-57`
+reads the whole publication in one call at line 40. It names no metered check, no
+Wi-Fi check, no progress and no pause — and because it never enters the queue it
+never starts `DownloadService`, so the transfer dies with the process. That is
+the one thing `offline-downloads`' *Background downloads* requires of it, and the
+absence is also why a download from this page could not be filmed for the Play
+Console's foreground-service evidence.
+
+**Everything the delta asks for is already in the queue**: the metered question
+and the per-publication grant (`needsMeteredConfirmation`, and the grant recorded
+against one id), the Wi-Fi hold, the lowered concurrency, and the service itself
+(`follow` → `DownloadService`). The page asks the queue rather than
+reimplementing any of it, and it uses the confirmation the two catalogue surfaces
+already draw — which keeps the whole of it inside `feature:library` and widens no
+visibility.
+
+**One queue per source, owned in one place.** Two queues over one download store
+are not a redundancy, they are a defect: the second reclaims and re-queues a row
+the first is transferring (`Download.kt:179-181`), and both drive one service
+whose `stopSelf` fires when *its own* count reaches zero (`DownloadQueue.kt:462`,
+`DownloadService.kt:33-35`). The catalogue screens build their own today with
+`remember(page.url)` (`AppScreens.kt:469`), so the hazard is already reachable by
+a reader who starts a download in a browser and then opens a publication's page.
+They take the shared one instead: this change **deletes** a construction site
+rather than adding one.
+
+**Progress needs the library to state a size.** A fraction is meaningful only
+once the feed declares a length, so before that the page says a copy is coming
+and shows no fraction — the same distinction the downloads view already draws.
+
+**iOS is not fixed by this change, and the same shape is there.**
+`PublicationDetailView.read()` is `if let file { onOpen(...) }`
+(`PublicationDetailView.swift:219-221`): with no file the tap does nothing, by
+the same silent-return mechanism. iOS has no mirrored decision function — its
+primary action is decided inside the view, so there is no Swift `primaryActionOf`
+to correct. The handoff says so plainly: this defect was found and fixed on
+Android, the Swift side is **unverified in the field**, and mirroring it is a
+task of its own rather than a claim made here.
+
 ## The provenance line
 
 The delta says what it must convey and forbids what it must not name. The

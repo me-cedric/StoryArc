@@ -47,6 +47,7 @@ internal fun SettingsHost(
         opensAtDownloads = screen.opensAtDownloads,
         sources = registry.sources,
         itemCount = { host.library.itemCount(it.id) },
+        isPartial = { host.library.isPartial(it.id) },
         onRemoveSource = { source ->
             // The downloads first. The registry entry is what attributes a download to a
             // source, so deleting the source before its files leaves bytes on disk that

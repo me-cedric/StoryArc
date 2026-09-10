@@ -202,4 +202,8 @@
     <string name="app_icon_bloom">Floraison</string>
     <string name="app_icon_arc">Arc</string>
     <string name="app_icon_mono">Mono</string>
+    <plurals name="sources_detail_partial">
+        <item quantity="one">Au moins %1$d titre</item>
+        <item quantity="other">Au moins %1$d titres</item>
+    </plurals>
 </resources>

@@ -18,8 +18,15 @@ extension LibraryModel {
     /// `sources` asks a source's detail screen for its "cached item count". Counted from
     /// what the library actually found rather than remembered separately: two numbers that
     /// can disagree is how a screen ends up claiming a source has titles it cannot open.
+    /// It is a count of what was *read*, which is why ``isPartial(_:)`` exists beside it.
     public func itemCount(of sourceID: Source.ID) -> Int {
         publications.count { $0.sourceID == sourceID }
+    }
+
+    /// Whether ``itemCount(of:)`` is a slice of what this source holds rather than the
+    /// whole of it. ``SourceSlice`` is where that distinction is explained.
+    public func isPartial(_ sourceID: Source.ID) -> Bool {
+        partialSources.contains(sourceID)
     }
 
     // Internal, not private: `private` is file-scoped, and the callers now sit

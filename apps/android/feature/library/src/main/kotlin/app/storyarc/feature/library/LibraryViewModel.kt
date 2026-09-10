@@ -362,9 +362,10 @@ class LibraryViewModel(
 
     /** Every server's publications, adopted as a scanned file is. See [ServerLibrary]. */
     internal fun readServers() = viewModelScope.launch {
-        val found = ServerLibrary.read(_registry.value.sources, credentials)
-        found.forEach { (publication, sourceId) -> adopt(publication, sourceId) }
-        if (found.isEmpty()) return@launch
+        val reading = ServerLibrary.read(_registry.value.sources, credentials)
+        partialSources = reading.partial
+        reading.rows.forEach { (publication, sourceId) -> adopt(publication, sourceId) }
+        if (reading.rows.isEmpty()) return@launch
         rebuild()
         // And written down, which nothing did: the snapshot was written when a *folder*
         // walk finished, so a reader whose library is one server and no folders had nothing
@@ -635,8 +636,8 @@ class LibraryViewModel(
         // Written through rather than left for the next scan. [cacheLibrary] refuses to
         // replace a good snapshot with an empty one — that guard is there for a walk that
         // failed, and this is not one, so an emptied library clears the file outright.
-        if (_publications.value.isEmpty()) libraryCache.clear() else cacheLibrary()
-        _cachedAt.value = null
+        if (_publications.value.isEmpty()) shelfCache.clear() else cacheLibrary()
+        shelfCache.forgetTheMoment()
         rebuild()
     }
 
@@ -921,13 +922,20 @@ class LibraryViewModel(
     }
 
     /**
-     * How many publications a source holds.
+     * How many publications a source has put on the shelf.
      *
      * `sources` asks a source's detail screen for its "cached item count". Counted from
      * what the library actually found rather than remembered separately: two numbers that
      * can disagree is how a screen ends up claiming a source has titles it cannot open.
+     * It is a count of what was *read*, which is why [isPartial] exists beside it.
      */
     fun itemCount(sourceId: UUID): Int = _publications.value.count { it.sourceId == sourceId }
+
+    /** Sources whose last read stopped at its own limit. [SourceSlice] explains what that is. */
+    private var partialSources: Set<UUID> = emptySet()
+
+    /** Whether [itemCount] is a slice of what this source holds rather than the whole of it. */
+    fun isPartial(sourceId: UUID): Boolean = sourceId in partialSources
 
     /**
      * The source a tree belongs to, if it is registered as one.
@@ -1441,24 +1449,14 @@ class LibraryViewModel(
 
     /**
      * Last session's shelf, so opening the app does not mean walking every folder before
-     * anything appears. `sources` asks for the cached catalogue "within 500 ms of the
-     * library view appearing", and a folder walk is not that.
+     * anything appears. [LibraryShelfCache] holds the file and the moment alike.
      */
-    private val libraryCache by lazy {
-        LibraryCache(File(getApplication<Application>().cacheDir, "library.json"))
+    private val shelfCache by lazy {
+        LibraryShelfCache(LibraryCache(File(getApplication<Application>().cacheDir, "library.json")))
     }
 
-    private val _cachedAt = MutableStateFlow<Long?>(null)
-
-    /**
-     * When the shelf on screen was last confirmed, while it is still the cached one.
-     *
-     * `sources` asks for "a single unobtrusive indicator" stating that content is cached and
-     * when it was last refreshed. Null once a walk has finished, because at that point the
-     * shelf is not cached — it is current, and saying otherwise would be the indicator lying
-     * quietly in the corner.
-     */
-    val cachedAt: StateFlow<Long?> = _cachedAt.asStateFlow()
+    /** When the shelf on screen was last confirmed, while it is still the cached one. */
+    val cachedAt: StateFlow<Long?> get() = shelfCache.cachedAt
 
     /**
      * Puts last session's shelf back before anything is walked.
@@ -1469,10 +1467,9 @@ class LibraryViewModel(
      */
     internal fun restoreCachedLibrary() {
         if (_publications.value.isNotEmpty()) return
-        val snapshot = libraryCache.read() ?: return
+        val snapshot = shelfCache.restore() ?: return
         _publications.value = snapshot.publications
         locations.putAll(snapshot.locations)
-        _cachedAt.value = snapshot.refreshedAtEpochMillis
         rebuild()
     }
 
@@ -1483,21 +1480,8 @@ class LibraryViewModel(
      * mid-scan is a half-library, and restoring one would show a shelf missing books for no
      * reason a reader could see.
      */
-    private fun cacheLibrary(partial: Boolean = false) {
-        // [LibrarySnapshot.worthWriting] is the decision and where both refusals are
-        // explained: a partial walk, and a walk that found nothing where a good snapshot
-        // already exists.
-        val cached = libraryCache.read()?.publications?.size ?: 0
-        if (!LibrarySnapshot.worthWriting(partial, _publications.value.size, cached)) return
-        libraryCache.write(
-            LibraryCache.Snapshot(
-                refreshedAtEpochMillis = System.currentTimeMillis(),
-                publications = _publications.value,
-                locations = locations.toMap(),
-            ),
-        )
-        _cachedAt.value = null
-    }
+    private fun cacheLibrary(partial: Boolean = false) =
+        shelfCache.write(_publications.value, locations.toMap(), partial)
 
     suspend fun cover(publication: Publication, maxPixelSize: Int): Bitmap? {
         covers[publication.id]?.let { return it }

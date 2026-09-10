@@ -29,6 +29,17 @@ data class SourceDiagnosis(
     /** How many publications the library holds from this source. */
     val itemCount: Int,
     /**
+     * Whether [itemCount] is a slice of what the source holds rather than the whole of it.
+     *
+     * Every source is read in a bounded first helping -- sixty series from a Kavita server,
+     * one feed page from a catalogue, two hundred files from a share -- so the count is what
+     * was *read*. A reader whose server holds five thousand titles was shown "137 titles"
+     * with no way to tell that from a server that holds 137. `library-browsing` asks that
+     * "the number shown is never presented as the whole", and this is the flag that makes
+     * the screen say *at least*.
+     */
+    val isPartial: Boolean = false,
+    /**
      * How many of them are downloaded, and what they weigh.
      *
      * Counted from the finished downloads alone: a queued one has no bytes on disk to free,
@@ -52,6 +63,7 @@ data class SourceDiagnosis(
             itemCount: Int,
             downloads: List<Download>,
             isRemovable: Boolean = true,
+            isPartial: Boolean = false,
         ): SourceDiagnosis {
             val mine = downloads.filter { it.sourceId == source.id && it.state.isFinished }
             val actions = buildList {
@@ -76,6 +88,7 @@ data class SourceDiagnosis(
                 lastSuccessfulSyncEpochMillis = source.lastSuccessfulSyncEpochMillis,
                 failure = SourceFailure.of(source.state),
                 itemCount = itemCount,
+                isPartial = isPartial,
                 downloadCount = mine.size,
                 downloadedBytes = mine.sumOf { it.downloadedBytes },
                 actions = actions,
