@@ -22,6 +22,19 @@ data class KavitaReadingList(
     val id: Int,
     val title: String = "",
     val summary: String? = null,
+    /** The cover the server holds for this list, or null when it has none. */
+    val coverImage: String? = null,
+    /**
+     * Whether a reader chose that cover.
+     *
+     * `collections-and-reading-lists` composites a shelf's first four member covers "unless
+     * the user sets a specific one", and this is the server's word for having set one. An
+     * older Kavita sends neither field, and the defaults say what that means: nothing chosen,
+     * so the app draws its own.
+     */
+    val coverImageLocked: Boolean = false,
+    /** How many entries the server says the list holds, before any of them are fetched. */
+    val itemCount: Int = 0,
 )
 
 /** One entry in a server reading list, in the order the server keeps. */
@@ -33,6 +46,16 @@ data class KavitaReadingListItem(
     val chapterId: Int = 0,
     val title: String? = null,
     val seriesName: String? = null,
+    /** How far into this entry the server says the reader has gone. */
+    val pagesRead: Int = 0,
+    /**
+     * How many pages the entry has, as the server counts them.
+     *
+     * Zero is the server saying nothing rather than an empty chapter, and
+     * `collections-and-reading-lists` asks for nothing to be claimed in that case. It is the
+     * only honest signal: `pagesRead` is zero for an unread entry as well.
+     */
+    val pagesTotal: Int = 0,
 ) {
     /** What to call it in a list. The chapter's own title, or the series it belongs to. */
     val displayName: String

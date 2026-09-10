@@ -81,7 +81,16 @@ class DownloadResumeTest {
         exchange.responseHeaders.add("ETag", "\"natural-sort-v1\"")
         if (range == null && answer == Answer.CUT) {
             exchange.sendResponseHeaders(200, comic.size.toLong())
-            exchange.responseBody.use { it.write(comic.copyOfRange(0, CUT_AT)) }
+            // Flushed, then the exchange closed by hand rather than by `use`, for the reason
+            // `OpdsRangeDownloadTest` records: JDK 25's `HttpServer` refuses to finish a body
+            // shorter than the length it declared, throws "insufficient bytes written to
+            // stream", and hands the reader nothing at all -- not even the bytes already
+            // written. Flushing puts them on the wire first, so the reader meets a truncated
+            // body, which is the interruption every resume here starts from.
+            val body = exchange.responseBody
+            body.write(comic.copyOfRange(0, CUT_AT))
+            body.flush()
+            exchange.close()
             return
         }
         if (range == null || answer == Answer.IGNORE) {

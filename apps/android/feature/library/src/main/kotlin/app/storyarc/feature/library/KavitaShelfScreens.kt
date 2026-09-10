@@ -35,6 +35,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import app.storyarc.core.designsystem.tokens.StoryArcRadius
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.grid.rememberCoverColumns
@@ -183,6 +195,13 @@ fun KavitaListScreen(
             modifier = Modifier.fillMaxSize().padding(insets),
             contentPadding = PaddingValues(StoryArcSpace.gutter),
         ) {
+            // `collections-and-reading-lists`: a list "shows how many entries are finished
+            // and where the user's position is". One sentence above the rows, as the local
+            // list's own screen already draws it, and absent when the server said nothing
+            // about any entry rather than claiming none are finished.
+            ServerListProgress.summary(items.map { it.pagesRead to it.pagesTotal })?.let {
+                item(key = "progress") { ServerListSummary(it) }
+            }
             if (wanted.isNotEmpty()) {
                 // `collections-and-reading-lists` wants a pending edit "visible on the list".
                 // An order is one edit about every row, so it is said once, above them.
@@ -201,6 +220,14 @@ fun KavitaListScreen(
                     row = row,
                     number = index + 1,
                     series = entry?.seriesName?.takeIf { it != row.title },
+                    // A pending entry is not on the server yet, so the server has no read
+                    // state for it and none is claimed.
+                    progress = entry
+                        ?.let { ServerListProgress.of(it.pagesRead, it.pagesTotal) }
+                        ?: ServerListProgress.State.Unknown,
+                    // Fetched inside the row, so a list of seventy-seven asks the server
+                    // only for the rows a reader has actually scrolled to.
+                    cover = rememberChapterCover(entry?.chapterId, load = client::chapterCover),
                     isFetching = fetching?.toString() == row.id,
                     // An entry the server has not heard of has no place in the server's own
                     // order, so it cannot be moved into one.
@@ -241,10 +268,13 @@ private fun ShelfBar(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun EntryRow(
+internal fun EntryRow(
     row: ShelfEntry,
     number: Int,
     series: String?,
+    progress: ServerListProgress.State,
+    /** The chapter's own artwork, or null while it is being fetched or if it never arrives. */
+    cover: Bitmap?,
     isFetching: Boolean,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
@@ -253,6 +283,26 @@ private fun EntryRow(
     onOpen: () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
+
+    // Drawn only where there is something to draw. An unread entry carries no badge, as an
+    // unread publication carries none in the library, and says so to a screen reader below.
+    val drawn = when (progress) {
+        is ServerListProgress.State.Finished ->
+            stringResource(R.string.library_read_state_finished)
+        is ServerListProgress.State.Part ->
+            stringResource(R.string.library_cell_progress, progress.percent)
+        else -> null
+    }
+    // What the row is to a reader who cannot see it: its place in the order, what it is, and
+    // its read state in the library's own words -- including "Unread", which is the one
+    // state with nothing to look at.
+    val said = when (progress) {
+        is ServerListProgress.State.Unread ->
+            stringResource(R.string.library_read_state_unread)
+        else -> drawn
+    }
+    val spoken = listOfNotNull("$number.", row.title, series, said).joinToString(" ")
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
@@ -262,13 +312,30 @@ private fun EntryRow(
             // file over, and it has not heard of this entry yet.
             .clickable(enabled = !isFetching && !row.isPending, onClick = onOpen)
             .defaultMinSize(minHeight = 48.dp)
-            .padding(vertical = StoryArcSpace.xs),
+            .padding(vertical = StoryArcSpace.xs)
+            .semantics(mergeDescendants = true) { contentDescription = spoken },
     ) {
         Text(
             text = "$number",
             style = MaterialTheme.typography.labelLarge,
             color = palette.textTertiary,
         )
+        // The library's own cover shape, at a row's height. Decorative: the row says what it
+        // is in one merged label above, so a second description here would read it twice.
+        Surface(
+            color = palette.surfaceRaised,
+            shape = RoundedCornerShape(StoryArcRadius.sm),
+            modifier = Modifier.height(POSTER_HEIGHT).aspectRatio(2f / 3f),
+        ) {
+            cover?.let {
+                Image(
+                    bitmap = it.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = row.title,
@@ -284,9 +351,12 @@ private fun EntryRow(
                     color = StoryArcColor.Status.offline,
                 )
             } else {
-                series?.let {
+                val beneath = listOfNotNull(series, drawn)
+                if (beneath.isNotEmpty()) {
                     Text(
-                        text = it,
+                        // One line rather than two: the row is a list entry, and a second
+                        // stacked line under every title turns the order into a wall.
+                        text = beneath.joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall,
                         color = palette.textSecondary,
                     )
@@ -329,3 +399,45 @@ private suspend fun fetchEntry(
     }
     PublicationIndexer.index(file, catalogueSeries = entry.seriesName) to file.absolutePath
 }.getOrNull()
+
+/** How tall an entry's poster is. A row, not a cell: the list is a run of titles. */
+private val POSTER_HEIGHT = 56.dp
+
+/**
+ * One chapter's artwork, fetched once per chapter and kept for as long as the row is composed.
+ *
+ * Through the client rather than an image loader, for the reason `KavitaSeriesCell` gives:
+ * Kavita's image routes want the reader's key and a loader has nowhere to put one. [load] is
+ * a parameter rather than the client itself so a test can count what a screen asked for.
+ *
+ * A chapter with no artwork, or a fetch that fails, leaves null — the row keeps its number,
+ * its title and its place, which is what `collections-and-reading-lists` asks for.
+ */
+@Composable
+internal fun rememberChapterCover(chapterId: Int?, load: suspend (Int) -> ByteArray): Bitmap? {
+    var cover by remember(chapterId) { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(chapterId) {
+        val id = chapterId ?: return@LaunchedEffect
+        val bytes = runCatching { load(id) }.getOrNull() ?: return@LaunchedEffect
+        cover = runCatching { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }.getOrNull()
+    }
+    return cover
+}
+
+/**
+ * How much of a server's reading list is behind the reader.
+ *
+ * `collections-and-reading-lists`: a list "shows how many entries are finished and where the
+ * user's position is". Drawn only when the server said something about at least one entry —
+ * [ServerListProgress.summary] answers null otherwise, and a list of unknowns says nothing
+ * rather than claiming none are finished.
+ */
+@Composable
+internal fun ServerListSummary(counted: ServerListProgress.Counted) {
+    Text(
+        text = stringResource(R.string.shelves_list_progress, counted.finished, counted.of),
+        style = MaterialTheme.typography.labelLarge,
+        color = LocalStoryArcPalette.current.textSecondary,
+        modifier = Modifier.padding(bottom = StoryArcSpace.xs),
+    )
+}

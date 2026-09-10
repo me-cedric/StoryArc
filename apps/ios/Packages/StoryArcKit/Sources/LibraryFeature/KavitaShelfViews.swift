@@ -16,6 +16,12 @@ public struct ServerShelf: Identifiable, Sendable {
     public let id: Int
     public let title: String
     public let isList: Bool
+    /// Whether a reader chose this shelf's cover on the server.
+    ///
+    /// `collections-and-reading-lists` composites the first four members "unless the user
+    /// sets a specific one", and Kavita's `coverImageLocked` is the server's word for having
+    /// set one. False — including for every server too old to send the field — composites.
+    public var chosenCover: Bool = false
 
     /// Every Kavita server's shelves, asked for once.
     static func all(
@@ -55,7 +61,13 @@ public struct ServerShelf: Identifiable, Sendable {
             if let lists = try? await client.readingLists() {
                 listCapable.append(page)
                 found += lists.map {
-                    ServerShelf(server: page, id: $0.id, title: $0.title, isList: true)
+                    ServerShelf(
+                        server: page,
+                        id: $0.id,
+                        title: $0.title,
+                        isList: true,
+                        chosenCover: $0.coverImageLocked
+                    )
                 }
             }
         }
@@ -185,8 +197,22 @@ struct KavitaListView: View {
         )
     }
 
+    /// How many entries this list has finished, or nil when the server said nothing.
+    private var counted: ServerListProgress.Counted? {
+        ServerListProgress.summary(items.map { (read: $0.pagesRead, total: $0.pagesTotal) })
+    }
+
     var body: some View {
         List {
+            if let counted {
+                // `collections-and-reading-lists`: a list "shows how many entries are
+                // finished and where the user's position is". One sentence above the rows,
+                // as the local list's own screen already draws it, and absent when the
+                // server said nothing about any entry rather than claiming none are done.
+                Text("shelves.list.progress \(counted.finished) \(counted.of)", bundle: .module)
+                    .textRole(.caption)
+                    .foregroundStyle(theme.palette.textSecondary)
+            }
             if !wanted.isEmpty {
                 // `collections-and-reading-lists` wants a pending edit "visible on the list".
                 // An order is one edit about every row, so it is said once, above them.
@@ -234,6 +260,11 @@ struct KavitaListView: View {
                         .textRole(.caption)
                         .foregroundStyle(theme.palette.textTertiary)
 
+                    // The library's own cover shape, at a row's height. Decorative: the row
+                    // says what it is in one merged label below, so a description here would
+                    // read it twice.
+                    EntryPoster(chapterID: Int(row.id), address: server.address)
+
                     VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
                         Text(row.title)
                             .foregroundStyle(theme.palette.textPrimary)
@@ -243,10 +274,11 @@ struct KavitaListView: View {
                             Text("shelves.pending.entry", bundle: .module)
                                 .textRole(.footnote)
                                 .foregroundStyle(StoryArcColor.Status.offline)
-                        } else if let entry = items.first(where: { String($0.chapterId) == row.id }),
-                                  let series = entry.seriesName,
-                                  series != entry.displayName {
-                            Text(series)
+                        } else if let beneath = beneath(row) {
+                            // One line rather than two: the row is a list entry, and a
+                            // second stacked line under every title turns the order into a
+                            // wall.
+                            Text(beneath)
                                 .textRole(.footnote)
                                 .foregroundStyle(theme.palette.textSecondary)
                         }
@@ -264,6 +296,50 @@ struct KavitaListView: View {
         // A pending entry cannot be opened from here: the server is what would hand the
         // file over, and it has not heard of this entry yet.
         .disabled(fetching != nil || row.isPending)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(said(index: index, row: row))
+    }
+
+    /// The state of one row, or `.unknown` for an entry the server has not heard of.
+    private func progress(_ row: ShelfEntry) -> ServerListProgress.State {
+        guard let entry = items.first(where: { String($0.chapterId) == row.id }) else {
+            return .unknown
+        }
+        return ServerListProgress.of(pagesRead: entry.pagesRead, pagesTotal: entry.pagesTotal)
+    }
+
+    /// The series and the read state, joined, or nil when there is neither to draw.
+    ///
+    /// An unread entry carries no badge, as an unread publication carries none in the
+    /// library. It says so in ``said(index:row:)`` instead.
+    private func beneath(_ row: ShelfEntry) -> String? {
+        let entry = items.first(where: { String($0.chapterId) == row.id })
+        let series = entry?.seriesName.flatMap { $0 == entry?.displayName ? nil : $0 }
+        let drawn: String? = switch progress(row) {
+        case .finished:
+            String(localized: "library.readState.finished", bundle: .module, locale: .storyArc)
+        case let .part(percent):
+            String(localized: "library.cell.progress \(percent)", bundle: .module, locale: .storyArc)
+        case .unread, .unknown:
+            nil
+        }
+        let parts = [series, drawn].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    /// What the row is to a reader who cannot see it: its place in the order, what it is,
+    /// and its read state in the library's own words — including "Unread", which is the one
+    /// state with nothing to look at.
+    private func said(index: Int, row: ShelfEntry) -> String {
+        var parts = ["\(index + 1).", row.title]
+        if let beneath = beneath(row) {
+            parts.append(beneath)
+        } else if progress(row) == .unread {
+            parts.append(
+                String(localized: "library.readState.unread", bundle: .module, locale: .storyArc)
+            )
+        }
+        return parts.joined(separator: " ")
     }
 
     /// Applies a drag, and owes the server the order it produced.

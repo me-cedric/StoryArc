@@ -117,6 +117,18 @@ extension KavitaClient {
         ])
     }
 
+    /// A reading list's own cover, which a reader may have chosen on the server.
+    ///
+    /// Asked for only when the list says `coverImageLocked`. Otherwise the app composites
+    /// the list's first four entries itself, which is what `collections-and-reading-lists`
+    /// describes and what a local list shows beside it.
+    public func readingListCover(_ id: Int) async throws -> Data {
+        try await get("Image/readinglist-cover", query: [
+            URLQueryItem(name: "readingListId", value: String(id)),
+            URLQueryItem(name: "apiKey", value: address.apiKey),
+        ])
+    }
+
     /// What the server holds about a series, which the spec prefers over the file's own.
     public func metadata(ofSeries id: Int) async throws -> KavitaMetadata {
         let data = try await get(

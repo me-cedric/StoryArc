@@ -316,18 +316,12 @@ public struct ShelvesView: View {
 
     /// A shelf that lives in an online library.
     ///
-    /// No composite: its members are chapters on a server this device has not necessarily
-    /// opened, so there is no local artwork to compose from and a half-loaded mosaic would
-    /// be worse than a clean blank.
+    /// Its members are chapters or series on a server, so the artwork comes from the client
+    /// rather than the library's decoder — but the composite is the same one a local shelf
+    /// gets, which is what `collections-and-reading-lists` asks for.
     @ViewBuilder
     private func serverCard(_ shelf: ServerShelf, pending: Int = 0) -> some View {
-        ShelfCard(
-            model: model,
-            title: shelf.title,
-            subtitle: shelf.server.title,
-            tiles: [],
-            pending: pending
-        )
+        ServerShelfCardView(shelf: shelf, pending: pending, model: model)
     }
 
     @ViewBuilder

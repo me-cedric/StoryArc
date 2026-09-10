@@ -153,6 +153,18 @@ class KavitaClient(val address: KavitaAddress) {
     )
 
     /**
+     * A reading list's own cover, which a reader may have chosen on the server.
+     *
+     * Asked for only when the list says `coverImageLocked`. Otherwise the app composites the
+     * list's first four entries itself, which is what `collections-and-reading-lists`
+     * describes and what a local list shows beside it.
+     */
+    suspend fun readingListCover(id: Int): ByteArray = get(
+        "Image/readinglist-cover",
+        mapOf("readingListId" to id.toString(), "apiKey" to address.apiKey),
+    )
+
+    /**
      * Marks one chapter read or unread on the server.
      *
      * `kavita-server` asks for the state to be "reflected in that server's own UI", which a

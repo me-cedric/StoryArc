@@ -27,16 +27,47 @@ public struct KavitaReadingList: Sendable, Equatable, Identifiable, Decodable {
     public let id: Int
     public let title: String
     public let summary: String?
+    /// The cover the server holds for this list, or nil when it has none.
+    public let coverImage: String?
+    /// Whether a reader chose that cover.
+    ///
+    /// `collections-and-reading-lists` composites a shelf's first four member covers "unless
+    /// the user sets a specific one", and this is the server's word for having set one. An
+    /// older Kavita sends neither field, and the defaults say what that means: nothing
+    /// chosen, so the app draws its own.
+    public let coverImageLocked: Bool
+    /// How many entries the server says the list holds, before any of them are fetched.
+    public let itemCount: Int
+
+    public init(
+        id: Int,
+        title: String = "",
+        summary: String? = nil,
+        coverImage: String? = nil,
+        coverImageLocked: Bool = false,
+        itemCount: Int = 0
+    ) {
+        self.id = id
+        self.title = title
+        self.summary = summary
+        self.coverImage = coverImage
+        self.coverImageLocked = coverImageLocked
+        self.itemCount = itemCount
+    }
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
         title = try container.decodeIfPresent(String.self, forKey: .title) ?? ""
         summary = try container.decodeIfPresent(String.self, forKey: .summary)
+        coverImage = try container.decodeIfPresent(String.self, forKey: .coverImage)
+        coverImageLocked =
+            try container.decodeIfPresent(Bool.self, forKey: .coverImageLocked) ?? false
+        itemCount = try container.decodeIfPresent(Int.self, forKey: .itemCount) ?? 0
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, summary
+        case id, title, summary, coverImage, coverImageLocked, itemCount
     }
 }
 
@@ -48,6 +79,14 @@ public struct KavitaReadingListItem: Sendable, Equatable, Identifiable, Decodabl
     public let chapterId: Int
     public let title: String?
     public let seriesName: String?
+    /// How far into this entry the server says the reader has gone.
+    public let pagesRead: Int
+    /// How many pages the entry has, as the server counts them.
+    ///
+    /// Zero is the server saying nothing rather than an empty chapter, and
+    /// `collections-and-reading-lists` asks for nothing to be claimed in that case. It is
+    /// the only honest signal: `pagesRead` is zero for an unread entry as well.
+    public let pagesTotal: Int
 
     /// What to call it in a list. The chapter's own title, or the series it belongs to.
     public var displayName: String {
@@ -63,10 +102,12 @@ public struct KavitaReadingListItem: Sendable, Equatable, Identifiable, Decodabl
         chapterId = try container.decodeIfPresent(Int.self, forKey: .chapterId) ?? 0
         title = try container.decodeIfPresent(String.self, forKey: .title)
         seriesName = try container.decodeIfPresent(String.self, forKey: .seriesName)
+        pagesRead = try container.decodeIfPresent(Int.self, forKey: .pagesRead) ?? 0
+        pagesTotal = try container.decodeIfPresent(Int.self, forKey: .pagesTotal) ?? 0
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, order, seriesId, chapterId, title, seriesName
+        case id, order, seriesId, chapterId, title, seriesName, pagesRead, pagesTotal
     }
 }
 

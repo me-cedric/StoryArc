@@ -45,6 +45,7 @@ import app.storyarc.core.designsystem.grid.steppedForFontScale
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.kavita.KavitaClient
+import app.storyarc.core.model.CompositeCover
 import app.storyarc.core.model.PinnedShelves
 import app.storyarc.core.model.PublicationCollection
 import app.storyarc.core.model.ReadingList
@@ -133,7 +134,9 @@ fun ShelvesScreen(
             }
             runCatching { client.readingLists() }.getOrNull()?.let { lists ->
                 holdsLists += server
-                found += lists.map { ServerShelf(server, it.id, it.title, isList = true) }
+                found += lists.map {
+                    ServerShelf(server, it.id, it.title, isList = true, chosenCover = it.coverImageLocked)
+                }
             }
         }
         serverShelves = found
@@ -467,15 +470,55 @@ private fun ServerShelfCard(
     pending: Int = 0,
     onOpen: () -> Unit,
 ) {
+    val client = remember(shelf.server.address) { KavitaClient(shelf.server.address) }
+
+    // The ids the composite stands on. `collections-and-reading-lists` wants the first four
+    // *members*, and a server names its members only when asked -- so the card reads its own
+    // shelf once. A collection is a set of series and a list is an ordered run of chapters,
+    // which is why the two ask different routes and load different artwork.
+    var tiles by remember(shelf) { mutableStateOf<List<String>>(emptyList()) }
+    LaunchedEffect(shelf) {
+        tiles = runCatching {
+            if (shelf.isList) {
+                client.readingListItems(shelf.id)
+                    .sortedBy { it.order }
+                    .take(CompositeCover.TILE_COUNT)
+                    .map { it.chapterId.toString() }
+            } else {
+                client.collected(shelf.id)
+                    .take(CompositeCover.TILE_COUNT)
+                    .map { it.id.toString() }
+            }
+        }.getOrDefault(emptyList())
+    }
+
     ShelfCard(
         viewModel = viewModel,
         title = shelf.title,
         subtitle = shelf.server.title,
-        tiles = emptyList(),
+        tiles = tiles,
         onOpen = onOpen,
         pending = pending,
+        cover = {
+            ServerShelfCover(
+                tiles = if (shelf.chosenCover) listOf(SERVER_COVER) else tiles,
+                load = { id ->
+                    // `coverImageLocked` is the spec's "unless the user sets a specific one".
+                    if (id == SERVER_COVER) {
+                        client.readingListCover(shelf.id)
+                    } else if (shelf.isList) {
+                        client.chapterCover(id.toInt())
+                    } else {
+                        client.seriesCover(id.toInt())
+                    }
+                },
+            )
+        },
     )
 }
+
+/** The one tile a shelf has when the reader chose its cover on the server. */
+private const val SERVER_COVER = "server-cover"
 
 /** Where the grouping came from, and how much is in it. */
 @Composable
@@ -518,4 +561,12 @@ data class ServerShelf(
     val id: Int,
     val title: String,
     val isList: Boolean,
+    /**
+     * Whether a reader chose this shelf's cover on the server.
+     *
+     * `collections-and-reading-lists` composites the first four members "unless the user sets
+     * a specific one", and Kavita's `coverImageLocked` is the server's word for having set
+     * one. False -- including for every server too old to send the field -- composites.
+     */
+    val chosenCover: Boolean = false,
 )

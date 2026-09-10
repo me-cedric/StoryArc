@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -96,6 +97,24 @@ internal fun ShelfCover(
         }
     }
 
+    ShelfComposite(tiles = tiles, covers = covers, modifier = modifier)
+}
+
+/**
+ * The composite itself: four quadrants, one cover, or a blank in the shape of one.
+ *
+ * Taken out of [ShelfCover] rather than copied so a server's shelf is drawn by the same rule
+ * as a local one, and so neither can drift. What differs between the two is only where the
+ * artwork comes from -- the library's own decoder, or a Kavita client -- so that is what the
+ * callers keep and this never learns. iOS's `ShelfComposite` is its twin.
+ */
+@Composable
+private fun ShelfComposite(
+    tiles: List<String>,
+    covers: Map<String, Bitmap>,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalStoryArcPalette.current
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -126,6 +145,36 @@ internal fun ShelfCover(
             else -> Tile(null, Modifier.fillMaxSize())
         }
     }
+}
+
+/**
+ * A server's own shelf, drawn from the artwork the server holds.
+ *
+ * The same composite a local shelf gets, fed by [load] instead of the library's decoder:
+ * Kavita's image routes want the reader's key, so the client is the only thing that can
+ * fetch them. [tiles] are the ids [load] is asked for -- chapter ids for a reading list, in
+ * the server's order, and series ids for a collection.
+ *
+ * A cover that never arrives leaves its quadrant blank rather than collapsing the composite,
+ * so a shelf whose server is away still lines up with the ones beside it.
+ */
+@Composable
+internal fun ServerShelfCover(
+    tiles: List<String>,
+    load: suspend (String) -> ByteArray,
+    modifier: Modifier = Modifier,
+) {
+    val covers = remember(tiles) { mutableStateMapOf<String, Bitmap>() }
+    LaunchedEffect(tiles) {
+        for (id in tiles) {
+            if (covers.containsKey(id)) continue
+            val bytes = runCatching { load(id) }.getOrNull() ?: continue
+            runCatching { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }
+                .getOrNull()
+                ?.let { covers[id] = it }
+        }
+    }
+    ShelfComposite(tiles = tiles, covers = covers, modifier = modifier)
 }
 
 /**
@@ -193,6 +242,11 @@ internal fun ShelfCard(
     isPinned: Boolean? = null,
     /** Puts it on the home surface, or takes it off. */
     onTogglePin: () -> Unit = {},
+    /**
+     * What to draw where the composite goes, for a shelf whose artwork the library does not
+     * hold. Null -- every local shelf -- draws [ShelfCover] over [tiles] as it always has.
+     */
+    cover: (@Composable () -> Unit)? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     var menuOpen by remember { mutableStateOf(false) }
@@ -209,7 +263,7 @@ internal fun ShelfCard(
             ),
     ) {
         Box {
-            ShelfCover(tiles = tiles, viewModel = viewModel)
+            if (cover != null) cover() else ShelfCover(tiles = tiles, viewModel = viewModel)
 
             // `design.md` on a cover cell: "progress as a thin rail across the bottom edge,
             // never a ring over the art". A reading list has one for the same reason a

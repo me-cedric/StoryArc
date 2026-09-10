@@ -32,6 +32,44 @@ struct ShelfCover: View {
     @State private var covers: [String: CGImage] = [:]
 
     var body: some View {
+        ShelfComposite(tiles: tiles, covers: covers)
+            // Re-asked when the library grows, not only when the tiles change: a shelf
+            // opened while the scan is still running has tiles whose publications are not
+            // there yet, and a task keyed on the tiles alone would never look a second time.
+            .task(id: loadKey) { await load() }
+    }
+
+    private var loadKey: [String] { tiles + ["\(model.publications.count)"] }
+
+    /// Asks the library for each tile's artwork.
+    ///
+    /// Through ``LibraryModel/cover(for:maxPixelSize:)``, which decodes off the main actor
+    /// and remembers what it decoded. Ten shelves ask for forty covers, and forty archives
+    /// opened on the main thread is a screen that does not move.
+    private func load() async {
+        let side = Int(width * displayScale)
+        for id in tiles where covers[id] == nil {
+            guard let publication = model.publications.first(where: { $0.id == id }) else {
+                continue
+            }
+            covers[id] = await model.cover(for: publication, maxPixelSize: side)
+        }
+    }
+}
+
+/// The composite itself: four quadrants, one cover, or a blank in the shape of one.
+///
+/// Taken out of ``ShelfCover`` rather than copied so a server's shelf is drawn by the same
+/// rule as a local one, and so neither can drift. What differs between the two is only where
+/// the artwork comes from — the library's own decoder, or a Kavita client — so that is what
+/// the callers keep and this never learns. Android's `ShelfComposite` is its twin.
+struct ShelfComposite: View {
+    @Environment(\.theme) private var theme
+
+    let tiles: [String]
+    let covers: [String: CGImage]
+
+    var body: some View {
         Group {
             if tiles.count >= CompositeCover.tileCount {
                 VStack(spacing: 0) {
@@ -57,13 +95,7 @@ struct ShelfCover: View {
         // The caption beside it says the shelf's name and how much is in it. Spoken here
         // as well, the composite would announce four covers nobody asked to hear about.
         .accessibilityHidden(true)
-        // Re-asked when the library grows, not only when the tiles change: a shelf opened
-        // while the scan is still running has tiles whose publications are not there yet,
-        // and a task keyed on the tiles alone would never look a second time.
-        .task(id: loadKey) { await load() }
     }
-
-    private var loadKey: [String] { tiles + ["\(model.publications.count)"] }
 
     @ViewBuilder
     private func tile(_ id: String) -> some View {
@@ -79,19 +111,34 @@ struct ShelfCover: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
     }
+}
 
-    /// Asks the library for each tile's artwork.
-    ///
-    /// Through ``LibraryModel/cover(for:maxPixelSize:)``, which decodes off the main actor
-    /// and remembers what it decoded. Ten shelves ask for forty covers, and forty archives
-    /// opened on the main thread is a screen that does not move.
-    private func load() async {
-        let side = Int(width * displayScale)
+/// A server's own shelf, drawn from the artwork the server holds.
+///
+/// The same composite a local shelf gets, fed by `load` instead of the library's decoder:
+/// Kavita's image routes want the reader's key, so the client is the only thing that can
+/// fetch them. `tiles` are the ids `load` is asked for — chapter ids for a reading list, in
+/// the server's order, and series ids for a collection.
+///
+/// A cover that never arrives leaves its quadrant blank rather than collapsing the
+/// composite, so a shelf whose server is away still lines up with the ones beside it.
+struct ServerShelfCover: View {
+    let tiles: [String]
+    let load: (String) async throws -> Data
+
+    @State private var covers: [String: CGImage] = [:]
+
+    var body: some View {
+        ShelfComposite(tiles: tiles, covers: covers)
+            .task(id: tiles) { await fetch() }
+    }
+
+    private func fetch() async {
         for id in tiles where covers[id] == nil {
-            guard let publication = model.publications.first(where: { $0.id == id }) else {
-                continue
-            }
-            covers[id] = await model.cover(for: publication, maxPixelSize: side)
+            guard let data = try? await load(id) else { continue }
+            #if canImport(UIKit)
+            covers[id] = UIImage(data: data)?.cgImage
+            #endif
         }
     }
 }
@@ -116,10 +163,20 @@ struct ShelfCard: View {
     var progress: ShelfProgress?
     /// How many edits this shelf still owes its online library.
     var pending: Int = 0
+    /// What to draw where the composite goes, for a shelf whose artwork the library does
+    /// not hold. Nil — every local shelf — draws ``ShelfCover`` over `tiles` as it always
+    /// has.
+    var cover: AnyView?
 
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
-            ShelfCover(model: model, tiles: tiles)
+            Group {
+                if let cover {
+                    cover
+                } else {
+                    ShelfCover(model: model, tiles: tiles)
+                }
+            }
                 .clipShape(.rect(cornerRadius: StoryArcRadius.sm))
                 .overlay {
                     RoundedRectangle(cornerRadius: StoryArcRadius.sm)
