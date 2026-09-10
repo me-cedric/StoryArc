@@ -231,7 +231,7 @@ fun KavitaChapters(
                     enabled = fetching == null,
                     modifier = Modifier.fillMaxWidth().padding(bottom = StoryArcSpace.md),
                 ) {
-                    Text(stringResource(R.string.kavita_continue, next.displayName))
+                    Text(stringResource(R.string.kavita_continue, chapterLabel(next)))
                 }
             }
         }
@@ -353,7 +353,8 @@ private fun ChapterRow(
         isKept -> stringResource(R.string.kavita_kept)
         else -> null
     }
-    val spoken = state?.let { "${chapter.displayName}, $it" } ?: chapter.displayName
+    val named = chapterLabel(chapter)
+    val spoken = state?.let { "$named, $it" } ?: named
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
@@ -370,7 +371,7 @@ private fun ChapterRow(
             .semantics(mergeDescendants = true) { contentDescription = spoken },
     ) {
         Text(
-            text = chapter.displayName,
+            text = named,
             style = MaterialTheme.typography.bodyLarge,
             color = palette.textPrimary,
             modifier = Modifier.weight(1f),
@@ -461,3 +462,16 @@ internal fun kavitaCacheFile(
     val directory = File(context.cacheDir, "kavita").apply { mkdirs() }
     return File(directory, "chapter-$chapterId.$extension")
 }
+
+/**
+ * What to call a chapter in a list.
+ *
+ * `KavitaChapter.displayName` is empty where the server gave neither a title nor a real
+ * number -- Kavita's `-100000` sentinel, which is a collected edition or a volume with one
+ * part. It leaves the word to the screen rather than inventing one, and this is the screen:
+ * a row saying *Unnumbered* under a series' own heading says what is true, where the
+ * sentinel said "-100000" and an empty row would say nothing at all.
+ */
+@Composable
+internal fun chapterLabel(chapter: KavitaChapter): String =
+    chapter.displayName.ifEmpty { stringResource(R.string.kavita_chapter_unnumbered) }

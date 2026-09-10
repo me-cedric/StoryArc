@@ -24,6 +24,12 @@ extension LibraryModel {
     public func restoreFolders() {
         guard folders.isEmpty else { return }
         restoreCachedLibrary()
+        // And the servers, which nothing asked on this platform. `library-browsing` wants
+        // one library over every source, and a reader whose library is one Kavita server
+        // and no folders opened the app to an empty shelf until they thought to pull it
+        // down: `readServers()` was reachable only from that gesture and from a source's
+        // own retry button. Android has always called it here.
+        Task { await readServers() }
         guard let bookmarks else {
             scan(documentsFolder)
             return

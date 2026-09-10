@@ -687,9 +687,8 @@ private fun Shelf(
     onOpenPage: (Publication) -> Unit,
     onOpenSeries: (String) -> Unit,
     onAddToShelf: (Publication) -> Unit,
-    /** Opens a source's own browser, from *more from this library* at the foot. */
+    /** *More from this library* at the foot: the sources, and what a tap on one does. */
     onBrowse: (Source) -> Unit,
-    /** The registry's sources, for that footer. Collected once, above. */
     sources: List<Source>,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -734,8 +733,7 @@ private fun Shelf(
                 sections = sections,
                 seriesRows = rows.series,
                 onOpenSeries = { onOpenSeries(it.name) },
-                onBrowse = onBrowse,
-                sources = sources,
+                onBrowse = onBrowse, sources = sources,
                 onOpen = onOpenPage,
                 onResume = resume,
                 onAddToShelf = onAddToShelf,
@@ -746,6 +744,7 @@ private fun Shelf(
             CoverList(
                 publications = shelved,
                 viewModel = viewModel,
+                onBrowse = onBrowse, sources = sources,
                 onOpen = onOpenPage,
                 selection = selection.ids.takeIf { selection.isActive },
                 onToggle = { onSelectionChange(selection.toggle(it.id)) },

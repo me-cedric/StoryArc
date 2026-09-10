@@ -102,7 +102,12 @@ extension LibraryModel {
     ///   stamps `now` into the snapshot, which would put the same lie on disk for the next
     ///   launch. ``LibraryScanner`` reports the fact per directory; ``LibraryScanning`` is
     ///   where it is gathered.
-    func cacheLibrary(partial: Bool = false) {
+    /// - Parameter claimsFreshness: whether this write also means the shelf on screen is
+    ///   current. False for a server read, which happens *beside* the folder walk rather
+    ///   than after it: the rows it found are worth keeping for the next launch, and
+    ///   saying "not cached any more" while the walk is still going — or was partial —
+    ///   would be the indicator answering a question nobody asked it.
+    func cacheLibrary(partial: Bool = false, claimsFreshness: Bool = true) {
         // ``LibrarySnapshot/worthWriting(partial:shelf:cached:)`` is the decision, and
         // Android's `LibrarySnapshot` is the same two refusals in the same order.
         let cached = libraryCache.read()?.publications.count ?? 0
@@ -122,6 +127,6 @@ extension LibraryModel {
                 locations: locations.reduce(into: [:]) { $0[$1.key] = $1.value.path(percentEncoded: false) }
             )
         )
-        cachedAt = nil
+        if claimsFreshness { cachedAt = nil }
     }
 }

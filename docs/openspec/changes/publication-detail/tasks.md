@@ -22,9 +22,11 @@ for something the change has since decided against is left unticked with the
 decision cited, never ticked and never dropped. **A `[~]` is a third state**: the code and
 its tests have landed and a named capture has not. `pnpm partial:tasks` counts all three,
 because `openspec-guard` counts only the first two and would otherwise call this change
-archivable. **Twelve of twenty-nine are ticked, nine are partial, eight are open**, which is what
-`pnpm partial:tasks` counts. Phase 6 added six open tasks on 2026-09-10, from a defect found
-in the field; before it the count was twelve, nine and two. The wording before that said
+archivable. **Twelve of twenty-nine are ticked, thirteen are partial, four are open**, which is what
+`pnpm partial:tasks` counts. Phase 6 added six tasks on 2026-09-10, from a defect found in the
+field, and four of them went straight to partial the same day: their code and unit tests landed
+on branch `fix/primary-action-needs-a-copy` and their captures are owed. Before Phase 6 the count
+was twelve, nine and two. The wording before that said
 eight and three; task 4.1 moved from open to partial when the iPad detail column landed.
 
 **Audited against `main` at `6c931e61`, 2026-08-31**, with `path:line` evidence
@@ -1656,7 +1658,13 @@ sweep:
 4. **`canOpen` answers true for a remote PDF.** `openPdf` has no remote branch
    (`PublicationAccess.kt:62-67`).
 
-- [ ] **6.1** The decision offers no read it cannot honour.
+- [~] **6.1** The decision offers no read it cannot honour.
+
+      **Code and tests landed** on branch `fix/primary-action-needs-a-copy`, 2026-09-10.
+      `primaryActionOf` now asks `StreamingOffer.of` and its tail returns the copy.
+      `DetailActionsTest` replaced `aStreamableBookOpensWithoutBeingDownloadedFirst` — the test
+      that pinned the defect — with three cases, and runs 18 tests green.
+      `DetailNeedsCopyTest` adds five. **Capture owed: 6.5 frame 1.**
 
       Test first, in
       `apps/android/feature/library/src/test/kotlin/app/storyarc/feature/library/DetailActionsTest.kt`:
@@ -1672,7 +1680,12 @@ sweep:
 
       Validation: `cd apps/android && ./gradlew :feature:library:testDebugUnitTest`.
 
-- [ ] **6.2** The page draws the copy, and offers no read anywhere.
+- [~] **6.2** The page draws the copy, and offers no read anywhere.
+
+      **Code and tests landed**, 2026-09-10. `DetailNeedsCopyTest` composes the page for an
+      absent publication whose library answers and asserts the download as the primary action,
+      the sentence beside it, and no read control in the hero or the overflow.
+      **Capture owed: 6.5 frames 1 and 2.**
 
       Test first, a Robolectric composition beside the existing detail tests in
       `apps/android/feature/library/src/test/kotlin/app/storyarc/feature/library/`:
@@ -1684,7 +1697,16 @@ sweep:
 
       Validation: the same Gradle task, and the capture named in 6.5.
 
-- [ ] **6.3** A download from this page is a queued download.
+- [~] **6.3** A download from this page is a queued download.
+
+      **Code and tests landed**, 2026-09-10. The page's route for a catalogue publication now
+      goes through `DownloadQueue.enqueue`, which records the source and asks `DownloadService`
+      to follow the transfer. `DownloadQueueEnqueueTest` asserts both.
+      **One deliberate departure from this task's wording:** the `keepForOffline` call stays for
+      an SMB row. `DownloadQueue` transfers with `OpdsClient`, which refuses every scheme that is
+      not http or https, so the queue cannot carry a share row — deleting that route would leave
+      an SMB publication with no way to obtain a copy at all. The two routes are disjoint in the
+      code: catalogue rows queue, share rows copy. **Capture owed: 6.5 frame 4.**
 
       Test first, beside `DownloadQueueConnectionTest` in
       `apps/android/feature/library/src/test/kotlin/app/storyarc/feature/library/`:
@@ -1701,7 +1723,12 @@ sweep:
 
       Validation: `cd apps/android && ./gradlew :feature:library:testDebugUnitTest :app:testDebugUnitTest`.
 
-- [ ] **6.4** One queue per source, owned in one place.
+- [~] **6.4** One queue per source, owned in one place.
+
+      **Code landed**, 2026-09-10. The queue is owned in `AppDependencies` and the catalogue
+      screens take the shared one; the `remember(page.url)` construction site is gone, so this
+      task removed a site rather than adding one. **Capture owed: 6.5 frame 4**, which is what
+      shows the notification surviving the reader leaving the page.
 
       The catalogue screens stop building their own with `remember(page.url)`
       (`apps/android/app/src/main/kotlin/app/storyarc/AppScreens.kt`) and take the

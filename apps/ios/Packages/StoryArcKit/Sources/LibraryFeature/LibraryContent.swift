@@ -165,11 +165,6 @@ extension LibraryView {
                         selection: selection.isActive ? selection.ids : nil,
                         onToggle: { selection.toggle($0.id) }
                     )
-                    MoreFromTheLibrary(
-                        sources: model.registry.sources,
-                        isPartial: model.isPartial,
-                        onBrowse: { browsing = $0.id }
-                    )
                 } else {
                     CoverList(
                         publications: shown,
@@ -179,6 +174,16 @@ extension LibraryView {
                         onToggle: { selection.toggle($0.id) }
                     )
                 }
+                // After all three, not inside one of them. It was inside the plain-grid
+                // branch, so a library long enough to divide into sections — which is what
+                // a partial server library looks like — showed no way to the rest of it,
+                // in exactly the case the affordance exists for. Android draws it after
+                // its three branches for the same reason.
+                MoreFromTheLibrary(
+                    sources: model.registry.sources,
+                    isPartial: model.isPartial,
+                    onBrowse: { browsing = $0.id }
+                )
             } else if surface == .onDevice {
                 // Nothing to narrow and nothing to scan: this destination holds what the
                 // device holds, so the only honest thing to say is that it holds nothing

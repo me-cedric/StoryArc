@@ -48,6 +48,7 @@ import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.MatchGroup
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.Source
 
 /**
  * The compact list.
@@ -62,6 +63,10 @@ import app.storyarc.core.model.Publication
 internal fun CoverList(
     publications: List<Publication>,
     viewModel: LibraryViewModel,
+    /** What a tap on *more from this library* does. Null draws no foot at all. */
+    onBrowse: ((Source) -> Unit)? = null,
+    /** The registry's sources, for that foot. Collected by the caller, not read here. */
+    sources: List<Source> = emptyList(),
     /**
      * What to do when a row is tapped: show that publication's page.
      *
@@ -128,6 +133,13 @@ internal fun CoverList(
                 }
                 items(group.publications, key = { it.id }) { row(it) }
             }
+        }
+
+        // The same foot the grid has. `library-browsing` asks for the way to the rest of a
+        // library "at the foot of the shelf", and the list is the shelf too — a reader who
+        // prefers rows was the one reader it did not reach.
+        item(key = "more-from") {
+            MoreFromTheLibrary(sources = sources, isPartial = viewModel::isPartial, onBrowse = onBrowse)
         }
     }
 }

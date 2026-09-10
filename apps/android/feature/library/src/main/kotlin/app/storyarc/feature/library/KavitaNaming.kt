@@ -12,15 +12,21 @@ import app.storyarc.core.kavita.KavitaSeries
  * and a line under it reading the same name and "#-100000".
  *
  * **Kavita writes `-100000` for a chapter with no number at all**: a collected edition, a
- * volume with one part. It is a sentinel and not a number, and neither is any other negative.
- * `KavitaChapter.displayName` does not know that -- it falls back to the bare number -- so
- * nothing here uses it.
+ * volume with one part. It is a sentinel and not a number, and neither is any other
+ * negative. `KavitaChapter.issueNumber` is where that rule lives, so a screen drawing a
+ * chapter and a shelf drawing a row cannot disagree about it -- which they did, and a
+ * reader met "-100000" in a chapter list while the shelf beside it was already guarded.
  */
 internal object KavitaNaming {
 
-    /** The chapter's issue number, or null where Kavita is saying it has none. */
-    fun issueNumber(chapter: KavitaChapter): String? =
-        chapter.number.takeIf { it.isNotBlank() && !it.startsWith("-") }
+    /**
+     * The chapter's issue number, or null where Kavita is saying it has none.
+     *
+     * `KavitaChapter.issueNumber` is where the rule lives now -- every screen that draws a
+     * chapter needs the same answer, and one that asked separately is how "-100000"
+     * reached a chapter list while the shelf was already guarded against it.
+     */
+    fun issueNumber(chapter: KavitaChapter): String? = chapter.issueNumber
 
     /**
      * The title a reader sees.

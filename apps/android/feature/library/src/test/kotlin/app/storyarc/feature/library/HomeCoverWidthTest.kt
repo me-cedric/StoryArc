@@ -133,22 +133,41 @@ class HomeCoverWidthTest {
     }
 
     @Test
-    fun `no window of any shape asks for a card of no width`() {
-        for (width in listOf(0, 240, 300, 360, 411, 600, 891, 1280)) {
+    fun `every window with room in it gets a card, and none overflows`() {
+        // The property as it actually is, which the name of this test used to overstate.
+        // A window with room gets a positive card; a window of 40 dp or less has no room
+        // at all after its gutters and gets exactly nothing, which is the pre-layout frame
+        // and not a shape a reader is ever in.
+        for (width in listOf(240, 300, 360, 411, 600, 891, 1280)) {
             for (height in listOf(0, 200, 320, 411, 640, 800, 914, 1280)) {
                 for (scale in listOf(1f, 1.3f, 2f)) {
                     val hero = homeHeroWidth(width, height, scale)
                     assertTrue(
-                        "A \${width}x\$height window at scale \$scale asked for \$hero.",
-                        hero >= 0.dp,
+                        "A ${width}x$height window at scale $scale asked for $hero.",
+                        hero > 0.dp,
                     )
                     assertTrue(
-                        "A \${width}x\$height window at scale \$scale overflowed its room.",
-                        hero <= (width.dp - StoryArcSpace.gutter * 2).coerceAtLeast(0.dp),
+                        "A ${width}x$height window at scale $scale overflowed its room.",
+                        hero <= width.dp - StoryArcSpace.gutter * 2,
                     )
                 }
             }
         }
+    }
+
+    @Test
+    fun `a window with no room asks for nothing, and the carousel is the one that must check`() {
+        // `LocalWindowInfo.containerSize` is zero for a frame or two before the layout
+        // has measured, and two gutters take the rest of anything narrower than 40 dp. So
+        // zero *is* reachable, and `HorizontalUncontainedCarousel` throws on it — which is
+        // why `HomeScreen` guards the carousel with `if (width <= 0.dp) return@item`.
+        //
+        // Stated here rather than left implied, because this test's older name said "no
+        // window of any shape asks for a card of no width" and asserted only `>= 0`. A
+        // reader who believed the name would read that guard as dead code and delete it.
+        assertEquals(0.dp, homeHeroWidth(windowWidthDp = 0, windowHeightDp = 0, fontScale = 1f))
+        assertEquals(0.dp, homeHeroWidth(windowWidthDp = 40, windowHeightDp = 900, fontScale = 1f))
+        assertTrue(homeHeroWidth(windowWidthDp = 41, windowHeightDp = 900, fontScale = 1f) > 0.dp)
     }
 
     @Test

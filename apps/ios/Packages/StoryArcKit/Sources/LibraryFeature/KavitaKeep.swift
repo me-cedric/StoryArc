@@ -65,9 +65,10 @@ enum KavitaKeep {
         let (chapter, series, origin, sourceID) =
             (subject.chapter, subject.series, subject.origin, subject.sourceID)
 
-        let title = chapter.displayName.isEmpty
-            ? "\(series.name) \(chapter.number)"
-            : chapter.displayName
+        // The same name the shelf gives it. The raw `displayName` was the bug: empty for
+        // an unnumbered chapter, and the fallback spelled the sentinel straight into the
+        // file's name, so a kept collected edition landed on disk as "-100000.cbz".
+        let title = KavitaContributor.title(of: chapter, in: series)
 
         guard let fetched = try? await client.chapter(chapter.id),
               let staged = kavitaCacheFile(
@@ -196,7 +197,9 @@ enum KavitaKeep {
             seriesId: subject.series.id,
             chapterId: subject.chapter.id,
             seriesName: subject.series.name,
-            chapterName: subject.chapter.displayName,
+            // The card's name is written straight over `Publication.displayTitle` when the
+            // download is adopted, so it has to be the shelf's name and not the raw one.
+            chapterName: KavitaContributor.title(of: subject.chapter, in: subject.series),
             summary: subject.metadata?.summary,
             people: subject.metadata?.people ?? [],
             subjects: subject.metadata?.subjects ?? [],

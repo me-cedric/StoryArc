@@ -419,4 +419,5 @@
         <item quantity="other">%1$d bibliothèques sont encore en cours de lecture</item>
     </plurals>
     <string name="library_more_from">Plus depuis %1$s</string>
+    <string name="kavita_chapter_unnumbered">Sans numéro</string>
 </resources>

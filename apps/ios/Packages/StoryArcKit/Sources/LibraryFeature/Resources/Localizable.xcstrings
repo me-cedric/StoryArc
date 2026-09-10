@@ -3332,6 +3332,35 @@
         }
       }
     },
+    "kavita.chapter.unnumbered": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ohne Nummer"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unnumbered"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin número"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sans numéro"
+          }
+        }
+      }
+    },
     "kavita.confirmed %@": {
       "extractionState": "manual",
       "localizations": {

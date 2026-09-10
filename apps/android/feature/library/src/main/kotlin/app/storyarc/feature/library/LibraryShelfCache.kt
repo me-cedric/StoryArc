@@ -40,8 +40,18 @@ internal class LibraryShelfCache(private val cache: LibraryCache) {
      * @param partial whether the walk that produced this shelf met something it could not
      *   read. A partial walk has refreshed nothing, so it neither clears the indicator nor
      *   stamps `now` on to disk.
+     * @param claimsFreshness whether this write also means the shelf on screen is current.
+     *   False for a server read, which happens *beside* the folder walk rather than after
+     *   it: the rows it found are worth keeping for the next launch, and saying "not
+     *   cached any more" while the walk is still going -- or was partial -- would be the
+     *   indicator answering for a question nobody asked it.
      */
-    fun write(publications: List<Publication>, locations: Map<String, String>, partial: Boolean) {
+    fun write(
+        publications: List<Publication>,
+        locations: Map<String, String>,
+        partial: Boolean,
+        claimsFreshness: Boolean = true,
+    ) {
         val cached = cache.read()?.publications?.size ?: 0
         if (!LibrarySnapshot.worthWriting(partial, publications.size, cached)) return
         cache.write(
@@ -51,7 +61,7 @@ internal class LibraryShelfCache(private val cache: LibraryCache) {
                 locations = locations,
             ),
         )
-        _cachedAt.value = null
+        if (claimsFreshness) _cachedAt.value = null
     }
 
     /** Throws the snapshot away, for a library that really is empty. */

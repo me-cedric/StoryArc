@@ -45,8 +45,21 @@ enum PaginatedScroll {
 final class TurnGestures: NSObject {
     private var turn: ((Bool) -> Void)?
     private var reveal: (() -> Void)?
-    /// A quarter of the width, matching the comic reader's own edge-tap band.
-    private static let edgeFraction: CGFloat = 0.25
+    /// Whether a tap in an edge band turns the page at all.
+    ///
+    /// `page-transitions` makes the zones a setting, and this reader ignored it: a reader
+    /// who turned *Tapping the page turns it* off, opened an EPUB and chose Fast fade
+    /// still turned pages by tapping, while the comic reader beside it obeyed. The comic
+    /// reader takes the flag from the environment; this package cannot see that key, and
+    /// it does not need to — ``EpubReaderView`` already holds the settings.
+    private var tapTurnsPages = true
+    /// A third of the width, which is the comic reader's own band.
+    ///
+    /// It was a quarter, which left half the screen doing nothing but revealing the
+    /// chrome and disagreed with `page-transitions`' "each zone is a third of the
+    /// screen's width". `ZoomablePage.edgeZoneFraction` is the same number in the other
+    /// package, and `ReaderTapZonesTests` is where the two are held together.
+    private static let edgeFraction: CGFloat = 1.0 / 3.0
     /// Enough travel to mean a turn rather than a stray finger.
     private static let panThreshold: CGFloat = 40
 
@@ -58,7 +71,13 @@ final class TurnGestures: NSObject {
     /// Called on every update rather than once at creation, because a reader chooses a
     /// page turn *after* the book is open. Idempotent: the same mode twice changes
     /// nothing, and switching back to Slide gives Readium its scroll and its swipe.
-    func apply(turn: ((Bool) -> Void)?, reveal: @escaping () -> Void, on view: UIView) {
+    func apply(
+        turn: ((Bool) -> Void)?,
+        reveal: @escaping () -> Void,
+        tapTurnsPages: Bool,
+        on view: UIView
+    ) {
+        self.tapTurnsPages = tapTurnsPages
         let shouldOwn = turn != nil
         guard shouldOwn != !installed.isEmpty || host !== view else {
             self.turn = turn
@@ -92,9 +111,12 @@ final class TurnGestures: NSObject {
         let view = recogniser.view ?? UIView()
         let point = recogniser.location(in: view)
         let band = view.bounds.width * Self.edgeFraction
-        if point.x < band {
+        // `page-transitions`: with the zones off "a tap anywhere toggles the chrome, and
+        // no tap turns a page". Not "no tap does anything" — the way back to the menu is
+        // the one thing a reader still needs from a tap.
+        if tapTurnsPages, point.x < band {
             turn?(false)
-        } else if point.x > view.bounds.width - band {
+        } else if tapTurnsPages, point.x > view.bounds.width - band {
             turn?(true)
         } else {
             reveal?()

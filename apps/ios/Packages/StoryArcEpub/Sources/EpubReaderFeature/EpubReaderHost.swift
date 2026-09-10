@@ -21,6 +21,8 @@ struct NavigatorHost: UIViewControllerRepresentable {
     let navigator: EPUBNavigatorViewController
     /// Non-nil when StoryArc draws the turn. See ``EpubReaderModel/ownsTheTurn``.
     let turn: ((Bool) -> Void)?
+    /// Whether an edge tap turns the page. `page-transitions` makes it a reader's setting.
+    let tapTurnsPages: Bool
     let onTap: () -> Void
 
     func makeUIViewController(context: Context) -> EPUBNavigatorViewController {
@@ -43,7 +45,12 @@ struct NavigatorHost: UIViewControllerRepresentable {
     /// set up for whatever mode the book happened to open in — so choosing Fast fade did
     /// nothing at all, which is exactly how this was found.
     func updateUIViewController(_ controller: EPUBNavigatorViewController, context: Context) {
-        context.coordinator.apply(turn: turn, reveal: onTap, on: controller.view)
+        context.coordinator.apply(
+            turn: turn,
+            reveal: onTap,
+            tapTurnsPages: tapTurnsPages,
+            on: controller.view
+        )
     }
 }
 

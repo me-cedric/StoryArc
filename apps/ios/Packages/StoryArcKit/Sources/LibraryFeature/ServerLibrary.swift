@@ -103,6 +103,10 @@ extension LibraryModel {
         // walk finished, so a reader whose library is one server and no folders had nothing
         // cached and opened the app offline to an empty shelf. A server's row has no file
         // behind it, so this is the only thing that carries it across a launch.
-        cacheLibrary()
+        //
+        // It does not claim the shelf is fresh. This runs beside the folder walk, not
+        // after it, so clearing the indicator here would answer for a walk that may still
+        // be going — and one that met an unreadable directory has refreshed nothing.
+        cacheLibrary(claimsFreshness: false)
     }
 }

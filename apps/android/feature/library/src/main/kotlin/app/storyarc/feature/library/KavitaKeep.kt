@@ -172,7 +172,11 @@ object KavitaKeep {
         seriesId = series.id,
         chapterId = chapter.id,
         seriesName = series.name,
-        chapterName = chapter.displayName,
+        // The same name the shelf gives it. `chapter.displayName` is the raw one, empty
+        // for an unnumbered chapter, and the card's name is written straight over
+        // `Publication.displayTitle` when the download is adopted -- so an empty one here
+        // is a shelf row with no title, and the sentinel was worse.
+        chapterName = KavitaNaming.title(series, chapter),
         summary = metadata?.summary,
         people = metadata?.people.orEmpty(),
         subjects = metadata?.subjects.orEmpty(),

@@ -130,7 +130,7 @@ struct KavitaChapterList: View {
                 Button {
                     Task { await open(resume) }
                 } label: {
-                    Text("kavita.continue \(resume.displayName)", bundle: .module)
+                    Text("kavita.continue \(label(resume))", bundle: .module)
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -166,7 +166,7 @@ struct KavitaChapterList: View {
             Task { await open(chapter) }
         } label: {
             HStack(spacing: StoryArcSpace.sm) {
-                Text(chapter.displayName)
+                Text(label(chapter))
                     .foregroundStyle(theme.palette.textPrimary)
 
                 Spacer(minLength: 0)
@@ -234,17 +234,31 @@ struct KavitaChapterList: View {
         }
     }
 
+    /// What to call a chapter in this list.
+    ///
+    /// `KavitaChapter.displayName` is empty where the server gave neither a title nor a
+    /// real number — Kavita's `-100000` sentinel, which is a collected edition or a volume
+    /// with one part. It leaves the word to the screen rather than inventing one, and this
+    /// is the screen: a row saying *Unnumbered* under a series' own heading says what is
+    /// true, where the sentinel said "-100000" and an empty row would say nothing at all.
+    /// Android's `chapterLabel` is the twin.
+    private func label(_ chapter: KavitaChapter) -> String {
+        let name = chapter.displayName
+        guard name.isEmpty else { return name }
+        return String(localized: "kavita.chapter.unnumbered", bundle: .module, locale: .storyArc)
+    }
+
     /// What a screen reader hears. The tick and the spinner carry no text of their own.
     private func spoken(_ chapter: KavitaChapter) -> String {
         if fetching == chapter.id {
-            return "\(chapter.displayName), " +
+            return "\(label(chapter)), " +
                 String(localized: "kavita.fetching", bundle: .module, locale: .storyArc)
         }
         if chapter.isFinished {
-            return "\(chapter.displayName), " +
+            return "\(label(chapter)), " +
                 String(localized: "library.readState.finished", bundle: .module, locale: .storyArc)
         }
-        return chapter.displayName
+        return label(chapter)
     }
 
     /// Fetches a chapter and hands it to the reader.

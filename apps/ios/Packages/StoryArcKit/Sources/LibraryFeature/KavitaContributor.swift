@@ -93,9 +93,14 @@ enum KavitaContributor {
     /// Kavita writes `-100000` for a chapter with no number at all: a collected edition, or
     /// a volume with one part. Any negative is treated the same way, because none of them is
     /// an issue number.
-    private static func issueNumber(of chapter: KavitaChapter) -> String? {
-        guard !chapter.number.isEmpty, !chapter.number.hasPrefix("-") else { return nil }
-        return chapter.number
+    /// `KavitaChapter.issueNumber` is where the rule lives now — every screen that draws a
+    /// chapter needs the same answer, and one that asked separately is how "-100000"
+    /// reached a chapter list while the shelf was already guarded against it.
+    static func issueNumber(of chapter: KavitaChapter) -> String? { chapter.issueNumber }
+
+    /// The title a reader sees, for a chapter kept as a download as well as for a row.
+    static func title(of chapter: KavitaChapter, in series: KavitaSeries) -> String {
+        title(series: series, chapter: chapter)
     }
 
     /// Kavita's `MangaFormat` as this app's own.

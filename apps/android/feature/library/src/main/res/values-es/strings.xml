@@ -417,4 +417,5 @@
         <item quantity="other">Se están leyendo %1$d bibliotecas</item>
     </plurals>
     <string name="library_more_from">Más de %1$s</string>
+    <string name="kavita_chapter_unnumbered">Sin número</string>
 </resources>

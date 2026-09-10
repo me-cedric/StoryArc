@@ -120,7 +120,11 @@ public struct EpubReaderView: View {
                     // exactly as it was. Only Fast fade takes it over.
                     turn: model.ownsTheTurn ? { forward in
                         Task { await model.turnWithFade(forward: forward) }
-                    } : nil
+                    } : nil,
+                    // The reader's own setting, which this reader used to ignore. On by
+                    // default, and by default here too: a reader with no settings at all
+                    // is a preview or a test, and the zones are on for them.
+                    tapTurnsPages: settings?.turnPagesByTappingTheEdges ?? true
                 ) {
                     withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible.toggle() }
                 }

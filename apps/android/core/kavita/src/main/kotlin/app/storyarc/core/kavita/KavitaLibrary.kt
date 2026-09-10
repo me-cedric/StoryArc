@@ -121,12 +121,26 @@ data class KavitaChapter(
     val seriesId: Int = 0,
 ) {
     /**
-     * What to call it in a list.
+     * The chapter's issue number, or null where Kavita is saying it has none.
      *
-     * The title when the server has one, the number when it does not. Kavita leaves the
-     * title empty for a plain numbered issue, and "3" beats an empty row.
+     * **`-100000` is a sentinel, not a number.** Kavita writes it for a chapter with no
+     * number at all -- a collected edition, a volume with one part -- and any negative is
+     * treated the same way, because none of them is an issue number. One place, here,
+     * because every screen that draws a chapter needs the same answer and the ones that
+     * asked separately disagreed: a reader met "-100000" as a row in a chapter list, as
+     * "Continue -100000", and as the name of a downloaded file.
      */
-    val displayName: String get() = title?.takeIf { it.isNotEmpty() } ?: number
+    val issueNumber: String? get() = number.takeIf { it.isNotBlank() && !it.startsWith("-") }
+
+    /**
+     * What to call it in a list, or empty when the server gave nothing to call it.
+     *
+     * The title when the server has one, the number when it does not, and *nothing* when
+     * the number is the sentinel -- an empty string rather than a made-up label, because
+     * what to say instead is the screen's decision and a screen has its own words for it.
+     * Kavita leaves the title empty for a plain numbered issue, and "3" beats an empty row.
+     */
+    val displayName: String get() = title?.takeIf { it.isNotEmpty() } ?: issueNumber.orEmpty()
 
     val isFinished: Boolean get() = pages > 0 && pagesRead >= pages
 }
