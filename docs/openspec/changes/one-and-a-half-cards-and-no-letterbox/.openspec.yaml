@@ -1,0 +1,8 @@
+schema: spec-driven
+created: 2026-09-10
+# The behaviour this builds is specified in `home-screen`, which has no main spec yet: it
+# is ADDed by `one-library-three-destinations`, so a MODIFIED delta here would carry the
+# requirement off on archive rather than publish it — which `pnpm delta:drop` refuses, and
+# rightly. The three scenarios live in that change's own delta instead, added at the same
+# time as this one, and this change is the implementation of them.
+skip_specs: true

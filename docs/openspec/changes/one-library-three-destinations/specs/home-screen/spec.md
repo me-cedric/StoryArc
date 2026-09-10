@@ -59,6 +59,17 @@ through, most recently read first, and SHALL make resuming one a single action.
 - **WHEN** the home surface is shown on a phone at the default text size
 - **THEN** the next section's heading is visible without scrolling, so a reader can see that the surface continues
 - **AND** the card stays large enough to be the surface's one emphasis, because the hero is a resume affordance and not a thumbnail
+- **AND** about one and a half cards fit across a phone, so the second is plainly a second and not a thumbnail beside a hero
+
+#### Scenario: Every card in the row is the same size
+- **WHEN** more than one publication is in Keep reading
+- **THEN** every card in the row has the same width and the same height, whatever its title, its byline or its artwork
+- **AND** the resume affordance sits at the same height on every card, so a reader's thumb finds it without reading first
+
+#### Scenario: Artwork is not letterboxed
+- **WHEN** a publication's cover is not the shape of the card's artwork area
+- **THEN** the cover is drawn whole at its own proportions with no bar of background above, below or beside it
+- **AND** it is never cropped to fill the area, because a cover cropped to a shape it is not loses the part of the artwork that carries the title
 
 ### Requirement: Up next
 
