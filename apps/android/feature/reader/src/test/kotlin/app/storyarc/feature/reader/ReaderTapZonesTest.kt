@@ -1,5 +1,7 @@
 package app.storyarc.feature.reader
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.IntSize
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -66,5 +68,40 @@ class ReaderTapZonesTest {
         assertEquals("back", zone(x = 600f, width = 2400f))
         assertEquals("chrome", zone(x = 1200f, width = 2400f))
         assertEquals("forward", zone(x = 1800f, width = 2400f))
+    }
+
+    /** Where a tap in one half of a spread lands once [spreadTap] has rescaled it. */
+    private fun spreadZone(half: Int, x: Float, halfWidth: Float = 600f): String {
+        val (point, area) = spreadTap(half, Offset(x, 0f), IntSize(halfWidth.toInt(), 900))
+        return zone(x = point.x, width = area.width.toFloat())
+    }
+
+    @Test
+    fun `a spread is measured against the whole spread, not against one page`() {
+        val (point, area) = spreadTap(half = 1, Offset(x = 100f, y = 40f), IntSize(600, 900))
+
+        assertEquals(Offset(700f, 40f), point)
+        assertEquals(IntSize(1200, 900), area)
+    }
+
+    @Test
+    fun `the leading half of a spread is not two thirds a turn zone`() {
+        // A third of a half is a sixth, so measuring against one page would turn the page
+        // for everything past 200 -- including the inner edge of the leading page, which is
+        // the middle of the spread and belongs to the chrome.
+        assertEquals("back", spreadZone(half = 0, x = 100f))
+        assertEquals("chrome", spreadZone(half = 0, x = 500f))
+    }
+
+    @Test
+    fun `the middle of a spread toggles the chrome from either side of the fold`() {
+        assertEquals("chrome", spreadZone(half = 0, x = 599f))
+        assertEquals("chrome", spreadZone(half = 1, x = 1f))
+    }
+
+    @Test
+    fun `the outer edges of a spread still turn the page`() {
+        assertEquals("back", spreadZone(half = 0, x = 10f))
+        assertEquals("forward", spreadZone(half = 1, x = 590f))
     }
 }

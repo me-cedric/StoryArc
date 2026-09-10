@@ -852,14 +852,8 @@ private fun Pager(
                     contentAlignment = Alignment.Center,
                 ) {
                     SinglePage(index, stitch = null) { point, size ->
-                        // The halves are equal, so a tap in one is a tap in the same place
-                        // on a screen twice as wide. Without this the edge zones would be
-                        // measured against half the screen, and the middle of a spread
-                        // would turn the page.
-                        handleTap(
-                            Offset(if (half == 0) point.x else point.x + size.width, point.y),
-                            IntSize(size.width * 2, size.height),
-                        )
+                        val (whole, area) = spreadTap(half, point, size)
+                        handleTap(whole, area)
                     }
                 }
             }
@@ -1729,6 +1723,23 @@ internal fun trimPressure(level: Int): MemoryPressure = when {
  * `ReaderTapZonesTest` on each platform is what stops the two drifting.
  */
 internal const val EDGE_ZONE_FRACTION = 1f / 3f
+
+/**
+ * A tap in one half of a landscape spread, in the coordinates of the whole spread.
+ *
+ * The halves are equal, so a tap in one is a tap in the same place on a screen twice as
+ * wide. Without this the zones would be measured against half the screen and the middle of
+ * a spread would turn the page -- a third of a half is a sixth, so two thirds of a spread
+ * would turn, which is the opposite of what `page-transitions` asks for.
+ *
+ * A function of its own, rather than the two lines it replaced inside the composable,
+ * because `ReaderTapZonesTest` cannot reach a lambda in a `Row`.
+ *
+ * @param half 0 for the leading half of the spread as drawn, 1 for the trailing one.
+ */
+internal fun spreadTap(half: Int, point: Offset, size: IntSize): Pair<Offset, IntSize> =
+    Offset(if (half == 0) point.x else point.x + size.width, point.y) to
+        IntSize(size.width * 2, size.height)
 
 /**
  * The cross-dissolve, short enough not to read as an animation.

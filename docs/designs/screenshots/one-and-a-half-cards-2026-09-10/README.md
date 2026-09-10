@@ -55,3 +55,21 @@ label wraps inside the button. Both are out of this change's scope — the
 size", and the wrapped label is the Material button doing what it does in a
 narrow card. They are recorded here so the next reader knows they were seen
 and left, not missed.
+
+## The crash the frames found
+
+`android-keep-reading-landscape.png` — the same row on a landscape phone,
+after the fix.
+
+Widening the card made its width depend on the window's height, and a
+landscape phone has less room above the fold than the chrome and the next
+heading want. The inverse of a budget already overspent is a negative width,
+which `HorizontalUncontainedCarousel` takes as an item width and throws on:
+`IndexOutOfBoundsException: Index -1 out of bounds for length 4` from
+`createKeylinesWithPivot`, which took Home down on every launch while the
+phone was on its side. Every unit test passed. Rotating the phone is what
+found it.
+
+`homeHeroWidth` now floors the height's answer at 200 dp — the width the card
+had before this change — so a window too short for the rule gets the hero it
+used to have.

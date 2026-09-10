@@ -68,6 +68,9 @@ struct SettingsStoreTests {
         // Off, because `settings-and-about` says the two are separate and this is the
         // opt-in it then allows.
         #expect(!settings.linkReadingThemeToAppearance)
+        // On, because `page-transitions` makes the tap zones the default way to turn a
+        // page. Android's `TapZonesDefaultTest` asserts the same two facts.
+        #expect(settings.turnPagesByTappingTheEdges)
     }
 
     @Test("Settings written before a field existed still read")
@@ -84,6 +87,8 @@ struct SettingsStoreTests {
         let settings = suite.settings.settings()
         #expect(settings.appearance == .dark)
         #expect(!settings.turnPagesWithVolumeButtons)
+        // The field this build added, missing from what the earlier one wrote.
+        #expect(settings.turnPagesByTappingTheEdges)
     }
 
     @Test("Changing appearance leaves the reading theme alone")

@@ -280,6 +280,9 @@ private fun LazyListScope.keepReading(
             LocalDensity.current.fontScale,
         )
         val state = rememberCarouselState { surface.keepReading.size }
+        // A window with no room reports none for a frame or two, and a carousel handed a
+        // card of no width throws rather than drawing nothing.
+        if (width <= 0.dp) return@item
         // Uncontained, not multi-browse. A multi-browse carousel masks its items to
         // large, medium and small on purpose -- which is what it is for, and is not what
         // this row is: `home-screen` asks that "every card in the row has the same width
@@ -512,7 +515,7 @@ internal fun homeHeroWidth(
     windowHeightDp: Int,
     fontScale: Float,
 ): Dp {
-    val room = windowWidthDp.dp - StoryArcSpace.gutter * 2
+    val room = (windowWidthDp.dp - StoryArcSpace.gutter * 2).coerceAtLeast(0.dp)
     val tier = when {
         windowWidthDp >= 840 -> 280.dp
         windowWidthDp >= 600 -> 240.dp
@@ -529,8 +532,20 @@ internal fun homeHeroWidth(
     // the only order that keeps the surface legible: a reader can scroll to see a second
     // card and cannot scroll to discover that a surface continues.
     val affordable = heroWidthTheHeightAffords(windowHeightDp, fontScale)
-    return minOf(tier.steppedForFontScale(fontScale), room, affordable)
+    // A floor under the height's answer, because the height can afford a *negative* card.
+    // A landscape phone has less room above the fold than the chrome and the next heading
+    // want, and the inverse of a budget already overspent is a negative width -- which the
+    // carousel takes as an item width and throws on, taking Home with it. Found by
+    // rotating the phone: `IndexOutOfBoundsException: Index -1 out of bounds` from
+    // `createKeylinesWithPivot`, on a build every unit test passed.
+    //
+    // 200 dp is the width this card had before the row was widened, so a window too short
+    // for the rule gets the hero it used to have rather than none at all.
+    return minOf(tier.steppedForFontScale(fontScale), room, maxOf(affordable, minOf(HERO_FLOOR, room)))
 }
+
+/** The narrowest hero worth drawing, and what a window too short for the rule falls back to. */
+private val HERO_FLOOR = 200.dp
 
 /**
  * The widest card whose block still leaves the next heading on screen.

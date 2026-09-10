@@ -122,6 +122,36 @@ class HomeCoverWidthTest {
      * asserted; this is only that the cap bites.
      */
     @Test
+    fun `a window too short for the rule still gets a card, and not a negative one`() {
+        // The crash this replaces: a landscape phone has less room above the fold than the
+        // chrome and the next heading want, so the width the height "affords" is negative,
+        // and `HorizontalUncontainedCarousel` threw `IndexOutOfBoundsException: Index -1`
+        // on it. Every unit test passed; rotating the phone found it.
+        val landscape = homeHeroWidth(windowWidthDp = 891, windowHeightDp = 411, fontScale = 1f)
+
+        assertTrue("A landscape phone was given a \$landscape card.", landscape > 0.dp)
+    }
+
+    @Test
+    fun `no window of any shape asks for a card of no width`() {
+        for (width in listOf(0, 240, 300, 360, 411, 600, 891, 1280)) {
+            for (height in listOf(0, 200, 320, 411, 640, 800, 914, 1280)) {
+                for (scale in listOf(1f, 1.3f, 2f)) {
+                    val hero = homeHeroWidth(width, height, scale)
+                    assertTrue(
+                        "A \${width}x\$height window at scale \$scale asked for \$hero.",
+                        hero >= 0.dp,
+                    )
+                    assertTrue(
+                        "A \${width}x\$height window at scale \$scale overflowed its room.",
+                        hero <= (width.dp - StoryArcSpace.gutter * 2).coerceAtLeast(0.dp),
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a short window gets a smaller card than its width would allow`() {
         val short = homeHeroWidth(windowWidthDp = 360, windowHeightDp = 800, fontScale = 1f)
         val roomy = homeHeroWidth(windowWidthDp = 360, windowHeightDp = tall, fontScale = 1f)
