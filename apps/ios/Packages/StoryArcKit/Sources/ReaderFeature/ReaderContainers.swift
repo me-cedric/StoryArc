@@ -27,7 +27,7 @@ extension ReaderView {
             isRightToLeft: model.readingDirection == .rightToLeft,
             matte: model.matte,
             onTurned: { turn(by: 1) },
-            onTap: { location, size in handleTap(at: location, in: size) }
+            onTap: tapHandler()
         )
     }
 
@@ -112,9 +112,7 @@ extension ReaderView {
                 }
             }
         } else {
-            singlePage(at: spread?.leading ?? 0) { location, size in
-                handleTap(at: location, in: size)
-            }
+            singlePage(at: spread?.leading ?? 0, onTap: tapHandler())
         }
     }
 
@@ -124,12 +122,15 @@ extension ReaderView {
     /// as wide. Without this the edge zones would be measured against half the screen and
     /// the middle of a spread would turn the page.
     private func half(at index: Int, isFirstOnScreen: Bool) -> some View {
-        singlePage(at: index) { location, size in
-            handleTap(
-                at: CGPoint(x: isFirstOnScreen ? location.x : location.x + size.width, y: location.y),
-                in: CGSize(width: size.width * 2, height: size.height)
-            )
-        }
+        singlePage(
+            at: index,
+            onTap: tapHandler { location, size in
+                (
+                    CGPoint(x: isFirstOnScreen ? location.x : location.x + size.width, y: location.y),
+                    CGSize(width: size.width * 2, height: size.height)
+                )
+            }
+        )
         .frame(maxWidth: .infinity)
     }
 
@@ -172,7 +173,7 @@ extension ReaderView {
             label: Text("reader.pageLabel \(index + 1) \(model.pages.count)", bundle: .module),
             axis: axis,
             adjustments: trimming(at: index),
-            onTap: { location, size in handleTap(at: location, in: size) }
+            onTap: tapHandler()
         )
     }
 

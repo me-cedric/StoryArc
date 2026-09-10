@@ -229,7 +229,6 @@ extension LibraryModel {
         await refreshProgress()
     }
 
-
     /// Everything a finished scan settles.
     ///
     /// - Parameter partial: whether the walk met a directory it could not list. Passed on

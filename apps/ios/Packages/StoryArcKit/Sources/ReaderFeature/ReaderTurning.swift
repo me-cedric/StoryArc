@@ -28,17 +28,38 @@ extension ReaderView {
     /// here — the pager's *data* is reversed for RTL, so moving one step to the
     /// right on screen is always one step to the right on screen, whichever way
     /// the story runs.
-    func handleTap(at location: CGPoint, in size: CGSize) {
+    func handleTap(at location: CGPoint, in size: CGSize, turns: Bool) {
         let edge = size.width * edgeZoneFraction
         // `page-transitions`: with the zones off "a tap anywhere toggles the chrome, and
         // no tap turns a page". Not "no tap does anything" — the way back to the menu is
         // the one thing a reader still needs from a tap.
-        if tapTurnsPages, location.x < edge {
+        if turns, location.x < edge {
             turn(by: -1)
-        } else if tapTurnsPages, location.x > size.width - edge {
+        } else if turns, location.x > size.width - edge {
             turn(by: 1)
         } else {
             withAnimation(.easeInOut(duration: 0.2)) { wantsChrome.toggle() }
+        }
+    }
+
+    /// A tap handler with the setting already read into it.
+    ///
+    /// **The flag is read here, in a body pass, and captured by value.** Read inside the
+    /// closure instead, it resolves long after that pass — a gesture recogniser calls it —
+    /// and a `@Environment` property read then gives back its *default*, which is `true`.
+    /// So the setting did nothing on a device while every test passed, because a test calls
+    /// the rule and not the closure. Found by turning the zones off on a simulator and
+    /// tapping the side of a page.
+    ///
+    /// @param rescaling puts a tap in one half of a spread back into the whole spread's
+    /// terms. Identity for a single page.
+    func tapHandler(
+        rescaling: @escaping (CGPoint, CGSize) -> (CGPoint, CGSize) = { ($0, $1) }
+    ) -> (CGPoint, CGSize) -> Void {
+        let turns = tapTurnsPages
+        return { location, size in
+            let (point, area) = rescaling(location, size)
+            handleTap(at: point, in: area, turns: turns)
         }
     }
 
