@@ -44,6 +44,10 @@ chapters — rather than flattening it.
 - **WHEN** a series contains both volumes and chapters not belonging to a volume
 - **THEN** the detail screen lists volumes and loose chapters in Kavita's own order, clearly distinguishing the two
 
+#### Scenario: A group Kavita numbers with a sentinel
+- **WHEN** a group of chapters is Kavita's loose-leaf holder or its specials holder, each of which the server numbers with a sentinel rather than a volume number
+- **THEN** the group is headed by what it is, and never by the sentinel
+
 #### Scenario: Continue point
 - **WHEN** a user opens a series they have partially read
 - **THEN** the screen's primary action is "Continue" pointing at the exact chapter and page Kavita reports as next
