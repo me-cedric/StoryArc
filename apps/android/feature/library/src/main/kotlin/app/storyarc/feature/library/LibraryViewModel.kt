@@ -3,7 +3,6 @@ package app.storyarc.feature.library
 import android.app.Application
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.AndroidViewModel
@@ -41,7 +40,6 @@ import app.storyarc.core.model.Source
 import java.util.Locale
 import java.util.UUID
 import app.storyarc.core.catalogue.CertificatePins
-import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.LibraryCache
 import app.storyarc.core.persistence.KavitaProgressStore
@@ -95,14 +93,7 @@ class LibraryViewModel(
      * store here is optional.
      */
     private val cards: KavitaCardStore? = null,
-    /**
-     * The reader's saved server keys.
-     *
-     * Held rather than passed per call because the library itself now asks servers for
-     * their publications -- see [readServers] -- and a key it has to be handed on every
-     * call is a key the caller has to know about. Null for a view model built without one,
-     * the way every other store here is optional; a null one simply reads no server.
-     */
+    /** The reader's saved server keys. Null reads no server. See [readServers]. */
     private val credentials: CredentialStore? = null,
 ) : AndroidViewModel(application) {
 
@@ -369,39 +360,11 @@ class LibraryViewModel(
         return true
     }
 
-    /**
-     * Asks every configured server for its publications, and puts them in the library.
-     *
-     * `library-browsing` requires one library over every source. A folder walk cannot reach
-     * a server, so this is the other half: each Kavita source is asked for a slice of what
-     * it holds and the answers are adopted through the same [adopt] every scanned file goes
-     * through -- same rows, same precedence, same identity rules.
-     *
-     * **Nothing is ever removed here.** [ScanReconciliation] deletes only from a source
-     * whose own round covered it, and a server is not in that map at all, so a server that
-     * refuses or answers nothing costs a reader no rows. That is the rule `sources` asks
-     * for -- "a failed refresh and an emptied source are different things" -- and it holds
-     * here by construction rather than by a branch.
-     *
-     * Off the main thread and per source, so one slow server does not hold up another or
-     * the walk that runs beside it.
-     */
-    internal fun readServers() {
-        val servers = _registry.value.sources.filter { it.kind == SourceKind.KAVITA_SERVER }
-        if (servers.isEmpty()) return
-        viewModelScope.launch {
-            for (source in servers) {
-                val address = KavitaPage.of(source, credentials)?.address ?: continue
-                val found = withContext(Dispatchers.IO) {
-                    runCatching {
-                        KavitaContributor.publications(source.id, KavitaClient(address))
-                    }.getOrDefault(emptyList())
-                }
-                if (found.isEmpty()) continue
-                found.forEach { adopt(it, source.id) }
-                rebuild()
-            }
-        }
+    /** Every server's publications, adopted as a scanned file is. See [ServerLibrary]. */
+    internal fun readServers() = viewModelScope.launch {
+        val found = ServerLibrary.read(_registry.value.sources, credentials)
+        found.forEach { (publication, sourceId) -> adopt(publication, sourceId) }
+        if (found.isNotEmpty()) rebuild()
     }
 
     /**
@@ -1016,31 +979,6 @@ class LibraryViewModel(
      * Shared by the folder scan and by the imported copies, which find publications two
      * entirely different ways and have to agree about what one row means.
      */
-    /**
-     * A cover for a row with nothing on disk.
-     *
-     * Every cover before this one came out of the publication's own file, so a row a server
-     * supplied had none at all -- `locations` has no entry for it and the resolver returned
-     * null. The server is asked instead, through the client rather than an image loader,
-     * because Kavita's image routes want the reader's key. Stored in the same cover cache
-     * as any other, so it is fetched once and evicted with the rest.
-     */
-    private suspend fun remoteCover(publication: Publication, maxPixelSize: Int): Bitmap? {
-        val remote = publication.identity.serverIdentifier ?: return null
-        val chapterId = remote.remoteId.removePrefix("chapter:").toIntOrNull() ?: return null
-        val source = _registry.value.sources.firstOrNull { it.id == remote.sourceId } ?: return null
-        val address = KavitaPage.of(source, credentials)?.address ?: return null
-        val bitmap = withContext(Dispatchers.IO) {
-            runCatching {
-                val bytes = KavitaClient(address).chapterCover(chapterId)
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            }.getOrNull()
-        } ?: return null
-        coverCache.store(bitmap, publication.id, maxPixelSize)
-        covers[publication.id] = bitmap
-        return bitmap
-    }
-
     private fun adopt(publication: Publication, sourceId: UUID?): Boolean {
         val seen = _publications.value.indexOfFirst { it.identity.matches(publication.identity) }
         if (seen >= 0) {
@@ -1572,7 +1510,10 @@ class LibraryViewModel(
             return it
         }
 
-        val path = locations[publication.id] ?: return remoteCover(publication, maxPixelSize)
+        val path = locations[publication.id] ?: return ServerLibrary
+            .cachedCover(publication, _registry.value.sources, credentials, covers) {
+                coverCache.store(it, publication.id, maxPixelSize)
+            }
         val bitmap = withContext(Dispatchers.IO) {
             runCatching {
                 PublicationAccess.anyCover(resolver, publication, path, maxPixelSize)
