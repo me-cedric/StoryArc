@@ -125,3 +125,37 @@ internal fun isReadableNow(
  */
 private val SourceConnectionState.isAnswering: Boolean
     get() = this is SourceConnectionState.Connected || this is SourceConnectionState.Connecting
+
+/**
+ * What a cover cell says out loud, beyond what it draws.
+ *
+ * Two of a cell's facts are drawn as marks and nothing else: a tick in the corner for a
+ * publication on the device, and dimming for one that needs its source. Both are invisible
+ * to a screen reader, and `library-browsing` is explicit about the second -- a row that
+ * needs its source states so in its accessibility label and not only by dimming.
+ *
+ * One place rather than two, because the grid and the list both draw a cell and each had
+ * its own copy of the same list: two copies is how one of them ends up saying something
+ * else, or nothing at all. The words are passed in rather than read here, because a string
+ * resource needs a composition and this needs a test. iOS's `LibraryMarks.spoken` composes
+ * the same label in the same order.
+ *
+ * The marks come last on purpose. They are exceptions rather than descriptions, and a
+ * reader skimming a shelf hears the title first either way.
+ *
+ * @param parts the title, the subtitle and the format. Nulls are dropped.
+ * @param downloaded the words for a publication held on the device. The catalogue's own
+ *   wording, in the four languages it already has.
+ * @param unavailable the words for one that needs its source to be reachable.
+ */
+internal fun spokenCellLabel(
+    parts: List<String?>,
+    isOnDevice: Boolean,
+    isReadableNow: Boolean,
+    downloaded: String?,
+    unavailable: String?,
+): String = (
+    parts +
+        downloaded.takeIf { isOnDevice } +
+        unavailable.takeIf { !isReadableNow }
+    ).filterNotNull().joinToString(", ")

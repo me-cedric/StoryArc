@@ -470,22 +470,18 @@ private fun CoverCell(
                 // publication came from" — and a fact taken off the artwork but left in the
                 // spoken label is the same leak, read aloud. The publication's own page
                 // carries the one provenance line, for every reader alike.
-                contentDescription = listOfNotNull(
-                    title,
-                    subtitle,
-                    publication.format.displayName,
-                    // Spoken for the reason the progress is: a mark in the corner of a cover
-                    // is invisible to TalkBack, and "can I read this on the train" is the
-                    // whole question the mark answers. Spoken even while picking, when the
-                    // mark itself stands down. The wording is the one the catalogue already
-                    // uses for the same state, in the four languages it is already
-                    // translated into.
-                    downloaded.takeIf { isKept },
-                    // And dimming is invisible to TalkBack as well, which is the half of
-                    // this the requirement is explicit about: the accessibility label
-                    // carries the fact, not the opacity.
-                    unavailable.takeIf { !isReadable },
-                ).joinToString(", ")
+                // The two marks are spoken because neither is visible to TalkBack: a tick
+                // in a corner and a dimmed cover both say nothing out loud, and "can I read
+                // this on the train" is the whole question they answer. Spoken even while
+                // picking, when the mark itself stands down. [spokenCellLabel] is where the
+                // order is decided, and the list's cell asks it too.
+                contentDescription = spokenCellLabel(
+                    parts = listOf(title, subtitle, publication.format.displayName),
+                    isOnDevice = isKept,
+                    isReadableNow = isReadable,
+                    downloaded = downloaded,
+                    unavailable = unavailable,
+                )
                 // Spoken, because a tick in the corner of a cover is invisible to
                 // TalkBack and "is this one picked" is the only question selection mode
                 // asks.

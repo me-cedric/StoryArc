@@ -52,8 +52,8 @@ chosen against a real server without touching anything else.
 
 ## 6. What a reader sees
 
-- [ ] 6.1 Write the test that a row needing its source states so in its accessibility label and not only by dimming, on both platforms. Red before 6.2.
-- [ ] 6.2 Draw the unreachable and never-read states in the grid, and the "not read yet" sentence for a source that has never answered. Verify 6.1 passes.
+- [x] 6.1 `SpokenCellLabelTest` on Android, five cases; iOS's `LibraryMarksTests` already had eight. Both cells were already saying it — the grid's and the list's copies of the same list are now one `spokenCellLabel`, which is what the test asserts.
+- [ ] 6.2 **Half done, and the half that is missing is stated.** The unreachable state is drawn and spoken on both platforms. The *never read* state is not: a source that has never answered contributes no rows, so a reader who adds a server and opens the library sees nothing new and is told nothing. `92deec66` fixed the same silence in the Kavita browser; the library grid still has it, and it needs a string in four languages on each platform and a frame to prove it.
 - [ ] 6.3 Screenshot the library on the OnePlus 7T Pro (`f7cee850`) against the owner's Kavita, OPDS and SMB sources together: light and dark, default and largest text. Control: the same library before this change, same device, same appearance — which shows local files only, and is the whole point.
 - [ ] 6.4 Screenshot Home with a remote publication in *Recently added* and, if one is part-read, in *Keep reading*. Same controls.
 - [ ] 6.5 Screenshot the same two on iOS in the Simulator, with the same controls.

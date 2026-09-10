@@ -208,12 +208,13 @@ private fun ListRow(
                 // shown. The row's own text is read as well, so this adds the two facts and
                 // repeats nothing.
                 if (isKept || !isReadable) {
-                    contentDescription = listOfNotNull(
-                        publication.displayTitle,
-                        subtitle,
-                        downloaded.takeIf { isKept },
-                        unavailable.takeIf { !isReadable },
-                    ).joinToString(", ")
+                    contentDescription = spokenCellLabel(
+                        parts = listOf(publication.displayTitle, subtitle),
+                        isOnDevice = isKept,
+                        isReadableNow = isReadable,
+                        downloaded = downloaded,
+                        unavailable = unavailable,
+                    )
                 }
                 if (isPicked != null) selected = isPicked
             }
