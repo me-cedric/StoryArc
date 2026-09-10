@@ -2,6 +2,7 @@ import Catalogue
 import Foundation
 import Kavita
 import Persistence
+import Smb
 import StoryArcCore
 
 /// What the configured servers put in the library.
@@ -51,11 +52,13 @@ enum ServerLibrary {
             return feed?.publications
                 .compactMap { OpdsContributor.publication(source: source.id, entry: $0) } ?? []
 
-        // A share is a filesystem, and a filesystem is walked rather than asked.
-        // `local-library`'s scan already knows how; what it has no answer for is an
-        // incremental index of a tree reached over a network, so a blind walk of a share is
-        // unbounded. Named here rather than silently skipped.
-        case .networkShare: return []
+        case .networkShare:
+            guard let page = SmbPage(source: source, credentials: credentials) else { return [] }
+            return await SmbContributor.publications(
+                source: source.id,
+                client: SmbClient(address: page.address),
+                root: page.address.path
+            )
 
         // Already in the library: its files are what the scan walks.
         case .localFolder: return []

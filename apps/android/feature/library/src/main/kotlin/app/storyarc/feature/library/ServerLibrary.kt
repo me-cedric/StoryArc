@@ -3,6 +3,7 @@ package app.storyarc.feature.library
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import app.storyarc.core.kavita.KavitaClient
+import app.storyarc.core.smb.SmbClient
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
@@ -46,12 +47,13 @@ internal object ServerLibrary {
                     SourceKind.OPDS_CATALOG -> CataloguePage.of(source, credentials)
                         ?.let { OpdsContributor.publications(source.id, it) }
 
-                    // A share is a filesystem, and a filesystem is walked rather than
-                    // asked. `local-library`'s scan already knows how; what it does not
-                    // have is an incremental index for a tree it reaches over a network,
-                    // and a blind walk of a share is unbounded. Named here rather than
-                    // silently skipped.
-                    SourceKind.NETWORK_SHARE -> null
+                    SourceKind.NETWORK_SHARE -> SmbPage.of(source, credentials)?.let { page ->
+                        SmbContributor.publications(
+                            source.id,
+                            SmbClient(page.address),
+                            page.address.path,
+                        )
+                    }
 
                     // Already in the library: its files are what the scan walks.
                     SourceKind.LOCAL_FOLDER -> null
