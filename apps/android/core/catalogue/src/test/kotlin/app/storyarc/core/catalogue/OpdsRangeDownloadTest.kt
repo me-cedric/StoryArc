@@ -105,7 +105,18 @@ class OpdsRangeDownloadTest {
                 // Declared whole and sent short: the interruption every resume here starts
                 // from, and the one `write` has to refuse to call a finished download.
                 exchange.sendResponseHeaders(200, whole.size.toLong())
-                exchange.responseBody.use { it.write(whole.copyOfRange(0, CUT_AT)) }
+                // Flushed, then the exchange closed by hand rather than by `use`. A server
+                // that declares a length and writes less of it is what an interruption is,
+                // and JDK 25's `HttpServer` refuses to finish one: it throws "insufficient
+                // bytes written to stream" and the reader is handed nothing at all, not even
+                // the bytes already written. Flushing puts them on the wire first, so the
+                // reader meets a truncated body -- `Premature EOF` -- which is the state
+                // every resume here starts from. On JDK 21 the same call delivered the bytes
+                // and then stalled until the client's read timeout; this is also faster.
+                val body = exchange.responseBody
+                body.write(whole.copyOfRange(0, CUT_AT))
+                body.flush()
+                exchange.close()
             }
             range == null || answer == Answer.IGNORE -> send(exchange, 200, whole)
             answer == Answer.REFUSE -> {
