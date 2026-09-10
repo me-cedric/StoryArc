@@ -59,7 +59,7 @@ object SourceReachability {
     fun shouldProbe(trigger: RetryTrigger, sources: List<Source>, isReading: Boolean): Boolean {
         // Both occasions pass the same gate, and taking the trigger is what makes that
         // visible at the call site. A `when` rather than an ignored parameter, for the reason
-        // `SourceKind.isBrowsable` matches rather than comparing: a third occasion has to be
+        // `SourceKind.hasItsOwnBrowser` matches rather than comparing: a third occasion has to be
         // answered here instead of quietly inheriting whatever these two do.
         when (trigger) {
             RetryTrigger.CONNECTIVITY_REGAINED, RetryTrigger.RETURNED_TO_FOREGROUND -> Unit

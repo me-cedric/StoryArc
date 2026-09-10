@@ -13,7 +13,7 @@ import java.util.UUID
  *
  * `library-browsing` requires one library over every source. A catalogue was reachable only
  * by browsing to it, which made it a place a reader travels to rather than part of their
- * library -- the thing `SourceKind.isBrowsable` used to be for and no longer decides.
+ * library -- the thing `SourceKind.hasItsOwnBrowser` used to be for and no longer decides.
  *
  * **One feed, not a walk.** A catalogue is a tree of feeds and this reads the one the
  * reader saved, which is the root they chose. What is deeper stays reachable through the

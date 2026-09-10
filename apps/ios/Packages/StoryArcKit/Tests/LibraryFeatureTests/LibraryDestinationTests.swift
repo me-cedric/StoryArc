@@ -84,26 +84,31 @@ struct LibraryDestinationTests {
     }
 }
 
-/// Which source kinds are a place to travel to.
+/// Which source kinds have a browser of their own.
 ///
 /// Kept from the sidebar suite. Nothing in primary navigation reads it any more, but the
 /// answer still decides which sources a search can offer to look further afield in.
-@Suite("Browsable sources")
+///
+/// **The name changed with what it means.** It was `isBrowsable`, which read as "not in
+/// the library" — and every source's publications are in the library now, a server's
+/// included. What is left is narrower and still true: a folder is walked, and the other
+/// three are browsed through a screen that knows their catalogue's shape.
+@Suite("Sources with a browser of their own")
 struct BrowsableSourceTests {
 
-    @Test("Only a local folder is not browsable")
+    @Test("Only a local folder has no browser of its own")
     func onlyFoldersAreNotBrowsable() {
-        #expect(SourceKind.localFolder.isBrowsable == false)
-        #expect(SourceKind.opdsCatalog.isBrowsable)
-        #expect(SourceKind.kavitaServer.isBrowsable)
-        #expect(SourceKind.networkShare.isBrowsable)
+        #expect(SourceKind.localFolder.hasItsOwnBrowser == false)
+        #expect(SourceKind.opdsCatalog.hasItsOwnBrowser)
+        #expect(SourceKind.kavitaServer.hasItsOwnBrowser)
+        #expect(SourceKind.networkShare.hasItsOwnBrowser)
     }
 
     @Test("Every kind answers, so a fifth one cannot slip through unanswered")
     func everyKindAnswers() {
-        // `isBrowsable` is a `switch` over every case rather than a comparison against
+        // `hasItsOwnBrowser` is a `switch` over every case rather than a comparison against
         // one, so adding a kind is a compile error rather than a silent "yes".
         #expect(SourceKind.allCases.count == 4)
-        #expect(SourceKind.allCases.filter(\.isBrowsable).count == 3)
+        #expect(SourceKind.allCases.filter(\.hasItsOwnBrowser).count == 3)
     }
 }

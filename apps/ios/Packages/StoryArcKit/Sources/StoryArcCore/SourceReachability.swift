@@ -56,7 +56,7 @@ public enum SourceReachability {
     ) -> Bool {
         // Both occasions pass the same gate, and taking the trigger is what makes that
         // visible at the call site. A `switch` rather than an ignored parameter, for the
-        // reason ``SourceKind/isBrowsable`` switches rather than comparing: a third occasion
+        // reason ``SourceKind/hasItsOwnBrowser`` switches rather than comparing: a third occasion
         // has to be answered here instead of quietly inheriting whatever these two do.
         switch trigger {
         case .connectivityRegained, .returnedToForeground: break

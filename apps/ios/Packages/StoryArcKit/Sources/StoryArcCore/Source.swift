@@ -7,18 +7,21 @@ public enum SourceKind: String, Sendable, Codable, CaseIterable {
     case opdsCatalog
     case kavitaServer
 
-    /// Whether this is a place a reader travels *to*, rather than a shelf already
-    /// folded into the library.
+    /// Whether this kind has a browser of its own.
     ///
-    /// A local folder's publications are scanned and land in the grid, so a way in to
-    /// it would lead back to where the reader already is. The other three hold content
-    /// that is not on the device and each needs its own browser.
+    /// **It used to mean "not in the library", and it stopped meaning that.** Every
+    /// source's publications are in the library now, a server's included, so a shelf is
+    /// no longer what separates these four. What separates them is that a folder is
+    /// walked and the other three are *browsed*: each has a catalogue with its own
+    /// shape — an OPDS feed, a Kavita library, a share's directory tree — and a screen
+    /// that knows how to walk it. A folder has no such screen, and a way in to one would
+    /// lead back to the grid the reader is already looking at.
     ///
     /// One property rather than the same three-way comparison in the catalogue strip,
     /// the sidebar and Android's screen: three copies is how one of them ends up wrong.
     /// A `switch` rather than `!= .localFolder` so a fifth kind cannot be quietly
-    /// assumed to be browsable — it has to be answered here.
-    public var isBrowsable: Bool {
+    /// assumed to have one — it has to be answered here.
+    public var hasItsOwnBrowser: Bool {
         switch self {
         case .localFolder: false
         case .networkShare, .opdsCatalog, .kavitaServer: true
@@ -37,7 +40,7 @@ public enum SourceKind: String, Sendable, Codable, CaseIterable {
     /// exactly this asymmetry: "most sources cannot store progress at all".
     ///
     /// A property here rather than a comparison in each app's detail screen, for the reason
-    /// ``isBrowsable`` gives above: two copies of the same four-way answer is how one of
+    /// ``hasItsOwnBrowser`` gives above: two copies of the same four-way answer is how one of
     /// them ends up wrong. Android's `SourceKind.syncsReadingProgress` answers the same four
     /// the same way.
     public var syncsReadingProgress: Bool {
