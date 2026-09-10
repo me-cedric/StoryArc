@@ -23,11 +23,18 @@ struct CurledPages: View {
     let page: CGImage?
     /// The page underneath it, or `nil` at the last page.
     let beneath: CGImage?
+    /// The page behind this one, or `nil` at the first page.
+    ///
+    /// `page-transitions`: the turn has a direction, and a backwards drag turns this sheet
+    /// over the page in view. `nil` is what stops the first page turning backwards.
+    let previous: CGImage?
     let isRightToLeft: Bool
     /// What shows behind and beside the page. See ``ReaderModel/matte``.
     let matte: Color
-    /// Called once a turn has completed.
+    /// Called once a forward turn has completed.
     let onTurned: () -> Void
+    /// Called once a backwards turn has completed.
+    let onTurnedBack: () -> Void
     /// A press that was not a drag: the caller decides what it means.
     let onTap: (CGPoint, CGSize) -> Void
 
@@ -67,10 +74,20 @@ struct CurledPages: View {
                 // rather than smearing the page's edge pixel across it.
                 matte
 
-                if let page {
-                    Curling(progress: progress, stand: stand) { drawn in
+                Curling(progress: progress, stand: stand) { drawn in
+                    let sheets = CurlTurn.sheets(
+                        progress: drawn, page: page, beneath: beneath, previous: previous
+                    )
+                    if let turning = sheets.turning {
                         Rectangle()
-                            .fill(shader(for: page, in: size, at: drawn))
+                            .fill(
+                                shader(
+                                    for: turning,
+                                    under: sheets.under,
+                                    in: size,
+                                    at: sheets.progress
+                                )
+                            )
                     }
                 }
             }
@@ -85,19 +102,27 @@ struct CurledPages: View {
 
     // MARK: - The shader
 
-    private func shader(for page: CGImage, in size: CGSize, at progress: Double) -> Shader {
+    private func shader(
+        for page: CGImage,
+        under: CGImage?,
+        in size: CGSize,
+        at progress: Double
+    ) -> Shader {
         ShaderLibrary.bundle(.module).pageCurl(
             .float(progress),
             .float(Self.crease),
             .float(Self.shadow),
             .float(isRightToLeft ? -1 : 1),
             .float(Self.back),
+            .float(Float(PageRoll.radiusMax)),
+            .float(Float(PageRoll.lean)),
+            .float(Float(PageRoll.rim)),
             .float2(size.width, size.height),
             .image(Image(decorative: page, scale: 1)),
             // The outgoing page stands in for a missing one, so the last page still
             // turns rather than tearing to nothing. Whether it *may* turn is the
             // caller's business, not the shader's.
-            .image(Image(decorative: beneath ?? page, scale: 1))
+            .image(Image(decorative: under ?? page, scale: 1))
         )
     }
 
@@ -123,7 +148,8 @@ struct CurledPages: View {
                     base: base,
                     travel: value.translation.width - origin,
                     width: size.width,
-                    isRightToLeft: isRightToLeft
+                    isRightToLeft: isRightToLeft,
+                    canTurnBack: previous != nil
                 )
                 // No animation on the drag itself: the page follows the finger, and an
                 // animation between finger positions is a page lagging behind it.
@@ -136,12 +162,13 @@ struct CurledPages: View {
                     : value.translation.width - value.predictedEndTranslation.width
                 let settles = CurlTurn.settles(
                     progress: reached,
-                    isFlick: velocity > Self.flickPoints
+                    isFlick: CurlTurn.flicks(velocity: velocity, progress: reached)
                 )
+                let backwards = reached < 0
                 let ticket = settle
 
                 withAnimation(.spring(duration: 0.3)) {
-                    progress = settles ? 1 : 0
+                    progress = settles ? (backwards ? -1 : 1) : 0
                 } completion: {
                     // A settle a later drag took over is that drag's to finish, not this
                     // one's: SwiftUI runs this completion when the animation is *removed*,
@@ -155,7 +182,7 @@ struct CurledPages: View {
                     guard settles else { return }
                     // The page swap first, then the reset: the other order shows the
                     // outgoing page flat for a frame before it goes.
-                    onTurned()
+                    if backwards { onTurnedBack() } else { onTurned() }
                     progress = 0
                     stand.value = 0
                 }
@@ -167,12 +194,6 @@ struct CurledPages: View {
     private static let crease = 0.06
     private static let shadow = 0.05
     private static let back = 0.55
-
-    /// How far a finger has to be predicted to travel for the turn to complete anyway.
-    ///
-    /// `predictedEndTranslation` is SwiftUI's own flick model, so this is a threshold on
-    /// its answer rather than a velocity calculation of ours.
-    private static let flickPoints: Double = 40
 }
 
 /// The curl, drawn at the value SwiftUI is actually interpolating.
@@ -241,16 +262,66 @@ enum CurlTurn {
     ///   - travel: raw horizontal points since the drag was recognised.
     ///   - width: what a whole turn is measured against. A width nothing has measured yet
     ///     leaves the page where it stands rather than dividing by it.
+    ///   - canTurnBack: false at the first page, where a backwards drag moves nothing.
     static func progress(
         base: Double,
         travel: Double,
         width: Double,
-        isRightToLeft: Bool
+        isRightToLeft: Bool,
+        canTurnBack: Bool = true
     ) -> Double {
-        guard width > 0 else { return min(max(base, 0), 1) }
+        let floor: Double = canTurnBack ? -1 : 0
+        guard width > 0 else { return min(max(base, floor), 1) }
         let offset = forward(travel: travel, isRightToLeft: isRightToLeft) / width
-        return min(max(base + offset, 0), 1)
+        return min(max(base + offset, floor), 1)
     }
+
+    /// Whether the finger left fast, in the direction the page is already going.
+    ///
+    /// Signed, and it has to be: a fast finger dragging a half-turned page *back* has said
+    /// it does not want the turn, and a fast finger dragging the page behind into view has
+    /// asked for that one. An unsigned flick answered both with "complete the forward
+    /// turn".
+    ///
+    /// - Parameter velocity: the finger's predicted travel in turn-space, positive
+    ///   towards a completed forward turn. SwiftUI's own flick model supplies it.
+    static func flicks(velocity: Double, progress: Double) -> Bool {
+        progress < 0 ? velocity < -flickPoints : velocity > flickPoints
+    }
+
+    /// Which sheet the shader turns, which page lies under it, and at what forward
+    /// progress.
+    ///
+    /// **A backwards turn is the forward projection, run on the page behind.** At a whole
+    /// turn back the previous page lies flat and fully in view, which is the forward
+    /// projection at rest; at nothing dragged it is folded entirely away and the current
+    /// page is what shows, which is the forward projection completed. So `1 + progress`
+    /// carries the whole of it, and the shader needs no second direction.
+    ///
+    /// Generic over the image type so the mapping can be asserted without a bitmap.
+    static func sheets<T>(
+        progress: Double,
+        page: T?,
+        beneath: T?,
+        previous: T?
+    ) -> Sheets<T> {
+        progress < 0
+            ? Sheets(turning: previous, under: page, progress: 1 + progress)
+            : Sheets(turning: page, under: beneath, progress: progress)
+    }
+
+    /// What ``sheets(progress:page:beneath:previous:)`` decided.
+    struct Sheets<T> {
+        let turning: T?
+        let under: T?
+        let progress: Double
+    }
+
+    /// How far a finger has to be predicted to travel for the turn to complete anyway.
+    ///
+    /// `predictedEndTranslation` is SwiftUI's own flick model, so this is a threshold on
+    /// its answer rather than a velocity calculation of ours.
+    static let flickPoints: Double = 40
 
     /// Whether a released turn completes rather than springing back.
     ///
@@ -258,6 +329,6 @@ enum CurlTurn {
     /// the distance, because a fast finger has already said what it meant — and a page
     /// that never left flat is not a turn at all, however fast the finger left it.
     static func settles(progress: Double, isFlick: Bool) -> Bool {
-        progress > 0.5 || (isFlick && progress > 0.05)
+        abs(progress) > 0.5 || (isFlick && abs(progress) > 0.05)
     }
 }

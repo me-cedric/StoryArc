@@ -45,11 +45,20 @@ internal fun CurledPages(
     page: Bitmap?,
     /** The page underneath it, or null at the last page. */
     beneath: Bitmap?,
+    /**
+     * The page behind this one, or null at the first page.
+     *
+     * `page-transitions`: the turn has a direction, and a backwards drag turns this sheet
+     * over the page in view. Null is what stops the first page turning backwards.
+     */
+    previous: Bitmap?,
     isRightToLeft: Boolean,
     /** What shows behind and beside the page. See `matteColour`. */
     matte: Color,
-    /** Called once a turn has completed. */
+    /** Called once a forward turn has completed. */
     onTurned: () -> Unit,
+    /** Called once a backwards turn has completed. */
+    onTurnedBack: () -> Unit,
     /** A press that was not a drag: the caller decides what it means. */
     onTap: (Offset, IntSize) -> Unit,
     modifier: Modifier = Modifier,
@@ -66,7 +75,7 @@ internal fun CurledPages(
     Canvas(
         modifier = modifier
             .fillMaxSize()
-            .pointerInput(page, beneath, isRightToLeft) {
+            .pointerInput(page, beneath, previous, isRightToLeft) {
                 awaitEachGesture {
                     val down = awaitFirstDown()
 
@@ -113,6 +122,7 @@ internal fun CurledPages(
                             travel = travelled,
                             width = size.width.toFloat(),
                             isRightToLeft = isRightToLeft,
+                            canTurnBack = previous != null,
                         )
                         scope.launch { progress.snapTo(reached) }
                     }
@@ -125,10 +135,14 @@ internal fun CurledPages(
                     // Directional, unlike the distance: a fast finger dragging the page
                     // back has said it does not want the turn, and an unsigned flick
                     // completed it anyway.
-                    val flick = CurlTurn.forward(lastStep, isRightToLeft) > FLICK_PIXELS
+                    val flick = CurlTurn.flicks(lastStep, reached, isRightToLeft)
                     val settled = CurlTurn.settles(progress = reached, isFlick = flick)
+                    val backwards = reached < 0f
                     scope.launch {
-                        progress.animateTo(if (settled) 1f else 0f, spring())
+                        progress.animateTo(
+                            targetValue = if (!settled) 0f else if (backwards) -1f else 1f,
+                            animationSpec = spring(),
+                        )
                         // The turn is over either way — a page that sprang back still spent
                         // frames. A settle a later drag took over never reaches this, and
                         // that drag's own settle closes the count.
@@ -136,15 +150,16 @@ internal fun CurledPages(
                         if (settled) {
                             // The page swap first, then the reset: the other order shows
                             // the outgoing page flat for a frame before it goes.
-                            onTurned()
+                            if (backwards) onTurnedBack() else onTurned()
                             progress.snapTo(0f)
                         }
                     }
                 }
             },
     ) {
-        val current = page ?: return@Canvas
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return@Canvas
+        val sheets = CurlTurn.sheets(progress.value, page, beneath, previous)
+        val turning = sheets.turning ?: return@Canvas
         // The matte first, because the shader leaves the letterbox transparent rather than
         // smearing the page's edge pixel across it.
         drawRect(color = matte, size = size)
@@ -152,10 +167,10 @@ internal fun CurledPages(
             brush = ShaderBrush(
                 PageCurl.shader(
                     area = Size(size.width, size.height),
-                    progress = progress.value,
+                    progress = sheets.progress,
                     isRightToLeft = isRightToLeft,
-                    page = current,
-                    beneath = beneath,
+                    page = turning,
+                    beneath = sheets.under,
                 ),
             ),
             size = size,
@@ -210,10 +225,50 @@ internal object CurlTurn {
      * @param width what a whole turn is measured against. A width nothing has measured
      *   yet leaves the page where it stands rather than dividing by it.
      */
-    fun progress(base: Float, travel: Float, width: Float, isRightToLeft: Boolean): Float {
-        if (width <= 0f) return base.coerceIn(0f, 1f)
-        return (base + forward(travel, isRightToLeft) / width).coerceIn(0f, 1f)
+    fun progress(
+        base: Float,
+        travel: Float,
+        width: Float,
+        isRightToLeft: Boolean,
+        canTurnBack: Boolean = true,
+    ): Float {
+        val floor = if (canTurnBack) -1f else 0f
+        if (width <= 0f) return base.coerceIn(floor, 1f)
+        return (base + forward(travel, isRightToLeft) / width).coerceIn(floor, 1f)
     }
+
+    /**
+     * Whether the finger left fast, in the direction the page is already going.
+     *
+     * Signed, and it has to be: a fast finger dragging a half-turned page *back* has said
+     * it does not want the turn, and a fast finger dragging the page behind into view has
+     * asked for that one. An unsigned flick answered both with "complete the forward turn".
+     */
+    fun flicks(lastStep: Float, progress: Float, isRightToLeft: Boolean): Boolean {
+        val speed = forward(lastStep, isRightToLeft)
+        return if (progress < 0f) speed < -FLICK_PIXELS else speed > FLICK_PIXELS
+    }
+
+    /**
+     * Which sheet the shader turns, which page lies under it, and at what forward progress.
+     *
+     * **A backwards turn is the forward projection, run on the page behind.** At a whole
+     * turn back the previous page lies flat and fully in view, which is the forward
+     * projection at rest; at nothing dragged it is folded entirely away and the current
+     * page is what shows, which is the forward projection completed. So `1 + progress`
+     * carries the whole of it, and the shader needs no second direction.
+     *
+     * Generic over the image type so the mapping can be asserted without a bitmap.
+     */
+    fun <T> sheets(progress: Float, page: T?, beneath: T?, previous: T?): Sheets<T> =
+        if (progress < 0f) {
+            Sheets(turning = previous, under = page, progress = 1f + progress)
+        } else {
+            Sheets(turning = page, under = beneath, progress = progress)
+        }
+
+    /** What [sheets] decided. */
+    data class Sheets<T>(val turning: T?, val under: T?, val progress: Float)
 
     /**
      * Whether a released turn completes rather than springing back.
@@ -223,5 +278,5 @@ internal object CurlTurn {
      * that never left flat is not a turn at all, however fast the finger left it.
      */
     fun settles(progress: Float, isFlick: Boolean): Boolean =
-        progress > 0.5f || (isFlick && progress > 0.05f)
+        abs(progress) > 0.5f || (isFlick && abs(progress) > 0.05f)
 }

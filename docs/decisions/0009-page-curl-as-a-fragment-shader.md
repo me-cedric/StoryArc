@@ -60,6 +60,16 @@ and no rastering for comic content.**
 
 ### It is a fold, and the crease draws nothing
 
+> **Superseded on 2026-09-10 by `a-page-that-rolls-both-ways`.** The argument below
+> is sound for a crease of *no radius*, and only for that: a fold of zero thickness
+> is edge-on and contributes no pixels. A bend of finite radius is not edge-on — it
+> occupies a band of the screen a radius wide, its texture is compressed across that
+> band by arc length, and its surface turns away from the light. The section is kept
+> because the reasoning is still what rules out modelling a cylinder that draws
+> nothing; what changed is that the cylinder now draws something. `PageRoll` is the
+> projection, and `docs/designs/screenshots/a-page-that-rolls-2026-09-10/` is the
+> before and after.
+
 The proposal said "cylindrical projection". A cylinder was authored first, and
 then abandoned for a reason worth keeping:
 

@@ -24,9 +24,20 @@ extension ReaderView {
             // number: in right-to-left the two run opposite ways, and a curl that
             // revealed the wrong side would be worse than no curl.
             beneath: model.image(at: modelIndex(forDisplay: displayIndex + 1)),
+            // And the page behind, for the same reason and the other direction. The reader
+            // met a curl that "only seems to work in one direction": the shader had nothing
+            // to turn backwards because nothing was handed to it.
+            //
+            // Guarded rather than left to `modelIndex`, which answers 0 for a display
+            // position that has no slot -- so a bare `displayIndex - 1` hands the first
+            // page itself as its own previous, and the first page turns back onto itself.
+            previous: displayIndex > 0
+                ? model.image(at: modelIndex(forDisplay: displayIndex - 1))
+                : nil,
             isRightToLeft: model.readingDirection == .rightToLeft,
             matte: model.matte,
             onTurned: { turn(by: 1) },
+            onTurnedBack: { turn(by: -1) },
             onTap: tapHandler()
         )
     }

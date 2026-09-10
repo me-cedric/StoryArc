@@ -881,9 +881,19 @@ private fun Pager(
                     // number: in right-to-left the two run opposite ways, and a curl that
                     // revealed the wrong side would be worse than no curl.
                     beneath = viewModel.image(modelIndex(paging.current + 1)),
+                    // And the page behind, for the same reason and the other direction. The
+                    // reader met a curl that "only seems to work in one direction": the
+                    // shader had nothing to turn backwards because nothing was handed to it.
+                    //
+                    // Guarded rather than left to `modelIndex`, which answers 0 for a
+                    // display position with no slot -- so a bare `current - 1` hands the
+                    // first page itself as its own previous, and it turns back onto itself.
+                    previous = viewModel.image(modelIndex(paging.current - 1))
+                        .takeIf { paging.current > 0 },
                     isRightToLeft = isRightToLeft,
                     matte = matte,
                     onTurned = { turn(paging.current + 1) },
+                    onTurnedBack = { turn(paging.current - 1) },
                     onTap = ::handleTap,
                     modifier = keyboard,
                 )

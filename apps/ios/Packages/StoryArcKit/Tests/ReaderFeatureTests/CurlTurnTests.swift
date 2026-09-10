@@ -33,7 +33,6 @@ struct CurlTurnTests {
     @Test("A right-to-left publication turns forward on the other direction")
     func rightToLeft() {
         #expect(CurlTurn.progress(base: 0, travel: 300, width: width, isRightToLeft: true) == 0.3)
-        #expect(CurlTurn.progress(base: 0, travel: -300, width: width, isRightToLeft: true) == 0)
     }
 
     // MARK: - Interruption
@@ -63,7 +62,113 @@ struct CurlTurnTests {
     @Test("A caught settle cannot be dragged past either end")
     func caughtSettleStaysInRange() {
         #expect(CurlTurn.progress(base: 0.8, travel: -900, width: width, isRightToLeft: false) == 1)
-        #expect(CurlTurn.progress(base: 0.8, travel: 900, width: width, isRightToLeft: false) == 0)
+        #expect(CurlTurn.progress(base: 0.8, travel: 1900, width: width, isRightToLeft: false) == -1)
+    }
+
+    // MARK: - The other direction
+
+    @Test("A drag backwards from flat turns the page behind, which is a negative progress")
+    func dragBackFromFlat() {
+        // The reader's report: "page curl only seems to work in one direction, sliding to
+        // the previous page does nothing". It did nothing because the range was clamped at
+        // zero, so a backwards drag from a flat page was arithmetically indistinguishable
+        // from no drag at all.
+        let reached = CurlTurn.progress(base: 0, travel: 300, width: width, isRightToLeft: false)
+        #expect(abs(reached + 0.3) < 0.001)
+    }
+
+    @Test("The range clamps at a whole turn in each direction")
+    func rangeClamps() {
+        #expect(CurlTurn.progress(base: 0, travel: -4000, width: width, isRightToLeft: false) == 1)
+        #expect(CurlTurn.progress(base: 0, travel: 4000, width: width, isRightToLeft: false) == -1)
+    }
+
+    @Test("A right-to-left publication mirrors both signs")
+    func rightToLeftMirrorsBoth() {
+        #expect(CurlTurn.progress(base: 0, travel: 300, width: width, isRightToLeft: true) == 0.3)
+        #expect(CurlTurn.progress(base: 0, travel: -300, width: width, isRightToLeft: true) == -0.3)
+    }
+
+    @Test("With no page behind it the negative range collapses to nothing")
+    func firstPageCannotTurnBack() {
+        // `page-transitions`: a backwards drag on the first page "moves nothing". The guard
+        // is here rather than in the shader, which would have no sheet to turn and would
+        // draw the page beneath at rest.
+        #expect(
+            CurlTurn.progress(
+                base: 0, travel: 300, width: width, isRightToLeft: false, canTurnBack: false
+            ) == 0
+        )
+        #expect(
+            CurlTurn.progress(
+                base: 0.4, travel: 400, width: width, isRightToLeft: false, canTurnBack: false
+            ) == 0
+        )
+    }
+
+    @Test("With no page beneath the forward range is left alone, because the end screen is a turn")
+    func lastPageStillTurns() {
+        // `comic-reader` reaches an end screen by turning past the last page, so the last
+        // page's forward turn is a turn and not a nothing. Stated as a test because the
+        // symmetry is tempting and would take the end screen away.
+        #expect(CurlTurn.progress(base: 0, travel: -1200, width: width, isRightToLeft: false) == 1)
+    }
+
+    @Test("A backwards flick completes a backwards turn")
+    func backwardsFlick() {
+        #expect(CurlTurn.flicks(velocity: -60, progress: -0.1))
+        #expect(CurlTurn.settles(progress: -0.06, isFlick: true))
+    }
+
+    @Test("A flick has to agree with where the page is already going")
+    func flickAgrees() {
+        // A fast finger dragging the page back at a forward progress has said it does not
+        // want the turn. An unsigned flick completed it anyway.
+        #expect(!CurlTurn.flicks(velocity: -60, progress: 0.3))
+        #expect(!CurlTurn.flicks(velocity: 60, progress: -0.3))
+        #expect(CurlTurn.flicks(velocity: 60, progress: 0.3))
+    }
+
+    @Test("Past halfway backwards the turn completes too")
+    func halfwayBack() {
+        #expect(CurlTurn.settles(progress: -0.51, isFlick: false))
+        #expect(!CurlTurn.settles(progress: -0.5, isFlick: false))
+    }
+
+    @Test("A negative progress turns the page behind over the page in view")
+    func sheetsBackwards() {
+        // The mapping the shader is given: a backwards turn is the forward projection run
+        // on the previous page, at one minus the distance dragged. At a whole turn back the
+        // previous page is flat and fully in view; at nothing dragged it is folded away and
+        // the current page is what shows.
+        let sheets = CurlTurn.sheets(
+            progress: -0.9, page: "current", beneath: "next", previous: "previous"
+        )
+
+        #expect(sheets.turning == "previous")
+        #expect(sheets.under == "current")
+        #expect(abs(sheets.progress - 0.1) < 0.001)
+    }
+
+    @Test("A positive progress turns the page in view over the one beneath it")
+    func sheetsForwards() {
+        let sheets = CurlTurn.sheets(
+            progress: 0.3, page: "current", beneath: "next", previous: "previous"
+        )
+
+        #expect(sheets.turning == "current")
+        #expect(sheets.under == "next")
+        #expect(abs(sheets.progress - 0.3) < 0.001)
+    }
+
+    @Test("A flat page is the page in view, whichever way the last drag went")
+    func sheetsFlat() {
+        let sheets = CurlTurn.sheets(
+            progress: 0, page: "current", beneath: "next", previous: "previous"
+        )
+
+        #expect(sheets.turning == "current")
+        #expect(sheets.progress == 0)
     }
 
     @Test("A width nothing has measured yet leaves the page where it stands")

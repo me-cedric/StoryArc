@@ -3,23 +3,8 @@
 
 using namespace metal;
 
-// The page curl, as one stitchable Metal shader.
-//
-// The twin of `PageCurl.kt`'s AGSL. `design.md` calls for one cylindrical projection
-// "authored once conceptually and expressed twice rather than solved twice", and this
-// is the second expression — same regions, same shading, same mirroring.
-//
-// It is a fold, not a cylinder. Seen straight down, a folded page shows the part not
-// yet reached and the turned part lying face-down on it, and hides the crease
-// entirely: the crease is edge-on and contributes no pixels from directly above. So
-// the crease is shaded rather than projected. The Android spike found this and the
-// reasoning is recorded in task 0.4.
+constexpr constant float PI = 3.14159265;
 
-/// One page, scaled to fit the area and centred, transparent outside it.
-///
-/// `Fit` rather than fill, for the reason the reader fits pages that way: cropping a
-/// comic page loses artwork. Transparent outside, so the letterbox takes the black the
-/// view paints behind rather than a smear of the page's edge pixel.
 static half4 fitted(texture2d<half> page, float2 area, float2 point) {
     float2 dimensions = float2(page.get_width(), page.get_height());
     float scale = min(area.x / dimensions.x, area.y / dimensions.y);
@@ -33,62 +18,73 @@ static half4 fitted(texture2d<half> page, float2 area, float2 point) {
     return page.sample(linear, uv);
 }
 
+/// The sheet's own texture, in turn-space, mirrored back for a right-to-left publication.
+static half4 pageAt(
+    texture2d<half> page,
+    float2 area,
+    float direction,
+    float turnX,
+    float y
+) {
+    float actual = direction > 0.0 ? turnX : area.x - turnX;
+    return fitted(page, area, float2(actual, y));
+}
+
+/// The sheen along the top of the lip and the fold, as a Gaussian in distance.
+static half sheen(float away, float2 area, float crease) {
+    float reach = away / (area.x * crease);
+    return half(exp(-reach * reach) * 0.5);
+}
+
+/// A page rolling, as a transliteration of Android's `PageRoll`.
+///
+/// The model is explained and asserted there and in `PageRollTests`: the sheet lies flat to
+/// the fold, wraps a cylinder whose lower tangent is the fold, and comes back over itself.
+/// Every constant arrives as a parameter read from `PageRoll` on the Swift side, so the two
+/// platforms cannot disagree about a number; `PageCurlShaderTests` guards the formula.
 [[ stitchable ]] half4 pageCurl(
     float2 position,
-    // 0 = flat, 1 = fully turned. The crease sits at (1 - progress) across.
     float progress,
-    // How wide the shaded crease is, as a fraction of the page's width.
     float crease,
-    // How far the cast shadow reaches beyond the crease, in the same units.
     float shadow,
-    // 1 turns towards the leading edge; -1 mirrors it for right-to-left.
     float direction,
-    // How much darker the back of a sheet is than its front.
     float back,
+    float radiusMax,
+    float lean,
+    float rim,
     float2 area,
     texture2d<half> page,
     texture2d<half> beneath
 ) {
-    // One shader, two reading directions: work in a space where the turn always runs
-    // towards decreasing x, and flip on the way in.
     float x = direction > 0.0 ? position.x : area.x - position.x;
-    float fold = area.x * (1.0 - progress);
-
-    // Where the turned sheet's own edge has reached. The material that used to cover
-    // [fold, width] now covers [edge, fold], mirrored about the crease.
-    float edge = 2.0 * fold - area.x;
-
-    // The page, addressed in turn-space so the caller never has to mirror.
     float y = position.y;
+    float radius = max(radiusMax * area.x * sin(PI * progress), 0.0);
+    float fold = area.x * (1.0 - progress) + lean * radius * (0.5 - y / area.y);
+    float lipRim = fold + radius;
 
-    // Not yet reached by the sheet: the page as it lies.
+    if (x > lipRim) {
+        float beyond = (x - lipRim) / (area.x * shadow);
+        half dark = half(1.0 - 0.45 * exp(-beyond * beyond));
+        half4 under = fitted(beneath, area, position);
+        return half4(under.rgb * dark, under.a);
+    }
+
+    if (radius > 0.0 && x >= fold) {
+        float across = clamp((x - fold) / radius, 0.0, 1.0);
+        float angle = PI - asin(across);
+        float lambert = -cos(angle);
+        half4 curved = pageAt(page, area, direction, fold + radius * angle, y);
+        half3 rolled = curved.rgb * half(back * (rim + (1.0 - rim) * lambert));
+        return half4(saturate(rolled + sheen(x - fold, area, crease)), curved.a);
+    }
+
+    float edge = 2.0 * fold - area.x + PI * radius;
+
     if (x < edge) {
-        float actual = direction > 0.0 ? x : area.x - x;
-        return fitted(page, area, float2(actual, y));
+        return pageAt(page, area, direction, x, y);
     }
 
-    // Under the turned sheet. It is above the page, so it wins.
-    if (x <= fold) {
-        float mirrored = 2.0 * fold - x;
-        float actual = direction > 0.0 ? mirrored : area.x - mirrored;
-        half4 face = fitted(page, area, float2(actual, y));
-
-        // The back of a page is not its front: paper is not transparent, and a
-        // mirrored image at full brightness reads as a reflection rather than as a
-        // turned leaf.
-        half3 dimmed = face.rgb * half(back);
-
-        // The lit crease: brightest at the fold, gone within `crease`.
-        float toFold = (fold - x) / (area.x * crease);
-        half lit = half(exp(-toFold * toFold) * 0.5);
-
-        return half4(saturate(dimmed + lit), face.a);
-    }
-
-    // Lifted away from here, so the page beneath shows. Darkest against the crease,
-    // which is the only place a lifted page can cast a shadow.
-    float away = (x - fold) / (area.x * shadow);
-    half dark = half(1.0 - 0.45 * exp(-away * away));
-    half4 under = fitted(beneath, area, position);
-    return half4(under.rgb * dark, under.a);
+    half4 face = pageAt(page, area, direction, 2.0 * fold - x + PI * radius, y);
+    half3 dimmed = face.rgb * half(back);
+    return half4(saturate(dimmed + sheen(fold - x, area, crease)), face.a);
 }

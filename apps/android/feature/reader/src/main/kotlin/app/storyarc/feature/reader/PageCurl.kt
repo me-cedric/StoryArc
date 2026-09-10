@@ -66,61 +66,70 @@ internal object PageCurl {
     /** How much darker the back of a sheet is than its front. */
     private const val BACK = 0.55f
 
+    /**
+     * The roll, in AGSL.
+     *
+     * **A transliteration of [PageRoll], which is where the model is explained and
+     * asserted.** Every constant arrives as a uniform read from that object, so the two
+     * cannot disagree about a number; `PageCurlShaderTest` is the guard on the formula, and
+     * iOS's `PageCurl.metal` is the same code again in Metal.
+     */
     private val source = """
         uniform shader page;
         uniform shader beneath;
         uniform float2 size;
-        // 0 = flat, 1 = fully turned. The crease sits at (1 - progress) across.
         uniform float progress;
         uniform float crease;
         uniform float shadow;
-        // 1 turns towards the left edge, -1 mirrors it for right-to-left.
         uniform float direction;
         uniform float back;
+        uniform float radiusMax;
+        uniform float lean;
+        uniform float rim;
 
-        // The page, addressed in turn-space so the caller never has to mirror.
+        const float PI = 3.14159265;
+
         half4 pageAt(float turnX, float y) {
             float actual = direction > 0.0 ? turnX : size.x - turnX;
             return page.eval(float2(actual, y));
         }
 
+        half sheen(float away) {
+            float reach = away / (size.x * crease);
+            return half(exp(-reach * reach) * 0.5);
+        }
+
         half4 main(float2 xy) {
-            // One shader, two reading directions: work in a space where the turn
-            // always runs towards decreasing x, and flip on the way in.
             float x = direction > 0.0 ? xy.x : size.x - xy.x;
-            float fold = size.x * (1.0 - progress);
+            float radius = max(radiusMax * size.x * sin(PI * progress), 0.0);
+            float fold = size.x * (1.0 - progress) + lean * radius * (0.5 - xy.y / size.y);
+            float lipRim = fold + radius;
 
-            // Where the turned sheet's own edge has reached. The material that used to
-            // cover [fold, width] now covers [edge, fold], mirrored about the crease.
-            float edge = 2.0 * fold - size.x;
+            if (x > lipRim) {
+                float beyond = (x - lipRim) / (size.x * shadow);
+                half dark = half(1.0 - 0.45 * exp(-beyond * beyond));
+                half4 under = beneath.eval(xy);
+                return half4(under.rgb * dark, under.a);
+            }
 
-            // Not yet reached by the sheet: the page as it lies.
+            if (radius > 0.0 && x >= fold) {
+                float across = clamp((x - fold) / radius, 0.0, 1.0);
+                float angle = PI - asin(across);
+                float lambert = -cos(angle);
+                half4 curved = pageAt(fold + radius * angle, xy.y);
+                half3 rolled = curved.rgb * half(back * (rim + (1.0 - rim) * lambert));
+                return half4(saturate(rolled + sheen(x - fold)), curved.a);
+            }
+
+            float edge = 2.0 * fold - size.x + PI * radius;
+
             if (x < edge) {
                 return pageAt(x, xy.y);
             }
 
-            // Under the turned sheet. It is above the page, so it wins.
-            if (x <= fold) {
-                half4 face = pageAt(2.0 * fold - x, xy.y);
-
-                // The back of a page is not its front: paper is not transparent, and a
-                // mirrored image at full brightness reads as a reflection rather than
-                // as a turned leaf.
-                half3 dimmed = face.rgb * half(back);
-
-                // The lit crease: brightest at the fold, gone within `crease`.
-                float toFold = (fold - x) / (size.x * crease);
-                half lit = half(exp(-toFold * toFold) * 0.5);
-
-                return half4(saturate(dimmed + lit), face.a);
-            }
-
-            // Lifted away from here, so the page beneath shows. Darkest against the
-            // crease, which is the only place a lifted page can cast a shadow.
-            float away = (x - fold) / (size.x * shadow);
-            half dark = half(1.0 - 0.45 * exp(-away * away));
-            half4 under = beneath.eval(xy);
-            return half4(under.rgb * dark, under.a);
+            half4 face = pageAt(2.0 * fold - x + PI * radius, xy.y);
+            half3 dimmed = face.rgb * half(back);
+            return half4(saturate(dimmed + sheen(fold - x)), face.a);
         }
     """.trimIndent()
 
@@ -146,6 +155,9 @@ internal object PageCurl {
         setFloatUniform("shadow", SHADOW)
         setFloatUniform("direction", if (isRightToLeft) -1f else 1f)
         setFloatUniform("back", BACK)
+        setFloatUniform("radiusMax", PageRoll.R_MAX)
+        setFloatUniform("lean", PageRoll.LEAN)
+        setFloatUniform("rim", PageRoll.RIM)
         setInputShader("page", page.fitted(area))
         setInputShader("beneath", (beneath ?: page).fitted(area))
     }
