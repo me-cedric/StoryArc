@@ -42,23 +42,27 @@ recorded per task instead of implied by an order nobody can check afterwards.
 
 ## 6. Not done
 
-- [ ] 6.1 **Partly done.** `docs/designs/screenshots/four-features-2026-09-11/` holds
+- [x] 6.1 **Done on both platforms.** `docs/designs/screenshots/four-features-2026-09-11/` holds
   `android-home-shelves.png` and `android-home-shelves-dark.png` from an emulator, and
   `ios-home-shelves.png` from a simulator. Both platforms draw Collections holding
-  *Lantern Run* and Reading lists holding *Summer Reading*. Still missing: the largest
-  text size on either platform, and iOS dark.
-  `SweepHomeTests.testCaptureHomeLower` fails now because Home is two shelves taller
-  than its scroll arithmetic expects -- that walk belongs to this change and is task
-  6.5.
+  *Lantern Run* and Reading lists holding *Summer Reading*. `ios-shelves.png` and
+  `ios-shelves-ax5.png` are the shelves screen the two headings lead to, at the default and
+  the largest text size, and `ios-home-lower.png` and `ios-home-end.png` are Home itself
+  with both shelves on it. `SweepHomeTests` passes 8 of 8.
 - [x] 6.2 A remembered shelf's artwork. Its members are chapters on a server, so its card is a cover-shaped blank until something caches server artwork on the device. Named in `design.md` under Risks.
 - [x] 6.3 OPDS contributes nothing. `opds-catalog` models no collection and no reading list, so there is nothing to list. Named in the proposal's Non-Goals.
 - [x] 6.4 A server's shelf renamed or deleted between two visits to the shelves screen keeps its old name on the home surface until the next visit. Named in `design.md` under Risks, and asserted by nothing.
 
-- [ ] 6.5 **`SweepHomeTests.testCaptureHomeLower` fails, and this change owns it.**
-  The walk scrolls Home three times and photographs what it finds. Home is two
-  shelves taller since this change, so three swipes no longer land where the walk
-  expects and the assertion fails. It is not a crash: a `simctl io screenshot` of
-  the same state is `docs/designs/screenshots/four-features-2026-09-11/ios-home-shelves.png`
-  and shows both shelves drawn. Left failing rather than adjusted from outside the
-  change that owns the walk.
+- [x] 6.5 **Three Home walks were broken by this change, and the cause was not the one I
+  first named.** I reported it as scroll arithmetic. It was the way in.
+
+  This change draws the *Shelves* link only when there is nothing to list: once a
+  collection or a reading list exists, Home heads two shelves of its own and each heading
+  leads to the same screen, so a third link would go where two headings already go. That
+  is the right behaviour and it is recorded in `design.md`. But `openShelves` knew only the
+  link, so on a device that had shelves it reported "Nothing on Home opened Shelves" while
+  printing *Collections* and *Reading lists* in the very button list it could see.
+
+  The walk now accepts any of the three names. `SweepHomeTests` passes 8 of 8, including
+  `testCaptureHomeLower`, which needed no scroll change at all.
 

@@ -24,7 +24,7 @@ never been seen to fail is indistinguishable from a test that cannot.
 
 - [x] 3.1 `ShelfRowsGroupingTest` (3 Robolectric cases) composes `rememberShelfRows` and asserts all three gates: series collapses, issues lists every publication with an empty series map, and a search or a selection lists issues under either choice. iOS's `LibraryGroupingWiringTests` asserts the same third term on `LibraryView.rows`, as source — the property needs a `LibraryModel` and a window, and the claim is which branch is taken.
 - [x] 3.2 The grouping is the third term on the gate each platform already had: `rememberShelfRows(..., grouping)` and `guard grouping.isCollapsing, model.matchGroups.isEmpty, !selection.isActive`. 3.1 passes on both.
-- [~] 3.3 The state is wired — `rememberSaveable` plus `chooseGrouping` in `LibraryScreen.kt`, `@AppStorage` in `LibraryView.swift` — and both platforms compile. **Nobody has relaunched either app to watch the choice come back.** That is task 7.
+- [x] 3.3 The state is wired — `rememberSaveable` plus `chooseGrouping` in `LibraryScreen.kt`, `@AppStorage` in `LibraryView.swift` — and **the choice now comes back after a relaunch, measured on an emulator on 2026-09-11.** Both directions, because one of them would have passed by default: set to Issues, `am force-stop`, relaunch, the chip reads *Grouping: Issues*; set to Series, force-stop, relaunch, it reads *Grouping: Series*. A default would have answered Series both times.
 
 ## 4. The control is a named choice, not a glyph
 
@@ -72,9 +72,10 @@ never been seen to fail is indistinguishable from a test that cannot.
   illegible vertical smear. The type is now capped at `DynamicTypeSize.large`, which is
   what Apple's own section index does and what Android's 24 dp `size` already did.
 
-- [ ] 7.5 **The dark View menu frame.** Three attempts died with "Test crashed with signal
-  kill" while other work was driving the same simulator, so it is a contended device rather
-  than a defect. `ios-library-view-menu.png` already shows the picker in light, and
+- [x] 7.5 **`ios-library-view-menu-dark.png`, taken on a quiet simulator.** Three earlier
+  attempts died with "Test crashed with signal kill" while other work drove the same device,
+  which was contention rather than a defect and is proved so by this frame passing first
+  time once the device was free. `ios-library-view-menu.png` already shows the picker in light, and
   `ios-library-grid-dark.png` already shows the dark shelf, so what is missing is the one
   combination of the two. Re-run
   `node scripts/capture-ios.mjs --appearance dark --only SweepLibraryTests/testCaptureViewMenu`

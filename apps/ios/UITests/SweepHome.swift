@@ -140,15 +140,24 @@ final class SweepHomeTests: XCTestCase {
         // through `control`. So each candidate is tapped and the arrival checked, and the
         // failure names every button it could see — which is the only thing that will settle
         // what this row actually is.
+        // **Four names, because the way in depends on what the reader has.**
+        // `home-lists-the-readers-shelves` draws the *Shelves* link only when there is
+        // nothing to list: once a collection or a reading list exists, Home heads two
+        // shelves of its own and each heading leads to the same screen, so the link would be
+        // a third way to somewhere two headings already go. A walk that knew only the link
+        // failed on a device that had shelves -- "Nothing on Home opened Shelves", with
+        // *Collections* and *Reading lists* both plainly in the button list it printed.
+        let names = ["Shelves", "Collections", "Reading lists"]
         _ = scrollTo(app.staticTexts["Shelves"], in: app, swipes: 8)
-        let ways = [app.buttons["Shelves"], app.cells["Shelves"], app.staticTexts["Shelves"]]
+            || names.dropFirst().contains { scrollTo(app.staticTexts[$0], in: app, swipes: 4) }
+        let ways = names.flatMap { [app.buttons[$0], app.cells[$0], app.staticTexts[$0]] }
         for way in ways where way.exists && way.isHittable {
             way.tap()
             if arrivedAtShelves(app) { return }
         }
         // A coordinate on the row, for a link whose label is drawn but whose element is not
         // the thing that takes the tap.
-        let row = app.staticTexts["Shelves"]
+        let row = names.map { app.staticTexts[$0] }.first { $0.exists } ?? app.staticTexts["Shelves"]
         if row.exists {
             // Twice the label's own width to the right of it, which for a seven-letter word
             // is still well inside a phone's row and past whatever element owns the text.

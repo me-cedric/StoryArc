@@ -172,6 +172,26 @@ The two shelves were put there by writing `app.storyarc.shelves` with
 has no server, so a Kavita collection is still unphotographed; these are the
 local kind, which is one of the three the owner asked for.
 
+## The walks these frames fixed
+
+Every frame above was taken by a sweep test, and taking them broke three walks and
+then mended them.
+
+`ios-shelves.png`, `ios-shelves-ax5.png`, `ios-home-lower.png` and
+`ios-home-end.png` came from `SweepHomeTests`, which now passes **8 of 8**. It had
+been failing three of those eight with *"Nothing on Home opened Shelves"* while
+printing *Collections* and *Reading lists* in the very button list it could see.
+
+The cause was the change's own good decision. Home draws the *Shelves* link only
+when there is nothing to list; once a collection exists, the two shelf headings
+lead to the same screen and a third link would be redundant. `openShelves` knew
+only the link. It accepts any of the three names now.
+
+`ios-library-view-menu-dark.png` is the frame that died three times with *"Test
+crashed with signal kill"* while other work drove the same simulator. It passed
+first time on a quiet device, which is what proves those deaths were contention
+rather than a defect.
+
 ## Not shown
 
 **The Kavita search that finds issues**, from `a-search-that-finds-the-issue`.
