@@ -77,6 +77,33 @@ so no query reaches the rows that carry the defect.
 `HitIdentityTest` and `HitIdentityTests` assert both rules on both platforms.
 This paragraph is the record that no frame does.
 
+## The search that shares the defect
+
+`android-server-search.png` — the same server searched for *lantern*, fifteen
+series and no crash.
+
+The sweep that followed the heading fix found the search screen holding two
+more of the same family. Neither is in this frame, and the reason is this
+server's data rather than the fix:
+
+1. **A row with no words.** A chapter the server gives neither a title nor a
+   number now draws *Unnumbered*. Before, it drew nothing at all and was still
+   tappable — the earlier guard turned "-100000" into an empty string, and the
+   row kept its height.
+2. **Two chapters that were one row.** A row's identity was
+   `kind:series:title`. Two such chapters read alike, so both keyed the same,
+   and a keyed list refuses that: the screen would have thrown.
+
+Both need a *chapter* hit, and this server returns none for these queries.
+*lantern* matches fifteen series and stops; *annual* reads **Nothing matched.**
+That is Kavita's own rule rather than a fault here — quoted from
+`API/Data/Repositories/SeriesRepository.cs` at tag `v0.8.7`, a chapter is
+matched on `c.TitleName`, `c.ISBN` or `c.Range`, so a chapter row never
+carries its series' name and no query for a series' name reaches one.
+
+`HitIdentityTest` and `HitIdentityTests` assert both rules on both platforms.
+This paragraph is the record that no frame does.
+
 ## Not shown
 
 **Specials.** No series on this server has any, so no frame proves that a
