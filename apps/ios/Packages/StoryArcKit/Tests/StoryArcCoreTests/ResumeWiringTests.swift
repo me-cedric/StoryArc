@@ -59,9 +59,29 @@ struct ResumeWiringTests {
     func onlyAListeningPositionResumes() throws {
         let actions = try source("App/StoryArcAppActions.swift")
 
+        // The optional chain became a `guard let stored` when the finished guard below was
+        // added, so the pattern is matched on the unwrapped value. Asserted without the
+        // receiver: what matters is that the *case* is `.listening` and nothing else, and a
+        // test that also pinned the spelling of the receiver failed on a refactor that
+        // changed no behaviour. It did, on 2026-09-11.
         #expect(
-            actions.contains("case let .listening(part, _, offset, _) = stored?.position"),
+            actions.contains("case let .listening(part, _, offset, _) = stored.position"),
             "a page or a reflowable position must not be read as a part index"
+        )
+    }
+
+    @Test("A finished audiobook is not seeked to its own end")
+    func aFinishedBookStartsOver() throws {
+        let actions = try source("App/StoryArcAppActions.swift")
+
+        // `reading-progress`: "reopening a finished publication starts at the beginning while
+        // retaining the finished record". The player had no such guard, and the cost was not a
+        // wrong offset: seeking a finished book to its last second made the source report the
+        // end, `PlayerCentre.end()` tore the session down, and the compact bar was withdrawn
+        // before it could be drawn. The book appeared to refuse to play.
+        #expect(
+            actions.contains("!stored.isFinished"),
+            "a finished audiobook is seeked to its end again, which stops the session"
         )
     }
 
