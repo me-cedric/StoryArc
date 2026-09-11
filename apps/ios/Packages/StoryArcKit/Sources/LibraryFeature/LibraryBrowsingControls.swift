@@ -63,6 +63,13 @@ struct ViewMenu: View {
     /// `UserDefaults` key of its own.
     @Binding var availability: LibraryAvailability
 
+    /// Series or issues, owned by the screen for ``availability``'s reason.
+    ///
+    /// `library-browsing` asks for the choice "inside the menu that holds the other view
+    /// choices", and asks it to read "as a grouping rather than as a sort or a filter" — so
+    /// it is a `Picker` with its own name here, and not a chip beside the filter funnel.
+    @Binding var grouping: LibraryGrouping
+
     var body: some View {
         Menu {
             // First, because it is the only one of the three that changes *which*
@@ -91,6 +98,21 @@ struct ViewMenu: View {
                 Text("library.layout.list", bundle: .module).tag(LibraryLayout.list)
             } label: {
                 Text("library.layout", bundle: .module)
+            }
+
+            Divider()
+
+            // Between the layout and the sort, because the three answer one question in
+            // widening order: which publications, then what a cell stands for, then in what
+            // order. `library-browsing`'s *An ordering says that it is an ordering* scenario
+            // ends "and the same holds for grouping, which is neither" — so this picker is
+            // named *Grouping* and never *Sort*.
+            Picker(selection: $grouping) {
+                ForEach(LibraryGrouping.allCases, id: \.self) { value in
+                    Text(value.titleKey, bundle: .module).tag(value)
+                }
+            } label: {
+                Text("library.grouping", bundle: .module)
             }
 
             Divider()

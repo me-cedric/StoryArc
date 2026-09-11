@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -49,6 +52,7 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.MatchGroup
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.Source
+import kotlinx.coroutines.launch
 
 /**
  * The compact list.
@@ -91,6 +95,24 @@ internal fun CoverList(
      * the list is one run of rows.
      */
     groups: List<MatchGroup> = emptyList(),
+    /**
+     * The cells that stand for a series, by the id of the publication standing for them.
+     *
+     * The same map [CoverGrid] takes, and it is here because the list used to take nothing:
+     * a row standing for *Superman Batman* opened issue #1 and the other nineteen were
+     * unreachable in this layout. `library-browsing`'s *Opening a series* scenario already
+     * required the series to open, and one of the two layouts could not.
+     */
+    seriesRows: Map<String, LibraryRow.Series> = emptyMap(),
+    /** What a tap on a row standing for a series does. */
+    onOpenSeries: (LibraryRow.Series) -> Unit = {},
+    /**
+     * The letters down the trailing edge, or empty where the shelf files nothing under one.
+     *
+     * Decided by [LibraryRail], never here: *A sort no letter describes* says the index is
+     * absent under five of the seven sorts, and an empty list is how that absence arrives.
+     */
+    rail: List<RailEntry> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -101,46 +123,69 @@ internal fun CoverList(
         with(density) { thumbnailWidth.roundToPx() }
     }
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = StoryArcSpace.sm),
-    ) {
-        // `library-browsing`: results are "grouped by match kind" while a search is running.
-        // A list already reads as sections, so grouping here costs the reader nothing to
-        // learn.
-        val row: @Composable (Publication) -> Unit = { publication ->
-            ListRow(
-                publication,
-                viewModel,
-                onOpen,
-                thumbnailWidth,
-                maxPixelSize,
-                isPicked = selection?.contains(publication.id),
-                onToggle = onToggle,
-                onAddToShelf = onAddToShelf,
-            )
-            HorizontalDivider()
-        }
-        if (groups.isEmpty()) {
-            items(publications, key = { it.id }) { row(it) }
-        } else {
-            for (group in groups) {
-                item(key = "heading-${group.kind}") {
-                    MatchHeading(
-                        group.kind,
-                        modifier = Modifier.padding(horizontal = StoryArcSpace.gutter),
-                    )
+    // Hoisted for the index, and for nothing else. A letter's target in a list is the
+    // publication's own position — the list draws one item per row and opens no headings
+    // while the index is offered — so no arithmetic is needed here, only the state.
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            state = listState,
+            contentPadding = PaddingValues(vertical = StoryArcSpace.sm),
+        ) {
+            // `library-browsing`: results are "grouped by match kind" while a search is running.
+            // A list already reads as sections, so grouping here costs the reader nothing to
+            // learn.
+            val row: @Composable (Publication) -> Unit = { publication ->
+                val series = seriesRows[publication.id]
+                ListRow(
+                    publication,
+                    viewModel,
+                    // A series takes the road the grid gives it. Falling through to the
+                    // publication here is what left this layout opening the issue leading the
+                    // series — see [CoverGrid], which composes the identical pair.
+                    onOpen = if (series == null) onOpen else { _ -> onOpenSeries(series) },
+                    thumbnailWidth,
+                    maxPixelSize,
+                    isPicked = selection?.contains(publication.id),
+                    onToggle = onToggle,
+                    onAddToShelf = onAddToShelf,
+                    seriesCount = series?.count,
+                )
+                HorizontalDivider()
+            }
+            if (groups.isEmpty()) {
+                items(publications, key = { it.id }) { row(it) }
+            } else {
+                for (group in groups) {
+                    item(key = "heading-${group.kind}") {
+                        MatchHeading(
+                            group.kind,
+                            modifier = Modifier.padding(horizontal = StoryArcSpace.gutter),
+                        )
+                    }
+                    items(group.publications, key = { it.id }) { row(it) }
                 }
-                items(group.publications, key = { it.id }) { row(it) }
+            }
+
+            // The same foot the grid has. `library-browsing` asks for the way to the rest of a
+            // library "at the foot of the shelf", and the list is the shelf too — a reader who
+            // prefers rows was the one reader it did not reach.
+            item(key = "more-from") {
+                MoreFromTheLibrary(sources = sources, isPartial = viewModel::isPartial, onBrowse = onBrowse)
             }
         }
 
-        // The same foot the grid has. `library-browsing` asks for the way to the rest of a
-        // library "at the foot of the shelf", and the list is the shelf too — a reader who
-        // prefers rows was the one reader it did not reach.
-        item(key = "more-from") {
-            MoreFromTheLibrary(sources = sources, isPartial = viewModel::isPartial, onBrowse = onBrowse)
-        }
+        IndexRail(
+            entries = rail,
+            onChoose = { entry ->
+                val index = publications.indexOfFirst { it.id == entry.publicationId }
+                if (index >= 0) scope.launch { listState.animateScrollToItem(index) }
+            },
+            modifier = Modifier.align(Alignment.CenterEnd),
+        )
     }
 }
 
@@ -169,6 +214,14 @@ private fun ListRow(
     isPicked: Boolean? = null,
     onToggle: (Publication) -> Unit = {},
     onAddToShelf: ((Publication) -> Unit)? = null,
+    /**
+     * How many publications this row stands for, or null when it stands for itself.
+     *
+     * `CoverCell.seriesCount` carries the identical value for the identical reason: a row
+     * standing for a series is named for the series and captioned with the count, not with
+     * the caption of whichever issue leads it.
+     */
+    seriesCount: Int? = null,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -191,7 +244,14 @@ private fun ListRow(
     )
     val unavailable = stringResource(R.string.library_cell_unavailable)
     val downloaded = stringResource(R.string.catalogue_entry_downloaded)
-    val subtitle = rowSubtitle(publication)
+    val title = if (seriesCount == null) {
+        publication.displayTitle
+    } else {
+        publication.series ?: publication.displayTitle
+    }
+    val subtitle = seriesCount
+        ?.let { pluralStringResource(R.plurals.shelves_count, it, it) }
+        ?: rowSubtitle(publication)
 
     Row(
         modifier = modifier
@@ -221,7 +281,7 @@ private fun ListRow(
                 // repeats nothing.
                 if (isKept || !isReadable) {
                     contentDescription = spokenCellLabel(
-                        parts = listOf(publication.displayTitle, subtitle),
+                        parts = listOf(title, subtitle),
                         isOnDevice = isKept,
                         isReadableNow = isReadable,
                         downloaded = downloaded,
@@ -275,7 +335,7 @@ private fun ListRow(
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair),
         ) {
             Text(
-                text = publication.displayTitle,
+                text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 color = palette.textPrimary,
                 maxLines = 1,

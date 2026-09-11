@@ -41,6 +41,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,6 +69,7 @@ import app.storyarc.core.model.MatchGroup
 import app.storyarc.core.model.MatchKind
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.Source
+import kotlinx.coroutines.launch
 
 /**
  * How wide one shortcut in the continue-reading row is at an ordinary font scale.
@@ -174,6 +176,13 @@ internal fun CoverGrid(
      */
     selection: Set<String>? = null,
     onToggle: (Publication) -> Unit = {},
+    /**
+     * The letters down the trailing edge, or empty where the shelf files nothing under one.
+     *
+     * Decided by [LibraryRail], never here: *A sort no letter describes* says the index is
+     * absent under five of the seven sorts, and an empty list is how that absence arrives.
+     */
+    rail: List<RailEntry> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -187,6 +196,18 @@ internal fun CoverGrid(
     val maxPixelSize = remember(density, maximumWidth) { with(density) { maximumWidth.roundToPx() } }
 
     val gridState = rememberLazyGridState()
+    val scope = rememberCoroutineScope()
+    // What a letter has to scroll to. `animateScrollToItem` takes an item index and this
+    // grid puts a full-span row before the cells, a sticky header before each section and a
+    // full-span row after them, so a publication's position on the shelf is not its position
+    // in the lazy list. [LibraryRail.itemIndexes] is where that counting is asserted.
+    val railTargets = remember(publications, sections, continueReading.isEmpty()) {
+        LibraryRail.itemIndexes(
+            publications = publications,
+            sections = sections,
+            leading = if (continueReading.isEmpty()) 0 else 1,
+        )
+    }
 
     // The room the shelf actually has, not the window: on a tablet this grid is drawn
     // inside the ~360 dp list pane of a `ListDetailPaneScaffold`, and reading the whole
@@ -272,6 +293,14 @@ internal fun CoverGrid(
                 )
             }
         }
+
+        IndexRail(
+            entries = rail,
+            onChoose = { entry ->
+                railTargets[entry.publicationId]?.let { scope.launch { gridState.animateScrollToItem(it) } }
+            },
+            modifier = Modifier.align(Alignment.CenterEnd),
+        )
     }
 }
 

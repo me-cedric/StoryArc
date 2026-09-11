@@ -51,8 +51,15 @@ extension LibraryView {
     /// is running or a selection is open — results are already grouped by why they
     /// matched, and a cell that opened a list mid-selection would throw away what the
     /// reader had picked. Android's `rememberShelfRows` makes the same two exceptions.
+    ///
+    /// And not when the reader asked for issues. `library-browsing`'s *A shelf of issues*
+    /// scenario is the third reason to take this branch, and it needs nothing else: an empty
+    /// row set already means *list every publication* here — ``shelved`` falls back to
+    /// ``shown``, ``seriesRows`` is empty, and the sections and the index are cut from the
+    /// list that is drawn.
     var rows: [LibraryRow] {
-        guard model.matchGroups.isEmpty, !selection.isActive else { return [] }
+        guard grouping.isCollapsing, model.matchGroups.isEmpty, !selection.isActive
+        else { return [] }
         return LibraryRows.of(shown)
     }
 
@@ -84,6 +91,23 @@ extension LibraryView {
         // the reader's language — so a heading read in the device's would name a letter the
         // shelf did not sort on.
         return LibrarySections.divide(shelved, by: model.query.sort, locale: .storyArc)
+    }
+
+    /// The letters this shelf can be jumped to by, or nothing at all.
+    ///
+    /// `library-browsing` asks for the index on a long shelf sorted by title or by series,
+    /// and asks it to be absent rather than inert under the other five sorts.
+    /// ``LibraryRail/of(_:sort:locale:)`` decides all of that; this decides only that the
+    /// question is worth asking, which is the shape ``sections`` uses beside it.
+    ///
+    /// The shelf surface only, and never while a search is running — the results are already
+    /// grouped by why they matched, and an alphabet across that grouping would be two answers
+    /// to one question. The reader's language, for ``sections``' reason: the label is the
+    /// initial of the sort key, and which article the sort key drops is a fact about the
+    /// reader's language.
+    var rail: [RailEntry] {
+        guard surface == .shelf, model.matchGroups.isEmpty else { return [] }
+        return LibraryRail.of(shelved, sort: model.query.sort, locale: .storyArc)
     }
 
     /// Whether it is the device axis that is hiding the library, rather than a filter.
@@ -136,7 +160,31 @@ extension LibraryView {
         }
     }
 
+    /// The shelf, and the index down its side.
+    ///
+    /// **One `ScrollViewReader` around all three shelf branches, rather than a rail inside
+    /// each of them.** The proxy reaches any scrollable descendant, and the three branches
+    /// address their rows by `Publication.id` through `ForEach` — the sectioned grid, the
+    /// plain grid and the `List` alike — so a letter needs no item arithmetic on this
+    /// platform. Android has no proxy and does the counting instead; `LibraryRail.kt` says so.
+    ///
+    /// The pattern is ``ThumbnailStrip``'s, already working in the reader.
     var content: some View {
+        ScrollViewReader { scroller in
+            shelfBody
+                .overlay(alignment: .trailing) {
+                    if !rail.isEmpty {
+                        IndexRail(entries: rail) { entry in
+                            withAnimation(.easeInOut(duration: StoryArcDuration.fast)) {
+                                scroller.scrollTo(entry.publicationID, anchor: .top)
+                            }
+                        }
+                    }
+                }
+        }
+    }
+
+    private var shelfBody: some View {
         Group {
             KavitaServerSearchOffer(registry: model.registry, query: model.query) { source in
                 serverSearch = model.query.search
@@ -166,12 +214,17 @@ extension LibraryView {
                         onToggle: { selection.toggle($0.id) }
                     )
                 } else {
+                    // The same rows the grid draws, and the same map of which of them stand
+                    // for a series. This used to be `shown` — the list quietly listed issues
+                    // whatever the grid showed, so the two layouts answered the grouping
+                    // question differently and neither said so.
                     CoverList(
-                        publications: shown,
+                        publications: shelved,
                         groups: model.matchGroups,
                         model: model,
                         selection: selection.isActive ? selection.ids : nil,
-                        onToggle: { selection.toggle($0.id) }
+                        onToggle: { selection.toggle($0.id) },
+                        seriesRows: seriesRows
                     )
                 }
                 // After all three, not inside one of them. It was inside the plain-grid

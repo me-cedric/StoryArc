@@ -1,0 +1,161 @@
+internal import SwiftUI
+
+internal import DesignSystem
+internal import StoryArcCore
+
+/// One entry of the index down the side of a long shelf: a letter, and the row it moves to.
+///
+/// The row is named by its publication's identifier rather than by a position, because the
+/// scroll is done by `ScrollViewReader` and a position would have to be recounted every time
+/// the grid put a heading or a full-span row between two cells. Android's `RailEntry` carries
+/// the identifier too and then maps it to an item index, which is the one thing the two
+/// platforms cannot share — see `LibraryRail.kt`.
+struct RailEntry: Identifiable, Equatable {
+    /// The single character the entry draws, or `#` for everything no letter claims.
+    let label: String
+    /// The first row filed under that label.
+    let publicationID: String
+
+    var id: String { label }
+}
+
+/// Which letters a shelf can be indexed by, and where each one starts.
+///
+/// `library-browsing`: "an index runs down its trailing edge, holding one entry for each
+/// letter the shelf actually files a row under, in the shelf's own order". Two sorts file a
+/// row under a letter and five do not, and the requirement's *A sort no letter describes*
+/// scenario says the index is then **absent** rather than drawn and inert.
+///
+/// **Read off the sort key, never off the section headings.** A section title is a series
+/// name, a letter, a year or one translated word for the unplaceable, so a rail built from
+/// the headings would be a rail of names — a different control. And it is the *sort key*
+/// rather than the raw title, for ``LibrarySections``' reason: `library-browsing`
+/// alphabetises a title with its leading article ignored, so *The Sandman* files under S and
+/// a label read off the raw title would say T in the middle of the S run.
+///
+/// Pure and free of SwiftUI, as ``LibrarySections`` and ``LibraryRows`` are and for the same
+/// reason — `LibraryRailTests` states the awkward cases once here rather than discovering
+/// them per screenshot. Android's `LibraryRail` answers the same cases.
+enum LibraryRail {
+
+    /// The letters this shelf offers, in the shelf's own order, or nothing at all.
+    ///
+    /// Three refusals, and each of them is a real answer the caller draws nothing for:
+    ///
+    /// - a sort that files no row under a letter,
+    /// - a shelf short enough to take in at a glance — ``LibrarySections/threshold``, the
+    ///   definition this repository already holds, rather than a second number,
+    /// - a shelf whose every row files under one letter, where the index moves nowhere.
+    /// - Parameter locale: the language whose alphabet the labels are read in. The reader's,
+    ///   from the one caller that draws a shelf; the process's by default, the way
+    ///   ``LibrarySections/divide(_:by:locale:)`` defaults.
+    static func of(
+        _ publications: [Publication],
+        sort: LibrarySort,
+        locale: Locale = .current
+    ) -> [RailEntry] {
+        guard publications.count > LibrarySections.threshold else { return [] }
+
+        var entries: [RailEntry] = []
+        var seen: Set<String> = []
+        for publication in publications {
+            guard let label = label(for: publication, sort: sort, locale: locale) else {
+                return []
+            }
+            guard seen.insert(label).inserted else { continue }
+            entries.append(RailEntry(label: label, publicationID: publication.id))
+        }
+        // One letter over the whole shelf is a label rather than an index, and choosing it
+        // would move the shelf nowhere. The same shape ``LibrarySections/divide(_:by:locale:)``
+        // refuses a single section for.
+        return entries.count > 1 ? entries : []
+    }
+
+    /// Which letter a row files under, or `nil` when this sort files rows under none.
+    ///
+    /// The `nil` is the whole of the hide-rather-than-disable decision, and it is checked on
+    /// the first row: a sort that answers `nil` answers it for every row, so ``of(_:sort:locale:)``
+    /// returns an empty index the moment it sees one.
+    private static func label(
+        for publication: Publication,
+        sort: LibrarySort,
+        locale: Locale
+    ) -> String? {
+        switch sort {
+        case .title:
+            // The key the shelf is ordered by, so the labels run in the shelf's own order.
+            return initial(of: LibraryIndex.sortKey(publication.displayTitle, locale: locale), locale: locale)
+        case .series:
+            // A publication naming no series is `#`, and every one of them is one contiguous
+            // run at the end of the shelf — `LibraryIndex.compareBySeries` puts the whole
+            // pile after every series on purpose, so the index never runs a second alphabet
+            // through the first.
+            guard let series = LibraryIndex.seriesName(of: publication) else { return "#" }
+            return initial(of: LibraryIndex.sortKey(series, locale: locale), locale: locale)
+        case .lastRead, .progress, .year, .dateAdded, .fileSize:
+            // None of these files a row under a letter. Four are continuous, for the reason
+            // ``LibrarySections`` gives; a year divides the shelf and is not a letter, and an
+            // index of years is a different control from an A-to-Z.
+            return nil
+        }
+    }
+
+    /// The letter a key files under, or `#` for everything that files under none.
+    ///
+    /// Uppercased for the reader's locale rather than for the machine's: a Turkish shelf
+    /// files *ısı* under *I*, and `uppercased()` with no locale would not. The same rule
+    /// ``LibrarySections`` applies to a heading, so a heading and an index entry cannot
+    /// disagree about one row.
+    private static func initial(of key: String, locale: Locale) -> String {
+        guard let first = key.trimmingCharacters(in: .whitespacesAndNewlines).first,
+              first.isLetter
+        else { return "#" }
+        return String(first).uppercased(with: locale)
+    }
+}
+
+/// The index itself, down the trailing edge of the shelf.
+///
+/// `library-browsing`'s *The index without sight* scenario is the reason for every
+/// accessibility line here rather than an afterthought about them:
+///
+/// - the whole rail is one named container, so a screen reader announces *Alphabetical
+///   index* once instead of announcing twenty-seven unexplained characters,
+/// - every entry is a real `Button` with a spoken label naming the letter it moves to,
+///   because a single drawn character is not an instruction,
+/// - nothing here is the only statement of anything: the shelf's own section headings say
+///   the same thing in the content, so a reader who never meets the rail loses nothing.
+struct IndexRail: View {
+    @Environment(\.theme) private var theme
+
+    let entries: [RailEntry]
+    /// Where a chosen letter sends the shelf.
+    let onChoose: (RailEntry) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(entries) { entry in
+                Button { onChoose(entry) } label: {
+                    Text(entry.label)
+                        .textRole(.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(theme.palette.textSecondary)
+                        // A fixed, small target so a shelf holding every letter still fits
+                        // one column. 22 points is the least a letter can be tapped at
+                        // reliably, and the rail is centred rather than stretched so it
+                        // clips instead of pushing the covers about.
+                        .frame(width: 22, height: 22)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("library.index.jump \(entry.label)", bundle: .module))
+            }
+        }
+        .padding(.vertical, StoryArcSpace.sm)
+        .padding(.horizontal, StoryArcSpace.xs)
+        .background(theme.palette.surfaceOverlay, in: .capsule)
+        .padding(.trailing, StoryArcSpace.xs)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("library.index", bundle: .module))
+    }
+}

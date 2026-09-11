@@ -57,6 +57,16 @@ public struct LibraryView: View {
     @AppStorage(DownloadFilter.storageKey)
     var downloads: DownloadFilter = .either
 
+    /// Whether the shelf shows a series as one cell, or every issue as its own.
+    ///
+    /// `library-browsing` asks for the choice and asks it to persist across visits. Stored
+    /// beside ``availability`` and ``downloads``, and for the same reason: the query is the
+    /// value both platforms encode, and this is one iOS shelf choice with a `UserDefaults`
+    /// key of its own. Global rather than per scope, unlike the layout — how a reader wants
+    /// a series presented is a habit, not a property of a source.
+    @AppStorage(LibraryGrouping.storageKey)
+    var grouping: LibraryGrouping = .series
+
     /// What the search screen is narrowed to.
     ///
     /// The same type as ``availability`` under a **different key**, which is the whole point:
@@ -375,23 +385,7 @@ public struct LibraryView: View {
             }
     }
 
-    /// What the navigation bar calls this surface.
-    var title: Text {
-        switch surface {
-        case .shelf: Text("library.title", bundle: .module)
-        case .onDevice: Text("library.downloads.title", bundle: .module)
-        case .search: Text("library.search.prompt", bundle: .module)
-        }
-    }
-
-    /// What the navigation bar says instead, while a selection is running.
-    ///
-    /// The count, stated in the one place a reader is already looking for the name of what
-    /// they are on. It is a plural in all four languages — `library.selected %lld` carries
-    /// the variations — and it is stated at nought as well: the mode can be entered without
-    /// picking anything, and a title that only appeared on the first pick would leave the
-    /// navigation bar naming a shelf the reader has stopped browsing.
-    var selectionTitle: Text {
-        Text("library.selected \(selection.count)", bundle: .module)
-    }
+    // `title` and `selectionTitle` used to be here. They are in `LibraryTitles.swift`, lifted
+    // whole when this file reached the 400-line cap and the shelf gained the grouping choice
+    // above.
 }

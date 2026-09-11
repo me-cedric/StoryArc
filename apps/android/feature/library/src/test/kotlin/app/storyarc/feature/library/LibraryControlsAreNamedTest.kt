@@ -105,9 +105,11 @@ class LibraryControlsAreNamedTest {
             layout = layout,
             availability = LibraryAvailability.EVERYTHING,
             downloads = DownloadFilter.EITHER,
+            grouping = LibraryGrouping.SERIES,
             onAvailabilityChange = {},
             onQueryChange = {},
             onDownloadsChange = {},
+            onGroupingChange = {},
             onLayoutChange = {},
             onClearFilters = {},
             viewModel = viewModel,
@@ -207,13 +209,18 @@ class LibraryControlsAreNamedTest {
             string(R.string.library_sort_chip, string(LibrarySort.TITLE.labelRes)),
         ).assertHasClickAction()
         compose.onNodeWithText(string(R.string.library_filter)).assertHasClickAction()
+        // The grouping chip is framed as a grouping, not as a value: `library-browsing` ends
+        // its ordering scenario with "and the same holds for grouping, which is neither".
+        compose.onNodeWithText(
+            string(R.string.library_grouping_chip, string(LibraryGrouping.SERIES.labelRes)),
+        ).assertHasClickAction()
         // The toggle draws the layout it would switch *to*, and is named for it: a grid offers
         // the list.
         compose.onNodeWithContentDescription(string(R.string.library_layout_list)).assertHasClickAction()
         compose.onNodeWithContentDescription(string(R.string.library_layout_grid)).assertDoesNotExist()
 
         val (count, nameless) = pressable()
-        assertEquals("the row holds more controls than its four", 4, count)
+        assertEquals("the row holds more controls than its five", 5, count)
         assertTrue("controls under the bar say nothing about themselves: $nameless", nameless.isEmpty())
     }
 

@@ -419,4 +419,9 @@
     </plurals>
     <string name="library_more_from">Más de %1$s</string>
     <string name="kavita_chapter_unnumbered">Sin número</string>
+    <string name="library_grouping_chip">Agrupación: %1$s</string>
+    <string name="library_grouping_series">Series</string>
+    <string name="library_grouping_issues">Números</string>
+    <string name="library_index">Índice alfabético</string>
+    <string name="library_index_jump">Ir a %1$s</string>
 </resources>

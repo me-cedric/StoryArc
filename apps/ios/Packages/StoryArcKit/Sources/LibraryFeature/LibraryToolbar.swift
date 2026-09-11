@@ -87,7 +87,7 @@ extension LibraryView {
                 // availability is a question every library can answer, including one with a
                 // single folder in it.
                 ToolbarItem(placement: .primaryAction) {
-                    ViewMenu(model: model, availability: $availability)
+                    ViewMenu(model: model, availability: $availability, grouping: $grouping)
                 }
                 // What is left out of it, which is a different question from how it is drawn.
                 ToolbarItem(placement: .primaryAction) {

@@ -38,7 +38,14 @@ struct BulkSelectionChromeTests {
     // The `#filePath` walk and the catalogue reader moved to ``LibraryFeatureSource`` when this
     // file crossed SwiftLint's 400-line cap, because a second suite now reads them too.
 
+    /// The screen and the two titles it names, read as one text.
+    ///
+    /// `selectionTitle` moved to `LibraryTitles.swift` when `LibraryView.swift` reached the
+    /// 400-line cap, and this guard failed on the move alone — it asks whether the navigation
+    /// bar states the selection, and the answer was still yes. Both files, so the guard keeps
+    /// asking the question it was written to ask.
     private static let view = LibraryFeatureSource.code(of: "Sources/LibraryFeature/LibraryView.swift")
+        + LibraryFeatureSource.code(of: "Sources/LibraryFeature/LibraryTitles.swift")
     private static let toolbar = LibraryFeatureSource.code(of: "Sources/LibraryFeature/LibraryToolbar.swift")
     private static let bar = LibraryFeatureSource.code(of: "Sources/LibraryFeature/BulkActionBar.swift")
     private static let shelfActions = LibraryFeatureSource.code(of: "Sources/LibraryFeature/ShelfBulkActions.swift")

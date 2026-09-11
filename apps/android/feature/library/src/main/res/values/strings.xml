@@ -437,4 +437,13 @@
     </plurals>
     <string name="library_more_from">More from %1$s</string>
     <string name="kavita_chapter_unnumbered">Unnumbered</string>
+    <!-- The grouping chip's whole label, framed the way `library_sort_chip` is framed and
+         for the same clause: `library-browsing` ends its ordering scenario with "and the
+         same holds for grouping, which is neither" a sort nor a filter, so the bare word
+         *Series* on a chip beside *Sort: Title* would read as one of the sort's values. -->
+    <string name="library_grouping_chip">Grouping: %1$s</string>
+    <string name="library_grouping_series">Series</string>
+    <string name="library_grouping_issues">Issues</string>
+    <string name="library_index">Alphabetical index</string>
+    <string name="library_index_jump">Jump to %1$s</string>
 </resources>

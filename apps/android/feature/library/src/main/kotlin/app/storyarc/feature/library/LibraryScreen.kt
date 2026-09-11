@@ -226,6 +226,18 @@ fun LibraryScreen(
         mutableStateOf(DownloadFilter.named(preferences?.downloadFilter()))
     }
 
+    /**
+     * Whether a cell stands for a series or for one issue.
+     *
+     * Read from [preferences] and held in [rememberSaveable] for [availability]'s two
+     * reasons: the saver carries the choice through a rotation, and the store carries it
+     * across the launch. `library-browsing` asks the choice to persist across visits, and a
+     * relaunch is a return.
+     */
+    var grouping by rememberSaveable {
+        mutableStateOf(LibraryGrouping.named(preferences?.grouping()))
+    }
+
     // Written down as the reader chooses, not on the way out. This screen has no moment it
     // could call "the way out": a reader leaves it for a book, for another destination, or
     // by the system killing the process behind them -- and a choice written only on a tidy
@@ -237,6 +249,10 @@ fun LibraryScreen(
     val chooseDownloads: (DownloadFilter) -> Unit = { choice ->
         downloads = choice
         preferences?.saveDownloadFilter(choice.name)
+    }
+    val chooseGrouping: (LibraryGrouping) -> Unit = { choice ->
+        grouping = choice
+        preferences?.saveGrouping(choice.name)
     }
 
     // Android hands a picked folder over as a tree `Uri` and grants access to it
@@ -468,9 +484,11 @@ fun LibraryScreen(
                     layout = layout,
                     availability = availability,
                     downloads = downloads,
+                    grouping = grouping,
                     onAvailabilityChange = chooseAvailability,
                     onQueryChange = viewModel::setQuery,
                     onDownloadsChange = chooseDownloads,
+                    onGroupingChange = chooseGrouping,
                     onLayoutChange = viewModel::setLayout,
                     // One action, everything it undoes. The library filter and the download
                     // group are cleared with the rest of them, so there is no state a reader
@@ -515,6 +533,7 @@ fun LibraryScreen(
                             layout = layout,
                             availability = availability,
                             downloads = downloads,
+                            grouping = grouping,
                             selection = selection,
                             onSelectionChange = { selection = it },
                             onOpen = onOpen,
@@ -679,6 +698,7 @@ private fun Shelf(
     layout: LibraryLayout,
     availability: LibraryAvailability,
     downloads: DownloadFilter,
+    grouping: LibraryGrouping,
     selection: LibrarySelection,
     onSelectionChange: (LibrarySelection) -> Unit,
     /** Opens the book. Reached only from the continue-reading row, which offers a resume. */
@@ -713,11 +733,17 @@ private fun Shelf(
         val locale = remember { viewModel.readerLocale() }
 
         // `library-browsing`: a series is one cell. See [ShelfRows].
-        val rows = rememberShelfRows(publications, groups.isNotEmpty(), selection.isActive)
+        val rows = rememberShelfRows(publications, groups.isNotEmpty(), selection.isActive, grouping)
         val shelved = rows.shelved
         val long = groups.isEmpty() && shelved.size > LibrarySections.THRESHOLD
         val sections = remember(shelved, query.sort, long, other, locale) {
             if (long) LibrarySections.divide(shelved, query.sort, other, locale) else emptyList()
+        }
+        // The letters down the side, cut from the same list the sections are cut from. Never
+        // while a search is running: the results are already grouped by why they matched, and
+        // an alphabet across that grouping would be two answers to one question.
+        val rail = remember(shelved, query.sort, groups.isEmpty(), locale) {
+            if (groups.isEmpty()) LibraryRail.of(shelved, query.sort, locale) else emptyList()
         }
         val narrowing = query.isNarrowed || selection.isActive ||
             availability.isNarrowing || downloads.isActive
@@ -739,6 +765,7 @@ private fun Shelf(
                 onAddToShelf = onAddToShelf,
                 selection = selection.ids.takeIf { selection.isActive },
                 onToggle = { onSelectionChange(selection.toggle(it.id)) },
+                rail = rail,
             )
         } else {
             CoverList(
@@ -750,46 +777,15 @@ private fun Shelf(
                 onToggle = { onSelectionChange(selection.toggle(it.id)) },
                 onAddToShelf = onAddToShelf,
                 groups = groups,
+                // The same rows and the same series map the grid takes. The list used to
+                // take the collapsed rows and know nothing about series, so a row standing
+                // for one opened its first issue and the rest were unreachable here.
+                seriesRows = rows.series,
+                onOpenSeries = { onOpenSeries(it.name) },
+                rail = rail,
             )
         }
     }
-}
-
-/**
- * The way across to a server's own search.
- *
- * **`kavita-server` requires the query to go to the server when the search is within a
- * Kavita source, and this is what the old scope selector was missing.** Narrowing the
- * library to a Kavita server and typing filtered the *local index* — what this device
- * happens to hold — and the server's own search, which reaches chapters, people, genres
- * and tags, was never asked.
- *
- * Offered rather than substituted: the local matches are useful and immediate, and a
- * search that silently left the device for the network would take a reader looking for a
- * downloaded chapter somewhere they did not ask to go.
- */
-@Composable
-private fun KavitaSearchOffer(
-    registry: SourceRegistry,
-    query: LibraryQuery,
-    onSearchOnServer: (Source, String) -> Unit,
-) {
-    val palette = LocalStoryArcPalette.current
-    val server = registry.sources.firstOrNull {
-        it.id == query.scope.sourceId &&
-            it.kind == SourceKind.KAVITA_SERVER &&
-            query.search.isNotBlank()
-    } ?: return
-
-    Text(
-        text = stringResource(R.string.library_search_on_server, server.displayName),
-        style = MaterialTheme.typography.bodySmall,
-        color = palette.accent,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onSearchOnServer(server, query.search) }
-            .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.xs),
-    )
 }
 
 @Preview(name = "Empty library — dark")
