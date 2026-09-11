@@ -1940,16 +1940,62 @@ Added on 2026-09-07. The player lists chapters and the player is reached by star
 book, so a listener choosing what to hear next can only see the list by playing something
 they have not chosen.
 
-- [ ] 11.1 Both: the publication page of an audiobook lists its chapters, each with a title
+**The six boxes below were ticked on 2026-09-11, and the code they describe landed before
+that pass.** Both halves were already written and wired: iOS holds `DetailChapters`,
+`DetailChapterList` and `PrimaryAction` in `LibraryFeature`, Android holds `DetailChapters`
+and `DetailActions` in `:feature:library`. This pass read each requirement against the
+source, ran the gates, and found **one defect**, which 11.5 records. Nothing here was seen
+on a device or on an emulator screen: the Android claims rest on Robolectric semantics
+tests, and the iOS ones on host tests and on source assertions.
+
+- [x] 11.1 Both: the publication page of an audiobook lists its chapters, each with a title
       and a duration.
-- [ ] 11.2 Both: the chapter in progress is marked, and a finished chapter is marked.
-- [ ] 11.3 Both: choosing a chapter starts playback there, and looking at the list does not
+      iOS: `DetailChapters.rows(of:progress:)` builds one row per `PlaybackPart` and
+      `DetailChapterList` draws the name beside the clock; a part the container did not name
+      is numbered, because `AudiobookReader.read(folderAt:)` writes `title: nil` for every
+      part of a folder. Android: `chapterRows` and the `ListItem` in `DetailChapters.kt`.
+      Both lists read the same parts the player's own list reads, so the two surfaces cannot
+      disagree about what a part is called. Asserted by `DetailChaptersTests` (iOS) and by
+      `DetailChaptersTest` plus `PublicationChaptersTest` (Android).
+- [x] 11.2 Both: the chapter in progress is marked, and a finished chapter is marked.
+      One rule each: `ChapterProgress.mark(of:reached:isFinished:)` on iOS and `progressOf`
+      on Android. A chapter nobody has reached carries no mark, and every chapter of a
+      finished book is marked finished — which is a separate branch, because a finished
+      record names no place to resume.
+- [x] 11.3 Both: choosing a chapter starts playback there, and looking at the list does not
       move the saved position.
-- [ ] 11.4 Both: a single-part audiobook states its duration and draws no list.
-- [ ] 11.5 Both: the action that starts playback names the chapter it resumes inside, and
+      The verbs are separate on both platforms: `onListen(publication, file, part)` on iOS
+      and `onListenFrom(index)` on Android, beside the `onOpen`/`onRead` that resumes.
+      `StoryArcAppActions.listen(to:at:startingAt:)` reads the stored place **only** when no
+      part was chosen, and `ResumeWiringTests` asserts that a chosen chapter wins.
+      `PublicationChaptersTest` asserts the Android half by clicking a row and checking that
+      the resume verb stayed unused. Neither page writes a position.
+- [x] 11.4 Both: a single-part audiobook states its duration and draws no list.
+      A list of one row tells a listener nothing, so `rows` is empty below two parts and the
+      page states the book's length instead — `DetailBookLength` on iOS, the `detail_duration`
+      line on Android. A part whose length nothing measured states no length at all rather
+      than `0:00`.
+- [x] 11.5 Both: the action that starts playback names the chapter it resumes inside, and
       names none for a book never started.
-- [ ] 11.6 Both: the list is announced by a screen reader, one row per chapter, with the
+      iOS `PrimaryAction.resumeChapter(_:)` and Android's `resumeChapter` argument to
+      `DetailPrimaryAction` carry the name.
+      **One defect, found by reading and fixed here.** iOS `DetailChapters.place(in:)` read
+      the stored place of a **finished** book, so the action promised *Continue "The Reach"*
+      while `StoryArcApp.resumePlace(of:)` — which drops a finished record's place, by
+      `reading-progress` — started the audio at the first chapter. The page now holds the same
+      guard, so a finished audiobook names no chapter. Android already answered null here in
+      `ListenedPosition.resume`, so this was an iOS-only divergence from its twin.
+      `PrimaryActionTests.finishedNamesNoChapter` is the new assertion: it failed before the
+      guard with `book.resuming → .given("Chapter 3")`, and deleting the guard fails it again.
+- [x] 11.6 Both: the list is announced by a screen reader, one row per chapter, with the
       duration as the row's value.
+      One stop per row on both platforms: `.accessibilityElement(children: .combine)` with
+      the length as `.accessibilityValue` on iOS, and a merged `ListItem` with the length as
+      `stateDescription` on Android. The length is spoken in words rather than as a clock
+      face, and the printed clock is silenced so it is not heard twice.
+      `PublicationChaptersTest` reads the state description of each row; iOS asserts the two
+      declarations as source, because an accessibility declaration draws no pixel that a host
+      test could measure.
 
 ## 12. Listening in a car
 
