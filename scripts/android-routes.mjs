@@ -335,6 +335,44 @@ export const ROUTES = [
 
     // --- Reachable only once a source list is not empty ------------------------------
     ['Settings > source detail', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Audiobooks']],
+
+    // --- The three states a registered server can be in ------------------------------
+    //
+    // `source-lifecycle` owes frames of a source's detail screen in each state, of the
+    // removal confirmation with a real title count, and of an unreachable source beside a
+    // reachable one. Every one of them needs a **registered** source, which the corpus alone
+    // does not give: its publications carry `origin: EMBEDDED` and belong to no source.
+    //
+    // `scripts/seed-android-sources.mjs` registers three OPDS catalogues on an emulator and
+    // names them, so these routes name them too. Run it first, with the mock catalogues up:
+    //
+    //     node scripts/opds-server.mjs <corpus> --port 4444
+    //     node scripts/opds-server.mjs <corpus> --port 4445
+    //     node scripts/seed-android-sources.mjs
+    //
+    // *Attic Catalogue* and *Loft Catalogue* answer. *Cellar Catalogue* points at a port
+    // nothing listens on, so it reads *Not answering* — a refused connection rather than a
+    // name that does not resolve, because those are two different sentences.
+    ['Settings > reachable source', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Attic Catalogue']],
+    ['Settings > unreachable source', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Cellar Catalogue']],
+    // The list itself, which is the one frame that holds a reachable source and an
+    // unreachable one at the same moment. `source-lifecycle` task 4.3 asks for that control
+    // beside the state rather than in a second frame taken later.
+    ['Settings > sources reachable and not', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources]],
+    // The confirmation, not the removal. The dialog states the title count and the
+    // thirty-day sentence, and the route stops on it.
+    ['Settings > source removal', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Attic Catalogue', named('sources_remove')]],
+
+    // One title, two sources. `source-lifecycle` asks for the row and for the copy the row
+    // opens, which `SourcePrecedence` decides — registry order wins, so *Attic Catalogue*
+    // holds the copy and *Loft Catalogue* does not.
+    //
+    // *Slow Transfer* rather than one of the corpus titles: both catalogues serve it and no
+    // file on the device does, so the row stands for exactly two candidates. A corpus title
+    // would stand for three, and a local file would win a comparison this frame is not about.
+    // Reached through search, because a shelf of 218 does not show S without scrolling.
+    ['Search > one title two sources', [NAMES.search, named('library_search'), '@type slow']],
+    ['Publication page > two sources', [NAMES.search, named('library_search'), '@type slow', 'Slow Transfer']],
 ]
 
 /**
