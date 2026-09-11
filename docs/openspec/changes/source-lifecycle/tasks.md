@@ -277,15 +277,27 @@ filename so a light and a dark run cannot overwrite each other.
       later minute, and `SourceDiagnosis.of` offers *Reconnect* only for a refused credential.
       So the row a reader needs exists for a moment and is then taken away.
 
-      What is **not** established, and should not be guessed: which writer replaces it.
-      `probeNetworkSources` calls the same `reach`, and `SourceProbe.state(forStatus:)` maps
-      401 and 403 to `.unauthorized`, so neither of the obvious two explains it. Something
-      else marks the source after the ask settles. Finding it is the next step, and the recipe
-      above reproduces the state in about a minute.
+      **Corrected, after checking rather than after guessing.** My first note here read as a
+      presentation defect -- *Reconnect* taken away from a refused source. It is not one, and
+      the evidence does not support it:
 
-      **A reader's cost, if it is what it looks like:** a revoked key reads as "Not answering"
-      for ever, and the app offers *try again* instead of *sign in*. `sources` separates those
-      two states precisely because "one asks the reader to do something, the other must not".
+      - `SourceDiagnosis.of` appends `.reconnect` first whenever `state.needsUserAction`, and
+        `SourceDiagnosisTests` already asserts both halves: `actions.first == .reconnect` for
+        an unauthorized source, and absent for one that is not.
+      - `reach` maps `KavitaError.keyRejected` to `.unauthorized`, and reaching **Sign-in
+        needed** on the first run proves that path runs.
+      - `probeNetworkSources` calls that same `reach`. `resolveLocalSources` filters on
+        `kind == .localFolder`, so it cannot touch a server.
+
+      So what differed between the two runs is the **probe's own outcome**, not what the
+      screen made of it. Each test is a fresh launch and state is deliberately not persisted,
+      so every launch re-probes; one landed on 401 and the next on a connection failure,
+      against the same mock. Which of the two a launch gets is not established, and naming a
+      cause without evidence would be worse than leaving this open.
+
+      **What the sheet frame needs** is therefore a run where the probe lands on the 401, held
+      long enough to tap *Reconnect*. The recipe above reproduces the state; the remaining
+      work is making it land reliably, not repairing the screen.
       **Frames owed: 8** — 4 per platform (light/dark × default/largest). Surface *the add
       sheet re-opened by the source detail screen's `Reconnect` row*; state *address field
       populated, secret field empty, the source's identifier preserved*.
