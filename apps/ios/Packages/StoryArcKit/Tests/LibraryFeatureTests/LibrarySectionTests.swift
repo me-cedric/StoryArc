@@ -51,6 +51,9 @@ struct LibrarySectionTests {
     /// German has no article *the*. A suite that let the host decide would assert one thing on
     /// a developer's machine and another on a machine set to German. Android's
     /// `LibrarySectionsTest` pins `english` in the same place and for the same reason.
+    ///
+    /// The column count is the grid's, which is the default — ``LibrarySectionColumnTests``
+    /// holds the one refusal the two layouts answer differently.
     private func divide(_ shelf: [Publication], by sort: LibrarySort) -> [LibrarySection] {
         LibrarySections.divide(shelf, by: sort, locale: Locale(identifier: "en"))
     }

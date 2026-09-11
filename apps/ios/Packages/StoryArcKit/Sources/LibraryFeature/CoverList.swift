@@ -20,6 +20,20 @@ struct CoverList: View {
     /// Search results under their own headings. Empty means there is no search running and
     /// the list is one run of rows.
     var groups: [MatchGroup] = []
+    /// How a long shelf divides, or empty when it is short enough to scan.
+    ///
+    /// `library-browsing`'s *Sectioning a long library* says "the library", so it binds this
+    /// layout as much as the grid — and this parameter is what it used to lack. The divide is
+    /// asked for one column here, ``LibrarySections/divide(_:by:columns:locale:)``, because a
+    /// heading over a single column costs one row and leaves no part-empty row behind it.
+    ///
+    /// Drawn as `List`'s own sections rather than through ``SectionedShelf``, which is the
+    /// smaller of the two ways to do this. `SectionedShelf` exists because a pinned header
+    /// has to share one lazy stack with the cells it heads, and that is a grid problem: a
+    /// plain `List` pins a section header by itself. This file already drew headed sections
+    /// for the search groups, so the divided shelf is those same lines reading a different
+    /// source of titles, and the list keeps one header style for both things it heads.
+    var sections: [LibrarySection] = []
     let model: LibraryModel
 
     // No `onOpen`. A row is a cover drawn small, and `publication-detail` sends every cover
@@ -48,9 +62,7 @@ struct CoverList: View {
             // `library-browsing`: results are "grouped by match kind" while a search is
             // running. A list already has section headers, so grouping here costs the
             // reader nothing to learn.
-            if groups.isEmpty {
-                ForEach(publications) { row($0) }
-            } else {
+            if !groups.isEmpty {
                 ForEach(groups) { group in
                     Section {
                         ForEach(group.publications) { row($0) }
@@ -58,6 +70,23 @@ struct CoverList: View {
                         Text(group.kind.titleKey, bundle: .module)
                     }
                 }
+            } else if !sections.isEmpty {
+                // The search wins the headings when both could have them, and the caller
+                // agrees: it divides nothing while a search is running, because two sets of
+                // headings across one another are two answers to one question.
+                //
+                // The rows keep `Publication.id` as their identity inside the sections, and
+                // the index down the shelf's side jumps by that id. So a letter still lands
+                // on the first row filed under it — `LibraryRailTests` holds that.
+                ForEach(sections) { section in
+                    Section {
+                        ForEach(section.publications) { row($0) }
+                    } header: {
+                        Text(section.title)
+                    }
+                }
+            } else {
+                ForEach(publications) { row($0) }
             }
         }
         .listStyle(.plain)
