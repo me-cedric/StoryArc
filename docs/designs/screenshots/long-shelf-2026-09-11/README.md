@@ -21,12 +21,24 @@
 ## What is actually established
 
 - **29 publications indexed from 220 files on disk**, before anything was cleared.
-  Every publication of the base nineteen-title corpus is indexed, expanded into
-  its parts. **Every `--count` filler publication is absent** — no Cinderpath, no
-  Dovetail, no Ember Line.
-- Filler files are not malformed. `unzip -l` shows `Dovetail.cbz` and
-  `Ashfall.cbz` are both two-page CBZs, written by the same `zip(at(...), pages(2, index))`
-  call in `scripts/corpus.mjs`.
+  The 220 files were read: *Ashfall* showed *3 titles* where the same corpus at 140
+  showed 2, and `Ashfall 3.cbz` exists only at 220.
+
+- **The 29 are not explained by base-versus-filler, and my first note here said
+  they were.** I wrote that every base publication was indexed and every `--count`
+  filler absent. That is false: `FILLER_SOLO` in `scripts/corpus.mjs` begins
+  *Ashfall, Bellwether, Cinderpath* and `FILLER_SERIES` includes *Copper Wake* — so
+  *Ashfall*, *Bellwether #3* and *Copper Wake #1* to *#6* are all filler, and all
+  indexed. I read the indexed titles, recognised some, and asserted a rule instead
+  of checking the script.
+
+  What can be said: **29 of 220, and the subset has no explanation here.** It is
+  not alphabetical either — *The Long Field*, *Tidal Reach* and *Tidal Voices* are
+  all in it while *Cinderpath* and *Dovetail* are not.
+- The missing files are not malformed. `unzip -l` shows `Dovetail.cbz` (absent from
+  the index) and `Ashfall.cbz` (present in it) are both two-page CBZs written by the
+  same `zip(at(...), pages(2, index))` call, so whatever separates them is not the
+  file.
 - **After `adb shell pm clear`, the app indexes 0 of the same 220 files** and reads
   *Nothing here yet*. `pm clear` also deletes the external files directory, so the
   corpus has to be re-pushed first — which it was, and the count stayed 0.
@@ -48,6 +60,13 @@ Establish the scan's behaviour before trusting any long-shelf capture:
 
 `LibrarySections.divide` remains correct and covered by eight passing cases in
 `LibrarySectionsTest`; nothing here casts doubt on the pure function.
+
+**A note on how this page was written.** It carries three corrections, each of a
+claim made before it was checked: the shelf size, the base-versus-filler rule, and
+the sectioning conclusion that rested on both. The measurements in it are real and
+were re-run; the explanations were not, until they were asked for. `LibraryScanning`
+speaks of "picking up where an interrupted scan of it stopped" and of a journal,
+which is a lead and is left as one rather than turned into a fourth claim.
 
 ## The original notes, kept for their measurements
 
