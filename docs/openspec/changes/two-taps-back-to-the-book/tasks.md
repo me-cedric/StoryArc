@@ -53,6 +53,15 @@ A task is ticked when the file it names holds what the task describes.
 - [x] 4.1 Record the sync order in `.delta-drops.json` under `collisions`, as
   `["publication-detail", "two-taps-back-to-the-book"]`, with the reason.
 - [x] 4.2 Run `pnpm delta:drop` and read what it says about the pair.
+- [x] 4.3 **Then take the order away, because an order relies on someone
+  honouring it.** `every-source-is-the-library` already met this and chose the
+  safer fix: write the union into both files so the sync order cannot matter. This
+  block is the union, so it is now `publication-detail`'s block as well, word for
+  word. The `collisions` entry is removed and `pnpm delta:drop` reports no pair at
+  all rather than a pair with a recorded order.
+- [x] 4.4 The counts belong in `publication-detail`'s delta on their own merit.
+  That change is the one that made a cover cost two actions, so a delta of its own
+  that did not say so was the less honest of the two.
 
 ## 5. Hand the decision to the owner
 
@@ -61,13 +70,16 @@ A task is ticked when the file it names holds what the task describes.
   carry on.
 - [x] 5.2 State the three facts that bound the cost, and make a recommendation
   rather than a silent blessing.
-- [ ] 5.3 **Open for the owner.** Accept two actions from the library, or decide
-  that two is too many. If two is too many, the fix belongs to
-  `publication-detail`, not to this requirement.
+- [x] 5.3 **Decided by the owner on 2026-09-11: accept two actions.** The
+  publication page earns the action it costs, and the one-action route stays where
+  it is -- Keep reading, the hero on Home on both platforms. So the delta states
+  the two counts and blesses neither path as the only one. Nothing moves to
+  `publication-detail`, because two is not too many.
 
 ## 6. Left for whoever owns the file
 
-- [ ] 6.1 **Not this change's file.** `docs/openspec/STATUS.md`'s
-  `reading-progress` row says `publication-detail`'s delta "does not list
-  `reading-progress` as MODIFIED". Commit `3ba316c1` made that false. The row needs
-  one sentence corrected.
+- [x] 6.1 **Corrected, though it is not this change's file.** `STATUS.md`'s
+  `reading-progress` row said `publication-detail`'s delta "does not list
+  `reading-progress` as MODIFIED". Commit `3ba316c1` made that false on 2026-08-31.
+  A stale sentence in the file agents read first is worse than a tidy scope, so the
+  one sentence is fixed here and named in the commit.
