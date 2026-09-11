@@ -34,7 +34,35 @@ says which device and which appearance it was taken on.
 ## 5. Seen on a device
 
 - [x] 5.1 Six frames at `docs/designs/screenshots/server-shelves-2026-09-10/`: the list in dark and light, before and after, plus the 77-entry list at `font_scale 2.0` in both appearances. **The two largest-text frames have no control** — changing the scale recreates the activity and pops back to Library, so the two captures taken that way showed the wrong screen and were discarded rather than presented as controls. The README says so.
-- [ ] 5.2 Screenshot the same list in the iOS Simulator, same four frames, same control.
+- [x] 5.2 **Four frames, and the server they needed was built rather than borrowed.**
+  `ios-shelves-light.png`, `ios-shelves-dark.png`, `ios-shelves-ax5-light.png` and
+  `ios-shelves-ax5-dark.png`, in the same directory as the Android six.
+
+  No simulator has a Kavita server and the owner's key is not on one, which is why this task
+  sat open. `scripts/kavita-server.mjs` is the mock this repository already carries for
+  exactly this -- "so the walkthrough, enter a key, list libraries, open a series, read a
+  chapter, can be watched" -- and it prints its own test key. Run against the same
+  140-publication corpus on port 5001, it serves 2 libraries and 49 series.
+
+  The frames show a server's own shelves beside a local one: *Staff picks*, captioned
+  `ada · 127.0.0.1`, and *Long reads* with the four-quadrant composite cover task 5.3
+  describes, next to the local *Lantern Run*. So the composite is now proved on both
+  platforms rather than on Android alone.
+
+  The address and the key are typed through the real form by `AddMockKavitaTests`, because
+  the key lives in the Keychain under `CredentialStore.reference(for:)` and nothing outside
+  the app can put it there.
+
+- [ ] 5.5 **A finding from taking those frames: the Kavita sheet's two fields carry no
+  accessibility label.** A dump on 2026-09-11 reported `textFields: [""]` and
+  `secureTextFields: [""]`. The words *Address* and *API key* are adjacent `Text` rather than
+  labels on the fields, so a screen reader announces "text field" and no hint of what to
+  type -- on the one form in the app where a reader must enter a secret correctly. The
+  capture test addresses them by index and says why.
+
+  Not fixed here. It is `sources`' form rather than this change's list, and `native-experience`
+  is where the accessibility rule lives. Whoever takes it should check the OPDS and the share
+  sheets at the same time, because all three are built the same way.
 - [x] 5.3 Android only, and **without a locked-cover tile**: every shelf on this server is unlocked, so `android-collections-dark-*` and `android-lists-dark-*` prove the composite (four quadrants, and one cover where there are fewer than four members) against the blank frames that preceded them. The `coverImageLocked` branch is drawn by no frame here.
 - [x] 5.4 `README.md` beside them: device, API level, server version, which build each frame came from, what each pair proves, the two gaps above, and the `adb` recipe that repeats it.
 
