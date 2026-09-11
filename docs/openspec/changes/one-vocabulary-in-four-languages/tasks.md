@@ -7,10 +7,11 @@ somebody looked at the picture — not that a preview was rendered. A tick does
 task ships a translation, the tick covers that the four locales resolve and the
 layout survives them, and nothing more.
 
-**One open question binds one task**, and it does not block the rest: 4.4 carries
-the judgement calls the owner may want to see. The other question — what the
-offline destination is called — was answered on 2026-09-06, and design decision 6
-records it. Everything else is answerable from the tree.
+**One open question binds one task**, and it does not block the rest: **4.2** carries
+the judgement calls the owner may want to see, and 4.1's table names each one. The
+triage itself — *which of the divergences are deliberate* — was answerable from the
+tree and is answered in 4.1 and 4.4. The other question — what the offline destination
+is called — was answered on 2026-09-06, and design decision 6 records it.
 
 **Ordering is by seam, not by platform.** The proposal's sizing argument is that
 a seam left half-done is worse than one not started — so each of §1, §2 and §3 is
@@ -346,7 +347,7 @@ Two literals, and the largest hidden surface behind them.
       `ReaderScreen.kt:228`. Appearance: light and dark. Text size: default.
       Control frame: the same screen with the interface language set to English,
       same device, same moment.
-- [ ] **3.5** Record a refusal's cause where a maintainer reaches it.
+- [x] **3.5** Record a refusal's cause where a maintainer reaches it.
       3.3 removed the exception from the screen and put it nowhere. One `[Last
       failure]` section in `Diagnostic.text`, or one `Log.w` call at
       `ReaderViewModel.kt:436` and `:494`, closes it.
@@ -355,20 +356,145 @@ Two literals, and the largest hidden surface behind them.
       Raising that record weakens the ratchet, so this slice shortens the file first.
       Verify: `pnpm gradle :feature:reader:testDebugUnitTest` and `pnpm lines:check`.
 
+      **Done 2026-09-11, the `Log.w` route.** Both catches now name the cause and hand
+      it to `logcat` under the tag `StoryArcReader`, which `adb logcat -s StoryArcReader`
+      reads and no reader sees. The `[Last failure]` route was refused: `Diagnostic.text`
+      is assembled from state the settings module holds, so a refusal in the reader would
+      have to be stored somewhere both modules can see, and that is a store for one line
+      of English.
+      **The file was shortened first, by moving something real.**
+      `ReaderViewModel.openPdfText` moved to `PdfTextState.opened(…)`, a factory on the
+      type it builds — which is also where iOS builds its twin, in `PdfTextControls.swift`
+      rather than in `ReaderModel`. `ReaderViewModel.kt` is **798** lines, so
+      `scripts/line-cap.mjs` lost its entry: `pnpm lines:check` said *under the cap at
+      last. Delete its line* and now reports *3 recorded file(s), none grew*.
+      **Watched red first.** `ReaderFailureSaysNothingInternalTest` gained *the refusal's
+      cause reaches a maintainer*, which failed by name on the old tree — *These catches
+      discard the exception: [} catch (\_: Exception) {, } catch (\_: Exception) {]* — and
+      passes now. It is a source guard for the reason the other three are: this module's
+      unit tests run on a bare JVM and a `ReaderViewModel` cannot be built there.
+      `pnpm gradle :feature:reader:lint :feature:reader:testDebugUnitTest` — *BUILD
+      SUCCESSFUL*, 95 tests, 0 failures.
+      **Four resource comments and one test comment said the cause was known to nobody.**
+      That was true for five days and is not true now. All five say where it goes, and the
+      diagnostic export still does not carry it — which is the half this task did not
+      close.
+
 ## 4. One state, one name
 
-- [ ] **4.1** Regenerate the divergence list and commit it as the work item.
+- [x] **4.1** Regenerate the divergence list and commit it as the work item.
       629 keys pair across the two catalogues by normalised name, 595 carry
       identical English, **34 do not**. Regenerate rather than trusting the
       number here — five changes are in flight and it moves.
       Verify: the list is in this task, with each row marked *wording*,
       *placeholder syntax*, or *platform forces it*.
-- [ ] **4.2** Reconcile the rows marked *wording*, one state at a time.
+
+      **Regenerated 2026-09-11, and the number had moved — as predicted, and further
+      than predicted.** `pnpm strings:divergence` (`scripts/catalogue-divergence.mjs`)
+      pairs keys by name with separators and format specifiers taken out. On the tree
+      before this slice: **824 iOS keys, 836 Android keys, 708 paired, 568 identical
+      English, 140 differ** — 27 worded differently, 5 differing only in typography, and
+      **108** differing only in each platform's format spelling. The 34 in the line above
+      was a count of the first two groups against a smaller tree; it never held the 108.
+      The tool is a report and not a gate, and it is wired into no `pnpm lint` chain,
+      because a row it prints can be a difference the platform forces. Its header names
+      four things it cannot see, the first of which bounds every figure here: **it
+      compares English only.**
+
+      **The 108 marked *placeholder syntax* are one rule, not 108 decisions.** iOS writes
+      `%@` and `%lld`, Android writes `%1$s` and `%1$d`, and a reader sees the same words.
+      Spot-checked across every module; nothing else hides in that group. They are left
+      alone, and `ios-strings.mjs`'s own header says why iOS cannot simply adopt the
+      positional form: a *key* written `%1$@` is one nothing can ever look up.
+
+      **The 27 marked *wording*, and the 5 marked typography, row by row.** *Reconciled*
+      rows are 4.2's; *platform forces it* rows are 4.4's; the rest carry the reason they
+      are neither.
+
+      | Row, iOS / Android | Mark | State |
+      | --- | --- | --- |
+      | `downloads.total` / `downloads_total` | wording | **Reconciled.** Android takes iOS's *Space used by downloads* |
+      | `player.back` / `player_back` | wording | **Reconciled.** Android takes iOS's *Back to the book* |
+      | `open.in.protected` / `open_in_protected` | wording | **Reconciled.** Android takes iOS's *so StoryArc cannot open it*, which states the cause |
+      | `reader.transition` / `reader_transition` | wording | **Reconciled.** iOS takes *Page turn*, which its own EPUB reader and Android both already say |
+      | `downloads.manageInDestination` / `downloads_manage_in_destination` | wording | **Reconciled.** Both platforms now state what the figure counts *and* what is still arriving |
+      | `theme.pageColour.clear`, `theme.publisherStyles.action`, `theme.publisherStyles.title` / their twins | typography | **Reconciled.** iOS's English takes the typographic apostrophe its own French and German already use |
+      | `theme.fontSize.percent` / `theme_font_size_percent` | typography | **Reconciled** with the three above; what is left is the placeholder |
+      | `theme.pageTurn.reduceMotion` / `theme_page_turn_reduce_motion` | platform forces it | **Annotated.** Each platform names its own setting |
+      | `reader.transition.reduceMotion` / `reader_transition_reduce_motion` | platform forces it | **Annotated.** The same setting, the same two names |
+      | `source.kind.localFolder.explanation` / `source_kind_local_folder_explanation` | platform forces it | **Annotated.** iCloud Drive against Google Drive |
+      | `appIcon.note` / `app_icon_note` | platform forces it | **Annotated.** Each platform states what its own system does after the change |
+      | `catalogue.error.http` / `catalogue_error_http` | platform forces it | **Annotated.** iOS's second value is `HTTPURLResponse.localizedString(forStatusCode:)`, which Android has no localised counterpart for |
+      | `home.keepReading` / `home_keep_reading` | wording | **Open, the owner's call.** *Continue reading* against *Keep reading*, which `design.md`'s third open question names as the clearest of them |
+      | `reader.fit.screen`, `.width`, `.height`, `.original` / their twins | wording | **Open, the owner's call.** Both rows are labelled *Fit*, so iOS's *Screen* does not repeat it and Android's *Fit to screen* does. Four rows, one choice |
+      | `library.cell.progress` / `library_cell_progress` | wording | **Open, blocked.** iOS says *%lld percent read* where Android and both EPUB readers say *%% read*. `AuditWalk.swift:206` and `ReadingContinuityUITests.swift:104` pick covers by matching *100 percent read*, and `AuditWalk.swift` is one of the three shared-harness files AGENTS.md §5 says earns a broad UI run. It belongs to the capture pass |
+      | `open.in.unreadable`, `open.in.unsupported` / their twins | wording | **Reconciled, still reported.** Android draws the list of formats iOS draws, M4B and *other audiobooks* included. iOS reaches it through a placeholder, so the two values differ as text while the reader sees the same words — the second thing the tool's header says it cannot see |
+      | `player.skip.back`, `player.skip.forward` / their twins | wording | **Open, not a value.** iOS interpolates a formatted interval into *%@ back*; Android pluralises a count into *Back %1$d seconds*. The word order differs because the composition does |
+      | `player.speed` / `player_speed` | wording | **Not a divergence.** iOS draws a label and a value, `player.speed` plus `player.speed.value`; Android holds both in one string. The reader sees the same two words |
+      | `shelves.delete` / `shelves_delete` | wording | **Open, not a value.** Android draws one string as the long-press label *and* the menu item, so its menu item names the shelf. Splitting it is an edit to `ShelfCover.kt` |
+      | `library.folderUnavailable` / `library_folder_unavailable` | wording | **Open, not a value.** iOS names one folder and quotes it; Android joins several names into one sentence, where a quotation mark would read wrong. Two notice shapes, not two words |
+      | `sources.removeDownloads.title` / `sources_remove_downloads_title` | wording | **Open, a convention.** Android's confirmation titles name the source and iOS's do not, on this key and on `sources.remove` beside it. Reconciling it changes a convention on two keys and a Swift signature |
+      | `settings.reset.body` / `settings_reset_body` | typography | **Open, a presentation difference.** The same words; Android breaks them into two paragraphs. `SourceDetail.swift` records a confirmation body that stopped at *No files* at the largest text size and does not scroll, so the blank line is not free on iOS |
+      | `downloads.failed` / `downloads_failed` | placeholder syntax | **Not a divergence.** Each platform carries one pluralised copy and one flat copy of this sentence, so the words agree and only the plural machinery differs. The flat copy reads *1 attempts* on **both** platforms, which is a defect of each against itself and belongs to `offline-downloads` |
+      | `library.filter.decade` / `library_filter_decade` | placeholder syntax | **Not a divergence, a key name.** iOS's second key is `library.filter.decade %lld` and Android's twin is `library_filter_decade_label`; all four languages agree. The pairing rule strips specifiers, so the two iOS keys land on one name |
+      | `shelves.addTo` / `shelves_add_to` | placeholder syntax | **Not a divergence, a key name.** `shelves.addTo %@ %@` is iOS-only and pairs with nothing; the two `Add to…` values are identical |
+
+      **After 4.2 and 4.4: 823 iOS keys, 836 Android keys, 708 paired, 575 identical
+      English, 133 differ** — 22 wording, 1 typography, 110 placeholder syntax. Two rows
+      moved into the placeholder group rather than out of the list, because reconciling
+      the words left the format spelling as the only difference.
+- [~] **4.2** Reconcile the rows marked *wording*, one state at a time.
       A state whose two platforms agree is better than one where they do not,
       whatever else is open — so this is the one group in the change that may
       land partly without leaving a seam open.
       Verify: `pnpm strings:ios` and `pnpm lint:android`; re-run 4.1's
       comparison and watch the reconciled rows leave the list.
+
+      **Nine states reconciled on 2026-09-11, and each row in 4.1's table says which way
+      it went and why.** The rule in every case is the spec's: *the more informative one
+      is the agreed wording*, and where both were equally informative, the words the app
+      already uses for that state elsewhere won.
+
+      - `downloads.total`. Android said *Space used* and iOS says what the figure counts.
+        4.3 judged this key to name a completed transfer, so keeping the word *downloads*
+        is that judgement applied. Both Android modules that draw it moved, in four
+        languages each.
+      - `player.back`. Android said *Go back*; iOS says where the button goes.
+      - `open.in.protected`. Android said *and StoryArc cannot open it*; iOS says *so*,
+        which names the protection as the cause. 2.2's record claimed iOS took this
+        sentence from Android word for word, and the conjunction is where that was not
+        true.
+      - `reader.transition`. iOS's comic reader said *Transition* while its **own** EPUB
+        reader says *Page turn*, in all four languages, and so does Android. Three
+        surfaces of four already agreed, so iOS's fourth moved to them. This is the
+        spec's first scenario — one condition, one name — as much as its cross-platform
+        one.
+      - `downloads.manageInDestination`. iOS states what the figure counts and Android
+        stated what is still arriving. Neither sentence was wrong, so both survive: the
+        third sentence now reads *Everything on this device, and anything still arriving,
+        is in Downloads.* Every clause was already translated on one platform or the
+        other, so nothing here is a new translation.
+      - The four typography rows. iOS's English said `publisher's` where its own French
+        and German say `l’éditeur` and Android says `publisher’s`.
+
+      **Two consequences, both real.**
+      `reader.transition` is drawn as a row a UI walk reaches by its label, so
+      `SweepComicReader.swift`, `CurlWalk.swift` and one comment in `SweepWalk.swift`
+      moved with it. `pnpm build:ios:tests` compiles them and exits 0. **No UI run proved
+      those two walks still reach the row**; the simulator is serialised and this pass did
+      not take it. That is the one thing 4.2 leaves unproven.
+
+      **Verified.** `pnpm strings:ios` — *every key resolves, in en, fr, de, es*.
+      `pnpm lint:android` — *BUILD SUCCESSFUL*, so no `MissingTranslation` and no
+      `ExtraTranslation` in any of the five modules that changed. `pnpm test:android` —
+      2326 tests, 0 failures. `pnpm test:ios` — 2501 tests in 328 suites passed.
+      `pnpm strings:divergence` shows every reconciled row gone from the list.
+
+      **Open, and why: thirteen rows.** Two are the owner's call (`home.keepReading`, and
+      `reader.fit.*` as one choice of four), one is blocked on a shared-harness UI run
+      (`library.cell.progress`), and the rest are not value edits at all — a composition,
+      a convention, or a notice shape. 4.1's table carries the reason for each. A tick
+      here would claim a reconciliation that has not happened.
 - [x] **4.3** Reconcile the offline destination's vocabulary.
       iOS: *Nothing in your library is on this device yet*
       (`library.empty.onDevice`), *Nothing downloaded*, *%@ downloaded*.
@@ -424,7 +550,7 @@ Two literals, and the largest hidden surface behind them.
       downloaded", which does not name the location*, Android on *en states the
       empty shelf as "Nothing in your library can be read without a connection.",
       which does not name the location*.
-- [ ] **4.4** Record the rows marked *platform forces it* as deliberate, in the
+- [x] **4.4** Record the rows marked *platform forces it* as deliberate, in the
       key's own comment, so the next comparison does not re-report them.
       At least three: *Reduce Motion* against *Remove animations* (each
       platform's own setting name), iCloud Drive against Google Drive, and the
@@ -432,11 +558,48 @@ Two literals, and the largest hidden surface behind them.
       for exactly this.
       Verify: re-run 4.1's comparison; the marked rows are annotated, not
       changed.
-- [ ] **4.5** Retire the two dead keys.
+
+      **Done 2026-09-11. Five rows, and the fifth was not on this line.** Each one is
+      annotated on **both** platforms — an `xcstrings` `comment` on iOS, an XML comment
+      above the string on Android — and every annotation names the other platform's
+      wording, says which platform facility forces it, and cites `localization` / One
+      state, one name. No value changed.
+
+      - *Reduce Motion* against *Remove animations*, in **two** places rather than one:
+        `reader.transition.reduceMotion` in the comic reader and
+        `theme.pageTurn.reduceMotion` in the EPUB reader, with their Android twins. The
+        line above counted this as one row; the catalogues carry two.
+      - iCloud Drive against Google Drive, on `source.kind.localFolder.explanation`.
+      - The app-icon note. Android's comment already explained its own half — *this
+        platform has no way to change an icon in place* — and now says the iOS half is
+        deliberate too.
+      - **`catalogue.error.http`, found by the regeneration.** iOS's sentence carries a
+        second value, the status phrase from
+        `HTTPURLResponse.localizedString(forStatusCode:)`. Android has no localised
+        counterpart, so its value states the code alone. The proposal reads this row as
+        Android having *dropped* the reason phrase, and that is not what it is: the phrase
+        comes from a platform facility only one platform has. Reconciling it would mean
+        writing a status-code table into `feature/library` in four languages, which is a
+        change nobody has proposed.
+
+      Verify: `pnpm strings:divergence` still reports all five, which is correct — the
+      tool is a report and cannot read a comment. What the annotation stops is the **next
+      reader** re-opening a settled question, which is what the task asks for.
+- [x] **4.5** Retire the two dead keys.
       `catalogue.strip.hint` and `catalogue_strip_hint` are drawn nowhere on
       either platform — the strip that used them is gone. Confirm with a search
       over both trees before deleting, not from this line.
       Verify: `pnpm strings:ios`, `pnpm lint:android`.
+
+      **Done 2026-09-11, and there was one key rather than two.** A search over both
+      trees for `catalogue.strip.hint`, `catalogue_strip_hint`, `strip_hint` and
+      `stripHint` found the iOS entry in `LibraryFeature`'s catalogue and **nothing at all
+      on Android**: `catalogue_strip_hint` had already left every `values*/strings.xml`.
+      The only other mention is the design document that retired it,
+      `docs/designs/ui-revamp-2026-08.md:804`, which records it as retired and is right.
+      The iOS entry is deleted, in all four languages.
+      `pnpm strings:ios` — *every key resolves, in en, fr, de, es*; the iOS key count went
+      from 824 to 823. `pnpm lint:android` — *BUILD SUCCESSFUL*, with nothing to remove.
 - [ ] **4.6** The publication page's vocabulary, **after `publication-detail`
       archives.** iOS composes a place clause and an availability clause
       (`detail.availability.*`, `detail.provenance.alsoIn %@`); Android ships
@@ -449,6 +612,12 @@ Two literals, and the largest hidden surface behind them.
       that can become a follow-up without leaving a seam half-done.
       Verify: the two platforms' detail pages captured side by side, French,
       for each of the four availability states.
+
+      **Left open on 2026-09-11, deliberately.** `publication-detail` is still active and
+      is being worked in another worktree, so its delta is still the only place that
+      page's requirements exist. Touching those keys now would reconcile a vocabulary that
+      change is still writing. The pass that closed 4.1, 4.2, 4.4 and 4.5 did not read
+      this row's keys and did not change one of them.
 
 ## 5. The check that has to be able to fail
 
@@ -504,19 +673,44 @@ changes.
 
 ## 6. Gates
 
-- [ ] **6.1** `pnpm lint` — the contract gate, including the new check.
-- [ ] **6.2** iOS: `pnpm test:ios`, `pnpm build:ios`, `pnpm build:ios:tests`
+- [x] **6.1** `pnpm lint` — the contract gate, including the new check.
+      **2026-09-11.** Exit 0, all twenty checks, `strings:ios` and `strings:drawn`
+      among them: *iOS strings: every key resolves, in en, fr, de, es* and
+      *drawn-strings: no bare sentence in a drawing position under apps/*.
+- [x] **6.2** iOS: `pnpm test:ios`, `pnpm build:ios`, `pnpm build:ios:tests`
       (nothing else compiles the UI tests), `pnpm lint:ios` **from the
       repository root**. A `SIGSEGV` here is a stale build before it is a bug —
       `pnpm clean:swift`, per AGENTS.md §3b.
-- [ ] **6.3** Android: `pnpm lint:android`, `pnpm test:android`, and
+      **2026-09-11.** `pnpm test:ios` — *2501 tests in 328 suites passed*.
+      `pnpm build:ios` and `pnpm build:ios:tests` — exit 0, no `error:` line in either.
+      `swiftlint lint --strict --no-cache` from the repository root — *0 violations, 0
+      serious in 811 files*. No `SIGSEGV`. `pnpm test:ios:epub` was **not** run: it needs
+      a booted simulator, and the EPUB module's change here is four catalogue values and
+      two comments, with no Swift touched.
+- [x] **6.3** Android: `pnpm lint:android`, `pnpm test:android`, and
       `pnpm build:android:tests` — nothing else compiles `androidTest`.
-- [ ] **6.4** `pnpm lines:check` — the 800-line cap is a ratchet and this change
+      **2026-09-11.** `pnpm lint:android` — *BUILD SUCCESSFUL*, so no
+      `MissingTranslation` and no `ExtraTranslation` in the five modules that changed. The
+      `ViewModelConstructorInComposable` error 1.5 recorded in `:feature:library:lint` is
+      **gone**; that file was fixed on `main` in the meantime. `pnpm test:android` —
+      2326 tests, 0 failures, 0 errors, across nine modules.
+      `pnpm build:android:tests` — *BUILD SUCCESSFUL*.
+- [x] **6.4** `pnpm lines:check` — the 800-line cap is a ratchet and this change
       moves code between modules.
+      **2026-09-11.** *3 recorded file(s), none grew, nothing new crossed its language's
+      cap.* The record is three rather than four because 3.5 took
+      `ReaderViewModel.kt` from 811 lines to 798 and deleted its line, which the check
+      asked for by name. `pnpm lines:selftest` — *15 checks passed*.
 - [ ] **6.5** Every capture from 1.7, 2.4, 3.4 and 4.6 referenced in the handoff,
       each with the control it needs. AGENTS.md §6 binds the change, not the
       task: neither exception applies here — nothing is behind a flag, and the
       screenshots are not byte-identical, which is the whole point of them.
+
+      **Still owed, and 4.2 added one frame to the list.** `reader.transition` now draws
+      *Page turn* in the comic reader's menu on iOS, and the two UI walks that reach that
+      row by its label were edited with it. They compile; no run has reached the row. The
+      capture pass wants `-only-testing:StoryArcUITests/CurlWalk` and
+      `-only-testing:StoryArcUITests/SweepComicReaderTests` before it takes anything else.
 - [ ] **6.6** Update `localization`'s row in `docs/openspec/STATUS.md` from the
       verify report, in the same pass as `/opsx:verify`. The row currently
       records five scenarios "built and asserted by nothing" and *Long
