@@ -3,9 +3,9 @@
     <!-- The product name is not translated. -->
     <string name="app_name">StoryArc</string>
     <string name="open_in_refused_title">Impossible d’ouvrir ce fichier</string>
-    <string name="open_in_unsupported">%1$s est un fichier %2$s, que StoryArc ne lit pas. Il lit les formats CBZ, CBR, CBT, EPUB, PDF et les livres audio.</string>
-    <string name="open_in_unreadable">StoryArc ne reconnaît pas %1$s. Il lit les formats CBZ, CBR, CBT, EPUB, PDF et les livres audio.</string>
-    <string name="open_in_protected">%1$s est protégé par la protection de contenu de sa boutique, et StoryArc ne peut pas l\'ouvrir. StoryArc ne retire pas les protections de contenu ; il n\'y a rien à saisir ici.</string>
+    <string name="open_in_unsupported">%1$s est un fichier %2$s, que StoryArc ne lit pas. Il lit les formats CBZ, CBR, CBT, EPUB, PDF, M4B et d’autres livres audio.</string>
+    <string name="open_in_unreadable">StoryArc ne reconnaît pas %1$s. Il lit les formats CBZ, CBR, CBT, EPUB, PDF, M4B et d’autres livres audio.</string>
+    <string name="open_in_protected">%1$s est protégé par la protection de contenu de sa boutique, et StoryArc ne peut donc pas l\'ouvrir. StoryArc ne retire pas les protections de contenu ; il n\'y a rien à saisir ici.</string>
     <string name="open_in_dismiss">OK</string>
     <!-- The name used when the provider offers no name and the Uri has no last segment.
          It is interpolated into the three sentences above, so it is written to read inside
@@ -35,7 +35,7 @@
     <string name="downloads_destination_in_flight">En cours de réception</string>
     <string name="downloads_destination_empty">Rien n’est encore sur cet appareil. Un livre ouvert depuis une bibliothèque en ligne est conservé ici.</string>
 
-    <string name="downloads_total">Espace utilis\u00e9</string>
+    <string name="downloads_total">Espace utilisé par les téléchargements</string>
     <string name="downloads_stop">Arr\u00eater</string>
     <string name="downloads_remove">Supprimer le t\u00e9l\u00e9chargement</string>
     <string name="downloads_cancel">Annuler</string>
@@ -92,7 +92,7 @@
     <string name="player_chapter_left">%1$s · %2$s restant</string>
     <string name="player_speed">Vitesse %1$s</string>
     <string name="player_nothing_playing">Aucune lecture en cours.</string>
-    <string name="player_back">Retour</string>
+    <string name="player_back">Retour au livre</string>
     <plurals name="player_skipped_parts">
         <item quantity="one">%1$d partie n\'a pas pu être lue</item>
         <!-- French gained a `many` category (millions, with «de»). Lint fails the build

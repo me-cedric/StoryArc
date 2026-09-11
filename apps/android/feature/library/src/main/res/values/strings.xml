@@ -4,6 +4,9 @@
     <string name="library_empty_title">Nothing here yet</string>
     <string name="library_empty_subtitle">Open a comic and start reading. You can add a whole folder whenever you like.</string>
     <string name="source_kind_local_folder_title">Files and folders</string>
+    <!-- iOS names iCloud Drive here. Each platform names the file service its own system
+         provides. The difference is deliberate, and `localization` / One state, one name
+         calls a platform's own service no divergence. -->
     <string name="source_kind_local_folder_explanation">On this device, in Google Drive, or anywhere in Files</string>
     <string name="source_kind_network_share_title">A computer on your network</string>
     <string name="source_kind_network_share_explanation">A folder another computer or home server shares with you</string>
@@ -125,6 +128,10 @@
     <string name="catalogue_error_not_a_feed">That address returned %1$s, which is not a catalogue.</string>
     <string name="catalogue_error_unknown_type">something of an unknown type</string>
     <string name="catalogue_error_malformed">The catalogue could not be read: %1$s</string>
+    <!-- iOS adds the status phrase, which `HTTPURLResponse.localizedString(forStatusCode:)`
+         gives it. Android provides no localised status phrase, so this value states the code
+         alone. The difference is deliberate, and `localization` / One state, one name calls a
+         sentence a platform facility supplies no divergence. -->
     <string name="catalogue_error_http">The server refused: %1$d.</string>
     <string name="catalogue_error_no_host">That host could not be found. Check the address and that you are on the same network.</string>
     <string name="catalogue_error_timed_out">The server did not answer in time.</string>

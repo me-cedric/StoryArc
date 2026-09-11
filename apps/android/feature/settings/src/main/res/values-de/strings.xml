@@ -142,7 +142,7 @@
     <string name="sources_rename_action">%1$s umbenennen</string>
     <string name="downloads_none">Nichts ist heruntergeladen. Ein Buch, das Sie aus einer Online-Bibliothek öffnen, bleibt auf diesem Gerät.</string>
     <string name="downloads_imported">Importierte Kopien</string>
-    <string name="downloads_total">Belegter Speicher</string>
+    <string name="downloads_total">Von Downloads belegter Speicher</string>
     <string name="downloads_pending">Laufend</string>
     <string name="downloads_on_device">Auf diesem Gerät</string>
     <string name="downloads_remove">Download entfernen</string>
@@ -175,7 +175,7 @@
     <string name="downloads_move_later">„%1$s“ nach hinten</string>
     <string name="downloads_remove_body_imported">Dies löscht die von StoryArc aufbewahrte Kopie von %1$s und gibt %2$s frei. Die Originaldatei anderswo auf Ihrem Gerät bleibt unberührt.</string>
 
-    <string name="downloads_manage_in_destination">Alles auf diesem Ger\u00e4t, und alles, was noch ankommt, finden Sie unter Downloads.</string>
+    <string name="downloads_manage_in_destination">Gezählt wird, was StoryArc heruntergeladen oder importiert hat. Ein Ordner, den Sie hinzugefügt haben, ist ebenfalls ohne Netz lesbar, und seine Dateien werden hier nicht gezählt. Alles auf diesem Gerät, und alles, was noch ankommt, finden Sie unter Downloads.</string>
 
     <!-- What's new. Shown once after an update, and reachable from About afterwards. -->
     <string name="whats_new_title">Neu in StoryArc</string>

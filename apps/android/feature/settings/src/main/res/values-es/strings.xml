@@ -142,7 +142,7 @@
     <string name="sources_rename_action">Renombrar %1$s</string>
     <string name="downloads_none">No hay nada descargado. Un libro que abras desde una biblioteca en línea se guarda en este dispositivo.</string>
     <string name="downloads_imported">Copias importadas</string>
-    <string name="downloads_total">Espacio utilizado</string>
+    <string name="downloads_total">Espacio utilizado por las descargas</string>
     <string name="downloads_pending">En curso</string>
     <string name="downloads_on_device">En este dispositivo</string>
     <string name="downloads_remove">Eliminar la descarga</string>
@@ -175,7 +175,7 @@
     <string name="downloads_move_later">Retrasar «%1$s»</string>
     <string name="downloads_remove_body_imported">Esto elimina la copia de %1$s que guarda StoryArc y libera %2$s. El archivo original en otro lugar de su dispositivo no se toca.</string>
 
-    <string name="downloads_manage_in_destination">Todo lo que hay en este dispositivo, y todo lo que a\u00fan est\u00e1 llegando, est\u00e1 en Descargas.</string>
+    <string name="downloads_manage_in_destination">Esto cuenta lo que StoryArc ha descargado o importado. Una carpeta que hayas añadido también se puede leer sin red, y sus archivos no se cuentan aquí. Todo lo que hay en este dispositivo, y todo lo que aún está llegando, está en Descargas.</string>
 
     <!-- What's new. Shown once after an update, and reachable from About afterwards. -->
     <string name="whats_new_title">Novedades de StoryArc</string>
