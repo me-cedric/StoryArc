@@ -133,7 +133,14 @@ internal fun CoverList(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             state = listState,
-            contentPadding = PaddingValues(vertical = StoryArcSpace.sm),
+            // The rail floats over this list at the end edge, so the rows reserve its width
+            // rather than being drawn underneath it. A row's own horizontal gutter is set per
+            // row, not here, which is why only the end is named.
+            contentPadding = PaddingValues(
+                end = if (rail.isEmpty()) 0.dp else RAIL_WIDTH,
+                top = StoryArcSpace.sm,
+                bottom = StoryArcSpace.sm,
+            ),
         ) {
             // `library-browsing`: results are "grouped by match kind" while a search is running.
             // A list already reads as sections, so grouping here costs the reader nothing to

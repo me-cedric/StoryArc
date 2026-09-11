@@ -126,6 +126,17 @@ enum LibraryRail {
 /// - nothing here is the only statement of anything: the shelf's own section headings say
 ///   the same thing in the content, so a reader who never meets the rail loses nothing.
 struct IndexRail: View {
+
+    /// How much of the shelf's width the rail takes.
+    ///
+    /// Stated rather than measured, because the shelf has to reserve it *before* the rail is
+    /// laid out: the rail is an `.overlay(alignment: .trailing)`, so a shelf that did not
+    /// inset itself drew its last column underneath it. Android's `RAIL_WIDTH` is the twin
+    /// and its frames are where the defect was seen.
+    ///
+    /// 22 pt of entry, `xs` of padding on each side of it, and `xs` again to the edge.
+    static let width: CGFloat = 22 + StoryArcSpace.xs * 3
+
     @Environment(\.theme) private var theme
 
     let entries: [RailEntry]

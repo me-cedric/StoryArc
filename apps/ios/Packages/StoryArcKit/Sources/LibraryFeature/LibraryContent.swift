@@ -172,6 +172,16 @@ extension LibraryView {
     var content: some View {
         ScrollViewReader { scroller in
             shelfBody
+                // The shelf reserves the rail's width rather than being drawn underneath it.
+                // The rail floats over this content, so without the inset the last column and
+                // its title are clipped down the trailing edge. The shelf's own trailing
+                // gutter is empty margin the rail can stand in, so only the difference is
+                // added: reserving the whole width on top of the gutter costs a column on a
+                // narrow screen, which is a worse answer than the one it replaces.
+                .safeAreaPadding(
+                    .trailing,
+                    rail.isEmpty ? 0 : max(0, IndexRail.width - StoryArcSpace.gutter)
+                )
                 .overlay(alignment: .trailing) {
                     if !rail.isEmpty {
                         IndexRail(entries: rail) { entry in

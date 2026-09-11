@@ -220,6 +220,26 @@ export const ROUTES = [
     ['Library > selection overflow', [NAMES.library, NAMES.more, named('library_select'), 'Fine Print', 'Foreign Codec', NAMES.more]],
     ['Library > add to shelf', [NAMES.library, '@long Fine Print']],
 
+    // --- Series or issues, and the rail that scans a long shelf ----------------------
+    //
+    // `library-browsing`'s *A shelf of issues*: the shelf groups a series into one row by
+    // default, and a reader who wants issue 43 can ask for every issue instead. The chip
+    // states which is in force, framed the way the sort chip is framed, so `named` drops it
+    // at the format specifier and matches the prefix.
+    ['Library > grouping menu', [NAMES.library, named('library_grouping_chip')]],
+    ['Library > issues', [NAMES.library, named('library_grouping_chip'), named('library_grouping_issues')]],
+    // The index only exists under a sort a letter describes, which is Title and Series and
+    // no other. The shelf opens sorted by date added, so the sort is set first and the menu
+    // dismissed — the rail is on the shelf behind it, not in the menu.
+    ['Library > index rail', [NAMES.library, named('library_sort_chip'), named('library_sort_title'), '@back']],
+    ['Library > issues with index', [NAMES.library, named('library_sort_chip'), named('library_sort_title'), '@back', named('library_grouping_chip'), named('library_grouping_issues')]],
+
+    // --- The reader's own shelves, on Home -------------------------------------------
+    //
+    // `collections-and-reading-lists`: Home lists the reader's collections and reading
+    // lists. They sit below Keep reading and Recently added, so the walk scrolls.
+    ['Home > shelves', [NAMES.home, '@swipe-up', '@swipe-up']],
+
     // --- The publication page, in the three shapes its own layout has ----------------
     ['Publication page > overflow', [NAMES.library, ', CBZ', named('detail_more')]],
     ['Publication page > add to shelf', [NAMES.library, ', CBZ', named('detail_more'), named('detail_add_to_shelf')]],

@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -174,6 +175,19 @@ internal object LibraryRail {
         return indexes
     }
 }
+
+/**
+ * How much of the shelf's width the rail takes.
+ *
+ * Stated rather than measured, because the shelf has to reserve it *before* the rail is laid
+ * out: the rail floats over the grid at [Alignment.CenterEnd], so a shelf that did not inset
+ * itself drew its last column underneath it. It did -- the third cover and its title were cut
+ * off down the right edge of every frame taken on 2026-09-11.
+ *
+ * 24 dp of entry plus [StoryArcSpace.xs] of padding on each side of it, and [StoryArcSpace.xs]
+ * again between the rail and the screen edge.
+ */
+internal val RAIL_WIDTH: Dp = 24.dp + StoryArcSpace.xs * 3
 
 /**
  * The index itself, down the trailing edge of the shelf.

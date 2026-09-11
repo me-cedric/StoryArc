@@ -223,9 +223,17 @@ internal fun CoverGrid(
             columns = columns,
             state = gridState,
             modifier = Modifier.fillMaxSize(),
+            // The rail sits *in* the end gutter, not beside it. It floats over this grid, so
+            // without an inset the last column is drawn underneath it -- which is what the
+            // first frames of the rail showed, with the third cover and its title cut off.
+            // The gutter is empty margin the rail can stand in, so the end reserves the wider
+            // of the two rather than their sum: adding them cost this shelf a whole column on
+            // a 1080 px screen, which is a worse answer than the one it replaced.
             contentPadding = PaddingValues(
-                horizontal = StoryArcSpace.gutter,
-                vertical = StoryArcSpace.md,
+                start = StoryArcSpace.gutter,
+                end = if (rail.isEmpty()) StoryArcSpace.gutter else maxOf(StoryArcSpace.gutter, RAIL_WIDTH),
+                top = StoryArcSpace.md,
+                bottom = StoryArcSpace.md,
             ),
             horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),
