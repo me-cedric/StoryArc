@@ -184,6 +184,39 @@ No new dependency on either platform. Android: Compose BOM and material3 as
 pinned, `LazyListState` and `LazyGridState` from `androidx.compose.foundation`.
 iOS: SwiftUI's own `ScrollViewReader`, available far below the iOS 26.1 floor.
 
+## A row is not a publication, and counting them as one raised a false alarm
+
+A branch report on 2026-09-11 said the shelf "is not drawing what the library
+holds": six covers on screen against twenty-five publications in
+`Library/Caches/library.json`, with fourteen CBZ and one PDF apparently missing.
+It was offered as the more serious of three findings.
+
+**It was measured, and there is no defect.** On a clean iPhone 17 Pro simulator
+holding exactly those twenty-five publications:
+
+| Grouping | Rows drawn |
+| --- | --- |
+| Series | 16 |
+| Issues | every publication, `Harbour Lights 01`, `Tidal Reach #1` and the rest |
+
+Sixteen is the arithmetic, not a coincidence: the twenty-five publications carry
+sixteen distinct series names and not one of them is series-less, so series
+grouping must draw sixteen rows. CBZ is present throughout — *Ashfall · 2 titles*,
+*Copper Wake · 4 titles*, *Fine Print · CBZ* — and no publication is outside a
+row, so nothing is hidden.
+
+The report's own device is the explanation. That measurement was taken while its
+author had moved `Documents/Sea Room` and the `seed-sea-room` download record
+aside and had edited the progress store with `sqlite3`, to make a separate
+before-and-after deterministic. The shelf was answering honestly about a library
+somebody was holding open at the time.
+
+**The lesson is for this change rather than for that branch.** This change made a
+row stop meaning a publication, and the first person to compare the two numbers
+read the difference as loss. The count beside a series name is what says
+otherwise, so it is not decoration: `2 titles` is the sentence that makes sixteen
+rows and twenty-five publications the same statement.
+
 ## Risks
 
 - **A rail of twenty-seven entries on a small phone.** 27 × 22 dp is 594 dp, which
