@@ -5016,6 +5016,35 @@
         }
       }
     },
+    "library.checked.now": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bibliotheken gerade geprüft."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Libraries checked just now."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bibliotecas comprobadas ahora mismo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bibliothèques vérifiées à l’instant."
+          }
+        }
+      }
+    },
     "library.continueReading": {
       "extractionState": "manual",
       "localizations": {

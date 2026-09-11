@@ -51,6 +51,51 @@ carried the same defect and took the same fix, in `LibraryContent.swift`.
 rows, the shelf falls to two columns because the cells grew, and the rail is
 still legible and still clips nothing.
 
+## The refresh line, and the copy it was written with
+
+| Frame | Theme |
+| --- | --- |
+| `android-refresh-checked.png` | light |
+| `android-refresh-checked-dark.png` | dark |
+
+**Libraries checked just now.** It took three captures to get those words.
+
+The emulator had no remote source, so the line had nothing to report. One was
+added without any credential: `node scripts/opds-server.mjs <corpus> --port 4444`
+serves the same 140-publication corpus as an OPDS catalogue, and the emulator
+reaches the host at `10.0.2.2`. The app answered *Connected to StoryArc Test
+Catalogue*.
+
+Then the line read **"Libraries checked 0 minutes ago."**
+`DateUtils.getRelativeTimeSpanString` had `MINUTE_IN_MILLIS` as its minimum
+resolution, and that resolution reads every duration under a minute as zero of
+them — in the one moment a reader is most likely to be looking, because they had
+just asked for a refresh. Moving to `SECOND_IN_MILLIS` produced **"0 seconds
+ago"**, the same fault one unit down.
+
+iOS was no better at that instant: `.relative(presentation: .named)` says *now*,
+which composes as "Libraries checked now."
+
+So the first five seconds get a sentence of their own on both platforms, and
+everything after them keeps the platform's own phrasing.
+`CheckedNoticeWordsTest` holds the three cases, and it was mutation-checked:
+restoring `MINUTE_IN_MILLIS` fails it by name.
+
+## Series, and the sort that has no letters
+
+| Frame | What it shows |
+| --- | --- |
+| `android-series-light.png` | the same shelf grouped by series, light |
+| `android-series-dark.png` | the same, dark |
+| `android-no-index.png` | **the control**: sorted by *Last read*, no rail at all |
+| `android-issues-ax.png` | grouped by issues at 200 % text |
+
+`android-no-index.png` is the one that proves a rule rather than a feature.
+`library-browsing`'s *A sort no letter describes* says the index is **absent**
+under the five sorts no letter orders, not greyed. The frame shows *Sort: Last
+read*, no rail, and the grid reclaiming the full width — which also proves the
+inset is conditional rather than always paid for.
+
 ## The two shelves on Home
 
 | Frame | Theme |

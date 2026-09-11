@@ -233,6 +233,11 @@ export const ROUTES = [
     // dismissed — the rail is on the shelf behind it, not in the menu.
     ['Library > index rail', [NAMES.library, named('library_sort_chip'), named('library_sort_title'), '@back']],
     ['Library > issues with index', [NAMES.library, named('library_sort_chip'), named('library_sort_title'), '@back', named('library_grouping_chip'), named('library_grouping_issues')]],
+    ['Library > series with index', [NAMES.library, named('library_sort_chip'), named('library_sort_title'), '@back', named('library_grouping_chip'), named('library_grouping_series')]],
+    // The control: `library-browsing`'s *A sort no letter describes*. Under Last read the
+    // index is absent rather than inert, and a frame of an empty edge is the only way to
+    // tell "absent on purpose" from "absent because it broke".
+    ['Library > no index', [NAMES.library, named('library_sort_chip'), named('library_sort_last_read'), '@back']],
 
     // --- The reader's own shelves, on Home -------------------------------------------
     //

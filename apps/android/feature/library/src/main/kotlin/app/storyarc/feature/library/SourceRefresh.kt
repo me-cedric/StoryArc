@@ -158,17 +158,46 @@ internal fun RefreshingNotice(modifier: Modifier = Modifier) {
  * one recomposition behind still answers the question a line that vanished cannot answer at
  * all.
  */
+/**
+ * How recent counts as "just now".
+ *
+ * Five seconds rather than one: the line is drawn when the shelf is laid out, not on a
+ * ticker, so a one-second window would be missed by the very redraw that follows a refresh.
+ * iOS's `justNow` is the same number.
+ */
+private const val JUST_NOW_MILLIS = 5_000L
+
 @Composable
 internal fun CheckedNotice(checkedAtEpochMillis: Long, modifier: Modifier = Modifier) {
     val palette = LocalStoryArcPalette.current
-    val relative = DateUtils.getRelativeTimeSpanString(
-        checkedAtEpochMillis,
-        System.currentTimeMillis(),
-        DateUtils.MINUTE_IN_MILLIS,
-    ).toString()
+    // **Zero of a unit is never good copy, and this line met a reader at zero.** It read
+    // "Libraries checked 0 minutes ago." on an emulator on 2026-09-11, because
+    // `MINUTE_IN_MILLIS` as the minimum resolution reads every duration under a minute as
+    // zero of them -- and the moment right after a refresh is exactly when a reader looks,
+    // because they just asked for one. `SECOND_IN_MILLIS` moved it to "0 seconds ago", which
+    // is the same fault one unit down.
+    //
+    // So the first seconds get a sentence of their own, and everything after them gets the
+    // platform's own phrasing, which `localization` requires rather than a duration this app
+    // assembles and then has to translate four times. iOS has the same two branches, for the
+    // same reason: its `.relative(presentation: .named)` says "now" at zero, which composes
+    // as "Libraries checked now."
+    val elapsed = System.currentTimeMillis() - checkedAtEpochMillis
+    val text = if (elapsed < JUST_NOW_MILLIS) {
+        stringResource(R.string.library_checked_now)
+    } else {
+        stringResource(
+            R.string.library_checked,
+            DateUtils.getRelativeTimeSpanString(
+                checkedAtEpochMillis,
+                System.currentTimeMillis(),
+                DateUtils.SECOND_IN_MILLIS,
+            ).toString(),
+        )
+    }
 
     Text(
-        text = stringResource(R.string.library_checked, relative),
+        text = text,
         style = MaterialTheme.typography.labelLarge,
         color = palette.textSecondary,
         modifier = modifier

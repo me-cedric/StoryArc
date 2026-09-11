@@ -102,11 +102,30 @@ struct RefreshingNotice: View {
 struct CheckedNotice: View {
     let checkedAt: Date
 
+    /// How recent counts as "just now".
+    ///
+    /// **Zero of a unit is never good copy, and this line met a reader at zero.**
+    /// `.relative(presentation: .named)` says "now" for the first moments, which composes as
+    /// "Libraries checked now." Android met the same fault with its own formatter and read
+    /// "Libraries checked 0 minutes ago." on an emulator on 2026-09-11.
+    ///
+    /// Five seconds rather than one: the line is drawn when the shelf is laid out, not on a
+    /// ticker, so a one-second window would be missed by the very redraw that follows a
+    /// refresh. Android's `JUST_NOW_MILLIS` is the same number.
+    private static let justNow: TimeInterval = 5
+
+    /// The first seconds get a sentence of their own; everything after gets the platform's
+    /// own phrasing, which `localization` requires rather than a duration this app assembles
+    /// and then has to translate four times.
+    private var sentence: LocalizedStringKey {
+        guard Date.now.timeIntervalSince(checkedAt) >= Self.justNow else {
+            return "library.checked.now"
+        }
+        return "library.checked \(checkedAt.formatted(.relative(presentation: .named)))"
+    }
+
     var body: some View {
-        Text(
-            "library.checked \(checkedAt.formatted(.relative(presentation: .named)))",
-            bundle: .module
-        )
+        Text(sentence, bundle: .module)
         .textRole(.footnote)
         .storyArcGlassText()
         .padding(.horizontal, StoryArcSpace.md)

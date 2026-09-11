@@ -252,6 +252,7 @@
     <string name="library_cached">Mostrando lo que había %1$s. Buscando cambios.</string>
     <string name="library_refreshing">Buscando cambios en tus bibliotecas.</string>
     <string name="library_checked">Bibliotecas comprobadas %1$s.</string>
+    <string name="library_checked_now">Bibliotecas comprobadas ahora mismo.</string>
     <string name="library_restart">Empezar desde el principio</string>
     <string name="library_restart_title">¿Empezar «%1$s» desde el principio?</string>
     <string name="library_restart_confirm">Empezar desde el principio</string>

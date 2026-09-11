@@ -254,6 +254,7 @@
     <string name="library_cached">Affichage de ce qui était là %1$s. Vérification en cours.</string>
     <string name="library_refreshing">Vérification des changements dans vos bibliothèques.</string>
     <string name="library_checked">Bibliothèques vérifiées %1$s.</string>
+    <string name="library_checked_now">Bibliothèques vérifiées à l’instant.</string>
     <string name="library_restart">Reprendre au début</string>
     <string name="library_restart_title">Reprendre « %1$s » au début ?</string>
     <string name="library_restart_confirm">Reprendre au début</string>
