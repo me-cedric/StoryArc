@@ -706,12 +706,38 @@ changes.
       task: neither exception applies here — nothing is behind a flag, and the
       screenshots are not byte-identical, which is the whole point of them.
 
-      **Still owed, and 4.2 added one frame to the list.** `reader.transition` now draws
-      *Page turn* in the comic reader's menu on iOS, and the two UI walks that reach that
-      row by its label were edited with it. They compile; no run has reached the row. The
-      capture pass wants `-only-testing:StoryArcUITests/CurlWalk` and
+      **4.2's frame is taken. The rest is still owed.** `reader.transition` draws *Page
+      turn* in the comic reader's menu on iOS, and on 2026-09-11 a run reached it:
+      `SweepComicReaderTests` and `CurlWalkTests` pass 11 of 11 together, and
+      `docs/designs/screenshots/page-turn-row-2026-09-11/` holds the menu with
+      **Page turn · Curl** under *Settings*, the same menu at the largest accessibility
+      size, and the picker the row opens. So the renamed key resolves and the element the
+      walks look for by label is the element on screen.
+
+      No dark frame: `capture-ios.mjs --appearance dark` wrote no `-dark` file for this
+      walk and why is not established. Recorded in that README rather than papered over.
+
+      What remains is every capture from 1.7, 2.4 and 3.4, and 4.6's, which cannot be
+      judged yet for the reason 4.6 gives. The capture pass wants
+      `-only-testing:StoryArcUITests/CurlWalk` and
       `-only-testing:StoryArcUITests/SweepComicReaderTests` before it takes anything else.
 - [ ] **6.6** Update `localization`'s row in `docs/openspec/STATUS.md` from the
-      verify report, in the same pass as `/opsx:verify`. The row currently
-      records five scenarios "built and asserted by nothing" and *Long
-      translations* as the unsettled one; 1.7 and 1.8 move both.
+      verify report, in the same pass as `/opsx:verify`.
+
+      **This task's own premise is out of date, checked on 2026-09-11.** It says the
+      row "currently records five scenarios built and asserted by nothing". The row
+      says **ten**, and states that it was re-audited scenario by scenario on
+      2026-09-06 against the merged tree, replacing a take that scored five. So the
+      number this task set out to move has already moved, by a different pass, and
+      rewriting the row against the task's figure would make it wrong again.
+
+      **It also depends on 1.7 and 1.8, which are `[~]`.** This task exists to
+      record what those two settle. Until they land there is no verify report for it
+      to read, and writing counts into `STATUS.md` that nothing measured is the one
+      thing that row's own history warns about: it records being "wrong in four
+      places" on its first take, one of which was taking an aggregate count from a
+      pattern that matched more than it meant.
+
+      So it stays open, deliberately, with a corrected premise rather than a
+      fabricated update. What it needs: 1.7 and 1.8 finished, then `/opsx:verify`,
+      then the row rewritten from that report's numbers and not from this task's.
