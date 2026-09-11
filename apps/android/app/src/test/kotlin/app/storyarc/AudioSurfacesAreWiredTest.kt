@@ -98,6 +98,30 @@ class AudioSurfacesAreWiredTest {
     }
 
     /**
+     * That the player tells the resume reader the record is finished.
+     *
+     * `reading-progress`: "reopening a finished publication starts at the beginning while
+     * retaining the finished record". `ListenedPosition.resume` drops the stored place for a
+     * finished record, and `ListenedPositionTest` pins that decision. Nothing pinned the
+     * call. Passing a constant `false` here keeps every unit green and restores the defect.
+     *
+     * **iOS met that defect on 2026-09-11 and Android never had it.** The iOS player read
+     * the stored place with no finished guard, so a finished audiobook was seeked to its
+     * last second: the source reported the end at once, `PlayerCentre.end()` tore the
+     * session down, and the compact bar was withdrawn before it could draw. The listener got
+     * no player at all. `ResumeWiringTests.aFinishedBookStartsOver` is this test's twin.
+     */
+    @Test
+    fun `the player drops the stored place for a finished book`() {
+        assertTrue(
+            "The player no longer states that the record is finished, so a finished" +
+                " audiobook is seeked to its own end. The source then reports the end as the" +
+                " session starts, and the compact bar is withdrawn before it draws.",
+            read(PLAYING_BOOK).contains("resume(record?.position, record?.isFinished == true)"),
+        )
+    }
+
+    /**
      * `audio-playback`, *Where a listening position is written*: the three moments only the
      * app layer can see, and the one that used to read a snapshot instead of the player.
      *
