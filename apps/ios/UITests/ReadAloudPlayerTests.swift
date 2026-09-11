@@ -90,9 +90,14 @@ final class ReadAloudPlayerTests: XCTestCase {
     /// name, which is why the word is at the top and not beside the bar.
     func testCaptureVoiceStoppedByAnAudiobook() throws {
         let app = try speakAndLeaveTheReader(opening: "Harbour Lights 01")
-        // *The Peregrine* rather than *Sea Room*: with the shelf filtered to EPUBs and
-        // audiobooks it is the audiobook in the second row, and the shelf is not scrolled.
-        try openPublication(named: "The Peregrine", in: app, expectingAPage: false)
+        // *Sea Room* is the corpus's single-file audiobook, and the name `AudiobookWalk`
+        // already depends on. **This line named *The Peregrine* and no generator writes one:**
+        // it is a failed *download* record, injected by `SweepDownloads` as JSON and never a
+        // file, so no shelf on any device holds a cover for it and this walk always failed on
+        // "No cover called The Peregrine on this device's shelf". `scripts/corpus.mjs` writes
+        // two audiobooks — `Sea Room.m4b` and the `Tidal Voices` folder — and this capture
+        // needs one, so it names one that exists rather than growing the corpus.
+        try openPublication(named: "Sea Room", in: app, expectingAPage: false)
 
         let capsule = app.descendants(matching: .any).matching(identifier: "voice-stopped").firstMatch
         XCTAssertTrue(

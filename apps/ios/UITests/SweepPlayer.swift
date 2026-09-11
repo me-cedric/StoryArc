@@ -78,7 +78,7 @@ final class SweepPlayerTests: XCTestCase {
     func testCaptureCompactPlayerOnHome() throws {
         let app = sweepLaunch()
         try openAnAudiobook(in: app)
-        try XCTUnwrap(destination("Home", in: app), "no Home tab").tap()
+        try reach("Home", in: app)
         hold(2)
         shutter(app, named: "player-compact-on-home")
     }
@@ -87,7 +87,7 @@ final class SweepPlayerTests: XCTestCase {
     func testCaptureCompactPlayerOnSearch() throws {
         let app = sweepLaunch()
         try openAnAudiobook(in: app)
-        try XCTUnwrap(destination("Search", in: app), "no Search tab").tap()
+        try reach("Search", in: app)
         hold(2)
         shutter(app, named: "player-compact-on-search")
     }
@@ -102,6 +102,42 @@ final class SweepPlayerTests: XCTestCase {
     }
 
     // MARK: - The walk
+
+    /// Goes to one of the shell's destinations, expanding the tab bar first if it has to.
+    ///
+    /// **The bar is minimised by the time these two captures ask for it, and that is the app
+    /// working.** `.tabBarMinimizeBehavior(.onScrollDown)` collapses the bar to the selected
+    /// destination alone as soon as a shelf scrolls, and `openAnAudiobook` scrolls one to
+    /// reach the audiobook — a 140-publication corpus puts `Sea Room` well down the shelf.
+    /// Measured on 2026-09-11 with the diagnosis below: on the audiobook's own page
+    /// `app.tabBars` held exactly one button, `[Downloads]`, so `destination("Home")` had
+    /// nothing to find and both captures failed on a bare "no Home tab".
+    ///
+    /// Tapping the minimised bar expands it, which is the action a reader takes and the only
+    /// one that needs no scroll view under the thumb. The captures themselves are unchanged:
+    /// Home and Search are each a fresh surface with the bar at full size.
+    private func reach(_ name: String, in app: XCUIApplication) throws {
+        if let tab = destination(name, in: app) {
+            tab.tap()
+            return
+        }
+        let minimised = app.tabBars.buttons.firstMatch
+        if minimised.exists, minimised.isHittable { minimised.tap() }
+        try XCTUnwrap(destination(name, in: app), diagnosis(name, in: app)).tap()
+    }
+
+    /// What the foot of the screen holds, for a walk that asked for a destination and got
+    /// nothing. A bare "no Home tab" says the walk failed and nothing about why.
+    private func diagnosis(_ name: String, in app: XCUIApplication) -> String {
+        let tabs = app.tabBars.allElementsBoundByIndex
+            .map { $0.buttons.allElementsBoundByIndex.map(\.label).joined(separator: " | ") }
+            .joined(separator: " / ")
+        let strip = app.buttons.allElementsBoundByIndex
+            .filter { $0.frame.midY > app.frame.height - 220 }
+            .map(\.label)
+            .joined(separator: " | ")
+        return "No \(name) tab. In the tab bars: [\(tabs)]. In the bottom strip: [\(strip)]."
+    }
 
     /// Starts an audiobook and opens the full player over it.
     private func openPlayer(in app: XCUIApplication) throws {
