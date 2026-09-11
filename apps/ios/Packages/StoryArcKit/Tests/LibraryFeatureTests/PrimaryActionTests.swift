@@ -2,6 +2,7 @@ import Foundation
 import Testing
 
 @testable import LibraryFeature
+import Playback
 import StoryArcCore
 
 /// What the publication page's one primary action says.
@@ -52,5 +53,31 @@ struct PrimaryActionTests {
             #expect(listening.contains(PrimaryAction.of(.m4b, hasProgress: hasProgress)))
             #expect(reading.contains(PrimaryAction.of(.cbr, hasProgress: hasProgress)))
         }
+    }
+
+    /// A book heard to the end starts again at its first chapter, so the action names no
+    /// chapter at all.
+    ///
+    /// `reading-progress`: "reopening a finished publication starts at the beginning while
+    /// retaining the finished record", and `StoryArcApp.resumePlace(of:)` drops a finished
+    /// record's stored place for that reason. The page read the same record without that
+    /// guard, so the button promised *Continue "The Reach"* while the audio began at *The
+    /// Harbour* — and the promise about the outcome is the one thing this value exists to
+    /// keep. Android answers null here in `ListenedPosition.resume`; this is the iOS half of
+    /// the same rule.
+    @Test("A finished audiobook names no chapter, because it starts again at its first")
+    func finishedNamesNoChapter() {
+        let parts = (0..<3).map { PlaybackPart(index: $0, title: "Chapter \($0 + 1)", duration: 600) }
+        let heard = ReadingProgress(
+            identity: PublicationIdentity(contentDigest: "book"),
+            position: .listening(part: 2, partCount: 3, offset: 30, of: 600),
+            isFinished: true,
+            updatedAt: Date(timeIntervalSince1970: 0)
+        )
+
+        let book = DetailChapters.of(.m4b, parts: parts, progress: heard)
+
+        #expect(book.resuming == nil)
+        #expect(PrimaryAction.of(.m4b, hasProgress: true, chapter: book.resuming) == .continueListening)
     }
 }

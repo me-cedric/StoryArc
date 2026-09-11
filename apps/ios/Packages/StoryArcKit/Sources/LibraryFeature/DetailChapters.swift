@@ -173,8 +173,19 @@ enum DetailChapters {
     ///
     /// The offset comes with the part because the remainder needs both, and `reading-progress`
     /// already records it: a listening position "is an offset in time within a named part".
+    ///
+    /// **`nil` for a finished book, which is the same guard `StoryArcApp.resumePlace(of:)`
+    /// holds.** `reading-progress`: "reopening a finished publication starts at the beginning
+    /// while retaining the finished record". Without it the page read the stored place of a
+    /// book heard to the end, so the action promised the last chapter and the audio began at
+    /// the first. Android answers null here in `ListenedPosition.resume`.
+    ///
+    /// The rows are unchanged by this: ``ChapterProgress/mark(of:reached:isFinished:)`` marks
+    /// every chapter of a finished book finished, whatever place it is handed.
     private static func place(in progress: ReadingProgress?) -> PlaybackPlace? {
-        guard case let .listening(part, _, offset, _) = progress?.position else { return nil }
+        guard progress?.isFinished != true,
+              case let .listening(part, _, offset, _) = progress?.position
+        else { return nil }
         return PlaybackPlace(partIndex: part, offset: offset)
     }
 
