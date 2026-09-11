@@ -83,7 +83,7 @@ class PublicationChaptersTest {
                 readiness = Provenance.Readiness.READY,
                 isAlsoElsewhere = false,
             ),
-            downloadFraction = null,
+            transfer = null,
             chapters = chapters,
             stoppedIn = stoppedIn,
             offsetMillis = offsetMillis,

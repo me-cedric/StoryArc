@@ -10,15 +10,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * The one action the page offers, and the two states in which it cannot be honoured.
- *
- * The wording of this control is an accessibility requirement, not a layout preference:
- * `publication-detail` puts it first in the reading order after the title and requires its
- * label to say "which of those will happen before it is taken". A screen-reader user learns
- * the outcome before taking it, which is only true if the outcome is decided here rather
- * than guessed at the button.
- */
 class DetailActionsTest {
 
     private fun book(
@@ -48,7 +39,9 @@ class DetailActionsTest {
 
     @Test
     fun anUnreadBookOnTheDeviceSaysRead() {
-        val action = primaryActionOf(book(), here, isOnDevice = true, hasProgress = false)
+        val action = primaryActionOf(
+            book(), here, isOnDevice = true, hasProgress = false, readsWhereItLies = true,
+        )
 
         assertEquals(PrimaryAction.READ, action)
         assertTrue(action.opensTheBook)
@@ -56,20 +49,21 @@ class DetailActionsTest {
 
     @Test
     fun aStartedBookSaysContinue() {
-        val action = primaryActionOf(book(), here, isOnDevice = true, hasProgress = true)
+        val action = primaryActionOf(
+            book(), here, isOnDevice = true, hasProgress = true, readsWhereItLies = true,
+        )
 
         assertEquals(PrimaryAction.CONTINUE, action)
     }
 
-    // What a *listener* does. The page's one button said `Read` for an audiobook, and the
-    // routing was never wrong — `StoryArcApp` and `PlayingBook` have asked `isAudio` since
-    // audiobooks landed — so this was a promise the button did not keep, which is the kind
-    // of wrong nothing fails on. iOS pins the same four in `PrimaryActionTests`.
-
     @Test
     fun anAudiobookNobodyHasStartedSaysListen() {
         val action = primaryActionOf(
-            book(format = PublicationFormat.M4B), here, isOnDevice = true, hasProgress = false,
+            book(format = PublicationFormat.M4B),
+            here,
+            isOnDevice = true,
+            hasProgress = false,
+            readsWhereItLies = true,
         )
 
         assertEquals(PrimaryAction.LISTEN, action)
@@ -79,7 +73,11 @@ class DetailActionsTest {
     @Test
     fun aStartedAudiobookSaysContinueListening() {
         val action = primaryActionOf(
-            book(format = PublicationFormat.M4B), here, isOnDevice = true, hasProgress = true,
+            book(format = PublicationFormat.M4B),
+            here,
+            isOnDevice = true,
+            hasProgress = true,
+            readsWhereItLies = true,
         )
 
         assertEquals(PrimaryAction.CONTINUE_LISTENING, action)
@@ -87,22 +85,23 @@ class DetailActionsTest {
 
     @Test
     fun everyAudioContainerIsListenedTo() {
-        // `isAudio` rather than a list of formats, so a container added later cannot miss
-        // this branch — the rule the routing already uses, for the same reason. A folder of
-        // parts is as much an audiobook as a single file.
         for (format in PublicationFormat.entries.filter { it.isAudio }) {
             assertEquals(
                 format.name,
                 PrimaryAction.LISTEN,
-                primaryActionOf(book(format = format), here, isOnDevice = true, hasProgress = false),
+                primaryActionOf(
+                    book(format = format),
+                    here,
+                    isOnDevice = true,
+                    hasProgress = false,
+                    readsWhereItLies = true,
+                ),
             )
         }
     }
 
     @Test
     fun readingAndListeningNeverBorrowEachOthersWords() {
-        // The defect a single progress-first branch would have reintroduced: a *started*
-        // audiobook saying `Continue` in the reader's words. Four states, four strings.
         val words = listOf(
             PrimaryAction.READ,
             PrimaryAction.CONTINUE,
@@ -115,13 +114,12 @@ class DetailActionsTest {
 
     @Test
     fun aBookThatIsNeitherHereNorReachableAsksForWhatItNeeds() {
-        // The delta: the action "states what it needs in plain language rather than failing
-        // when taken", and the download is offered in its place.
         val action = primaryActionOf(
             book(),
             provenance(Provenance.Readiness.SOURCE_AWAY),
             isOnDevice = false,
             hasProgress = false,
+            readsWhereItLies = false,
         )
 
         assertEquals(PrimaryAction.NEEDS_SOURCE, action)
@@ -135,33 +133,71 @@ class DetailActionsTest {
             provenance(Provenance.Readiness.NOT_DOWNLOADED),
             isOnDevice = false,
             hasProgress = false,
+            readsWhereItLies = true,
         )
 
         assertEquals(PrimaryAction.NEEDS_DOWNLOAD, action)
     }
 
+    /**
+     * This case used to assert `READ`, and that assertion was the defect.
+     *
+     * A catalogue row has a server identifier and no path, so nothing on the device can open
+     * it and nothing in the app can reach it where it lies. The page drew *Read* for it and
+     * the tap did nothing at all: no navigation, no message, no failure. `publication-detail`
+     * forbids exactly that -- "the primary action is never one that fails when it is taken" --
+     * so the answer for a publication with no way in is the copy, whatever the container said
+     * about streaming.
+     */
     @Test
-    fun aStreamableBookOpensWithoutBeingDownloadedFirst() {
+    fun aBookNothingCanOpenWhereItLiesAsksForACopy() {
         val action = primaryActionOf(
             book(),
             provenance(Provenance.Readiness.NOT_DOWNLOADED),
             isOnDevice = false,
             hasProgress = false,
+            readsWhereItLies = false,
+        )
+
+        assertEquals(PrimaryAction.NEEDS_DOWNLOAD, action)
+        assertFalse(action.opensTheBook)
+    }
+
+    @Test
+    fun aBookTheAppReadsWhereItLiesOpensWithoutACopyFirst() {
+        val action = primaryActionOf(
+            book(),
+            provenance(Provenance.Readiness.NOT_DOWNLOADED),
+            isOnDevice = false,
+            hasProgress = false,
+            readsWhereItLies = true,
         )
 
         assertEquals(PrimaryAction.READ, action)
+        assertTrue(action.opensTheBook)
+    }
+
+    @Test
+    fun aBookReadWhereItLiesIsStillOfferedAsACopyBeside() {
+        val action = primaryActionOf(
+            book(),
+            provenance(Provenance.Readiness.NOT_DOWNLOADED),
+            isOnDevice = false,
+            hasProgress = false,
+            readsWhereItLies = true,
+        )
+
+        assertEquals(DownloadControl.OVERFLOW, downloadControl(action, canDownload = true))
     }
 
     @Test
     fun aRefusedContainerIsNeverOfferedAsContinue() {
-        // A position can be recorded against a publication whose container later turns out
-        // to be unreadable. Offering *Continue* there is a button that fails when pressed,
-        // which is the failure this ordering exists to prevent.
         val action = primaryActionOf(
             book(StreamingCapability.REFUSED),
             here,
             isOnDevice = true,
             hasProgress = true,
+            readsWhereItLies = true,
         )
 
         assertEquals(PrimaryAction.REFUSED, action)
@@ -170,7 +206,6 @@ class DetailActionsTest {
 
     @Test
     fun onlyTheTwoOpeningStatesGoWithoutAnExplanation() {
-        // "An action that does not apply is absent, not shown disabled without explanation."
         for (action in PrimaryAction.entries) {
             assertEquals(action.name, action.opensTheBook, action.explanation() == null)
         }
@@ -178,10 +213,6 @@ class DetailActionsTest {
 
     @Test
     fun onlyTheRefusedStateGoesWithoutALabel() {
-        // A refused publication has nothing to offer under any circumstances, so it draws
-        // no button — and a button label with no button is a string four locales carry and
-        // nothing can render. Every other state has one, because every other state has a
-        // button somewhere in its range of inputs.
         for (action in PrimaryAction.entries) {
             assertEquals(
                 action.name,
@@ -193,10 +224,6 @@ class DetailActionsTest {
 
     @Test
     fun theDownloadIsOfferedByExactlyOneControl() {
-        // The defect this replaces: a `NEEDS_DOWNLOAD` publication drew *Download it* as
-        // the primary action and carried a second *Download it* in the overflow beside it,
-        // because the two were gated on the same non-null callback in different
-        // composables. One value for one decision makes both-at-once unrepresentable.
         for (action in PrimaryAction.entries) {
             val control = downloadControl(action, canDownload = true)
             assertEquals(
@@ -210,8 +237,6 @@ class DetailActionsTest {
 
     @Test
     fun theStatesThatCannotOpenYetCarryTheDownloadThemselves() {
-        // The two the reader did not cause. The page wants one thing of them and it is the
-        // fetch, so it is the primary rather than an entry in a menu.
         assertEquals(
             DownloadControl.PRIMARY,
             downloadControl(PrimaryAction.NEEDS_DOWNLOAD, canDownload = true),
@@ -224,8 +249,6 @@ class DetailActionsTest {
 
     @Test
     fun nothingOffersADownloadTheAppCannotMake() {
-        // Already on the device, or a source with no route to a copy. `AppScreens` passes a
-        // null `onDownload` for both, and neither control may invent one.
         for (action in PrimaryAction.entries) {
             assertEquals(
                 action.name,
@@ -237,8 +260,6 @@ class DetailActionsTest {
 
     @Test
     fun aRefusedContainerIsNeverOfferedAsADownloadEither() {
-        // iOS excludes it through `canCopy`, and for the same reason: fetching a container
-        // no decoder will open produces a local copy that still cannot be read.
         assertEquals(
             DownloadControl.NONE,
             downloadControl(PrimaryAction.REFUSED, canDownload = true),

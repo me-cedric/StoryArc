@@ -71,7 +71,7 @@ class DetailHeroFitsTest {
                         hero = DetailHeroLayout.of(windowHeight = 360.dp, room = room),
                         action = PrimaryAction.READ,
                         provenance = onDevice,
-                        downloadFraction = null,
+                        transfer = null,
                         onRead = {},
                         onDownload = null,
                     )

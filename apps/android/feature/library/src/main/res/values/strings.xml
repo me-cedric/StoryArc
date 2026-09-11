@@ -421,6 +421,11 @@
     <string name="detail_chapter_left">%1$s · %2$s left</string>
     <string name="detail_series_heading">Other issues in this series</string>
     <string name="detail_downloading">Downloading</string>
+    <!-- What a stopped transfer on a publication page is waiting for. The downloads
+         view’s own three keys, copied rather than reworded. -->
+    <string name="downloads_paused_by_reader">Paused</string>
+    <string name="downloads_paused_waiting_for_wifi">Waiting for Wi-Fi</string>
+    <string name="downloads_paused_out_of_space">Not enough space on the device</string>
     <string name="detail_add_to_shelf">Add to a shelf</string>
     <string name="detail_gone_title">This one is gone</string>
     <string name="detail_gone_body">It is no longer in your library, and there is no copy on this device.</string>

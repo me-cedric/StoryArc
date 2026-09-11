@@ -120,7 +120,7 @@ class KavitaCardFactsTest {
                         readiness = Provenance.Readiness.READY,
                         isAlsoElsewhere = false,
                     ),
-                    downloadFraction = null,
+                    transfer = null,
                     onRead = {},
                     onDownload = null,
                 )

@@ -24,6 +24,7 @@ import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -162,16 +163,26 @@ class DownloadQueue(
      *   on this one, and said yes. `offline-downloads` grants that "for that item only",
      *   which is why it is recorded against the id rather than flipping a setting -- see
      *   [MeteredDownload].
+     * @param sourceId which source the acquisition link came from.
+     *
+     *   Null where nothing states one, which keeps every existing caller valid. It is worth
+     *   stating, because [LibraryViewModel.adoptDownloads] reads it off the finished record
+     *   and hands it to the library row: a download enqueued without one folds onto a row
+     *   that then knows nothing about where its bytes came from. `sources` also removes "the
+     *   source, its cached metadata, its stored credentials, and its downloads" together,
+     *   through [DownloadLibrary.removingAll], and that asks the same field.
      */
     fun enqueue(
         entry: OpdsEntry,
         acquisition: OpdsAcquisition,
         overridingMeteredConnection: Boolean = false,
+        sourceId: UUID? = null,
     ) {
         if (overridingMeteredConnection) overridden += entry.id
         _library.value = _library.value.queueing(
             Download(
                 id = entry.id,
+                sourceId = sourceId,
                 title = entry.title,
                 remote = acquisition.href,
                 mediaType = acquisition.mediaType,

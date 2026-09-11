@@ -47,8 +47,10 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.Download
 import app.storyarc.core.model.Publication
 
 /** Enough pixels for the largest the cover is ever drawn, on the densest screen. */
@@ -123,8 +125,30 @@ fun PublicationDetailScreen(
      * own button, which does have somewhere to go: back to the pane's one sentence.
      */
     isBesideList: Boolean = false,
-    /** How far a download of this publication has got, or null when none is running. */
-    downloadFraction: Float? = null,
+    /**
+     * The queue's own record for a transfer of this publication, or null when there is none.
+     *
+     * The record rather than the fraction it used to be, because a fraction cannot say why
+     * nothing is moving. `publication-detail`'s *Downloading from here* asks for both from one
+     * state -- "a transfer that is waiting says what it is waiting for", and progress "as soon
+     * as the library states a size" -- and only the record carries the pause reason.
+     *
+     * A copy started from this page arrives through [queue] instead, and that one wins: see
+     * [PublicationCopy.record] for why the two are looked up under different ids.
+     */
+    transfer: Download? = null,
+    /**
+     * The catalogue this publication's row came from, or null for a row from anywhere else.
+     *
+     * With [queue], the whole copy route. `publication-detail` requires the copy to join "the
+     * same queue as every other download" so that "the transfer continues after the reader
+     * leaves the page", and neither the source registry nor the credential store is reachable
+     * from this module -- so what the app layer hands down is the page it already builds to
+     * browse the same catalogue.
+     */
+    page: CataloguePage? = null,
+    /** The app's one download queue. Null where this publication has no copy to obtain. */
+    queue: DownloadQueue? = null,
     /**
      * The parts an audiobook plays in, as `AudiobookChapters.parts` reports them.
      *
@@ -160,12 +184,29 @@ fun PublicationDetailScreen(
      * page never writes one.
      */
     onListenFrom: (Int) -> Unit = {},
-    /** Open the book, at the start or where the reader stopped. */
-    onRead: (Publication) -> Unit,
+    /**
+     * Open the book, at the start or where the reader stopped.
+     *
+     * The second argument is the copy this page holds and the library does not: a row fetched
+     * from a catalogue is filed under a server identifier, so the library's own location table
+     * answers nothing for it until a scan folds the file in. Null everywhere else, and the
+     * caller then asks the library as it always did. It is never an acquisition URL --
+     * `smb` is the only remote scheme `PublicationAccess` has a reader for, so an `http`
+     * address handed over here would be opened as a local file that is not there.
+     */
+    onRead: (Publication, String?) -> Unit,
     /** Another publication's own page. A cover is the detail verb everywhere in this app. */
     onOpenPage: (Publication) -> Unit,
     onMark: (Publication, Boolean) -> Unit,
-    /** Fetch a copy onto the device. Null where the app has no way to fetch this one. */
+    /**
+     * Fetch a copy onto the device from an address the app can already read.
+     *
+     * A share, in practice: [DownloadQueue] transfers with `OpdsClient`, which refuses every
+     * scheme that is not `http` or `https`, so a publication on an SMB share keeps the app
+     * layer's own route. Disjoint from [queue] by construction -- a row with a location is
+     * never a row with a catalogue entry to fetch -- and null where the app has no route at
+     * all.
+     */
     onDownload: (() -> Unit)? = null,
     /** Remove the copy on the device. Null where there is none to remove. */
     onRemoveDownload: (() -> Unit)? = null,
@@ -181,9 +222,27 @@ fun PublicationDetailScreen(
     }
     val accent = rememberDetailAccent(cover)
 
-    val provenance = provenanceOf(publication, registry, isOnDevice, library)
+    // The copy route, and the mobile-data question it has to ask. Before the action, because
+    // a copy that lands while the page is open changes what the action *is*.
+    val copy = rememberPublicationCopy(publication, page, queue)
+
+    // **A copy the queue finished is on the device, whatever the library's table says.**
+    // `adoptDownloads` folds a finished download onto a library row by identity, and an OPDS
+    // row carries a server identifier and no path, so it can match nothing until the file is
+    // scanned. Without this the delta's "the copy arrives while the page is open" scenario
+    // could not happen at all: the page would go on asking for a copy it already had.
+    val isHere = isOnDevice || copy.file != null
+
+    // Whether anything can open this publication where it stands. Platform truth, which is
+    // why the screen answers it rather than the decision function: the set of schemes
+    // `PublicationAccess` holds a reader for is `smb` alone in production, so a catalogue row
+    // answers false and is offered the copy instead of a read that does nothing.
+    val where = viewModel.location(publication)
+    val readsWhereItLies = isHere || (where != null && PublicationAccess.isRemote(where))
+
+    val provenance = provenanceOf(publication, registry, isHere, library)
     val hasProgress = viewModel.readFraction(publication) != null
-    val action = primaryActionOf(publication, provenance, isOnDevice, hasProgress)
+    val action = primaryActionOf(publication, provenance, isHere, hasProgress, readsWhereItLies)
     val series = remember(publication.id, library) { restOfSeries(publication, library) }
 
     // A stale shortcut, a removed source, a deleted file: the publication the page was
@@ -194,7 +253,7 @@ fun PublicationDetailScreen(
     // starts empty, so without this guard every page would claim the book was gone for the
     // frame before the library loaded — and a reader who reached this page from a cover
     // came from a library that had at least that one thing in it.
-    val isGone = library.isNotEmpty() && library.none { it.id == publication.id } && !isOnDevice
+    val isGone = library.isNotEmpty() && library.none { it.id == publication.id } && !isHere
     if (isGone) {
         DetailGone(onBack = onBack)
         return
@@ -211,11 +270,16 @@ fun PublicationDetailScreen(
     // stops being an editorial flourish and starts being the screen.
     val isShort = windowHeight < SHORT_WINDOW_HEIGHT
 
+    // One verb for obtaining the copy, whichever route this publication has. The queue is
+    // preferred and the two are disjoint anyway: `copy.start` exists only for a catalogue row,
+    // which by definition has no location for `onDownload` to fetch from.
+    val obtain = copy.start ?: onDownload
+
     // Decided once, here, and handed to exactly one of the two controls below. The primary
     // and the overflow used to reach for `onDownload` independently, so a publication that
     // has to arrive before it opens offered *Download it* twice -- once as the thing the
     // page wants you to do and once buried in the menu beside it.
-    val download = downloadControl(action, canDownload = onDownload != null)
+    val download = downloadControl(action, canDownload = obtain != null)
 
     Scaffold(
         containerColor = palette.surfaceCanvas,
@@ -278,12 +342,12 @@ fun PublicationDetailScreen(
                 hero = hero,
                 action = action,
                 provenance = provenance,
-                downloadFraction = downloadFraction,
+                transfer = transfer,
                 chapters = chapters,
                 stoppedIn = stoppedIn,
                 offsetMillis = offsetMillis,
                 isFinished = isFinished,
-                onRead = { onRead(publication) },
+                onRead = { onRead(publication, copy.file?.path) },
                 onListenFrom = onListenFrom,
                 onDownload = onDownload.takeIf { download == DownloadControl.PRIMARY },
                 modifier = modifier,
@@ -373,7 +437,7 @@ internal fun DetailMainPane(
     hero: DetailHeroLayout = DetailHeroLayout(isSideBySide = false, coverHeight = 360.dp),
     action: PrimaryAction,
     provenance: Provenance,
-    downloadFraction: Float?,
+    transfer: Download? = null,
     chapters: List<AudiobookPart> = emptyList(),
     stoppedIn: Int? = null,
     offsetMillis: Long = 0,
@@ -405,17 +469,39 @@ internal fun DetailMainPane(
 
         // `offline-downloads` allows reading while downloading, so this is progress rather
         // than a gate: the primary action above stays exactly as usable as it was.
-        downloadFraction?.let { fraction ->
+        // `offline-downloads` allows reading while downloading, so this is progress rather
+        // than a gate: the primary action above stays exactly as usable as it was.
+        //
+        // The record rather than a bare fraction, because one number cannot say all three
+        // things `publication-detail`'s *Downloading from here* asks for. A held transfer
+        // states what it is waiting for and is **not** described as downloading, which a
+        // fraction alone could never avoid saying. And a size the library never stated is an
+        // indeterminate bar, not a bar at zero: `offline-downloads` calls a fabricated size
+        // worse than an honest blank.
+        transfer?.let { record ->
+            val paused = record.state as? Download.State.Paused
+            val waiting = when (paused?.reason) {
+                Download.Pause.WAITING_FOR_WIFI -> stringResource(R.string.downloads_paused_waiting_for_wifi)
+                Download.Pause.OUT_OF_SPACE -> stringResource(R.string.downloads_paused_out_of_space)
+                // A pause the reader asked for needs no sentence: they know, and the control
+                // that resumes it is in the downloads view where they paused it.
+                Download.Pause.BY_READER, null -> null
+            }
             Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs)) {
                 Text(
-                    text = stringResource(R.string.detail_downloading),
+                    text = waiting ?: stringResource(R.string.detail_downloading),
                     style = MaterialTheme.typography.labelMedium,
                     color = palette.textSecondary,
                 )
-                LinearProgressIndicator(
-                    progress = { fraction },
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                val fraction = record.fraction
+                if (fraction != null) {
+                    LinearProgressIndicator(
+                        progress = { fraction.toFloat() },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
             }
         }
 

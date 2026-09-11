@@ -1658,6 +1658,29 @@ sweep:
 4. **`canOpen` answers true for a remote PDF.** `openPdf` has no remote branch
    (`PublicationAccess.kt:62-67`).
 
+**Four more were found while photographing the fix on a phone, 2026-09-11.** They are
+recorded here because the capture is what found them, and because one of them is this
+phase's own:
+
+5. **The page can say a library is not answering while the library's own screen says it is
+   available.** Photographed on a phone: the publication page read *From Demo catalogue — not
+   answering right now* while *Your libraries* read *Available*. The page's provenance reads a
+   source state that nothing refreshed, which is the same shape as the stale download snapshot
+   already recorded above.
+6. **This phase's own defect: the copy action does nothing when a dead download record
+   exists for that publication.** The start action resumes a `Failed` or `Paused` record
+   instead of enqueuing again, and a resume does not restart a transfer whose job is gone. It
+   cost an hour of filming, and it was worked around by serving a publication with an identity
+   the store had never seen. **Fix it in this phase** — a record with no live transfer must be
+   re-queued, not resumed.
+7. **A part-arrived copy is counted as being on the device.** A 45-second trickle that stopped
+   after 1.96 kB left the row reading *On this device*, and the page then offered *Read* for
+   bytes no decoder will open.
+8. **The remote search fan-out is where the app stops responding first.** Two input-dispatch
+   ANRs landed on the search screen. The host was starved at the time — load average 11.9,
+   77% CPU pressure — so this is not yet evidence of a defect in the app, and it is recorded
+   as the place to look rather than as a finding.
+
 - [~] **6.1** The decision offers no read it cannot honour.
 
       **Code and tests landed** on branch `fix/primary-action-needs-a-copy`, 2026-09-10.

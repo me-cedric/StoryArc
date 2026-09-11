@@ -101,7 +101,7 @@ class DetailAbsencesTest {
                         readiness = Provenance.Readiness.READY,
                         isAlsoElsewhere = false,
                     ),
-                    downloadFraction = null,
+                    transfer = null,
                     onRead = {},
                     onDownload = null,
                 )
@@ -143,7 +143,7 @@ class DetailAbsencesTest {
                         readiness = Provenance.Readiness.READY,
                         isAlsoElsewhere = false,
                     ),
-                    downloadFraction = null,
+                    transfer = null,
                     onRead = {},
                     onDownload = null,
                 )

@@ -2,7 +2,7 @@ package app.storyarc.feature.library
 
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
-import app.storyarc.core.model.StreamingCapability
+import app.storyarc.core.model.StreamingOffer
 
 /**
  * The one thing this page wants the reader to do.
@@ -54,22 +54,52 @@ internal enum class PrimaryAction {
  * Ordered so that a refusal beats an absence and an absence beats a reading position: a
  * publication the app cannot open must not be offered as *Continue* merely because a
  * position was recorded against it before its container turned out to be unreadable.
+ *
+ * **The tail is the copy, not the read, and that reversal is the fix.** This used to end in
+ * `opening(hasProgress)`: anything not refused, not local and not from a sleeping library
+ * was offered as *Read* on the strength of the container alone. A catalogue row carries a
+ * server identifier and no path, so it kept the `StreamingCapability.STREAMS` default and
+ * met that tail, and the button it drew did nothing whatsoever when it was pressed -- no
+ * navigation, no message, no failure. `publication-detail` names that outright: "the primary
+ * action is never one that fails when it is taken". So a read is offered only where
+ * something answered *open*, and every other absence asks for the copy that reading needs.
+ *
+ * The offer itself is [StreamingOffer.of] rather than a second reading of
+ * [Publication.streaming] here. That decision belongs to one place across both apps -- iOS
+ * asks the same function from `StreamingOffer.swift` -- and the capability is only half of
+ * it: a container that streams perfectly still cannot be streamed from an address this app
+ * has no reader for.
+ *
+ * @param readsWhereItLies whether the app can open this publication where it stands, rather
+ *   than only from a local file. Platform truth, and the caller's to supply: the answer is
+ *   the set of schemes `PublicationAccess` has a reader registered for, which in production
+ *   is `smb` alone, so a catalogue row answers false.
  */
 internal fun primaryActionOf(
     publication: Publication,
     provenance: Provenance,
     isOnDevice: Boolean,
     hasProgress: Boolean,
-): PrimaryAction = when {
-    !publication.isOpenable -> PrimaryAction.REFUSED
+    readsWhereItLies: Boolean,
+): PrimaryAction {
+    val offer = StreamingOffer.of(
+        streaming = publication.streaming,
+        isLocal = isOnDevice,
+        readsWhereItLies = readsWhereItLies,
+        bytes = publication.fileSize,
+    )
 
-    isOnDevice -> publication.opening(hasProgress)
+    return when {
+        !publication.isOpenable -> PrimaryAction.REFUSED
 
-    provenance.readiness == Provenance.Readiness.SOURCE_AWAY -> PrimaryAction.NEEDS_SOURCE
+        isOnDevice -> publication.opening(hasProgress)
 
-    publication.streaming == StreamingCapability.DOWNLOAD_ONLY -> PrimaryAction.NEEDS_DOWNLOAD
+        provenance.readiness == Provenance.Readiness.SOURCE_AWAY -> PrimaryAction.NEEDS_SOURCE
 
-    else -> publication.opening(hasProgress)
+        offer is StreamingOffer.Open -> publication.opening(hasProgress)
+
+        else -> PrimaryAction.NEEDS_DOWNLOAD
+    }
 }
 
 /**

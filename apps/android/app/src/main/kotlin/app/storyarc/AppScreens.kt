@@ -21,7 +21,6 @@ import app.storyarc.feature.library.CatalogueBrowserScreen
 import app.storyarc.feature.library.CatalogueDetailScreen
 import app.storyarc.feature.library.CataloguePage
 import app.storyarc.feature.library.CollectionDetailScreen
-import app.storyarc.feature.library.DownloadQueue
 import app.storyarc.feature.library.KavitaBrowserScreen
 import app.storyarc.feature.library.KavitaCollectionScreen
 import app.storyarc.feature.library.KavitaLevel
@@ -283,10 +282,16 @@ internal fun HostedScreen(
  * module never depends on another feature module, and this is the layer that knows a reader,
  * a download store and a keystore exist. What it hands down is four verbs and two facts.
  *
- * Download is offered only where the app can actually perform one: a publication whose
- * location is a remote address it can read. `publication-detail` asks for an action that
- * does not apply to be "absent, not shown disabled without explanation", so it arrives as
- * `null` rather than as a greyed row.
+ * Download is offered only where the app can actually perform one, and there are two disjoint
+ * routes because there are two kinds of publication with no copy here. A row with a **remote
+ * location** the app can read -- a share, since `smb` is the only scheme `PublicationAccess`
+ * has a reader for -- is copied by [keepForOffline]. A row with **no location at all**, which
+ * is every catalogue row, is fetched by the download queue handed down beside its catalogue
+ * page; `DownloadQueue` transfers with `OpdsClient` and so cannot carry the first kind, and
+ * `keepForOffline` reads a whole file into memory in one call and so must not carry the second.
+ * `publication-detail` asks for an action that does not apply to be "absent, not shown disabled
+ * without explanation", so a publication with neither route gets `null` rather than a greyed
+ * row.
  */
 @Composable
 private fun PublicationPage(
@@ -294,6 +299,7 @@ private fun PublicationPage(
     screen: Screen.PublicationPage,
     isBesideList: Boolean,
 ) {
+    val dependencies = host.dependencies
     val publication = screen.publication
     val downloads by host.downloads
     val scope = rememberCoroutineScope()
@@ -304,6 +310,18 @@ private fun PublicationPage(
     val location = host.library.location(publication)
     val isRemote = location != null && PublicationAccess.isRemote(location)
     val isOnDevice = isDownloaded || (location != null && !isRemote)
+
+    // **The copy route for a row with no location at all, which is every OPDS row.**
+    // `OpdsContributor` files such a row under a server identifier and keeps no acquisition
+    // URL -- one can carry a key in its query, and `sources` forbids a cached catalogue
+    // holding a credential -- so the address is asked for again from the page the app already
+    // builds to browse the same catalogue. Null for every other kind of source, and the screen
+    // then offers no queued copy.
+    val registry by host.library.registry.collectAsStateWithLifecycle()
+    val catalogue = remember(publication.sourceId, registry) {
+        publication.sourceId?.let { registry[it] }
+            ?.let { CataloguePage.of(it, dependencies.credentials) }
+    }
 
     // The audio half of the page, and the four scenarios nothing could reach while this was
     // left at its defaults: the list, the marks on it, the chapter the action names, and the
@@ -365,7 +383,9 @@ private fun PublicationPage(
         viewModel = host.library,
         isOnDevice = isOnDevice,
         isBesideList = isBesideList,
-        downloadFraction = record?.takeIf { it.state != Download.State.Finished }?.fraction?.toFloat(),
+        transfer = record,
+        page = catalogue,
+        queue = catalogue?.let { dependencies.queue(it) },
         chapters = chapters,
         stoppedIn = place.partIndex,
         offsetMillis = place.offsetInChapterMillis,
@@ -376,8 +396,13 @@ private fun PublicationPage(
             val path = location ?: return@PublicationDetailScreen
             host.listenFrom(publication, path, index)
         },
-        onRead = { chosen ->
-            val path = host.library.location(chosen) ?: return@PublicationDetailScreen
+        onRead = { chosen, copy ->
+            // The copy the page holds beats the library's table, and is the only address a
+            // queued download may be opened at: `location` answers nothing for a catalogue row
+            // until a scan folds the file in, and the acquisition URL it came from is not a
+            // location at all -- `smb` is the only remote scheme `PublicationAccess` reads, so
+            // an `http` address here would be opened as a local file that is not there.
+            val path = copy ?: host.library.location(chosen) ?: return@PublicationDetailScreen
             host.open(chosen, path)
         },
         // A cover leads to a page, and a page's series shelf leads to more pages. The same
@@ -450,10 +475,19 @@ internal fun AppHost.listenFrom(publication: Publication, path: String, partInde
 /**
  * A page of an online library, and the publication chosen from it.
  *
- * The browser and its download queue are remembered on the page's address, and the chosen
- * publication rides on the same screen value — so opening one and closing it again returns
- * to a page that still holds its entries and its scroll, without a second HTTP client being
- * built for the same catalogue.
+ * The browser is remembered on the page's address and the chosen publication rides on the
+ * same screen value — so opening one and closing it again returns to a page that still holds
+ * its entries and its scroll, without a second HTTP client being built for the same
+ * catalogue.
+ *
+ * **The queue is not remembered here, and that is a fix rather than a tidy-up.** It used to be
+ * built with `remember(page.url)`, so entering a section built a second queue over the one
+ * download store while the first one's transfers were still running — and a queue reclaims
+ * every download the store calls running when it is built (`DownloadLibrary.reclaiming`), so
+ * the second one re-queued a row the first was in the middle of fetching. Both then drove one
+ * foreground service whose count reaches zero for whichever of them finishes first. One queue
+ * per source, owned by [AppDependencies], is the answer, and it is also what lets a transfer
+ * outlive the page the reader started it from.
  */
 @Composable
 private fun CatalogueScreen(host: AppHost, screen: Screen.Catalogue) {
@@ -465,20 +499,7 @@ private fun CatalogueScreen(host: AppHost, screen: Screen.Catalogue) {
     val browser = remember(page.url) {
         CatalogueBrowser(context, page.title, page.url, page.credential, dependencies.pins, page.origin)
     }
-    val queue = remember(page.url) {
-        DownloadQueue(
-            context,
-            dependencies.pins,
-            dependencies.downloads,
-            credential = { page.credential },
-            origin = page.origin,
-            // The reader's own choices, read from the store on every pump rather than
-            // captured here. Without this the queue answers from `AppSettings.Defaults`,
-            // where Wi-Fi-only is off and there is no storage limit -- so it is never held,
-            // and a queue that is never held has nothing to resume.
-            settings = dependencies.settings::settings,
-        )
-    }
+    val queue = dependencies.queue(page)
     val entry = screen.entry
     if (entry != null) {
         CatalogueDetailScreen(

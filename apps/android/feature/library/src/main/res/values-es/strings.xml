@@ -403,6 +403,11 @@
     <string name="detail_chapter_left">%1$s · %2$s restante</string>
     <string name="detail_series_heading">Los otros números de esta serie</string>
     <string name="detail_downloading">Descargando</string>
+    <!-- What a stopped transfer on a publication page is waiting for. The downloads
+         view’s own three keys, copied rather than reworded. -->
+    <string name="downloads_paused_by_reader">En pausa</string>
+    <string name="downloads_paused_waiting_for_wifi">Esperando Wi-Fi</string>
+    <string name="downloads_paused_out_of_space">No hay espacio suficiente en el dispositivo</string>
     <string name="detail_add_to_shelf">Ponerla en una estantería</string>
     <string name="detail_gone_title">Esta ya no está</string>
     <string name="detail_gone_body">Ya no está en tu biblioteca, y en este dispositivo no queda ninguna copia.</string>

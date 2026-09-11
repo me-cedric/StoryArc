@@ -405,6 +405,11 @@
     <string name="detail_chapter_left">%1$s · %2$s restant</string>
     <string name="detail_series_heading">Les autres numéros de cette série</string>
     <string name="detail_downloading">Téléchargement</string>
+    <!-- What a stopped transfer on a publication page is waiting for. The downloads
+         view’s own three keys, copied rather than reworded. -->
+    <string name="downloads_paused_by_reader">En pause</string>
+    <string name="downloads_paused_waiting_for_wifi">En attente du Wi-Fi</string>
+    <string name="downloads_paused_out_of_space">Espace insuffisant sur l’appareil</string>
     <string name="detail_add_to_shelf">Ajouter à une étagère</string>
     <string name="detail_gone_title">Celle-ci a disparu</string>
     <string name="detail_gone_body">Elle n’est plus dans votre bibliothèque, et il n’en reste aucune copie sur cet appareil.</string>
