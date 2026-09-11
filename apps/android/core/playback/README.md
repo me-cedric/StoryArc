@@ -52,7 +52,7 @@ time — and because this module deliberately does not depend on `:core:persiste
 
 | File | Holds |
 | --- | --- |
-| `app.storyarc.playback.memory` | The URIs, part titles, index and offset of the book that was playing |
+| `app.storyarc.playback.memory` | The URIs, part titles, index and offset of the book that was playing. The offset is a time into the *item* media3 will play, because that is what a restarted service hands it — `NowPlaying.itemTimeMillis` converts. Every other offset in this module is a time into a **part**: see `PlaybackPosition` |
 | `app.storyarc.playback.library` | The audiobooks on the device, as a car lists them. Written by the app, read by the service |
 
 Neither is a reading position. That is `reading-progress`'s, stored by the app, and the two

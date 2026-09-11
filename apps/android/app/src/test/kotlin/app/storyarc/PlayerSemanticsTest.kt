@@ -251,14 +251,15 @@ class PlayerSemanticsTest {
     /**
      * The rail is one chapter long, so the position on it is measured against that chapter.
      *
-     * A single chaptered file reports a whole-file time — `AudiobookSource` says why — so a
-     * handle fed that time and ranged over a chapter sits pinned at its own end from the
-     * second chapter on, and states a time past the total beside it.
+     * A position states a time into its part for every layout — `PlaybackPosition` says so and
+     * `AudiobookSource` converts the decoder's file time to it. While a chaptered single file
+     * reported the file time here, a handle ranged over a chapter sat pinned at its own end
+     * from the second chapter on and stated a time past the total beside it.
      */
     @Test
     fun `the scrub control states a position inside the chapter, not inside the file`() {
         compose.setContent {
-            Player(parts = three, partIndex = 1, offsetMillis = 300_000, partStartMillis = 120_000)
+            Player(parts = three, partIndex = 1, offsetMillis = 180_000, partStartMillis = 120_000)
         }
 
         assertTrue(
@@ -270,19 +271,19 @@ class PlayerSemanticsTest {
     /**
      * The other half of the same round trip: what a drag asks the player to seek to.
      *
-     * The rail reads in chapter time and `seek` takes a file time, so the offset the listener
-     * chose has the chapter's own start added back. Thirty seconds into a chapter that starts
-     * at two minutes is two minutes thirty into the file; handing the raw thirty seconds over
-     * would send the listener back to the first chapter.
+     * The rail reads in chapter time and so does a `PlaybackPosition`, so thirty seconds on
+     * the rail is thirty seconds into the chapter the rail is drawn for. `AudiobookSource`
+     * adds the chapter's mark when it hands the seek to the decoder, and it is the only place
+     * that knows the mark.
      */
     @Test
-    fun `a drag on the scrub control seeks to the file time that offset falls at`() {
+    fun `a drag on the scrub control seeks to the offset inside the chapter`() {
         var sought: PlaybackPosition? = null
         compose.setContent {
             Player(
                 parts = three,
                 partIndex = 1,
-                offsetMillis = 300_000,
+                offsetMillis = 180_000,
                 partStartMillis = 120_000,
                 onSeek = { sought = it },
             )
@@ -291,7 +292,7 @@ class PlayerSemanticsTest {
         compose.onNode(hasStateDescription("3:00 of 5:00"))
             .performSemanticsAction(SemanticsActions.SetProgress) { it(30_000f) }
 
-        assertEquals(PlaybackPosition(1, 150_000), sought)
+        assertEquals(PlaybackPosition(1, 30_000), sought)
     }
 
     /** The remaining sleep time is one of the four values the requirement names. */

@@ -34,13 +34,15 @@ interface PlayerSource {
     val position: PlaybackPosition
 
     /**
-     * Where the current part starts, in the same time base [position] reports.
+     * Where the current part starts in the audio the decoder plays.
      *
-     * Zero wherever a part is its own file, because there an offset is already inside its
-     * own part. A single chaptered file is one item with one time base, so `AudiobookSource`
-     * reports a whole-file time for [PartLayout.MARKS] — deliberately, because that time is
-     * also the seek target and survives a re-download. Anything measured against a *chapter*
-     * therefore has to take the chapter's own start off first, and this is that start.
+     * Zero wherever a part is its own file, because there the decoder's own clock starts at
+     * every part. A single chaptered file is one item, so `AudiobookSource` answers with the
+     * chapter's mark. [position] is measured from this, never past it.
+     *
+     * **Nothing a listener sees needs it.** It is here for the one caller that speaks to the
+     * decoder rather than to a listener: `PlaybackMemory` stores an item time, because a
+     * service the system restarts hands one to media3 with no chapter marks read yet.
      */
     val partStartMillis: Long get() = 0
 
@@ -120,7 +122,7 @@ data class NowPlaying(
     val parts: List<PlaybackPart>,
     val partIndex: Int,
     val offsetMillis: Long,
-    /** See [PlayerSource.partStartMillis]. Zero for a source whose parts are files. */
+    /** See [PlayerSource.partStartMillis]. Read by `PlaybackMemory` and by nothing drawn. */
     val partStartMillis: Long = 0,
     val session: PlaybackSession,
     val speed: PlaybackSpeed,
@@ -151,22 +153,32 @@ data class NowPlaying(
     /**
      * How far into the current part the audio is.
      *
-     * **Not [offsetMillis], which is a seek target.** For a single chaptered file that target
-     * is a time into the whole file, so a remainder built from it subtracts a file time from
-     * a chapter length: measured on 2026-09-08, every chapter after the first stated 0:00
-     * left from its own first second. One value, derived once here, so the remainder, the
-     * scrub range and the sleep timer's *end of chapter* cannot disagree.
+     * [offsetMillis] itself, because a position states one unit and it is the part's — see
+     * `PlaybackPosition`. The name stays at the five call sites that divide by a part's
+     * length, and so does the floor: a container re-read with shorter parts can put a stored
+     * offset behind its own mark, and a negative remainder reads as a chapter owing time.
      */
-    val offsetInPartMillis: Long get() = (offsetMillis - partStartMillis).coerceAtLeast(0)
+    val offsetInPartMillis: Long get() = offsetMillis.coerceAtLeast(0)
+
+    /**
+     * Where the audio is in the item the decoder is playing.
+     *
+     * The one number outside `AudiobookSource` that is not a part offset, and it exists for
+     * `PlaybackMemory`: a service the system restarts hands media3 an item index and a time
+     * into that item, and it has read no chapter marks to convert a part offset with. The two
+     * are the same number for a folder and differ by the chapter's mark for a single file.
+     */
+    val itemTimeMillis: Long get() = partStartMillis + offsetInPartMillis
 
     /**
      * The seek target for a chosen offset inside the current part.
      *
-     * The way back from [offsetInPartMillis] to what [PlayerSource.seek] takes, so the scrub
-     * control can range over the chapter and still land in the right place in the file.
+     * The way back from [offsetInPartMillis] to what [PlayerSource.seek] takes. One unit
+     * makes it the same number; the surfaces keep asking for it so the scrub control cannot
+     * drift from the rail it is ranged over.
      */
     fun positionInPart(offsetInPartMillis: Long): PlaybackPosition =
-        PlaybackPosition(partIndex, partStartMillis + offsetInPartMillis)
+        PlaybackPosition(partIndex, offsetInPartMillis.coerceAtLeast(0))
 
     /**
      * How much of the current part is left, when the container says how long it lasts.

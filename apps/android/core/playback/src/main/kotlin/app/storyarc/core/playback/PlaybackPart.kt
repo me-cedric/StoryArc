@@ -86,6 +86,15 @@ data class PlaybackPart(
  * An offset in a named part, which is exactly the shape `reading-progress` asks an
  * audiobook's position to take: "an offset in time within a named part". The part is held
  * by index rather than by title so two parts with the same name stay apart.
+ *
+ * **[offsetMillis] is measured from the start of [partIndex], for every layout.** A folder
+ * gets that for nothing, because each part is its own file. A chaptered single file does
+ * not: a decoder there knows one number, the time into the file, and `AudiobookSource`
+ * converts it both ways. The unit is the part because every reader of this value divides by
+ * the part's length — the stored fraction, the finished rule, the chapter remainder, the
+ * scrub rail and the sleep timer's end of chapter — and a file time divided by a chapter
+ * length saturates at 1.0 from the second chapter on. iOS states the same unit in
+ * `PlaybackPlace`, and `PlaybackTimeline.place(atFileTime:)` is the same conversion.
  */
 data class PlaybackPosition(
     val partIndex: Int,

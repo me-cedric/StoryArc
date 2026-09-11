@@ -378,7 +378,6 @@ private fun PublicationPage(
         publicationId = publication.id,
         playing = playing,
         saved = saved,
-        chapterMillis = chapters.map { it.statedMillis },
     )
 
     PublicationDetailScreen(

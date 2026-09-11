@@ -42,8 +42,8 @@ class RemainingChapterTimeTest {
      * One file with a chapter list inside it, which is the shape most audiobooks arrive in.
      *
      * `Audiobook.layout` answers `MARKS` for a single source, and that branch is the one the
-     * folder book above cannot reach: there `position` reports an offset inside its own file,
-     * here it reports a time into the whole file.
+     * folder book above cannot reach: there each part is its own item, here every part is a
+     * mark inside one, and the source converts so that both report an offset into the part.
      */
     private fun chapteredFile() = Audiobook(
         id = "sea-room",
@@ -68,7 +68,9 @@ class RemainingChapterTimeTest {
             Triple("The Harbour", 0L, 120_000L),
             Triple("The Crossing", 120_000L, 420_000L),
         )
-        centre.seek(PlaybackPosition(1, 300_000))
+        // The second chapter, three minutes in — a position states a time into its part, so
+        // the file time this lands at is the chapter's mark plus that. See `MarksPositionTest`.
+        centre.seek(PlaybackPosition(1, 180_000))
         return centre
     }
 
@@ -154,7 +156,7 @@ class RemainingChapterTimeTest {
         }
     }
 
-    // MARK: one file with marks in it, where an offset is a time into the whole file
+    // MARK: one file with marks in it, where the source converts the decoder's file time
 
     @Test
     fun `a chapter inside one file states its own length left, not the file's`() {
@@ -181,7 +183,7 @@ class RemainingChapterTimeTest {
         val playing = insideTheSecondChapter(player).nowPlaying
 
         assertEquals(180_000L, playing?.offsetInPartMillis)
-        assertEquals(PlaybackPosition(1, 150_000), playing?.positionInPart(30_000))
+        assertEquals(PlaybackPosition(1, 30_000), playing?.positionInPart(30_000))
     }
 
     @Test

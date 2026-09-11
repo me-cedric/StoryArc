@@ -58,22 +58,19 @@ class AudiobookSource(
                 partIndex = player.currentMediaItemIndex,
                 offsetMillis = player.currentPosition.coerceAtLeast(0),
             )
-            // One item, so the part is wherever the position falls between the marks — and
-            // the offset stays the offset into the *file*, because that is what a seek
-            // takes and what a saved position has to survive a re-download as.
-            PartLayout.MARKS -> {
-                val at = player.currentPosition.coerceAtLeast(0)
-                PlaybackPosition(AudiobookChapters.partAt(offsets, at), at)
-            }
+            // One item, so the part is wherever the position falls between the marks, and
+            // the offset is measured from that mark. The unit is the part, exactly as it is
+            // for a folder: `PlaybackPosition` states one unit and iOS's
+            // `PlaybackTimeline.place(atFileTime:)` answers in the same one.
+            PartLayout.MARKS -> placeOf(player.currentPosition.coerceAtLeast(0))
         }
 
     /**
-     * The mark the current chapter starts at, which [position] reports past rather than from.
+     * The mark the current chapter starts at, which is where [position] measures from.
      *
-     * `AudiobookChapters.parts` builds a `MARKS` part's duration as `ends - startMillis` —
-     * the chapter's own length — while [position] reports a whole-file time, so the two only
-     * subtract correctly once this is taken off. `offsets` is index-aligned with `parts`, and
-     * `AudiobookChaptersTest` pins that alignment.
+     * A media3 seek takes a time into the item, so this is what converts a part offset back
+     * into one: [fileTimeOf] adds it, and [PlaybackMemory] stores the sum. `offsets` is
+     * index-aligned with `parts`, and `AudiobookChaptersTest` pins that alignment.
      */
     override val partStartMillis: Long
         get() = when (book.layout) {
@@ -232,9 +229,25 @@ class AudiobookSource(
     override fun seek(to: PlaybackPosition) {
         when (book.layout) {
             PartLayout.FILES -> player.seekTo(to.partIndex, to.offsetMillis)
-            PartLayout.MARKS -> player.seekTo(to.offsetMillis)
+            // The mark, plus how far into the chapter the caller asked for. A media3 seek
+            // takes a time into the item and a `PlaybackPosition` states a time into a part,
+            // so this is the one place the two units meet.
+            PartLayout.MARKS -> player.seekTo(fileTimeOf(to))
         }
         onChange?.invoke()
+    }
+
+    /** Where a part offset falls in the one file a `MARKS` book is. */
+    private fun fileTimeOf(place: PlaybackPosition): Long =
+        offsets.getOrElse(place.partIndex) { 0L } + place.offsetMillis.coerceAtLeast(0)
+
+    /** Which part a file time is in, and how far into that part. */
+    private fun placeOf(fileTimeMillis: Long): PlaybackPosition {
+        val part = AudiobookChapters.partAt(offsets, fileTimeMillis)
+        return PlaybackPosition(
+            partIndex = part,
+            offsetMillis = (fileTimeMillis - offsets.getOrElse(part) { 0L }).coerceAtLeast(0),
+        )
     }
 
     /**
@@ -261,7 +274,7 @@ class AudiobookSource(
                 val target = (reached + by).coerceAtLeast(0).let { at ->
                     if (total == null) at else at.coerceAtMost(total)
                 }
-                seek(PlaybackPosition(AudiobookChapters.partAt(offsets, target), target))
+                seek(placeOf(target))
             }
         }
     }
@@ -298,14 +311,26 @@ class AudiobookSource(
      * One command instead of two. `setMediaItems` needs only `COMMAND_CHANGE_MEDIA_ITEMS`,
      * which a controller does hold with an empty player, and it carries the start position
      * itself. The index is the item's, never the part's: a single file's marks are all in
-     * item zero, and its offset is already the offset into that file.
+     * item zero.
+     *
+     * **A chapter of a single file needs the marks, and the marks arrive with the audio.**
+     * The offset handed in is a time into a part, and turning it into a time into the file
+     * takes `offsets`, which [adoptChapters] fills once the decoder has read the container.
+     * So the position goes in as it stands — right for the first chapter and for a file with
+     * no marks at all — and [pending] carries the rest to [adoptChapters], which seeks the
+     * moment the arithmetic becomes possible. By then the player holds audio, so the seek
+     * command the resumption defect was about is available.
      */
     fun prepare(from: PlaybackPosition? = null) {
         player.addListener(listener)
         val index = if (book.layout == PartLayout.FILES) from?.partIndex ?: 0 else 0
+        pending = from?.takeIf { book.layout == PartLayout.MARKS && it.partIndex > 0 }
         player.setMediaItems(book.sources.map(::mediaItem), index, from?.offsetMillis ?: C.TIME_UNSET)
         player.prepare()
     }
+
+    /** A part offset waiting for the marks that place it. See [prepare]. */
+    private var pending: PlaybackPosition? = null
 
     /** The picture the session shows: the book's own, until the player has drawn one. */
     private var artwork: Uri? = book.artworkUri?.let(Uri::parse)
@@ -389,7 +414,11 @@ class AudiobookSource(
         val duration = player.duration.takeIf { it != C.TIME_UNSET }
         parts = AudiobookChapters.parts(marks, duration, book.title, chapterWord)
         offsets = AudiobookChapters.offsets(marks)
-        onChange?.invoke()
+        // The place [prepare] could not reach. Taken before the seek rather than after it:
+        // `seek` publishes, and a second pass through here must not seek back again.
+        val resume = pending
+        pending = null
+        if (resume != null) seek(resume) else onChange?.invoke()
     }
 
     /**

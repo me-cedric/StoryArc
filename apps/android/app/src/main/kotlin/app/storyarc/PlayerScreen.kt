@@ -280,10 +280,11 @@ private fun Position(
     onSeekSettled: () -> Unit,
 ) {
     val total = playing.statedPartDurationMillis
-    // **The offset inside the chapter, not the seek target.** The rail is ranged over one
-    // chapter, and for a single chaptered file `offsetMillis` is a time into the whole file:
-    // a handle fed one and ranged over the other sits pinned at its own end from the second
-    // chapter on. `NowPlaying.positionInPart` is the way back to what a seek takes.
+    // **The offset inside the chapter.** The rail is ranged over one chapter, and a position
+    // states a time into its part for every layout — so the handle and the range share a
+    // unit. They did not while a chaptered single file reported a whole-file time, and the
+    // handle sat pinned at its own end from the second chapter on.
+    // `NowPlaying.positionInPart` is the way back to what a seek takes.
     val offset = playing.offsetInPartMillis
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         if (playing.isScrubbable && total != null) {

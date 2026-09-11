@@ -112,7 +112,7 @@ internal interface ProgressDao {
     suspend fun clear()
 }
 
-@Database(entities = [ProgressRow::class], version = 3, exportSchema = false)
+@Database(entities = [ProgressRow::class], version = 4, exportSchema = false)
 internal abstract class ProgressDatabase : RoomDatabase() {
     abstract fun progress(): ProgressDao
 }
@@ -165,6 +165,32 @@ internal val MIGRATION_2_3 = object : Migration(2, 3) {
  * iOS's `ProgressStore` is the same store on SwiftData. The schema semantics are
  * shared and specified in the ADR; the implementations are not.
  */
+/**
+ * The listening offset changed meaning, so the rows that held the old one are reset.
+ *
+ * `offset_millis` holds `ReadingPosition.Listening.offsetMillis`, which is "into that part,
+ * not into the whole publication". A chaptered single-file audiobook wrote a time into the
+ * *file* there, because that is what the player reported, and every reader that divides by
+ * the part's length then saturated: the stored fraction, and with it the finished rule, said
+ * a listener who had just started chapter ten had finished the book.
+ *
+ * **Nothing in a row can tell the two apart.** The part index is stored beside the offset and
+ * the part's start is not, and the layout a position came from is not stored at all. So the
+ * offset goes to zero wherever a part before the first could be ahead of it, which resumes
+ * the listener at the start of the part they were in. That is a loss of at most one part, once
+ * — and the alternative, keeping an offset that may be a file time, resumes the listener past
+ * audio they have not heard.
+ *
+ * `progression` is left as it was. It is a cache of `ReadingPosition.fraction` for the merge to
+ * compare against, the next write recomputes it from the position, and a second copy of the
+ * fraction rule written in SQL is a second place for it to drift.
+ */
+internal val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("UPDATE progress SET offset_millis = 0 WHERE part_index > 0")
+    }
+}
+
 class ProgressStore internal constructor(private val database: ProgressDatabase) {
 
     companion object {
@@ -175,14 +201,14 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
                     context.applicationContext,
                     ProgressDatabase::class.java,
                     name,
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build(),
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build(),
             )
 
         /** An in-memory store, for tests. */
         fun inMemory(context: Context): ProgressStore =
             ProgressStore(
                 Room.inMemoryDatabaseBuilder(context, ProgressDatabase::class.java)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3).build(),
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build(),
             )
     }
 

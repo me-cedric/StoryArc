@@ -57,6 +57,29 @@ class DownloadLocationTest {
         assertEquals("Bone 6.cbz", store.location(download()).name)
     }
 
+    /**
+     * `publication-formats`: "an MP3 is not written back as an M4B, because a player handed a
+     * file whose extension disagrees with its bytes is a failure the listener sees and cannot
+     * explain". The extension comes from `PublicationFormat.ofMediaType`, so a format table
+     * that flattened every audio container into one case would write every audiobook as
+     * `Sea Room.bin`. iOS asserts the same four names in `DownloadLocationTests`.
+     */
+    @Test
+    fun `an audiobook is written under the extension of the container it is`() {
+        val store = store()
+
+        val expected = mapOf(
+            "audio/mpeg" to "Sea Room.mp3",
+            "audio/mp4" to "Sea Room.m4b",
+            "audio/flac" to "Sea Room.flac",
+            "audio/ogg" to "Sea Room.ogg",
+        )
+
+        for ((mediaType, name) in expected) {
+            assertEquals(name, store.location("urn:storyarc:9", mediaType, "Sea Room").name)
+        }
+    }
+
     @Test
     fun `removing takes the bytes, whatever the file inside happened to be called`() {
         val store = store()
