@@ -14,8 +14,8 @@
 // `--count` exists for one requirement and is deliberately not the default. `library-browsing`
 // asks for section headings "in a long library", and the nineteen publications above are a
 // library of one screen: enough to cross the sectioning threshold of twelve, not enough to
-// show what sectioning is *for*. Nothing in this repository could produce a long one, so the
-// frame that task asks for had never been taken and could not be.
+// show what sectioning is *for*. A shelf of 218 built this way is photographed in
+// `docs/designs/screenshots/long-shelf-2026-09-11/`, and it sections.
 //
 // The nineteen are unchanged and come first. Everything `--count` adds is filler: two-page
 // comics whose only job is to be numerous, named so the shelf sections the way a real library
@@ -24,6 +24,7 @@
 
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, copyFileSync, readdirSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -36,11 +37,32 @@ const PALETTE = [
 ]
 
 /** Pages for one issue, at comic proportions. */
-function pages(count, colour) {
-  return Array.from({ length: count }, (_, i) => ({
-    name: `page-${String(i + 1).padStart(3, '0')}.png`,
-    body: png(120, 180, PALETTE[(colour + i) % PALETTE.length]),
-  }))
+function pages(count, colour, distinct = null) {
+  return Array.from({ length: count }, (_, i) => {
+    const [r, g, b] = PALETTE[(colour + i) % PALETTE.length]
+    // `distinct` shifts the colour so two publications that land on the same palette
+    // entry are still two publications.
+    //
+    // **Without it `--count` could not build a long library at all.** The palette holds
+    // six colours and `colour` is a palette index, so the filler wrapped onto a handful of
+    // page images. Measured at `--count 220` with this shift reverted: 226 files held **37**
+    // distinct contents, twelve groups shared bytes, six of those groups were 28 files each,
+    // and of the 209 CBZ files only **20** were their own. A publication's identity is a
+    // content digest (ADR-0006), so the app read the duplicates as one publication and was
+    // right to. Found on an emulator on 2026-09-11: a shelf asked for 220 held a few dozen.
+    //
+    // With the shift, the same command writes 226 files holding 226 distinct contents.
+    //
+    // Two bytes of shift, so the first 65,536 publications are distinct. A third would be
+    // arithmetic nobody needs.
+    const shift = distinct === null
+      ? [r, g, b]
+      : [(r + (distinct % 256)) % 256, (g + Math.floor(distinct / 256)) % 256, b]
+    return {
+      name: `page-${String(i + 1).padStart(3, '0')}.png`,
+      body: png(120, 180, shift),
+    }
+  })
 }
 
 /** Writes files into a scratch directory and archives it with the platform's own tool. */
@@ -418,7 +440,9 @@ function build(root, { count = BASE_COUNT } = {}) {
   // and a long library made of eight-page comics is the same screenshot and ten times the
   // build. Nothing below is meant to be opened.
   for (const [index, title] of fillerTitles(count - BASE_COUNT).entries()) {
-    zip(at(`${title}.cbz`), pages(2, index))
+    // `index` twice, and they are not the same argument: the first picks a palette colour,
+    // the second makes this publication's bytes its own. See [pages].
+    zip(at(`${title}.cbz`), pages(2, index, index))
   }
 
   return root
@@ -483,6 +507,33 @@ if (target === '--self-test') {
       ['Salt and Iron', () => readdirSync(join(scratch, 'Salt and Iron')).length === 5],
       ['page pixels', () => head(join('Salt and Iron', 'page-001.png'), 8)
         .equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))],
+      // **A long library has to be long, and for one release of this script it was not.**
+      // At `--count 220`, 226 files held 37 distinct contents, because `pages(2, index)`
+      // passed the index as a *palette* index and the palette holds six colours. A
+      // publication's identity is a content digest (ADR-0006), so an app reading that
+      // corpus found a few dozen publications and was right to. `--count` could not do the
+      // one thing it exists for. See [pages].
+      //
+      // So the invariant is content rather than file count: every publication a corpus
+      // holds must be its own publication. Checked at 60, which crosses the six-colour wrap
+      // several times over without making the self-test slow.
+      ['every publication of a --count corpus is its own publication', () => {
+        const long = mkdtempSync(join(tmpdir(), 'storyarc-corpus-long-'))
+        try {
+          build(long, { count: 60 })
+          const digests = new Set()
+          let files = 0
+          for (const name of readdirSync(long)) {
+            const path = join(long, name)
+            if (!statSync(path).isFile()) continue
+            files += 1
+            digests.add(createHash('sha256').update(readFileSync(path)).digest('hex'))
+          }
+          return files > 40 && digests.size === files
+        } finally {
+          rmSync(long, { recursive: true, force: true })
+        }
+      }],
       ['Glasshouse.epub', () => {
         const bytes = readFileSync(join(scratch, 'Glasshouse.epub'))
         // No declared cover: the point of the file is that one has to be found.
