@@ -560,6 +560,46 @@ filename so a light and a dark run cannot overwrite each other.
 
 ## 7. Close the change
 
-- [ ] 7.1 Run `/opsx:verify source-lifecycle` and resolve or record every CRITICAL it reports
+- [x] 7.1 **Verified on 2026-09-11. No CRITICAL, and one thing worth recording.**
+
+      This change carries no delta -- `.openspec.yaml` sets `skip_specs: true` because it
+      implements `sources` requirements that were already written -- so verify is a check
+      that its named work exists and is held by tests, not a comparison against a delta.
+
+      Every type the change names is present on both platforms and referenced by tests on
+      both, counted by reference rather than by filename:
+
+      | Type | Android src / test | iOS src / test |
+      | --- | --- | --- |
+      | `SourceDiagnosis` | 8 / 7 | 8 / 9 |
+      | `SourceProbe` | 5 / 3 | 4 / 2 |
+      | `SourceReachability` | 5 / 2 | 4 / 1 |
+      | `SmbSourceState` | 2 / 1 | 1 / 1 |
+      | `ShelfRefresh` | 5 / 1 | 4 / 1 |
+      | `SourceRetry` | 5 / 3 | 2 / 1 |
+
+      **Counted by reference on purpose.** A first pass counted files named
+      `<Type>.kt` and `<Type>Tests.swift` and reported `SmbSourceState` as absent on both
+      platforms and `SourceRetry` as untested. Both were wrong: `SmbSourceState` lives
+      inside `LibrarySourceHealth.swift`, and the retry's test is
+      `SourceRetryWiringTest.kt`. A second pass using `--include=*.kt` returned zeros for
+      everything, because that glob does not survive this shell. Two bad measurements
+      before a good one, so the method is written down with the numbers.
+
+      `pnpm spec:guard:strict` reports **0 errors** for this change, which is the first
+      half of 7.3.
 - [ ] 7.2 Update the `sources` row in [`STATUS.md`](../../STATUS.md) from the verify report — scenario counts, what was driven and on what, and what remains
+
+      **Waiting on 4.2, 4.4 and 4.5 rather than on the verify.** 7.1 is done and reports no
+      CRITICAL, but "what was driven and on what" is exactly what those three frame tasks
+      establish, and all three are open. Writing scenario counts into `STATUS.md` before
+      they land would put numbers in the file that nothing measured.
+
+      What 2026-09-11 added for 4.2 is in that task: the refused-credential state is
+      reachable on a simulator for the first time, with two frames and a recipe.
 - [ ] 7.3 Confirm `agent-compass openspec-guard . --strict` reports no error for this change, then archive it with `/opsx:archive`
+
+      **First half done on 2026-09-11: `pnpm spec:guard:strict` reports 0 errors and 1
+      warning, and the warning is this change reading 21 of 27 tasks rather than anything
+      wrong with its artifacts.** It cannot archive at 21 of 27. The six open are the four
+      frame tasks and these two gates, so the archive waits on the captures.
