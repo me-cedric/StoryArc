@@ -106,6 +106,9 @@ final class ReadAloudPlayerTests: XCTestCase {
 
     // MARK: - The walk
 
+    /// The formats these walks open, which is what the shelf is filtered to.
+    private static let openable = ["epub", "m4b", "mp3", "flac", "ogg", "audioFolder"]
+
     /// Opens one publication by name from the shelf, scrolling to find it.
     ///
     /// The same walk `SweepEpubReader.openReflowable` makes, with the proof made optional: an
@@ -164,7 +167,11 @@ final class ReadAloudPlayerTests: XCTestCase {
         // named cell is a walk that flakes.
         let app: XCUIApplication
         if let title {
-            app = sweepLaunch(formats: ["epub", "m4b", "mp3", "flac", "ogg", "audioFolder"])
+            // **Issues, not series.** The shelf's default collapses a run into one cell
+            // labelled with the series name, so `Harbour Lights 01` is not on it — the cover
+            // there says `Harbour Lights`. Both books this walk opens by name are issues of a
+            // run, so the walk states the grouping it needs. See `LibraryGrouping`.
+            app = sweepLaunch(formats: Self.openable, grouping: "issues")
             try openPublication(named: title, in: app)
         } else {
             app = launch()

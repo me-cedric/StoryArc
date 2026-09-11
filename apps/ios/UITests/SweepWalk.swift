@@ -85,6 +85,7 @@ extension XCTestCase {
         searchScope: String = "everywhere",
         availability: String = "everywhere",
         layout: String = "grid",
+        grouping: String = "series",
         recents: String = "(\"Harbour\", \"Vermillion\", \"Fine Print\")"
     ) -> XCUIApplication {
         let app = XCUIApplication()
@@ -118,6 +119,15 @@ extension XCTestCase {
             // the at-rest search screen can reach its *nothing to suggest* branch. It is
             // gated on the recents being empty as well as the suggestions.
             "-app.storyarc.librarySearches", recents,
+            // Whether a series is one cell or every issue is its own, and it is stated for
+            // the reason every key above is stated: the app's default is `series`, so a
+            // cover that stands for a run is labelled with the **series** name and not with
+            // the issue's. A walk that opens a book by name therefore found nothing —
+            // `ReadAloudPlayerTests` asked for `Harbour Lights 01` on a shelf whose cover
+            // says `Harbour Lights`. `series` here keeps every existing capture exactly as
+            // it was and makes the state the walk runs in a decision rather than an
+            // inheritance; a walk that names an issue passes `issues`.
+            "-app.storyarc.libraryGrouping", grouping,
         ]
         if let sources {
             app.launchArguments += ["-app.storyarc.sources", asPlistData(sources)]

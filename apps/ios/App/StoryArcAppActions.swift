@@ -167,10 +167,20 @@ extension StoryArcApp {
     /// `nil` for a book never listened to, and `nil` for a page or a reflowable position: a
     /// comic read to page nine says nothing about a part index, and seeking on that number
     /// would put the listener somewhere arbitrary.
+    ///
+    /// **`nil` for a finished book, and that is the requirement rather than a nicety.**
+    /// `reading-progress`: "reopening a finished publication starts at the beginning while
+    /// retaining the finished record". `ReaderModel` drops the same override twice, for an
+    /// archive and for a PDF. The player had no such guard, so a finished audiobook was
+    /// seeked to its last second: the source reported the end, ``PlayerCentre/end()`` tore
+    /// the session down, and the compact bar was withdrawn before it could be drawn — the
+    /// book appeared to refuse to play. The record is untouched; only the seek is dropped.
     private func resumePlace(of publication: Publication) async -> (part: Int, offset: TimeInterval)? {
         guard let progress else { return nil }
         let stored = try? await progress.progress(for: publication.identity)
-        guard case let .listening(part, _, offset, _) = stored?.position else { return nil }
+        guard let stored, !stored.isFinished,
+              case let .listening(part, _, offset, _) = stored.position
+        else { return nil }
         return (part, offset)
     }
 

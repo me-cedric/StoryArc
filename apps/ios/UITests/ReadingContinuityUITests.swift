@@ -35,7 +35,13 @@ final class ReadingContinuityUITests: XCTestCase {
         app.launch()
 
         // Remembered, so the relaunch reopens the *same* publication.
-        let opened = try XCTUnwrap(readablePublication(in: app), "This library has nothing to read.")
+        // The shelf is named in the failure, because "nothing to read" reads like a missing
+        // fixture and has twice been a cover whose spoken label this walk did not recognise.
+        let opened = try XCTUnwrap(
+            readablePublication(in: app),
+            "This library has nothing to read. On the shelf: "
+                + app.buttons.allElementsBoundByIndex.prefix(30).map(\.label).joined(separator: " | ")
+        )
         let action = try openFirstPublication(in: app, named: opened)
         action.tap()
         let reader = app.otherElements.firstMatch
@@ -65,11 +71,36 @@ final class ReadingContinuityUITests: XCTestCase {
     // MARK: - Private
 
     /// The label of the first publication on the shelf that can be read from.
+    ///
+    /// **It waits for the shelf to draw, and that is the whole of what was wrong here.** The
+    /// library is scanned from disk when the shell appears, so the tab is on screen a good
+    /// while before a cover is. This asked the moment it had tapped the tab, got an empty
+    /// array on a device holding a hundred and forty publications, and reported "This library
+    /// has nothing to read" — which is the one sentence that reads like a missing fixture
+    /// rather than a missing wait. `AuditWalk.showTheShelf(in:)` waits for the same reason.
     private func readablePublication(in app: XCUIApplication) -> String? {
         guard let library = destination("Library", in: app) else { return nil }
         library.tap()
-        let shape = NSPredicate(format: "label MATCHES %@", ".*, (CBZ|CBR|CBT|CB7|EPUB|PDF)(,.*)?")
-        return app.buttons.matching(shape).allElementsBoundByIndex
+        // **Either separator, and that is the defect this line carried.** A cover's spoken
+        // label states the format after the caption, and the caption joins its own parts with
+        // a middle dot — measured on 2026-09-11 as `Bright Panels, Ada Lovelace · EPUB`. The
+        // pattern asked for a comma before the format and so matched nothing on a shelf of a
+        // hundred and forty publications, which this walk then reported as an empty library.
+        // What is asserted is unchanged: a cover of a format a reader can read is on the shelf.
+        //
+        // **`EPUB` stays in the set, and the reason is worth leaving here.** This walk reads
+        // the reader's own position indicator, and an EPUB has no page to state — so the ideal
+        // set is the paged formats alone. Measured on 2026-09-11, the Library shelf under a
+        // plain launch offered six covers and not one comic or PDF among them, while
+        // `Library/Caches/library.json` held fourteen CBZ and a PDF. Narrowing the set there
+        // only moves the failure back to this line. Narrow it once the shelf draws what the
+        // library holds.
+        let shape = NSPredicate(
+            format: "label MATCHES %@", ".*[,·] (CBZ|CBR|CBT|CB7|EPUB|PDF)\\b.*"
+        )
+        let readable = app.buttons.matching(shape)
+        guard readable.firstMatch.waitForExistence(timeout: 15) else { return nil }
+        return readable.allElementsBoundByIndex
             .first { $0.isHittable && !$0.label.contains("100 percent read") }?
             .label
     }

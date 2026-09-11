@@ -60,9 +60,13 @@ const app = appBundle()
 console.log(`Installing ${app.slice(ROOT.length + 1)} on ${DEVICE}`)
 run('xcrun', ['simctl', 'install', DEVICE, app])
 
-// The seed reads the booted device itself, so nothing is passed through. Its own output says
-// what it wrote and where.
-run('node', [join(ROOT, 'scripts/seed-simulator.mjs')])
+// The device is named, and it has to be. `seed-simulator.mjs` falls back to the **first**
+// booted device, and more than one is booted whenever an iPad walk has run — so the seed
+// landed on an iPad while `test:ios:ui` ran on the iPhone, and the iPhone kept whatever an
+// earlier run had left it. Measured on 2026-09-11: the install said `iPhone 17 Pro` and the
+// seed said `Seeded 2 publications on C88E620F`, which is an iPad Air. The check below passed
+// on stale content, so nothing reported it.
+run('node', [join(ROOT, 'scripts/seed-simulator.mjs'), '--device', DEVICE])
 
 // Proof, not hope: the container now holds the scanned copies a sweep depends on, and a sweep
 // clears the download record. A silent seed that wrote nothing looks exactly like a seed that
