@@ -1918,8 +1918,21 @@ have never passed because no audiobook could be put on a device.
       audio type, so the flat-case regression the comment warns about would have been caught
       on one platform only. `DownloadLocationTest` now asserts the four names, as iOS's
       `DownloadLocationTests` does.
-- [ ] 10.5 iOS: `scripts/seed-simulator.mjs` can seed an audiobook, and the twelve
-      `PlayerAuditTests` and `PlayerScreenshotTests` cases pass on a seeded simulator.
+- [x] 10.5 **Both halves, measured on 2026-09-11: 13 of 13 pass, 0 failures.**
+      `PlayerAuditTests` 8 of 8 and `PlayerScreenshotTests` 5 of 5, on an iPhone 17 Pro
+      simulator seeded by `pnpm seed:ios:ui`, which reports
+      `Sea Room … Sea Room.m4b + Documents/` — so the audiobook half of the seed works.
+      Thirteen rather than the twelve this task counted; the suites have gained one since
+      it was written.
+
+      **Two defects had to be fixed first, both found today and both recorded elsewhere.**
+      `seed-simulator.mjs` fell back to the *first booted* device, so with an iPad also
+      booted the seed landed there while the test ran on the iPhone -- the install said one
+      device and the seed said another, and the check meant to catch a silent seed passed on
+      stale content. And `resumePlace` returned the stored position for a *finished*
+      audiobook, so the player seeked to the last second, the source reported the end, the
+      session was torn down, and the compact bar never drew. Fourteen of these cases failed
+      on that one guard.
 
 ## 11. Chapters before the first minute
 
@@ -2016,7 +2029,16 @@ shipped surface had no specification. iOS has nothing.
       in the bundle a reader downloads. Back to the baseline of one; that remaining warning is
       somebody else's and predates this.
 - [ ] 9.2 Update `docs/openspec/STATUS.md` and the format table in the docs.
-- [ ] 9.3 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
+- [~] 9.3 **Run on 2026-09-11, and every one of them passes.** `pnpm lint` clean;
+      `pnpm lint:ios` (`swiftlint --strict`) 0 violations in 814 files; Android
+      `testDebugUnitTest` and `lintDebug` BUILD SUCCESSFUL; StoryArcKit `swift test` 2503
+      tests in 329 suites. Marked partial rather than done because this task also names
+      `pnpm check` and a `--no-cache` SwiftLint run, and neither was used -- the cached
+      strict run is what was measured.
+
+      The original wording follows: `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
       `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests`.
-- [ ] 9.4 `agent-compass openspec-guard . --strict`.
+- [x] 9.4 `pnpm spec:guard:strict` on 2026-09-11: **0 errors**, 1 warning, and the
+      warning is this change reading 60 of 76 tasks rather than anything wrong with its
+      artifacts.
 - [ ] 9.5 `/opsx:verify audiobooks-and-playback`, then `/opsx:sync`.
