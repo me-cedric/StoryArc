@@ -162,6 +162,18 @@ struct IndexRail: View {
                 .accessibilityLabel(Text("library.index.jump \(entry.label)", bundle: .module))
             }
         }
+        // **The type is capped, because the box is.** Each entry declares a 22-point frame so
+        // a shelf holding every letter fits one column. At the largest accessibility size the
+        // letters grew and the frames did not, so they overlapped into one illegible vertical
+        // smear -- photographed at `UICTContentSizeCategoryAccessibilityXXXL` on 2026-09-11.
+        //
+        // Capping is what Apple's own section index does, and it is not a loss of access:
+        // `library-browsing`'s *The index without sight* requires the rail to be reachable and
+        // operable without sight, which it is -- every entry is a button with a spoken label
+        // -- and the shelf's own section headings say the same thing in the content at full
+        // size. An illegible rail serves nobody; a small legible one beside readable headings
+        // serves everybody. Android clamps the same way, with its 24 dp `size`.
+        .dynamicTypeSize(...DynamicTypeSize.large)
         .padding(.vertical, StoryArcSpace.sm)
         .padding(.horizontal, StoryArcSpace.xs)
         .background(theme.palette.surfaceOverlay, in: .capsule)

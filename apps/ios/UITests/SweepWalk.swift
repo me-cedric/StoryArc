@@ -77,6 +77,10 @@ extension XCTestCase {
         downloads: String = "[]",
         sources: String? = nil,
         formats: [String] = [],
+        /// The sort the shelf opens under. Named because the alphabetical index exists only
+        /// under a sort a letter describes, so a control frame proving it absent needs to ask
+        /// for one of the five that have no letters.
+        sort: String = "title",
         language: String? = nil,
         searchScope: String = "everywhere",
         availability: String = "everywhere",
@@ -90,7 +94,7 @@ extension XCTestCase {
             // The transfer record. `[]` rather than absent, so a queue one walk injected is
             // not still in the frame of the next one.
             "-app.storyarc.downloads", asPlistData(downloads),
-            "-app.storyarc.libraryQuery", asPlistData(queryJSON(formats: formats)),
+            "-app.storyarc.libraryQuery", asPlistData(queryJSON(formats: formats, sort: sort)),
             "-app.storyarc.libraryAvailability", availability,
             "-app.storyarc.searchScope", searchScope,
             "-app.storyarc.libraryDownloadFilter", "either",
@@ -134,10 +138,10 @@ extension XCTestCase {
     /// **It carries no search term and cannot.** `LibraryPreferences.query()` clears `search`
     /// on the way out of storage on purpose. A term reaches a screen by tapping a recent
     /// search — see `SweepSearchTests.run(_:in:)`.
-    private func queryJSON(formats: [String] = []) -> String {
+    private func queryJSON(formats: [String] = [], sort: String = "title") -> String {
         let list = formats.map { "\"\($0)\"" }.joined(separator: ",")
         return """
-        {"publishers":[],"sort":"title","scope":"all","readStates":[],"years":{},\
+        {"publishers":[],"sort":"\(sort)","scope":"all","readStates":[],"years":{},\
         "ascending":true,"tags":[],"search":"","genres":[],"formats":[\(list)],"languages":[]}
         """
     }

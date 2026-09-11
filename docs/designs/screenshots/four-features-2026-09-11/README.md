@@ -96,6 +96,31 @@ under the five sorts no letter orders, not greyed. The frame shows *Sort: Last
 read*, no rail, and the grid reclaiming the full width — which also proves the
 inset is conditional rather than always paid for.
 
+## iOS at 200 %, and the rail that was illegible there
+
+`ios-library-grid-ax5.png` — the shelf at
+`UICTContentSizeCategoryAccessibilityXXXL`, rail reading **A B C F G H L P Q S T**,
+one letter per row.
+
+**The first version of that frame is why it was worth taking.** Each rail entry
+declares a 22-point frame so a shelf holding every letter fits one column. At the
+largest accessibility size the letters grew and the frames did not, so they
+overlapped into a single illegible vertical smear down the trailing edge. Android
+never had the fault: its 24 dp `size` clamps the glyph as well as the box.
+
+The type is now capped at `DynamicTypeSize.large`, which is what Apple's own
+section index does. That is not a loss of access. *The index without sight*
+requires the rail to be reachable and operable without sight, and it is — every
+entry is a button with a spoken label — and the shelf's own section headings say
+the same thing in the content at full size. An illegible rail serves nobody; a
+small legible one beside readable headings serves everybody.
+
+`ios-library-no-index.png` is the iOS control, sorted by *Last read*: no rail,
+three columns, full width. `ios-library-grid-dark.png` is the dark pair.
+
+Both `ios-library-*-ax5` and `ios-library-no-index` also carry **Libraries checked
+just now.**, so the refresh wording fix is confirmed on iOS as well as Android.
+
 ## The two shelves on Home
 
 | Frame | Theme |

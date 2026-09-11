@@ -58,12 +58,27 @@ never been seen to fail is indistinguishable from a test that cannot.
   `android-no-index.png` as the control: *Sort: Last read*, no rail at all, and the grid
   reclaiming the full width -- which also proves the inset is conditional rather than
   always paid for.
-- [ ] 7.3 **Partly done, and the gap is named.** `ios-library-view-menu.png` and
+- [x] 7.3 **Six of seven, and the frames found a defect.** `ios-library-view-menu.png` and
   `ios-library-grid.png` were taken from an iPhone 17 Pro simulator seeded the same way,
   and the first of them proves three things at once: the View menu holding Series and
   Issues, the rail reading the same letters Android draws, and the refresh line. What is
-  missing is the dark pair, the 200 % pair and an iOS control frame under a Last read
-  sort. Four of seven, not seven.
+  `ios-library-grid-dark.png` is the dark frame, `ios-library-grid-ax5.png` the 200 % one,
+  and `ios-library-no-index.png` the control under a Last read sort -- which needed a
+  `sort:` argument on `sweepLaunch` and two new tests,
+  `testCaptureCoverGridAtLargestText` and `testCaptureNoIndexUnderLastRead`.
+
+  **The 200 % frame found a real defect.** Each rail entry declares a 22-point frame; at
+  `AccessibilityXXXL` the letters grew and the frames did not, so they overlapped into one
+  illegible vertical smear. The type is now capped at `DynamicTypeSize.large`, which is
+  what Apple's own section index does and what Android's 24 dp `size` already did.
+
+- [ ] 7.5 **The dark View menu frame.** Three attempts died with "Test crashed with signal
+  kill" while other work was driving the same simulator, so it is a contended device rather
+  than a defect. `ios-library-view-menu.png` already shows the picker in light, and
+  `ios-library-grid-dark.png` already shows the dark shelf, so what is missing is the one
+  combination of the two. Re-run
+  `node scripts/capture-ios.mjs --appearance dark --only SweepLibraryTests/testCaptureViewMenu`
+  on a quiet simulator.
 - [x] 7.4 `docs/designs/screenshots/four-features-2026-09-11/README.md` names the device, the build, the
   seeding command, what each pair proves, and the two defects the frames found: the rail
   drawing over the last column, and the refresh line reading zero of a unit.

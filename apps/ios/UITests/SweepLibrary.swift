@@ -43,6 +43,32 @@ final class SweepLibraryTests: XCTestCase {
         shutter(app, named: "library-grid")
     }
 
+    /// The shelf at the largest accessibility text size, where the index has least room.
+    ///
+    /// A rail of one letter per shelf section has to fit one column on a phone, and the
+    /// entries do not grow with the reader's type — so this is the frame that says whether
+    /// the letters are still legible and whether the shelf is still whole beside them.
+    func testCaptureCoverGridAtLargestText() throws {
+        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
+        try showTheShelf(in: app)
+        hold(2)
+        shutter(app, named: "library-grid-ax5")
+    }
+
+    /// **The control.** A sort no letter describes draws no index at all.
+    ///
+    /// `library-browsing`'s *A sort no letter describes*: under the five sorts a letter does
+    /// not order — Last read, Progress, Year, Date added and Size — the index is **absent**
+    /// rather than inert. A frame of an empty trailing edge is the only way to tell "absent
+    /// on purpose" from "absent because it broke", and it also shows the shelf reclaiming the
+    /// width the rail reserves. Android's twin is the `Library > no index` route.
+    func testCaptureNoIndexUnderLastRead() throws {
+        let app = sweepLaunch(sort: "lastRead")
+        try showTheShelf(in: app)
+        hold(1.5)
+        shutter(app, named: "library-no-index")
+    }
+
     /// The compact list, chosen through the View menu the layout toggle folded into.
     ///
     /// `library-browsing` offers grid and list; nothing in this repository has photographed
