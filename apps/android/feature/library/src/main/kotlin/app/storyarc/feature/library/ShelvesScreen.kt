@@ -49,6 +49,7 @@ import app.storyarc.core.model.CompositeCover
 import app.storyarc.core.model.PinnedShelves
 import app.storyarc.core.model.PublicationCollection
 import app.storyarc.core.model.ReadingList
+import app.storyarc.core.model.RememberedShelf
 import app.storyarc.core.model.ShelfEditQueue
 import app.storyarc.core.model.ShelfOrigin
 import app.storyarc.core.model.ShelfPin
@@ -142,6 +143,22 @@ fun ShelvesScreen(
         serverShelves = found
         collectionCapable = holdsCollections
         listCapable = holdsLists
+        // Written down, because the home surface may not ask a server anything and this is the
+        // only moment anything asks one. `home-screen` requires that surface to render with
+        // "the same shelves in the same order as when the sources are up", so a server's
+        // collection can only reach it as a memory -- see `RememberedShelf`.
+        //
+        // Replaced rather than merged: this pass asked every configured server, so `found` is
+        // the complete set and a merge would only keep shelves deleted on a server since.
+        // Skipped when no server *answered*, which is the offline case -- and answering with
+        // nothing is not the same thing as not answering, so the test is the capability lists
+        // rather than `found`. A reader who opens this screen on a train must not lose every
+        // name the home surface had.
+        if (holdsCollections.isNotEmpty() || holdsLists.isNotEmpty()) {
+            preferences?.saveRememberedShelves(
+                RememberedShelf.tokens(HomeShelfIndex.remembering(found)),
+            )
+        }
     }
 
     // Edits owed to a server, so a shelf can say so and a conflict can be said once. Read into

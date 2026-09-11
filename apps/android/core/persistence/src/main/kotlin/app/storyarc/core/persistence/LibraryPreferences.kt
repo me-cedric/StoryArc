@@ -49,6 +49,7 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
         private const val RECENT_SEARCHES = "recentSearches"
         private const val AVAILABILITY = "availability"
         private const val PINNED_SHELVES = "pinnedShelves"
+        private const val REMEMBERED_SHELVES = "rememberedShelves"
         private const val SEARCH_SCOPE = "searchScope"
         private const val DOWNLOAD_FILTER = "downloadFilter"
 
@@ -195,6 +196,25 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
 
     fun savePinnedShelves(tokens: Collection<String>) {
         preferences.edit().putStringSet(PINNED_SHELVES, tokens.toSet()).apply()
+    }
+
+    /**
+     * The shelves a server last told the app about, as `RememberedShelf` tokens.
+     *
+     * Tokens for [pinnedShelves]'s reason, and a `Set<String>` for its reason too. What is
+     * different is who writes it: the reader writes a pin, and a *fetch* writes this — so
+     * [saveRememberedShelves] replaces the record rather than adding to it. The fetch asks
+     * every configured server, so its answer is the complete set, and a merge would only keep
+     * shelves that have since been deleted on a server.
+     *
+     * `home-screen` forbids the home surface from asking a source anything, so this is the
+     * only way it can name a server's collection at all.
+     */
+    fun rememberedShelves(): Set<String> =
+        preferences.getStringSet(REMEMBERED_SHELVES, null)?.toSet() ?: emptySet()
+
+    fun saveRememberedShelves(tokens: Collection<String>) {
+        preferences.edit().putStringSet(REMEMBERED_SHELVES, tokens.toSet()).apply()
     }
 
     /**

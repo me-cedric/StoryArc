@@ -37,6 +37,9 @@ public struct ShelvesView: View {
     /// another file cannot see a private stored property.
     @AppStorage(PinnedShelves.storageKey) var pinnedShelves = ""
 
+    /// What each server answers, kept so the home surface can name it — ``RememberedShelf``.
+    @AppStorage(RememberedShelf.storageKey) var rememberedShelves = ""
+
     /// Every Kavita server's own collections and reading lists, once asked for.
     ///
     /// Fetched here rather than per row: the spec wants a server's collections "alongside
@@ -101,6 +104,9 @@ public struct ShelvesView: View {
                     credentials: CredentialStore()
                 )
                 serverShelves = capable.shelves
+                // Kept, because the home surface may not ask a server anything — and left
+                // alone when none answered. See ``ServerShelves/record``.
+                rememberedShelves = capable.record ?? rememberedShelves
             }
             // Outside the guard: what is owed, and what is still to be said about a conflict,
             // are worth reading every time this screen appears, not only the first.
@@ -380,15 +386,9 @@ public struct ShelvesView: View {
 
     /// The count, and where the grouping came from.
     private func subtitle(count: Int, origin: ShelfOrigin) -> String {
-        let items = String(
-            format: String(localized: "shelves.count \(count)", bundle: .module, locale: .storyArc),
-            count
+        shelfSubtitle(
+            count: count,
+            sourceName: origin.sourceID.flatMap { model.registry[$0]?.displayName }
         )
-        guard let sourceID = origin.sourceID,
-              let source = model.registry[sourceID]
-        else {
-            return items
-        }
-        return "\(source.displayName) · \(items)"
     }
 }

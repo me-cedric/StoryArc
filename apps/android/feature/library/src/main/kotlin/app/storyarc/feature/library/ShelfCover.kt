@@ -107,9 +107,14 @@ internal fun ShelfCover(
  * as a local one, and so neither can drift. What differs between the two is only where the
  * artwork comes from -- the library's own decoder, or a Kavita client -- so that is what the
  * callers keep and this never learns. iOS's `ShelfComposite` is its twin.
+ *
+ * `internal` rather than private, which iOS's already is: the home surface lists the reader's
+ * shelves as well, and it resolves its own artwork through Home's `cover` lambda rather than
+ * through a view model -- so [HomeShelfArtwork] is a third caller with a fourth source of
+ * bitmaps, and this stays the only place quadrants are laid out.
  */
 @Composable
-private fun ShelfComposite(
+internal fun ShelfComposite(
     tiles: List<String>,
     covers: Map<String, Bitmap>,
     modifier: Modifier = Modifier,
@@ -265,27 +270,7 @@ internal fun ShelfCard(
         Box {
             if (cover != null) cover() else ShelfCover(tiles = tiles, viewModel = viewModel)
 
-            // `design.md` on a cover cell: "progress as a thin rail across the bottom edge,
-            // never a ring over the art". A reading list has one for the same reason a
-            // publication does -- it is a thing you are partway through.
-            if (progress != null && progress > 0f) {
-                Box(Modifier.fillMaxSize().wrapContentHeight(Alignment.Bottom)) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(RAIL_HEIGHT)
-                            .background(Color.Black.copy(alpha = 0.35f)),
-                    )
-                    Box(
-                        Modifier
-                            .fillMaxWidth(progress.coerceIn(0f, 1f))
-                            .height(RAIL_HEIGHT)
-                            .background(
-                                if (progress >= 1f) palette.textSecondary else palette.accent,
-                            ),
-                    )
-                }
-            }
+            if (progress != null) ShelfProgressRail(progress)
 
             if (hasMenu) {
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
@@ -351,6 +336,38 @@ internal fun ShelfCard(
                 )
             }
         }
+    }
+}
+
+/**
+ * How far through an ordered shelf the reader is, across the foot of its artwork.
+ *
+ * `design.md` on a cover cell: "progress as a thin rail across the bottom edge, never a ring
+ * over the art". A reading list has one for the same reason a publication does -- it is a thing
+ * you are partway through -- and a collection never does, because it has no order to have a
+ * position in.
+ *
+ * Drawn nowhere below nought, so a list with nothing finished shows artwork rather than a bar
+ * of nothing. `internal` because the home surface lists the reader's reading lists too, and
+ * two rails drawn by two pieces of code would eventually be two heights.
+ */
+@Composable
+internal fun ShelfProgressRail(progress: Float) {
+    if (progress <= 0f) return
+    val palette = LocalStoryArcPalette.current
+    Box(Modifier.fillMaxSize().wrapContentHeight(Alignment.Bottom)) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(RAIL_HEIGHT)
+                .background(Color.Black.copy(alpha = 0.35f)),
+        )
+        Box(
+            Modifier
+                .fillMaxWidth(progress.coerceIn(0f, 1f))
+                .height(RAIL_HEIGHT)
+                .background(if (progress >= 1f) palette.textSecondary else palette.accent),
+        )
     }
 }
 
