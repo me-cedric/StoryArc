@@ -2202,7 +2202,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld%% of the publisher's size"
+            "value": "%lld%% of the publisher’s size"
           }
         },
         "es": {
@@ -2466,7 +2466,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use the theme's colours"
+            "value": "Use the theme’s colours"
           }
         },
         "es": {
@@ -2861,6 +2861,7 @@
       }
     },
     "theme.pageTurn.reduceMotion": {
+      "comment": "Android says \"Unavailable while your system is set to remove animations.\" Each platform names its own setting: iOS calls it Reduce Motion, Android calls it Remove animations. The difference is deliberate, and `localization` / One state, one name calls a platform's own setting name no divergence.",
       "extractionState": "manual",
       "localizations": {
         "de": {
@@ -3249,7 +3250,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use StoryArc's typography"
+            "value": "Use StoryArc’s typography"
           }
         },
         "es": {
@@ -3307,7 +3308,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The publisher's styling is in use"
+            "value": "The publisher’s styling is in use"
           }
         },
         "es": {
