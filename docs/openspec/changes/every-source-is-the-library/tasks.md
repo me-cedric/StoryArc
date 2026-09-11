@@ -65,3 +65,23 @@ chosen against a real server without touching anything else.
 - [x] 7.2 Green. Three new strings this round — the still-being-read line, *at least %d titles*, and *more from %s* — each in four languages on both platforms.
 - [x] 7.3 Green.
 - [x] 7.4 Reconciled before any code was written, because `pnpm delta:drop` fails the build on it rather than waiting for archive. Both changes now carry one identical *Unified library* block — the union of one-library's origin-invisible clause and availability axis with this change's five additions — so the order they sync in no longer matters. The three bullets the union deliberately drops are recorded in `.delta-drops.json` under this change as well as under one-library's.
+
+## Carried from a sibling, and not this change's behaviour
+
+- [x] **A sibling extended this change's `library-browsing` delta, word for word.**
+  `a-shelf-of-issues-and-a-rail-to-scan-it` added a series-or-issues choice and an
+  alphabetical index to the *Presentation* requirement. A MODIFIED requirement replaces
+  the whole block on archive, so whichever of these changes synced second would have
+  deleted the other's scenarios. Rather than record a sync order that relies on somebody
+  honouring it, the union is written into every sibling delta that holds the requirement
+  -- the same safer fix `every-source-is-the-library` chose once before, and the reason
+  `pnpm delta:drop` now reports no pair at all.
+
+  **None of that behaviour belongs to this change.** The grouping choice, the index and
+  their scenarios are owned, built, tested and photographed by
+  `a-shelf-of-issues-and-a-rail-to-scan-it`. This delta carries them so that archiving in
+  any order leaves the main spec whole.
+
+  Recorded here because the edit made this change's `specs/` newer than its `tasks.md`,
+  which is what `openspec-guard` reads as `[stale]`. The task list was not describing an
+  older plan; it had not been told about a sibling's edit. It has now.

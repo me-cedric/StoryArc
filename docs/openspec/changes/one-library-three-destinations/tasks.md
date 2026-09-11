@@ -1772,3 +1772,22 @@ having moved after the task list for no visible reason.
 - [~] R.4 Both: photograph the home first-run screen at the default text size and at the
       largest accessibility size, because the menu sat behind the tab bar once already.
 
+## Carried from a sibling, and not this change's behaviour
+
+- [x] **A sibling extended this change's `library-browsing` delta, word for word.**
+  `a-shelf-of-issues-and-a-rail-to-scan-it` added a series-or-issues choice and an
+  alphabetical index to the *Presentation* requirement. A MODIFIED requirement replaces
+  the whole block on archive, so whichever of these changes synced second would have
+  deleted the other's scenarios. Rather than record a sync order that relies on somebody
+  honouring it, the union is written into every sibling delta that holds the requirement
+  -- the same safer fix `every-source-is-the-library` chose once before, and the reason
+  `pnpm delta:drop` now reports no pair at all.
+
+  **None of that behaviour belongs to this change.** The grouping choice, the index and
+  their scenarios are owned, built, tested and photographed by
+  `a-shelf-of-issues-and-a-rail-to-scan-it`. This delta carries them so that archiving in
+  any order leaves the main spec whole.
+
+  Recorded here because the edit made this change's `specs/` newer than its `tasks.md`,
+  which is what `openspec-guard` reads as `[stale]`. The task list was not describing an
+  older plan; it had not been told about a sibling's edit. It has now.

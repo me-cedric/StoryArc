@@ -89,3 +89,17 @@ never been seen to fail is indistinguishable from a test that cannot.
 - [x] 8.2 `pnpm test:android` green, and `:feature:library:lint :core:persistence:lint` clean. `pnpm build:android:tests` compiles the instrumented suites.
 - [x] 8.3 `swift test` green in `apps/ios/Packages/StoryArcKit`: 2455 tests in 324 suites. `pnpm build:ios` and `pnpm build:ios:tests` both succeed.
 - [x] 8.4 `pnpm lint` green, `lines:check` and both string gates included, and `pnpm lint:ios` clean at 801 files.
+
+## What the measurement added to the design
+
+- [x] **`design.md` gained a section: a row is not a publication.** A branch report
+  called it the more serious of three findings -- the shelf "is not drawing what the
+  library holds", six covers against twenty-five publications. Measured on a clean
+  simulator: series grouping draws sixteen rows because those twenty-five carry sixteen
+  distinct series names and not one is series-less, and issues grouping draws every one
+  of them. Nothing is hidden.
+
+  It is recorded against this change rather than that branch, because this change is what
+  made a row stop meaning a publication. The count beside a series name is the sentence
+  that makes the two numbers agree, which is a reason to keep it and not decoration.
+
