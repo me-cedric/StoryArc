@@ -70,6 +70,38 @@ decision, recorded in its `design.md`: the card is the shelf rather than its
 contents, and a collection the reader just made must not vanish from the surface
 they were on.
 
+## iOS, and one frame that proves three things
+
+| Frame | What it shows |
+| --- | --- |
+| `ios-library-view-menu.png` | the View menu, the rail, and the refresh line, together |
+| `ios-library-grid.png` | the shelf with the rail and no menu over it |
+| `ios-home-shelves.png` | Collections and Reading lists on Home |
+
+`ios-library-view-menu.png` is the useful one. In a single frame:
+
+1. **The View menu holds the grouping choice.** Everywhere / On this device, then
+   Grid / List, then **Series / Issues**, then the sort. Four pickers behind one
+   word, which is what this menu was designed to be.
+2. **The rail is down the trailing edge**, reading A B C F G H L P Q S T — the
+   same letters Android draws from the same corpus, which is what ADR-0001 asks
+   of a twin.
+3. **The refresh line says it finished.** *Libraries checked 5 seconds ago.* at
+   the foot of the shelf, from `a-refresh-that-says-it-is-running`. It was not
+   staged: the shelf had just been walked.
+
+`ios-home-shelves.png` is a `simctl io screenshot` rather than a sweep
+attachment. `SweepHomeTests/testCaptureHomeLower` photographed Home before the
+two shelves existed and fails now; the failure is the walk's own scroll
+arithmetic against a taller screen and not a crash, which this frame is the
+proof of — the app is drawing both shelves. The walk is left failing rather than
+adjusted from outside its own change.
+
+The two shelves were put there by writing `app.storyarc.shelves` with
+`simctl spawn defaults write`, in the shape `ShelvesStore` reads. The simulator
+has no server, so a Kavita collection is still unphotographed; these are the
+local kind, which is one of the three the owner asked for.
+
 ## Not shown
 
 **The Kavita search that finds issues**, from `a-search-that-finds-the-issue`.
