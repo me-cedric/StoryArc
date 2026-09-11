@@ -27,6 +27,14 @@ final class KavitaFinder {
     /// What the reader typed. Bound to the search field.
     var term = ""
 
+    /// What this source has already contributed to the library.
+    ///
+    /// Search input, like ``term``: the server finds a series and almost none of its
+    /// issues, so the issues are joined from these. ``KavitaIssues`` says why the server
+    /// cannot find them. Set by the view that knows the library; every view below it
+    /// carries this finder, so the join reaches all three levels.
+    var publications: [Publication] = []
+
     /// What the last run found.
     private(set) var hits: [KavitaHit] = []
 
@@ -54,7 +62,10 @@ final class KavitaFinder {
         }
         hasAnswered = false
         if let answered = try? await client.find(wanted) {
-            hits = answered
+            // The server's answer, plus the issues of every series in it that the library
+            // holds. Still the server's answer: nothing here comes from the cache, so the
+            // "limited to cached content" sentence stays off.
+            hits = KavitaIssues.joined(answered, publications)
             isCached = false
         } else {
             hits = KavitaFind.inCache(wanted, KavitaCardStore().all(from: sourceId))

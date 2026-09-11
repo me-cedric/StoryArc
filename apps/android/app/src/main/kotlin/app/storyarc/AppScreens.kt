@@ -97,6 +97,9 @@ internal fun HostedScreen(
             store = dependencies.kavitaProgress,
             progress = dependencies.progress,
             lists = host.library.serverLists.collectAsStateWithLifecycle().value,
+            // This source's own rows, and no other's: a chapter id belongs to one server.
+            publications = host.library.publications.collectAsStateWithLifecycle().value
+                .filter { it.sourceId?.toString() == screen.page.id },
             level = screen.level,
             // Each level is its own step on the path, so back walks chapters → series →
             // libraries → out, rather than leaving the server from whatever depth.

@@ -20,6 +20,8 @@ public struct KavitaBrowserView: View {
     /// Where a pulled position is written. See `KavitaSync.pull`.
     private let progress: ProgressStore?
     private let lists: [ServerShelf]
+    /// What this source has already contributed to the library. See ``KavitaIssues``.
+    private let publications: [Publication]
     /// A term the reader typed in the library, which this server can answer itself.
     private let searching: String
     private let onOpen: (Publication, URL) -> Void
@@ -49,6 +51,7 @@ public struct KavitaBrowserView: View {
         store: KavitaProgressStore,
         progress: ProgressStore? = nil,
         lists: [ServerShelf] = [],
+        publications: [Publication] = [],
         searching: String = "",
         onOpen: @escaping (Publication, URL) -> Void = { _, _ in }
     ) {
@@ -58,6 +61,7 @@ public struct KavitaBrowserView: View {
         self.store = store
         self.progress = progress
         self.lists = lists
+        self.publications = publications
         self.searching = searching
         _client = State(initialValue: KavitaClient(address: address))
         self.onOpen = onOpen
@@ -76,7 +80,13 @@ public struct KavitaBrowserView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .kavitaSearchable(finder) { await finder.run(client, sourceId: sourceId) }
+        // The other half of the search, carried to the finder rather than to every level:
+        // the three views below this one already hold this finder. The change is what keeps
+        // the join current when the library reads more of this source while the reader is
+        // in here.
+        .onChange(of: publications) { finder.publications = publications }
         .task {
+            finder.publications = publications
             // The question the reader already asked, put to the server that can answer it.
             if !searching.isEmpty, finder.term.isEmpty {
                 finder.term = searching
