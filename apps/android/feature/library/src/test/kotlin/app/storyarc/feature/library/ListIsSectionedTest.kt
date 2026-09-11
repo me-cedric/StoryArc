@@ -33,8 +33,13 @@ import java.util.Locale
  * The second test is the trap that came with the fix. [CoverList] moves the list by an **item**
  * index, and a heading is an item, so a publication's own position on the shelf stops being its
  * target the moment the list divides. The shelf here holds four items per section, so the letter
- * *S* sits at item 73 while the publication sits at position 54 — far enough apart that a jump
+ * *S* sits at item 72 while the publication sits at position 54 — far enough apart that a jump
  * to the wrong one of the two shows no *S* row at all.
+ *
+ * 72 is the *S* **heading**, not the *S* row, and that is also part of the fix: a pinned heading
+ * is drawn over the top of the viewport, so a row landed there sits behind it. Measured on an
+ * emulator the same day: 63 px of a 216 px row hidden, its cover included. [LibraryRail] states
+ * the rule.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp")
@@ -67,7 +72,7 @@ class ListIsSectionedTest {
 
     /** One column, because this is the list. The grid refuses this division. */
     private val sections =
-        LibrarySections.divide(shelf, LibrarySort.TITLE, "Other", english, columns = 1)
+        LibrarySections.divide(shelf, LibrarySort.TITLE, "Other", columns = 1, locale = english)
 
     private val rail = LibraryRail.of(shelf, LibrarySort.TITLE, english)
 
@@ -91,12 +96,12 @@ class ListIsSectionedTest {
     }
 
     @Test
-    fun `a letter lands on its own row, counting the headings in the way`() {
+    fun `a letter lands on its own section, counting the headings in the way`() {
         // The two numbers the fix is about, stated before the list is drawn: where *S* sits on
         // the shelf, and where it sits among the items.
         assertEquals(54, shelf.indexOfFirst { it.displayTitle == "Sldbury Hall 1" })
         val targets = LibraryRail.itemIndexes(shelf, sections, leading = 0)
-        assertEquals(73, targets[shelf[54].id])
+        assertEquals(72, targets[shelf[54].id])
 
         compose.setContent {
             StoryArcTheme {

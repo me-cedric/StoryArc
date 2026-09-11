@@ -57,7 +57,10 @@ struct SectionedShelf: View {
                     Section {
                         grid(section.publications)
                     } header: {
-                        SectionHeading(title: section.title)
+                        // The heading carries the section's identifier, so the index down the
+                        // side can scroll to it rather than to the row behind it. See
+                        // ``LibraryRail/anchors(sections:)``.
+                        SectionHeading(title: section.title).id(section.id)
                     }
                 }
             }

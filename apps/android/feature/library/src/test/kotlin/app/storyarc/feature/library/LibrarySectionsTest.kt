@@ -28,6 +28,10 @@ import java.util.Locale
  *
  * **iOS's `LibrarySectionTests`, case for case.** The rule exists twice, so the assertions
  * do too, and the two files are read side by side when either moves.
+ *
+ * The column cases are the one exception, and only on iOS: SwiftLint caps a Swift file at 400
+ * lines, so they live in `LibrarySectionColumnTests.swift` beside it. Android keeps them here,
+ * under the 800-line cap. Three files to read side by side, not two.
  */
 class LibrarySectionsTest {
 
@@ -54,7 +58,7 @@ class LibrarySectionsTest {
         (1..count).map { publication("$name #$it", series = name) }
 
     private fun divide(shelf: List<Publication>, sort: LibrarySort) =
-        LibrarySections.divide(shelf, sort, other, english)
+        LibrarySections.divide(shelf, sort, other, locale = english)
 
     private fun titles(sections: List<LibrarySection>) =
         sections.map { section -> section.publications.map { it.displayTitle } }
@@ -316,7 +320,7 @@ class LibrarySectionsTest {
         // structure the reader gains rather than space they lose.
         val shelf = theMeasuredShelf()
 
-        val sections = LibrarySections.divide(shelf, LibrarySort.TITLE, other, english, columns = 1)
+        val sections = LibrarySections.divide(shelf, LibrarySort.TITLE, other, columns = 1, locale = english)
 
         assertEquals(47, shelf.size)
         assertEquals(25, sections.size)
@@ -333,7 +337,7 @@ class LibrarySectionsTest {
         // The columns parameter answers one question — whether a heading pays for its row — and
         // it must not become a way past the other three.
         fun divideInOneColumn(shelf: List<Publication>, sort: LibrarySort) =
-            LibrarySections.divide(shelf, sort, other, english, columns = 1)
+            LibrarySections.divide(shelf, sort, other, columns = 1, locale = english)
 
         assertTrue(divideInOneColumn(emptyList(), LibrarySort.TITLE).isEmpty())
         assertTrue(divideInOneColumn(series("Ashfall", 8), LibrarySort.SERIES).isEmpty())
@@ -420,4 +424,35 @@ class LibrarySectionsTest {
 
         assertEquals(listOf("A", "B"), sections.map { it.title })
     }
+
+    /**
+     * **Every row the shelf holds is in a section, or there are no sections.**
+     *
+     * A division that holds some of the shelf is worse than none: both layouts draw the
+     * sections and nothing else, so a publication no section holds is a publication the
+     * reader cannot see. `runs` skips a run whose key is null, and `key` is null for every
+     * publication under a continuous sort — so a shelf sorted by date added, holding two
+     * shared series and any standalone at all, divided into the two series and dropped the
+     * standalones.
+     *
+     * Found by an adversarial review of the list-layout change on 2026-09-11, and reachable
+     * on the corpus: files are written in series order, so a series is contiguous by date
+     * added.
+     */
+    @Test
+    fun `a division holds every row of the shelf`() {
+        val shelf = series("Ashfall", 3) + series("Bellwether", 3) +
+            listOf(publication("Dovetail"), publication("Cinderpath"))
+        for (sort in LibrarySort.entries) {
+            val sections = divide(shelf, sort)
+            if (sections.isEmpty()) continue
+            val held = sections.flatMap { it.publications }
+            assertEquals(
+                "$sort divided ${shelf.size} rows into sections holding ${held.size}",
+                shelf.size,
+                held.size,
+            )
+        }
+    }
+
 }

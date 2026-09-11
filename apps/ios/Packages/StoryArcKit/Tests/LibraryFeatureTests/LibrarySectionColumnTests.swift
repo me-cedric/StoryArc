@@ -92,4 +92,25 @@ struct LibrarySectionColumnTests {
         #expect(divide(series("Ashfall", 8), by: .series, columns: 1).isEmpty, "one section")
         #expect(divide(eitherSide, by: .series, columns: 1).isEmpty, "a heading twice")
     }
+
+    /// A division that holds part of the shelf hides the rest of it, in both layouts.
+    ///
+    /// The key is `nil` for everything a continuous sort cannot place, and a series the shelf
+    /// holds more than one of keeps its name under every sort — so this shelf divided into
+    /// its two series and dropped the two standalone titles. Measured on Android first, at
+    /// eight rows in and six rows out, and the guard is written the same way on both sides.
+    @Test("A division holds every row of the shelf, under every sort")
+    func aDivisionHoldsEveryRow() {
+        let shelf = series("Ashfall", 3) + series("Bellwether", 3)
+            + [publication("Dovetail"), publication("Cinderpath")]
+
+        for sort in LibrarySort.allCases {
+            let sections = divide(shelf, by: sort, columns: 1)
+            if sections.isEmpty { continue }
+            #expect(
+                sections.flatMap(\.publications).count == shelf.count,
+                "\(sort) divided \(shelf.count) rows into sections holding \(sections.flatMap(\.publications).count)"
+            )
+        }
+    }
 }

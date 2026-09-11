@@ -716,37 +716,16 @@ private fun Shelf(
         val resume: (Publication) -> Unit = { publication ->
             viewModel.location(publication)?.let { onOpen(publication, it) }
         }
-        // The one word a section can need that is not already on a file.
-        val other = stringResource(R.string.library_section_other)
-        // The language the headings are read in — the reader's, for the reason
-        // [LibraryViewModel.rebuild] gives. A heading is the initial of the sort key, and which
-        // article the sort key drops is a fact about the reader's language, so a heading read in
-        // the device's would name a letter the shelf did not sort on. Read once per composition
-        // rather than per recomposition: the settings blob is decoded on every call, and a
-        // language change recreates the activity, which takes this composition with it.
+        // Read once per composition rather than per recomposition: the settings blob is
+        // decoded on every call, and a language change recreates the activity, which takes
+        // this composition with it. What it is for is [rememberShelfDivision].
         val locale = remember { viewModel.readerLocale() }
 
         // `library-browsing`: a series is one cell. See [ShelfRows].
         val rows = rememberShelfRows(publications, groups.isNotEmpty(), selection.isActive, grouping)
         val shelved = rows.shelved
-        val long = groups.isEmpty() && shelved.size > LibrarySections.THRESHOLD
-        // How this shelf divides, or nothing when it is short enough to take in at a glance, and
-        // nothing while a search is running: those results are already grouped by why they
-        // matched, and a second set of headings across the first would be two answers to one
-        // question. Every refusal belongs to [LibrarySections]; this decides that the question
-        // is worth asking, and how wide the layout asking it is. *Sectioning a long library*
-        // binds both — it says "the library", not "the grid" — and the list, handed nothing
-        // until now, drew no heading at any length.
-        val sections = remember(shelved, query.sort, long, other, locale, layout) {
-            val columns = if (layout == LibraryLayout.GRID) LibrarySections.COVERS_PER_ROW else 1
-            if (!long) emptyList()
-            else LibrarySections.divide(shelved, query.sort, other, locale, columns)
-        }
-        // The letters down the side, cut from the same list the sections are cut from, and
-        // absent while a search is running for the same reason the sections are.
-        val rail = remember(shelved, query.sort, groups.isEmpty(), locale) {
-            if (groups.isEmpty()) LibraryRail.of(shelved, query.sort, locale) else emptyList()
-        }
+        // The headings and the alphabet, which move together. See [ShelfDivision].
+        val (sections, rail) = rememberShelfDivision(shelved, query, groups, layout, locale)
         val narrowing = query.isNarrowed || selection.isActive ||
             availability.isNarrowing || downloads.isActive
         if (layout == LibraryLayout.GRID) {

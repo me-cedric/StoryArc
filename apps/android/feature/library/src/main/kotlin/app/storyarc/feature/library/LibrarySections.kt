@@ -73,11 +73,12 @@ internal object LibrarySections {
     /**
      * The shelf, divided — or nothing at all when it divides into nothing.
      *
-     * An empty result is a real answer, and the caller draws the plain grid then. Two cases
-     * reach it: a sort with no natural divisions (last read, progress, date added, size —
-     * all continuous, and a heading over a continuum is an invented boundary), and a shelf
-     * whose every publication lands in one section, where a single heading over the whole
-     * grid would be a label rather than a structure.
+     * An empty result is a real answer, and the caller draws its undivided shelf then — a
+     * plain grid or a plain list, since both layouts ask this. Two cases reach it: a sort with
+     * no natural divisions (last read, progress, date added, size — all continuous, and a
+     * heading over a continuum is an invented boundary), and a shelf whose every publication
+     * lands in one section, where a single heading over the whole shelf would be a label
+     * rather than a structure.
      *
      * @param other what the heading over everything the library cannot place says.
      * @param columns how many rows the layout draws side by side. The last refusal below is
@@ -90,8 +91,10 @@ internal object LibrarySections {
         publications: List<Publication>,
         sort: LibrarySort,
         other: String,
-        locale: Locale = Locale.getDefault(),
+        // Before `locale`, because iOS reads `divide(_:by:columns:locale:)` and ADR-0001 asks
+        // a reviewer to read one platform against the other.
         columns: Int = COVERS_PER_ROW,
+        locale: Locale = Locale.getDefault(),
     ): List<LibrarySection> {
         if (publications.isEmpty()) return emptyList()
 
@@ -113,6 +116,20 @@ internal object LibrarySections {
         // not already say. A key of `null` — a sort that divides into nothing — arrives here
         // the same way, as one run, and leaves by the same door.
         if (sections.size <= 1) return emptyList()
+        // **A division holds every row of the shelf, or there is no division.** Both layouts
+        // draw the sections and nothing else, so a publication no section holds is a
+        // publication the reader cannot reach — and it goes missing silently, which is worse
+        // than a wall of covers.
+        //
+        // It was reachable. `runs` skips a run whose key is null, and `key` is null for
+        // everything a continuous sort cannot place; a series the shelf holds more than one
+        // of keeps its name under every sort. So a shelf sorted by last read, holding two
+        // contiguous series and two standalone titles, divided into the two series and
+        // dropped the standalones — measured at eight rows in, six rows out.
+        //
+        // Counted rather than reasoned about: this holds whatever the next reason for
+        // dropping a row turns out to be.
+        if (sections.sumOf { it.publications.size } != publications.size) return emptyList()
         // No heading twice, for any key and not only for a series. Sorted by series, a
         // library whose standalone titles fall either side of its first series draws *Other*,
         // then that series, then *Other* again — and a reader reasonably reads the second one

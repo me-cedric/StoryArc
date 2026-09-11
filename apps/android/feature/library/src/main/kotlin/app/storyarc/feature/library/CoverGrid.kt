@@ -324,9 +324,11 @@ internal fun CoverGrid(
  * shelf would take more of the screen than the section it names. iOS's `SectionHeading` makes
  * both of the same choices for both of the same reasons.
  *
- * @param textPadding how far the words are inset from the shelf's edges. The band itself always
- *   spans the full width, so the grid insets nothing here — its whole content is already inside
- *   a gutter — and [CoverList] passes the gutter its rows set for themselves.
+ * @param textPadding how far the words are inset from the band's own edges. The band fills the
+ *   width its lazy list gives it, which is the list's width less its content padding — a
+ *   gutter at the start, and a gutter or the rail's width at the end. So the grid insets
+ *   nothing here, because that padding already holds its words off the edge, and [CoverList]
+ *   passes the inset its rows set for themselves.
  */
 @Composable
 internal fun SectionHeading(title: String, textPadding: Dp = 0.dp) {

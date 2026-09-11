@@ -156,9 +156,41 @@ class LibraryRailTest {
 
         // 0 is the continue-reading row, 1 is the first heading, 2..4 are its covers,
         // 5 is the second heading, 6..7 are its covers.
-        assertEquals(2, indexes[first[0].id])
+        //
+        // The first row of a section targets its **heading**, because a pinned heading covers
+        // whatever is placed at the top of the viewport. A row further into a section targets
+        // itself, since no heading names it.
+        assertEquals(1, indexes[first[0].id])
         assertEquals(4, indexes[first[2].id])
-        assertEquals(6, indexes[second[0].id])
+        assertEquals(5, indexes[second[0].id])
+    }
+
+    /**
+     * **The row a letter names is never behind its own heading.**
+     *
+     * Measured on an emulator on 2026-09-11, in the list layout: the letter M landed on the
+     * *Marrowfield* row, the row spanned 1043 to 1259 and the pinned heading spanned 1043 to
+     * 1106, so 63 px of a 216 px row was hidden, its cover included. A reader who asks for M
+     * is asking to see the M heading and the first row under it.
+     */
+    @Test
+    fun `a letter lands above the heading of the section it names`() {
+        val ashfall = (1..3).map { issue("Ashfall $it") }
+        val bellwether = (1..3).map { issue("Bellwether $it") }
+        val sections = listOf(
+            LibrarySection(id = "0.A", title = "A", publications = ashfall),
+            LibrarySection(id = "1.B", title = "B", publications = bellwether),
+        )
+
+        val indexes = LibraryRail.itemIndexes(ashfall + bellwether, sections, leading = 0)
+
+        // Heading 0, its three rows 1..3, heading 4, its three rows 5..7. So a letter naming
+        // the first row of a section targets 0 and 4 — the headings — and a row further in
+        // targets itself.
+        assertEquals(0, indexes[ashfall[0].id])
+        assertEquals(2, indexes[ashfall[1].id])
+        assertEquals(4, indexes[bellwether[0].id])
+        assertEquals(6, indexes[bellwether[1].id])
     }
 
     @Test

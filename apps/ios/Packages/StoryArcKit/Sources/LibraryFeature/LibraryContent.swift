@@ -198,7 +198,14 @@ extension LibraryView {
                     if !rail.isEmpty {
                         IndexRail(entries: rail) { entry in
                             withAnimation(.easeInOut(duration: StoryArcDuration.fast)) {
-                                scroller.scrollTo(entry.publicationID, anchor: .top)
+                                // The section's heading where the letter names a section,
+                                // the row itself otherwise. ``LibraryRail/anchors(sections:)``
+                                // says why, and the headings carry these identifiers.
+                                scroller.scrollTo(
+                                    LibraryRail.anchors(sections: sections)[entry.publicationID]
+                                        ?? entry.publicationID,
+                                    anchor: .top
+                                )
                             }
                         }
                     }

@@ -45,7 +45,21 @@ struct LibraryGroupingWiringTests {
     func oneScrollReader() {
         #expect(content.components(separatedBy: "ScrollViewReader").count == 2)
         #expect(content.contains("IndexRail(entries: rail)"))
-        #expect(content.contains("scroller.scrollTo(entry.publicationID, anchor: .top)"))
+        #expect(content.contains("scroller.scrollTo("))
+    }
+
+    /// **A letter lands on a heading, never behind one.** A pinned heading is drawn over the
+    /// top of the scroll view, so the row a letter names has to be reached through the
+    /// heading that names it — measured on Android, where 63 px of a 216 px row was hidden.
+    /// The value itself is ``LibraryRailTests``' business; this states only that the jump
+    /// asks for it, and that both headings carry the identifier it returns.
+    @Test("A letter scrolls to the anchor the rail names")
+    func theJumpAsksForTheAnchor() {
+        let shelf = LibraryFeatureSource.code(of: "Sources/LibraryFeature/SectionedShelf.swift")
+        #expect(content.contains("LibraryRail.anchors(sections: sections)[entry.publicationID]"))
+        #expect(content.contains("?? entry.publicationID"))
+        #expect(shelf.contains(".id(section.id)"), "the grid's heading is a scroll target")
+        #expect(list.contains(".id(section.id)"), "the list's heading is a scroll target")
     }
 
     /// The second parity this file guards. The shelf divided in the grid and in no other
@@ -56,7 +70,7 @@ struct LibraryGroupingWiringTests {
     func listTakesTheSections() {
         #expect(content.contains("columns: model.layout == .list ? 1 : LibrarySections.coversPerRow"))
         #expect(
-            content.components(separatedBy: "sections: sections").count == 3,
+            content.components(separatedBy: "sections: sections,").count == 3,
             "the sectioned grid and the list both, and nothing else"
         )
         #expect(list.contains("var sections: [LibrarySection] = []"))

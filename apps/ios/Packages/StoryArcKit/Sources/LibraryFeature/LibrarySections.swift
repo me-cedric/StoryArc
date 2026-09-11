@@ -94,6 +94,22 @@ enum LibrarySections {
         // not already say. A key of `nil` — a sort that divides into nothing — arrives here
         // the same way, as one run, and leaves by the same door.
         guard sections.count > 1 else { return [] }
+        // **A division holds every row of the shelf, or there is no division.** Both layouts
+        // draw the sections and nothing else, so a publication no section holds is a
+        // publication the reader cannot reach, and it goes missing without a word.
+        //
+        // It was reachable. `runs` skips a run whose key is `nil`, and the key is `nil` for
+        // everything a continuous sort cannot place, while a series the shelf holds more than
+        // one of keeps its name under every sort. So a shelf sorted by last read, holding two
+        // contiguous series and two standalone titles, divided into the two series and
+        // dropped the standalones. Measured on Android at eight rows in and six rows out,
+        // where the same rule is written the same way.
+        //
+        // Counted rather than reasoned about: it holds whatever the next reason for dropping
+        // a row turns out to be.
+        guard sections.reduce(0, { $0 + $1.publications.count }) == publications.count else {
+            return []
+        }
         // No heading twice, for any key and not only for a series. Sorted by series, a
         // library whose standalone titles fall either side of its first series draws
         // *Other*, then that series, then *Other* again — and a reader reasonably reads the

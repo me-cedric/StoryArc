@@ -146,4 +146,28 @@ struct LibraryRailTests {
         }
         #expect(sections.flatMap(\.publications).map(\.id) == shelf.map(\.id), "a row moved")
     }
+
+    /// **The row a letter names is never behind its own heading.**
+    ///
+    /// A pinned heading is drawn over the top of the scroll view, so a row anchored there is
+    /// covered by it. Measured on Android on 2026-09-11, where the arithmetic is explicit: the
+    /// row spanned 1043 to 1259 and the heading 1043 to 1106, so 63 px of a 216 px row was
+    /// hidden. ``LibraryRail/anchors(sections:)`` is the answer on this platform, and the two
+    /// headings carry the identifiers it names — `SectionedShelf` and `CoverList`.
+    @Test("A letter that names a section scrolls to its heading")
+    func anchorsNameTheHeading() {
+        let ashfall = (1...3).map { issue("Ashfall \($0)") }
+        let bellwether = (1...3).map { issue("Bellwether \($0)") }
+        let sections = [
+            LibrarySection(id: "0.A", title: "A", publications: ashfall),
+            LibrarySection(id: "1.B", title: "B", publications: bellwether),
+        ]
+
+        let anchors = LibraryRail.anchors(sections: sections)
+
+        #expect(anchors[ashfall[0].id] == "0.A")
+        #expect(anchors[bellwether[0].id] == "1.B")
+        #expect(anchors[ashfall[1].id] == nil, "a row no heading names is scrolled to itself")
+        #expect(LibraryRail.anchors(sections: []).isEmpty, "an undivided shelf names no heading")
+    }
 }

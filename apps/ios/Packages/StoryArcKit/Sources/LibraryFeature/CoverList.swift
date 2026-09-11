@@ -82,7 +82,10 @@ struct CoverList: View {
                     Section {
                         ForEach(section.publications) { row($0) }
                     } header: {
-                        Text(section.title)
+                        // The identifier the index scrolls to, for the reason
+                        // ``LibraryRail/anchors(sections:)`` gives: a pinned heading covers a
+                        // row anchored at the top of the scroll view.
+                        Text(section.title).id(section.id)
                     }
                 }
             } else {

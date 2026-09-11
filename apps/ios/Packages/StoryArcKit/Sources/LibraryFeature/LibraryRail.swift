@@ -100,6 +100,31 @@ enum LibraryRail {
         }
     }
 
+    /// What a letter actually scrolls to, by the publication it names.
+    ///
+    /// **A letter that names the first row of a section scrolls to the section's heading, not
+    /// to the row.** A pinned heading is drawn over the top of the scroll view, so a row
+    /// anchored at `.top` sits behind it. Measured on Android on 2026-09-11, where the same
+    /// rule is written as item arithmetic: the row spanned 1043 to 1259 and the heading 1043
+    /// to 1106, so 63 px of a 216 px row was hidden, the top of its cover included. A reader
+    /// who asks for M is asking to see the M heading and the first row under it.
+    ///
+    /// A letter can still name a row that is not its section's first — under a series sort one
+    /// *Other* section holds titles filed under many letters — and that row is scrolled to
+    /// directly, because no heading names it.
+    ///
+    /// Empty for an undivided shelf, where the caller scrolls to the publication itself.
+    /// Android's `LibraryRail.itemIndexes` is the twin: it counts items because it has no
+    /// scroll proxy, and this names an identifier because it has one.
+    static func anchors(sections: [LibrarySection]) -> [String: String] {
+        var anchors: [String: String] = [:]
+        for section in sections {
+            guard let first = section.publications.first else { continue }
+            anchors[first.id] = section.id
+        }
+        return anchors
+    }
+
     /// The letter a key files under, or `#` for everything that files under none.
     ///
     /// Uppercased for the reader's locale rather than for the machine's: a Turkish shelf

@@ -173,8 +173,23 @@ internal object LibraryRail {
             for (publication in publications) indexes[publication.id] = index++
         } else {
             for (section in sections) {
-                index++
-                for (publication in section.publications) indexes[publication.id] = index++
+                val heading = index++
+                for ((position, publication) in section.publications.withIndex()) {
+                    // **A letter that names the first row of a section scrolls to the
+                    // section's heading, not to the row.** A pinned heading is drawn over the
+                    // top of the viewport, so a row placed at offset zero sits behind it:
+                    // measured on an emulator on 2026-09-11, the row spanned 1043 to 1259 and
+                    // the heading 1043 to 1106, which is 63 px of a 216 px row hidden,
+                    // including the top of its cover. Landing on the heading shows the
+                    // heading and then the whole row, which is also what a reader asking for
+                    // M is asking to see.
+                    //
+                    // A letter can still name a row that is not its section's first — under a
+                    // series sort, one *Other* section holds titles filed under many letters —
+                    // and that row is scrolled to directly, because no heading names it.
+                    indexes[publication.id] = if (position == 0) heading else index
+                    index++
+                }
             }
         }
         return indexes
