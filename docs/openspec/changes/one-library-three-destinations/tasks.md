@@ -1157,7 +1157,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       least one publication attributed to a source that is **down** and not downloaded, which
       the corpus (`origin: EMBEDDED`, no source) cannot produce — the same obstacle 3.2's
       owed frame hits, and the same two-catalogue setup answers both.
-- [~] **3.4** Section headings in a long library, by series where declared and by
+- [x] **3.4** Section headings in a long library, by series where declared and by
       the sort key otherwise. Screenshot: a library of at least 200 publications.
 
       **The code is done and genuinely mirrored on both platforms. The capture is
@@ -1237,12 +1237,34 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       publication added to the seventeen without it moving fails here rather than leaving
       every filled corpus one short.
 
-      **What is still owed is the two frames**, and neither has a blocker any more:
-      - Android, a sectioned shelf, light and dark, at default and largest text size (4).
-        Reachable on the 17-publication corpus today, as the note above says.
-      - Either platform on a corpus built with `--count 200`, with the count written into the
-        capture directory's README — the count is the whole of what the clause asks and a
-        long-looking shelf does not state it.
+      **Both frames are taken, 2026-09-11, in
+      `docs/designs/screenshots/long-shelf-2026-09-11/`.** Seven Android frames on one
+      shelf of **218 publications**, and the count is `cache/library.json`'s own, not the
+      file count on disk:
+      - `android-issues-sectioned-light.png` and `-dark.png`, at text size 1.0, and
+        `android-issues-sectioned-large-light.png` and `-dark.png` at 2.0 — the four this
+        task asks for. Each carries pinned headings, read from a `uiautomator` dump rather
+        than from the picture: *Ashfall* and *Bellwether* as full-span text nodes at the
+        leading edge, beside the A–Z rail.
+      - The same shelf answers the 200-publication clause, so one capture closes both.
+
+      **The first attempt at this frame, on the same day, was withdrawn and its cause is
+      now known.** It captured 29 publications and called them 220, because it read the
+      file count instead of the index. The 29 was a corpus defect: `pages(2, index)` passed
+      the filler index as a *palette* index, the palette holds six colours, and at
+      `--count 220` the generator wrote 226 files holding **37** distinct contents. A
+      publication's identity is a content digest (ADR-0006), so the app deduplicated them
+      and was right to. Fixed in `scripts/corpus.mjs`, and guarded: `--self-test` now
+      builds a `--count 60` corpus and fails unless every file in it is its own content.
+
+      **Two findings this capture turned up, neither in scope here.**
+      - Under *Grouping: Series* the same 218-publication shelf draws no heading. 218
+        publications collapse to 47 series rows, and `LibrarySections.kt:121` refuses a
+        division averaging fewer than three covers per heading. That reads as the rule
+        working; it is read from the source, not instrumented.
+      - The **list layout draws no heading at all**, at any length. `CoverList` takes no
+        sections and says so at its `rail` parameter. Whether `library-browsing` means its
+        division to reach the list is a question for that spec.
 - [x] **3.5** Wire the iOS views that are already written, translated and
       unreachable — recent searches, the cached notice, the scope control in its
       new availability form, and file import from the empty state. No new strings.
@@ -1696,8 +1718,9 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
          sixteen iPad PNGs in `after-2026-08-30/` is 2064 × 2752, portrait.
       2. **A grid with all four combinations of progress and availability**, either
          platform — task 3.3.
-      3. **An Android sectioned shelf**, and on either platform a shelf on record as
-         holding at least 200 publications — task 3.4.
+      3. ~~**An Android sectioned shelf**, and on either platform a shelf on record as
+         holding at least 200 publications — task 3.4.~~ Taken 2026-09-11 at 218
+         publications, `docs/designs/screenshots/long-shelf-2026-09-11/`.
       4. **The filter sheet in its by-library form**, either platform — task 3.2.
       5. **iPad Pro portrait, landscape and Split View** for the sidebar and the
          capped settings measure — task 4.1.
@@ -1723,7 +1746,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       | 6 | Pin to Home / Unpin from Home in a shelf's menu (8), Home with one pinned collection **and** one pinned list (8), one per platform after unpinning (2) | 2.1 | a collection and a reading list, both non-empty |
       | 7 | The filter sheet in its **by-library** form (4) + one with a filter applied (2) + *Clear filters* offered while narrowed (2) | 3.2 | **two OPDS catalogues that attribute publications** — the 17-item corpus attributes none |
       | 8 | A grid with all four combinations of progress and availability (4) | 3.3 | needs one publication on a source that is **down** and not downloaded — same obstacle as 7, same setup answers both |
-      | 9 | An Android sectioned shelf (4); and either platform on record at **200+** publications | 3.4 | **Still open, and my first attempt at it is withdrawn.** I pushed 220 valid CBZs, read the file count back as 220, and captured five frames as a 220-publication shelf. The app's own index held **29** publications across ten initials — exactly the set the rail drew in every frame, while the corpus spans twenty-four. The frames are of a 29-publication shelf and are labelled so in `docs/designs/screenshots/long-shelf-2026-09-11/README.md`. Whether a long shelf sections is **not** established by them. What the attempt did establish: every `--count` filler publication is missing from the index though the files are valid two-page CBZs; and after `pm clear` the app indexes 0 of the same 220, so the managed folder is not scanned without a registration that `pm clear` removes — which confounds the 29 and is the thing to settle first. Count `cache/library.json`, never the files on disk. |
+      | 9 | An Android sectioned shelf (4); and either platform on record at **200+** publications | 3.4 | **Taken, 2026-09-11**, in `docs/designs/screenshots/long-shelf-2026-09-11/` — seven frames on one shelf of **218 publications**, counted from `cache/library.json`. Four are the ones this row asks for: issues grouping, grid, light and dark, at text size 1.0 and 2.0, each with pinned headings read from a `uiautomator` dump. The same shelf answers the 200-publication clause. My first attempt was withdrawn: it captured 29 publications and called them 220, because `scripts/corpus.mjs` passed a filler index as a palette index and wrote 226 files holding 37 distinct contents, which ADR-0006 identity correctly deduplicated. The generator is fixed and its self-test now guards the invariant. Count `cache/library.json`, never the files on disk. |
       | 10 | iPad Pro portrait and landscape with the sidebar (4), iPad in **Split View** (1), **Settings on a 13-inch iPad** (1) | 4.1 | the settings frame is the one that says whether 720 is right |
       | 11 | An Android **foldable at half-open**, seam and pane boundary in one frame (1) | 4.2 | a foldable AVD at its half-open posture |
       | 12 | **iOS Home with the shelf filtered to one library**, showing Keep reading still present (2, light and dark) | 2.1 / 3.2 | new, and owed by the fix below |
