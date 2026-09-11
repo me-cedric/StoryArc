@@ -13,9 +13,11 @@ import java.io.File
  * size*. `localization` requires every sentence a reader is shown to resolve through a
  * catalogue in four languages, and an exception message resolves through none.
  *
- * **This deliberately removes information the reader could see, and does not put it anywhere
- * else.** The diagnostic export does not carry it and the app writes no log, so the cause of a
- * refusal is now known to nobody. That is a cost of this guard, not a claim it makes good.
+ * **This deliberately removes information the reader could see, and moves it rather than drops
+ * it.** The catch writes the exception to `logcat` under the tag `StoryArcReader`, which
+ * `adb logcat -s StoryArcReader` reads and no reader sees. The diagnostic export still does not
+ * carry it, so a maintainer needs the cable or the reader's own report. For two days the cause
+ * went nowhere at all, and the last test here is what fails if it does again.
  *
  * The assertion is a source guard rather than a behaviour test, because this module's unit
  * tests run on a bare JVM with no Android framework — a `ReaderViewModel` cannot be built here.
@@ -72,6 +74,32 @@ class ReaderFailureSaysNothingInternalTest {
     }
 
     @Test
+    fun `the refusal's cause reaches a maintainer`() {
+        // The other half of the trade above. The reader is told a sentence they can read, and
+        // the cause goes to `logcat`, which is where a maintainer reaches it on this platform.
+        // For two days it went nowhere at all: every catch here discarded the exception with
+        // `catch (_: Exception)`, so a refusal could be reported and never diagnosed.
+        val catches = source.lines().map { it.trim() }.filter { it.startsWith("} catch (") }
+        assertTrue(
+            "No catch found in $VIEW_MODEL. This guard reads the catches around the two open" +
+                " paths; if they have moved, move it with them.",
+            catches.size >= 2,
+        )
+        val discarded = catches.filter { it.contains("(_:") }
+        assertTrue(
+            "These catches discard the exception: $discarded. A refusal whose cause is known" +
+                " to nobody cannot be diagnosed from a report — see `reader_cannot_open`.",
+            discarded.isEmpty(),
+        )
+        val logged = source.lines().count { it.trim().startsWith("$LOG_CALL(") }
+        assertTrue(
+            "$logged of ${catches.size} catches hand the cause to $LOG_CALL. The sentence the" +
+                " reader sees says nothing internal, so the log is the only record left.",
+            logged == catches.size,
+        )
+    }
+
+    @Test
     fun `the reader is shown a translated refusal instead`() {
         val stated = assignments.filter { it.contains(STRING_RESOURCE) }
         assertTrue(
@@ -96,5 +124,8 @@ class ReaderFailureSaysNothingInternalTest {
 
         /** How a translated sentence reaches a screen on Android. */
         const val STRING_RESOURCE = "R.string."
+
+        /** How the cause reaches a maintainer on Android. */
+        const val LOG_CALL = "Log.w"
     }
 }

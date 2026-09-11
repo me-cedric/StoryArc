@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModel
 import android.content.ContentResolver
 import android.os.Build
 import android.provider.Settings
+import android.util.Log
 import app.storyarc.core.format.ComicArchiveReading
 import app.storyarc.core.format.PageCodec
 import app.storyarc.core.format.PageDecoder
@@ -45,6 +46,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+
+/**
+ * The `logcat` tag a refusal is written under.
+ *
+ * `reader_cannot_open` is what the reader is told, and it names no cause on purpose. The cause
+ * is English written for a maintainer, so it goes here, where `adb logcat -s StoryArcReader`
+ * reaches it and no reader does. Nothing else in this app writes a log; `FrameProbe` is an
+ * instrument that a global setting arms, and this is a refusal a person reported.
+ */
+private const val TAG = "StoryArcReader"
 
 /**
  * One publication, open for reading.
@@ -433,7 +444,8 @@ class ReaderViewModel(
                 initialIndex = recorded.index
             }
             deriveCoverColours()
-        } catch (_: Exception) {
+        } catch (cause: Exception) {
+            Log.w(TAG, "cannot open this ${publication.format}", cause)
             _failure.value = R.string.reader_cannot_open
         }
         _isOpened.value = true
@@ -484,49 +496,24 @@ class ReaderViewModel(
             // The same file again, for what is written on it. Absent for a scan, and absent
             // on a device whose PDF module predates the text API -- both of which the reader
             // answers by offering nothing rather than by offering something broken.
-            openPdfText(reader.pageCount)
+            _pdfText.value = PdfTextState.opened(
+                resolver = resolver,
+                path = path,
+                store = annotationStore,
+                publication = publication,
+                pageCount = reader.pageCount,
+            )
             // Finished reopens at page one, exactly as an archive does.
             val record = progress?.progress(publication.identity)
             val recorded = record?.position?.takeUnless { record.isFinished }
             if (recorded is ReadingPosition.Page && recorded.index in _pages.value.indices) {
                 initialIndex = recorded.index
             }
-        } catch (_: Exception) {
+        } catch (cause: Exception) {
+            Log.w(TAG, "cannot open this ${publication.format}", cause)
             _failure.value = R.string.reader_cannot_open
         }
         _isOpened.value = true
-    }
-
-    /**
-     * Opens the same PDF a second time, for its text.
-     *
-     * A second handle rather than a second use of the first: the renderer permits one open page
-     * at a time, and a selection that waited behind a page render would arrive after the finger
-     * had moved. Probing for a text layer opens pages, so it happens off the main thread.
-     *
-     * Closed again the moment it turns out to have nothing to say. A scan opens, is asked, and
-     * is let go before the reader has drawn a page.
-     */
-    private suspend fun openPdfText(pageCount: Int) {
-        val opened = withContext(Dispatchers.IO) {
-            val reader = PublicationAccess.openPdfText(resolver, path) ?: return@withContext null
-            if (reader.hasTextLayer) {
-                reader
-            } else {
-                reader.close()
-                null
-            }
-        } ?: return
-
-        val state = PdfTextState(
-            reader = opened,
-            store = annotationStore,
-            publication = publication.identity.stableId,
-            title = publication.displayTitle,
-            pageCount = pageCount,
-        )
-        state.load()
-        _pdfText.value = state
     }
 
     fun image(index: Int): Bitmap? = decoded[index]

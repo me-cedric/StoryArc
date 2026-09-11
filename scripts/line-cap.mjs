@@ -74,7 +74,6 @@ const ALLOWED = {
     'apps/android/feature/reader/src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt': 1893,
     'apps/android/feature/library/src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt': 1690,
     'apps/android/feature/epubreader/src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt': 1051,
-    'apps/android/feature/reader/src/main/kotlin/app/storyarc/feature/reader/ReaderViewModel.kt': 811,
 }
 
 /** Source this project writes. Generated files and dependencies are nobody's to split. */
