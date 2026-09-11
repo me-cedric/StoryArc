@@ -90,9 +90,31 @@ public struct SourceRegistry: Sendable, Equatable {
     /// State is deliberately not persisted — it describes a network, and a state read back
     /// from disk is a claim about the past. So something has to set it after a launch, and
     /// this is what that something calls.
-    public func marking(_ id: Source.ID, as state: SourceConnectionState) -> SourceRegistry {
+    ///
+    /// **A source that answers records the moment it answered**, which is the whole of
+    /// `sources`' *A refresh that finished*. Until this line, `lastSuccessfulSync` was
+    /// written in two places on iOS — both of them the moment a catalogue or a server was
+    /// *added* — and in no place at all on Android, so the source detail screen's *Last
+    /// sync* row showed the add moment for ever and a refresh that succeeded could not be
+    /// told from one that never ran. It is the timestamp rather than a transient message
+    /// because a message a reader looks away from says nothing at all.
+    ///
+    /// A refusal keeps the moment the source already had. That is the difference between a
+    /// source that has never answered and one that answered yesterday, and both of those
+    /// are things the detail screen has to be able to say.
+    ///
+    /// - Parameter moment: when this answer arrived. Explicit so a test can pin it; the
+    ///   registry itself reads no clock anywhere else.
+    public func marking(
+        _ id: Source.ID,
+        as state: SourceConnectionState,
+        at moment: Date = .now
+    ) -> SourceRegistry {
         SourceRegistry(
-            sources: sources.map { $0.id == id ? $0.with(state) : $0 },
+            sources: sources.map {
+                guard $0.id == id else { return $0 }
+                return state == .connected ? $0.with(state, answeredAt: moment) : $0.with(state)
+            },
             tombstones: tombstones
         )
     }
@@ -198,14 +220,14 @@ extension Source {
         )
     }
 
-    /// The same source in a new connection state.
-    func with(_ state: SourceConnectionState) -> Source {
+    /// The same source in a new connection state, and optionally at the moment it answered.
+    func with(_ state: SourceConnectionState, answeredAt moment: Date? = nil) -> Source {
         Source(
             id: id,
             displayName: displayName,
             kind: kind,
             state: state,
-            lastSuccessfulSync: lastSuccessfulSync,
+            lastSuccessfulSync: moment ?? lastSuccessfulSync,
             credentialReference: credentialReference,
             locator: locator
         )

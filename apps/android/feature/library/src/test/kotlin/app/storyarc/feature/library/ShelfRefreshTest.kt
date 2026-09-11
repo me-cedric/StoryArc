@@ -117,13 +117,25 @@ class ShelfRefreshTest {
         assertTrue("LibraryScreen no longer draws a pull to refresh.", pull >= 0)
         val opening = screen.indexOf(REFRESH_LAMBDA, pull)
         assertTrue("The pull to refresh no longer names an onRefresh.", opening >= 0)
+        // The indicator follows the probe as well as the walk, per `sources`' *A refresh
+        // the user asked for*. Read from the arguments before the lambda, because that is
+        // where `isRefreshing` is: a pull on a shelf narrowed to a server walks no folder,
+        // and this used to retract as the finger lifted.
+        assertTrue(
+            "The pull indicator no longer consults isRefreshingShelf, so a pull that asks" +
+                " a server and walks no folder shows nothing.",
+            screen.substring(pull, opening).contains("isRefreshingShelf("),
+        )
         // The lambda alone, and nothing after it. Reading to the end of the file instead
         // made this test vacuous: `onProbeSources()` and `rescan()` occur again in the
         // retry below, so an `onRefresh` emptied to nothing satisfied every assertion here.
         val body = screen.substring(opening, closingBrace(screen, opening + REFRESH_LAMBDA.length - 1))
         val plan = body.indexOf("ShelfRefresh.of(")
         val walk = body.indexOf("rescan()")
-        val ask = body.indexOf("onProbeSources()")
+        // Named with its origin. `sources`' *Refresh visibility* makes a pulled refresh
+        // the one the pull indicator speaks for, and [SourceRefreshOrigin] is the signal
+        // that tells it from the backoff loop.
+        val ask = body.indexOf("onProbeSources(SourceRefreshOrigin.PULLED)")
 
         assertTrue(
             "The pull no longer re-fetches a server. That was the defect: a reader who" +

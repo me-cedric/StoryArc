@@ -49,11 +49,16 @@ import kotlinx.coroutines.launch
  *   time round** rather than once at the top, because a reader opens a publication *while*
  *   the loop is waiting. Its answer is the app layer's: this class knows about sources and
  *   not about readers.
+ * @param origin who asked for the **first** probe. Every later one in this loop is the
+ *   backoff, which nobody asked for, so only the first carries it. That distinction is the
+ *   signal [ShelfRefresh] said was missing: without it the pull indicator cannot follow a
+ *   pull that asks a server and walks no folder.
  */
 fun LibraryViewModel.retryUnreachableSources(
     credentials: CredentialStore?,
     pins: CertificatePins,
     isReading: () -> Boolean = { false },
+    origin: SourceRefreshOrigin = SourceRefreshOrigin.AUTOMATIC,
 ) {
     retryJob?.cancel()
     retryJob = viewModelScope.launch {
@@ -61,7 +66,7 @@ fun LibraryViewModel.retryUnreachableSources(
         // screen made beside this one, so the loop's first check could run before any
         // source had been asked -- and a loop that finds nothing unreachable stops. iOS
         // awaits its probe and then starts the loop; this is the same order.
-        probeAndWait(credentials, pins)
+        probeAndWait(credentials, pins, origin)
         var failures = 0
         while (isActive) {
             val away = _registry.value.sources.any { it.state is SourceConnectionState.Unreachable }
@@ -116,8 +121,29 @@ fun LibraryViewModel.probe(
  *
  * Internal rather than private: `private` is file-scoped in Kotlin as it is in Swift, and
  * the loop above and the trigger beside it are the two callers.
+ *
+ * **It says that it is running now**, which `sources`' *Refresh visibility* requires and
+ * which nothing here did: a refresh the reader did not ask for drew nothing at all, on four
+ * of the five occasions one starts. [LibraryViewModel.refreshing] is that statement, and the
+ * origin is what keeps it to one statement per refresh. Cleared in a `finally` so a
+ * cancelled probe -- which is what a second pull causes, because the loop cancels its
+ * predecessor -- does not leave the strip claiming a refresh that has stopped.
  */
 internal suspend fun LibraryViewModel.probeAndWait(
+    credentials: CredentialStore?,
+    pins: CertificatePins,
+    origin: SourceRefreshOrigin = SourceRefreshOrigin.AUTOMATIC,
+) {
+    _refreshing.value = origin
+    try {
+        probeEverySource(credentials, pins)
+    } finally {
+        _refreshing.value = null
+    }
+}
+
+/** The asking itself, so the flag above brackets it and nothing else. */
+private suspend fun LibraryViewModel.probeEverySource(
     credentials: CredentialStore?,
     pins: CertificatePins,
 ) {

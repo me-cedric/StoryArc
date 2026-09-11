@@ -139,7 +139,7 @@ fun LibraryScreen(
     /** Opens the add-a-network-share sheet, which the app layer hosts. */
     onAddShare: () -> Unit = {},
     /** Asks every network source whether it is there. The app layer owns the secrets. */
-    onProbeSources: () -> Unit = {},
+    onProbeSources: (SourceRefreshOrigin) -> Unit = {},
     /** Marks a publication read or unread. The app layer owns the secrets it may need. */
     onMark: (Publication, Boolean) -> Unit = { _, _ -> },
     /** Adds to one of a server's reading lists. False when that server cannot hold it. */
@@ -262,6 +262,7 @@ fun LibraryScreen(
     // shelf is not cached, it is current, and a notice still claiming otherwise would be the
     // indicator lying quietly in the corner. iOS shows the same line above its grid.
     val cachedAt by (viewModel?.cachedAt ?: MutableStateFlow(null)).collectAsStateWithLifecycle()
+    val refreshing by (viewModel?.refreshing ?: MutableStateFlow(null)).collectAsStateWithLifecycle()
 
     // Everything, rather than a list of comic types. A provider resolves `.cbz` through
     // `MimeTypeMap`, which has never heard of it, so it answers `application/octet-stream` --
@@ -276,7 +277,7 @@ fun LibraryScreen(
         // So a publication downloaded from a server joins the one library, rather than being
         // reachable only by browsing back to the server it came from.
         viewModel?.adoptDownloads()
-        onProbeSources()
+        onProbeSources(SourceRefreshOrigin.AUTOMATIC)
     }
 
     // The retry loop runs in the view model's scope, which outlives this screen, so it has
@@ -484,7 +485,7 @@ fun LibraryScreen(
                     },
                     viewModel = viewModel,
                 )
-                LibraryNotices(cachedAt, registry.sources, publications)
+                LibraryNotices(cachedAt, refreshing, registry, publications)
             }
 
             // Pull to refresh, and no refresh button. Android was the only platform
@@ -492,11 +493,11 @@ fun LibraryScreen(
             // re-reads itself. What it re-fetches is what the shelf is showing, which
             // [ShelfRefresh] decides, records the two costs of, and a test can reach.
             PullToRefreshBox(
-                isRefreshing = scanState is LibraryScanState.Scanning,
+                isRefreshing = isRefreshingShelf(scanState, refreshing),
                 onRefresh = {
                     val plan = ShelfRefresh.of(query.scope, registry)
                     if (plan.walksFolders) viewModel?.rescan()
-                    if (plan.asksNetwork) onProbeSources()
+                    if (plan.asksNetwork) onProbeSources(SourceRefreshOrigin.PULLED)
                 },
                 modifier = Modifier.fillMaxSize(),
             ) {
@@ -584,7 +585,7 @@ fun LibraryScreen(
                             // the folders again would leave a reader whose only library is a
                             // folder pressing a button that cannot change anything.
                             onRetry = {
-                                onProbeSources()
+                                onProbeSources(SourceRefreshOrigin.AUTOMATIC)
                                 viewModel?.rescan()
                             },
                             onOpenComic = { importFile.launch(arrayOf("*/*")) },

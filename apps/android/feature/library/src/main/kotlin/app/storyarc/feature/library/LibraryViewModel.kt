@@ -138,6 +138,17 @@ class LibraryViewModel(
     private val _scanState = MutableStateFlow<LibraryScanState>(LibraryScanState.Idle)
     val scanState: StateFlow<LibraryScanState> = _scanState.asStateFlow()
 
+    /**
+     * Who started the source refresh that is running now, if one is.
+     *
+     * `sources`' *Refresh visibility*. Internal so [probeAndWait] can set it: the probe is
+     * an extension in `SourceRetry.kt`, and Kotlin's `private` is file-scoped as Swift's is.
+     */
+    internal val _refreshing = MutableStateFlow<SourceRefreshOrigin?>(null)
+
+    /** What the shelf's notice strip and its pull indicator both read. */
+    val refreshing: StateFlow<SourceRefreshOrigin?> = _refreshing.asStateFlow()
+
     /** What the library could not open, and whether the reader has been told. */
     private val _skipped = MutableStateFlow(SkippedPublications())
     val skipped: StateFlow<SkippedPublications> = _skipped.asStateFlow()

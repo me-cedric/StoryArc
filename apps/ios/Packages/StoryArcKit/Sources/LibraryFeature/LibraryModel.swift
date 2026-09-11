@@ -136,6 +136,12 @@ public final class LibraryModel {
     /// indicator lying quietly in the corner.
     public internal(set) var cachedAt: Date?
 
+    /// Who started the source refresh that is running now, if one is. See ``LibraryNotice``.
+    ///
+    /// Internal rather than public: the strip that reads it is in this module, and nothing
+    /// outside it has a reason to know that a probe is in flight.
+    var refreshing: SourceRefreshOrigin?
+
     var scanTask: Task<Void, Never>?
 
     /// The folder being walked, and what has been indexed in it so far.

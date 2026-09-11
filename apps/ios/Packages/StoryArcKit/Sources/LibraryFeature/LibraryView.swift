@@ -333,11 +333,17 @@ public struct LibraryView: View {
             // still readable costs no data and no wait, so it is never the half a plan
             // skips: a shelf narrowed to one server used to leave a folder that had gone
             // reading *Connected*, and its empty shelf saying nothing had arrived yet.
+            //
+            // `origin: .pulled` is what keeps one refresh to one indicator. SwiftUI awaits
+            // this closure and draws its own spinner for as long as it runs, so the strip
+            // below stays quiet — see ``SourceRefreshOrigin``.
             .refreshable {
                 model.resolveLocalSources()
                 let plan = ShelfRefresh.of(model.query.scope, in: model.registry)
                 if plan.asksNetwork {
-                    await model.resolveSources(credentials: credentials, pins: pins)
+                    await model.resolveSources(
+                        credentials: credentials, pins: pins, origin: .pulled
+                    )
                 }
                 if plan.walksFolders { await model.rescan() }
             }
@@ -345,34 +351,7 @@ public struct LibraryView: View {
             // rather than being clipped by it. Above the tab bar, which the system insets
             // for — the reason cover titles used to render *behind* the floating search
             // pill is that there was no tab bar for it to inset against.
-            .safeAreaBar(edge: .bottom) {
-                if selection.isActive {
-                    BulkActionBar(model: model, selection: $selection)
-                } else if let missing = model.unavailableFolders.first {
-                    // Named, per `local-library`. "A folder is no longer available"
-                    // sends someone hunting through four of them.
-                    UnavailableFolderNotice(name: missing) { picking = .folder }
-                } else if sourcesStillBeingRead(
-                    sources: model.registry.sources, publications: model.publications
-                ) > 0 {
-                    // Above the cached line and below the two urgent ones: a source still
-                    // being read is a fact about *now*, where the cached line is about the
-                    // last time anything was. `StillBeingRead` is where the rule lives.
-                    StillBeingReadNotice(
-                        waiting: sourcesStillBeingRead(
-                            sources: model.registry.sources, publications: model.publications
-                        )
-                    )
-                } else if let cachedAt = model.cachedAt {
-                    // Last, because it is the quietest thing this strip has to say: a
-                    // selection in progress or a folder that has gone missing both need the
-                    // space more. `sources` asks for the indicator to be single and
-                    // unobtrusive, and it leaves of its own accord — `cachedAt` goes back to
-                    // `nil` the moment a walk finishes, at which point the shelf is current
-                    // and a notice still claiming otherwise would be lying in the corner.
-                    CachedNotice(refreshedAt: cachedAt)
-                }
-            }
+            .safeAreaBar(edge: .bottom) { bottomBar }
     }
 
     /// What the navigation bar calls this surface.
