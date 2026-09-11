@@ -113,7 +113,15 @@ extension KavitaClient {
         let found = try await results(for: query)
         return found.series.map { KavitaHit(kind: .series, title: $0.name, seriesId: $0.id) }
             + found.chapters.map {
-                KavitaHit(kind: .chapter, title: $0.displayName, seriesId: $0.seriesId)
+                // The chapter's own identity, because two chapters of one series can be
+                // named alike — both untitled and both unnumbered read the same — and a
+                // keyed list refuses two rows with one key.
+                KavitaHit(
+                    kind: .chapter,
+                    title: $0.displayName,
+                    seriesId: $0.seriesId,
+                    chapterId: $0.id
+                )
             }
             + found.persons.map { KavitaHit(kind: .person, title: $0.label) }
             + (found.genres + found.tags).map { KavitaHit(kind: .subject, title: $0.label) }

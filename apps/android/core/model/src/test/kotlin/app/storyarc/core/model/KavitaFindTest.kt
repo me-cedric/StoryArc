@@ -112,7 +112,12 @@ class KavitaFindTest {
             "harbour",
             listOf(card("a", "Tidal Reach", seriesId = 7, chapter = "The Harbour")),
         )
-        assertEquals(listOf(KavitaHit(KavitaHit.Kind.CHAPTER, "The Harbour", 7, "download-a")), hits)
+        // The chapter's own identity travels with the row: two downloads of one series can
+        // be named alike, and folding them would leave one of the two unopenable.
+        assertEquals(
+            listOf(KavitaHit(KavitaHit.Kind.CHAPTER, "The Harbour", 7, "download-a", chapterId = 1)),
+            hits,
+        )
     }
 
     @Test

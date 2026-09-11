@@ -1,6 +1,8 @@
 package app.storyarc.core.kavita
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -48,7 +50,58 @@ class VolumeSentinelTest {
     fun `the numbers are the ones Kavita writes`() {
         // Quoted from `Kavita.Models/Constants/ParserConstants.cs`. A test rather than a
         // comment, because the whole defect was a number this app guessed at.
-        org.junit.Assert.assertEquals(-100_000, LOOSE_LEAF_VOLUME)
-        org.junit.Assert.assertEquals(100_000, SPECIAL_VOLUME)
+        assertEquals(-100_000, LOOSE_LEAF_VOLUME)
+        assertEquals(100_000, SPECIAL_VOLUME)
+    }
+}
+
+/**
+ * That a sentinel wearing a name is rejected too.
+ *
+ * The first guard tested the *number*. Kavita derives a chapter's title and a volume's name
+ * from the number, so the same sentinel arrives as text, and the title is read first -- which
+ * left the guard reachable around. iOS's `NameSentinelTests` asserts the same table.
+ */
+class NameSentinelTest {
+
+    @Test
+    fun `a sentinel is not a title`() {
+        assertEquals("", KavitaChapter(id = 1, number = "", title = "-100000").displayName)
+        assertEquals("", KavitaChapter(id = 1, number = "", title = "100000").displayName)
+    }
+
+    @Test
+    fun `a real title survives, including one that is a number`() {
+        assertEquals("3", KavitaChapter(id = 1, number = "", title = "3").displayName)
+        assertEquals("Year One", KavitaChapter(id = 1, number = "", title = "Year One").displayName)
+    }
+
+    @Test
+    fun `a real number still wins when the title is a sentinel`() {
+        assertEquals("7", KavitaChapter(id = 1, number = "7", title = "-100000").displayName)
+    }
+
+    @Test
+    fun `a sentinel is not a volume name`() {
+        assertNull(KavitaVolume(id = 1, number = 1, name = "-100000").properName)
+        assertNull(KavitaVolume(id = 1, number = 1, name = "100000").properName)
+        assertEquals("Year One", KavitaVolume(id = 1, number = 1, name = "Year One").properName)
+    }
+
+    @Test
+    fun `Kavita's own field decides what a volume is, before the older one`() {
+        // `VolumeExtensions.IsLooseLeaf()` reads MinNumber. A server that sends only that
+        // leaves `number` at zero, and zero alone would call a specials volume loose.
+        val specials = KavitaVolume(id = 1, number = 0, minNumber = 100_000.0)
+        assertTrue(specials.isSpecials)
+        assertFalse(specials.isLooseChapters)
+
+        val loose = KavitaVolume(id = 1, number = 0, minNumber = -100_000.0)
+        assertTrue(loose.isLooseChapters)
+
+        // A fractional volume is a real volume, and neither.
+        val half = KavitaVolume(id = 1, number = 1, minNumber = 1.5)
+        assertFalse(half.isLooseChapters)
+        assertFalse(half.isSpecials)
     }
 }

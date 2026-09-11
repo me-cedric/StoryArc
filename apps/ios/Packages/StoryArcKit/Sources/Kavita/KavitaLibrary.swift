@@ -160,9 +160,22 @@ public struct KavitaChapter: Sendable, Equatable, Identifiable, Decodable {
     /// the number is the sentinel — an empty string rather than a made-up label, because
     /// what to say instead is the screen's decision and a screen has its own words for it.
     /// Kavita leaves the title empty for a plain numbered issue, and "3" beats an empty row.
-    public var displayName: String {
-        if let title, !title.isEmpty { return title }
-        return issueNumber ?? ""
+    public var displayName: String { properTitle ?? issueNumber ?? "" }
+
+    /// The chapter's own title, or nil where the server sent a number wearing one.
+    ///
+    /// Kavita fills a chapter's title from its own range when nothing else named it, so the
+    /// sentinel arrives in the title as readily as in the number. ``issueNumber`` was
+    /// guarded and this was not, which left the guard reachable around: a title of
+    /// "-100000" wins before `issueNumber` is ever read, and every screen draws the title
+    /// first.
+    ///
+    /// A trust boundary, so it is checked rather than assumed. No book is called "-100000".
+    public var properTitle: String? {
+        guard let title else { return nil }
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !kavitaSentinelNames.contains(trimmed) else { return nil }
+        return title
     }
 
     public var isFinished: Bool { pages > 0 && pagesRead >= pages }
@@ -172,12 +185,28 @@ public struct KavitaChapter: Sendable, Equatable, Identifiable, Decodable {
 public struct KavitaVolume: Sendable, Equatable, Identifiable, Decodable {
     public let id: Int
     public let number: Int
+
+    /// What Kavita's own code asks when it wants to know what a volume is.
+    ///
+    /// `VolumeExtensions.IsLooseLeaf()` reads `MinNumber`, not `Number`; the integer
+    /// `number` is the older field beside it. A server that sends only the newer one would
+    /// leave `number` at its default and a specials volume would be headed *Chapters*,
+    /// which is the wrong one of the two right answers. So this is read first.
+    public let minNumber: Double?
+
     public let name: String?
     public let chapters: [KavitaChapter]
 
-    public init(id: Int, number: Int, name: String? = nil, chapters: [KavitaChapter] = []) {
+    public init(
+        id: Int,
+        number: Int,
+        minNumber: Double? = nil,
+        name: String? = nil,
+        chapters: [KavitaChapter] = []
+    ) {
         self.id = id
         self.number = number
+        self.minNumber = minNumber
         self.name = name
         self.chapters = chapters
     }
@@ -187,13 +216,20 @@ public struct KavitaVolume: Sendable, Equatable, Identifiable, Decodable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
         number = try container.decodeIfPresent(Int.self, forKey: .number) ?? 0
+        minNumber = try container.decodeIfPresent(Double.self, forKey: .minNumber)
         name = try container.decodeIfPresent(String.self, forKey: .name)
         chapters = try container.decodeIfPresent([KavitaChapter].self, forKey: .chapters) ?? []
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, number, name, chapters
+        case id, number, minNumber, name, chapters
     }
+
+    /// The number to judge this volume by: Kavita's own field, then the older one.
+    ///
+    /// `minNumber` is a float on the wire because a volume can be `1.5`. A sentinel is a
+    /// whole number, so comparing the truncated value loses nothing that matters here.
+    private var kind: Int { minNumber.map(Int.init) ?? number }
 
     /// Whether this is Kavita's holder for chapters that belong to no volume.
     ///
@@ -206,14 +242,25 @@ public struct KavitaVolume: Sendable, Equatable, Identifiable, Decodable {
     /// in a volume numbered zero; current ones use ``looseLeafVolume``. Both are accepted,
     /// so a reader on either server sees the same screen. Android's `isLooseChapters` is
     /// the twin.
-    public var isLooseChapters: Bool { number == KavitaVolume.looseLeafVolume || number == 0 }
+    public var isLooseChapters: Bool { kind == KavitaVolume.looseLeafVolume || kind == 0 }
 
     /// Whether this is Kavita's holder for specials — annuals, one-shots, anything filed
     /// outside the run.
     ///
     /// A third kind, and the reason the heading needs three cases rather than two: this
     /// volume had no case of its own, so a reader met "100000" as a heading.
-    public var isSpecials: Bool { number == KavitaVolume.specialVolume }
+    public var isSpecials: Bool { kind == KavitaVolume.specialVolume }
+
+    /// The volume's own name, or nil where the server sent its number wearing one.
+    ///
+    /// Kavita derives a volume's name from its number, so the name of a sentinel-numbered
+    /// volume is the sentinel as a string.
+    public var properName: String? {
+        guard let name else { return nil }
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !kavitaSentinelNames.contains(trimmed) else { return nil }
+        return name
+    }
 
     /// Kavita's holder for chapters that belong to no volume.
     ///

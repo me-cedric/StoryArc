@@ -38,7 +38,7 @@ internal object KavitaNaming {
      * cell headed "43" names nothing, and one headed "-100000" names less.
      */
     fun title(series: KavitaSeries, chapter: KavitaChapter): String {
-        chapter.title?.takeIf { it.isNotBlank() }?.let { return it }
+        chapter.properTitle?.let { return it }
         return issueNumber(chapter)?.let { "${series.name} #$it" } ?: series.name
     }
 }

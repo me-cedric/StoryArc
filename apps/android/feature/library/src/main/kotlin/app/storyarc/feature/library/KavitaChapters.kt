@@ -249,7 +249,7 @@ fun KavitaChapters(
                         volume.isLooseChapters ->
                             stringResource(R.string.kavita_loose_chapters)
                         volume.isSpecials -> stringResource(R.string.kavita_specials)
-                        else -> volume.name ?: volume.number.toString()
+                        else -> volume.properName ?: volume.number.toString()
                     },
                     style = MaterialTheme.typography.labelLarge,
                     color = palette.textSecondary,

@@ -251,7 +251,7 @@ struct KavitaChapterList: View {
         if volume.isSpecials {
             return String(localized: "kavita.specials", bundle: .module, locale: .storyArc)
         }
-        return volume.name ?? "\(volume.number)"
+        return volume.properName ?? "\(volume.number)"
     }
 
     private func label(_ chapter: KavitaChapter) -> String {

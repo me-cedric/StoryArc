@@ -370,7 +370,12 @@ class KavitaClient(val address: KavitaAddress) {
     suspend fun find(query: String): List<KavitaHit> {
         val found = results(query)
         return found.series.map { KavitaHit(KavitaHit.Kind.SERIES, it.name, it.id) } +
-            found.chapters.map { KavitaHit(KavitaHit.Kind.CHAPTER, it.displayName, it.seriesId) } +
+            found.chapters.map {
+                // The chapter's own identity, because two chapters of one series can be
+                // named alike -- both untitled and both unnumbered read the same -- and a
+                // keyed list refuses two rows with one key.
+                KavitaHit(KavitaHit.Kind.CHAPTER, it.displayName, it.seriesId, chapterId = it.id)
+            } +
             found.persons.map { KavitaHit(KavitaHit.Kind.PERSON, it.label) } +
             (found.genres + found.tags).map { KavitaHit(KavitaHit.Kind.SUBJECT, it.label) }
     }

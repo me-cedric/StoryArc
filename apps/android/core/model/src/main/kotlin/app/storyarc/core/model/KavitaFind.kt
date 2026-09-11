@@ -4,6 +4,21 @@ import java.util.UUID
 import kotlinx.serialization.Serializable
 
 /**
+ * The two numbers Kavita writes when it means "this has no number", as it writes them into
+ * a name.
+ *
+ * Quoted from `Kavita.Models/Constants/ParserConstants.cs`:
+ * `public const string LooseLeafVolume = "-100000";` and
+ * `public const string SpecialVolume = "100000";`
+ *
+ * Kavita derives a chapter's title and a volume's name from the number, so both sentinels
+ * reach this app as text as well as as integers. Here, in the module underneath, because a
+ * card read from disk needs the same answer as a chapter read from the wire -- and the
+ * whole defect was four places asking the question separately and disagreeing.
+ */
+val SENTINEL_NAMES: Set<String> = setOf("-100000", "100000")
+
+/**
  * One thing a search of a Kavita server matched.
  *
  * `kavita-server` asks a server-side search for "matches across series, chapters, people,
@@ -35,6 +50,14 @@ data class KavitaHit(
      * the publication under the path the file ended up at.
      */
     val downloadId: String? = null,
+    /**
+     * Which chapter this row is, when the row is a chapter.
+     *
+     * Part of [id] and nothing else. Two chapters of one series can carry the same words --
+     * both untitled, both unnumbered -- and without this they were one key, which a keyed
+     * list refuses: the search screen crashed on a server that held two such chapters.
+     */
+    val chapterId: Int = 0,
 ) {
     /** Which of the spec's five a match is, and therefore which heading it appears under. */
     enum class Kind {
@@ -51,7 +74,7 @@ data class KavitaHit(
      * once by its own name, once through a chapter -- is one row, and a list keyed on
      * anything finer would draw it twice.
      */
-    val id: String get() = "$kind:$seriesId:$title"
+    val id: String get() = "$kind:$seriesId:$chapterId:$title"
 
     /** Whether opening this row leads anywhere. */
     val isOpenable: Boolean get() = seriesId > 0
@@ -184,13 +207,25 @@ data class KavitaCard(
      * Null when the card's source is not a UUID, which is a card written by something that
      * was not this app.
      */
+    /**
+     * The chapter's name, or null where what was written down was a sentinel.
+     *
+     * **Read-time rather than a migration.** A card is written once, at the moment a
+     * chapter is kept, and nothing rewrites it. Cards kept before the guard existed hold
+     * "-100000" as the chapter's name, and that string wins over the file's own title
+     * because a card is `AUTHORITATIVE`. Checking here repairs every such card the first
+     * time it is read, on a device nobody can reach to migrate.
+     */
+    val properChapterName: String?
+        get() = chapterName.takeIf { it.isNotBlank() && it !in SENTINEL_NAMES }
+
     val remoteIdentity: PublicationIdentity.ServerIdentifier?
         get() = runCatching { UUID.fromString(sourceId) }.getOrNull()?.let { source ->
             PublicationIdentity.ServerIdentifier(sourceId = source, remoteId = "chapter:$chapterId")
         }
 
     fun appliedTo(publication: Publication): Publication = publication.copy(
-        displayTitle = chapterName.ifEmpty { publication.displayTitle },
+        displayTitle = properChapterName ?: publication.displayTitle,
         series = seriesName.ifEmpty { null } ?: publication.series,
         authors = people.ifEmpty { publication.authors },
         year = if (releaseYear > 0) releaseYear else publication.year,
@@ -246,7 +281,15 @@ object KavitaFind {
             add(KavitaHit(KavitaHit.Kind.SERIES, it.seriesName, it.seriesId, it.downloadId))
         }
         cards.filter { matches(it.chapterName) }.forEach {
-            add(KavitaHit(KavitaHit.Kind.CHAPTER, it.chapterName, it.seriesId, it.downloadId))
+            add(
+                KavitaHit(
+                    KavitaHit.Kind.CHAPTER,
+                    it.properChapterName.orEmpty(),
+                    it.seriesId,
+                    it.downloadId,
+                    chapterId = it.chapterId,
+                ),
+            )
         }
         cards.forEach { card ->
             card.people.filter(::matches).forEach { add(KavitaHit(KavitaHit.Kind.PERSON, it)) }

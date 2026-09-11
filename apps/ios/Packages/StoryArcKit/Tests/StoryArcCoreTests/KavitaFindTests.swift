@@ -110,7 +110,13 @@ struct KavitaFindTests {
             "harbour",
             [card("a", series: "Tidal Reach", seriesId: 7, chapter: "The Harbour")]
         )
-        #expect(hits == [KavitaHit(kind: .chapter, title: "The Harbour", seriesId: 7, downloadId: "download-a")])
+        #expect(hits == [KavitaHit(
+            kind: .chapter,
+            title: "The Harbour",
+            seriesId: 7,
+            downloadId: "download-a",
+            chapterId: 1
+        )])
     }
 
     @Test("Matching ignores case")

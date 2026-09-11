@@ -151,7 +151,7 @@ struct KavitaHits: View {
             Button {
                 Task { await open(hit) }
             } label: {
-                Text(hit.title)
+                Text(label(hit))
                     .foregroundStyle(theme.palette.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -159,9 +159,21 @@ struct KavitaHits: View {
         } else {
             // A person and a subject are names the server matched, not places. A row that
             // looked tappable and did nothing would be worse than one that plainly is not.
-            Text(hit.title)
+            Text(label(hit))
                 .foregroundStyle(theme.palette.textSecondary)
         }
+    }
+
+    /// What to draw on a row.
+    ///
+    /// A chapter the server gave neither a title nor a number has nothing to be called, and
+    /// an empty row is a row a reader cannot see but can still tap. The chapter list has a
+    /// word for that case and this is the same word.
+    private func label(_ hit: KavitaHit) -> String {
+        guard hit.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return hit.title
+        }
+        return String(localized: "kavita.chapter.unnumbered", bundle: .module, locale: .storyArc)
     }
 
     /// Opens what a row names: the download when the row came from the cache, the series on

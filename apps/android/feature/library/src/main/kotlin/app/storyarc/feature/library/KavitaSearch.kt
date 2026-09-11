@@ -172,7 +172,10 @@ private fun HitRow(hit: KavitaHit, onOpenSeries: (Int) -> Unit, onOpenKept: (Str
     val palette = LocalStoryArcPalette.current
     val opens = hit.downloadId != null || hit.isOpenable
     Text(
-        text = hit.title,
+        // A chapter the server gave neither a title nor a number has nothing to be called,
+        // and an empty row is a row a reader cannot see but can still tap. The chapter list
+        // has a word for that case and this is the same word.
+        text = hit.title.ifBlank { stringResource(R.string.kavita_chapter_unnumbered) },
         style = MaterialTheme.typography.bodyLarge,
         // A person and a subject are names the server matched, not places. A row that looked
         // tappable and did nothing would be worse than one that plainly is not.

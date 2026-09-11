@@ -6,6 +6,20 @@ public import Foundation
 /// genres, and tags — not only titles cached locally". A genre and a tag are the same kind
 /// of thing to a reader, so they arrive as one kind here, for the reason
 /// ``KavitaCard/subjects`` gives.
+/// The two numbers Kavita writes when it means "this has no number", as it writes them
+/// into a name.
+///
+/// Quoted from `Kavita.Models/Constants/ParserConstants.cs`:
+/// `public const string LooseLeafVolume = "-100000";` and
+/// `public const string SpecialVolume = "100000";`
+///
+/// Kavita derives a chapter's title and a volume's name from the number, so both sentinels
+/// reach this app as text as well as as integers. Here, in the module underneath, because a
+/// card read from disk needs the same answer as a chapter read from the wire — and the whole
+/// defect was four places asking the question separately and disagreeing. Android's
+/// `SENTINEL_NAMES` is the twin.
+public let kavitaSentinelNames: Set<String> = ["-100000", "100000"]
+
 public struct KavitaHit: Sendable, Equatable, Hashable, Identifiable {
     /// Which of the spec's five a match is, and therefore which heading it appears under.
     public enum Kind: Sendable, Equatable, Hashable, CaseIterable {
@@ -39,17 +53,31 @@ public struct KavitaHit: Sendable, Equatable, Hashable, Identifiable {
     /// and the publication under the path the file ended up at.
     public let downloadId: String?
 
-    public init(kind: Kind, title: String, seriesId: Int = 0, downloadId: String? = nil) {
+    /// Which chapter this row is, when the row is a chapter.
+    ///
+    /// Part of ``id`` and nothing else. Two chapters of one series can carry the same words
+    /// — both untitled, both unnumbered — and without this they were one key, which a keyed
+    /// list refuses.
+    public let chapterId: Int
+
+    public init(
+        kind: Kind,
+        title: String,
+        seriesId: Int = 0,
+        downloadId: String? = nil,
+        chapterId: Int = 0
+    ) {
         self.kind = kind
         self.title = title
         self.seriesId = seriesId
         self.downloadId = downloadId
+        self.chapterId = chapterId
     }
 
     /// Identity is what the row *is*, not where it came from: the same series found twice —
     /// once by its own name, once through a chapter — is one row, and a list keyed on
     /// anything finer would draw it twice.
-    public var id: String { "\(kind):\(seriesId):\(title)" }
+    public var id: String { "\(kind):\(seriesId):\(chapterId):\(title)" }
 
     /// Whether opening this row leads anywhere.
     public var isOpenable: Bool { seriesId > 0 }
@@ -241,11 +269,24 @@ public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
     /// A field the card is silent about keeps what the file said. The server not having a
     /// summary is not the server saying there is none, and blanking a description the file
     /// does have would be losing information in the name of preferring a source.
+    /// The chapter's name, or nil where what was written down was a sentinel.
+    ///
+    /// **Read-time rather than a migration.** A card is written once, at the moment a
+    /// chapter is kept, and nothing rewrites it. Cards kept before the guard existed hold
+    /// "-100000" as the chapter's name, and that string wins over the file's own title
+    /// because a card is `authoritative`. Checking here repairs every such card the first
+    /// time it is read, on a device nobody can reach to migrate.
+    public var properChapterName: String? {
+        let trimmed = chapterName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !kavitaSentinelNames.contains(trimmed) else { return nil }
+        return chapterName
+    }
+
     public func applied(to publication: Publication) -> Publication {
         Publication(
             identity: publication.identity,
             format: publication.format,
-            displayTitle: chapterName.isEmpty ? publication.displayTitle : chapterName,
+            displayTitle: properChapterName ?? publication.displayTitle,
             series: seriesName.isEmpty ? publication.series : seriesName,
             number: publication.number,
             volume: publication.volume,
@@ -324,9 +365,10 @@ public enum KavitaFind {
         for card in cards where matches(card.chapterName) {
             add(KavitaHit(
                 kind: .chapter,
-                title: card.chapterName,
+                title: card.properChapterName ?? "",
                 seriesId: card.seriesId,
-                downloadId: card.downloadId
+                downloadId: card.downloadId,
+                chapterId: card.chapterId
             ))
         }
         for card in cards {

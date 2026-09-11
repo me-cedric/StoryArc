@@ -1,6 +1,7 @@
 package app.storyarc.core.kavita
 
 import kotlinx.serialization.ExperimentalSerializationApi
+import app.storyarc.core.model.SENTINEL_NAMES
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNames
 
@@ -140,7 +141,19 @@ data class KavitaChapter(
      * what to say instead is the screen's decision and a screen has its own words for it.
      * Kavita leaves the title empty for a plain numbered issue, and "3" beats an empty row.
      */
-    val displayName: String get() = title?.takeIf { it.isNotEmpty() } ?: issueNumber.orEmpty()
+    val displayName: String get() = properTitle ?: issueNumber.orEmpty()
+
+    /**
+     * The chapter's own title, or null where the server sent a number wearing one.
+     *
+     * Kavita fills a chapter's title from its own range when nothing else named it, so the
+     * sentinel arrives in the title as readily as in the number. [issueNumber] was guarded
+     * and this was not, which left the guard reachable around: a title of "-100000" wins
+     * before `issueNumber` is ever read, and every screen draws the title first.
+     *
+     * A trust boundary, so it is checked rather than assumed. No book is called "-100000".
+     */
+    val properTitle: String? get() = title?.takeIf { it.isNotBlank() && it !in SENTINEL_NAMES }
 
     val isFinished: Boolean get() = pages > 0 && pagesRead >= pages
 }
@@ -150,9 +163,26 @@ data class KavitaChapter(
 data class KavitaVolume(
     val id: Int,
     val number: Int = 0,
+    /**
+     * What Kavita's own code asks when it wants to know what a volume is.
+     *
+     * `VolumeExtensions.IsLooseLeaf()` reads `MinNumber`, not `Number`; the integer
+     * `number` is the older field beside it. A server that sends only the newer one would
+     * leave `number` at its default and a specials volume would be headed "Chapters",
+     * which is the wrong one of the two right answers. So this is read first where it came.
+     */
+    val minNumber: Double? = null,
     val name: String? = null,
     val chapters: List<KavitaChapter> = emptyList(),
 ) {
+    /**
+     * The number to judge this volume by: Kavita's own field, then the older one.
+     *
+     * `minNumber` is a float on the wire because a volume can be `1.5`. A sentinel is a
+     * whole number, so comparing the rounded value loses nothing that matters here.
+     */
+    private val kind: Int get() = minNumber?.toInt() ?: number
+
     /**
      * Whether this is Kavita's holder for chapters that belong to no volume.
      *
@@ -164,7 +194,7 @@ data class KavitaVolume(
      * a volume numbered zero; current ones use [LOOSE_LEAF_VOLUME]. Both are accepted, so a
      * reader on either server sees the same screen.
      */
-    val isLooseChapters: Boolean get() = number == LOOSE_LEAF_VOLUME || number == 0
+    val isLooseChapters: Boolean get() = kind == LOOSE_LEAF_VOLUME || kind == 0
 
     /**
      * Whether this is Kavita's holder for specials -- annuals, one-shots, anything filed
@@ -173,7 +203,16 @@ data class KavitaVolume(
      * A third kind, and the reason the heading needs three cases rather than two: this
      * volume has no case of its own, so a reader met "100000" as a heading.
      */
-    val isSpecials: Boolean get() = number == SPECIAL_VOLUME
+    val isSpecials: Boolean get() = kind == SPECIAL_VOLUME
+
+    /**
+     * The volume's own name, or null where the server sent its number wearing one.
+     *
+     * Kavita derives a volume's name from its number, so the name of a sentinel-numbered
+     * volume is the sentinel as a string. The heading falls back to the number for a real
+     * volume, and a real volume's number is not a sentinel, so nothing can reach a reader.
+     */
+    val properName: String? get() = name?.takeIf { it.isNotBlank() && it !in SENTINEL_NAMES }
 }
 
 /**
@@ -192,6 +231,7 @@ const val LOOSE_LEAF_VOLUME: Int = -100_000
  * this one was missed while the chapter sentinel beside it was already guarded.
  */
 const val SPECIAL_VOLUME: Int = 100_000
+
 
 /** A name the server holds for a genre, a tag, a person or a publisher. */
 @Serializable

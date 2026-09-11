@@ -75,7 +75,7 @@ enum KavitaContributor {
     /// because a cell headed "43" names nothing. And Kavita writes `-100000` for a chapter
     /// with no number at all, which is not a number and leaves the series' own name.
     private static func title(series: KavitaSeries, chapter: KavitaChapter) -> String {
-        if let named = chapter.title, !named.isEmpty { return named }
+        if let named = chapter.properTitle { return named }
         // `<series> #<number>`, the house format `seriesLine` composes, so a server's issue
         // and a scanned one read the same. The bare number was the bug: a shelf of cells
         // headed "43" names nothing.
