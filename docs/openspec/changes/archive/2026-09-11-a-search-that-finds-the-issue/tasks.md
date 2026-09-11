@@ -45,3 +45,16 @@ test asserts it. A tick does not mean anybody watched it work on a device.
 - [x] 4.2 `pnpm spec:guard`.
 - [x] 4.3 `pnpm gradle :core:model:testDebugUnitTest :feature:library:testDebugUnitTest`.
 - [x] 4.4 `cd apps/ios/Packages/StoryArcKit && swift test`.
+
+## The frame this change cannot take
+
+- [x] **No frame proves this on a device, and the reason is the device rather than
+  the change.** `AGENTS.md` section 6 owes a picture of every behaviour a reader can
+  see. This one needs a Kavita source with an API key, and then a library walk so the
+  contributor fills the index the join reads. The emulator has no server and the
+  owner's key is not on it; their own phone, which has both, was handed to another
+  session. The absence is recorded in
+  `docs/designs/screenshots/four-features-2026-09-11/README.md` under *Not shown*,
+  beside the frames the same day did take. `KavitaIssuesTest` and `KavitaIssuesTests`
+  assert the join on both platforms, eight cases each, and they are what stands in
+  for the picture.

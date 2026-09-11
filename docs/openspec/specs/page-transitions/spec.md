@@ -40,12 +40,28 @@ publication and remembered per series.
 
 ### Requirement: The curl
 
-The curl SHALL be driven by the finger, not by a timeline.
+The curl SHALL be driven by the finger, not by a timeline, and SHALL turn in
+both directions.
 
 #### Scenario: The page follows the finger
 - **WHEN** a user drags across the page in curl mode
 - **THEN** the page deforms and lifts in real time under the finger, at the display's refresh rate including 120 Hz
 - **AND** the lifted page casts a shadow on the page beneath, and its leading edge catches light
+
+#### Scenario: The sheet rolls rather than folds
+- **WHEN** the page is part-way through a turn
+- **THEN** the lifted sheet is curved, not creased: its leading edge is a curve across the page rather than a straight line
+- **AND** the back of the sheet is visible as a band whose width grows as the sheet lifts, dimmed because paper is not transparent
+- **AND** the shadow cast on the page beneath follows that curve rather than a straight edge
+
+#### Scenario: Turning back
+- **WHEN** a user drags towards the page they came from
+- **THEN** the previous page lifts in from the opposite edge and lays down over the current one, following the finger in the same way a forward turn does
+- **AND** the release rule is the same — past halfway the turn completes, before it the page springs back, and a flick completes the turn regardless of distance
+
+#### Scenario: Turning back from the first page
+- **WHEN** a user drags backwards on the first page of a publication, or forwards on the last
+- **THEN** nothing lifts and the page stays where it is, rather than turning to an empty sheet
 
 #### Scenario: Release behaviour
 - **WHEN** a user releases the drag
@@ -54,10 +70,12 @@ The curl SHALL be driven by the finger, not by a timeline.
 #### Scenario: The curl is interruptible
 - **WHEN** a user starts a new drag while a curl is still settling
 - **THEN** the new gesture takes over from the current position without the page snapping
+- **AND** a new drag in the opposite direction unwinds the settling turn rather than starting a second one
 
 #### Scenario: Curl direction respects reading direction
 - **WHEN** the publication reads right-to-left
 - **THEN** the curl originates from the opposite edge and the gesture is mirrored
+- **AND** the backwards turn is mirrored with it
 
 #### Scenario: Curl is not offered where it cannot be honest
 - **WHEN** the device lacks the platform capability the curl needs, or cannot render it at the display's refresh rate
@@ -89,6 +107,17 @@ A page SHALL turn from any input the platform offers, in every mode.
 #### Scenario: Tap zones
 - **WHEN** a user taps within the leading or trailing edge zone
 - **THEN** the page turns in that direction with the current transition, and reader chrome does not appear
+- **AND** each zone is a third of the screen's width, leaving the middle third to the chrome
+- **AND** this holds in every transition mode, the animated ones included
+
+#### Scenario: Turning the tap zones off
+- **WHEN** a reader turns the tap zones off in settings
+- **THEN** a tap anywhere toggles the chrome, and no tap turns a page
+- **AND** every other trigger still turns pages — swipe, keyboard, controller, and the volume buttons where those are enabled
+
+#### Scenario: The tap zones are on until a reader says otherwise
+- **WHEN** a reader has never chosen either way
+- **THEN** the tap zones are on, because tapping the side of the page is how most readers turn one
 
 #### Scenario: Hardware input
 - **WHEN** a keyboard, an external controller, or the volume buttons where enabled in settings are used

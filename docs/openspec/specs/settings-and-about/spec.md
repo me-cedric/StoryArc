@@ -124,9 +124,15 @@ The app SHALL make its privacy posture verifiable rather than merely stated.
 The app SHALL include an About screen identifying the author and stating that
 the app is free.
 
+The screen SHALL name the author by the handle `@me-cedric`, and that byline SHALL be the
+control that opens the author's profile. The screen SHALL NOT carry a second control to the
+same address.
+
 #### Scenario: About contents
 - **WHEN** a user opens About
-- **THEN** the screen shows the app version and build, the author "Cédric Meyer", a link to <https://github.com/me-cedric>, a link to the StoryArc repository, and the licence
+- **THEN** the screen shows the app version and build, the byline "By @me-cedric", a link to the StoryArc repository, and the licence
+- **AND** the byline opens <https://github.com/me-cedric>
+- **AND** no other row on the screen opens that address
 
 #### Scenario: Support link
 - **WHEN** a user opens About
@@ -140,6 +146,7 @@ the app is free.
 #### Scenario: Reporting a problem
 - **WHEN** a user chooses to report a problem
 - **THEN** the app opens the repository's issue tracker with the app version, platform version, and device class pre-filled, and no personal data
+
 ### Requirement: What changed in this version
 
 The app SHALL tell a reader what changed, once, after it has been updated, and SHALL
@@ -176,4 +183,3 @@ ever launch, and it is reachable afterwards for somebody who dismissed it too fa
 #### Scenario: At the largest text size
 - **WHEN** the screen is shown at the largest accessibility text size
 - **THEN** every entry's heading and sentence are readable in full, the screen scrolls if it must, and the dismissing action stays reachable without scrolling past the content
-

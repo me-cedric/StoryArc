@@ -118,6 +118,7 @@ everything the reader can do with it. No third control appears over the page.
 - **WHEN** a user taps within the left or right edge zone
 - **THEN** the page turns in the corresponding direction and chrome does not appear
 - **AND** the edge zones are mirrored in right-to-left mode
+- **AND** each zone is a third of the screen's width, and the middle third is what reveals the controls — see [`page-transitions`](../page-transitions/spec.md), which owns the gesture and the setting that turns it off
 
 #### Scenario: Chrome does not obscure the page
 - **WHEN** chrome is visible
