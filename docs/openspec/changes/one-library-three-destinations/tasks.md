@@ -1265,6 +1265,41 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       - The **list layout draws no heading at all**, at any length. `CoverList` takes no
         sections and says so at its `rail` parameter. Whether `library-browsing` means its
         division to reach the list is a question for that spec.
+- [ ] **3.4b** Section headings in the list layout, and a column count the divide
+      function takes as a parameter. The spec answers the question 3.4 left open:
+      *Sectioning a long library* now says the division is drawn in whichever layout
+      the reader chose, and that a division averaging fewer than one row per column
+      is not drawn.
+
+      **The refusal in `divide` counts covers, and the reason it gives is about
+      columns.** `LibrarySections.kt:121` reads
+      `publications.size < sections.size * COVERS_PER_ROW`, and
+      `LibrarySections.swift:99` holds the same guard with `coversPerRow = 3`. The
+      Android comment states the reason: in a grid, headings plus part-empty rows
+      cost more vertical space than the covers they introduce. A list has one column,
+      so a heading there costs one row and wastes nothing.
+
+      **What to build:** make the column count a parameter of `divide`. The grid
+      passes 3, as it does today. The list passes 1. Keep the other three refusals
+      exactly as they are — the empty-list guard, the single-section guard and the
+      duplicate-heading guard. Then give `CoverList` the sections it currently
+      refuses at its `rail` parameter, on both platforms.
+
+      **Measured 2026-09-11 on an Android emulator, on the shelf of 218
+      publications in `docs/designs/screenshots/long-shelf-2026-09-11/`.** Under
+      *Grouping: Issues* the grid drew pinned headings *Ashfall* and *Bellwether*.
+      The list drew zero headings, at that length. Under *Grouping: Series* the grid
+      drew zero headings, because 218 publications collapse to 47 series rows over
+      25 initials and the average is under 3.
+
+      **What each change does to that shelf.** The grid is unchanged: 47 rows over
+      25 initials still averages under 3 covers per heading, so no heading is drawn.
+      The list divides, because 47 rows over 25 initials averages more than 1 row
+      per column.
+
+      **Frames owed:** an Android list and an iOS list, each sectioned, on a shelf on
+      record as holding at least 200 publications. Re-take the grid frames under
+      *Grouping: Series* as well, to show that the grid refusal survived the change.
 - [x] **3.5** Wire the iOS views that are already written, translated and
       unreachable — recent searches, the cached notice, the scope control in its
       new availability form, and file import from the empty state. No new strings.

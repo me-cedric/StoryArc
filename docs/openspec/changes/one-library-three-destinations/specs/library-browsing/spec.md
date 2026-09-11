@@ -246,6 +246,8 @@ they can name.
 - **THEN** it is divided by the active sort key, with headings that stay visible while their section is on screen
 - **AND** the sections follow the sort rather than replacing it
 - **AND** a series is one row for this purpose, because it is one row everywhere else
+- **AND** the division is drawn in whichever layout the reader chose, because this describes the library and not the grid
+- **AND** a division that would average fewer than one row per column is not drawn, because its headings then cost more space than the rows they introduce
 
 #### Scenario: An index down the side of a long shelf
 - **WHEN** the shelf holds more rows than a reader can scan and is sorted by title or by series
