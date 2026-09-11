@@ -144,18 +144,23 @@ internal object LibraryRail {
     }
 
     /**
-     * Where each publication sits in the lazy list, counting everything the grid puts between
-     * the cells.
+     * Where each publication sits in the lazy list, counting everything the layout puts between
+     * the rows.
      *
-     * `LazyGridState.animateScrollToItem` takes an **item** index, and the grid prepends an
-     * optional full-span continue-reading row, opens a sticky header per section and appends a
+     * `animateScrollToItem` takes an **item** index, and both layouts open a sticky header per
+     * section; the grid also prepends an optional full-span continue-reading row and appends a
      * full-span *more from this library* row. So a letter's target is not the publication's
      * position in the shelf, and iOS's `ScrollViewReader` is the reason only one platform needs
      * this: there, a row is addressed by its id.
      *
-     * @param leading how many full-span items the grid draws before the first cell — 1 for the
-     *   continue-reading row, 0 when it is absent. The trailing row needs no count: nothing
-     *   after the last cell is ever a scroll target.
+     * Both [CoverGrid] and [CoverList] call this, with the sections they actually draw. A list
+     * that passed no sections while it drew headings would move the shelf to the wrong place,
+     * which is the exact fault this function exists to prevent.
+     *
+     * @param leading how many full-span items the layout draws before the first row — 1 for the
+     *   grid's continue-reading row, 0 when it is absent and 0 for the list, which leads with
+     *   nothing. The trailing row needs no count: nothing after the last row is ever a scroll
+     *   target.
      */
     fun itemIndexes(
         publications: List<Publication>,

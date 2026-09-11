@@ -298,6 +298,51 @@ class LibrarySectionsTest {
         assertEquals(listOf("Ashfall", "Blackwater", "Cinderfall"), sections.map { it.title })
     }
 
+    /**
+     * The shelf that started this, near enough: 47 rows over 25 distinct initials.
+     *
+     * A library of 218 publications grouped by series collapsed to 47 rows over 25 initials on
+     * an Android emulator on 2026-09-11. The average is under three, so the grid refused it and
+     * drew no heading — correctly. The list drew none either, and that was the fault.
+     */
+    private fun theMeasuredShelf(): List<Publication> =
+        "ABCDEFGHIJKLMNOPQRSTUVWXY".flatMapIndexed { index, letter ->
+            (1..if (index < 22) 2 else 1).map { publication("${letter}shwood Hall $it") }
+        }
+
+    @Test
+    fun `one column divides a shelf that three columns refuse`() {
+        // A heading in a list costs one row and wastes nothing, so 25 headings over 47 rows is
+        // structure the reader gains rather than space they lose.
+        val shelf = theMeasuredShelf()
+
+        val sections = LibrarySections.divide(shelf, LibrarySort.TITLE, other, english, columns = 1)
+
+        assertEquals(47, shelf.size)
+        assertEquals(25, sections.size)
+        assertEquals(47, sections.sumOf { it.publications.size })
+    }
+
+    @Test
+    fun `three columns still refuse that shelf, so the grid does not change`() {
+        assertTrue(divide(theMeasuredShelf(), LibrarySort.TITLE).isEmpty())
+    }
+
+    @Test
+    fun `one column keeps every other refusal`() {
+        // The columns parameter answers one question — whether a heading pays for its row — and
+        // it must not become a way past the other three.
+        fun divideInOneColumn(shelf: List<Publication>, sort: LibrarySort) =
+            LibrarySections.divide(shelf, sort, other, english, columns = 1)
+
+        assertTrue(divideInOneColumn(emptyList(), LibrarySort.TITLE).isEmpty())
+        assertTrue(divideInOneColumn(series("Ashfall", 8), LibrarySort.SERIES).isEmpty())
+        val repeated = listOf(publication("archive-comment")) +
+            series("Ashfall", 6) +
+            listOf(publication("truncated"), publication("zip64"))
+        assertTrue(divideInOneColumn(repeated, LibrarySort.SERIES).isEmpty())
+    }
+
     @Test
     fun `an empty shelf divides into nothing rather than into an empty heading`() {
         assertTrue(divide(emptyList(), LibrarySort.TITLE).isEmpty())

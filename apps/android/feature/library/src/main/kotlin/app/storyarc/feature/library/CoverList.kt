@@ -96,6 +96,21 @@ internal fun CoverList(
      */
     groups: List<MatchGroup> = emptyList(),
     /**
+     * How the shelf divides, or empty where it divides into nothing.
+     *
+     * The same sections [CoverGrid] takes, from the same [LibrarySections.divide], and they are
+     * here because this layout drew no heading at any length: a shelf of 218 publications drew
+     * two pinned headings in the grid and none in the list on 2026-09-11.
+     * `library-browsing`'s *Sectioning a long library* scenario says "the library", not "the
+     * grid", so both layouts owe the reader the same structure.
+     *
+     * Cut with one column rather than three — see that function's `columns`. A heading in a list
+     * costs one row and wastes none of it, so the list keeps divisions the grid pays too much
+     * for. [groups] still wins: a search already answers *why this matched*, and letters across
+     * that grouping would be a second answer to one question.
+     */
+    sections: List<LibrarySection> = emptyList(),
+    /**
      * The cells that stand for a series, by the id of the publication standing for them.
      *
      * The same map [CoverGrid] takes, and it is here because the list used to take nothing:
@@ -123,11 +138,21 @@ internal fun CoverList(
         with(density) { thumbnailWidth.roundToPx() }
     }
 
-    // Hoisted for the index, and for nothing else. A letter's target in a list is the
-    // publication's own position — the list draws one item per row and opens no headings
-    // while the index is offered — so no arithmetic is needed here, only the state.
+    // Which sections this list actually draws. A search takes the shelf's own headings away —
+    // see [sections] — and the index has to count the items that are there, not the items a
+    // different state would have drawn.
+    val divided = if (groups.isEmpty()) sections else emptyList()
+
+    // Hoisted for the index, and for nothing else. `animateScrollToItem` takes an **item**
+    // index, and a divided list opens a sticky heading before each section's rows, so a
+    // letter's target is no longer the publication's own position on the shelf.
+    // [LibraryRail.itemIndexes] does that arithmetic over the very item list drawn below, and
+    // it is the same call the grid makes — nothing leads the first row here, so the count is 0.
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val railTargets = remember(publications, divided) {
+        LibraryRail.itemIndexes(publications = publications, sections = divided, leading = 0)
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -163,8 +188,15 @@ internal fun CoverList(
                 )
                 HorizontalDivider()
             }
-            if (groups.isEmpty()) {
+            if (groups.isEmpty() && divided.isEmpty()) {
                 items(publications, key = { it.id }) { row(it) }
+            } else if (groups.isEmpty()) {
+                for (section in divided) {
+                    stickyHeader(key = "section-${section.id}") {
+                        SectionHeading(section.title, textPadding = StoryArcSpace.gutter)
+                    }
+                    items(section.publications, key = { it.id }) { row(it) }
+                }
             } else {
                 for (group in groups) {
                     item(key = "heading-${group.kind}") {
@@ -188,8 +220,7 @@ internal fun CoverList(
         IndexRail(
             entries = rail,
             onChoose = { entry ->
-                val index = publications.indexOfFirst { it.id == entry.publicationId }
-                if (index >= 0) scope.launch { listState.animateScrollToItem(index) }
+                railTargets[entry.publicationId]?.let { scope.launch { listState.animateScrollToItem(it) } }
             },
             modifier = Modifier.align(Alignment.CenterEnd),
         )
