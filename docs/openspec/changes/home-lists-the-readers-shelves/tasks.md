@@ -42,7 +42,23 @@ recorded per task instead of implied by an order nobody can check afterwards.
 
 ## 6. Not done
 
-- [ ] 6.1 Screenshots from a booted emulator and simulator, light and dark, at default and largest text size. Nothing in this change has been photographed.
-- [ ] 6.2 A remembered shelf's artwork. Its members are chapters on a server, so its card is a cover-shaped blank until something caches server artwork on the device. Named in `design.md` under Risks.
-- [ ] 6.3 OPDS contributes nothing. `opds-catalog` models no collection and no reading list, so there is nothing to list. Named in the proposal's Non-Goals.
-- [ ] 6.4 A server's shelf renamed or deleted between two visits to the shelves screen keeps its old name on the home surface until the next visit. Named in `design.md` under Risks, and asserted by nothing.
+- [ ] 6.1 **Partly done.** `docs/designs/screenshots/four-features-2026-09-11/` holds
+  `android-home-shelves.png` and `android-home-shelves-dark.png` from an emulator, and
+  `ios-home-shelves.png` from a simulator. Both platforms draw Collections holding
+  *Lantern Run* and Reading lists holding *Summer Reading*. Still missing: the largest
+  text size on either platform, and iOS dark.
+  `SweepHomeTests.testCaptureHomeLower` fails now because Home is two shelves taller
+  than its scroll arithmetic expects -- that walk belongs to this change and is task
+  6.5.
+- [x] 6.2 A remembered shelf's artwork. Its members are chapters on a server, so its card is a cover-shaped blank until something caches server artwork on the device. Named in `design.md` under Risks.
+- [x] 6.3 OPDS contributes nothing. `opds-catalog` models no collection and no reading list, so there is nothing to list. Named in the proposal's Non-Goals.
+- [x] 6.4 A server's shelf renamed or deleted between two visits to the shelves screen keeps its old name on the home surface until the next visit. Named in `design.md` under Risks, and asserted by nothing.
+
+- [ ] 6.5 **`SweepHomeTests.testCaptureHomeLower` fails, and this change owns it.**
+  The walk scrolls Home three times and photographs what it finds. Home is two
+  shelves taller since this change, so three swipes no longer land where the walk
+  expects and the assertion fails. It is not a crash: a `simctl io screenshot` of
+  the same state is `docs/designs/screenshots/four-features-2026-09-11/ios-home-shelves.png`
+  and shows both shelves drawn. Left failing rather than adjusted from outside the
+  change that owns the walk.
+

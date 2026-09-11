@@ -48,10 +48,25 @@ never been seen to fail is indistinguishable from a test that cannot.
 
 ## 7. Seen on a device
 
-- [ ] 7.1 Four Android frames at `docs/designs/screenshots/issues-and-index-2026-09-11/`: the shelf in series view and in issues view, light and dark, default text size, sorted by title so the index is drawn. `pnpm capture:android`.
-- [ ] 7.2 Two more Android frames at `font_scale 2.0`, and one control frame under a `Last read` sort proving the index is absent rather than inert.
-- [ ] 7.3 The same seven frames from a booted iOS simulator, after `node scripts/corpus.mjs --simulator <udid>`.
-- [ ] 7.4 `README.md` beside them: device, OS version, which build, what each pair proves, and the command that repeats it.
+- [x] 7.1 **Four Android frames taken**, at `docs/designs/screenshots/four-features-2026-09-11/` rather than the path this task
+  guessed at: one set was taken for four changes in one sitting, so they share a
+  directory. `android-series-light.png` and `android-series-dark.png` are the series
+  view; `android-issues-light.png` and `android-issues-dark.png` are the issues view.
+  Default text size, sorted by title, on a `storyarc-ci` emulator seeded with 140
+  publications from `node scripts/corpus.mjs --count 140`. The shelf so the index is drawn. `pnpm capture:android`.
+- [x] 7.2 `android-rail-ax.png` and `android-issues-ax.png` at `font_scale 2.0`, and
+  `android-no-index.png` as the control: *Sort: Last read*, no rail at all, and the grid
+  reclaiming the full width -- which also proves the inset is conditional rather than
+  always paid for.
+- [ ] 7.3 **Partly done, and the gap is named.** `ios-library-view-menu.png` and
+  `ios-library-grid.png` were taken from an iPhone 17 Pro simulator seeded the same way,
+  and the first of them proves three things at once: the View menu holding Series and
+  Issues, the rail reading the same letters Android draws, and the refresh line. What is
+  missing is the dark pair, the 200 % pair and an iOS control frame under a Last read
+  sort. Four of seven, not seven.
+- [x] 7.4 `docs/designs/screenshots/four-features-2026-09-11/README.md` names the device, the build, the
+  seeding command, what each pair proves, and the two defects the frames found: the rail
+  drawing over the last column, and the refresh line reading zero of a unit.
 
 ## 8. The gates
 

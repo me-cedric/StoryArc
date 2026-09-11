@@ -43,9 +43,19 @@ screenshot task says which device and which appearance it was taken on.
 
 ## 7. Seen on a device
 
-- [ ] 7.1 Screenshot the refreshing line and the checked line on a booted iOS Simulator, light and dark, with the library beside them as the control. **Not done.**
-- [ ] 7.2 The same two lines on an Android emulator, light and dark, at `font_scale 2.0`. **Not done.**
-- [ ] 7.3 A `README.md` beside the frames naming the device, the appearance and what each pair proves. **Not done.**
+- [ ] 7.1 **The checked line only, and light only.** `docs/designs/screenshots/four-features-2026-09-11/ios-library-view-menu.png`
+  carries *Libraries checked 5 seconds ago.* at the foot of the shelf, unstaged. The
+  refreshing line and the dark pair are not photographed: the refreshing line is on
+  screen only while a source is being asked, and this simulator answers from a local
+  server in well under the time a capture takes.
+- [x] 7.2 `docs/designs/screenshots/four-features-2026-09-11/android-refresh-checked.png` and its dark twin, at default text size.
+  The emulator had no remote source until one was added with
+  `node scripts/opds-server.mjs <corpus> --port 4444`, reached at `10.0.2.2` with no
+  credential anywhere. **The frames found a defect**: the line read *0 minutes ago*, then
+  *0 seconds ago*, and now reads *just now*. `font_scale 2.0` is not photographed.
+- [x] 7.3 `docs/designs/screenshots/four-features-2026-09-11/README.md` names the device, the appearance, the server that made a
+  refresh possible, and the three wordings the line went through before it said something
+  true.
 
 ## 8. What is not asserted, and is code either way
 
