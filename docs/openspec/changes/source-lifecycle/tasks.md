@@ -259,6 +259,33 @@ filename so a light and a dark run cannot overwrite each other.
       added. A source holding a finished download is also still owed on both platforms, so
       *Free up space* is offered against a real figure rather than against `0 bytes`.
 - [ ] 4.2 The reconnect sheet reached from a rejected credential, address filled and secret blank
+
+      **The blocker named below is gone, and a defect is in its place.** On 2026-09-11 the
+      refused state was made reachable on a simulator for the first time:
+      `scripts/kavita-server.mjs` added with its own key, then the same corpus served from a
+      copy whose `API_KEY` differs, so the key the app holds is refused with 401 — verified by
+      `curl`, 401 for the stored key and 200 for the rotated one.
+
+      Two frames came of it: `ios-refused-detail-light.png` and `ios-refused-detail-dark.png`
+      in `docs/designs/screenshots/server-shelves-2026-09-10/`. **The reconnect sheet did
+      not**, and the reason is worth more than the frame.
+
+      `RejectedCredentialTests` asks the source to test its connection and polls the Status
+      row. It reaches **Sign-in needed** — that assertion passes, so `reach` does map
+      `KavitaError.keyRejected` to `.unauthorized` and the classifier is right. Seconds later
+      the same screen reads **Status, Not answering**, with *No answer since* stamped at the
+      later minute, and `SourceDiagnosis.of` offers *Reconnect* only for a refused credential.
+      So the row a reader needs exists for a moment and is then taken away.
+
+      What is **not** established, and should not be guessed: which writer replaces it.
+      `probeNetworkSources` calls the same `reach`, and `SourceProbe.state(forStatus:)` maps
+      401 and 403 to `.unauthorized`, so neither of the obvious two explains it. Something
+      else marks the source after the ask settles. Finding it is the next step, and the recipe
+      above reproduces the state in about a minute.
+
+      **A reader's cost, if it is what it looks like:** a revoked key reads as "Not answering"
+      for ever, and the app offers *try again* instead of *sign in*. `sources` separates those
+      two states precisely because "one asks the reader to do something, the other must not".
       **Frames owed: 8** — 4 per platform (light/dark × default/largest). Surface *the add
       sheet re-opened by the source detail screen's `Reconnect` row*; state *address field
       populated, secret field empty, the source's identifier preserved*.
