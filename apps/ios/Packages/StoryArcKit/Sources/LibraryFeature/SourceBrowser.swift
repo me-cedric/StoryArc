@@ -18,6 +18,11 @@ struct SourceBrowser: View {
     let credentials: CredentialStore
     let kavitaProgress: KavitaProgressStore
     let lists: [ServerShelf]
+
+    /// What this source has already contributed to the library, which a Kavita search
+    /// joins its issues from. See ``KavitaIssues``.
+    var publications: [Publication] = []
+
     let onOpen: (Publication, URL) -> Void
 
     /// A term the reader has already typed, for a server that can answer it itself.
@@ -68,6 +73,7 @@ struct SourceBrowser: View {
                 sourceId: page.id,
                 store: kavitaProgress,
                 lists: lists,
+                publications: publications,
                 searching: searching,
                 onOpen: onOpen
             )

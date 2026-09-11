@@ -152,6 +152,8 @@ extension LibraryView {
             credentials: credentials,
             kavitaProgress: kavitaProgress,
             lists: model.serverLists,
+            // This source's own rows, and no other's: a chapter id belongs to one server.
+            publications: model.publications.filter { $0.sourceID == source.id },
             onOpen: onOpen,
             // Carried in so the server is asked the question the reader already typed,
             // rather than being opened at its list of libraries with an empty field.

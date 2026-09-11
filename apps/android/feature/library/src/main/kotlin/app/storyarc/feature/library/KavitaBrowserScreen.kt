@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -87,6 +88,11 @@ fun KavitaBrowserScreen(
     progress: ProgressStore? = null,
     /** This server's own reading lists, which its chapters may be added to. */
     lists: List<ServerList> = emptyList(),
+    /**
+     * What this source has already contributed to the library, which a search joins its
+     * issues from. See `KavitaIssues`.
+     */
+    publications: List<Publication> = emptyList(),
     level: KavitaLevel,
     onLevel: (KavitaLevel) -> Unit,
     /**
@@ -118,6 +124,10 @@ fun KavitaBrowserScreen(
     // One search for the whole server rather than one per level: `kavita-server` asks for a
     // search of the *source*, not of whichever list happens to be on screen.
     val finder = remember(address) { KavitaFinder() }
+    // The other half of the search, given to the finder rather than to every level: all
+    // three levels already share this finder. Written on every applied composition, so the
+    // join stays current as the library reads more of this source.
+    SideEffect { finder.publications = publications }
     var isSearching by remember(address) { mutableStateOf(false) }
     var failure by remember(address) { mutableStateOf<String?>(null) }
 

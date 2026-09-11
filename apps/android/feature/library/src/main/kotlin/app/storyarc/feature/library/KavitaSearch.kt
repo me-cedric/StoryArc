@@ -25,6 +25,7 @@ import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.model.KavitaFind
 import app.storyarc.core.model.KavitaHit
+import app.storyarc.core.model.KavitaIssues
 import app.storyarc.core.model.Publication
 import app.storyarc.core.persistence.DownloadStore
 import app.storyarc.core.persistence.KavitaCardStore
@@ -52,6 +53,16 @@ class KavitaFinder {
     /** What the reader typed. Bound to the search field. */
     var term by mutableStateOf("")
         private set
+
+    /**
+     * What this source has already contributed to the library.
+     *
+     * Search input, like [term]: the server finds a series and almost none of its issues,
+     * so the issues are joined from these. [KavitaIssues] says why the server cannot find
+     * them. Set by the screen that knows the library; every level carries this finder, so
+     * the join reaches all three.
+     */
+    var publications: List<Publication> = emptyList()
 
     /** What the last run found. */
     var hits by mutableStateOf<List<KavitaHit>>(emptyList())
@@ -84,7 +95,10 @@ class KavitaFinder {
         hasAnswered = false
         val answered = runCatching { client.find(wanted) }.getOrNull()
         if (answered != null) {
-            hits = answered
+            // The server's answer, plus the issues of every series in it that the library
+            // holds. Still the server's answer: nothing here comes from the cache, so the
+            // "limited to cached content" sentence stays off.
+            hits = KavitaIssues.joined(answered, publications)
             isCached = false
         } else {
             hits = KavitaFind.inCache(wanted, KavitaCardStore.open(context).all(sourceId))
