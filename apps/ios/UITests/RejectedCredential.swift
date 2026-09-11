@@ -81,7 +81,10 @@ final class RejectedCredentialTests: XCTestCase {
         XCTAssertTrue(
             settledTo.contains("Sign-in needed"),
             """
-            The source never reached `Sign-in needed`. The server refuses the stored key with             401 — verified by curl — and `reach` maps `KavitaError.keyRejected` to             `.unauthorized`, whose status string is `Sign-in needed`. What the screen said             instead: \(settledTo)
+            The source never reached `Sign-in needed`. The server refuses the stored key \
+            with 401, verified by curl, and `reach` maps `KavitaError.keyRejected` to \
+            `.unauthorized`, whose status string is `Sign-in needed`. \
+            What the screen said instead: \(settledTo)
             """
         )
         return app
