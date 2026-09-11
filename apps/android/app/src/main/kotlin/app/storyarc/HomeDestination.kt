@@ -20,11 +20,21 @@ import app.storyarc.core.model.PinnedShelves
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadState
 import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.model.RememberedShelf
+import app.storyarc.core.model.RememberedShelfKind
 import app.storyarc.feature.library.HomeScreen
 import app.storyarc.feature.library.HomeSection
+import app.storyarc.feature.library.HomeShelfDestination
+import app.storyarc.feature.library.HomeShelfIndex
+import app.storyarc.feature.library.HomeShelfListing
+import app.storyarc.feature.library.HomeShelfSummary
 import app.storyarc.feature.library.HomeShelves
 import app.storyarc.feature.library.HomeSurface
+import app.storyarc.feature.library.KavitaPage
+import app.storyarc.feature.library.ServerShelf
 import app.storyarc.navigation.AppSheet
+import app.storyarc.navigation.Screen
+import java.util.UUID
 
 /**
  * The reading room — the surface the app opens on.
@@ -127,6 +137,34 @@ internal fun HomeDestination(host: AppHost) {
         )
     }
 
+    // The reader's shelves, as two shelves of this surface.
+    //
+    // **Read, never asked for.** `home-screen` forbids this surface from reaching a source, so
+    // a server's collection arrives as a `RememberedShelf` -- what that server said the last
+    // time `ShelvesScreen` asked it. `openable` is the filter that keeps a card honest: a
+    // source that has been removed, or has lost its key, cannot be opened, so its remembered
+    // shelves are not named here. Both are the same question, so they are one map.
+    val openable: Map<UUID, String> = remember(registry) {
+        registry.sources
+            .filter { KavitaPage.of(it, host.dependencies.credentials) != null }
+            .associate { it.id to it.displayName }
+    }
+    val remembered = RememberedShelf.of(host.dependencies.libraryPreferences.rememberedShelves())
+    val finished = remember(progress) {
+        progress.filterValues { it.isFinished }.keys
+    }
+
+    val listing: HomeShelfListing = remember(shelves, publications, remembered, openable, finished, pinned) {
+        HomeShelfIndex.assemble(
+            shelves = shelves,
+            publications = publications,
+            remembered = remembered,
+            openableSources = openable,
+            finished = finished,
+            pinned = pinned,
+        )
+    }
+
     // `sources`: the first action opens a comic from the device "with nothing to configure
     // first". Everything, rather than a list of comic types -- a provider resolves `.cbz`
     // through `MimeTypeMap`, which has never heard of it, so a filter naming the comic types
@@ -179,7 +217,57 @@ internal fun HomeDestination(host: AppHost) {
         onAddCatalogue = { host.sheet(AppSheet.AddOnlineLibrary) },
         onAddKavita = { host.sheet(AppSheet.AddKavita) },
         onAddShare = { host.sheet(AppSheet.AddSharedFolder) },
+        shelves = listing,
+        onOpenShelf = { summary -> openShelf(host, summary) },
+        // Not a filtered library, unlike every other heading here: the exhaustive list of
+        // collections is a screen of its own, and it is the only place a shelf is made,
+        // renamed or deleted.
+        onShowAllShelves = { host.navigate { push(Screen.Shelves) } },
     )
+}
+
+/**
+ * What taking a shelf's card does.
+ *
+ * A shelf the reader made opens its own detail screen, as it does from the shelves screen. A
+ * shelf a server defined opens that server's page for it, which is where an unreachable server
+ * is reported -- and reporting it there is what keeps this surface silent about the network.
+ *
+ * A remembered shelf whose source has lost its key is not on this surface at all, so the
+ * fallback is unreachable rather than a silent nothing; it is still written, because a lambda
+ * that cannot fail quietly is worth a line.
+ */
+private fun openShelf(host: AppHost, summary: HomeShelfSummary) {
+    when (val where = summary.destination) {
+        is HomeShelfDestination.OnDevice -> host.navigate {
+            push(
+                if (summary.kind == RememberedShelfKind.READING_LIST) {
+                    Screen.ReadingList(where.id)
+                } else {
+                    Screen.Collection(where.id)
+                },
+            )
+        }
+
+        is HomeShelfDestination.OnServer -> {
+            val source = host.library.registry.value.sources
+                .firstOrNull { it.id == where.shelf.sourceId }
+                ?: return
+            val page = KavitaPage.of(source, host.dependencies.credentials) ?: return
+            host.navigate {
+                push(
+                    Screen.ServerShelfPage(
+                        ServerShelf(
+                            server = page,
+                            id = where.shelf.serverId,
+                            title = where.shelf.title,
+                            isList = where.shelf.kind == RememberedShelfKind.READING_LIST,
+                        ),
+                    ),
+                )
+            }
+        }
+    }
 }
 
 /**

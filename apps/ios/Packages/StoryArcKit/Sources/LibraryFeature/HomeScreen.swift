@@ -63,6 +63,22 @@ public struct HomeScreen: View {
     /// not a field on ``LibraryModel``: see ``PinnedShelves``.
     @AppStorage(PinnedShelves.storageKey) private var pinnedShelves = ""
 
+    /// What each server last said its own collections and reading lists were.
+    ///
+    /// Written by ``ShelvesView`` when a server answers, read here — because this surface may
+    /// not ask one. `home-screen` requires it to render "with the same shelves in the same
+    /// order as when the sources are up", so a Kavita collection can only reach it as a
+    /// memory. See ``RememberedShelf``.
+    @AppStorage(RememberedShelf.storageKey) private var rememberedShelves = ""
+
+    /// The Kavita servers this device can open, by source id.
+    ///
+    /// Read once in `.task` rather than computed: the key comes out of the secure store, and a
+    /// computed property would ask it again on every redraw. It is also the filter that keeps a
+    /// card honest — a source that has been removed or lost its key is not here, so its
+    /// remembered shelves are not listed.
+    @State private var pages: [UUID: KavitaPage] = [:]
+
     public init(
         model: LibraryModel,
         onOpen: @escaping (Publication, URL) -> Void = { _, _ in },
@@ -94,6 +110,21 @@ public struct HomeScreen: View {
 
     private var finished: [HomeShelves.FinishedGroup] {
         HomeShelves.finished(in: model.publications) { model.record(of: $0) }
+    }
+
+    /// The reader's own collections and reading lists, as two shelves.
+    ///
+    /// Assembled from curation this device holds, exactly as the shelves above are assembled
+    /// from history it holds. Nothing here waits for anything — see ``HomeShelfIndex``.
+    private var shelves: HomeShelfListing {
+        HomeShelfIndex.assemble(
+            shelves: model.shelves,
+            publications: model.publications,
+            remembered: RememberedShelf.shelves(stored: rememberedShelves),
+            openableSources: pages.mapValues(\.title),
+            finished: model.finishedPublications,
+            pinned: PinnedShelves(stored: pinnedShelves)
+        )
     }
 
     public var body: some View {
@@ -144,6 +175,10 @@ public struct HomeScreen: View {
             // with no Keep reading and no Up next until the reader visited the library tab,
             // which is precisely the class of bug the shell was built to end.
             .task { await model.refreshProgress() }
+            // Which servers this device can open, read once. Not a request to any of them —
+            // the secure store and the registry are both local, and the shelves listed below
+            // come out of `rememberedShelves` rather than out of a server.
+            .task { pages = KavitaPage.pages(in: model.registry, credentials: CredentialStore()) }
             .onChange(of: model.scanState) { _, state in
                 if case .finished = state { Task { await model.refreshProgress() } }
             }
@@ -164,9 +199,17 @@ public struct HomeScreen: View {
                 if !upNext.isEmpty { upNextSection }
                 if !recentlyAdded.isEmpty { recentlyAddedSection }
 
+                // The index before the expansions: these two name every shelf the reader has,
+                // and the pinned ones below open the contents of a few of them.
+                shelvesSections
+
                 pinnedSections
 
-                shelvesLink
+                // Only when there is nothing to list. With shelves drawn, two headings
+                // already lead there; with none, this row is the only way to make a first
+                // one — and it is a row rather than a heading, so the surface still carries
+                // no heading over a gap.
+                if shelves.isEmpty { shelvesLink }
 
                 if !finished.isEmpty {
                     HomeFinished(groups: finished, model: model)
@@ -223,6 +266,34 @@ public struct HomeScreen: View {
             )
         } content: {
             HomeShelfRow(publications: recentlyAdded, model: model)
+        }
+    }
+
+    /// The reader's collections and reading lists, named rather than opened.
+    ///
+    /// `collections-and-reading-lists`, *Shelves on the home surface*. Two sections and not
+    /// one, because a reading list is ordered and a collection is not — ``HomeShelvesRow``
+    /// says the rest. Each is absent when its half holds nothing.
+    @ViewBuilder
+    private var shelvesSections: some View {
+        let listing = shelves
+        if !listing.collections.isEmpty {
+            HomeShelvesRow(
+                title: "shelves.collections",
+                summaries: listing.collections,
+                model: model,
+                pages: pages,
+                onOpen: onOpen
+            )
+        }
+        if !listing.lists.isEmpty {
+            HomeShelvesRow(
+                title: "shelves.lists",
+                summaries: listing.lists,
+                model: model,
+                pages: pages,
+                onOpen: onOpen
+            )
         }
     }
 

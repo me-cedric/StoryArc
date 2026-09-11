@@ -198,6 +198,17 @@ public struct KavitaPage: Sendable, Identifiable {
     public let title: String
     public let address: KavitaAddress
 
+    /// The three parts, given directly.
+    ///
+    /// Declaring `init?(source:credentials:)` suppresses the memberwise initialiser, and a
+    /// test that needs a page has no `Source` and no keychain to make one out of. Android's
+    /// `KavitaPage` is a data class and has always had this.
+    public init(id: String, title: String, address: KavitaAddress) {
+        self.id = id
+        self.title = title
+        self.address = address
+    }
+
     /// Nil when the source is not a Kavita server, has no address, or has lost its key —
     /// the last of which is what `unauthorized` means and needs the reader to fix.
     public init?(source: Source, credentials: CredentialStore?) {

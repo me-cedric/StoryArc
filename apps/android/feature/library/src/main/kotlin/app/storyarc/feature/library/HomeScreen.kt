@@ -120,6 +120,21 @@ fun HomeScreen(
     onAddCatalogue: () -> Unit,
     onAddKavita: () -> Unit,
     onAddShare: () -> Unit,
+    /**
+     * The reader's own collections and reading lists, as two shelves.
+     *
+     * A second pure value beside [surface] rather than a field inside it, because it answers a
+     * different question: [surface] is assembled from reading *history*, and this is assembled
+     * from *curation* -- a collection the reader made and a shelf a server once named. Both are
+     * local, which is the property `home-screen` insists on; neither waits for anything.
+     *
+     * Empty by default, so a preview and a test that does not care about shelves is unchanged.
+     */
+    shelves: HomeShelfListing = HomeShelfListing(),
+    /** A shelf's card was chosen: that shelf's own screen, local or on its server. */
+    onOpenShelf: (HomeShelfSummary) -> Unit = {},
+    /** Either shelves heading was chosen: the screen that lists every collection and list. */
+    onShowAllShelves: () -> Unit = {},
 ) {
     val palette = LocalStoryArcPalette.current
     // The flexible bar, not the small one all twelve of the app's other bars use. Its large
@@ -207,6 +222,25 @@ fun HomeScreen(
                 cover = cover,
                 onOpen = onOpen,
                 onShowAll = onShowAll,
+            )
+
+            // The index before the expansions: these two name every shelf the reader has, and
+            // the pinned ones below open the contents of a few of them. Above Finished, which
+            // `home-screen` fixes as last on the surface.
+            homeShelvesShelf(
+                heading = R.string.shelves_collections,
+                summaries = shelves.collections,
+                cover = cover,
+                onOpenShelf = onOpenShelf,
+                onShowAll = onShowAllShelves,
+            )
+
+            homeShelvesShelf(
+                heading = R.string.shelves_lists,
+                summaries = shelves.lists,
+                cover = cover,
+                onOpenShelf = onOpenShelf,
+                onShowAll = onShowAllShelves,
             )
 
             pinnedShelves(surface, cover, onOpen)
@@ -414,7 +448,7 @@ private fun LazyListScope.finished(
  * a 24 dp glyph is not a touch target, and Material's minimum is 48.
  */
 @Composable
-private fun HomeHeading(text: Int, onShowAll: () -> Unit) {
+internal fun HomeHeading(text: Int, onShowAll: () -> Unit) {
     val palette = LocalStoryArcPalette.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
