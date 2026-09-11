@@ -120,4 +120,30 @@ struct LibraryRailTests {
 
         #expect(entries.map(\.label) == ["I", "Z"])
     }
+
+    /// The index jumps to a row, and headings change what the shelf draws around that row.
+    ///
+    /// The list layout divides now — ``LibrarySections/divide(_:by:columns:locale:)`` at one
+    /// column — so the rows the rail addresses sit inside sections. Two things have to hold
+    /// for a letter to land where it says: the sections are contiguous runs of the same
+    /// arranged shelf, so no row moves, and the first row of the section headed by a letter
+    /// is the row the rail points at. A regrouping, or an entry pointing at a row in the
+    /// middle of its section, would scroll the reader somewhere they did not ask for.
+    @Test("With the headings drawn, a letter still jumps to the first row filed under it")
+    func jumpTargetsSurviveTheHeadings() {
+        let shelf = Array("ABCDEFGHIJKLMNOPQRSTUVWXY").enumerated().flatMap { index, letter in
+            (1...(index < 22 ? 2 : 1)).map { issue("\(letter)shfall \($0)") }
+        }
+        let english = Locale(identifier: "en")
+        let sections = LibrarySections.divide(shelf, by: .title, columns: 1, locale: english)
+        let entries = LibraryRail.of(shelf, sort: .title, locale: english)
+
+        #expect(shelf.count == 47)
+        #expect(sections.count == 25, "the list divides this shelf")
+        #expect(entries.map(\.label) == sections.map(\.title))
+        for (entry, section) in zip(entries, sections) {
+            #expect(entry.publicationID == section.publications.first?.id)
+        }
+        #expect(sections.flatMap(\.publications).map(\.id) == shelf.map(\.id), "a row moved")
+    }
 }

@@ -82,6 +82,13 @@ extension LibraryView {
     /// Never while a search is running: the results are already grouped by why they matched,
     /// and a second set of headings cutting across the first would be two answers to one
     /// question.
+    ///
+    /// Both layouts, and that is the fix rather than a tidy-up. `library-browsing` divides
+    /// "the library", not the grid, and this read `.grid` at the branch below — so a reader
+    /// in the list layout scrolled two hundred rows with no heading anywhere. The layout
+    /// decides only *how many columns a heading has to earn*, which is
+    /// ``LibrarySections/divide(_:by:columns:locale:)``'s last refusal: three in the grid,
+    /// one in the list, where a heading costs a single row.
     var sections: [LibrarySection] {
         guard surface == .shelf, model.matchGroups.isEmpty,
               shelved.count > LibrarySections.threshold
@@ -90,7 +97,12 @@ extension LibraryView {
         // is the initial of the sort key, and which article the sort key drops is a fact about
         // the reader's language — so a heading read in the device's would name a letter the
         // shelf did not sort on.
-        return LibrarySections.divide(shelved, by: model.query.sort, locale: .storyArc)
+        return LibrarySections.divide(
+            shelved,
+            by: model.query.sort,
+            columns: model.layout == .list ? 1 : LibrarySections.coversPerRow,
+            locale: .storyArc
+        )
     }
 
     /// The letters this shelf can be jumped to by, or nothing at all.
@@ -231,6 +243,10 @@ extension LibraryView {
                     CoverList(
                         publications: shelved,
                         groups: model.matchGroups,
+                        // The same headings the grid draws, divided at one column. The list
+                        // used to be handed none, so `library-browsing`'s *Sectioning a long
+                        // library* held in one layout and not the other.
+                        sections: sections,
                         model: model,
                         selection: selection.isActive ? selection.ids : nil,
                         onToggle: { selection.toggle($0.id) },

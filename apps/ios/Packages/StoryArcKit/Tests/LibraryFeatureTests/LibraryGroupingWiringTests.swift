@@ -48,6 +48,21 @@ struct LibraryGroupingWiringTests {
         #expect(content.contains("scroller.scrollTo(entry.publicationID, anchor: .top)"))
     }
 
+    /// The second parity this file guards. The shelf divided in the grid and in no other
+    /// layout, at any length, and `library-browsing`'s *Sectioning a long library* divides
+    /// "the library" rather than the grid. The layout decides the column count and nothing
+    /// else: three in the grid, one in the list, where a heading costs a single row.
+    @Test("The compact list is handed the same headings, divided at one column")
+    func listTakesTheSections() {
+        #expect(content.contains("columns: model.layout == .list ? 1 : LibrarySections.coversPerRow"))
+        #expect(
+            content.components(separatedBy: "sections: sections").count == 3,
+            "the sectioned grid and the list both, and nothing else"
+        )
+        #expect(list.contains("var sections: [LibrarySection] = []"))
+        #expect(list.contains("ForEach(sections) { section in"))
+    }
+
     /// `library-browsing` asks for the choice inside the menu that holds the other view
     /// choices, and asks it to read as a grouping rather than as a sort.
     @Test("The choice is a named picker in the view menu")

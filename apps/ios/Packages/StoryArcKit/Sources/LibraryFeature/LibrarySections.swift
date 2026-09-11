@@ -43,6 +43,13 @@ enum LibrarySections {
     /// caller draws one uniform run, which is what the requirement's *when* clause asks for.
     static let threshold = 12
 
+    /// How many covers a phone shows across, and so the grid's own answer to ``divide``'s
+    /// `columns`.
+    ///
+    /// Above ``divide`` rather than below it, as Android's `COVERS_PER_ROW` sits above its
+    /// own `divide`, and internal rather than private so the default argument can name it.
+    static let coversPerRow = 3
+
     /// The shelf, divided — or nothing at all when it divides into nothing.
     ///
     /// An empty result is a real answer, and the caller draws the plain grid then. Two cases
@@ -50,6 +57,11 @@ enum LibrarySections {
     /// all continuous, and a heading over a continuum is an invented boundary), and a shelf
     /// whose every publication lands in one section, where a single heading over the whole
     /// grid would be a label rather than a structure.
+    /// - Parameter columns: how many cells the layout shows across. The last refusal below
+    ///   is about columns and nothing else, so the layout states its own count: the grid
+    ///   passes ``coversPerRow``, which is the default and its behaviour unchanged, and the
+    ///   list passes 1. A heading in a list costs one row and wastes none, so a list divides
+    ///   a shelf the grid refuses to divide.
     /// - Parameter locale: the language whose alphabet the headings are read in. The
     ///   reader's, from the one caller that draws a shelf; the process's by default, the way
     ///   ``StoryArcCore/LibraryIndex/arrange(_:query:locale:progress:)`` defaults, so a caller
@@ -57,6 +69,7 @@ enum LibrarySections {
     static func divide(
         _ publications: [Publication],
         by sort: LibrarySort,
+        columns: Int = coversPerRow,
         locale: Locale = .current
     ) -> [LibrarySection] {
         guard !publications.isEmpty else { return [] }
@@ -88,20 +101,21 @@ enum LibrarySections {
         // left to be demoted to, the division misdescribes the shelf, and no division is the
         // honest answer.
         guard Set(sections.map(\.title)).count == sections.count else { return [] }
-        // And a heading has to earn its row. A phone shows three covers across, so a
-        // division averaging fewer than three per heading costs more vertical space in
-        // headings and part-empty rows than the covers it introduces — one dense grid
-        // becomes a tall column of announcements. That was not a hypothesis: the test
-        // corpus, twenty-two unrelated files with a distinct initial each, drew exactly
-        // that on a booted simulator, and it reads worse than the wall it replaced, which
-        // is the failure this whole requirement exists to fix, arrived at from the other
-        // side.
-        guard publications.count >= sections.count * Self.coversPerRow else { return [] }
+        // And a heading has to earn its row. In a grid of three columns, a division
+        // averaging fewer than three per heading costs more vertical space in headings and
+        // part-empty rows than the covers it introduces — one dense grid becomes a tall
+        // column of announcements. That was not a hypothesis: the test corpus, twenty-two
+        // unrelated files with a distinct initial each, drew exactly that on a booted
+        // simulator, and it reads worse than the wall it replaced, which is the failure this
+        // whole requirement exists to fix, arrived at from the other side.
+        //
+        // The cost is the part-empty row, so the count is the column count. A list has one
+        // column: a heading there costs one row and leaves nothing part-empty, so the same
+        // shelf that the grid refuses divides in the list. That is why this reads `columns`
+        // and not a constant.
+        guard publications.count >= sections.count * columns else { return [] }
         return sections
     }
-
-    /// How many covers a phone shows across, and so the least a heading may cover.
-    private static let coversPerRow = 3
 
     /// The shelf cut wherever the key changes, in the order it arrived.
     private static func runs(
