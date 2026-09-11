@@ -147,7 +147,7 @@
     <string name="sources_rename_action">Rename %1$s</string>
     <string name="downloads_none">Nothing is downloaded. A book you open from an online library is kept on this device.</string>
     <string name="downloads_imported">Imported copies</string>
-    <string name="downloads_total">Space used</string>
+    <string name="downloads_total">Space used by downloads</string>
     <string name="downloads_pending">In progress</string>
     <string name="downloads_on_device">On this device</string>
     <string name="downloads_remove">Remove download</string>
@@ -180,7 +180,7 @@
     <string name="downloads_move_later">Move “%1$s” later</string>
     <string name="downloads_remove_body_imported">This deletes the copy of %1$s that StoryArc keeps, freeing %2$s. The original file elsewhere on your device is not touched.</string>
 
-    <string name="downloads_manage_in_destination">Everything on this device, and anything still arriving, is in Downloads.</string>
+    <string name="downloads_manage_in_destination">This counts what StoryArc downloaded or imported. A folder you added is readable without a network too, and its files are not counted here. Everything on this device, and anything still arriving, is in Downloads.</string>
 
     <!-- What's new. Shown once after an update, and reachable from About afterwards. -->
     <string name="whats_new_title">What\u2019s New in StoryArc</string>
@@ -200,7 +200,10 @@
     <!-- The app icon a reader chooses. Five faces of one mark, drawn by five launcher
          components with exactly one enabled — see `AppIconAliases`. The note is Android's
          own: this platform has no way to change an icon in place, and `settings-and-about`
-         asks the reader to be told rather than left wondering. -->
+         asks the reader to be told rather than left wondering. iOS confirms an icon change
+         itself and says so in `appIcon.note`. Each platform states what its own system does,
+         so the difference is deliberate, and `localization` / One state, one name calls a
+         platform's own behaviour no divergence. -->
     <string name="app_icon_title">App icon</string>
     <string name="app_icon_note">Five faces of one mark. Your launcher shows the new icon the next time it draws its list.</string>
     <string name="app_icon_default">Default</string>

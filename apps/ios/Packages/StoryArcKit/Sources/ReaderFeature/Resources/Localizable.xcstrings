@@ -2506,31 +2506,31 @@
       }
     },
     "reader.transition": {
-      "comment": "Names the page-transition row in the reader's menu.",
+      "comment": "Names the page-transition row in the reader's menu. The same words as the EPUB reader's `theme.pageTurn` row and as Android's `reader_transition`: one state, one name.",
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Übergang"
+            "value": "Seitenwechsel"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Transition"
+            "value": "Page turn"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Transición"
+            "value": "Cambio de página"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Transition"
+            "value": "Tourne de page"
           }
         }
       }
@@ -2623,6 +2623,7 @@
       }
     },
     "reader.transition.reduceMotion": {
+      "comment": "Android says \"Unavailable while your system is set to remove animations.\" Each platform names its own setting: iOS calls it Reduce Motion, Android calls it Remove animations. The difference is deliberate, and `localization` / One state, one name calls a platform's own setting name no divergence.",
       "extractionState": "manual",
       "localizations": {
         "de": {

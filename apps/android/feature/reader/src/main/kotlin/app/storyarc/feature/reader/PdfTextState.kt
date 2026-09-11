@@ -1,12 +1,15 @@
 package app.storyarc.feature.reader
 
+import android.content.ContentResolver
 import app.storyarc.core.format.PdfLocator
 import app.storyarc.core.format.PdfTextPoint
 import app.storyarc.core.format.PdfTextReading
 import app.storyarc.core.format.PdfTextSearch
 import app.storyarc.core.format.PdfTextSelection
+import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.model.Annotation
 import app.storyarc.core.model.HighlightColour
+import app.storyarc.core.model.Publication
 import app.storyarc.core.model.SearchMatch
 import app.storyarc.core.persistence.AnnotationStore
 import kotlinx.coroutines.Dispatchers
@@ -239,5 +242,48 @@ internal class PdfTextState(
 
     fun close() {
         reader.close()
+    }
+
+    internal companion object {
+
+        /**
+         * Opens the same PDF a second time, for its text, and answers null for a scan.
+         *
+         * A second handle rather than a second use of the first: the renderer permits one open
+         * page at a time, and a selection that waited behind a page render would arrive after
+         * the finger had moved. Probing for a text layer opens pages, so it happens off the
+         * main thread.
+         *
+         * Closed again the moment it turns out to have nothing to say. A scan opens, is asked,
+         * and is let go before the reader has drawn a page.
+         *
+         * Here rather than on [ReaderViewModel], where it was until `ReaderViewModel.kt` needed
+         * the room, and iOS builds its `PdfTextModel` outside its reader model too — in
+         * `PdfTextControls.swift`.
+         */
+        suspend fun opened(
+            resolver: ContentResolver,
+            path: String,
+            store: AnnotationStore?,
+            publication: Publication,
+            pageCount: Int,
+        ): PdfTextState? {
+            val reader = withContext(Dispatchers.IO) {
+                val opened = PublicationAccess.openPdfText(resolver, path) ?: return@withContext null
+                if (opened.hasTextLayer) {
+                    opened
+                } else {
+                    opened.close()
+                    null
+                }
+            } ?: return null
+            return PdfTextState(
+                reader = reader,
+                store = store,
+                publication = publication.identity.stableId,
+                title = publication.displayTitle,
+                pageCount = pageCount,
+            ).also { it.load() }
+        }
     }
 }

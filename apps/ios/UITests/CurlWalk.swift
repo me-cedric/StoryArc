@@ -82,7 +82,7 @@ final class CurlWalkTests: XCTestCase {
     private func openCurlingComic(in app: XCUIApplication) throws {
         try openPublication(named: "Fine Print", in: app)
         try openReaderMenu(in: app)
-        try XCTUnwrap(hittableRow("Transition", in: app), "The menu offers no Transition row.")
+        try XCTUnwrap(hittableRow("Page turn", in: app), "The menu offers no Page turn row.")
             .tap()
         // Asked of any descendant rather than of `buttons`, for the reason the sweep's own
         // transition walk gives: what the platform calls a menu row is not this file's

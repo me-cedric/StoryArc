@@ -34,6 +34,10 @@
     <string name="reader_transition_fade">Fast fade</string>
     <string name="reader_transition_scroll_vertical">Scroll, vertical</string>
     <string name="reader_transition_scroll_horizontal">Scroll, horizontal</string>
+    <!-- iOS says "Unavailable while Reduce Motion is on." Each platform names its own
+         setting: iOS calls it Reduce Motion, Android calls it Remove animations. The
+         difference is deliberate, and `localization` / One state, one name calls a
+         platform's own setting name no divergence. -->
     <string name="reader_transition_reduce_motion">Unavailable while your system is set to remove animations.</string>
     <string name="reader_transition_no_curl">Curl is not offered here: this device cannot draw it smoothly enough to be worth it.</string>
     <string name="reader_transition_reflowable">Not available for books whose text resizes.</string>
@@ -45,9 +49,12 @@
          repair.
          The reader used to be shown the exception's own message, which is English prose
          written for a maintainer and says things like "no file descriptor for
-         content://…" and "page has no size". That detail is now dropped rather than
-         moved: the diagnostic export does not carry it and the app writes no log.
-         `ReaderFailureSaysNothingInternalTest` fails if the message comes back. -->
+         content://…" and "page has no size". That detail moved rather than went: the
+         catch writes it to `logcat` under the tag `StoryArcReader`, which
+         `adb logcat -s StoryArcReader` reads and no reader sees. The diagnostic export
+         still does not carry it.
+         `ReaderFailureSaysNothingInternalTest` fails if the message comes back to the
+         screen, and if a catch stops recording it. -->
     <string name="reader_cannot_open">StoryArc could not open this book.</string>
     <string name="reader_offline_brief">Waiting for the network…</string>
     <string name="reader_offline_long">This comic is in a shared folder that cannot be reached. Pages already read are still here.</string>

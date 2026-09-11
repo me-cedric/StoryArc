@@ -2,13 +2,13 @@
 <resources>
     <string name="app_name">StoryArc</string>
     <string name="open_in_refused_title">Cannot open this file</string>
-    <string name="open_in_unsupported">%1$s is a %2$s file, which StoryArc does not read. It reads CBZ, CBR, CBT, EPUB, PDF and audiobooks.</string>
-    <string name="open_in_unreadable">%1$s is not a file StoryArc recognises. It reads CBZ, CBR, CBT, EPUB, PDF and audiobooks.</string>
+    <string name="open_in_unsupported">%1$s is a %2$s file, which StoryArc does not read. It reads CBZ, CBR, CBT, EPUB, PDF, M4B and other audiobooks.</string>
+    <string name="open_in_unreadable">%1$s is not a file StoryArc recognises. It reads CBZ, CBR, CBT, EPUB, PDF, M4B and other audiobooks.</string>
     <!-- Deliberately offers nothing to fill in. `publication-formats`: the app "does not
          prompt for a key, an account or an activation code, and does not suggest a way
          around the protection". Saying there is nothing to enter is what stops a reader
          waiting for a field that is never coming. -->
-    <string name="open_in_protected">%1$s is protected by its store\'s content protection, and StoryArc cannot open it. StoryArc does not remove content protection, so there is nothing to enter here.</string>
+    <string name="open_in_protected">%1$s is protected by its store\'s content protection, so StoryArc cannot open it. StoryArc does not remove content protection, so there is nothing to enter here.</string>
     <string name="open_in_dismiss">OK</string>
     <!-- The name used when the provider offers no name and the Uri has no last segment.
          It is interpolated into the three sentences above, so it is written to read inside
@@ -54,7 +54,7 @@
     <string name="player_chapter_left">%1$s · %2$s left</string>
     <string name="player_speed">Speed %1$s</string>
     <string name="player_nothing_playing">Nothing is playing.</string>
-    <string name="player_back">Go back</string>
+    <string name="player_back">Back to the book</string>
     <!-- Stated in the player's own controls, never as an interruption. -->
     <plurals name="player_skipped_parts">
         <item quantity="one">%1$d part could not be played</item>
@@ -98,7 +98,7 @@
 
     <!-- The downloads destination speaks the vocabulary the settings screen used to. Same
          words, same four languages; only the module they are drawn from changed. -->
-    <string name="downloads_total">Space used</string>
+    <string name="downloads_total">Space used by downloads</string>
     <string name="downloads_stop">Stop</string>
     <string name="downloads_remove">Remove download</string>
     <string name="downloads_cancel">Cancel</string>
