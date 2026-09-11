@@ -24,7 +24,24 @@ extension LibraryModel {
     ///
     /// One request each, on appearance. Cheap enough to repeat and honest enough to trust:
     /// a state older than the last time the library was on screen is a claim about the past.
-    func probeNetworkSources(credentials: CredentialStore?, pins: CertificatePins) async {
+    ///
+    /// **It says that it is running now**, which `sources`' *Refresh visibility* requires and
+    /// which nothing here did: a refresh the reader did not ask for drew nothing at all, on
+    /// four of the five occasions one starts. ``LibraryModel/refreshing`` is that statement,
+    /// and the origin is what keeps it to one statement per refresh — a pull already has the
+    /// platform's spinner, so the strip stays quiet for it.
+    ///
+    /// - Parameter origin: who asked. `.automatic` unless a gesture says otherwise, because
+    ///   four of the five occasions have no gesture behind them.
+    func probeNetworkSources(
+        credentials: CredentialStore?,
+        pins: CertificatePins,
+        origin: SourceRefreshOrigin = .automatic
+    ) async {
+        refreshing = origin
+        // Cleared however this returns, cancellation included. A flag left standing would
+        // leave the strip claiming a refresh that stopped when the library went away.
+        defer { refreshing = nil }
         for source in registry.sources
         where source.kind == .opdsCatalog
             || source.kind == .kavitaServer
@@ -307,9 +324,13 @@ extension LibraryModel {
     /// The pair rather than the probe alone, so a screen that wants the truth about the
     /// registry cannot get half of it by calling the obvious one. `sources` asks for health
     /// to be *shown*; a screen that shows it has to be a screen that asked.
-    func resolveSources(credentials: CredentialStore?, pins: CertificatePins) async {
+    func resolveSources(
+        credentials: CredentialStore?,
+        pins: CertificatePins,
+        origin: SourceRefreshOrigin = .automatic
+    ) async {
         resolveLocalSources()
-        await probeNetworkSources(credentials: credentials, pins: pins)
+        await probeNetworkSources(credentials: credentials, pins: pins, origin: origin)
     }
 }
 

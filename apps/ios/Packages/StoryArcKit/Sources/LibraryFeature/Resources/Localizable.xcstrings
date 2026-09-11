@@ -4987,6 +4987,35 @@
         }
       }
     },
+    "library.checked %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bibliotheken %@ geprüft."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Libraries checked %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bibliotecas comprobadas %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bibliothèques vérifiées %@."
+          }
+        }
+      }
+    },
     "library.continueReading": {
       "extractionState": "manual",
       "localizations": {
@@ -6311,6 +6340,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Non lu"
+          }
+        }
+      }
+    },
+    "library.refreshing": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihre Bibliotheken werden auf Änderungen geprüft."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking your libraries for changes."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscando cambios en tus bibliotecas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vérification des changements dans vos bibliothèques."
           }
         }
       }

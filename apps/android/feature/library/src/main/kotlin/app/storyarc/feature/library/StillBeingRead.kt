@@ -13,6 +13,7 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
+import app.storyarc.core.model.SourceRegistry
 
 /**
  * How many sources have not put anything on the shelf yet.
@@ -80,15 +81,37 @@ internal fun StillBeingReadNotice(
  * showing what it had while it waits, and the second line is the more useful of the two --
  * it is about now, where the first is about the last time anything was.
  */
+/**
+ * The one line the shelf's notice strip has to say about its sources.
+ *
+ * Which one is [LibraryNotice]'s answer, where the ranking is written down and a test can
+ * reach it. It used to be the `if/else` that stood here, which is how the strip came to have
+ * no way of saying that a refresh nobody pulled was running — the gap `sources`' *Refresh
+ * visibility* was written for. iOS's `LibraryBottomBar` draws the same four.
+ *
+ * The moment the sources were last checked is read off the registry rather than held
+ * separately, so this line and the source detail screen's *Last sync* row cannot disagree.
+ */
 @Composable
 internal fun LibraryNotices(
     cachedAtEpochMillis: Long?,
-    sources: List<Source>,
+    refreshing: SourceRefreshOrigin?,
+    registry: SourceRegistry,
     publications: List<Publication>,
 ) {
-    if (sourcesStillBeingRead(sources, publications) > 0) {
-        StillBeingReadNotice(sources, publications)
-    } else {
-        cachedAtEpochMillis?.let { CachedNotice(it) }
+    val notice = LibraryNotice.of(
+        refreshing = refreshing,
+        waiting = sourcesStillBeingRead(registry.sources, publications),
+        cachedAtEpochMillis = cachedAtEpochMillis,
+        checkedAtEpochMillis = registry.sources
+            .mapNotNull { it.lastSuccessfulSyncEpochMillis }
+            .maxOrNull(),
+    )
+    when (notice) {
+        is LibraryNotice.StillBeingRead -> StillBeingReadNotice(registry.sources, publications)
+        is LibraryNotice.Cached -> CachedNotice(notice.atEpochMillis)
+        LibraryNotice.Refreshing -> RefreshingNotice()
+        is LibraryNotice.Checked -> CheckedNotice(notice.atEpochMillis)
+        LibraryNotice.Nothing -> Unit
     }
 }

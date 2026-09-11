@@ -113,7 +113,7 @@ private fun LibraryDestination(host: AppHost) {
         onAddCatalogue = { host.sheet(AppSheet.AddOnlineLibrary) },
         onAddKavita = { host.sheet(AppSheet.AddKavita) },
         onAddShare = { host.sheet(AppSheet.AddSharedFolder) },
-        onProbeSources = {
+        onProbeSources = { origin ->
             // Asks every source once and then keeps asking while anything is away, per
             // `sources`' backoff. Stopped when the library leaves the screen, which is when
             // nobody is looking at the answer.
@@ -124,6 +124,10 @@ private fun LibraryDestination(host: AppHost) {
                 // recovery must not "interrupt reading", and the loop used to run straight
                 // through a chapter — every 5 s, then every 10, up to every 5 minutes.
                 isReading = host.isReading,
+                // Who asked, so the pull indicator can follow a pull that walks no folder
+                // and the shelf's strip can stay quiet for it. Only the first probe of the
+                // loop carries it; every later one is the backoff.
+                origin = origin,
             )
         },
         onMark = { publication, isRead ->

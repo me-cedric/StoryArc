@@ -112,9 +112,35 @@ data class SourceRegistry(
      * State is deliberately not persisted — it describes a network, and a state read back
      * from disk is a claim about the past. So something has to set it after a launch, and
      * this is what that something calls.
+     *
+     * **A source that answers records the moment it answered**, which is the whole of
+     * `sources`' *A refresh that finished*. Until this line `lastSuccessfulSyncEpochMillis`
+     * was written nowhere on Android at all, so the source detail screen's *Last sync* row
+     * read *Never* for ever and a refresh that succeeded could not be told from one that
+     * never ran. It is the timestamp rather than a transient message because a message a
+     * reader looks away from says nothing at all.
+     *
+     * A refusal keeps the moment the source already had. That is the difference between a
+     * source that has never answered and one that answered yesterday, and both of those are
+     * things the detail screen has to be able to say.
+     *
+     * @param at when this answer arrived. Explicit so a test can pin it; the registry reads
+     *   no clock anywhere else. iOS's `marking(_:as:at:)` takes it the same way.
      */
-    fun marking(id: UUID, state: SourceConnectionState): SourceRegistry =
-        copy(sources = sources.map { if (it.id == id) it.copy(state = state) else it })
+    fun marking(
+        id: UUID,
+        state: SourceConnectionState,
+        at: Long = System.currentTimeMillis(),
+    ): SourceRegistry = copy(
+        sources = sources.map {
+            when {
+                it.id != id -> it
+                state is SourceConnectionState.Connected ->
+                    it.copy(state = state, lastSuccessfulSyncEpochMillis = at)
+                else -> it.copy(state = state)
+            }
+        },
+    )
 
     /**
      * Drops a source outright, leaving no tombstone.

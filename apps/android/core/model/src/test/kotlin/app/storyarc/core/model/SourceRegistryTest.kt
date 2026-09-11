@@ -251,4 +251,87 @@ class SourceRegistryTest {
     fun `an empty registry knows nothing`() {
         assertNull(SourceRegistry()[UUID.randomUUID()])
     }
+
+    // When a source last answered. `sources`' *A refresh that finished*.
+
+    @Test
+    fun `a source that answers records the moment it answered`() {
+        val server = source("Kavita", kind = SourceKind.KAVITA_SERVER)
+        val registry = SourceRegistry().adding(server)
+
+        val after = registry.marking(server.id, SourceConnectionState.Connected, at = 9_000L)
+
+        assertEquals(9_000L, after[server.id]?.lastSuccessfulSyncEpochMillis)
+    }
+
+    @Test
+    fun `a later answer restates the moment, so the detail screen is never one refresh behind`() {
+        val server = source("Kavita", kind = SourceKind.KAVITA_SERVER)
+        val registry = SourceRegistry().adding(server)
+            .marking(server.id, SourceConnectionState.Connected, at = 9_000L)
+
+        val after = registry.marking(server.id, SourceConnectionState.Connected, at = 20_000L)
+
+        assertEquals(20_000L, after[server.id]?.lastSuccessfulSyncEpochMillis)
+    }
+
+    @Test
+    fun `a source that is being asked does not count as having answered`() {
+        val server = source("Kavita", kind = SourceKind.KAVITA_SERVER)
+        val registry = SourceRegistry().adding(server)
+
+        val after = registry.marking(server.id, SourceConnectionState.Connecting, at = 9_000L)
+
+        assertNull(after[server.id]?.lastSuccessfulSyncEpochMillis)
+    }
+
+    @Test
+    fun `a refusal keeps the moment the source already had`() {
+        // The difference between a source that has never answered and one that answered
+        // yesterday. Both are things the source detail screen has to be able to say.
+        val server = source("Kavita", kind = SourceKind.KAVITA_SERVER)
+        val registry = SourceRegistry().adding(server)
+            .marking(server.id, SourceConnectionState.Connected, at = 9_000L)
+
+        val unreachable = registry.marking(
+            server.id,
+            SourceConnectionState.Unreachable(20_000L),
+            at = 20_000L,
+        )
+        val unauthorized = registry.marking(
+            server.id,
+            SourceConnectionState.Unauthorized("refused"),
+            at = 20_000L,
+        )
+
+        assertEquals(9_000L, unreachable[server.id]?.lastSuccessfulSyncEpochMillis)
+        assertEquals(9_000L, unauthorized[server.id]?.lastSuccessfulSyncEpochMillis)
+    }
+
+    @Test
+    fun `a source that has never answered and then fails has no moment at all`() {
+        val server = source("Kavita", kind = SourceKind.KAVITA_SERVER)
+        val registry = SourceRegistry().adding(server)
+
+        val after = registry.marking(
+            server.id,
+            SourceConnectionState.Unreachable(20_000L),
+            at = 20_000L,
+        )
+
+        assertNull(after[server.id]?.lastSuccessfulSyncEpochMillis)
+    }
+
+    @Test
+    fun `marking one source leaves every other source's moment alone`() {
+        val server = source("Kavita", kind = SourceKind.KAVITA_SERVER)
+        val share = source("Attic NAS", kind = SourceKind.NETWORK_SHARE)
+        val registry = SourceRegistry().adding(server).adding(share)
+            .marking(share.id, SourceConnectionState.Connected, at = 5_000L)
+
+        val after = registry.marking(server.id, SourceConnectionState.Connected, at = 9_000L)
+
+        assertEquals(5_000L, after[share.id]?.lastSuccessfulSyncEpochMillis)
+        assertEquals(9_000L, after[server.id]?.lastSuccessfulSyncEpochMillis)
+    }
 }

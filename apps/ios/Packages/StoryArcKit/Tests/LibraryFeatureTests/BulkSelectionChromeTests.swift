@@ -39,6 +39,10 @@ struct BulkSelectionChromeTests {
     // file crossed SwiftLint's 400-line cap, because a second suite now reads them too.
 
     private static let view = LibraryFeatureSource.code(of: "Sources/LibraryFeature/LibraryView.swift")
+    /// Where the bottom bar's branches live. They left `LibraryView.swift` when
+    /// `sources`' *Refresh visibility* added a fourth notice and that file reached its cap.
+    private static let bottomBar =
+        LibraryFeatureSource.code(of: "Sources/LibraryFeature/LibraryBottomBar.swift")
     private static let toolbar = LibraryFeatureSource.code(of: "Sources/LibraryFeature/LibraryToolbar.swift")
     private static let bar = LibraryFeatureSource.code(of: "Sources/LibraryFeature/BulkActionBar.swift")
     private static let shelfActions = LibraryFeatureSource.code(of: "Sources/LibraryFeature/ShelfBulkActions.swift")
@@ -98,9 +102,11 @@ struct BulkSelectionChromeTests {
             """
         )
 
-        // The bar itself is up on the same condition, so the two cannot come apart.
+        // The bar itself is up on the same condition, so the two cannot come apart. Read
+        // from `LibraryBottomBar.swift`, which is where the branch went when it was
+        // extracted; the condition is the assertion, not the file it sits in.
         #expect(
-            Self.view.contains("if selection.isActive {"),
+            Self.bottomBar.contains("if selection.isActive {"),
             "the actions are shown on some other condition than the one hiding the tab bar"
         )
     }

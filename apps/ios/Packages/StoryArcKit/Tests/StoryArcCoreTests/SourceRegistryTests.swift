@@ -231,4 +231,87 @@ struct SourceRegistryTests {
 
         #expect(registry.removing(UUID(), at: Date()) == registry)
     }
+
+    // MARK: - When a source last answered
+
+    // `sources`' *A refresh that finished*. Android's `SourceRegistryTest` holds the
+    // same six cases.
+
+    private static let answered = Date(timeIntervalSince1970: 9_000)
+    private static let later = Date(timeIntervalSince1970: 20_000)
+
+    @Test("A source that answers records the moment it answered")
+    func connectedStampsTheMoment() {
+        let server = source("Kavita", kind: .kavitaServer)
+        let registry = SourceRegistry().adding(server)
+
+        let after = registry.marking(server.id, as: .connected, at: Self.answered)
+
+        #expect(after[server.id]?.lastSuccessfulSync == Self.answered)
+    }
+
+    @Test("A later answer restates the moment, so the detail screen is never one refresh behind")
+    func aLaterAnswerMovesTheMoment() {
+        let server = source("Kavita", kind: .kavitaServer)
+        let registry = SourceRegistry().adding(server)
+            .marking(server.id, as: .connected, at: Self.answered)
+
+        let after = registry.marking(server.id, as: .connected, at: Self.later)
+
+        #expect(after[server.id]?.lastSuccessfulSync == Self.later)
+    }
+
+    @Test("A source that is being asked does not count as having answered")
+    func connectingStampsNothing() {
+        let server = source("Kavita", kind: .kavitaServer)
+        let registry = SourceRegistry().adding(server)
+
+        let after = registry.marking(server.id, as: .connecting, at: Self.answered)
+
+        #expect(after[server.id]?.lastSuccessfulSync == nil)
+    }
+
+    @Test("A refusal keeps the moment the source already had")
+    func aRefusalKeepsTheOldMoment() {
+        // The difference between a source that has never answered and one that answered
+        // yesterday. Both are things the source detail screen has to be able to say.
+        let server = source("Kavita", kind: .kavitaServer)
+        let registry = SourceRegistry().adding(server)
+            .marking(server.id, as: .connected, at: Self.answered)
+
+        let unreachable = registry.marking(
+            server.id, as: .unreachable(since: Self.later), at: Self.later
+        )
+        let unauthorized = registry.marking(
+            server.id, as: .unauthorized(reason: "refused"), at: Self.later
+        )
+
+        #expect(unreachable[server.id]?.lastSuccessfulSync == Self.answered)
+        #expect(unauthorized[server.id]?.lastSuccessfulSync == Self.answered)
+    }
+
+    @Test("A source that has never answered and then fails has no moment at all")
+    func aFirstFailureStampsNothing() {
+        let server = source("Kavita", kind: .kavitaServer)
+        let registry = SourceRegistry().adding(server)
+
+        let after = registry.marking(
+            server.id, as: .unreachable(since: Self.later), at: Self.later
+        )
+
+        #expect(after[server.id]?.lastSuccessfulSync == nil)
+    }
+
+    @Test("Marking one source leaves every other source's moment alone")
+    func markingIsScopedToOneSource() {
+        let server = source("Kavita", kind: .kavitaServer)
+        let share = source("Attic NAS", kind: .networkShare)
+        let registry = SourceRegistry().adding(server).adding(share)
+            .marking(share.id, as: .connected, at: Date(timeIntervalSince1970: 5_000))
+
+        let after = registry.marking(server.id, as: .connected, at: Self.answered)
+
+        #expect(after[share.id]?.lastSuccessfulSync == Date(timeIntervalSince1970: 5_000))
+        #expect(after[server.id]?.lastSuccessfulSync == Self.answered)
+    }
 }
