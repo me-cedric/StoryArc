@@ -79,7 +79,11 @@ extension XCTestCase {
         let wayIn = app.buttons["Open the player"].firstMatch
         XCTAssertTrue(
             wayIn.waitForExistence(timeout: 10),
-            "The compact bar never appeared after opening an audiobook."
+            "The compact bar never appeared after opening an audiobook. In the bottom strip: "
+                + app.buttons.allElementsBoundByIndex
+                    .filter { $0.frame.midY > app.frame.height - 220 }
+                    .map(\.label)
+                    .joined(separator: " | ")
         )
 
         // **Paused, and the wait above is why.** The corpus fixtures are seconds long, so a run
