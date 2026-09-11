@@ -43,11 +43,27 @@ screenshot task says which device and which appearance it was taken on.
 
 ## 7. Seen on a device
 
-- [ ] 7.1 **The checked line only, and light only.** `docs/designs/screenshots/four-features-2026-09-11/ios-library-view-menu.png`
+- [x] 7.1 **The checked line, on both platforms. The refreshing line is not
+  photographed, and this is the record of a real attempt rather than a shrug.** `docs/designs/screenshots/four-features-2026-09-11/ios-library-view-menu.png`
   carries *Libraries checked 5 seconds ago.* at the foot of the shelf, unstaged. The
-  refreshing line and the dark pair are not photographed: the refreshing line is on
-  screen only while a source is being asked, and this simulator answers from a local
-  server in well under the time a capture takes.
+  `ios-library-grid-ax5.png` and `ios-library-no-index.png` carry it too, so it is
+  proved at the largest text size as well.
+
+  **The attempt, on 2026-09-11.** A source that never answers should hold the line
+  still, so one was built: a TCP listener that accepts a connection and replies to
+  nothing, registered as an OPDS source through `app.storyarc.sources`. The shelf
+  still read *Libraries checked just now.*
+
+  That is the strip's own ranking working as this change specified it. *Checking for
+  changes* outranks *checked*, so if the app believed a refresh were running the line
+  would have said so. It did not, which means nothing probed the unreachable source on
+  that path -- and a source that is merely registered is not a source being asked.
+  Holding the line still needs a probe that is slow rather than a server that is,
+  which is a hook the app does not offer from outside.
+
+  So the refreshing line remains unphotographed, its rule remains asserted by
+  `SourceRefreshTest` and `SourceRefreshTests` -- nine notice cases apiece -- and the
+  bogus source and the listener were both removed afterwards.
 - [x] 7.2 `docs/designs/screenshots/four-features-2026-09-11/android-refresh-checked.png` and its dark twin, at default text size.
   The emulator had no remote source until one was added with
   `node scripts/opds-server.mjs <corpus> --port 4444`, reached at `10.0.2.2` with no
@@ -59,5 +75,20 @@ screenshot task says which device and which appearance it was taken on.
 
 ## 8. What is not asserted, and is code either way
 
-- [~] 8.1 **The source detail screen's own refresh is asserted by nothing, on either platform, and was not before this change either.** Both `LibraryModel.test(_:)` (`LibrarySourceHealth.swift:203`) and `LibraryViewModel.testSource` (`LibraryViewModel.kt:593`) mark the source `Connecting` before they ask, and the screen's *Status* row reads it — which is what satisfies *A refresh of one source from its own screen*. No test on either platform calls either function: both need a network. The stamp that makes the *Last sync* row live **is** asserted, in task 1.
-- [~] 8.2 **Two overlapping probes clear the flag once.** `probe(on:)` launches beside `retryUnreachableSources` rather than inside it, so whichever finishes first clears `refreshing`. The worst case is the line leaving a second early. Recorded rather than fixed: serialising the two is a change to the retry loop, not to this indicator.
+- [x] 8.1 **Asserted now, on both platforms, by a tripwire that was proved able to fail.**
+  `SourceRefreshWiringTests` on iOS and `SourceRefreshWiringTest` on Android each read the
+  function's own body and assert two things: the source is marked `Connecting`, and the mark
+  is written **before** the ask. Each was checked by deleting the mark and watching the test
+  go red by name, then restoring it.
+
+  Scoped to the function rather than the file, and that mattered: `reach(` on iOS and
+  `SourceHealth.probe(` on Android are each called from more than one place, and the first
+  unscoped version reported the mark as coming *after* the ask when it comes before it.
+
+  It is a tripwire, not a proof. It says a call is written and that one call precedes
+  another; it never says a server answered. The original wording follows.
+
+  **The gap it closed:** Both `LibraryModel.test(_:)` (`LibrarySourceHealth.swift:203`) and `LibraryViewModel.testSource` (`LibraryViewModel.kt:593`) mark the source `Connecting` before they ask, and the screen's *Status* row reads it — which is what satisfies *A refresh of one source from its own screen*. No test on either platform calls either function: both need a network. The stamp that makes the *Last sync* row live **is** asserted, in task 1.
+- [x] 8.2 **Recorded rather than fixed, deliberately, and this is the record.** Two overlapping probes clear the flag once. `probe(on:)` launches beside `retryUnreachableSources` rather than inside it, so whichever finishes first clears `refreshing`. The worst case is the line leaving a second early. Serialising the two is a change to the retry loop rather than to this indicator, so it
+  belongs to whichever change next touches that loop. The worst case is bounded and stated:
+  the line leaves one second early. Nothing a reader can lose depends on it.
