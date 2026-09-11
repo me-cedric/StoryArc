@@ -323,9 +323,13 @@ internal fun CoverGrid(
  * One line, even at the largest text size. A three-line heading pinned to the top of the
  * shelf would take more of the screen than the section it names. iOS's `SectionHeading` makes
  * both of the same choices for both of the same reasons.
+ *
+ * @param textPadding how far the words are inset from the shelf's edges. The band itself always
+ *   spans the full width, so the grid insets nothing here — its whole content is already inside
+ *   a gutter — and [CoverList] passes the gutter its rows set for themselves.
  */
 @Composable
-private fun SectionHeading(title: String) {
+internal fun SectionHeading(title: String, textPadding: Dp = 0.dp) {
     val palette = LocalStoryArcPalette.current
     Column(modifier = Modifier.fillMaxWidth().background(palette.surfaceOverlay)) {
         Text(
@@ -334,7 +338,9 @@ private fun SectionHeading(title: String) {
             color = palette.textPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.fillMaxWidth().padding(vertical = StoryArcSpace.sm),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = StoryArcSpace.sm, horizontal = textPadding),
         )
         Box(
             modifier = Modifier

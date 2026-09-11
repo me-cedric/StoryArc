@@ -63,9 +63,12 @@ internal object LibrarySections {
     const val THRESHOLD = 12
 
     /**
-     * How many covers a phone shows across, and so the least a heading may cover.
+     * How many covers a phone shows across, and so the least a heading may cover in a grid.
+     *
+     * The default of [divide]'s `columns`, which is what keeps the grid's answer the one it
+     * always gave.
      */
-    private const val COVERS_PER_ROW = 3
+    const val COVERS_PER_ROW = 3
 
     /**
      * The shelf, divided — or nothing at all when it divides into nothing.
@@ -77,12 +80,18 @@ internal object LibrarySections {
      * grid would be a label rather than a structure.
      *
      * @param other what the heading over everything the library cannot place says.
+     * @param columns how many rows the layout draws side by side. The last refusal below is
+     *   about columns and nothing else: a heading in a grid three covers wide costs its own row
+     *   plus the part-empty row it leaves behind, so it has to introduce three covers to pay
+     *   for itself. A list draws one row per publication, where a heading costs one row and
+     *   wastes none of it, so the list passes 1 and divides shelves the grid refuses.
      */
     fun divide(
         publications: List<Publication>,
         sort: LibrarySort,
         other: String,
         locale: Locale = Locale.getDefault(),
+        columns: Int = COVERS_PER_ROW,
     ): List<LibrarySection> {
         if (publications.isEmpty()) return emptyList()
 
@@ -111,14 +120,16 @@ internal object LibrarySections {
         // demoted to, the division misdescribes the shelf, and no division is the honest
         // answer.
         if (sections.map { it.title }.toSet().size != sections.size) return emptyList()
-        // And a heading has to earn its row. A phone shows three covers across, so a
-        // division averaging fewer than three per heading costs more vertical space in
-        // headings and part-empty rows than the covers it introduces — one dense grid becomes
-        // a tall column of announcements. That was not a hypothesis: the test corpus,
-        // twenty-two unrelated files with a distinct initial each, drew exactly that on a
-        // booted simulator, and it reads worse than the wall it replaced, which is the
-        // failure this whole requirement exists to fix, arrived at from the other side.
-        if (publications.size < sections.size * COVERS_PER_ROW) return emptyList()
+        // And a heading has to earn its row, which is a question about `columns`. A phone shows
+        // three covers across, so a division of a grid averaging fewer than three per heading
+        // costs more vertical space in headings and part-empty rows than the covers it
+        // introduces — one dense grid becomes a tall column of announcements. That was not a
+        // hypothesis: the test corpus, twenty-two unrelated files with a distinct initial each,
+        // drew exactly that on a booted simulator, and it reads worse than the wall it
+        // replaced, which is the failure this whole requirement exists to fix, arrived at from
+        // the other side. A list is one column, so the same product is the section count and
+        // every non-empty division pays for itself there.
+        if (publications.size < sections.size * columns) return emptyList()
         return sections
     }
 
