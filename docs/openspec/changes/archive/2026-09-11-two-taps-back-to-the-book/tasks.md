@@ -7,20 +7,31 @@ A task is ticked when the file it names holds what the task describes.
 
 ## 1. Establish the cost from the code
 
-- [x] 1.1 Read what a cover tap does on iOS. `CoverCell.swift:68` and
+Coordinates re-checked on 2026-09-11, at verify. Every claim below still holds;
+four line numbers had drifted and one parameter had been renamed, and both are
+corrected here rather than left for an archived file to mislead someone with.
+
+- [x] 1.1 Read what a cover tap does on iOS. `CoverCell.swift:84` and
   `CoverList.swift:118` both push a `PublicationRoute`, which is the publication's
-  page. Neither opens a reader.
-- [x] 1.2 Read what a cover tap does on Android. `CoverGrid.kt:432` and
-  `CoverList.kt:199` call `onOpen`; `AppDestinations.kt:99` binds that parameter to
-  `AppHost.openPage`, which pushes `Screen.PublicationPage`.
+  page: `Button { openRoute(PublicationRoute(publication)) }`. Neither opens a
+  reader.
+- [x] 1.2 Read what a cover tap does on Android. `CoverGrid.kt:485` and
+  `CoverList.kt:211` call `onOpen(publication)`; `AppDestinations.kt:99` binds that
+  parameter to `AppHost.openPage`, which pushes `Screen.PublicationPage`. The
+  parameter is spelled `onOpenPage` on `LibraryScreen` now, declared at
+  `LibraryScreen.kt:98`; the binding is the one this task recorded.
 - [x] 1.3 Read what the page's primary action does. It is one button. On iOS
-  `DetailActions.swift:94` draws it and `DetailActions.swift:120` labels it from
-  `PrimaryAction`; on Android `primaryActionOf` at `DetailActions.kt:58` returns
-  `CONTINUE` for an on-device publication with progress. Both open the book at the
-  stored position.
-- [x] 1.4 Read the resume affordance on both. `HomeScreen.swift:178` hands the
-  Keep reading hero `open`; `HomeDestination.kt:166` hands it `resume`, which calls
-  `host.open` with the recorded location. One action each.
+  `DetailActions.swift:97` draws it and labels it from `PrimaryAction`, whose
+  decision is documented at `DetailActions.swift:121`; on Android `primaryActionOf`
+  at `DetailActions.kt:58` returns `CONTINUE` for an on-device publication with
+  progress. Both open the book at the stored position.
+- [x] 1.4 Read the resume affordance on both. `HomeScreen.swift:200` hands the Keep
+  reading hero `open`, and `open` at `HomeScreen.swift:315` calls `onOpen` with the
+  publication's location; `HomeDestination.kt:167` hands `onResume` the `resume`
+  function, and `resume` at `HomeDestination.kt:199` calls `host.open` with the
+  recorded location. One action each. **Note the line above it**:
+  `HomeDestination.kt:166` binds `onOpen` to `host.openPage`, which is the other
+  Home shelves — those are covers, so they cost two, exactly as this change says.
 - [x] 1.5 Record the two numbers: two actions by cover, one by a resume
   affordance, on both platforms.
 
