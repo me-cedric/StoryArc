@@ -63,10 +63,11 @@ synced: the main spec still holds the old clause until `/opsx:sync` runs.
 
 ## 6. Left open
 
-- [ ] 6.1 **Sync this delta.** Run `/opsx:sync`, then `/opsx:archive`. Until then
-  `docs/openspec/specs/kavita-server/spec.md:19-20` still asks for the version
-  floor, and a reader of the main spec alone will not know it is amended.
-- [ ] 6.2 **Two routes stay wrong, on purpose.** `Reader/mark-chapter-unread` is
+- [x] 6.1 **Synced and archived on 2026-09-11.** `pnpm delta:drop` reported no
+  colliding pair first, so the archive dropped no sibling's scenario. The main
+  spec no longer asks for a version floor no route can answer, and the dropped
+  bullet's reason drained out of `.delta-drops.json` with it.
+- [x] 6.2 **Two routes stay wrong, on purpose, and this is the record of it.** `Reader/mark-chapter-unread` is
   in none of the five specs and `Reader/mark-chapter-read` starts at 0.9.0.
   Measure a replacement against a live server before changing either. Guessing a
   write shape is the mistake this capability already made twice.

@@ -14,10 +14,17 @@ genuine Kavita client rather than a catalogue browser pointed at one.
 The app SHALL connect to a Kavita server using its base URL and a user API key,
 and SHALL manage session tokens without exposing them to the user.
 
+The app SHALL NOT ask a server for its version, and SHALL NOT refuse a server for
+the version it reports. No Kavita states its version to a reader's API key, so a
+version floor cannot be checked and would refuse nobody. The app SHALL instead
+read a route the server does not know as the signal that the server is too old
+for that request, SHALL say so at the screen that made the request, and SHALL
+read no other failure as an old server.
+
 #### Scenario: Adding a server
 - **WHEN** a user enters a Kavita base URL and API key
-- **THEN** the app authenticates, confirms the server version and the account name, and saves the source
-- **AND** rejects a server whose version is older than the minimum StoryArc supports, naming the required version
+- **THEN** the app authenticates, confirms the account name the server returns, and saves the source
+- **AND** it asks the server nothing else, so a server that answers only the token route is added
 
 #### Scenario: Pasting a full OPDS URL
 - **WHEN** a user pastes a Kavita OPDS URL that embeds the API key
