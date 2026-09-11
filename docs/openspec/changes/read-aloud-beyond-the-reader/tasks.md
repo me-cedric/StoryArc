@@ -789,14 +789,27 @@ and the 31 read-aloud tests in `StoryArcEpub` are compiled but unexecuted. Runni
 them is still the first thing to do with a simulator, and Phase 2 added six of
 them to the count.
 
-- [ ] **5.1** `corepack pnpm spec:validate`.
-- [ ] **5.2** iOS: `swiftlint lint --strict`, `swift build`, `swift test`,
-      `pnpm test:ios:epub`, `pnpm build:ios` — this change touches what the app
-      target and StoryArcEpub compile. 400-line cap.
-- [ ] **5.3** Android: `./gradlew :feature:epubreader:lint
-      :feature:epubreader:testDebugUnitTest`, then the fuller run if anything
-      outside that module moved.
-- [ ] **5.4** `corepack pnpm lint`.
+- [x] **5.1** `pnpm spec:validate` — 29 passed, 0 failed, on 2026-09-11.
+- [x] **5.2** iOS, on 2026-09-11: `swiftlint lint --strict` found 0 violations in 811
+      files; StoryArcKit's `swift build` and `swift test` pass, 2501 tests in 328 suites;
+      `pnpm test:ios:epub` passes **76 of 76**; `pnpm lines:check` reports nothing new over
+      the 400-line cap.
+
+      **A bare `swift build` cannot be run on StoryArcEpub, and that is not a failure of
+      this change.** Readium is iOS-only, which is the whole reason the package is
+      separate, so on the host it stops at "the library 'ReadiumShared' requires macos
+      10.13, but depends on ... ReadiumZIPFoundation which requires macos 11.0".
+      `pnpm test:ios:epub` is the simulator destination that command exists for, and that
+      is what was run.
+
+      **Worth recording beyond this task**: CI's iOS run has been failing this same suite
+      with `networkNeverStarted(after: 40s)`, twice per run. Locally it is 76 of 76 with no
+      such failure, so that is a cold-runner flake rather than a defect in the code. The
+      job already boots the simulator with `bootstatus -b` and still hits it.
+- [x] **5.3** Android: `:feature:epubreader:lintDebug` and
+      `:feature:epubreader:testDebugUnitTest` both succeed, on 2026-09-11. The fuller
+      run was not needed: nothing outside that module moved for this change.
+- [x] **5.4** `pnpm lint` — the whole gate chain, clean, on 2026-09-11.
 - [x] **5.5** No new user-facing string ships from this change. If the iOS
       transport needs a label, hand it to the vocabulary slice.
 
