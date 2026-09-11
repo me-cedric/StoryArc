@@ -39,19 +39,5 @@
       },
       "reason": "Rewritten longer, not removed. The delta replaces one sentence with five that say what the first screen shows, what the primary and secondary actions do, where the four source types are named and where they are not. The 'under ten seconds' figure goes with it: it was a target rather than an observable behaviour, and every requirement here is meant to be user-observable. Drains when one-library-three-destinations syncs."
     }
-  },
-  "every-source-is-the-library/library-browsing": {
-    "Unified library": {
-      "bullets": {
-        "Default view": [
-          "each shows its source only when more than one source is configured"
-        ],
-        "Scoping to one source": [
-          "the view, its search, and its filters apply to that source alone",
-          "the scope persists until changed"
-        ]
-      },
-      "reason": "The same three bullets one-library-three-destinations drops, for the same reasons, and dropped here only because both changes now carry one identical block. `delta-drop` found the two blocks differing: whichever synced second would have deleted the other's scenarios. They were merged into their union and written word for word into both files, so the order they sync in no longer matters -- which is the safer fix, because an order recorded under `collisions` still relies on someone honouring it. The union inherits this change's five additions (every kind of source contributes, browsing is a second way in, a source never reached, a publication also downloaded, a partial count) on top of one-library's origin-invisible clause and availability axis, and it inherits these three deliberate removals with them."
-    }
   }
 }
