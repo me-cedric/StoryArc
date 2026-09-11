@@ -52,6 +52,7 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
         private const val REMEMBERED_SHELVES = "rememberedShelves"
         private const val SEARCH_SCOPE = "searchScope"
         private const val DOWNLOAD_FILTER = "downloadFilter"
+        private const val GROUPING = "grouping"
 
         /**
          * What the stored searches are joined with.
@@ -250,6 +251,23 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
 
     fun saveDownloadFilter(choice: String) {
         preferences.edit().putString(DOWNLOAD_FILTER, choice).apply()
+    }
+
+    /**
+     * Whether the shelf shows a series as one cell or every issue as its own, by name, or
+     * `null` when the reader never chose.
+     *
+     * One key for the whole library rather than one per scope, unlike [layout]. A dense list
+     * suits one library and not another, which is why the layout is scoped; how a reader
+     * wants a series presented is a habit, not a property of a source.
+     *
+     * `library-browsing` asks the choice to persist across visits, and a launch is not a
+     * change. iOS stores it the same way under `LibraryGrouping.storageKey`.
+     */
+    fun grouping(): String? = preferences.getString(GROUPING, null)
+
+    fun saveGrouping(choice: String) {
+        preferences.edit().putString(GROUPING, choice).apply()
     }
 
     /** One stored facet, or an empty set when nothing was ever written for it. */

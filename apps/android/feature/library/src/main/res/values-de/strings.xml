@@ -426,4 +426,9 @@
     </plurals>
     <string name="library_more_from">Mehr aus %1$s</string>
     <string name="kavita_chapter_unnumbered">Ohne Nummer</string>
+    <string name="library_grouping_chip">Gruppierung: %1$s</string>
+    <string name="library_grouping_series">Serien</string>
+    <string name="library_grouping_issues">Ausgaben</string>
+    <string name="library_index">Alphabetisches Register</string>
+    <string name="library_index_jump">Zu %1$s springen</string>
 </resources>

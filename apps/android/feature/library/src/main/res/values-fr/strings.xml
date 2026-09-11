@@ -428,4 +428,9 @@
     </plurals>
     <string name="library_more_from">Plus depuis %1$s</string>
     <string name="kavita_chapter_unnumbered">Sans numéro</string>
+    <string name="library_grouping_chip">Regroupement : %1$s</string>
+    <string name="library_grouping_series">Séries</string>
+    <string name="library_grouping_issues">Numéros</string>
+    <string name="library_index">Index alphabétique</string>
+    <string name="library_index_jump">Aller à %1$s</string>
 </resources>

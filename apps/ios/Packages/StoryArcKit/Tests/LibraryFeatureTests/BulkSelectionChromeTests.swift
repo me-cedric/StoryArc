@@ -38,9 +38,22 @@ struct BulkSelectionChromeTests {
     // The `#filePath` walk and the catalogue reader moved to ``LibraryFeatureSource`` when this
     // file crossed SwiftLint's 400-line cap, because a second suite now reads them too.
 
+    /// The screen and the two titles it names, read as one text.
+    ///
+    /// `selectionTitle` moved to `LibraryTitles.swift` when `LibraryView.swift` reached the
+    /// 400-line cap, and this guard failed on the move alone — it asks whether the navigation
+    /// bar states the selection, and the answer was still yes. Both files, so the guard keeps
+    /// asking the question it was written to ask.
     private static let view = LibraryFeatureSource.code(of: "Sources/LibraryFeature/LibraryView.swift")
+        + LibraryFeatureSource.code(of: "Sources/LibraryFeature/LibraryTitles.swift")
+
     /// Where the bottom bar's branches live. They left `LibraryView.swift` when
     /// `sources`' *Refresh visibility* added a fourth notice and that file reached its cap.
+    ///
+    /// Two extractions landed on this file in one week, each because `LibraryView.swift` hit
+    /// the 400-line cap: `selectionTitle` went to `LibraryTitles.swift` and the bottom bar
+    /// came here. Both are read, so neither move can quietly satisfy a guard by taking the
+    /// answer out of the file the guard looks in.
     private static let bottomBar =
         LibraryFeatureSource.code(of: "Sources/LibraryFeature/LibraryBottomBar.swift")
     private static let toolbar = LibraryFeatureSource.code(of: "Sources/LibraryFeature/LibraryToolbar.swift")

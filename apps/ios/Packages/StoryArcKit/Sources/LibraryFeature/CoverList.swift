@@ -33,6 +33,14 @@ struct CoverList: View {
     var selection: Set<String>?
     var onToggle: (Publication) -> Void = { _ in }
 
+    /// The rows that stand for a series, by the id of the publication standing for them.
+    ///
+    /// The same dictionary ``CoverGrid`` takes, and it is here because the list used to take
+    /// nothing: a row standing for *Superman Batman* opened issue #1 and the other nineteen
+    /// were unreachable in this layout. `library-browsing`'s *Opening a series* scenario
+    /// already required the series to open, and one of the two layouts could not.
+    var seriesRows: [String: LibraryRow] = [:]
+
     private let thumbnailWidth: CGFloat = 44
 
     var body: some View {
@@ -63,7 +71,13 @@ struct CoverList: View {
             thumbnailWidth: thumbnailWidth,
             maxPixelSize: Int(thumbnailWidth * displayScale),
             isPicked: selection?.contains(publication.id),
-            onToggle: onToggle
+            onToggle: onToggle,
+            // ``CoverGrid`` composes this pair the same way, so the two layouts cannot
+            // answer "what does this row stand for" differently again.
+            series: seriesRows[publication.id].flatMap { row in
+                guard case let .series(name, members) = row else { return nil }
+                return (name: name, count: members.count)
+            }
         )
         .listRowBackground(theme.palette.surfaceCanvas)
     }
@@ -73,6 +87,7 @@ struct ListRow: View {
     @Environment(\.theme) private var theme
     /// Set by the Library split's shelf column, where a value link finds no destination.
     @Environment(\.openPublicationRoute) private var openRoute
+    @Environment(\.openSeriesRoute) private var openSeries
     /// A source coming back should not make a thumbnail flick to full brightness — but a
     /// reader who asked for less motion gets the change with no crossfade at all.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -85,6 +100,12 @@ struct ListRow: View {
     /// Whether this one is picked, or `nil` when the library is not in selection mode.
     var isPicked: Bool?
     var onToggle: (Publication) -> Void = { _ in }
+    /// The series this row stands for, when it stands for one.
+    ///
+    /// ``CoverCell/series`` carries the identical pair for the identical reason: a row that
+    /// stands for a series is captioned with the count and leads to the series, not to
+    /// whichever issue happens to lead it.
+    var series: (name: String, count: Int)?
 
     @State private var cover: CGImage?
 
@@ -112,10 +133,19 @@ struct ListRow: View {
     var body: some View {
         Group {
             if isPicked == nil {
-                if let openRoute {
+                if let series, let openSeries {
+                    // A series takes the same road the grid gives it. Falling through to the
+                    // publication branch is what left this layout opening the issue leading
+                    // the series — see ``CoverCell``, which made the same correction.
+                    Button { openSeries(SeriesRoute(name: series.name)) } label: { line }
+                        .buttonStyle(.plain)
+                } else if let openRoute {
                     // Inside the Library split — see ``OpenPublicationRoute``. The system's
                     // disclosure chevron goes with the link; the row still leads to the page.
                     Button { openRoute(PublicationRoute(publication)) } label: { line }
+                        .buttonStyle(.plain)
+                } else if let series {
+                    NavigationLink(value: SeriesRoute(name: series.name)) { line }
                         .buttonStyle(.plain)
                 } else {
                     NavigationLink(value: PublicationRoute(publication)) { line }
@@ -204,7 +234,9 @@ struct ListRow: View {
                 )
 
             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                Text(publication.displayTitle)
+                // The series' own name where the row stands for a series, as the grid's cell
+                // is titled. ``CoverCell`` reads the same fall-through.
+                Text(series?.name ?? publication.displayTitle)
                     .textRole(.body)
                     .foregroundStyle(theme.palette.textPrimary)
                     .lineLimit(1)
@@ -250,7 +282,7 @@ struct ListRow: View {
     private var accessibilityLabel: String {
         LibraryMarks.spoken(
             [
-                publication.displayTitle,
+                series?.name ?? publication.displayTitle,
                 subtitle,
                 model.readFraction(of: publication).map {
                     String(
@@ -271,7 +303,12 @@ struct ListRow: View {
     /// The source is last and only sometimes there. `library-browsing`: a publication
     /// "shows its source only when more than one source is configured" — with one source
     /// the word would be on every row and would separate nothing from nothing.
-    private var subtitle: String {
+    var subtitle: String {
+        // What the series holds, where the row stands for one. ``CoverCell/seriesCaption``
+        // states the same count under a cover, from the same string.
+        if let series {
+            return String(localized: "shelves.count \(series.count)", bundle: .module, locale: .storyArc)
+        }
         var parts: [String] = []
         if !publication.isOpenable {
             parts.append(String(localized: "library.cell.cannotOpen", bundle: .module, locale: .storyArc))

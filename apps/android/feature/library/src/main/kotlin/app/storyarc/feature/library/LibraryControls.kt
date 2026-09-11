@@ -76,9 +76,11 @@ internal fun LibraryControls(
     layout: LibraryLayout,
     availability: LibraryAvailability,
     downloads: DownloadFilter,
+    grouping: LibraryGrouping,
     onAvailabilityChange: (LibraryAvailability) -> Unit,
     onQueryChange: (LibraryQuery) -> Unit,
     onDownloadsChange: (DownloadFilter) -> Unit,
+    onGroupingChange: (LibraryGrouping) -> Unit,
     onLayoutChange: (LibraryLayout) -> Unit,
     onClearFilters: () -> Unit,
     viewModel: LibraryViewModel,
@@ -93,6 +95,7 @@ internal fun LibraryControls(
         itemVerticalAlignment = Alignment.CenterVertically,
     ) {
         AvailabilityChip(availability, onAvailabilityChange)
+        GroupingChip(grouping, onGroupingChange)
         SortChip(query, onQueryChange)
         FilterChipMenu(
             query = query,
@@ -138,6 +141,58 @@ private fun AvailabilityChip(
             null
         },
     )
+}
+
+/**
+ * What a cell stands for: a series, or one issue.
+ *
+ * Built from [SortChip] and not from [LayoutToggle], deliberately. `library-browsing` asks
+ * that the choices be "reached through named menus rather than as separate unlabelled
+ * buttons", and [LayoutToggle] is the unlabelled glyph that rule tolerates only because it
+ * changes a *mode*. This presents a choice, so it is a boxed chip with a labelled menu under
+ * it, and its label is framed the way the sort's is — `Grouping: Series` — because the same
+ * requirement ends "and the same holds for grouping, which is neither" a sort nor a filter.
+ *
+ * Never drawn as selected. Both answers are real answers, as both sort orders are, so the chip
+ * carries the current one rather than a state. iOS puts the identical two-row choice inside its
+ * `ViewMenu`, which is where that platform's named menus already live.
+ */
+@Composable
+private fun GroupingChip(grouping: LibraryGrouping, onChange: (LibraryGrouping) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+
+    Box {
+        FilterChip(
+            selected = false,
+            onClick = { open = true },
+            label = {
+                Text(
+                    stringResource(
+                        R.string.library_grouping_chip,
+                        stringResource(grouping.labelRes),
+                    ),
+                )
+            },
+        )
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            LibraryGrouping.entries.forEach { choice ->
+                DropdownMenuItem(
+                    // Each row states which one it is, because the dot cannot — the hole
+                    // [SortChip] records, answered the same way.
+                    modifier = Modifier.semantics {
+                        role = Role.RadioButton
+                        selected = grouping == choice
+                    },
+                    text = { Text(stringResource(choice.labelRes)) },
+                    leadingIcon = { RadioButton(selected = grouping == choice, onClick = null) },
+                    onClick = {
+                        onChange(choice)
+                        open = false
+                    },
+                )
+            }
+        }
+    }
 }
 
 /**
@@ -262,6 +317,12 @@ internal fun sortChipLabel(sort: LibrarySort): String =
  * each of seven rows would say it seven more times. [sortChipLabel] frames it for the one
  * place that needs the frame.
  */
+internal val LibraryGrouping.labelRes: Int
+    get() = when (this) {
+        LibraryGrouping.SERIES -> R.string.library_grouping_series
+        LibraryGrouping.ISSUES -> R.string.library_grouping_issues
+    }
+
 internal val LibrarySort.labelRes: Int
     get() = when (this) {
         LibrarySort.TITLE -> R.string.library_sort_title

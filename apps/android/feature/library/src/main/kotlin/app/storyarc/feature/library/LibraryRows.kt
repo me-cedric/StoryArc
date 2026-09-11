@@ -103,14 +103,21 @@ internal data class ShelfRows(
  * Not while a search is running or a selection is open: results are already grouped by why
  * they matched, and a cell that opened a list mid-selection would throw away what the
  * reader had picked. In both cases the shelf lists publications, as it always did.
+ *
+ * And not when the reader asked for issues. `library-browsing`'s *A shelf of issues* scenario
+ * is the third reason to take the flat branch, and it needs nothing else here: an empty series
+ * map already removes the count from a cell, the cell's title already falls back to the
+ * publication's own, and the sections and the index are cut from the list that is drawn.
+ * iOS's `LibraryView.rows` makes the same three exceptions.
  */
 @androidx.compose.runtime.Composable
 internal fun rememberShelfRows(
     publications: List<Publication>,
     isGrouped: Boolean,
     isPicking: Boolean,
-): ShelfRows = androidx.compose.runtime.remember(publications, isGrouped, isPicking) {
-    if (isGrouped || isPicking) {
+    grouping: LibraryGrouping,
+): ShelfRows = androidx.compose.runtime.remember(publications, isGrouped, isPicking, grouping) {
+    if (isGrouped || isPicking || !grouping.isCollapsing) {
         ShelfRows(publications, emptyMap())
     } else {
         val rows = LibraryRows.of(publications)
