@@ -118,6 +118,84 @@ class ProgressMigrationTest {
      * A read-aloud position has no duration, and a `NOT NULL DEFAULT 0` here would turn
      * "nobody knows" into a number the moment it was stored.
      */
+    /**
+     * Version 4 resets an offset that may be a time into a file.
+     *
+     * `ReadingPosition.Listening.offsetMillis` is an offset into its part. A chaptered
+     * single-file audiobook stored a time into the whole file there, so the fraction derived
+     * from it saturated and the finished rule fired at the start of the last chapter. No row
+     * can tell the old unit from the new one, so every offset in a part after the first goes
+     * to zero: the listener resumes at the start of the part they were in, which is a loss of
+     * at most one part. See `MIGRATION_3_4`.
+     */
+    @Test
+    fun anOffsetThatMayBeAFileTimeIsResetToItsPartStart() {
+        val (connection, file) = openV2()
+        try {
+            MIGRATION_2_3.migrate(connection)
+            connection.execSQL(
+                "INSERT INTO progress " +
+                    "(page_index, page_count, progression, is_finished, updated_at, " +
+                    "part_index, part_count, offset_millis, part_duration_millis) " +
+                    "VALUES (-1, 0, 0.9, 0, 1000, 9, 10, 540000, 60000)",
+            )
+
+            MIGRATION_3_4.migrate(connection)
+
+            assertEquals(0, connection.readInt("SELECT offset_millis FROM progress"))
+            assertEquals(9, connection.readInt("SELECT part_index FROM progress"))
+        } finally {
+            connection.close()
+            file.delete()
+        }
+    }
+
+    @Test
+    fun aPlaceInTheFirstPartKeepsItsOffset() {
+        val (connection, file) = openV2()
+        try {
+            MIGRATION_2_3.migrate(connection)
+            connection.execSQL(
+                "INSERT INTO progress " +
+                    "(page_index, page_count, progression, is_finished, updated_at, " +
+                    "part_index, part_count, offset_millis, part_duration_millis) " +
+                    "VALUES (-1, 0, 0.1, 0, 1000, 0, 10, 20000, 60000)",
+            )
+
+            MIGRATION_3_4.migrate(connection)
+
+            assertEquals(
+                "the first part starts where the file does, so its offset needs no repair",
+                20_000,
+                connection.readInt("SELECT offset_millis FROM progress"),
+            )
+        } finally {
+            connection.close()
+            file.delete()
+        }
+    }
+
+    @Test
+    fun aPagePositionIsLeftAloneByTheAudioRepair() {
+        val (connection, file) = openV2()
+        try {
+            MIGRATION_2_3.migrate(connection)
+            connection.execSQL(
+                "INSERT INTO progress " +
+                    "(page_index, page_count, progression, is_finished, updated_at) " +
+                    "VALUES (4, 20, 0.2, 0, 1000)",
+            )
+
+            MIGRATION_3_4.migrate(connection)
+
+            assertEquals(4, connection.readInt("SELECT page_index FROM progress"))
+            assertEquals(-1, connection.readInt("SELECT part_index FROM progress"))
+        } finally {
+            connection.close()
+            file.delete()
+        }
+    }
+
     @Test
     fun aPartWithNoKnownLengthCanBeStoredWithNone() {
         val (connection, file) = openV2()

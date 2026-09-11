@@ -102,6 +102,37 @@ class ListenedPositionTest {
 
     // MARK: coming back
 
+    /**
+     * Ten chapters inside one file, which is the shape `PartLayout.MARKS` describes.
+     *
+     * The defect this pins was in `AudiobookSource`, not here: it reported a time into the
+     * *file* as the offset into the chapter, so `fraction` divided a file time by a chapter
+     * length, coerced the result to 1.0, and read `(part + 1) / partCount`. A listener who had
+     * just started chapter ten was recorded as having finished the book. The source converts
+     * now — `MarksPositionTest` drives a real one — and these are the two readers in this
+     * module that the conversion protects.
+     */
+    private val chaptered = List(10) { index ->
+        PlaybackPart("Chapter ${index + 1}", PlaybackDuration.Known(60_000))
+    }
+
+    @Test
+    fun `a position inside a chapter is a fraction of the whole book`() {
+        val position = ListenedPosition.of(PlaybackPosition(1, 30_000), chaptered)
+
+        assertEquals(0.15, position.fraction, 0.0001)
+    }
+
+    @Test
+    fun `the start of the last chapter of one file does not finish the book`() {
+        assertFalse(ListenedPosition.isFinished(PlaybackPosition(9, 0), chaptered))
+    }
+
+    @Test
+    fun `the end of the last chapter of one file finishes the book`() {
+        assertTrue(ListenedPosition.isFinished(PlaybackPosition(9, 60_000), chaptered))
+    }
+
     @Test
     fun `a stored listening position is where the audio starts again`() {
         val stored = ReadingPosition.Listening(2, 5, 42_000, 300_000)
@@ -140,8 +171,6 @@ class ListenedPositionTest {
     // MARK: what the publication's page marks, and in which unit
 
     /** Chapter lengths as the page lists them: two minutes, five, then four. */
-    private val chapters = listOf<Long?>(120_000, 300_000, 240_000)
-
     /**
      * A session playing a single chaptered file, which is the shape that used to state 0:00.
      *
@@ -156,7 +185,9 @@ class ListenedPositionTest {
             PlaybackPart("The Crossing", PlaybackDuration.Known(300_000)),
         ),
         partIndex = 1,
-        offsetMillis = 300_000,
+        // Three minutes into the second chapter. `partStartMillis` is where that chapter
+        // starts in the file, which only `PlaybackMemory` reads — see `NowPlaying`.
+        offsetMillis = 180_000,
         partStartMillis = 120_000,
         session = PlaybackSession().started(),
         speed = PlaybackSpeed.NORMAL,
@@ -164,7 +195,7 @@ class ListenedPositionTest {
 
     @Test
     fun `the session's own place is measured against its chapter`() {
-        val place = ListenedPosition.placeOf("sea-room", playing(), saved = null, chapters)
+        val place = ListenedPosition.placeOf("sea-room", playing(), saved = null)
 
         assertEquals(1, place.partIndex)
         assertEquals(180_000L, place.offsetInChapterMillis)
@@ -176,7 +207,6 @@ class ListenedPositionTest {
             publicationId = "sea-room",
             playing = playing(),
             saved = PlaybackPosition(0, 30_000),
-            chapterMillis = chapters,
         )
 
         assertEquals(1, place.partIndex)
@@ -189,7 +219,6 @@ class ListenedPositionTest {
             publicationId = "sea-room",
             playing = playing(publicationId = "the-peregrine"),
             saved = null,
-            chapterMillis = chapters,
         )
 
         assertNull(place.partIndex)
@@ -203,13 +232,19 @@ class ListenedPositionTest {
      * Reading it as an offset into the chapter would state four minutes left of five when
      * one has passed.
      */
+    /**
+     * The store and the page now share a unit, so nothing is subtracted here.
+     *
+     * `PlaybackPosition.offsetMillis` is measured from the start of its part for every
+     * layout. This case used to hand in a whole-file time and expect the earlier chapters'
+     * lengths to be taken off it.
+     */
     @Test
-    fun `a stored file time is measured against the chapter it falls in`() {
+    fun `a stored offset is already inside its own chapter`() {
         val place = ListenedPosition.placeOf(
             publicationId = "sea-room",
             playing = null,
-            saved = PlaybackPosition(1, 180_000),
-            chapterMillis = chapters,
+            saved = PlaybackPosition(1, 60_000),
         )
 
         assertEquals(1, place.partIndex)
@@ -222,7 +257,6 @@ class ListenedPositionTest {
             publicationId = "sea-room",
             playing = null,
             saved = PlaybackPosition(0, 30_000),
-            chapterMillis = chapters,
         )
 
         assertEquals(0, place.partIndex)
@@ -236,22 +270,28 @@ class ListenedPositionTest {
      * session, and there the stored offset is already inside its own file. Giving up on the
      * first unmeasured chapter is what keeps a part-relative offset from being reduced twice.
      */
+    /**
+     * A chapter nobody measured is still a place.
+     *
+     * This used to answer zero: the offset was a file time, and taking an unmeasured
+     * chapter's length off it was impossible, so the page stated the chapter's start. One
+     * unit removes the arithmetic and with it the case.
+     */
     @Test
-    fun `an unmeasured chapter list states no offset rather than a wrong one`() {
+    fun `a place in an unmeasured chapter keeps its offset`() {
         val place = ListenedPosition.placeOf(
             publicationId = "sea-room",
             playing = null,
             saved = PlaybackPosition(1, 30_000),
-            chapterMillis = listOf(null, null),
         )
 
         assertEquals(1, place.partIndex)
-        assertEquals(0L, place.offsetInChapterMillis)
+        assertEquals(30_000L, place.offsetInChapterMillis)
     }
 
     @Test
     fun `a book nobody has started marks no chapter`() {
-        val place = ListenedPosition.placeOf("sea-room", playing = null, saved = null, chapters)
+        val place = ListenedPosition.placeOf("sea-room", playing = null, saved = null)
 
         assertNull(place.partIndex)
         assertEquals(0L, place.offsetInChapterMillis)

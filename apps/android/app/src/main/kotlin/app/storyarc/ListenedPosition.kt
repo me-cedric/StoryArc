@@ -82,41 +82,22 @@ internal object ListenedPosition {
      * reads the chapter the audio is in, not the chapter the store last wrote. The store
      * answers for every other book on the shelf, including this one before it is started.
      *
-     * @param chapterMillis each chapter's own length, in order, as the page lists them.
-     *   Null where nothing measured it.
+     * **The two sources now arrive in one unit.** `PlaybackPosition.offsetMillis` is measured
+     * from the start of its part for every layout, so a stored offset is already inside its
+     * chapter and needs no chapter lengths to place it. This used to subtract the earlier
+     * chapters' lengths from a stored *file* time, and it answered zero whenever one of them
+     * was unmeasured.
      */
     fun placeOf(
         publicationId: String,
         playing: NowPlaying?,
         saved: PlaybackPosition?,
-        chapterMillis: List<Long?>,
     ): ListenedPlace {
         playing?.takeIf { it.publicationId == publicationId }?.let { session ->
             return ListenedPlace(session.partIndex, session.offsetInPartMillis)
         }
         val at = saved ?: return ListenedPlace(partIndex = null, offsetInChapterMillis = 0)
-        return ListenedPlace(at.partIndex, offsetInChapter(at, chapterMillis))
-    }
-
-    /**
-     * The stored offset, measured against the chapter it falls in rather than the file.
-     *
-     * `PlaybackPosition.offsetMillis` is a seek target, and for a single chaptered file that
-     * is a time into the whole file — `AudiobookSource` says so and says why. Subtracting it
-     * from a chapter's length stated 0:00 left from the second chapter onwards, measured on
-     * 2026-09-08. A live session takes the same start off in `NowPlaying.offsetInPartMillis`;
-     * with no session the chapter lengths the page lists are what state it.
-     *
-     * Zero where any earlier chapter states no length, which is also what makes a folder
-     * audiobook safe here: `ListenedChapters.of` states no duration for one without a
-     * session, so a part-relative offset is never mistaken for a file time and reduced twice.
-     */
-    private fun offsetInChapter(at: PlaybackPosition, chapterMillis: List<Long?>): Long {
-        var start = 0L
-        for (index in 0 until at.partIndex) {
-            start += chapterMillis.getOrNull(index) ?: return 0
-        }
-        return (at.offsetMillis - start).coerceAtLeast(0)
+        return ListenedPlace(at.partIndex, at.offsetMillis.coerceAtLeast(0))
     }
 }
 
@@ -124,8 +105,8 @@ internal object ListenedPosition {
  * Where a publication's page says the listener is.
  *
  * Two answers to one question, so the mark and the remainder cannot come from different
- * places. Deliberately not a [PlaybackPosition]: that type's offset is a seek target, and
- * this one's is measured against a chapter.
+ * places. Kept apart from [PlaybackPosition] because a page marks a chapter it may have no
+ * index for: [partIndex] is null for a book nobody has started.
  */
 internal data class ListenedPlace(
     /** The chapter to mark as in progress, or null for an audiobook nobody started. */

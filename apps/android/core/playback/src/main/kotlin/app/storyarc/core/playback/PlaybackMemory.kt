@@ -74,7 +74,14 @@ internal class PlaybackMemory(private val preferences: SharedPreferences) {
         )
     }
 
-    /** Remembers a book and where it had reached. */
+    /**
+     * Remembers a book and where it had reached.
+     *
+     * [offsetMillis] is a time into the *item* media3 will play, not into a part: this record
+     * is handed straight to `MediaSession.MediaItemsWithStartPosition`, and a service rebuilt
+     * from nothing has read no chapter marks to convert with. `PlaybackHost` adds the part's
+     * start before it writes.
+     */
     fun remember(book: Audiobook, partIndex: Int, offsetMillis: Long) {
         preferences.edit().apply {
             putString(ID, book.id)
@@ -89,6 +96,7 @@ internal class PlaybackMemory(private val preferences: SharedPreferences) {
     }
 
     /** Moves the offset of the book already remembered, leaving the rest alone. */
+    // The same item time [remember] takes.
     fun moveTo(publicationId: String, partIndex: Int, offsetMillis: Long) {
         if (preferences.getString(ID, null) != publicationId) return
         preferences.edit().putInt(INDEX, partIndex).putLong(POSITION, offsetMillis).apply()

@@ -1609,7 +1609,7 @@ A folder audiobook is unaffected: `PartLayout.FILES` makes the offset part-relat
 and iOS is unaffected on both shapes, because `PlaybackTimeline.place(atFileTime:)` returns
 `time - parts[found].start` and `seek` converts back with `part.start + offset`.
 
-- [ ] 17.1 Android: one unit for `PlaybackPosition.offsetMillis`, matching iOS — part-relative.
+- [x] 17.1 Android: one unit for `PlaybackPosition.offsetMillis`, matching iOS — part-relative.
       `AudiobookSource` already holds `offsets`, so the seek converts with
       `offsets[part] + offset` for `MARKS`. That makes the fraction, the finished rule, the
       chapter remainder, the scrub range and the sleep timer's end of chapter all read one
@@ -1625,10 +1625,69 @@ and iOS is unaffected on both shapes, because `PlaybackTimeline.place(atFileTime
       the store, it needs a Room migration, and it touches the resume path that section 13 had
       just fixed and proved on the phone. Doing both at once would put the position the owner
       asked for at risk to correct a percentage.
-- [ ] 17.2 Android: a test over `PartLayout.MARKS` for each of the five readers above. Every
+      **Done on 2026-09-11. `AudiobookSource` converts in two private functions** — `placeOf`
+      turns the decoder's file time into a part offset, `fileTimeOf` turns a part offset back
+      — and `position`, `seek` and `skip` are the three callers. `PlaybackPosition` now states
+      the unit, `NowPlaying.offsetInPartMillis` is the offset itself rather than a subtraction,
+      and `ListenedPosition.placeOf` lost the `chapterMillis` parameter and the arithmetic that
+      needed it.
+      **The migration is the first option, and it resets more rows than the option promised.**
+      `MIGRATION_3_4` runs `UPDATE progress SET offset_millis = 0 WHERE part_index > 0`. It
+      cannot be narrowed to chaptered files, because the layout a row came from is not stored,
+      so a *folder* audiobook loses its place inside the current file as well. That is a loss
+      of at most one part, once. The alternative considered was to reset only a row whose
+      offset is longer than its own part, which keeps folder positions — and it leaves every
+      chaptered row whose file time happens to fit inside its chapter, which resumes the
+      listener *past* audio they have not heard. Losing a part start is the safer direction.
+      **`is_finished` is not cleared, and a row it fired on wrongly stays finished.** The flag
+      is sticky by design — `ProgressStore.save` keeps `existing || incoming` — and nothing in
+      a row says whether it was set by this defect or by a listener reaching the end. Clearing
+      them all would un-finish genuinely finished books. A listener can mark one unfinished by
+      hand.
+      **`progression` is left stale on purpose.** It is a cache of `ReadingPosition.fraction`
+      for the merge to compare against, the next write recomputes it from the position, and a
+      copy of the fraction rule written in SQL is a second place for it to drift.
+      **One thing this fixed that no task asked for**: a chapter chosen from the publication
+      page of a chaptered single file started at the beginning of the book. `listenFrom` passes
+      `PlaybackPosition(index, 0)`, and `prepare` handed the offset straight to
+      `setMediaItems`, where a part index means nothing for a one-item playlist. The marks
+      arrive with the audio, so `prepare` keeps the part offset it cannot yet convert and
+      `adoptChapters` seeks once `offsets` exists.
+      **The two records that hold an item time are `PlaybackMemory` and
+      `PlaybackService.resumption`**, because a service the system restarts hands media3 a time
+      into an item. `NowPlaying.itemTimeMillis` is the conversion, and the process-wide field
+      is now refreshed on every report instead of only at `start` — it used to answer with the
+      position the book *began* at for as long as the process lived.
+- [x] 17.2 Android: a test over `PartLayout.MARKS` for each of the five readers above. Every
       existing case builds a folder audiobook with two sources, so none of them reaches this
       path — which is why the defect survived.
-- [ ] 17.3 Android: re-prove on the phone. Play the corpus's `Sea Room.m4b` past its second
+      **That sentence was already out of date when this was written.** Section 15 added four
+      `MARKS` cases to `RemainingChapterTimeTest` on 2026-09-08 — the remainder, the scrub, the
+      whole-book total and the sleep timer — and they are the reason three of the five readers
+      were already asserted. They are updated here rather than replaced: the position they seek
+      to is now a chapter offset.
+      **`MarksPositionTest` in `:core:playback` is the new file**, sixteen cases over a real
+      `AudiobookSource` with ten one-minute chapters inside one file. It covers all five
+      readers — the stored fraction, the finished rule, the chapter remainder, the scrub round
+      trip, the sleep timer's end of chapter — plus what the store hands back on a resume, a
+      chapter chosen from the page, and the item time `PlaybackMemory` keeps.
+      **Proved able to fail.** Removing the subtraction in `placeOf` fails eleven of the
+      sixteen by name, and the four `RemainingChapterTimeTest` cases with them. Removing only
+      the deferred seek in `adoptChapters` fails exactly two: *a chapter chosen from the page
+      starts at that chapter* and *a stored place in a later chapter starts inside that
+      chapter*.
+      **`FakePlayer` had to learn one method.** `setMediaItems(items, startIndex, position)` —
+      the overload `prepare` calls — reached the do-nothing proxy, so no host test could see
+      where a book was asked to start. The migration's own cases are in
+      `ProgressMigrationTest`, which is instrumented and was **not run**: no device.
+      The two readers in `:app` are asserted through `ListenedPosition` in
+      `ListenedPositionTest`, because that object is not reachable from `:core:playback`.
+- [ ] 17.3 Android: re-prove on the phone. **Still open: no phone was available to the agent
+      that did 17.1 and 17.2 on 2026-09-11.** Two claims need it. The deferred seek in
+      `adoptChapters` runs where `MediaController` commands were the resumption defect of
+      13.3 — the player holds audio by then, so the seek command should be available, and a
+      `FakePlayer` cannot say that it is. And the migration has been run by no SQLite but
+      `ProgressMigrationTest`'s, which did not execute. Play the corpus's `Sea Room.m4b` past its second
       mark, read the stated remainder, close the app, reopen it and confirm the resumed place.
       A `MARKS` book is the shape a migration can break silently.
 
@@ -1832,15 +1891,33 @@ splits them and its own comment says why: "a copied MP3 would be written back ou
 `.m4b`". This is iOS catching up, and it is what unblocks the twelve player UI tests, which
 have never passed because no audiobook could be put on a device.
 
-- [ ] 10.1 iOS: `PublicationFormat` gains `m4b`, `mp3`, `flac` and `ogg` in place of the flat
+> **The iOS half of this section was built in `19153621` and left unticked.** Checked file
+> by file on 2026-09-11 rather than taken from the commit message: the split, the table, both
+> indexer call sites and the round-trip test are all in place, and the paragraph above
+> describes a state that no longer exists. What was missing is the Android half of 10.4.
+
+- [x] 10.1 iOS: `PublicationFormat` gains `m4b`, `mp3`, `flac` and `ogg` in place of the flat
       `audiobook` case, matching Android's five-case shape. `audioFolder` stays as it is.
-- [ ] 10.2 iOS: `mediaType` answers `audio/mp4`, `audio/mpeg`, `audio/flac` and `audio/ogg`,
+      `Sources/StoryArcCore/PublicationFormat.swift` holds the twelve cases, and
+      `AudiobookFormatTests` pins the count so a thirteenth cannot arrive unanswered.
+- [x] 10.2 iOS: `mediaType` answers `audio/mp4`, `audio/mpeg`, `audio/flac` and `audio/ogg`,
       and `init(mediaType:)` reads all four back. Android's table is the reference.
-- [ ] 10.3 iOS: `PublicationIndexer` carries the sniffer's container into the format instead
+      `init(mediaType:)` also reads the aliases a real server sends — `audio/x-m4b`,
+      `audio/m4a`, `audio/mp3`, `audio/opus` — and strips a `; charset=` parameter first.
+- [x] 10.3 iOS: `PublicationIndexer` carries the sniffer's container into the format instead
       of flattening it. The sniffer already answers `.mp4`, `.mp3`, `.flac` and `.ogg`, and
       both call sites throw that away today.
-- [ ] 10.4 Both: a test asserts every audio format round-trips from format to media type and
+      One private `audioFormat(_:)` serves both, and it is total over the containers, so a
+      new container is a compile error there rather than an audiobook filed under the wrong
+      media type.
+- [x] 10.4 Both: a test asserts every audio format round-trips from format to media type and
       back, and that a copied MP3 is written back with an `.mp3` extension.
+      **iOS had both halves; Android had only the round trip.** `AudiobookFormatTest` asserts
+      the four media types and the round trip, and `DownloadStore.location` derives the
+      extension from `PublicationFormat.ofMediaType` — but no Android test read that for an
+      audio type, so the flat-case regression the comment warns about would have been caught
+      on one platform only. `DownloadLocationTest` now asserts the four names, as iOS's
+      `DownloadLocationTests` does.
 - [ ] 10.5 iOS: `scripts/seed-simulator.mjs` can seed an audiobook, and the twelve
       `PlayerAuditTests` and `PlayerScreenshotTests` cases pass on a seeded simulator.
 

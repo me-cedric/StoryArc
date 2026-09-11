@@ -79,7 +79,20 @@ object PlaybackHost : SpokenAudio.Speaker {
                 // Where the audio has reached, kept where a service the system starts on
                 // its own can read it. See [PlaybackMemory] — a field alone was null in
                 // exactly the case resumption exists for.
-                memory?.moveTo(playing.publicationId, playing.partIndex, playing.offsetMillis)
+                //
+                // The part's start plus the offset into it, because media3 resumes at a time
+                // into an item and a position states a time into a part. The two are the same
+                // number for a folder, and for a chaptered file they differ by the mark.
+                memory?.moveTo(
+                    publicationId = playing.publicationId,
+                    partIndex = playing.partIndex,
+                    offsetMillis = playing.itemTimeMillis,
+                )
+                // And the process-wide field, which [PlaybackService.onPlaybackResumption]
+                // prefers over the file. Refreshed here rather than only at [start], so the
+                // carousel resumes where the audio reached instead of where it began — and
+                // so both answers come out of the one record that holds an item time.
+                memory?.last()?.let { PlaybackService.resumption = PlaybackResumption.of(it) }
             }
         }
     }
@@ -153,6 +166,12 @@ object PlaybackHost : SpokenAudio.Speaker {
     ) {
         if (SpokenAudio.shared.claim(book.id, by = this) == SessionHandover.ADOPT) return
 
+        // The offset here is the part's, and media3 wants the item's. For a chaptered single
+        // file the two differ by a mark nothing has read yet, so this record is short by that
+        // mark until the first report corrects it — see [onChange], which runs on the first
+        // callback the player raises. A resumption inside that window starts the book at the
+        // remembered part's own offset rather than at the mark, which is the honest floor for
+        // a service that has to answer before any audio has been read.
         memory = PlaybackMemory.open(context).also {
             it.remember(book, from?.partIndex ?: 0, from?.offsetMillis ?: 0)
         }

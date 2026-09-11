@@ -92,6 +92,24 @@ internal class FakePlayer(
         items = mediaItems.toList()
     }
 
+    /**
+     * The overload `AudiobookSource.prepare` calls, which carries the start position.
+     *
+     * Real media3 takes the position with the items because a `MediaController` holds no
+     * seek command while the player holds no audio — `AudiobookSource.prepare` records the
+     * measurement. Without this override the call reached the do-nothing proxy, so no host
+     * test could see where a book was asked to start.
+     */
+    override fun setMediaItems(
+        mediaItems: MutableList<MediaItem>,
+        startIndex: Int,
+        startPositionMs: Long,
+    ) {
+        items = mediaItems.toList()
+        itemIndex = if (startIndex == C.INDEX_UNSET) 0 else startIndex
+        positionMs = if (startPositionMs == C.TIME_UNSET) 0 else startPositionMs
+    }
+
     override fun getCurrentMediaItem(): MediaItem? = items.getOrNull(itemIndex)
 
     override fun getCurrentMediaItemIndex(): Int = itemIndex
