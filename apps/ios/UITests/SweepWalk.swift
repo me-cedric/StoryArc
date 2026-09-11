@@ -278,9 +278,19 @@ extension XCTestCase {
     /// yet — and this returned `nil` for *Unread* in one walk and found it in the next,
     /// which is a flake that reads as a missing control. The wait is on the query's own
     /// `firstMatch`; the hittability filter still runs against every match afterwards.
+    /// **It scrolls once when a match exists and none is reachable.** At the largest
+    /// accessibility text size a four-row menu is taller than the screen, so *Online library*
+    /// existed and sat below the fold; this returned `nil` and the walk reported a menu with
+    /// no such row. A reader in that state scrolls, so the helper does too — and only then,
+    /// so a control that is genuinely absent still fails rather than being swiped for.
     func hittable(_ name: String, in app: XCUIApplication, timeout: TimeInterval = 5) -> XCUIElement? {
         let matches = app.buttons.matching(NSPredicate(format: "label == %@", name))
         _ = matches.firstMatch.waitForExistence(timeout: timeout)
+        if let reachable = matches.allElementsBoundByIndex.first(where: \.isHittable) {
+            return reachable
+        }
+        guard matches.firstMatch.exists else { return nil }
+        app.swipeUp()
         return matches.allElementsBoundByIndex.first(where: \.isHittable)
     }
 

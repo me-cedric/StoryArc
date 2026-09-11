@@ -2,7 +2,7 @@
   "name": "storyarc",
   "version": "0.1.0",
   "private": true,
-  "description": "Monorepo tooling for StoryArc — native comic, manga and ebook readers for iOS and Android.",
+  "description": "Monorepo tooling for StoryArc \u2014 native comic, manga and ebook readers for iOS and Android.",
   "license": "MIT",
   "packageManager": "pnpm@11.20.0",
   "engines": {
@@ -36,7 +36,7 @@
     "lint:android": "node scripts/gradle.mjs lint",
     "test:ios": "cd apps/ios/Packages/StoryArcKit && swift test; status=$?; node ../../../../scripts/sweep-test-debris.mjs || true; exit $status",
     "test:ios:epub": "cd apps/ios/Packages/StoryArcEpub && mkdir -p ../../../../.build/xcresult && rm -rf ../../../../.build/xcresult/epub.xcresult && xcodebuild test -scheme StoryArcEpub -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' -collect-test-diagnostics never -resultBundlePath ../../../../.build/xcresult/epub.xcresult -quiet",
-    "test:ios:ui": "cd apps/ios && xcodegen generate && mkdir -p ../../.build/xcresult && rm -rf ../../.build/xcresult/ui.xcresult && xcodebuild test -project StoryArc.xcodeproj -scheme StoryArc -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:StoryArcUITests -collect-test-diagnostics never -resultBundlePath ../../.build/xcresult/ui.xcresult -quiet",
+    "test:ios:ui": "cd apps/ios && mkdir -p ../../.build/xcresult && rm -rf ../../.build/xcresult/ui.xcresult && xcodebuild test-without-building -project StoryArc.xcodeproj -scheme StoryArc -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath ../../.build/ios-ui -only-testing:StoryArcUITests -collect-test-diagnostics never -resultBundlePath ../../.build/xcresult/ui.xcresult -quiet",
     "//why": "A run with -quiet prints the failing test names, TEST FAILED and exit code 65. It prints no assertion message, no expected value and no actual value. These two scripts read the assertion text out of the result bundle that test:ios:ui and test:ios:epub write. Run the matching script after a test script fails.",
     "why:ios:ui": "xcrun xcresulttool get test-results summary --path .build/xcresult/ui.xcresult",
     "why:ios:epub": "xcrun xcresulttool get test-results summary --path .build/xcresult/epub.xcresult",
@@ -50,7 +50,7 @@
     "//check": "Tier 1. This tier needs no simulator and no emulator. It stands for these CI jobs: Contract / Specs and design tokens; iOS / StoryArcKit; iOS / SwiftLint; iOS / App, its Build step only; Android / Lint, test and assemble. pnpm selftests holds the five Contract self-test steps that pnpm lint leaves out.",
     "check": "pnpm lint && pnpm selftests && pnpm lint:ios && pnpm test:ios && pnpm build:ios:tests && pnpm lint:android && pnpm test:android && pnpm build:android && pnpm build:android:tests",
     "//check:devices": "Tier 2. This tier needs a booted iPhone 17 Pro simulator and a running Android emulator. It takes minutes. It stands for these CI jobs: iOS / StoryArcEpub; iOS / App, its Accessibility audit step; Android / Instrumented tests. A green pnpm check proves none of these three. Run this tier before you change a UI test, a format decoder or the epub reader.",
-    "check:devices": "pnpm test:ios:epub && pnpm test:ios:ui && pnpm test:android:instrumented",
+    "check:devices": "pnpm test:ios:epub && pnpm build:ios:ui && pnpm seed:ios:ui && pnpm test:ios:ui && pnpm test:android:instrumented",
     "prepare": "husky",
     "fixtures:build": "python3 packages/test-fixtures/scripts/generate.py",
     "fixtures:check": "python3 packages/test-fixtures/scripts/generate.py --check",
@@ -87,7 +87,9 @@
     "sweep:test-debris": "node scripts/sweep-test-debris.mjs",
     "live:check": "node scripts/live-check.mjs",
     "live:check:selftest": "node scripts/live-check.mjs --self-test",
-    "commitlint:guard": "node scripts/commitlint-guard.mjs"
+    "commitlint:guard": "node scripts/commitlint-guard.mjs",
+    "build:ios:ui": "cd apps/ios && xcodegen generate && xcodebuild build-for-testing -project StoryArc.xcodeproj -scheme StoryArc -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath ../../.build/ios-ui -quiet",
+    "seed:ios:ui": "node scripts/install-and-seed-simulator.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",

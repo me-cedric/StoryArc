@@ -15,6 +15,14 @@ import XCTest
 @MainActor
 final class SweepLibraryTests: XCTestCase {
 
+    /// One registered share, reachable by nothing, so narrowing to it empties the shelf.
+    ///
+    /// `StoredRegistry` as `JSONEncoder` writes it, in the shape `SweepSettings` already uses.
+    private static let aShareWithNothingCached = """
+    {"sources":[{"id":"7F2C9A14-3E5B-4D18-9C6A-2B8E4F0D7A31","displayName":"Attic NAS",\
+    "kind":"networkShare","locator":"smb://10.0.0.4/comics"}],"tombstones":[]}
+    """
+
     override nonisolated func setUp() {
         super.setUp()
         continueAfterFailure = false
@@ -159,7 +167,13 @@ final class SweepLibraryTests: XCTestCase {
     /// noted in the sweep's README as something to look at rather than worked around here —
     /// this walk is about the empty state, and it now reaches it by the axis that does empty.
     func testCaptureNarrowedToNothing() throws {
-        let app = sweepLaunch()
+        // A second library, because the axis this walk uses does not exist without one:
+        // `LibraryFilterMenu.libraries` draws the group only when
+        // `LibraryNarrowing.offeredLibraries` offers something, and a device holding only its
+        // own Documents offers nothing to choose between. Injected rather than skipped: a
+        // share with nothing cached is exactly the narrowing that empties the shelf, which is
+        // the state this walk is here to photograph.
+        let app = sweepLaunch(sources: Self.aShareWithNothingCached)
         try showTheShelf(in: app)
         try openFilterMenu(in: app)
         try XCTUnwrap(
@@ -229,7 +243,7 @@ final class SweepLibraryTests: XCTestCase {
         try showTheShelf(in: app)
         try XCTUnwrap(hittable("Add books", in: app), "The toolbar offers no Add books.").tap()
         XCTAssertTrue(
-            app.buttons["Add a folder"].waitForExistence(timeout: 5),
+            app.buttons["Files and folders"].waitForExistence(timeout: 5),
             "Add books opened no menu. Buttons: \(app.buttons.allElementsBoundByIndex.map(\.label))"
         )
         hold(0.75)
@@ -243,7 +257,7 @@ final class SweepLibraryTests: XCTestCase {
         try showTheShelf(in: app)
         try XCTUnwrap(hittable("Add books", in: app), "The toolbar offers no Add books.").tap()
         XCTAssertTrue(
-            app.buttons["Add a folder"].waitForExistence(timeout: 5),
+            app.buttons["Files and folders"].waitForExistence(timeout: 5),
             "Add books opened no menu at the largest text size."
         )
         hold(0.75)

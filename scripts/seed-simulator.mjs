@@ -9,12 +9,18 @@
 // `<application support>/Downloads/<id>/<title>.<extension>`. A record with no file draws a
 // cover and opens nothing; a file with no record is not in the library at all.
 //
-// **This seeds a comic only, and the twelve player tests still fail without an audiobook.**
-// The format table is no longer the reason. `PublicationFormat` splits the audio containers,
-// so `audio/mpeg` round-trips and the store names the file `<title>.mp3`; what remains is
-// this script's own fixture and media type, and that `AudiobookWalk` looks on the Library tab
-// while a download is drawn on the Downloads tab. Section A of
-// `docs/mvp-device-checklist.md` carries the second half.
+// **Two places, because the tests clear one of them.** A download record answers the
+// Downloads audit. It does not answer a sweep: `sweepLaunch` passes
+// `-app.storyarc.downloads "[]"`, so every sweep starts with the record empty on purpose, and
+// a sweep that relied on it met "This library has nothing to read." So each fixture is also
+// copied into the app's own `Documents`, which `LibraryModel` scans by default
+// (`documents: URL = .documentsDirectory`). That is a publication no launch argument can
+// take away.
+//
+// This is what the iOS UI job was missing. Nothing in `.github/workflows/ios.yml` called this
+// script, so every audit ran against a clean device: the sweeps found an empty shelf, and
+// `LibraryToolbar` hides Select, View and Filter behind `if !model.publications.isEmpty`, so
+// the walks then reported "The library toolbar offers no View menu" about a menu that exists.
 
 import { execFileSync } from 'node:child_process'
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs'
@@ -107,6 +113,15 @@ for (const seed of SEEDS) {
   mkdirSync(folder, { recursive: true })
   copyFileSync(fixture, file)
 
+  // The same bytes again, in the folder the app scans. A sweep clears the download record,
+  // so this copy is the only one it can see. An audiobook keeps its own folder here too, for
+  // the reason `needsOwnFolder` gives.
+  const scanned = needsOwnFolder(seed)
+    ? join(container, 'Documents', name)
+    : join(container, 'Documents')
+  mkdirSync(scanned, { recursive: true })
+  copyFileSync(fixture, join(scanned, `${name}.${seed.extension}`))
+
   // `StoredDownload` as `JSONEncoder` writes it. A date is seconds since the Apple reference
   // date, 2001-01-01, which is what `JSONDecoder` reads back with its default strategy.
   record.push({
@@ -124,7 +139,7 @@ for (const seed of SEEDS) {
     verificationFailures: 0,
     pause: null,
   })
-  console.log(`  ${seed.title}  <container>${file.slice(container.length)}`)
+  console.log(`  ${seed.title}  <container>${file.slice(container.length)}  + Documents/`)
 }
 
 // The old-style plist spelling of `Data`, which is what `UserDefaults.data(forKey:)` reads.

@@ -7,7 +7,7 @@ import XCTest
 /// secret is kept, what the address may look like, and what a refusal means. A form is exactly
 /// the kind of surface a source-level test cannot judge.
 ///
-/// **The pickers are screen shots rather than app shots.** *Add a folder* and *Open a file*
+/// **The pickers are screen shots rather than app shots.** *Files and folders* and *Open a file*
 /// both put up the system's own document browser, which runs in another process — `app
 /// .screenshot()` photographs StoryArc's window and would return the shelf behind it.
 @MainActor
@@ -22,14 +22,14 @@ final class SweepSourcesTests: XCTestCase {
     /// action.
     func testCaptureAddCatalogueSheet() throws {
         let app = sweepLaunch()
-        try openAddSheet("Add an online library", landmark: "Address", in: app)
+        try openAddSheet("Online library", landmark: "Address", in: app)
         shutter(app, named: "add-catalogue-sheet")
     }
 
     /// The same at the largest accessibility text size, where the hint is three lines.
     func testCaptureAddCatalogueSheetAtLargestText() throws {
         let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try openAddSheet("Add an online library", landmark: "Address", in: app)
+        try openAddSheet("Online library", landmark: "Address", in: app)
         shutter(app, named: "add-catalogue-sheet-ax5")
     }
 
@@ -44,16 +44,20 @@ final class SweepSourcesTests: XCTestCase {
     /// network — the only form in the app with a discovery list under it.
     func testCaptureAddShareSheet() throws {
         let app = sweepLaunch()
-        try openAddSheet("Add a shared folder", landmark: "Host", in: app)
+        try openAddSheet("A computer on your network", landmark: "Host", in: app)
         hold(2)
         shutter(app, named: "add-share-sheet")
     }
 
-    /// The system's folder picker, which is the whole of *Add a folder* on iOS.
+    /// The system's folder picker, which is the whole of *Files and folders* on iOS.
+    ///
+    /// Named by `source.kind.localFolder.title`. It read *Add a folder* until the source
+    /// kinds were given one vocabulary; four assertions here still asked for the old words,
+    /// and each failed about a menu that had opened.
     func testCaptureFolderPicker() throws {
         let app = sweepLaunch()
         try openAddMenu(in: app)
-        try XCTUnwrap(hittable("Add a folder", in: app), "no folder row").tap()
+        try XCTUnwrap(hittable("Files and folders", in: app), "no folder row").tap()
         try shutterSystemSheet(named: "add-folder-picker", in: app)
     }
 
@@ -131,7 +135,7 @@ final class SweepSourcesTests: XCTestCase {
         try showTheShelf(in: app)
         try XCTUnwrap(hittable("Add books", in: app), "The toolbar offers no Add books.").tap()
         XCTAssertTrue(
-            app.buttons["Add a folder"].waitForExistence(timeout: 5),
+            app.buttons["Files and folders"].waitForExistence(timeout: 5),
             "Add books opened no menu."
         )
     }

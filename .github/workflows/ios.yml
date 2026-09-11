@@ -116,14 +116,26 @@ jobs:
         working-directory: apps/ios
         run: xcodegen generate
 
-      - name: Build
-        working-directory: apps/ios
-        run: |
-          xcodebuild build \
-            -project StoryArc.xcodeproj \
-            -scheme StoryArc \
-            -destination 'generic/platform=iOS Simulator' \
-            -quiet
+      # `build-for-testing` against the device the audit runs on, rather than a generic
+      # build. It catches the same compile errors and it leaves behind the two things the
+      # next steps need: an installable app and a test bundle. A generic build leaves
+      # neither, which is why this job used to hand everything to one `xcodebuild test` and
+      # had no seam to seed the device in.
+      - name: Build for testing
+        run: pnpm build:ios:ui
+
+      # **The step this job was missing.** `scripts/seed-simulator.mjs` has existed and
+      # nothing called it, so every audit ran against a clean device. An empty shelf makes
+      # `LibraryToolbar` hide Select, View and Filter — they sit behind
+      # `if !model.publications.isEmpty` — so the walks reported "The library toolbar offers
+      # no View menu" about a menu that is implemented, beside "This library has nothing to
+      # read", which said the true thing plainly. On 2026-09-10 that was most of a
+      # two-hour red run.
+      #
+      # It boots the device and installs first, because `get_app_container` has nothing to
+      # answer with until the app is on it.
+      - name: Install and seed the simulator
+        run: pnpm seed:ios:ui
 
       - name: Accessibility audit
         # Apple's own `performAccessibilityAudit`, which needs a running app and so cannot
