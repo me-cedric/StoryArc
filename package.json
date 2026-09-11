@@ -69,6 +69,8 @@
     "strings:ios:check": "node scripts/ios-strings.mjs --self-test",
     "strings:drawn": "node scripts/drawn-strings-check.mjs",
     "strings:drawn:selftest": "node scripts/drawn-strings-check.mjs --self-test",
+    "//strings:divergence": "A report, not a gate, and deliberately outside pnpm lint: a row it prints can be a difference the platform forces. Run it when a value changes on one platform.",
+    "strings:divergence": "node scripts/catalogue-divergence.mjs",
     "lockfile:ios": "node scripts/ios-lockfile.mjs --check",
     "lockfile:ios:selftest": "node scripts/ios-lockfile.mjs --self-test",
     "libarchive:pin": "node scripts/libarchive-pin.mjs --check",
