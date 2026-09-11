@@ -1493,6 +1493,24 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       sitting on the threshold fails the platform's check while passing ours. Every text
       role now clears 4.9:1.
 
+      **Increase Contrast driven on 2026-09-11, which nothing had tried.**
+      `xcrun simctl ui <device> increase_contrast enabled` is the lever; there is no
+      `reduce_transparency` in `simctl ui`, so that half of this task is still device-only
+      and the note below stands. Under Increase Contrast six of the seven
+      `AccessibilityAuditTests` screens pass — Home, Library, Downloads, a licence,
+      Settings and the pseudo-localised destinations — so no palette token fails Apple's
+      own audit when the system asks for more contrast.
+
+      The seventh, `testPublicationPagePassesTheAudit`, fails identically with the setting
+      on and off, so it is not a contrast finding. It is a walk defect and this change did
+      not cause it, but the shelf work of the same day made it worse: `coversOnScreen`
+      picks covers by a geometric band, the shelf's own chips sit inside that band, and
+      adding a Grouping chip moved the row along so the walk was handed *Clear filters* as
+      a cover. `AuditWalk.swift` now requires a cover's label to carry a comma, which every
+      cover composes and no chip does. **Not verified**: every attempt measured another
+      agent's build on the same simulator, which the failure path names. It needs one run
+      on a quiet device.
+
       **Still open: VoiceOver driven by a person, and Reduce Transparency.** VoiceOver has
       been *audited* — a UI test target runs Apple's own `performAccessibilityAudit` — and
       that is not the same as listening to it. Reduce Transparency has no emulator switch

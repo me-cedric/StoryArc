@@ -203,6 +203,19 @@ extension XCTestCase {
         // which is what this was written on and what no run here has measured.
         app.buttons.allElementsBoundByIndex
             .filter { $0.isHittable && $0.frame.midY > 150 && $0.frame.midY < app.frame.height - 100 }
+            // **A comma, because the band alone cannot tell a chip from a cover.** The band
+            // was written to keep the toolbar's and the tab bar's buttons out, and the
+            // shelf's own browsing controls sit between the two: *Everywhere*, *Filter*,
+            // *Clear filters* and the Grouping and Sort menus are all inside it. So a walk
+            // asking for "a cover to open" was handed *Clear filters*, tapped it, and failed
+            // on an element that had gone -- which is what happened when the Grouping chip
+            // was added to that row and moved everything along by one.
+            //
+            // Every cover composes its label from at least two parts: a title and a format,
+            // or a title and a count of titles. Every chip is one phrase. That is the
+            // difference, it holds in all four languages, and this function already relies
+            // on it below, where a format is matched as `", \(format)"`.
+            .filter { $0.label.contains(", ") }
             .filter { !$0.label.contains("100 percent read") }
             .filter { wanted == nil || $0.label == wanted }
             .filter { cover in format.map { cover.label.contains(", \($0)") } ?? true }
