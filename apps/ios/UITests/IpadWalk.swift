@@ -36,7 +36,7 @@ extension XCTestCase {
 
     /// One launch, in a stated orientation, checked against the window it actually got.
     ///
-    /// The width check is what stops a phone's frames being filed under an iPad's name. It is
+    /// The size check is what stops a phone's frames being filed under an iPad's name. It is
     /// a skip rather than a failure: running the suite on a phone is a mistake about the
     /// device, not a defect in the app.
     private func ipad(
@@ -54,11 +54,31 @@ extension XCTestCase {
             "This device is \(Int(app.frame.width))×\(Int(app.frame.height)) — \(got) rather "
                 + "than \(wanted), so these frames would be filed under a name they do not match."
         )
-        // 700 in landscape; an iPad's portrait width starts at 768 and a phone's largest is
-        // well under it, so one floor answers both orientations.
+        // **The floor is the shorter side, and reading it off the width was the defect.**
+        // This measured `app.frame.width` against 700, on the reasoning that "an iPad's
+        // portrait width starts at 768 and a phone's largest is well under it". That holds
+        // for a phone held upright and fails for one on its side, which is the only way these
+        // walks hold a phone: `landscape()` rotates the device first, and a rotated phone is
+        // 874 points wide on an iPhone 17 Pro, 912 on an iPhone Air and 956 on an iPhone 17
+        // Pro Max. Every one of them clears 700.
+        //
+        // **What that let through, measured on 2026-09-11.** An iPhone 17 Pro Max and an
+        // iPhone Air each ran three of this suite's four walks and passed them, which files a
+        // phone's frames under an `ipad-` name — the one thing this guard exists to refuse.
+        // A phone whose rotated window iOS calls compact fails two of them instead, because
+        // the shelf's `NavigationSplitView` collapses to one column there: the page replaces
+        // the shelf rather than appearing beside it, and no second pane is drawn. The app is
+        // right and the guard was wrong — all four walks pass on an iPad Air 11-inch, on
+        // iPadOS 26.2 and on 26.4.
+        //
+        // An iPad's shorter side is 744 points at the smallest and a phone's is 440 at the
+        // largest, so one floor between them answers both orientations for real. It also
+        // still skips an iPad in Slide Over, which is compact as well.
+        let shorterSide = min(app.frame.width, app.frame.height)
         try XCTSkipUnless(
-            app.frame.width >= 700,
-            "This window is \(Int(app.frame.width)) points wide, which is a compact shell "
+            shorterSide >= 700,
+            "This window is \(Int(app.frame.width))×\(Int(app.frame.height)) — "
+                + "\(Int(shorterSide)) points on its shorter side, which is a compact shell "
                 + "rather than an iPad's. Run this suite with --device pointed at an iPad."
         )
         return app
