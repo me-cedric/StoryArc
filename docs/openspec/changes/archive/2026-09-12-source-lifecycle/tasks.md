@@ -378,7 +378,7 @@ filename so a light and a dark run cannot overwrite each other.
       actually refused. `Attic NAS` points at a host that is not running, which yields
       *unreachable*, not *unauthorized* — those are different states and only the second
       offers `Reconnect`. A fixture holding an `unauthorized` source is the prerequisite.
-- [~] 4.3 The "cannot be reached" notice for an unreachable server, with the "downloads stay readable" line and the try-again action. **Capture a control beside it** — a reachable source at the same moment — so the picture proves the state and not merely that the screen exists
+- [x] 4.3 The "cannot be reached" notice for an unreachable server, with the "downloads stay readable" line and the try-again action. **Capture a control beside it** — a reachable source at the same moment — so the picture proves the state and not merely that the screen exists
       **Frames owed: 8, plus the control.** Surface *the source detail screen of an
       unreachable source*; state *`Not answering` with `No answer since …`*; light and dark,
       default and largest.
@@ -438,8 +438,29 @@ filename so a light and a dark run cannot overwrite each other.
       The try-again action is in `ios-search-one-title-two-sources` beside the results:
       *Cellar Catalogue didn't answer · Try again*.
 
-      **Still owed:** the library-wide away notice from a device whose only sources are remote
-      and all unreachable, and a largest-text variant of the unreachable detail.
+      **Both remaining frames are taken, 2026-09-12**, in the same folder.
+
+      `ios-library-sources-away{,-dark}` is the library-wide sentence. It was owed for a reason
+      no fixture could remove: the shelf reaches `LibraryAway` only after the *narrowed to
+      nothing* branch, and that branch is taken whenever the device holds a publication of its
+      own. `MockCatalogues.everythingAway` supplies one catalogue pointed at a dead port, and
+      the device's own `Documents` and `Library/Caches/library.json` are moved aside for the two
+      shutters and moved back after — the folder's README carries the commands, and
+      `testCaptureAwayNotice` skips with them in its message rather than photographing the
+      filter sentence under a name saying *away*.
+
+      `ios-source-unreachable-detail-ax5{,-dark}` is the largest-text variant, from
+      `SweepSourcesTests/testCaptureUnreachableSourceDetailAtLargestText`. It scrolls to the
+      row: *Cellar* is the third of three catalogues and at `AccessibilityXXXL` the third row
+      starts below the fold, so the first version of the walk failed about a row that was on
+      the screen's other half.
+
+      **The grey claim is measured on the new frames too.** Most saturated pixel per band,
+      ignoring anything below a quarter brightness where a hue reading means nothing: the away
+      notice reads **0.029** light and **0.057** dark, its *Try again* button 0.679 and 0.680.
+      The sentence carries no colour; the only saturated thing in the frame is the way out.
+      Across the whole of the largest-text detail frame the maximum is **0.250** — no colour
+      anywhere on the screen.
 - [x] 4.4 Pull-to-refresh on iOS, mid-gesture and after completion
       **Frames owed: 4** — iOS only, mid-gesture and settled, light and dark. Largest text is
       not meaningful for a spinner and can be declared out of scope here, in writing.
@@ -776,9 +797,20 @@ filename so a light and a dark run cannot overwrite each other.
 
       What 2026-09-11 added for 4.2 is in that task: the refused-credential state is
       reachable on a simulator for the first time, with two frames and a recipe.
-- [ ] 7.3 Confirm `agent-compass openspec-guard . --strict` reports no error for this change, then archive it with `/opsx:archive`
+- [x] 7.3 Confirm `agent-compass openspec-guard . --strict` reports no error for this change, then archive it with `/opsx:archive`
 
       **First half done on 2026-09-11: `pnpm spec:guard:strict` reports 0 errors and 1
       warning, and the warning is this change reading 21 of 27 tasks rather than anything
       wrong with its artifacts.** It cannot archive at 21 of 27. The six open are the four
       frame tasks and these two gates, so the archive waits on the captures.
+
+      **Done on 2026-09-12.** `pnpm spec:guard:strict` reports **0 errors**, which is what this
+      task asks for. It still exits non-zero, on one warning that is not this change's: three
+      main specs — `local-library`, `network-share`, `opds-catalog` — are named by no change,
+      active or archived. That is a gap in those capabilities' history and the next behaviour
+      change to one of them should carry a delta; it says nothing about these artifacts.
+
+      Archived as `2026-09-12-source-lifecycle` with `--skip-specs`, which is what the proposal
+      asks for in writing: "Nothing about the capability's requirements. They are written, and
+      this change does not modify them. What changes is that they exist." The change carries no
+      delta specs, so there is nothing to merge into `sources`.

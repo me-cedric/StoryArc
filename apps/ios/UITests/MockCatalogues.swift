@@ -72,6 +72,35 @@ enum MockCatalogues {
         """
     }
 
+    /// A registry whose only source cannot be reached, which is the *library away* state.
+    ///
+    /// **Why one source and not three.** ``LibraryAway/everythingAway(in:)`` is true only when
+    /// every configured source is unreachable, and the three-catalogue registry above has two
+    /// that answer. A reader with one dead catalogue is the smallest honest way to reach the
+    /// sentence `library-browsing` owes a picture of.
+    ///
+    /// **It needs a device with no books of its own.** The shelf falls through to
+    /// ``LibraryAway`` only after "narrowed to nothing", and that branch is taken whenever the
+    /// device holds any publication at all — so a seeded simulator shows the filter sentence
+    /// instead. `SweepSourcesTests.testCaptureAwayNotice` carries the command that clears one.
+    static var everythingAway: String {
+        """
+        {
+          "sources": [
+            {
+              "id": "33333333-3333-4333-8333-333333333333",
+              "displayName": "\(cellar)",
+              "kind": "opdsCatalog",
+              "lastSuccessfulSync": null,
+              "credentialReference": null,
+              "locator": "http://127.0.0.1:\(deadPort)/opds/all"
+            }
+          ],
+          "tombstones": []
+        }
+        """
+    }
+
     /// A Kavita server whose key is gone, which is the *refused credential* state.
     ///
     /// **Deterministic, and that is the point.** §4.2 sat open because the refusal it needed
