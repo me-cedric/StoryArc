@@ -2,6 +2,8 @@ public import Foundation
 
 public import Formats
 
+internal import StoryArcCore
+
 // The module and its main class share a name, so the class is imported by itself: written
 // as `SMBClient.SMBClient` the compiler reads the module and finds no member.
 internal import class SMBClient.SMBClient
@@ -59,10 +61,11 @@ public actor SmbClient {
 
             return SmbIdentity(
                 dialect: Self.offeredDialects,
-                // This client implements SMB 2 dialects and no transport encryption, so
-                // saying otherwise would be a claim the connection cannot back. Android
-                // negotiates SMB 3 and reports what it got. ADR-0010 records the split.
-                isEncrypted: false
+                // ``StoryArcCore/ShareTransport`` holds the answer and the evidence for it,
+                // so that the add-share sheet and the source detail screen read one value.
+                // SMBClient 0.3.1 offers SMB 2.0.2 and SMB 2.1 only, and SMB 3 is where
+                // transport encryption starts. ADR-0010 records the split with Android.
+                isEncrypted: ShareTransport.isEncrypted
             )
         }
     }

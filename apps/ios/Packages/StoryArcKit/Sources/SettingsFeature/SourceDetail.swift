@@ -24,6 +24,13 @@ struct SourceDetail: View {
     let diagnosis: SourceDiagnosis
     /// Runs one action. Confirmation for the two that delete bytes happens here first.
     let perform: (SourceAction) async -> Void
+    /// Whether the app encrypts what it reads from a share, as ``ShareTransport`` measured it.
+    ///
+    /// A property so that a test can draw both answers. Today this client cannot encrypt and
+    /// refuses a share that demands it, so the default is the only value a reader ever sees.
+    /// When a client does negotiate SMB 3 encryption this carries the answer for that
+    /// connection, and the sentence follows without further work.
+    var isTransportEncrypted: Bool = ShareTransport.isEncrypted
 
     @State private var confirming: SourceAction?
     @State private var isWorking = false
@@ -67,13 +74,13 @@ struct SourceDetail: View {
                 // The transport sentence joins it, under the same argument and for the same
                 // reason. Both are standing facts about the source, so they share one stack
                 // rather than sitting in two footers.
-                if statesProgressIsLocal || statesTransport {
+                if statesProgressIsLocal || transportKey != nil {
                     VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
                         if statesProgressIsLocal {
                             Text("sources.detail.progressLocalOnly", bundle: .module)
                         }
-                        if statesTransport {
-                            Text("sources.detail.transport", bundle: .module)
+                        if let transportKey {
+                            Text(transportKey, bundle: .module)
                         }
                     }
                 }
@@ -233,28 +240,15 @@ struct SourceDetail: View {
         source.id != ImportedCopies.sourceID && !source.kind.syncsReadingProgress
     }
 
-    /// Whether this screen has to say how the source is reached, and whether that is encrypted.
+    /// What this screen states about how the source is reached, or `nil` when it states
+    /// nothing.
     ///
-    /// `network-share`' *Encrypted transport*: "the source detail screen states whether the
-    /// connection is encrypted". The sentence lived only in the add-share sheet, which a reader
-    /// sees once, before the source exists. A share is the only kind with a transport to state:
-    /// a folder is a disk, and the two servers are HTTP.
-    ///
-    /// **The sentence names encryption and never signing, which is a decision rather than an
-    /// omission.** [ADR-0016](docs/decisions/0016-ios-smb-response-signing.md) refuses a signing
-    /// line — iOS's client verifies no response and cannot answer the question, and "the app
-    /// does not explain its own weaknesses to the reader". Android's client can answer it and
-    /// says so on its own add-share sheet; this screen is drawn the same way on both platforms,
-    /// so it states the transport and the encryption alone, and a signed session reads exactly
-    /// like an unsigned one here.
-    ///
-    /// **The sentence says *not* encrypted, flatly, because nothing else is reachable.**
-    /// `SmbClient` reports `isEncrypted: false` on iOS, and Android's reports the same;
-    /// [ADR-0010](docs/decisions/0010-smb-clients.md) records why neither client encrypts. A
-    /// second sentence for the encrypted case would be a translated string no reader can see.
-    /// When a client does negotiate SMB 3 encryption, this becomes a question with two answers
-    /// and the wording moves with it.
-    private var statesTransport: Bool { source.kind == .networkShare }
+    /// `transportNote(for:isEncrypted:)` holds the rule, and it reads ``isTransportEncrypted``.
+    /// This property used to draw one fixed key, so the screen stated a fact about a reader's
+    /// security that no code had measured.
+    private var transportKey: LocalizedStringKey? {
+        transportNote(for: source.kind, isEncrypted: isTransportEncrypted)
+    }
 
     private var syncedAt: Text {
         guard let moment = diagnosis.lastSuccessfulSync else {
