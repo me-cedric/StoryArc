@@ -536,3 +536,53 @@ say so in your report and let the parent decide — do not rebase.
 **Never remove a worktree whose agent is still running** — `git worktree list` marks those
 `locked`, and removing one destroys uncommitted work. Confirm a branch is merged
 (`git log --oneline main..<branch>` is empty) before deleting it.
+
+## 10. Releases
+
+**"Make a new release" means all of this, in this order, and nothing less.** It is one
+command, because every step after the first is a place a manual release forgets something.
+
+```bash
+pnpm release patch        # or minor, or major, or an explicit 0.4.0
+```
+
+That command, and then the tag it pushes, produce:
+
+1. the new `versionName` and `versionCode` written into `apps/android/gradle.properties`
+   and the version into `package.json`, committed as `chore(release): vX.Y.Z`
+2. a `vX.Y.Z` tag, pushed with the branch
+3. a signed App Bundle **and** a signed APK, built once by
+   [`android-release.yml`](.github/workflows/android-release.yml) from that commit
+4. a GitHub release on the tag, carrying the APK
+5. that bundle on Play's **closed testing** track
+
+**The rules that bind you:**
+
+- **`apps/android/gradle.properties` is the only place a version lives, and
+  `scripts/release.mjs` is the only thing that edits it.** Do not hand-edit either version
+  field and do not pass `-PversionName` in a lane that publishes. A version typed twice is a
+  version that disagrees with itself.
+- **The version code only ever goes up.** Play refuses a code it has already accepted, and
+  it refuses it after the build has run. Never reuse or lower one, even for a release that
+  failed — cut the next one instead.
+- **Never build or sign a release locally.** The upload keystore and the Play service
+  account are repository secrets and have no copy on this machine. A release that was not
+  built by CI is not a release.
+- **Ask before you release.** A release is outward-facing and a tag is hard to withdraw.
+  Cut one only when asked for one outright; §8's "do not commit, push, or tag unless asked"
+  is not suspended here, it is the reason this section is explicit.
+- **Promotion stays a separate, deliberate act.** This lane stops at closed testing.
+  Moving that build to production is [`android-promote.yml`](.github/workflows/android-promote.yml),
+  which reuses the artefact and rebuilds nothing, so the bytes testers approved are the
+  bytes production gets. Run it only when asked.
+
+**Check the result, do not assume it.** The lane can fail after the tag is pushed —
+a rejected version code, an expired key.
+
+```bash
+gh run watch --exit-status        # while it runs
+gh release view v0.2.0            # the APK is attached, or it is not
+```
+
+**iOS is not wired into this yet.** `pnpm release` touches the Android version only. Do not
+claim a release covers iOS.

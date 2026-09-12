@@ -46,7 +46,7 @@
     "build:ios": "cd apps/ios && xcodegen generate && xcodebuild build -project StoryArc.xcodeproj -scheme StoryArc -destination 'generic/platform=iOS Simulator' -quiet",
     "build:ios:tests": "cd apps/ios && xcodegen generate && xcodebuild build-for-testing -project StoryArc.xcodeproj -scheme StoryArc -destination 'generic/platform=iOS Simulator' -quiet",
     "build:android": "node scripts/gradle.mjs assembleDebug",
-    "selftests": "pnpm openspec:workflows:selftest && pnpm libarchive:pin:selftest && pnpm lockfile:ios:selftest && pnpm a11y:selftest && pnpm strings:drawn:selftest",
+    "selftests": "pnpm openspec:workflows:selftest && pnpm libarchive:pin:selftest && pnpm lockfile:ios:selftest && pnpm a11y:selftest && pnpm strings:drawn:selftest && pnpm release:selftest",
     "//check": "Tier 1. This tier needs no simulator and no emulator. It stands for these CI jobs: Contract / Specs and design tokens; iOS / StoryArcKit; iOS / SwiftLint; iOS / App, its Build step only; Android / Lint, test and assemble. pnpm selftests holds the five Contract self-test steps that pnpm lint leaves out.",
     "check": "pnpm lint && pnpm selftests && pnpm lint:ios && pnpm test:ios && pnpm build:ios:tests && pnpm lint:android && pnpm test:android && pnpm build:android && pnpm build:android:tests",
     "//check:devices": "Tier 2. This tier needs a booted iPhone 17 Pro simulator and a running Android emulator. It takes minutes. It stands for these CI jobs: iOS / StoryArcEpub; iOS / App, its Accessibility audit step; Android / Instrumented tests. A green pnpm check proves none of these three. Run this tier before you change a UI test, a format decoder or the epub reader.",
@@ -89,6 +89,8 @@
     "sweep:test-debris": "node scripts/sweep-test-debris.mjs",
     "live:check": "node scripts/live-check.mjs",
     "live:check:selftest": "node scripts/live-check.mjs --self-test",
+    "release": "node scripts/release.mjs",
+    "release:selftest": "node scripts/release.mjs --self-test",
     "commitlint:guard": "node scripts/commitlint-guard.mjs",
     "build:ios:ui": "cd apps/ios && xcodegen generate && xcodebuild build-for-testing -project StoryArc.xcodeproj -scheme StoryArc -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath ../../.build/ios-ui -quiet",
     "seed:ios:ui": "node scripts/install-and-seed-simulator.mjs"

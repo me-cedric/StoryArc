@@ -1,26 +1,35 @@
 name: Android release
 
-# Manual only. This lane builds one signed App Bundle and gives it to Play's internal
-# track. It never promotes: moving that build to a closed track and then to production is
-# `android-promote.yml`, which reuses the same artefact and never rebuilds.
+# A tag starts this. `pnpm release patch` writes the new version into
+# `apps/android/gradle.properties`, commits, tags `vX.Y.Z` and pushes; this lane does
+# everything after that and nothing before it.
 #
-# Secrets this needs, all four of them repository secrets:
+# What it produces, in order:
+#   1. a signed App Bundle and a signed APK, both at the version the tag carries
+#   2. a GitHub release on that tag, with the APK attached for sideloading
+#   3. that bundle on Play's closed testing track
+#
+# It never promotes. Moving a build from closed testing to production is
+# `android-promote.yml`, which reuses this artefact and never rebuilds.
+#
+# Secrets this needs, all five of them repository secrets:
 #   PLAY_SERVICE_ACCOUNT_JSON   Play Console service account key, the whole JSON document
 #   ANDROID_KEYSTORE_BASE64     the upload keystore, base64 encoded
 #   ANDROID_KEYSTORE_PASSWORD   the keystore password
 #   ANDROID_KEY_ALIAS           the key alias inside the keystore
 #   ANDROID_KEY_PASSWORD        the key password
 on:
+  push:
+    tags: ['v*']
   workflow_dispatch:
     inputs:
-      versionName:
-        description: 'Version name a reader sees, for example 0.2.0'
-        required: true
-      versionCode:
-        description: 'Version code. Must be higher than every code Play already holds.'
-        required: true
+      track:
+        description: 'Play track to publish to. alpha is the default closed testing track.'
+        type: choice
+        options: [alpha, beta, internal]
+        default: alpha
       releaseStatus:
-        description: 'completed hands the build to internal testers. draft only for the first upload of an app Play has never seen.'
+        description: 'completed hands the build to testers. draft only for the first upload of an app Play has never seen.'
         type: choice
         options: [completed, draft]
         default: completed
@@ -31,14 +40,29 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   release:
-    name: Build, sign, upload to internal testing
+    name: Build, sign, publish, upload to closed testing
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          # `gh release create --generate-notes` needs the history to say what changed.
+          fetch-depth: 0
+
+      - name: Read the version the repository carries
+        id: version
+        # `gradle.properties` is the single source of truth. Nothing here passes `-P`, so a
+        # build from this lane is exactly the build anyone gets from the same commit.
+        run: |
+          NAME=$(grep -m1 '^versionName=' apps/android/gradle.properties | cut -d= -f2)
+          CODE=$(grep -m1 '^versionCode=' apps/android/gradle.properties | cut -d= -f2)
+          test -n "$NAME" && test -n "$CODE"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "tag=v$NAME" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-java@v5
         with:
@@ -54,27 +78,42 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
 
-      - name: Bundle release
+      - name: Build the bundle and the APK
         working-directory: apps/android
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/upload.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          VERSION_NAME: ${{ inputs.versionName }}
-          VERSION_CODE: ${{ inputs.versionCode }}
-        run: ./gradlew bundleRelease -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE"
+        # Play takes the bundle; a reader who sideloads takes the APK. Both are signed by
+        # the same key in the same run, so they are the same build.
+        run: ./gradlew bundleRelease assembleRelease
+
+      - name: Name the APK after its version
+        # `app-release.apk` in a downloads list says nothing. `StoryArc-0.2.0.apk` does.
+        run: cp apps/android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/StoryArc-${{ steps.version.outputs.name }}.apk"
 
       - name: Keep the bundle and the mapping
         # R8 runs on release. Without the mapping file kept here as well as sent to Play,
         # a crash report from a tester is unreadable stack frames.
         uses: actions/upload-artifact@v4
         with:
-          name: android-release-${{ inputs.versionCode }}
+          name: android-release-${{ steps.version.outputs.code }}
           path: |
             apps/android/app/build/outputs/bundle/release/app-release.aab
             apps/android/app/build/outputs/mapping/release/mapping.txt
           retention-days: 90
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        # On a tag push the tag is already here. On a manual run it may not be, and
+        # `gh release create` makes it at this commit.
+        run: |
+          gh release create "$TAG" "$RUNNER_TEMP/StoryArc-${{ steps.version.outputs.name }}.apk" \
+            --title "$TAG" \
+            --generate-notes
 
       - name: Install fastlane
         # `supply` is the Play Developer API client both lanes use. The floor is pinned;
@@ -87,17 +126,20 @@ jobs:
           PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: printf '%s' "$PLAY_JSON" > "$RUNNER_TEMP/play.json"
 
-      - name: Upload to internal testing
+      - name: Upload to closed testing
         env:
-          RELEASE_STATUS: ${{ inputs.releaseStatus }}
-          VERSION_NAME: ${{ inputs.versionName }}
+          TRACK: ${{ inputs.track || 'alpha' }}
+          RELEASE_STATUS: ${{ inputs.releaseStatus || 'completed' }}
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+        # `alpha` is Play's name for the default closed track. A closed track you created
+        # yourself has its own name; a manual run can name it.
         run: |
           fastlane supply \
             --package_name com.mecedric.storyarc \
             --json_key "$RUNNER_TEMP/play.json" \
             --aab apps/android/app/build/outputs/bundle/release/app-release.aab \
             --mapping apps/android/app/build/outputs/mapping/release/mapping.txt \
-            --track internal \
+            --track "$TRACK" \
             --release_status "$RELEASE_STATUS" \
             --version_name "$VERSION_NAME" \
             --skip_upload_metadata true \

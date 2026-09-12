@@ -43,3 +43,11 @@ These files are generated from the installed CLI's own templates by
 ```bash
 pnpm spec:guard          # artifact chain, one root, config, installed workflows
 ```
+
+## Releasing
+
+`pnpm release patch|minor|major|X.Y.Z` is the whole release. It bumps the version, tags, and
+pushes; CI then builds and signs the bundle and the APK, publishes a GitHub release carrying
+the APK, and uploads to Play's closed testing track. Read §10 of [`AGENTS.md`](AGENTS.md)
+before you run it — in particular: never hand-edit a version, never build a release locally,
+and never cut one unless you were asked to.
