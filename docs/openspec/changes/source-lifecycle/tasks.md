@@ -286,7 +286,7 @@ filename so a light and a dark run cannot overwrite each other.
       names it looked for.
 
       **This task is done.**
-- [~] 4.2 The reconnect sheet reached from a rejected credential, address filled and secret blank
+- [x] 4.2 The reconnect sheet reached from a rejected credential, address filled and secret blank
 
       **The blocker named below is gone, and a defect is in its place.** On 2026-09-11 the
       refused state was made reachable on a simulator for the first time:
@@ -349,7 +349,22 @@ filename so a light and a dark run cannot overwrite each other.
       name — `app.textFields["Address"]` — which was impossible while the sheet's fields
       carried no labels at all. The two pieces of work met here.
 
-      **Still owed: the Android half**, which has the same two routes to the same state.
+      **The Android half is taken the same day and by the same route.** `SourceHealth.probe`
+      ends with the same sentence — "Neither page could be built, so the secret this source
+      needs has gone" — so `scripts/seed-android-sources.mjs --refused-kavita` writes a source
+      whose credential reference names a secret the Keystore does not hold.
+
+      Eight frames in `docs/designs/screenshots/source-lifecycle-2026-09-11/`, light and dark
+      at both text sizes:
+      - `android-refused-source-*` — *Status · Needs sign-in*, *Last error · Sign-in needed*,
+        and **five** actions, because *Sign in again* is offered first for exactly this state.
+      - `android-reconnect-sheet-*` — the Kavita sheet re-opened, the address already filled
+        with `http://10.0.2.2:5000` and the API key empty.
+
+      **This task is done, and it also settles something 4.1 could not.** That task was
+      reworded because no single source can offer all five actions at once — *Remove downloads*
+      needs a finished download and *Reconnect* needs a refused credential. Both states are now
+      photographed, on both platforms, in two frames each.
       **Frames owed: 8** — 4 per platform (light/dark × default/largest). Surface *the add
       sheet re-opened by the source detail screen's `Reconnect` row*; state *address field
       populated, secret field empty, the source's identifier preserved*.

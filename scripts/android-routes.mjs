@@ -382,6 +382,20 @@ export const ROUTES = [
     // files go. Offered only while the source holds a finished download.
     ['Settings > remove downloads', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Attic Catalogue', named('sources_action_remove_downloads')]],
 
+    // --- A server that will not take the key it has ----------------------------------
+    //
+    // `source-lifecycle` §4.2 asks for the sheet a reader is sent back to when a server stops
+    // accepting their key. Seed it first, and it needs no server at all:
+    //
+    //     node scripts/seed-android-sources.mjs --refused-kavita
+    //
+    // `SourceHealth.probe` ends with "Neither page could be built, so the secret this source
+    // needs has gone" and answers `Unauthorized`, so a credential reference naming a secret the
+    // Keystore does not hold reaches the state a refusal reaches — without a race between a
+    // 401 and a connection failure.
+    ['Settings > refused source', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Attic Kavita']],
+    ['Settings > reconnect sheet', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Attic Kavita', named('sources_action_reconnect')]],
+
     // One title, two sources. `source-lifecycle` asks for the row and for the copy the row
     // opens, which `SourcePrecedence` decides — registry order wins, so *Attic Catalogue*
     // holds the copy and *Loft Catalogue* does not.

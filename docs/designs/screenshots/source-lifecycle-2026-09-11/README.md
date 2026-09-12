@@ -29,6 +29,8 @@ Every row was read from a `uiautomator` dump, not from the picture.
 | `android-remove-downloads-{light,dark}` and `-large-{light,dark}` | downloads confirmation | *Remove downloads from Attic Catalogue? · This deletes 1.47 kB of files downloaded from this library. The library stays, and so do your reading positions.* |
 | `android-two-sources-{light,dark}` and `-large-{light,dark}` | search results | One title held by two catalogues: *Slow Transfer · From Attic Catalogue* above *Slow Transfer · From Loft Catalogue* |
 | `android-two-sources-page-{light,dark}` and `-large-{light,dark}` | publication page | The copy that row opens, after it was fetched: *Read*, and *On this device · also elsewhere in your library* |
+| `android-refused-source-{light,dark}` and `-large-*` | source detail | *Status · Needs sign-in* with **five** actions, *Sign in again* first |
+| `android-reconnect-sheet-{light,dark}` and `-large-*` | the add sheet, re-opened | the address filled, the API key empty |
 | `android-metered-ask-light` | metered confirmation | *Use mobile data? · Downloading "Slow Transfer" now will use mobile data. The catalogue does not state its size.* |
 
 ## What the frames establish
@@ -55,6 +57,22 @@ Every row was read from a `uiautomator` dump, not from the picture.
    dialogs say so. The thirty-day sentence lives under the source list —
    *Removing a library deletes what you downloaded from it and keeps your reading positions
    for 30 days* — and is in `android-sources-pair-*`.
+
+## The refused credential, reached without a server
+
+§4.2 needed a source whose credential a server refused, and the obvious fixture is a race: a
+mock served with a rotated key answers 401 on one launch and a connection failure on the next,
+and only the first offers *Sign in again*.
+
+`SourceHealth.probe` has a second route to that state and its last line says so — "Neither page
+could be built, so the secret this source needs has gone" returns `Unauthorized`. So
+`scripts/seed-android-sources.mjs --refused-kavita` writes a source whose credential reference
+names a secret the Keystore does not hold. Nothing is asked of the network, so nothing can
+flicker, and the screen is the one a refusal reaches.
+
+It is also where the **fifth action** appears: *Sign in again* is offered only for this state,
+which is why no single source can show all five at once — the point task 4.1 was reworded
+around.
 
 ## The two defects this capture found, both fixed
 

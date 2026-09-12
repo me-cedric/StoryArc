@@ -23,6 +23,7 @@
 //   node scripts/seed-android-sources.mjs                       (three sources, two live)
 //   node scripts/seed-android-sources.mjs --device emulator-5554 --ports 4444,4445
 //   node scripts/seed-android-sources.mjs --clear               (forget every source)
+//   node scripts/seed-android-sources.mjs --refused-kavita      (one server needing sign-in)
 //
 // It needs `adb root`, which an emulator gives and a phone does not. The file it writes
 // belongs to the app's own uid, so the mode and the owner are restored after the copy — a
@@ -112,13 +113,44 @@ const registry = {
   tombstones: [],
 }
 
+/**
+ * A Kavita server whose key is gone, which is the *refused credential* state.
+ *
+ * **Deterministic, and that is why it exists.** `source-lifecycle` §4.2 needs a source whose
+ * credential a server refused, and the obvious fixture — a mock served with a rotated key — is
+ * a race: the probe lands on 401 on one launch and on a connection failure on the next, and
+ * only the first offers *Sign in again*.
+ *
+ * `SourceHealth.probe` has a second route to the same state, and its last line says so:
+ * "Neither page could be built, so the secret this source needs has gone" returns
+ * `Unauthorized`. A `credentialReference` naming a secret the Android Keystore does not hold
+ * reaches it, asks nothing of the network, and therefore cannot flicker. iOS's
+ * `MockCatalogues.refusedKavita` is the same fixture against the same sentence.
+ */
+const refusedKavita = {
+  sources: [
+    {
+      id: '44444444-4444-4444-8444-444444444444',
+      displayName: 'Attic Kavita',
+      kind: 'KAVITA_SERVER',
+      lastSuccessfulSyncEpochMillis: null,
+      credentialReference: 'a-secret-this-keystore-does-not-hold',
+      locator: `http://${HOST}:5000`,
+    },
+  ],
+  tombstones: [],
+}
+
 const escape = (text) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+/** Which registry to write: the three catalogues, or the one refused server. */
+const chosen = args.includes('--refused-kavita') ? refusedKavita : registry
 
 const xml = args.includes('--clear')
   ? "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n<map />\n"
   : "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n<map>\n" +
-    `    <string name="registry">${escape(JSON.stringify(registry))}</string>\n</map>\n`
+    `    <string name="registry">${escape(JSON.stringify(chosen))}</string>\n</map>\n`
 
 adb('root')
 // The app has to be down. `SharedPreferences` keeps the map in memory and writes it back on
@@ -145,8 +177,8 @@ const written = adb('shell', `cat ${PREFS}`)
 if (args.includes('--clear')) {
   console.log('Sources cleared. *Your libraries* is empty again.')
 } else {
-  const names = registry.sources.map((source) => source.displayName).join(', ')
-  console.log(`Registered ${registry.sources.length} sources: ${names}`)
+  const names = chosen.sources.map((source) => source.displayName).join(', ')
+  console.log(`Registered ${chosen.sources.length} sources: ${names}`)
   console.log(`Live on ${HOST}:${live} and ${HOST}:${second}; ${HOST}:${DEAD} answers nothing, by design.`)
   console.log(`Start the mock catalogues first:\n  node scripts/opds-server.mjs <corpus> --port ${live}`)
 }
