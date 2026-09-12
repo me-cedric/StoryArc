@@ -361,7 +361,15 @@ export const ROUTES = [
     ['Settings > sources reachable and not', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources]],
     // The confirmation, not the removal. The dialog states the title count and the
     // thirty-day sentence, and the route stops on it.
-    ['Settings > source removal', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Attic Catalogue', named('sources_remove')]],
+    //
+    // **Exact, because a source holding a download offers two rows beginning with the same
+    // word.** *Remove downloads* appears above *Remove* as soon as a finished download exists,
+    // and a substring match takes the first of them — so this route photographed the wrong
+    // dialog the moment its own fixture gained a download.
+    ['Settings > source removal', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Attic Catalogue', '=' + named('sources_remove')]],
+    // The other confirmation, which is a different promise: the library stays and only the
+    // files go. Offered only while the source holds a finished download.
+    ['Settings > remove downloads', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Attic Catalogue', named('sources_action_remove_downloads')]],
 
     // One title, two sources. `source-lifecycle` asks for the row and for the copy the row
     // opens, which `SourcePrecedence` decides — registry order wins, so *Attic Catalogue*
@@ -372,6 +380,13 @@ export const ROUTES = [
     // would stand for three, and a local file would win a comparison this frame is not about.
     // Reached through search, because a shelf of 218 does not show S without scrolling.
     ['Search > one title two sources', [NAMES.search, named('library_search'), '@type slow']],
+    // **No route to the second copy, and the reason belongs here.** The two mock catalogues
+    // serve one corpus, so an entry carries the same `urn:` id on both — and a download is
+    // recorded against that id. Opening the *Loft* row after downloading the *Attic* one
+    // therefore shows a page that is already on the device. That is the fixture speaking, not
+    // the app: two mirrors of one catalogue really do hold one publication. A frame of two
+    // distinct copies needs two catalogues with different ids for the same title, which
+    // `scripts/opds-server.mjs` does not offer.
     ['Publication page > two sources', [NAMES.search, named('library_search'), '@type slow', 'Slow Transfer']],
 ]
 

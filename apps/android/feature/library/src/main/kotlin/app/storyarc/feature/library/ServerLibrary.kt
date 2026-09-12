@@ -6,10 +6,14 @@ import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.smb.SmbClient
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.Source
+import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
+import app.storyarc.core.model.SourceRegistry
 import app.storyarc.core.persistence.CredentialStore
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 
 /**
@@ -49,11 +53,30 @@ internal object ServerLibrary {
      * nothing.
      */
     suspend fun read(
-        sources: List<Source>,
+        registry: MutableStateFlow<SourceRegistry>,
         credentials: CredentialStore?,
     ): Reading = withContext(Dispatchers.IO) {
-        val slices = sources.map { source ->
-            source.id to runCatching { slice(source, credentials) }.getOrNull().orEmpty()
+        val slices = registry.value.sources.map { source ->
+            val read = runCatching { slice(source, credentials) }.getOrNull()
+            // **A source that just answered is answering, and the registry says so.**
+            //
+            // The registry rather than a list, because this read is where the answer is
+            // learned and a connection state is never persisted: every source loads as
+            // *connecting* and stays there until something says otherwise, and nothing probes
+            // on the path a reader takes from the shelf to a publication's page. Measured on
+            // an emulator on 2026-09-11 — a catalogue this had just read nine titles from
+            // still read *connecting*, so the page said *not answering right now* about a
+            // server that had answered a second earlier, while *Your libraries* read
+            // *Available* for that same source.
+            //
+            // Only what came back. A read that threw is not evidence of anything — a feed can
+            // fail for a reason that is not the server — so `Unreachable` stays the probe's to
+            // give, with the *since* stamp only it can carry. A local folder reads null here
+            // and is not a server, so it is not marked either.
+            if (read != null) {
+                registry.update { it.marking(source.id, SourceConnectionState.Connected) }
+            }
+            source.id to read.orEmpty()
         }
         Reading(
             rows = slices.flatMap { (id, slice) -> slice.publications.map { it to id } },

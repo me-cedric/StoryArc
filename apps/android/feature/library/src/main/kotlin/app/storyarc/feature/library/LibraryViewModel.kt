@@ -373,23 +373,8 @@ class LibraryViewModel(
 
     /** Every server's publications, adopted as a scanned file is. See [ServerLibrary]. */
     internal fun readServers() = viewModelScope.launch {
-        val reading = ServerLibrary.read(_registry.value.sources, credentials)
+        val reading = ServerLibrary.read(_registry, credentials)
         partialSources = reading.partial
-        // **A source that just handed over rows is answering, and the registry says so.**
-        // Connection state is never persisted, so every source loads as *connecting* and
-        // stays there until something probes it — and nothing probes on the path a reader
-        // takes from the shelf to a publication's page. Measured on an emulator on
-        // 2026-09-11: a catalogue the shelf had just read nine titles from still read
-        // *connecting*, so the page said *not answering right now* about a server that had
-        // answered a second earlier, while *Your libraries* read *Available* for the same
-        // source. Two screens, one source, two answers.
-        //
-        // Only the successes. A read that threw is not evidence of anything — a feed can
-        // fail for a reason that is not the server — so `Unreachable` stays the probe's to
-        // give, with the *since* stamp only it can carry.
-        for (sourceId in reading.rows.map { it.second }.distinct()) {
-            _registry.update { it.marking(sourceId, SourceConnectionState.Connected) }
-        }
         reading.rows.forEach { (publication, sourceId) -> adopt(publication, sourceId) }
         if (reading.rows.isEmpty()) return@launch
         rebuild()

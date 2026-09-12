@@ -103,7 +103,10 @@ class DetailNeedsCopyTest {
     private fun show(
         transfer: Download? = null,
         readsWhereItLies: Boolean = false,
-        onDownload: (() -> Unit)? = {},
+        /** The catalogue route: what `PublicationCopy.start` is for an OPDS row. */
+        copyStart: (() -> Unit)? = null,
+        /** The app layer's route, for a publication that has a location to fetch from. */
+        onCopyFromLocation: (() -> Unit)? = {},
     ) {
         compose.setContent {
             StoryArcTheme {
@@ -115,6 +118,12 @@ class DetailNeedsCopyTest {
                     hasProgress = false,
                     readsWhereItLies = here.value || readsWhereItLies,
                 )
+                // **Both routes, combined first, exactly as the screen combines them.** A
+                // publication reaches a copy through its catalogue entry or through its
+                // location, never both, and the control takes whichever it has. The screen
+                // handed the controls the location route alone, so every catalogue row —
+                // which has only the other one — drew no download control at all.
+                val obtain = copyStart ?: onCopyFromLocation
                 DetailMainPane(
                     publication = row,
                     cover = null,
@@ -125,8 +134,8 @@ class DetailNeedsCopyTest {
                     onRead = {},
                     // The screen's own partition: the copy goes to the primary control or to
                     // the overflow, never to both. This pane is the primary one.
-                    onDownload = onDownload.takeIf {
-                        downloadControl(action, onDownload != null) == DownloadControl.PRIMARY
+                    onDownload = obtain.takeIf {
+                        downloadControl(action, obtain != null) == DownloadControl.PRIMARY
                     },
                 )
             }
@@ -214,6 +223,33 @@ class DetailNeedsCopyTest {
         mediaType = "application/vnd.comicbook+zip",
         state = state,
     )
+
+    /**
+     * **A catalogue row can be fetched from its own page.**
+     *
+     * Its copy route is the catalogue entry, and it has no location — so `onCopyFromLocation`
+     * is null and the control has to come from the other half. The page drew *This one has to
+     * be on your device before it opens* and offered nothing that could put it there: not the
+     * primary action, not the overflow. Seen on an emulator on 2026-09-12 against a mock OPDS
+     * catalogue, with the entry resolved and its acquisition in hand.
+     */
+    @Test
+    fun `a catalogue row offers the copy though it has no location to fetch from`() {
+        show(copyStart = {}, onCopyFromLocation = null)
+
+        compose.onNodeWithText("Download it").assertIsDisplayed()
+        compose.onNodeWithText("This one has to be on your device before it opens.")
+            .assertIsDisplayed()
+    }
+
+    /** And a row with neither route offers no control, which is the other side of the rule. */
+    @Test
+    fun `a row with no route to a copy offers no download`() {
+        show(copyStart = null, onCopyFromLocation = null)
+
+        compose.onNodeWithText("Download it").assertDoesNotExist()
+    }
+
 }
 
 private val SOURCE: UUID = UUID.fromString("00000000-0000-0000-0000-0000000000ab")

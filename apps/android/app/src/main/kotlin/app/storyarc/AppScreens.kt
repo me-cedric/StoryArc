@@ -412,7 +412,7 @@ private fun PublicationPage(
         // copy of the page the reader is already on applies here too.
         onOpenPage = host.openPage,
         onMark = { chosen, isRead -> host.mark(chosen, isRead) },
-        onDownload = if (isRemote && !isDownloaded) {
+        onCopyFromLocation = if (isRemote && !isDownloaded) {
             {
                 scope.launch {
                     keepForOffline(host.dependencies.downloads, publication, location)

@@ -258,6 +258,23 @@ filename so a light and a dark run cannot overwrite each other.
       `origin: EMBEDDED` and belong to no source, so *Your libraries* is empty until one is
       added. A source holding a finished download is also still owed on both platforms, so
       *Free up space* is offered against a real figure rather than against `0 bytes`.
+
+      **The Android half is taken, 2026-09-11**, in
+      `docs/designs/screenshots/source-lifecycle-2026-09-11/`: four frames of
+      `Attic Catalogue`, light and dark, at text size 1.0 and 2.0. Read from a `uiautomator`
+      dump rather than from the picture: *Status · Available*, *Last updated · Sep 12, 4:24
+      AM*, *In your library · At least 10 titles*, *Downloaded · 1.47 kB*, and the progress
+      note — five fields — over **five** actions: *Test connection · Refresh · Free up space ·
+      Remove downloads · Remove*.
+
+      **The download this task asked for exists, so *Free up space* stands against a real
+      figure and *Remove downloads* is offered at all.** It was fetched through the app, from
+      the mock catalogue, and that fetch found the defect below. The blocker named above — a
+      device whose *Your libraries* is empty — is gone: `scripts/seed-android-sources.mjs`
+      writes the registry and `Settings > reachable source` reaches the screen.
+
+      **Still owed: the iOS half at a source holding a download.** Its four frames read
+      `0 bytes` and show four actions, so they do not show *Remove downloads* either.
 - [ ] 4.2 The reconnect sheet reached from a rejected credential, address filled and secret blank
 
       **The blocker named below is gone, and a defect is in its place.** On 2026-09-11 the
@@ -347,6 +364,21 @@ filename so a light and a dark run cannot overwrite each other.
       **Still owed:** the away notice from a device whose only sources are remote and all
       unreachable; the largest-text variant of both walks; and the Android half, which has no
       route for this state at all.
+
+      **The Android half is taken, 2026-09-11**, and so is the control the task demands. Four
+      frames of `Cellar Catalogue` — *Status · Not answering*, *Last updated · Never*,
+      *Last error · No answer since …*, *0 titles* — light and dark, at text size 1.0 and 2.0.
+      `Settings > unreachable source` is the route; the source is one the seeding script points
+      at a port nothing listens on, so the state is a refused connection rather than a name
+      that does not resolve.
+
+      **The control is in the frame rather than beside it.** `android-sources-pair-{light,dark}`
+      holds *Attic Catalogue · Available* directly above *Cellar Catalogue · Not answering*, at
+      one moment, in one appearance. That is what the task asked for and what the iOS attempt
+      could not get, since every source on that simulator was unreachable.
+
+      **Still owed:** the library-wide away notice from a device whose only sources are remote
+      and all unreachable, and the largest-text variants of the two iOS walks.
 - [ ] 4.4 Pull-to-refresh on iOS, mid-gesture and after completion
       **Frames owed: 4** — iOS only, mid-gesture and settled, light and dark. Largest text is
       not meaningful for a spinner and can be declared out of scope here, in writing.
@@ -355,7 +387,7 @@ filename so a light and a dark run cannot overwrite each other.
       the mid-gesture frame needs a held drag — `XCUIElement.press(forDuration:thenDragTo:)`
       or an `XCUICoordinate` press-move-release — with the shutter between the move and the
       release. Budget this as the one genuinely new capture technique in §4.
-- [ ] 4.5 The precedence rule with two sources holding one title: the row, and the copy it opens
+- [~] 4.5 The precedence rule with two sources holding one title: the row, and the copy it opens
       **Frames owed: 8** — 4 per platform. Two surfaces, so two shutters per condition: *the
       shelf row for a title held by two sources*, and *the publication page the row opens*,
       which must be the copy `SourcePrecedence` names.
@@ -364,6 +396,27 @@ filename so a light and a dark run cannot overwrite each other.
       two registered sources. Confirm against `SourcePrecedenceTests` which pair the rule
       actually ranks before building the fixture — registry position wins, and an
       unattributed find ties with a removed source for last.
+
+      **The Android half is taken, 2026-09-11.** `Search > one title two sources` and
+      `Publication page > two sources` are the routes, and the fixture is two mock OPDS
+      catalogues serving one corpus, registered in that order by
+      `scripts/seed-android-sources.mjs`. Eight frames in
+      `docs/designs/screenshots/source-lifecycle-2026-09-11/`: the search rows at light and
+      dark, text size 1.0 and 2.0, and the page the first row opens at the same four.
+
+      **What the rows show:** *Slow Transfer · From Attic Catalogue* above *Slow Transfer ·
+      From Loft Catalogue*. Attic is first in the registry and is listed first, which is the
+      whole of what `sources` requires — its Open Questions state that de-duplication is
+      deferred and that the requirement "orders by source priority", so **two rows is the
+      specified behaviour** and this task's phrase "the row" is one row too few.
+
+      **What the fixture cannot show, and it is worth knowing before the iOS half is built.**
+      Both catalogues serve one corpus, so an entry carries the same `urn:` id on both and a
+      download is recorded against that id — after fetching the Attic copy, the Loft row's
+      page reads as already on the device. Two distinct copies need two catalogues serving
+      different ids for one title, which `scripts/opds-server.mjs` does not offer.
+
+      **Still owed: the iOS half.**
 - [~] 4.6 The removal confirmation showing the title count and the 30-day sentence
       **Frames owed: 8** — 4 per platform. Surface *the removal confirmation dialog raised
       from the source detail screen's `Remove` row*; state *a source with a non-zero title
@@ -452,6 +505,28 @@ filename so a light and a dark run cannot overwrite each other.
 
 ## 5. The honest limit in the cached indicator
 
+
+      **The Android half is taken, 2026-09-11**, and it is two dialogs rather than one,
+      because the source holds a download and a source that holds one offers both:
+      - *Remove Attic Catalogue? · This removes 10 titles and 1 download (1.47 kB).* — the
+        count is real, which is what this task asked for.
+      - *Remove downloads from Attic Catalogue? · This deletes 1.47 kB of files downloaded from
+        this library. The library stays, and so do your reading positions.*
+
+      Eight frames, light and dark at text size 1.0 and 2.0 for each dialog.
+
+      **The thirty-day sentence is not in either dialog.** It sits under the source list —
+      *Removing a library deletes what you downloaded from it and keeps your reading positions
+      for 30 days* — and is legible in `android-sources-pair-{light,dark}`. A frame of the
+      dialog alone cannot discharge this task's second half, and that is a fact about the
+      screen rather than about the capture.
+
+      **The route needed an exact match to survive its own fixture.** *Remove downloads*
+      appears above *Remove* as soon as a finished download exists, and a substring match took
+      the first of them — so the route photographed the wrong dialog the moment the source
+      gained a download.
+
+      **Still owed: the iOS half.**
 - [x] 5.1 Make the scanner report whether it could read the folder, so the cached notice stays when a walk saw nothing because the folder was unreadable and leaves only when a walk genuinely found an empty folder. Write the failing test first — a walk over an unreadable folder keeps the notice — then change the scanner on both platforms
       **The scanner now reports it, on both platforms.** `scan` takes an
       `onUnreadableFolder` reporter, called with the path of every directory the walk could

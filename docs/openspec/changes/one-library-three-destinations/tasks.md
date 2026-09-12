@@ -1265,7 +1265,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       - The **list layout draws no heading at all**, at any length. `CoverList` takes no
         sections and says so at its `rail` parameter. Whether `library-browsing` means its
         division to reach the list is a question for that spec.
-- [ ] **3.4b** Section headings in the list layout, and a column count the divide
+- [~] **3.4b** Section headings in the list layout, and a column count the divide
       function takes as a parameter. The spec answers the question 3.4 left open:
       *Sectioning a long library* now says the division is drawn in whichever layout
       the reader chose, and that a division averaging fewer than one row per column
@@ -1297,9 +1297,31 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       The list divides, because 47 rows over 25 initials averages more than 1 row
       per column.
 
-      **Frames owed:** an Android list and an iOS list, each sectioned, on a shelf on
-      record as holding at least 200 publications. Re-take the grid frames under
-      *Grouping: Series* as well, to show that the grid refusal survived the change.
+      **Built on both platforms, 2026-09-11, and the Android frames are taken.**
+      `android-list-sectioned-{light,dark}` in
+      `docs/designs/screenshots/long-shelf-2026-09-11/` show the list of the same
+      218-publication shelf with a pinned heading, read from a `uiautomator` dump: the
+      heading at `x 53–964`, the first row below it. The grid frames under
+      *Grouping: Series* were re-taken beside them and still draw no heading, so the
+      three-column refusal survived the change.
+
+      **Three defects an adversarial review of the change found, all fixed here.**
+      - **A division could hold part of the shelf.** `runs` skips a run whose key is
+        null, and the key is null for everything a continuous sort cannot place, while a
+        shared series keeps its name under every sort. A shelf sorted by last read with
+        two contiguous series and two standalone titles divided into the two series and
+        dropped the standalones — eight rows in, six rows out. Both layouts draw the
+        sections and nothing else, so those rows were unreachable. A division that does
+        not hold every row is now refused, on both platforms.
+      - **A letter landed behind its own heading.** A pinned heading is drawn over the
+        top of the viewport, so the row the index scrolled to sat under it: the row
+        spanned 1043 to 1259 and the heading 1043 to 1106, which is 63 px of a 216 px
+        row hidden. A letter naming the first row of a section now scrolls to the
+        heading — re-measured at heading 938 to 1001 and row 1027 to 1243.
+      - **`LibraryScreen.kt` had one line left under its 800-line cap**, bought by
+        shortening a comment. The headings and the alphabet moved to `ShelfDivision.kt`.
+
+      **Still owed: the iOS list frame**, on a shelf on record at 200+ publications.
 - [x] **3.5** Wire the iOS views that are already written, translated and
       unreachable — recent searches, the cached notice, the scope control in its
       new availability form, and file import from the empty state. No new strings.

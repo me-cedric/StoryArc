@@ -206,8 +206,13 @@ fun PublicationDetailScreen(
      * layer's own route. Disjoint from [queue] by construction -- a row with a location is
      * never a row with a catalogue entry to fetch -- and null where the app has no route at
      * all.
+     *
+     * **Named for the route rather than for the button, because passing it to a button is the
+     * defect this name prevents.** It is one of the two ways to a copy; `obtain` is both, and
+     * `obtain` is what the controls take. Handing this straight to a control drew no control
+     * at all for every catalogue row, since a catalogue row reaches its copy the other way.
      */
-    onDownload: (() -> Unit)? = null,
+    onCopyFromLocation: (() -> Unit)? = null,
     /** Remove the copy on the device. Null where there is none to remove. */
     onRemoveDownload: (() -> Unit)? = null,
     onBack: () -> Unit,
@@ -272,8 +277,15 @@ fun PublicationDetailScreen(
 
     // One verb for obtaining the copy, whichever route this publication has. The queue is
     // preferred and the two are disjoint anyway: `copy.start` exists only for a catalogue row,
-    // which by definition has no location for `onDownload` to fetch from.
-    val obtain = copy.start ?: onDownload
+    // which by definition has no location for [onCopyFromLocation] to fetch from.
+    //
+    // **Both controls below take this, and taking the other one was a dead end a reader met.**
+    // They took `onCopyFromLocation`, which is null for every catalogue row, so a publication
+    // fetched from a catalogue drew *This one has to be on your device before it opens* and
+    // offered nothing that could put it there — not as the primary action, not in the
+    // overflow. Measured on an emulator on 2026-09-12, with the copy route resolved and its
+    // acquisition in hand: the page had the verb and handed the buttons the other one.
+    val obtain = copy.start ?: onCopyFromLocation
 
     // Decided once, here, and handed to exactly one of the two controls below. The primary
     // and the overflow used to reach for `onDownload` independently, so a publication that
@@ -308,7 +320,7 @@ fun PublicationDetailScreen(
                     isFinished = publication.id in viewModel.finishedPublications(),
                     onMark = { isRead -> onMark(publication, isRead) },
                     onAddToShelf = { isShelfSheetOpen = true },
-                    onDownload = onDownload.takeIf { download == DownloadControl.OVERFLOW },
+                    onDownload = obtain.takeIf { download == DownloadControl.OVERFLOW },
                     onRemoveDownload = onRemoveDownload,
                 )
             }
@@ -349,7 +361,7 @@ fun PublicationDetailScreen(
                 isFinished = isFinished,
                 onRead = { onRead(publication, copy.file?.path) },
                 onListenFrom = onListenFrom,
-                onDownload = onDownload.takeIf { download == DownloadControl.PRIMARY },
+                onDownload = obtain.takeIf { download == DownloadControl.PRIMARY },
                 modifier = modifier,
             )
         }
