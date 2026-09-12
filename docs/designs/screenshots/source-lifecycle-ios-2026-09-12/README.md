@@ -1,0 +1,73 @@
+# A source, in every state it can be in — iOS, 2026-09-12
+
+The iOS half of `source-lifecycle` tasks 4.1, 4.3, 4.5 and 4.6. Its Android twin is
+`docs/designs/screenshots/source-lifecycle-2026-09-11/`, and the two name the same libraries
+on purpose, so a state can be read across the platforms.
+
+## What made these reachable
+
+Every state here needs registered sources, and a simulator's registry is whoever last used it
+— so `testCaptureSettingsSourceDetail` photographed a different screen each week, and
+`testCaptureUnreachableSourceDetail` skipped outright on a device with no unreachable
+catalogue.
+
+`MockCatalogues` in `apps/ios/UITests` is the fixture now: three OPDS catalogues injected
+through `sweepLaunch(sources:)`, two answering and one pointed at a port nothing listens on.
+The walk decides what it is looking at, rather than reading whatever the device holds.
+
+```bash
+node scripts/opds-server.mjs <corpus> --port 4444
+node scripts/opds-server.mjs <corpus> --port 4445
+pnpm build:ios:ui
+pnpm capture:ios --out <dir> --device <udid> --only SweepSourceScreensTests/testCaptureSettingsSourceDetail
+```
+
+The unreachable source needs no server at all: nothing listens on 4999 by construction, so
+that walk cannot be made to pass by luck. The reachable ones skip with a reason when the mock
+catalogues are down, rather than photographing an unreachable source under a name saying it is
+reachable.
+
+`scripts/seed-simulator-sources.mjs` writes the same three sources into a simulator's own
+defaults, for driving the app by hand.
+
+**The walks live in `SweepSourceScreensTests`**, split out of `SweepSettingsTests` on the same
+day: adding them took that file past the 400-line cap, and a file holding both the settings
+screens and one library's own screens was two subjects anyway.
+
+## The frames
+
+| Frame | Screen | What it shows |
+| --- | --- | --- |
+| `ios-settings-sources-reachable-and-not{,-dark}` | *Your libraries* | *Attic* and *Loft* **Available**, *Cellar* **Not answering**, and *On this device*, in one frame at one moment |
+| `ios-settings-source-detail{,-dark,-ax5,-ax5-dark}` | source detail | *Status Available*, *Last updated*, *In your library · At least 9 titles*, *Downloaded · 0 bytes*, over four actions |
+| `ios-source-unreachable-detail{,-dark}` | source detail | the same screen for a source that is not answering |
+| `ios-settings-source-remove{,-dark,-ax5,-ax5-dark,-ax5-scrolled,-ax5-scrolled-dark}` | removal confirmation | *This removes 9 titles from your library* — a real count |
+| `ios-settings-source-remove-downloads{,-dark}` | removal confirmation | the other sentence, for a source that holds a finished download |
+| `ios-search-one-title-two-sources{,-dark}` | search | one title held by two catalogues, *Attic* first, each row naming its library |
+
+## What the frames establish
+
+1. **The control is in the frame, not beside it.** `source-lifecycle` §4.3 asks for a
+   reachable source at the same moment as an unreachable one, because an unreachable source is
+   grey and never red — and a grey row proves nothing next to no other row. The earlier attempt
+   could not get the pair: every source on that simulator was unreachable, so the two frames
+   were two greys.
+
+2. **The removal confirmation states a real number.** Nine titles, from a catalogue that has
+   actually answered. Nothing is confirmed in the walk, so the source survives for the walks
+   after it.
+
+3. **Precedence is the order, and each row says whose copy it is.** *Attic Catalogue* is first
+   in the registry and its row is listed first. Both rows stay, because `sources` defers
+   de-duplication in writing. The same frame carries two more sentences worth having:
+   *Cellar Catalogue didn't answer · Try again*, and *Libraries checked just now*.
+
+## Still owed
+
+- **Pull-to-refresh, mid-gesture** — §4.4. The shutter fires between XCUITest actions, so a
+  `swipeDown()` has already ended by the time it runs. It needs a held drag with the shutter
+  between the move and the release, and that technique exists nowhere in this suite yet.
+- **The reconnect sheet from a refused credential** — §4.2. `testCaptureReconnectSheet` exists
+  and no frame does, and the state is non-deterministic: the probe lands on a 401 or on a
+  connection failure, and only the first offers *Reconnect*.
+- **A largest-text variant of the unreachable detail.** Its reachable twin has one.

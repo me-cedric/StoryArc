@@ -124,6 +124,48 @@ final class SweepSearchTests: XCTestCase {
     /// is the same event as typing, minus the layout that garbles ASCII. The terms are
     /// injected by ``sweepLaunch(contentSize:appearance:natural:downloads:language:searchScope:availability:layout:recents:)``,
     /// whose own comment says why the query cannot carry one.
+    /// One title held by two catalogues, each row naming the library it came from.
+    ///
+    /// `source-lifecycle` §4.5, and `sources` is what it rests on: "the library's combined
+    /// view lists titles from higher sources first when two sources hold the same
+    /// publication". Two rows rather than one is the specified behaviour — that spec's own
+    /// Open Questions defer de-duplication — so what this frame has to show is the **order**,
+    /// and that each row says which library answered.
+    ///
+    /// *Slow Transfer* is served by both mock catalogues and by no file on this device, so the
+    /// row stands for exactly two candidates. `search` is the one surface `publication-detail`
+    /// allows origin to be named on, which is why the library's name is in the row at all.
+    ///
+    /// Android's twin is `android-two-sources-{light,dark}`.
+    func testCaptureOneTitleTwoSources() throws {
+        guard MockCatalogues.areRunning() else {
+            throw XCTSkip(
+                "The mock catalogues are not running, so no title here is held by two of them."
+            )
+        }
+        let app = sweepLaunch(
+            sources: MockCatalogues.registry,
+            recents: "(\"Slow Transfer\")"
+        )
+        try showSearch(in: app)
+        try run("Slow Transfer", in: app)
+        XCTAssertTrue(
+            app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS %@", MockCatalogues.attic)
+            ).firstMatch.waitForExistence(timeout: 15),
+            "No result named the library it came from. On screen: "
+                + "\(app.staticTexts.allElementsBoundByIndex.prefix(20).map(\.label))"
+        )
+        XCTAssertTrue(
+            app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS %@", MockCatalogues.loft)
+            ).firstMatch.exists,
+            "Only one catalogue answered, so this frame would show precedence over nothing."
+        )
+        hold(2)
+        shutter(app, named: "search-one-title-two-sources")
+    }
+
     private func run(_ term: String, in app: XCUIApplication) throws {
         try XCTUnwrap(
             hittable(term, in: app, timeout: 8),

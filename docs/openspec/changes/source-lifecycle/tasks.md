@@ -204,7 +204,7 @@ Check for a skip in the result bundle before believing a pass. Appearance is the
 simulator's, not the app's — `--appearance light|dark`, which also suffixes the
 filename so a light and a dark run cannot overwrite each other.
 
-- [~] 4.1 The source detail screen, both platforms, showing all five fields and **whichever
+- [x] 4.1 The source detail screen, both platforms, showing all five fields and **whichever
       actions that source's state offers** — verify by attaching the screenshots to the change.
       **This asked for all five actions in one frame, and that frame cannot exist.**
       `SourceDiagnosis.of` withholds *Remove downloads* unless the source holds a finished
@@ -273,8 +273,19 @@ filename so a light and a dark run cannot overwrite each other.
       device whose *Your libraries* is empty — is gone: `scripts/seed-android-sources.mjs`
       writes the registry and `Settings > reachable source` reaches the screen.
 
-      **Still owed: the iOS half at a source holding a download.** Its four frames read
-      `0 bytes` and show four actions, so they do not show *Remove downloads* either.
+      **The iOS half is taken too, 2026-09-12**, in
+      `docs/designs/screenshots/source-lifecycle-ios-2026-09-12/`: the detail screen at light
+      and dark, at both text sizes, reading *Status Available*, *Last updated*, *In your
+      library · At least 9 titles* and *Downloaded · 0 bytes* over four actions — and the
+      removal walk that injects a finished download shows the fifth state beside it.
+
+      What made it reachable was a fixture rather than a device: `MockCatalogues` injects three
+      catalogues through `sweepLaunch(sources:)`, so the walk decides what it photographs. It
+      used to read the simulator's own registry, which is whoever last used it — and on
+      2026-09-12 that walk failed outright, because this simulator listed neither of the two
+      names it looked for.
+
+      **This task is done.**
 - [ ] 4.2 The reconnect sheet reached from a rejected credential, address filled and secret blank
 
       **The blocker named below is gone, and a defect is in its place.** On 2026-09-11 the
@@ -377,8 +388,19 @@ filename so a light and a dark run cannot overwrite each other.
       one moment, in one appearance. That is what the task asked for and what the iOS attempt
       could not get, since every source on that simulator was unreachable.
 
+      **The iOS control pair is taken, 2026-09-12.**
+      `ios-settings-sources-reachable-and-not{,-dark}` holds *Attic* and *Loft* **Available**
+      directly above *Cellar* **Not answering**, in one frame at one moment — which is what
+      this task asks for and what the earlier iOS attempt could not get, since every source on
+      that simulator was unreachable. `SweepSourceScreensTests/testCaptureSourcesReachableAndNot` is the walk, and
+      `MockCatalogues` is why it is reproducible: the unreachable source points at a port
+      nothing listens on, so it cannot pass by luck.
+
+      The try-again action is in `ios-search-one-title-two-sources` beside the results:
+      *Cellar Catalogue didn't answer · Try again*.
+
       **Still owed:** the library-wide away notice from a device whose only sources are remote
-      and all unreachable, and the largest-text variants of the two iOS walks.
+      and all unreachable, and a largest-text variant of the unreachable detail.
 - [ ] 4.4 Pull-to-refresh on iOS, mid-gesture and after completion
       **Frames owed: 4** — iOS only, mid-gesture and settled, light and dark. Largest text is
       not meaningful for a spinner and can be declared out of scope here, in writing.
@@ -387,7 +409,7 @@ filename so a light and a dark run cannot overwrite each other.
       the mid-gesture frame needs a held drag — `XCUIElement.press(forDuration:thenDragTo:)`
       or an `XCUICoordinate` press-move-release — with the shutter between the move and the
       release. Budget this as the one genuinely new capture technique in §4.
-- [~] 4.5 The precedence rule with two sources holding one title: the row, and the copy it opens
+- [x] 4.5 The precedence rule with two sources holding one title: the row, and the copy it opens
       **Frames owed: 8** — 4 per platform. Two surfaces, so two shutters per condition: *the
       shelf row for a title held by two sources*, and *the publication page the row opens*,
       which must be the copy `SourcePrecedence` names.
@@ -417,7 +439,7 @@ filename so a light and a dark run cannot overwrite each other.
       different ids for one title, which `scripts/opds-server.mjs` does not offer.
 
       **Still owed: the iOS half.**
-- [~] 4.6 The removal confirmation showing the title count and the 30-day sentence
+- [x] 4.6 The removal confirmation showing the title count and the 30-day sentence
       **Frames owed: 8** — 4 per platform. Surface *the removal confirmation dialog raised
       from the source detail screen's `Remove` row*; state *a source with a non-zero title
       count*, so the count in `sources.remove.body %lld` is a real number and not `0`.
@@ -526,7 +548,13 @@ filename so a light and a dark run cannot overwrite each other.
       the first of them — so the route photographed the wrong dialog the moment the source
       gained a download.
 
-      **Still owed: the iOS half.**
+      **The iOS half is taken, 2026-09-12**, and its dialog states a real count as well:
+      *This removes 9 titles from your library*, at light and dark and at both text sizes,
+      plus the downloads sentence from the walk that injects a finished transfer. The walks
+      existed; what they lacked was a source to run against, which `MockCatalogues` now gives
+      them — before that, this walk failed with *Your libraries lists no catalogue*.
+
+      **This task is done.**
 - [x] 5.1 Make the scanner report whether it could read the folder, so the cached notice stays when a walk saw nothing because the folder was unreadable and leaves only when a walk genuinely found an empty folder. Write the failing test first — a walk over an unreadable folder keeps the notice — then change the scanner on both platforms
       **The scanner now reports it, on both platforms.** `scan` takes an
       `onUnreadableFolder` reporter, called with the path of every directory the walk could

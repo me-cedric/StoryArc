@@ -93,10 +93,15 @@ final class SweepSourcesTests: XCTestCase {
     /// `AGENTS.md`'s second non-negotiable is that an unreachable source is grey, never red.
     /// This is the frame that says whether it is.
     func testCaptureUnreachableSourceDetail() throws {
-        let app = sweepLaunch()
+        // **Injected, and unreachable by construction.** This read the device's own registry
+        // and skipped when it held no unreachable catalogue, which made the frame a matter of
+        // whoever used the simulator last. ``MockCatalogues`` points one source at a port
+        // nothing listens on, so this walk needs no server running at all — unlike its
+        // reachable twin, it cannot be made to pass by luck.
+        let app = sweepLaunch(sources: MockCatalogues.registry)
         try openSettings(in: app)
         try XCTUnwrap(control("Your libraries", in: app), "no libraries row").tap()
-        guard let source = control("Attic NAS", in: app) else {
+        guard let source = control(MockCatalogues.cellar, in: app) ?? control("Attic NAS", in: app) else {
             throw XCTSkip("This device lists no unreachable catalogue.")
         }
         source.tap()
