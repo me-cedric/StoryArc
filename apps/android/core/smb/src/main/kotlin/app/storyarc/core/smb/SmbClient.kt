@@ -1,6 +1,7 @@
 package app.storyarc.core.smb
 
 import app.storyarc.core.format.RandomAccessSource
+import app.storyarc.core.model.ShareTransport
 import java.util.Properties
 import jcifs.CIFSContext
 import jcifs.config.PropertyConfiguration
@@ -100,11 +101,16 @@ class SmbClient(private val address: SmbAddress) : AutoCloseable {
             root.treeHandle.use { handle ->
                 SmbIdentity(
                     dialect = if (handle.isSMB2) SMB2_OR_LATER else SMB1,
-                    // False until a connection can prove otherwise. jcifs encrypts only
-                    // when told to, this client does not tell it to, and a screen that
-                    // claimed encryption the transport does not have would be worse than
-                    // one that admits it.
-                    isEncrypted = false,
+                    // [ShareTransport] holds the answer and the evidence for it, so that
+                    // the add-share sheet and the source detail screen read one value.
+                    //
+                    // The earlier comment here said that this client does not ask jcifs to
+                    // encrypt. That was wrong: `clientProperties()` sets
+                    // `encryptionEnabled` to true. Asking is not getting -- jcifs-ng 2.1.10
+                    // carries the negotiate context and no cipher, and advertising the
+                    // capability is what lets it name the refusal when a server demands
+                    // encryption. ADR-0010 records that decision.
+                    isEncrypted = ShareTransport.IS_ENCRYPTED,
                     // What the session negotiated, not what was asked for. The client now
                     // prefers signing on every session, but a guest share cannot sign, so
                     // the answer still has to come from the handle. `areSignaturesActive`
