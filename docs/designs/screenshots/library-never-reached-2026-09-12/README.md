@@ -12,7 +12,7 @@ Three OPDS catalogues are registered. Two answer, one points at a port nothing l
 | Source | Port | What it does |
 | --- | --- | --- |
 | Attic Catalogue | 4444 | Answers. Contributes publications to the shelf. |
-| Loft Catalogue | 4445 | Answers. Contributes publications to the shelf. |
+| Loft Catalogue | 4447 | Answers. Contributes publications to the shelf. |
 | Cellar Catalogue | 4999 | Refuses the connection. Never answered, so it is the named one. |
 
 Attic and Loft answered, so each carries a successful-sync stamp and neither is named.
@@ -43,7 +43,7 @@ lines with the button beside it.
 ## How to take them again
 
 ```bash
-node scripts/opds-server.mjs <corpus> --port 4444      # and again on 4445
+node scripts/opds-server.mjs <corpus> --port 4444      # and again on 4447
 
 # iOS
 pnpm build:ios:ui && pnpm seed:ios:ui
