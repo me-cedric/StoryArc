@@ -52,6 +52,36 @@ enum FrameProbe {
         ticker.ended()
     }
 
+    /// How long a run opened by a change of displayed index stays open.
+    ///
+    /// A bound rather than a measurement, and deliberately generous. SwiftUI does not
+    /// publish how long the animation behind a `TabView` selection runs, and the
+    /// cross-dissolve runs for `ReaderView.fadeDuration`. A window longer than the
+    /// animation adds frames drawn while nothing moves, and such a frame still arrives on
+    /// the panel's own interval, so it raises the delivered count and not the dropped one.
+    /// A window shorter than the animation hides the end of the turn, which is where a
+    /// frame is most likely to arrive late.
+    ///
+    /// Android's `TURN_WINDOW_MILLIS` holds the same number for the same reason.
+    ///
+    /// `nonisolated` because it is a number rather than a measurement in progress, and
+    /// `PageTransition.turnWindow` reads it outside the main actor.
+    nonisolated static let turnWindow = 0.5
+
+    /// A turn no gesture bounds: the displayed index moved, the container animates, and
+    /// nothing reports the end. Opens a run, and closes it after `window` seconds.
+    ///
+    /// The curl does not use this. A finger bounds a curl better than any window can, so
+    /// `CurledPages` calls `began()` and `ended()` itself.
+    static func turned(over window: Double) {
+        guard isArmed else { return }
+        ticker.began()
+        Task {
+            try? await Task.sleep(for: .seconds(window))
+            ticker.ended()
+        }
+    }
+
     /// The view carrying the turn went away before the turn ended. Stops, and reports
     /// nothing. Android's `FrameTicker.cancel` is the twin, called from `onDispose`.
     static func cancel() {
