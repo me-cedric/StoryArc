@@ -182,6 +182,70 @@ final class SweepSourcesTests: XCTestCase {
         shutter(app, named: "library-sources-away")
     }
 
+    /// A source the library has never read, named at the foot of a shelf that still works.
+    ///
+    /// `library-browsing`'s *A source that has never been reached* asks for all three clauses
+    /// in one frame: the library says the source has not been read yet, it names it, and "the
+    /// rest of the library is complete and usable while it says so".
+    ///
+    /// **Injected, and unread by construction.** ``MockCatalogues/registry`` carries
+    /// `lastSuccessfulSync: null` on all three catalogues and points *Cellar Catalogue* at a
+    /// port nothing listens on, so this walk needs no server running. With the two mock
+    /// catalogues up, Cellar is the only name in the sentence; with them down, all three are.
+    /// Either way the assertion is Cellar, which cannot be reached in either world.
+    ///
+    /// Unlike ``testCaptureAwayNotice`` this wants a device that *does* hold books, because the
+    /// complete shelf is half of what the frame has to show.
+    func testCaptureNeverReachedNotice() throws {
+        let app = sweepLaunch(sources: MockCatalogues.registry)
+        try showTheShelf(in: app)
+        // The probe has to fail before the sentence can be drawn, and a refused connection on
+        // a simulator is fast but not instant.
+        hold(4)
+        let notice = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", MockCatalogues.cellar)
+        ).firstMatch
+        XCTAssertTrue(
+            notice.waitForExistence(timeout: 15),
+            "The shelf never named \(MockCatalogues.cellar), so a source that has never "
+                + "answered is still silent."
+        )
+        // The action, not just the sentence: `library-browsing` asks the library to offer to
+        // try again, and a frame of the sentence alone would not show that it does.
+        XCTAssertTrue(app.buttons["Try again"].exists, "The notice offers no way to retry.")
+        // The third clause. A notice drawn over an empty shelf would satisfy the first two and
+        // break the one that matters most.
+        XCTAssertFalse(
+            realCovers(in: app).isEmpty,
+            "This device's shelf shows no cover, so the frame cannot show that the rest of "
+                + "the library stays usable. Seed it: node scripts/corpus.mjs --simulator <udid>"
+        )
+        shutter(app, named: "library-source-never-reached")
+    }
+
+    /// The same notice at the largest accessibility text size.
+    ///
+    /// The strip is a sentence with a button beside it on one line, so `AccessibilityXXXL` is
+    /// where it has the most to lose. AGENTS.md §6 asks for both text sizes, and this is the
+    /// frame that says whether the sentence and its action still both fit.
+    func testCaptureNeverReachedNoticeAtLargestText() throws {
+        let app = sweepLaunch(
+            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
+            sources: MockCatalogues.registry
+        )
+        try showTheShelf(in: app)
+        hold(4)
+        let notice = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", MockCatalogues.cellar)
+        ).firstMatch
+        XCTAssertTrue(
+            notice.waitForExistence(timeout: 15),
+            "The shelf never named \(MockCatalogues.cellar) at the largest text size."
+        )
+        XCTAssertTrue(app.buttons["Try again"].exists, "The notice offers no way to retry.")
+        shutter(app, named: "library-source-never-reached-ax5")
+    }
+
     // MARK: - The walk
 
     /// Opens the Add-books menu on the shelf.

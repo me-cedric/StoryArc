@@ -89,7 +89,13 @@ class LibraryNoticesTest {
     }
 
     @Test
-    fun `a library whose sources have never answered draws no line at all`() {
+    fun `a library whose sources have never answered draws no timing line above the shelf`() {
+        // **This used to read "draws no line at all", and that is no longer true.**
+        // `library-browsing`'s *A source that has never been reached* asks the library to
+        // name such a source and to offer to try again, and [LibraryFootNotices] draws that
+        // line at the foot of the shelf. What this strip has to say about *timing* is still
+        // nothing: there is no moment to report. [LibraryFootNoticesTest] asserts the line
+        // that replaced the silence.
         show(registry = SourceRegistry().adding(server()))
 
         compose.onAllNodesWithText(word(R.string.library_checked), substring = true)

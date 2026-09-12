@@ -421,6 +421,7 @@
     <string name="search_retry">Reintentar</string>
     <string name="library_away_body">Ahora mismo no se puede acceder a ninguno de los sitios que has añadido. Lo que ya está en este dispositivo se puede seguir leyendo.</string>
     <string name="library_pending_body">Todavía no ha llegado nada de los sitios que has añadido.</string>
+    <string name="library_source_never_reached">%1$s aún no se ha leído.</string>
     <plurals name="library_still_being_read">
         <item quantity="one">Se está leyendo %1$d biblioteca</item>
         <item quantity="other">Se están leyendo %1$d bibliotecas</item>
