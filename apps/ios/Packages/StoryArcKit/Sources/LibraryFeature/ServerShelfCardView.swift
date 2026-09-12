@@ -16,7 +16,8 @@ struct ServerShelfCardView: View {
     let model: LibraryModel
 
     /// The one tile a shelf has when the reader chose its cover on the server.
-    private static let serverCover = "server-cover"
+    static let serverCoverID = "server-cover"
+    private static let serverCover = serverCoverID
 
     @State private var tiles: [String] = []
 
@@ -40,18 +41,13 @@ struct ServerShelfCardView: View {
     /// `coverImageLocked` is the spec's "unless the user sets a specific one".
     private func load(_ id: String) async throws -> Data {
         let client = KavitaClient(address: shelf.server.address)
-        if id == Self.serverCover {
-            // Each kind of shelf has its own route to the cover it holds. A collection asked
-            // the reading-list route until 2026-09-12, which is one reason its locked cover
-            // never appeared; the other is that its model dropped the flag.
-            return shelf.isList
-                ? try await client.readingListCover(shelf.id)
-                : try await client.collectionCover(shelf.id)
+        switch ServerShelfArtwork.route(for: id, isList: shelf.isList, shelf: shelf.id) {
+        case .shelfCoverOfList(let list): return try await client.readingListCover(list)
+        case .shelfCoverOfCollection(let tag): return try await client.collectionCover(tag)
+        case .chapter(let chapter): return try await client.chapterCover(chapter)
+        case .series(let series): return try await client.seriesCover(series)
+        case .nothing: return Data()
         }
-        guard let numeric = Int(id) else { return Data() }
-        return shelf.isList
-            ? try await client.chapterCover(numeric)
-            : try await client.seriesCover(numeric)
     }
 
     private func readMembers() async {
@@ -61,6 +57,35 @@ struct ServerShelfCardView: View {
         } else {
             tiles = ServerShelfTiles.of(series: (try? await client.collected(shelf.id)) ?? [])
         }
+    }
+}
+
+/// Which cover route one tile of a server's shelf comes from.
+///
+/// **Four routes and two kinds of shelf, decided here rather than in the view.** A collection
+/// asked the reading-list route for its own locked cover until 2026-09-12, and nothing caught
+/// it because nothing exercised this card at all — an archive verification said so in those
+/// words. The choice is a value now, so a test can state the whole table.
+///
+/// Android makes the same four choices in `ShelvesScreen.kt`.
+enum ServerShelfArtwork: Equatable {
+    /// The cover a reader locked on a reading list.
+    case shelfCoverOfList(Int)
+    /// The cover a reader locked on a collection. Kavita calls a collection a tag.
+    case shelfCoverOfCollection(Int)
+    /// One entry of a reading list, which is a chapter.
+    case chapter(Int)
+    /// One member of a collection, which is a series.
+    case series(Int)
+    /// An id that names neither, which asks for nothing rather than guessing.
+    case nothing
+
+    static func route(for id: String, isList: Bool, shelf: Int) -> ServerShelfArtwork {
+        if id == ServerShelfCardView.serverCoverID {
+            return isList ? .shelfCoverOfList(shelf) : .shelfCoverOfCollection(shelf)
+        }
+        guard let numeric = Int(id) else { return .nothing }
+        return isList ? .chapter(numeric) : .series(numeric)
     }
 }
 

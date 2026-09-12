@@ -141,10 +141,25 @@ section is why the change is not archived yet.
     app" held one `compose.waitForIdle()` and no expectation. It now asserts what it is for:
     a shelf whose every fetch threw is still drawn, and drawn as the placeholder rather than
     as an empty frame.
-- [ ] 5b.5 **Nothing exercises the server shelf card on either platform.** Neither test tree
-  mentions `ServerShelfCard` or `ServerShelfCardView`, so the collection branch is unasserted:
-  which members are read (`ShelvesScreen.kt:506` against `:502`), and which artwork route is
-  taken (`:529` against `:527`), with the same pair at `ServerShelfCardView.swift:61` and `:49`.
+- [x] 5b.5 **The card's two decisions are values now, and both are asserted on both
+  platforms.** Neither test tree mentioned `ServerShelfCard` or `ServerShelfCardView`, so what
+  the card decides was unasserted — which members it reads, and which artwork route it takes.
+  Both decisions lived inside the card, where no test could reach them.
+
+  - *Which members*: `ServerShelfTiles` on iOS. A reading list sorts by the reader's order
+    before it takes four; a collection keeps the order the server gave. Five cases.
+  - *Which route*: `ServerShelfArtwork` on both platforms, a value with five cases — the
+    locked cover of a list, the locked cover of a collection, a chapter, a series, and an id
+    that names none of them and therefore asks for nothing rather than guessing.
+
+  Checked by mutation on both sides: making the locked-cover branch answer the list route
+  whatever the shelf is fails one case on each platform. That is the exact defect 5b.3 fixed,
+  and it is now caught by a test rather than by a reader noticing their cover is wrong.
+
+  **What is still not exercised is the card as a composed view** — that its `task` runs, and
+  that what the two values decide reaches a real `KavitaClient`. That is one Robolectric walk
+  and one SwiftUI harness, and it is worth having, but the decisions themselves no longer
+  depend on it.
 
 ## 6. The gates
 

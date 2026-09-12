@@ -96,4 +96,42 @@ class ServerShelfCoverTest {
         // rather than as an empty frame, which `collections-and-reading-lists` forbids.
         compose.onNodeWithText("Lantern Run", useUnmergedTree = true).assertExists()
     }
+
+    /**
+     * **The whole routing table, which nothing stated before.**
+     *
+     * A collection asked the reading-list route for its own locked cover until 2026-09-12.
+     * Nothing caught it because nothing exercised this card, and the choice lived inside a
+     * composable where no test could reach it. iOS asserts the same four rows.
+     */
+    @Test
+    fun `each tile of each kind of shelf comes from its own route`() {
+        assertEquals(
+            ServerShelfArtwork.ShelfCoverOfList(7),
+            ServerShelfArtwork.of(SERVER_COVER, isList = true, shelf = 7),
+        )
+        assertEquals(
+            ServerShelfArtwork.ShelfCoverOfCollection(7),
+            ServerShelfArtwork.of(SERVER_COVER, isList = false, shelf = 7),
+        )
+        assertEquals(
+            ServerShelfArtwork.Chapter(42),
+            ServerShelfArtwork.of("42", isList = true, shelf = 7),
+        )
+        assertEquals(
+            ServerShelfArtwork.Series(42),
+            ServerShelfArtwork.of("42", isList = false, shelf = 7),
+        )
+    }
+
+    /** An id that names neither asks for nothing. Guessing would fetch another shelf's art. */
+    @Test
+    fun `an id that is not a number and not the locked cover asks for nothing`() {
+        assertEquals(
+            ServerShelfArtwork.Nothing,
+            ServerShelfArtwork.of("not-a-number", isList = true, shelf = 7),
+        )
+        assertEquals(ServerShelfArtwork.Nothing, ServerShelfArtwork.of("", isList = false, shelf = 7))
+    }
+
 }

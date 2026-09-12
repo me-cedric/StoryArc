@@ -61,4 +61,25 @@ struct ServerShelfCoverTests {
 
         #expect(ServerShelfTiles.of(series: series) == ["7", "3", "9", "1"])
     }
+
+    /// **The whole routing table, which nothing stated before.** A collection asked the
+    /// reading-list route for its own locked cover until 2026-09-12. Nothing caught it because
+    /// nothing exercised this card, and the choice lived inside a view where no test could
+    /// reach it.
+    @Test("Each tile of each kind of shelf comes from its own route")
+    func everyArtworkRoute() {
+        let locked = ServerShelfCardView.serverCoverID
+
+        #expect(ServerShelfArtwork.route(for: locked, isList: true, shelf: 7) == .shelfCoverOfList(7))
+        #expect(ServerShelfArtwork.route(for: locked, isList: false, shelf: 7) == .shelfCoverOfCollection(7))
+        #expect(ServerShelfArtwork.route(for: "42", isList: true, shelf: 7) == .chapter(42))
+        #expect(ServerShelfArtwork.route(for: "42", isList: false, shelf: 7) == .series(42))
+    }
+
+    /// An id that names neither asks for nothing. Guessing would fetch some other shelf's art.
+    @Test("An id that is not a number and not the locked cover asks for nothing")
+    func anUnknownIdAsksForNothing() {
+        #expect(ServerShelfArtwork.route(for: "not-a-number", isList: true, shelf: 7) == .nothing)
+        #expect(ServerShelfArtwork.route(for: "", isList: false, shelf: 7) == .nothing)
+    }
 }

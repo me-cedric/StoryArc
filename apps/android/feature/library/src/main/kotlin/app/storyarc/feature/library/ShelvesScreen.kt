@@ -527,15 +527,12 @@ private fun ServerShelfCard(
                 name = shelf.title,
                 tiles = if (shelf.chosenCover) listOf(SERVER_COVER) else tiles,
                 load = { id ->
-                    // `coverImageLocked` is the spec's "unless the user sets a specific one",
-                    // and each kind of shelf has its own route to the cover it holds.
-                    if (id == SERVER_COVER) {
-                        if (shelf.isList) client.readingListCover(shelf.id)
-                        else client.collectionCover(shelf.id)
-                    } else if (shelf.isList) {
-                        client.chapterCover(id.toInt())
-                    } else {
-                        client.seriesCover(id.toInt())
+                    when (val route = ServerShelfArtwork.of(id, shelf.isList, shelf.id)) {
+                        is ServerShelfArtwork.ShelfCoverOfList -> client.readingListCover(route.id)
+                        is ServerShelfArtwork.ShelfCoverOfCollection -> client.collectionCover(route.id)
+                        is ServerShelfArtwork.Chapter -> client.chapterCover(route.id)
+                        is ServerShelfArtwork.Series -> client.seriesCover(route.id)
+                        ServerShelfArtwork.Nothing -> ByteArray(0)
                     }
                 },
             )
@@ -544,7 +541,44 @@ private fun ServerShelfCard(
 }
 
 /** The one tile a shelf has when the reader chose its cover on the server. */
-private const val SERVER_COVER = "server-cover"
+internal const val SERVER_COVER = "server-cover"
+
+/**
+ * Which cover route one tile of a server's shelf comes from.
+ *
+ * **Four routes and two kinds of shelf, decided here rather than inside the card.** A
+ * collection asked the reading-list route for its own locked cover until 2026-09-12, and
+ * nothing caught it because nothing exercised the card at all — an archive verification said
+ * so in those words. The choice is a value now, so a test can state the whole table.
+ *
+ * iOS's `ServerShelfArtwork` makes the same four choices.
+ */
+internal sealed interface ServerShelfArtwork {
+    /** The cover a reader locked on a reading list. */
+    data class ShelfCoverOfList(val id: Int) : ServerShelfArtwork
+
+    /** The cover a reader locked on a collection. Kavita calls a collection a tag. */
+    data class ShelfCoverOfCollection(val id: Int) : ServerShelfArtwork
+
+    /** One entry of a reading list, which is a chapter. */
+    data class Chapter(val id: Int) : ServerShelfArtwork
+
+    /** One member of a collection, which is a series. */
+    data class Series(val id: Int) : ServerShelfArtwork
+
+    /** An id that names neither, which asks for nothing rather than guessing. */
+    data object Nothing : ServerShelfArtwork
+
+    companion object {
+        fun of(tile: String, isList: Boolean, shelf: Int): ServerShelfArtwork {
+            if (tile == SERVER_COVER) {
+                return if (isList) ShelfCoverOfList(shelf) else ShelfCoverOfCollection(shelf)
+            }
+            val numeric = tile.toIntOrNull() ?: return Nothing
+            return if (isList) Chapter(numeric) else Series(numeric)
+        }
+    }
+}
 
 /** Where the grouping came from, and how much is in it. */
 @Composable
