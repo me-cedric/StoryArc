@@ -54,6 +54,26 @@ class DownloadStore internal constructor(
     }
 
     /**
+     * Calls [onChange] whenever any writer saves the library, until the handle is closed.
+     *
+     * `offline-downloads`' *Reading while downloading* needs a screen that is not the
+     * downloads screen to learn that a transfer finished -- the reader, which has to switch
+     * to the local copy while it is being read. Every queue in the app writes through [save],
+     * so this is the one place that hears all of them.
+     *
+     * The listener is held by the returned handle on purpose: a shared-preference listener is
+     * kept by a weak reference, so one nobody holds stops firing at the collector's leisure.
+     * A caller that drops the handle without closing it has already stopped listening.
+     */
+    fun watch(onChange: () -> Unit): AutoCloseable {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == null || key == KEY) onChange()
+        }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        return AutoCloseable { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    /**
      * Where one download's file lives.
      *
      * The id is the directory and the title is the file's own name. It used to be the other
