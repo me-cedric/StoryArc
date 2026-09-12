@@ -18,7 +18,7 @@
 //
 // Usage:
 //   node scripts/seed-simulator-sources.mjs                        (three sources, two live)
-//   node scripts/seed-simulator-sources.mjs --device "iPhone 17 Pro" --ports 4444,4445
+//   node scripts/seed-simulator-sources.mjs --device "iPhone 17 Pro" --ports 4444,4446
 //   node scripts/seed-simulator-sources.mjs --clear                 (forget every source)
 
 import { execFileSync } from 'node:child_process'
@@ -44,7 +44,7 @@ const HOST = flag('--host', '127.0.0.1')
 /** The acquisition feed, for the reason the Android script's own note gives. */
 const FEED = flag('--feed', '/opds/all')
 
-const [live, second] = flag('--ports', '4444,4445').split(',')
+const [live, second] = flag('--ports', '4444,4446').split(',')
 const DEAD = flag('--dead-port', '4999')
 
 const simctl = (...rest) => execFileSync('xcrun', ['simctl', ...rest], { encoding: 'utf8' }).trim()

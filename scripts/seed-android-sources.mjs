@@ -21,7 +21,7 @@
 //
 // Usage:
 //   node scripts/seed-android-sources.mjs                       (three sources, two live)
-//   node scripts/seed-android-sources.mjs --device emulator-5554 --ports 4444,4445
+//   node scripts/seed-android-sources.mjs --device emulator-5554 --ports 4444,4446
 //   node scripts/seed-android-sources.mjs --clear               (forget every source)
 //   node scripts/seed-android-sources.mjs --refused-kavita      (one server needing sign-in)
 //
@@ -58,7 +58,7 @@ const HOST = flag('--host', '10.0.2.2')
 const FEED = flag('--feed', '/opds/all')
 
 /** Where the two live catalogues answer, and where the third deliberately does not. */
-const [live, second] = flag('--ports', '4444,4445').split(',')
+const [live, second] = flag('--ports', '4444,4446').split(',')
 const DEAD = flag('--dead-port', '4999')
 
 const adb = (...rest) => {

@@ -11,7 +11,7 @@ these screens are in `scripts/android-routes.mjs` under *Settings > …* and *Se
 
 ```bash
 node scripts/opds-server.mjs <corpus> --port 4444
-node scripts/opds-server.mjs <corpus> --port 4445
+node scripts/opds-server.mjs <corpus> --port 4446
 node scripts/seed-android-sources.mjs --device emulator-5554
 ```
 
