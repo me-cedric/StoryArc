@@ -334,23 +334,10 @@ public struct ReaderView: View {
                 guard !Task.isCancelled else { return }
                 withAnimation(.easeInOut(duration: 0.2)) { wantsChrome = false }
             }
-            .task {
-                // Bounded by the screen, not by the page. A 2000×3000 scan
-                // decoded in full costs 24 MB for something shown at a fraction
-                // of it — `publication-formats` requires the bound.
-                await model.open(
-                    maxPixelSize: Int(max(geometry.size.width, geometry.size.height) * displayScale)
-                )
-            }
-            // `comic-reader`: the prefetch window narrows "under memory pressure rather
-            // than the app being terminated", and widens again when the pressure lifts.
-            // For as long as the reader is on screen: leaving cancels the task, which
-            // cancels the source.
-            .task {
-                for await pressure in MemoryPressureSource.pressures() {
-                    await model.noteMemoryPressure(pressure)
-                }
-            }
+            .readerLifecycle(
+                model,
+                maxPixelSize: Int(max(geometry.size.width, geometry.size.height) * displayScale)
+            )
         }
         // `comic-reader`: the mapped keys turn pages. Arrow and page keys only —
         // `native-experience`: haptics, for the two events that have nothing else to

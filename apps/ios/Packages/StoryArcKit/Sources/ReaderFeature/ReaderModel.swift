@@ -74,7 +74,10 @@ public final class ReaderModel {
     /// stored. `ebook-reader` requires a several-hundred-megabyte PDF to render
     /// pages as they are needed, so nothing is rasterised until it is asked for.
     var pdf: PdfPageRenderer?
-    private let url: URL
+    /// Where this reader opened from, which is not always a file. Internal rather than
+    /// private because ``ReaderModel/adoptTheCopyWhenItArrives()`` lives in another file —
+    /// this one is at its line cap — and the address is what tells it whether to watch at all.
+    let url: URL
     var maxPixelSize = 2048
     private let progress: ProgressStore?
 
@@ -254,7 +257,11 @@ public final class ReaderModel {
             return
         }
         do {
-            let opened = try await ComicArchiveOpener.open(fileAt: url)
+            // Wrapped, always: `AdoptingArchive` can change where its bytes come from, and a
+            // publication opened by streaming has to be able to take the local copy when it
+            // lands — see ``ReaderModel/adoptTheCopyWhenItArrives()``. Wrapping a local file
+            // too costs one indirection per page read and keeps one shape above this line.
+            let opened = AdoptingArchive(try await ComicArchiveOpener.open(fileAt: url))
             archive = opened
             pages = opened.pages
             skippedPageCount = opened.skippedPageCount

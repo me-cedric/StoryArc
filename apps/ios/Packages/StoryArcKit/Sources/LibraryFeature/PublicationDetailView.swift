@@ -188,14 +188,7 @@ public struct PublicationDetailView: View {
     /// but every queue writes through ``DownloadStore``, and a `Download`'s id *is* the
     /// publication's, which is what makes the lookup one subscript.
     private var address: URL? {
-        ReadingAddress.of(
-            local: file,
-            transfer: transfer,
-            // The formats whose decoder insists on a file of its own are the ones that cannot
-            // stream. Stated once, in ``ShareOpening/needsLocalFile(_:)``, because the share
-            // browser asks the same question.
-            readsWhereItLies: !ShareOpening.needsLocalFile(publication.format)
-        )
+        ShareOpening.address(for: publication, local: file, transfer: transfer)
     }
 
     /// Where the audio is, when it is this publication's audio, and `nil` otherwise.

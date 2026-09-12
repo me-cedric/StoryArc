@@ -43,6 +43,22 @@ enum ShareOpening {
         }
     }
 
+    /// Where a publication's own page opens it from.
+    ///
+    /// The page's whole rule, in one call: a copy on this device wins, otherwise the address
+    /// a transfer is fetching, and only for a format whose decoder can read from a source.
+    ///
+    /// Here rather than inside ``PublicationDetailView`` for the reason this file exists: a
+    /// rule inside a view can only be checked by reading its text. ``ShareOpeningTests``
+    /// calls this, and so does the page.
+    static func address(for publication: Publication, local: URL?, transfer: Download?) -> URL? {
+        ReadingAddress.of(
+            local: local,
+            transfer: transfer,
+            readsWhereItLies: !needsLocalFile(publication.format)
+        )
+    }
+
     /// What the share said the file weighs, or `nil` when it said nothing worth repeating.
     ///
     /// A directory entry's length is an `Int64` and a share always fills one in, so the honest
