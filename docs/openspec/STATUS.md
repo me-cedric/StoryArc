@@ -33,6 +33,44 @@ nowhere. So the shortfall is overwhelmingly missing proof rather than missing pr
 capability stays *partial* until every one of its scenarios is built and tested, which is why
 all seventeen still read partial below.
 
+### The eight that were built nowhere — settled, 2026-09-12
+
+The `missing` row above is the count this section replaces. Each of the eight was read again
+by one agent, and every claim of absence was then handed to a second agent told to refute it.
+**Two were refuted and six were built the same day.**
+
+**Two were never missing, and the row that said so was wrong.**
+
+- `ebook-reader` *Fixed-layout EPUB* — the clause about background colour is shipped on both
+  platforms. It sits in Settings rather than in the reader menu, so a search of the reader
+  module alone misses it: `ReadingDefaults.kt:100` draws the swatch grid and
+  `ReaderViewModel.kt:124` reads the scope back; `ReadingDefaults.swift:61` and
+  `AppearanceSettings.swift:154` are the twins.
+- `ebook-reader` *Theme follows appearance* — live on both. `EpubReaderActivity.kt:427`
+  re-enters composition on a night-mode change; `EpubReaderView.swift:338` watches the
+  environment's colour scheme. **One clause of it is genuinely unbuilt**, and it is smaller
+  than the row implied: the scenario promises "the light and dark reading themes the reader
+  chose as their pair", and the pair is a constant — `AppearanceMode.presetMatching` on
+  Android, `ThemePreset.matching` on iOS. No stored pair and no picker exists on either side.
+
+**Six were real, and each one is now built.** All six are in `main`, with tests that were
+each proved able to fail by mutating the code they cover.
+
+| Scenario | What now exists |
+| --- | --- |
+| `library-browsing` *A source that has never been reached* | `sourcesNeverReached` on both platforms, drawn as a named line with *Try again* at the foot of the shelf, while the rest of the library stays complete above it. Six frames in `docs/designs/screenshots/library-never-reached-2026-09-12/` |
+| `offline-downloads` *Reading while downloading* | `HttpSource.register()` at start-up on both, `ReadingAddress` deciding where a publication opens, `AdoptingArchive` changing the source under a reader without losing the page. **Android only** end to end: the iOS publication page has no transfer record plumbed to it yet |
+| `page-transitions` *Frame budget* | `CADisableMinimumFrameDurationOnPhone` so a ProMotion panel is reachable at all, the frame probe moved from the page curl up to every discrete transition, and `measure-turn.mjs` ending in a verdict and a non-zero exit instead of a report |
+| `native-experience` *Preview is not proof* | `scripts/preview-proof-check.mjs`, in the lint chain: a change that adds a line inside a view and no frame under `docs/designs/screenshots/` is refused, with the two exceptions AGENTS.md already names |
+| `native-experience` *Screen change* | `scripts/capture-compare.mjs` and a PNG decoder in `scripts/png.mjs`, with the device matrix written down once in `scripts/device-matrix.mjs`. **It compares nothing until a baseline is taken**, and says so by exiting non-zero rather than reporting green |
+| `network-share` *Encrypted transport* | The display half. The screen drew a fixed string and stated a fact about a reader's security that no code had measured; it now follows `ShareTransport`, whose value carries the evidence for it. **The negotiation half is not built**: neither vendored client can encrypt — jcifs-ng 2.1.10 documents its own encryption flag as "not implemented yet", and SMBClient 0.3.1 offers SMB 2.0.2 and 2.1 only, and SMB 3 is where encryption starts |
+
+**So the honest count of `missing` is now two clauses rather than eight scenarios**: the
+reader-chosen light and dark pair, and SMB 3 negotiation. The first is a feature nobody has
+built; the second waits on a dependency change that is the owner's call. The table above is
+left at 8 because it is the record of the 2026-09-12 recount, and this section is what
+happened after it.
+
 **One caveat on five of the rows, and it is mine.** While the last five capabilities were
 being read — `kavita-server`, `network-share`, `collections-and-reading-lists`,
 `reading-themes` and `page-transitions` — the Android `:feature:library` test source set did
