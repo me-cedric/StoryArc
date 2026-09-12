@@ -66,6 +66,17 @@ if (!hasDevice(sh)) {
     console.error('No device or emulator is attached. Start one, then run this again.')
     process.exit(2)
 }
+// **Two devices is the case this used to fail at, with `adb: more than one device`.** These
+// scripts pass no `-s`, deliberately: `adb` reads `ANDROID_SERIAL` itself, so naming the
+// device is the caller's business and stays out of every `adb` call here. Met on 2026-09-12,
+// with an emulator and a phone attached at once.
+if (!process.env.ANDROID_SERIAL && /\bdevice\b[\s\S]*\bdevice\b/.test(sh('devices'))) {
+    console.error(
+        'More than one device is attached. Name the one you mean:\n' +
+        '  ANDROID_SERIAL=emulator-5554 node scripts/capture-android.mjs ...',
+    )
+    process.exit(2)
+}
 
 /** What the device was set to, so it can be put back. */
 const wasScale = (/(\d+(?:\.\d+)?)/.exec(sh('shell', 'settings', 'get', 'system', 'font_scale')) ?? [])[1] ?? '1.0'

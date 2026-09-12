@@ -53,16 +53,33 @@ says which device and which appearance it was taken on.
   the key lives in the Keychain under `CredentialStore.reference(for:)` and nothing outside
   the app can put it there.
 
-- [ ] 5.5 **A finding from taking those frames: the Kavita sheet's two fields carry no
+- [x] 5.5 **A finding from taking those frames: the Kavita sheet's two fields carried no
   accessibility label.** A dump on 2026-09-11 reported `textFields: [""]` and
-  `secureTextFields: [""]`. The words *Address* and *API key* are adjacent `Text` rather than
-  labels on the fields, so a screen reader announces "text field" and no hint of what to
-  type -- on the one form in the app where a reader must enter a secret correctly. The
-  capture test addresses them by index and says why.
+  `secureTextFields: [""]`. The words *Address* and *API key* are adjacent `Text`, and
+  `.labelsHidden()` took the label off the field itself, so a screen reader announced "text
+  field" and no hint of what to type -- on the one form in the app where a reader must enter a
+  secret correctly.
 
-  Not fixed here. It is `sources`' form rather than this change's list, and `native-experience`
-  is where the accessibility rule lives. Whoever takes it should check the OPDS and the share
-  sheets at the same time, because all three are built the same way.
+  **Fixed on 2026-09-12, and the sibling sheets with it.** Each field states its own name
+  through `.accessibilityLabel`, from the same key its visible headline draws, so the spoken
+  name and the drawn name cannot drift. Six fields: the Kavita address and key, the catalogue
+  address, and the catalogue token, user and password. Where a field has a hint footnote under
+  it, the hint is now the field's own `.accessibilityHint` and the footnote is hidden from the
+  reader, because both would otherwise say the same sentence twice.
+
+  `AddMockKavita.swift` addresses the two fields by name now rather than by index, so the
+  capture test would fail if the labels went away again. `SpokenFieldLabelsTests` holds the
+  rule: every field names a key, the key is the one the headline draws, and every key carries
+  all four languages. Checked by removing one label and re-running -- two of its four tests
+  fail.
+
+  **One control the same sweep found and deliberately did not touch**: the segmented and
+  inline `Picker`s -- the search scope, the PDF tab strip, the language list, the EPUB
+  alignment axis. A segmented picker vends each segment as its own element, so a label on the
+  container may do nothing or may rename the segments, and which of the two happens cannot be
+  settled without listening to VoiceOver. `reader-theming-and-page-transitions` task 7.6 is
+  where that listening is tracked. The EPUB text-size stepper *was* fixed, because it is one
+  combined element and a combined element takes the name it is given.
 - [x] 5.3 Android only, and **without a locked-cover tile**: every shelf on this server is unlocked, so `android-collections-dark-*` and `android-lists-dark-*` prove the composite (four quadrants, and one cover where there are fewer than four members) against the blank frames that preceded them. The `coverImageLocked` branch is drawn by no frame here.
 - [x] 5.4 `README.md` beside them: device, API level, server version, which build each frame came from, what each pair proves, the two gaps above, and the `adb` recipe that repeats it.
 

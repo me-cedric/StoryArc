@@ -98,6 +98,14 @@ public struct KavitaSheet: View {
                 Text("kavita.address.label", bundle: .module)
             }
             .labelsHidden()
+            // **The field was nameless to a screen reader, on the one form where a wrong
+            // character means a refused connection.** Measured by an XCUITest dump on
+            // 2026-09-11: textFields: [""] and secureTextFields: [""]. The name is drawn as a
+            // separate headline above the field and hidden on the field itself, so VoiceOver
+            // said "text field" and nothing else. From the same key the headline draws, so
+            // the two cannot drift.
+            .accessibilityLabel(Text("kavita.address.label", bundle: .module))
+            .accessibilityHint(Text("kavita.address.hint", bundle: .module))
             .textFieldStyle(.roundedBorder)
             .autocorrectionDisabled()
             #if os(iOS)
@@ -108,6 +116,9 @@ public struct KavitaSheet: View {
             Text("kavita.address.hint", bundle: .module)
                 .textRole(.footnote)
                 .foregroundStyle(theme.palette.textSecondary)
+                // Spoken once, as the field's hint. It stays on screen for everyone else;
+                // read as its own element it would be the same sentence twice.
+                .accessibilityHidden(true)
         }
     }
 
@@ -139,11 +150,16 @@ public struct KavitaSheet: View {
                     Text("kavita.key.label", bundle: .module)
                 }
                 .labelsHidden()
+                // The secret field, and the one this defect mattered most on. See the address
+                // field above for what was measured.
+                .accessibilityLabel(Text("kavita.key.label", bundle: .module))
+                .accessibilityHint(Text("kavita.key.hint", bundle: .module))
                 .textFieldStyle(.roundedBorder)
 
                 Text("kavita.key.hint", bundle: .module)
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textSecondary)
+                    .accessibilityHidden(true)
             }
         }
     }

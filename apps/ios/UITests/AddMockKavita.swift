@@ -45,18 +45,18 @@ final class AddMockKavitaTests: XCTestCase {
         )
         hold(1)
 
-        // **By index, because neither field carries a label.** A dump of this sheet on
+        // **By name, because each field now carries its own label.** A dump of this sheet on
         // 2026-09-11 reported `textFields: [""]` and `secureTextFields: [""]`: the words
-        // *Address* and *API key* are adjacent `Text`, not accessibility labels on the fields
-        // themselves. That is a finding rather than a convenience — a screen reader announces
-        // "text field" and no hint of what to type — and it is recorded in the change's task
-        // list rather than fixed from inside a capture test.
-        let address = app.textFields.element(boundBy: 0)
+        // *Address* and *API key* were adjacent `Text` and `.labelsHidden()` took the label
+        // off the field itself. ``KavitaSheet`` now states each label again through
+        // `.accessibilityLabel`, from the same key the visible `Text` reads, so a screen
+        // reader names the field and this walk addresses it by that name.
+        let address = app.textFields["Address"]
         XCTAssertTrue(address.waitForExistence(timeout: 5), "The Kavita sheet has no address field.")
         address.tap()
         address.typeText(Self.address)
 
-        let key = app.secureTextFields.element(boundBy: 0)
+        let key = app.secureTextFields["API key"]
         XCTAssertTrue(key.exists, "The Kavita sheet has no API key field.")
         key.tap()
         key.typeText(Self.key)

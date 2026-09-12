@@ -150,6 +150,11 @@ struct ThemeAxesSheet: View {
         // One control, spoken as one: `reading-themes` asks for increment actions so
         // VoiceOver can adjust it rather than hunting two buttons.
         .accessibilityElement(children: .combine)
+        // **And named, because combining takes the name from the children.** Without this the
+        // control announced the words its children draw — the headline, both button names and
+        // the percentage footnote — as one run, with no noun saying what is being adjusted.
+        // The same key the headline draws, so the two cannot drift.
+        .accessibilityLabel(Text("theme.fontSize", bundle: .module))
         // Position first, then the percentage. `native-experience` asks the stepper
         // to announce "its position out of the total rather than only larger" — a
         // percentage alone never says how much room is left on the ladder.

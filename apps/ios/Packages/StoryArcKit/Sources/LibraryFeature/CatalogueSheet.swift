@@ -81,6 +81,11 @@ public struct CatalogueSheet: View {
                 Text("catalogue.address.label", bundle: .module)
             }
             .labelsHidden()
+            // Named for a screen reader, for the reason KavitaSheet's address field gives:
+            // the visible name is a separate headline and the field's own label is hidden, so
+            // the field announced nothing. Same key as that headline.
+            .accessibilityLabel(Text("catalogue.address.label", bundle: .module))
+            .accessibilityHint(Text("catalogue.address.hint", bundle: .module))
             .textFieldStyle(.roundedBorder)
             // A URL is not a sentence. Capitalisation and autocorrection on an address
             // field turn `komga.local` into `Komga. Local` and the reader has to fight it
@@ -97,6 +102,8 @@ public struct CatalogueSheet: View {
             Text("catalogue.address.hint", bundle: .module)
                 .textRole(.footnote)
                 .foregroundStyle(theme.palette.textSecondary)
+                // Spoken once, as the field's hint above. On screen for everyone else.
+                .accessibilityHidden(true)
 
             Button {
                 Task { await connection.connect() }
@@ -173,6 +180,7 @@ struct CatalogueSignIn: View {
                     Text("catalogue.signIn.token", bundle: .module)
                 }
                 .labelsHidden()
+                .accessibilityLabel(Text("catalogue.signIn.token", bundle: .module))
                 .textFieldStyle(.roundedBorder)
             } else {
                 TextField(
@@ -182,6 +190,7 @@ struct CatalogueSignIn: View {
                     Text("catalogue.signIn.user", bundle: .module)
                 }
                 .labelsHidden()
+                .accessibilityLabel(Text("catalogue.signIn.user", bundle: .module))
                 .textFieldStyle(.roundedBorder)
                 .autocorrectionDisabled()
                 .textContentType(.username)
@@ -196,6 +205,7 @@ struct CatalogueSignIn: View {
                     Text("catalogue.signIn.password", bundle: .module)
                 }
                 .labelsHidden()
+                .accessibilityLabel(Text("catalogue.signIn.password", bundle: .module))
                 .textFieldStyle(.roundedBorder)
                 .textContentType(.password)
             }
