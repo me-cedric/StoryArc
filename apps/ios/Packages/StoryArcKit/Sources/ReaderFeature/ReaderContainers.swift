@@ -54,6 +54,13 @@ extension ReaderView {
         .tabViewStyle(.page(indexDisplayMode: .never))
         #endif
         .animation(.default, value: displayIndex)
+        // The pager animates a turn and reports no end, so the index bounds the count.
+        //
+        // A swipe and a tap are counted differently here, and the difference is the pager's:
+        // `TabView` moves the selection when the swipe settles, so a swiped turn counts the
+        // frames that follow it. A tap, a key, the slider and the thumbnail strip all move
+        // the index first, and those turns are counted while they run.
+        .probingTurns(displayIndex, of: .slide)
     }
 
     /// Fast fade: no container, and no translation. Taps, keys and the slider turn.
@@ -65,6 +72,8 @@ extension ReaderView {
             .id(displayIndex)
             .transition(.opacity)
             .animation(.easeInOut(duration: Self.fadeDuration), value: displayIndex)
+            // Nothing turns a page here but the index, so the index bounds the count.
+            .probingTurns(displayIndex, of: .fastFade)
     }
 
     /// Scroll: continuous, with pages meeting edge to edge.
@@ -72,6 +81,11 @@ extension ReaderView {
     /// `comic-reader` asks for them "stitched with no gap by default", so the stack
     /// has no spacing and each page takes the size its own proportions ask for along
     /// the scroll axis.
+    ///
+    /// **No frame run is opened here, and the reason is the mode.** A scroll has no discrete
+    /// turn: the index moves on every frame of a drag, so each move would open a run the
+    /// next move closes, and the numbers would describe the finger rather than a transition.
+    /// `PageTransition.turnWindow` states the same rule where it can be tested.
     @ViewBuilder
     func stitched(_ axis: ScrollAxis) -> some View {
         ScrollView(axis == .vertical ? .vertical : .horizontal) {

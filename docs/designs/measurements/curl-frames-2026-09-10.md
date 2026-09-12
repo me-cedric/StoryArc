@@ -46,3 +46,17 @@ Not recorded. A simulator draws at its Mac's refresh rate, so the number would d
 this laptop; `measure-turn.mjs --ios` is written for a real device over `devicectl`, and
 none is attached. `PageCurlShaderTests` is what holds the Metal to the same arithmetic in
 the meantime.
+
+## What these numbers score against the gate, from 2026-09-12
+
+`measure-turn.mjs` now ends with a verdict and a non-zero exit. The threshold is
+`--max-dropped`, and its default is **zero**, because *Frame budget* calls a dropped frame
+during a turn "a defect rather than ... acceptable variance".
+
+Every run above fails that threshold: 5 dropped frames across the twenty fold turns, and 2
+across each ten-turn run after the roll. **That is the correct result, and it is a statement
+about the build rather than about the gate.** The run above holds 88.6 delivered frames per
+second against a panel that reports 90, and the gate says what the table already said.
+
+`--max-dropped 2` is how a later run records what it allowed. Put the number in the command,
+so that it appears beside its own result.
