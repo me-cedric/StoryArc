@@ -1322,6 +1322,57 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
         shortening a comment. The headings and the alphabet moved to `ShelfDivision.kt`.
 
       **Still owed: the iOS list frame**, on a shelf on record at 200+ publications.
+      **The frame this task names is taken, 2026-09-12, and it is Android.**
+      `android-four-marks-{light,dark}.png` in
+      `docs/designs/screenshots/source-lifecycle-2026-09-11/`, sorted by *Last read* so
+      the four combinations sit in one screen:
+
+      | Row | Progress | Availability |
+      | --- | --- | --- |
+      | *Harbour Lights 01* | part-read | on this device |
+      | *Slow Transfer* | read | its library is away |
+      | *Ashfall*, a local file | none | on this device |
+      | *Ashfall*, from *Attic Catalogue* | none | its library is away |
+
+      The state was built rather than found: a copy was fetched from a mock catalogue,
+      read, then deleted while its reading position stayed, and the catalogue was stopped.
+      The labels carry the fact the task asks them to carry — the dump reads
+      *Ashfall, Ada Lovelace, CBZ, Needs its library to be reachable* for an away row and
+      *Ashfall, Ada Lovelace, CBZ* for a reachable one.
+
+      **And the frame shows why the label has to carry it.** The dim measures almost
+      nothing on these rows: the available well samples `rgb(233, 230, 227)` and the away
+      well `rgb(236, 233, 230)`, which is a difference of about one percent, and the away
+      well is *lighter*. `AWAY_ALPHA` is 0.45 and works as designed — on a cover. These
+      rows have no cover, so it is 45% of a pale well against a pale ground.
+
+      **Which is a second finding, and a bigger one: an OPDS row never draws a cover.**
+      `ServerLibrary.cover` reads the row's server identifier and parses it as a Kavita
+      chapter number (`remoteId.removePrefix(CHAPTER).toIntOrNull()`), so an `opds:` id
+      returns null before any fetch. `OpdsContributor` keeps no image address either, and
+      deliberately — an acquisition URL can carry a key, and `sources` forbids a cached
+      catalogue holding a credential. So a reader browsing a catalogue sees covers, adds
+      it as a source, and the same books arrive on their shelf as blank wells. The feed
+      offers them: `opds-spec.org/image` and `/image/thumbnail` are on every entry of the
+      mock catalogue, and `opds-catalog` asks for "its cover at a size worth looking at".
+      Task 3.6 below is that gap.
+- [ ] **3.6** A publication from an OPDS catalogue draws the cover the feed offers.
+
+      **Found on 2026-09-12 while taking 3.3's frame**, and recorded there with the
+      measurements. Every OPDS row on the shelf is a coverless well today.
+
+      The copy route is the pattern to follow rather than a new one to invent:
+      `PublicationCopy` keeps no acquisition URL, re-reads the saved feed when the page
+      needs one, and finds the entry by its `opds:` id. A cover can be found the same way
+      and cached the same way the scan caches a local cover.
+
+      What to settle first, because it decides the shape:
+      - Whether the cover is fetched when the row is made or when the cell asks for it.
+        A feed page holds up to sixty entries and a shelf draws nine.
+      - What an unreachable catalogue draws. The cached cover, dimmed, is the answer the
+        rest of the shelf gives, and it is also what makes `AWAY_ALPHA` visible at all.
+      - iOS answers the same question in `LibraryLookups`, and both platforms have to move
+        together.
 - [x] **3.5** Wire the iOS views that are already written, translated and
       unreachable — recent searches, the cached notice, the scope control in its
       new availability form, and file import from the empty state. No new strings.
