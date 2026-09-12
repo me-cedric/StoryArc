@@ -41,6 +41,9 @@ dependencies {
     }
 
     api(project(":core:format"))
+    // `ShareTransport`, so that this client and the two screens that state what it does
+    // read one declaration. `:core:model` is pure Kotlin and depends on nothing here.
+    implementation(project(":core:model"))
     implementation(libs.jcifs.ng)
     implementation(libs.kotlinx.coroutines.core)
 

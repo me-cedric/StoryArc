@@ -60,9 +60,14 @@ the seam knows which library is underneath.
   it and no cipher to go with it: pointed at a share with `smb encrypt =
   required` it answers, in its own words, "Server requires encryption, not yet
   supported". SMBClient offers SMB 2.0.2 and 2.1 only, so it never reaches the
-  question. The source detail screen reports what *this* connection actually
-  negotiated, which is the honest answer and is what the spec asks for — but
-  "encrypted" is never true, and the encryption scenario stays unmet.
+  question. "Encrypted" is never true, and the encryption scenario stays unmet.
+
+  **This entry claimed on 2026-09-11 that the source detail screen "reports what
+  *this* connection actually negotiated". It did not.** That screen drew one
+  fixed string on both platforms, so it stated an encryption fact that no code
+  had measured. `ShareTransport` now holds the one declaration of what the app
+  does, `SmbClient.connect()` reports it, and the screen picks its sentence from
+  it. The add-share sheet has always read the measured value.
 
   What the app does instead is refuse clearly. Android advertises the capability
   so that jcifs detects the requirement itself and the refusal can name it; that

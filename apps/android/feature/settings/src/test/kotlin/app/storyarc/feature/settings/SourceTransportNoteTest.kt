@@ -17,6 +17,8 @@ import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceDiagnosis
 import app.storyarc.core.model.SourceKind
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -29,31 +31,19 @@ import org.robolectric.annotation.GraphicsMode
  * The source detail screen states how a share is reached, and whether that is encrypted.
  *
  * `network-share`'s *Encrypted transport*: "the source detail screen states whether the
- * connection is encrypted". The sentence lived only in the add-share sheet, which a reader sees
- * once, before the source exists.
+ * connection is encrypted".
  *
- * **The sentence names encryption and never signing, and that is a decision rather than an
- * omission.** ADR-0016 refuses a signing line on iOS -- that client verifies no response and
- * cannot answer the question, and "the app does not explain its own weaknesses to the reader".
- * jcifs-ng can answer it, and the Android add-share sheet says so; this screen is drawn the same
- * way on both platforms, so it states the transport and the encryption alone. A signed session
- * and an unsigned one read alike here, which the last two tests assert in all four locales.
+ * **The screen used to draw one fixed string.** It said the connection is not encrypted
+ * whatever the code had measured, so it made a claim about a reader's security that nothing
+ * had checked. The tests that mattered are the first two below: they draw the screen with
+ * each measurement and read back which sentence appeared. Against the old screen the first
+ * one fails, because the old screen drew the same sentence for both answers.
  *
- * **The sentence denies encryption, and the denial is what is asserted.** Both clients hardcode
- * `isEncrypted = false`, so the screen states a constant rather than reading the session, and
- * ADR-0016 records why that is where this stands. The day item 1 of that ADR's *What would change
- * this* lands, the four sentences become false and these tests fail by name, in whichever locale
- * was edited first.
- *
- * Composed rather than asserted through a helper, for the reason `SourceProgressNoteTest`
- * composes: a test of the predicate alone stays green when the row is deleted from the screen.
+ * **Neither client encrypts today**, so a reader only ever sees the plain sentence. The
+ * encrypted answer is still drawn here, because the point of the change is that the screen
+ * follows the value instead of repeating an answer.
  */
 @RunWith(RobolectricTestRunner::class)
-// Robolectric ships an image per API level and has none for 37, so it cannot be handed the
-// module's target. 34 is inside its range and above the minimum this app supports, and the
-// question here -- whether one sentence is drawn -- has no API level in it. The window is tall
-// because the screen scrolls: a sentence below the fold is present and not displayed, and that
-// distinction would make this test report the wrong thing.
 @Config(sdk = [34], qualifiers = "w400dp-h1600dp")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class SourceTransportNoteTest {
@@ -61,20 +51,32 @@ class SourceTransportNoteTest {
     @get:Rule
     val compose = createComposeRule()
 
+    /** The two sentences, as this composition resolves them. */
+    private data class Sentences(val plain: String, val encrypted: String)
+
     /**
-     * The screen as `SettingsScreen` reaches it, for one source.
+     * Draws the screen once and reports both sentences.
      *
-     * Returns the sentence so the assertions look for the shipped string in the locale
-     * Robolectric was configured with, rather than for a copy of it written into this file.
+     * Once, because `setContent` may be called only once for each test. A test that needs
+     * the other measurement asks for another screen in a test of its own.
      */
-    private fun show(source: Source, fontScale: Float = 1f): String {
-        var sentence = ""
+    private fun show(
+        kind: SourceKind,
+        state: SourceConnectionState = SourceConnectionState.Connected,
+        isEncrypted: Boolean = false,
+        fontScale: Float = 1f,
+    ): Sentences {
+        var sentences = Sentences("", "")
         compose.setContent {
-            sentence = stringResource(R.string.sources_detail_transport)
+            sentences = Sentences(
+                plain = stringResource(R.string.sources_detail_transport_plain),
+                encrypted = stringResource(R.string.sources_detail_transport_encrypted),
+            )
             CompositionLocalProvider(
                 LocalDensity provides Density(density = 1f, fontScale = fontScale),
             ) {
                 StoryArcTheme {
+                    val source = Source(displayName = "Fixture", kind = kind, state = state)
                     SourceDetailScreen(
                         source = source,
                         diagnosis = SourceDiagnosis.of(
@@ -84,106 +86,131 @@ class SourceTransportNoteTest {
                         ),
                         onAction = {},
                         onBack = {},
+                        isTransportEncrypted = isEncrypted,
                     )
                 }
             }
         }
         compose.waitForIdle()
-        return sentence
-    }
-
-    private fun show(
-        kind: SourceKind,
-        state: SourceConnectionState = SourceConnectionState.Connected,
-        fontScale: Float = 1f,
-    ): String = show(Source(displayName = "Fixture", kind = kind, state = state), fontScale)
-
-    @Test
-    fun `a share on the network states its transport`() {
-        compose.onNodeWithText(show(SourceKind.NETWORK_SHARE)).assertIsDisplayed()
+        return sentences
     }
 
     @Test
-    fun `a folder states none, because a folder is a disk`() {
-        compose.onNodeWithText(show(SourceKind.LOCAL_FOLDER)).assertDoesNotExist()
+    fun `a share whose connection is encrypted states that it is encrypted`() {
+        val sentences = show(SourceKind.NETWORK_SHARE, isEncrypted = true)
+        compose.onNodeWithText(sentences.encrypted).assertIsDisplayed()
+        compose.onNodeWithText(sentences.plain).assertDoesNotExist()
     }
 
     @Test
-    fun `an OPDS catalogue states none, because it is reached over HTTP`() {
-        compose.onNodeWithText(show(SourceKind.OPDS_CATALOG)).assertDoesNotExist()
+    fun `a share whose connection is not encrypted says so`() {
+        val sentences = show(SourceKind.NETWORK_SHARE, isEncrypted = false)
+        compose.onNodeWithText(sentences.plain).assertIsDisplayed()
+        compose.onNodeWithText(sentences.encrypted).assertDoesNotExist()
     }
 
     @Test
-    fun `kavita states none, for the same reason`() {
-        compose.onNodeWithText(show(SourceKind.KAVITA_SERVER)).assertDoesNotExist()
+    fun `the rule answers a different sentence for each measurement`() {
+        assertNotEquals(
+            transportNote(SourceKind.NETWORK_SHARE, isEncrypted = true),
+            transportNote(SourceKind.NETWORK_SHARE, isEncrypted = false),
+        )
     }
 
-    // A signed session and an unsigned one read alike, because signing never reaches this
-    // screen. The screen is handed a `Source` and a `SourceDiagnosis`, and neither carries what
-    // the session negotiated, so the sentence cannot vary with it. What a live session does
-    // reach the screen through is the connection state, and that moves the sentence no more
-    // than signing does.
+    @Test
+    fun `no other kind of source has a transport to state`() {
+        for (kind in SourceKind.entries.filter { it != SourceKind.NETWORK_SHARE }) {
+            assertNull("$kind", transportNote(kind, isEncrypted = false))
+            assertNull("$kind", transportNote(kind, isEncrypted = true))
+        }
+    }
+
+    @Test
+    fun `a folder states neither sentence, because a folder is a disk`() =
+        assertNeitherSentenceIsDrawn(SourceKind.LOCAL_FOLDER)
+
+    @Test
+    fun `an OPDS catalogue states neither, because it is reached over HTTP`() =
+        assertNeitherSentenceIsDrawn(SourceKind.OPDS_CATALOG)
+
+    @Test
+    fun `kavita states neither, for the same reason`() =
+        assertNeitherSentenceIsDrawn(SourceKind.KAVITA_SERVER)
+
+    private fun assertNeitherSentenceIsDrawn(kind: SourceKind) {
+        val sentences = show(kind)
+        compose.onNodeWithText(sentences.plain).assertDoesNotExist()
+        compose.onNodeWithText(sentences.encrypted).assertDoesNotExist()
+    }
 
     @Test
     fun `a refused credential leaves the sentence alone`() {
-        val sentence = show(
+        val sentences = show(
             SourceKind.NETWORK_SHARE,
             SourceConnectionState.Unauthorized("The password was refused."),
         )
-        compose.onNodeWithText(sentence).assertIsDisplayed()
+        compose.onNodeWithText(sentences.plain).assertIsDisplayed()
     }
 
     @Test
     fun `an unreachable share leaves the sentence alone`() {
-        val sentence = show(SourceKind.NETWORK_SHARE, SourceConnectionState.Unreachable(0L))
-        compose.onNodeWithText(sentence).assertIsDisplayed()
+        val sentences = show(SourceKind.NETWORK_SHARE, SourceConnectionState.Unreachable(0L))
+        compose.onNodeWithText(sentences.plain).assertIsDisplayed()
     }
 
     @Test
-    fun `every locale states the connection is not encrypted, and none claims signing`() {
-        // English here, and the other three below: Robolectric resolves one locale per test.
-        assertTheSentenceDeniesEncryptionAndSaysNothingOfSigning("not encrypted")
-    }
+    fun `the English pair reads correctly and claims nothing about signing`() =
+        assertThePairReadsCorrectly("not encrypted")
 
     @Test
     @Config(qualifiers = "fr-rFR-w400dp-h1600dp")
-    fun `the French sentence denies encryption and claims no signing`() =
-        assertTheSentenceDeniesEncryptionAndSaysNothingOfSigning("pas chiffr")
+    fun `the French pair reads correctly and claims nothing about signing`() =
+        assertThePairReadsCorrectly("pas chiffr")
 
     @Test
     @Config(qualifiers = "de-rDE-w400dp-h1600dp")
-    fun `the German sentence denies encryption and claims no signing`() =
-        assertTheSentenceDeniesEncryptionAndSaysNothingOfSigning("nicht verschlüsselt")
+    fun `the German pair reads correctly and claims nothing about signing`() =
+        assertThePairReadsCorrectly("nicht verschlüsselt")
 
     @Test
     @Config(qualifiers = "es-rES-w400dp-h1600dp")
-    fun `the Spanish sentence denies encryption and claims no signing`() =
-        assertTheSentenceDeniesEncryptionAndSaysNothingOfSigning("no está cifrad")
+    fun `the Spanish pair reads correctly and claims nothing about signing`() =
+        assertThePairReadsCorrectly("no está cifrad")
 
     /**
-     * The claim a reader is owed, and the words ADR-0016 refuses.
+     * One language, both sentences.
      *
-     * **The negation is matched, not the word alone.** An earlier form of this test asked only
-     * whether the sentence carried the word for "encrypted", so *The connection is encrypted.*
-     * satisfied it. That is the edit someone will make the day a client negotiates SMB 3, and it
-     * is the edit that lands in one locale before the other three. The polarity is the whole of
-     * the claim, so the polarity is what is pinned.
+     * The denial belongs to the plain sentence and to that one only. Two resources that had
+     * been swapped would pass the drawing tests above and fail here.
      *
-     * Every refused token is matched against every locale: a French word has no business in the
-     * German sentence either, and the signing half is a promise this app makes in none of the
-     * four.
+     * The last assertion is what lets [assertTheSentenceFitsTheGutter] measure the plain
+     * sentence alone: the encrypted sentence is the plain one with the negation removed, so
+     * it is shorter and its longest word is no longer. A block that fits the longer of the
+     * two fits the other.
      */
-    private fun assertTheSentenceDeniesEncryptionAndSaysNothingOfSigning(denial: String) {
-        val sentence = show(SourceKind.NETWORK_SHARE).lowercase()
-        assertTrue("the sentence reads \"$sentence\"", sentence.contains(denial))
+    private fun assertThePairReadsCorrectly(denial: String) {
+        val sentences = show(SourceKind.NETWORK_SHARE)
+        val plain = sentences.plain.lowercase()
+        val encrypted = sentences.encrypted.lowercase()
+
+        assertTrue("the plain sentence reads \"$plain\"", plain.contains(denial))
+        assertFalse("the encrypted sentence reads \"$encrypted\"", encrypted.contains(denial))
         for (claim in SIGNING) {
-            assertFalse("the sentence mentions $claim", sentence.contains(claim))
+            assertFalse("the plain sentence mentions $claim", plain.contains(claim))
+            assertFalse("the encrypted sentence mentions $claim", encrypted.contains(claim))
         }
+        assertTrue(
+            "\"$encrypted\" is ${encrypted.length} long, \"$plain\" is ${plain.length}",
+            encrypted.length < plain.length,
+        )
+        assertTrue(
+            "the encrypted sentence's longest word is ${longestWord(encrypted)}",
+            longestWord(encrypted) <= longestWord(plain),
+        )
     }
 
-    // The sentence has to wrap, so `design.md` sections 3 and 10 -- every screen survives the
-    // largest accessibility text size with "no clipping" -- land on it. All four shipped
-    // locales, because the length that decides the wrap is different in each.
+    private fun longestWord(sentence: String): Int =
+        sentence.split(' ').maxOf { it.length }
 
     @Test
     @Config(qualifiers = "w320dp-h1600dp")
@@ -206,11 +233,8 @@ class SourceTransportNoteTest {
         assertTheSentenceFitsTheGutter()
 
     private fun assertTheSentenceFitsTheGutter() {
-        val sentence = show(SourceKind.NETWORK_SHARE, fontScale = LARGEST_TEXT)
-        val bounds = compose.onNodeWithText(sentence).getUnclippedBoundsInRoot()
-        // Unclipped bounds, so a sentence laid out past the edge reports where it really went
-        // rather than where the window cut it. The screen pads its scrolling column by the
-        // gutter on every side, so those two edges are the ones a wrap has to respect.
+        val sentences = show(SourceKind.NETWORK_SHARE, fontScale = LARGEST_TEXT)
+        val bounds = compose.onNodeWithText(sentences.plain).getUnclippedBoundsInRoot()
         assertTrue(
             "the sentence was measured ${bounds.right - bounds.left} wide",
             bounds.right - bounds.left > Dp.Hairline,
@@ -223,15 +247,12 @@ class SourceTransportNoteTest {
     }
 
     private companion object {
-        /** The words ADR-0016 keeps off this screen, in all four shipped languages. */
         val SIGNING = listOf(
             "signed", "signing", "signé", "signature", "signiert", "signatur", "firmad", "firma",
         )
 
-        /** The narrowest window Android's compact width class allows, and so the floor. */
         val WINDOW = 320.dp
 
-        /** The largest font scale Android's accessibility settings offer. */
         const val LARGEST_TEXT = 2f
     }
 }
