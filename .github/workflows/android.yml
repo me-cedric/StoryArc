@@ -57,6 +57,21 @@ jobs:
           path: apps/android/**/build/reports/lint-results-*.html
           retention-days: 7
 
+      # **The unit tests had no report, and that cost a diagnosis.** On 2026-09-12 one case
+      # failed here with `UncaughtExceptionsBeforeTest` — which names the *next* test, not the
+      # one that leaked — and the run uploaded lint reports only. The failure did not
+      # reproduce in three local runs, so the CI report was the only copy of what happened,
+      # and it was thrown away with the runner.
+      - name: Upload unit test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-unit-test-reports
+          path: |
+            apps/android/**/build/reports/tests/**
+            apps/android/**/build/test-results/**
+          retention-days: 7
+
   instrumented:
     name: Instrumented tests
     # Only on main. Booting an emulator costs several minutes, and the

@@ -26,6 +26,10 @@ struct DetailMainColumn: View {
 
     let file: URL?
 
+    /// Where the publication opens from, which may be an address a transfer is fetching.
+    /// See ``DetailActions/address``.
+    let address: URL?
+
     /// What the page says about an audiobook and about nothing else: its chapters, its
     /// length, and the chapter the primary action names. ``DetailAudiobook/absent`` for a
     /// comic, so a comic cannot grow a chapter list by being composed here.
@@ -51,6 +55,7 @@ struct DetailMainColumn: View {
                 model: model,
                 isKept: $isKept,
                 file: file,
+                address: address,
                 resuming: audiobook.resuming,
                 onRead: onRead
             )
