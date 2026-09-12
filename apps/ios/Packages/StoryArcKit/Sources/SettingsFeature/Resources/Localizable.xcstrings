@@ -4410,7 +4410,36 @@
         }
       }
     },
-    "sources.detail.transport": {
+    "sources.detail.transport.encrypted": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc liest diese Freigabe über SMB. Die Verbindung ist verschlüsselt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc reads this share over SMB. The connection is encrypted."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc lee este recurso compartido por SMB. La conexión está cifrada."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc lit ce partage en SMB. La connexion est chiffrée."
+          }
+        }
+      }
+    },
+    "sources.detail.transport.plain": {
       "extractionState": "manual",
       "localizations": {
         "de": {

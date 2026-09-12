@@ -36,12 +36,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.ShareTransport
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceAction
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceDiagnosis
 import app.storyarc.core.model.SourceFailure
-import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRemovalWording
 import app.storyarc.core.persistence.ImportedCopies
 
@@ -65,6 +65,15 @@ internal fun SourceDetailScreen(
     onAction: (SourceAction) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Whether the app encrypts what it reads from a share, as [ShareTransport] measured it.
+     *
+     * A parameter so that a test can draw both answers. Today one client cannot encrypt and
+     * the other refuses a share that demands it, so the default is the only value a reader
+     * ever sees. When a client does negotiate SMB 3 encryption this parameter carries the
+     * answer for that connection, and the sentence follows without further work.
+     */
+    isTransportEncrypted: Boolean = ShareTransport.IS_ENCRYPTED,
 ) {
     val palette = LocalStoryArcPalette.current
     val context = LocalContext.current
@@ -208,26 +217,14 @@ internal fun SourceDetailScreen(
 
             // `network-share`' *Encrypted transport*: "the source detail screen states whether
             // the connection is encrypted". The sentence lived only in the add-share sheet,
-            // which a reader sees once, before the source exists. A share is the only kind with
-            // a transport to state: a folder is a disk, and the two servers are HTTP.
+            // which a reader sees once, before the source exists.
             //
-            // **It names encryption and never signing, and that is a decision rather than an
-            // omission.** ADR-0016 refuses a signing line on iOS -- that client verifies no
-            // response and cannot answer the question, and "the app does not explain its own
-            // weaknesses to the reader". jcifs-ng can answer it, and the add-share sheet says
-            // so; this screen is drawn the same way on both platforms, so it states the
-            // transport and the encryption alone, and a signed session reads like an unsigned
-            // one here.
-            //
-            // **It says *not* encrypted, flatly, because nothing else is reachable.**
-            // `SmbClient` reports `isEncrypted = false` on both platforms, and ADR-0010 records
-            // why neither client encrypts. A second sentence for the encrypted case would be a
-            // translated string no reader can see. When a client does negotiate SMB 3
-            // encryption, this becomes a question with two answers and the wording moves with
-            // it.
-            if (source.kind == SourceKind.NETWORK_SHARE) {
+            // [transportNote] chooses it, and it chooses from [isTransportEncrypted]. This
+            // block used to draw one fixed string, so the screen stated a fact about a
+            // reader's security that no code had measured.
+            transportNote(source.kind, isTransportEncrypted)?.let { note ->
                 Text(
-                    text = stringResource(R.string.sources_detail_transport),
+                    text = stringResource(note),
                     style = MaterialTheme.typography.bodySmall,
                     color = palette.textSecondary,
                 )
