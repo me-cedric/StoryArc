@@ -88,6 +88,12 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UIApplicationSupportsIndirectInputEvents: true
+        # `page-transitions`: the curl runs "at the display's refresh rate including 120 Hz".
+        # A ProMotion iPhone caps an app at 60 Hz unless this key is present, and it caps
+        # `CADisplayLink` with it — so the panel draws at 120 and `FrameProbe` reports 60,
+        # and every later measurement describes the cap rather than the shader. iPad has
+        # never had the cap; this key is the iPhone half of the same rate.
+        CADisableMinimumFrameDurationOnPhone: true
         # `ebook-reader`: read-aloud "continues" when the app is backgrounded, and the
         # platform media controls carry the title. iOS suspends an app that has not
         # declared this the moment it leaves the screen, so without the line the voice

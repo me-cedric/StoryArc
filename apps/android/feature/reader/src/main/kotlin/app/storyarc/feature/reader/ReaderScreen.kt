@@ -898,6 +898,10 @@ private fun Pager(
                     modifier = keyboard,
                 )
             } else {
+                // Slide and Fast fade animate a turn and report no end, so the position
+                // bounds the count. Scroll opens no run: it has no discrete turn to bound
+                // one, and `turnWindowMillis` is where that decision is stated and tested.
+                ProbeTurns(choices.effective) { paging.current }
                 when (paging) {
                     is Paging.Paged -> HorizontalPager(state = paging.state, modifier = keyboard) { page ->
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -1776,8 +1780,6 @@ private const val PAGE_RATIO = 2f / 3f
  * rather than every frame of it.
  */
 private const val ZOOM_SETTLE_MILLIS = 180L
-
-private const val FADE_MILLIS = 140
 
 private const val CHROME_TIMEOUT_MILLIS = 4_000L
 
