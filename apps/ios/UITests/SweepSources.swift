@@ -113,23 +113,72 @@ final class SweepSourcesTests: XCTestCase {
         shutter(app, named: "source-unreachable-detail")
     }
 
+    /// The same page at the largest accessibility text size.
+    ///
+    /// `source-lifecycle` §4.3 asks for this screen at both text sizes. It is the screen with
+    /// the most to lose at `AccessibilityXXXL`: *No answer since Sep 5, 2026 at 15:02* already
+    /// wraps to two lines at the default size, and it is the row that carries the claim — an
+    /// unreachable source states what happened, in grey, without an alarm.
+    func testCaptureUnreachableSourceDetailAtLargestText() throws {
+        let app = sweepLaunch(
+            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
+            sources: MockCatalogues.registry
+        )
+        try openSettings(in: app)
+        try XCTUnwrap(control("Your libraries", in: app), "no libraries row").tap()
+        // Scrolled to, unlike its default-size twin. *Cellar* is the third of three
+        // catalogues, and at `AccessibilityXXXL` a list row is tall enough that the third one
+        // starts below the fold — `control(_:in:)` asks for a hittable element, so it found
+        // nothing and the walk failed about a row that was on the screen's other half.
+        let cellar = app.staticTexts[MockCatalogues.cellar]
+        XCTAssertTrue(scrollTo(cellar, in: app), "Your libraries never showed \(MockCatalogues.cellar).")
+        cellar.tap()
+        XCTAssertTrue(
+            app.staticTexts["Status"].waitForExistence(timeout: 5),
+            "The source did not open a page stating its status."
+        )
+        hold(3)
+        shutter(app, named: "source-unreachable-detail-ax5")
+    }
+
     /// The library-wide notice when nothing a reader added can be reached.
     ///
     /// `library-browsing`: "None of the places you added can be reached right now. Anything
     /// already on this device is still here to read." It is the sentence the offline promise
-    /// rests on and it has no picture.
+    /// rests on.
+    ///
+    /// **The registry is injected; the empty device is not, and cannot be.** One dead
+    /// catalogue makes ``LibraryAway/everythingAway(in:)`` true — but the shelf reaches
+    /// ``LibraryAway`` only after the *narrowed to nothing* branch, which is taken whenever
+    /// the device holds a publication of its own. No launch argument empties `Documents`, so
+    /// the seeded sweep simulator shows the filter sentence instead and this walk skips.
+    ///
+    /// To take the frame, clear the container first and put it back afterwards:
+    ///
+    /// ```
+    /// xcrun simctl uninstall StoryArc-iPhone17Pro com.mecedric.storyarc
+    /// pnpm capture:ios --only SweepSourcesTests/testCaptureAwayNotice --out <dir>
+    /// node scripts/install-and-seed-simulator.mjs
+    /// ```
     func testCaptureAwayNotice() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(sources: MockCatalogues.everythingAway)
         try showTheShelf(in: app)
+        // The probe has to fail before the sentence can be drawn, and a refused connection on
+        // a simulator is fast but not instant.
         hold(4)
-        guard app.staticTexts.matching(
+        let notice = app.staticTexts.matching(
             NSPredicate(format: "label BEGINSWITH %@", "None of the places you added")
-        ).firstMatch.exists else {
+        ).firstMatch
+        guard notice.waitForExistence(timeout: 10) else {
             throw XCTSkip(
-                "This device's shelf shows no unreachable-sources notice: it has local files, "
-                    + "so the library is not away."
+                "This device holds books of its own, so the shelf answers with the narrowed-to-"
+                    + "nothing sentence rather than the away notice. Uninstall the app first — "
+                    + "the doc comment above carries the three commands."
             )
         }
+        // The action, not just the sentence: `library-browsing` asks this state never to be a
+        // dead end, and a frame of the sentence alone would not show that it is not one.
+        XCTAssertTrue(app.buttons["Try again"].exists, "The away notice offers no way to retry.")
         shutter(app, named: "library-sources-away")
     }
 

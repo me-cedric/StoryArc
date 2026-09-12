@@ -40,7 +40,8 @@ screens and one library's own screens was two subjects anyway.
 | --- | --- | --- |
 | `ios-settings-sources-reachable-and-not{,-dark}` | *Your libraries* | *Attic* and *Loft* **Available**, *Cellar* **Not answering**, and *On this device*, in one frame at one moment |
 | `ios-settings-source-detail{,-dark,-ax5,-ax5-dark}` | source detail | *Status Available*, *Last updated*, *In your library · At least 9 titles*, *Downloaded · 0 bytes*, over four actions |
-| `ios-source-unreachable-detail{,-dark}` | source detail | the same screen for a source that is not answering |
+| `ios-source-unreachable-detail{,-dark,-ax5,-ax5-dark}` | source detail | the same screen for a source that is not answering |
+| `ios-library-sources-away{,-dark}` | the shelf | *None of the places you added can be reached right now* — the offline promise, with *Try again* under it |
 | `ios-settings-source-remove{,-dark,-ax5,-ax5-dark,-ax5-scrolled,-ax5-scrolled-dark}` | removal confirmation | *This removes 9 titles from your library* — a real count |
 | `ios-settings-source-remove-downloads{,-dark}` | removal confirmation | the other sentence, for a source that holds a finished download |
 | `ios-search-one-title-two-sources{,-dark}` | search | one title held by two catalogues, *Attic* first, each row naming its library |
@@ -105,8 +106,49 @@ network, and the screen is the one a refusal reaches.
 The walk asserts *Sign-in needed* is on screen **before** it taps, so a source that had quietly
 become unreachable cannot pass it and photograph a sheet raised for another reason.
 
-## Still owed
+## The library-wide away notice, and the device it needs
 
-- **The library-wide away notice**, which needs a device whose only sources are remote and all
-  unreachable. This corpus is local files, so the library is never away.
-- **A largest-text variant of the unreachable detail.** Its reachable twin has one.
+This was the last frame §4.3 owed, and it was owed for a reason no fixture could remove: the
+shelf reaches `LibraryAway` only after the *narrowed to nothing* branch, which is taken
+whenever the device holds a publication of its own. `MockCatalogues.everythingAway` supplies
+the other half — one catalogue, pointed at a port nothing listens on, so
+`LibraryAway.everythingAway(in:)` is true — but no launch argument empties `Documents`.
+
+So the device's own books are moved aside for the two shutters and moved back after:
+
+```bash
+UDID=2AEEE794-5E99-4EDC-A888-6FD69D458C17
+C=$(xcrun simctl get_app_container $UDID com.mecedric.storyarc data)
+mkdir -p /tmp/away-backup && mv "$C/Documents/"* /tmp/away-backup/
+mv "$C/Library/Caches/library.json" /tmp/away-backup/
+pnpm capture:ios --out <dir> --device $UDID --only SweepSourcesTests/testCaptureAwayNotice
+mv /tmp/away-backup/* "$C/Documents/"        # library.json back to Library/Caches
+```
+
+The cache file goes with them. `restoreCachedLibrary` keeps any cached row that recorded no
+location — that is a server publication, and its absence from the device is the point of it —
+so last session's catalogue rows would have filled the shelf on their own.
+
+`testCaptureAwayNotice` skips with those three commands in its message when the device is
+seeded, rather than photographing the filter sentence under a name saying *away*.
+
+## Offline is not an error, measured
+
+`AGENTS.md` §2 says an unreachable source is grey and never red. These two frames say whether
+it is, by arithmetic rather than by eye — the most saturated pixel in each band, ignoring
+anything darker than a quarter brightness, where a hue reading means nothing:
+
+| Frame | the notice — icon, heading, sentence | the action — *Try again* |
+| --- | --- | --- |
+| `ios-library-sources-away` | **0.029** | 0.679 |
+| `ios-library-sources-away-dark` | **0.057** | 0.680 |
+
+The sentence carries no colour at all. The only saturated thing in either frame is the way out
+of the state, which is the point: offline is a normal thing to be, and the app's answer to it
+is an action rather than an alarm.
+
+The largest-text frames say the same and go further: across the **whole** of
+`ios-source-unreachable-detail-ax5`, at every pixel, the maximum saturation is 0.250 — at
+`AccessibilityXXXL` the screen holds no colour whatsoever, only *Not answering* in grey, *Last
+error · No answer since Sep 12, 2026 at 10:49* wrapped to three lines, and a title truncated to
+*Cellar Catal…*.
