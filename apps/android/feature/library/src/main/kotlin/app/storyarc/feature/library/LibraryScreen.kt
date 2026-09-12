@@ -434,12 +434,20 @@ fun LibraryScreen(
             }
         },
         bottomBar = {
-            if (unavailable.isNotEmpty()) {
-                UnavailableFolders(
-                    names = unavailable,
-                    onRepick = { pickFolder.launch(null) },
-                )
-            }
+            // Which of the two lines this strip carries is [LibraryFootNotices]'s answer,
+            // where the order is written down and a test can reach it. A source that has
+            // never answered is named here rather than counted: `library-browsing`'s *A
+            // source that has never been reached* asks the library to name it and to offer
+            // to try again, and the strip is drawn whatever the shelf holds, so the rest of
+            // the library stays complete and usable while it says so.
+            LibraryFootNotices(
+                unavailableFolders = unavailable,
+                sources = registry.sources,
+                onRepickFolder = { pickFolder.launch(null) },
+                // Every source, as [LibraryAway]'s retry does. The reader is asking for the
+                // library again, and the one that never answered is the one this line names.
+                onRetrySources = { onProbeSources(SourceRefreshOrigin.AUTOMATIC) },
+            )
             // The bare count that stood here is gone. It named no publication, offered no
             // action, and sat at the foot of the shelf on every surface this screen draws —
             // `SkippedNotice`, above the shelf, is what `library-browsing` asks for instead.

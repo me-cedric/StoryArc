@@ -6345,6 +6345,36 @@
         }
       }
     },
+    "library.neverReached %@": {
+      "comment": "Names a source the library has never read. library-browsing asks the library to name it rather than to count it, and to offer to try again.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ wurde noch nicht gelesen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hasn’t been read yet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ aún no se ha leído"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien n’a encore été lu depuis %@"
+          }
+        }
+      }
+    },
     "library.openComic": {
       "extractionState": "manual",
       "localizations": {
