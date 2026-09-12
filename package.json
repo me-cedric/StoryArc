@@ -84,7 +84,7 @@
     "lines:check": "node scripts/line-cap.mjs",
     "lines:selftest": "node scripts/line-cap.mjs --self-test",
     "brand:build": "swift scripts/brand-mark.swift --out .",
-    "brand:check": "swift scripts/brand-mark.swift --out . --check",
+    "brand:check": "if [ \"$(uname)\" = Darwin ]; then swift scripts/brand-mark.swift --out . --check; else echo 'brand:check: skipped. The generator imports CoreGraphics and ImageIO, which exist only on Apple platforms. The iOS workflow runs it on macOS.'; fi",
     "clean:swift": "node scripts/clean-swift-build.mjs",
     "sweep:test-debris": "node scripts/sweep-test-debris.mjs",
     "live:check": "node scripts/live-check.mjs",
