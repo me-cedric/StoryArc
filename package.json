@@ -31,7 +31,7 @@
     "openspec:workflows": "node scripts/openspec-workflows.mjs",
     "openspec:workflows:check": "node scripts/openspec-workflows.mjs --check",
     "openspec:workflows:selftest": "node scripts/openspec-workflows.mjs --self-test",
-    "lint": "pnpm lines:check && pnpm tokens:check && pnpm brand:check && pnpm spec:validate && pnpm spec:guard && pnpm delta:drop && pnpm partial:tasks && pnpm openspec:workflows:check && pnpm tokens:verify && pnpm fixtures:check && pnpm notices:check && pnpm libarchive:pin && pnpm lockfile:ios && pnpm corpus:check && pnpm kavita:check && pnpm opds:check && pnpm strings:ios && pnpm strings:drawn && pnpm live:check:selftest && pnpm commitlint:guard",
+    "lint": "pnpm lines:check && pnpm tokens:check && pnpm brand:check && pnpm spec:validate && pnpm spec:guard && pnpm delta:drop && pnpm partial:tasks && pnpm ios:ci:check && pnpm openspec:workflows:check && pnpm tokens:verify && pnpm fixtures:check && pnpm notices:check && pnpm libarchive:pin && pnpm lockfile:ios && pnpm corpus:check && pnpm kavita:check && pnpm opds:check && pnpm strings:ios && pnpm strings:drawn && pnpm live:check:selftest && pnpm commitlint:guard",
     "lint:ios": "swiftlint lint --strict",
     "lint:android": "node scripts/gradle.mjs lint",
     "test:ios": "cd apps/ios/Packages/StoryArcKit && swift test; status=$?; node ../../../../scripts/sweep-test-debris.mjs || true; exit $status",
@@ -93,6 +93,8 @@
     "release:selftest": "node scripts/release.mjs --self-test",
     "commitlint:guard": "node scripts/commitlint-guard.mjs",
     "build:ios:ui": "cd apps/ios && xcodegen generate && xcodebuild build-for-testing -project StoryArc.xcodeproj -scheme StoryArc -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath ../../.build/ios-ui -quiet",
+    "test:ios:ci": "node scripts/test-ios-ci.mjs",
+    "ios:ci:check": "node scripts/test-ios-ci.mjs --check",
     "seed:ios:ui": "node scripts/install-and-seed-simulator.mjs"
   },
   "devDependencies": {

@@ -198,9 +198,14 @@ private fun MatteSwatch(
     }
 }
 
-/** The string for a suggested background, or its hex if the list ever gains one. */
-@Composable
-private fun matteNameRes(hex: String): Int = when (SUGGESTED_BACKGROUND_NAMES[hex.uppercase()]) {
+/**
+ * The string for a suggested background, or its hex if the list ever gains one.
+ *
+ * Not `@Composable`: it reads no composition, it only maps a hex to a resource id. The
+ * annotation was there because the function was written beside the swatch that calls it, and
+ * it kept `SettingsSemanticsTest` from asking the same question the screen asks.
+ */
+internal fun matteNameRes(hex: String): Int = when (SUGGESTED_BACKGROUND_NAMES[hex.uppercase()]) {
     "white" -> R.string.reading_matte_white
     "cream" -> R.string.reading_matte_cream
     "sepia" -> R.string.reading_matte_sepia

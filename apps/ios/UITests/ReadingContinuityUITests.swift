@@ -31,8 +31,17 @@ final class ReadingContinuityUITests: XCTestCase {
     /// in-memory position survives a dismissal for free, and the thing worth proving is
     /// that it reached the store and came back out of it.
     func testAPublicationResumesWhereItWasLeft() throws {
-        let app = XCUIApplication()
-        app.launch()
+        // **Every preference stated, not inherited.** This launched bare, and a bare launch
+        // takes the shelf state whichever walk ran before it left behind — the layout, the
+        // grouping, the availability axis and the query all persist, which is exactly what
+        // `sweepLaunch(_:)`'s own note says they do. Measured on a runner on 2026-09-12: the
+        // shelf held one cover, an audiobook marked *100 percent read*, and this walk
+        // reported "This library has nothing to read" about a device holding two
+        // publications. `sweepLaunch()` passes every key, so the shelf is at rest.
+        //
+        // The relaunch below keeps them: `launch()` re-applies the arguments already set on
+        // this instance, so the second launch starts in the same state as the first.
+        let app = sweepLaunch()
 
         // Remembered, so the relaunch reopens the *same* publication.
         // The shelf is named in the failure, because "nothing to read" reads like a missing

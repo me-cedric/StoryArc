@@ -160,8 +160,8 @@ struct PublicationEgressTests {
         // signature of the window expiring rather than of egress being stopped. This
         // load pays the cost first; the window that follows measures the page.
         //
-        // Forty seconds, not sixty and not twelve. This ceiling is not a budget for a
-        // healthy start; it is the line past which a hang gets a name instead of an
+        // Two minutes, not forty seconds and not twelve. This ceiling is not a budget for
+        // a healthy start; it is the line past which a hang gets a name instead of an
         // unattributed kill. It costs a passing run nothing — the poll below returns
         // the moment the beacon is reached.
         //
@@ -178,10 +178,20 @@ struct PublicationEgressTests {
         // trade against each other. Raise it rather than cut it. The job also boots the
         // simulator and waits for it before `xcodebuild` runs — see `ios.yml` — which
         // is the fix for the cause; this number only stops the symptom being a lie.
+        //
+        // **Raised to 120 on 2026-09-12, and the failure now says which of two faults it
+        // is.** Both tests failed again on a `macos-26` runner, at 40.0 and 40.8 seconds —
+        // the ceiling itself, so the reading was "it had not happened yet" and not "it took
+        // this long". Forty seconds is still four times the slowest start ever measured
+        // here, which means a runner is either much slower than that or is not starting the
+        // process at all. The two look identical from the poll, so the failure now carries
+        // what the scheme handler served: an opener page in that list is a web view that
+        // loaded and did not reach loopback, and an empty list is a web view that never
+        // loaded anything, which would be a fault in this harness rather than in WebKit.
         let startedAt = ContinuousClock.now
         webView.load(URLRequest(url: openerURL))
-        guard try await arrived(at: opener, within: .seconds(40)) else {
-            throw Failure.networkNeverStarted(after: ContinuousClock.now - startedAt)
+        guard try await arrived(at: opener, within: .seconds(120)) else {
+            throw Failure.networkNeverStarted(after: ContinuousClock.now - startedAt, served: handler.served)
         }
 
         webView.load(URLRequest(url: url))
@@ -224,8 +234,12 @@ struct PublicationEgressTests {
         /// prove nothing in either direction. Read the suite's note before changing it.
         ///
         /// Carries how long it waited, because the number is the whole diagnosis and a
-        /// bare case name sends the next reader off to measure it again.
-        case networkNeverStarted(after: Duration)
+        /// bare case name sends the next reader off to measure it again. It also carries
+        /// what the scheme handler served: the opener page in that list is a web view that
+        /// loaded and never reached loopback, and an empty list is a web view that loaded
+        /// nothing at all. Those are two different faults and the poll cannot tell them
+        /// apart on its own.
+        case networkNeverStarted(after: Duration, served: [String])
     }
 
     /// A page whose only job is to make the web view start its networking process.
