@@ -19,6 +19,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.platform.app.InstrumentationRegistry
 import app.storyarc.core.designsystem.theme.StoryArcTheme
@@ -91,6 +92,12 @@ class SettingsSemanticsTest {
         showSettings()
         open(R.string.settings_appearance)
         val row = compose.onNodeWithText(context.getString(R.string.appearance_link_theme))
+        // **Scrolled to before it is touched.** This row is the last switch of the longest
+        // settings group, and a tap dispatched at the centre of a node the window does not
+        // hold is a tap the app never receives. It passed on a tall phone and failed on a CI
+        // emulator on 2026-09-12, at the assertion after the click, with the switch still
+        // off — which reads as a broken switch and is an unreceived tap.
+        row.performScrollTo()
         row.assertIsOff()
         row.performClick()
         row.assertIsOn()
@@ -158,7 +165,13 @@ class SettingsSemanticsTest {
     fun theDefaultIconSaysItIsTheDefault() {
         showSettings()
         open(R.string.settings_appearance)
-        compose.onNodeWithText(context.getString(R.string.app_icon_default)).assertIsDisplayed()
+        // Scrolled to for the reason the link switch above gives: the icon row is drawn below
+        // every other appearance control, and `assertIsDisplayed` on a screen that has not
+        // scrolled to it says the label is missing when it is merely further down. That is
+        // what it said on a CI emulator on 2026-09-12.
+        compose.onNodeWithText(context.getString(R.string.app_icon_default))
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 
     @Test

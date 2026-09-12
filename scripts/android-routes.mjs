@@ -358,7 +358,7 @@ export const ROUTES = [
     // names them, so these routes name them too. Run it first, with the mock catalogues up:
     //
     //     node scripts/opds-server.mjs <corpus> --port 4444
-    //     node scripts/opds-server.mjs <corpus> --port 4445
+    //     node scripts/opds-server.mjs <corpus> --port 4446
     //     node scripts/seed-android-sources.mjs
     //
     // *Attic Catalogue* and *Loft Catalogue* answer. *Cellar Catalogue* points at a port
