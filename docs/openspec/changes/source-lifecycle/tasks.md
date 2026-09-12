@@ -750,12 +750,29 @@ filename so a light and a dark run cannot overwrite each other.
 
       `pnpm spec:guard:strict` reports **0 errors** for this change, which is the first
       half of 7.3.
-- [ ] 7.2 Update the `sources` row in [`STATUS.md`](../../STATUS.md) from the verify report — scenario counts, what was driven and on what, and what remains
+- [x] 7.2 Update the `sources` row in [`STATUS.md`](../../STATUS.md) from the verify report — scenario counts, what was driven and on what, and what remains
 
       **Waiting on 4.2, 4.4 and 4.5 rather than on the verify.** 7.1 is done and reports no
       CRITICAL, but "what was driven and on what" is exactly what those three frame tasks
       establish, and all three are open. Writing scenario counts into `STATUS.md` before
       they land would put numbers in the file that nothing measured.
+
+      **Written on 2026-09-12, once all three had landed.** Three things went into the row:
+
+      - **The counts, from the recount of the same day**: 26 scenarios, 21 built and tested, 5
+        built and asserted by nothing, none one-platform and none missing. The row's own prose
+        still says 16 scenarios and is marked as the older count rather than deleted, because
+        the reasoning in it is worth keeping.
+      - **What was driven and on what**: an Android emulator and an iPhone 17 Pro simulator,
+        against two mock OPDS catalogues and one address nothing listens on. The row names each
+        state that was watched rather than claiming a sweep.
+      - **What remains**: the library-wide away notice, which needs a device whose only sources
+        are remote and all unreachable.
+
+      **The row's closing sentence was struck rather than deleted.** It read "Nothing in this
+      row was watched happening", which was true when it was written on 2026-09-06 and is the
+      exact claim these two days of driving overturned. Striking it leaves the record of what
+      changed; deleting it would hide that anything had.
 
       What 2026-09-11 added for 4.2 is in that task: the refused-credential state is
       reachable on a simulator for the first time, with two frames and a recipe.
