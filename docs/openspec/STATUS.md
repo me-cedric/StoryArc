@@ -8,73 +8,74 @@ Keep this current. A status document that lags is worse than none, because it is
 
 ## The count
 
-The seventeen specs hold **367 scenarios** today, counted on 2026-09-06 from
-`docs/openspec/specs/*/spec.md` by counting `#### Scenario:` headings, which is the only form
-any of the seventeen files uses. This paragraph claimed **316** and had claimed it since
-`5c0ed392` on 2026-08-30; the specs have grown by 51 scenarios since, and nothing re-counted
-them.
+**Re-counted on 2026-09-12, and this time every scenario carries a verdict.** The seventeen
+specs hold **411 scenarios**, counted by the `#### Scenario:` headings, which is the only
+form any of the seventeen files uses. The previous count said 367 and was taken on 2026-09-06;
+the specs have grown by 44 since.
 
-**The rows below cover 295 of those 367.** Seventy-two scenarios have no verdict of any kind,
-and they are named in the paragraph immediately above the verdict table rather than folded
-into a "missing" count they have not earned. `reading-themes` and `page-transitions` were split out
-of `ebook-reader` and `comic-reader` on 2026-08-30 when the reader-theming change was synced;
-their 35 scenarios were read in their old homes, and the two new rows say so rather than
-claiming a fresh audit.
+The previous pass verdicted **295 of 367** and left 72 with no verdict of any kind. This one
+verdicts **all 411**. Seventeen agents read one capability each against the app source on
+both platforms, scenario by scenario, and returned a verdict with a `path:line` for every one.
+The four counts each agent returned add up to its own scenario count, and the scenario counts
+were re-counted independently here before they were written down — every one matched.
 
-The 295 that do carry a verdict were read against the app source on both platforms, scenario
-by scenario, with `path:line` evidence — 268 of them over the audit rounds ending 2026-08-30
-and the row edits after them, and 27 more on 2026-09-06 when `library-browsing` and
-`native-experience` were re-audited. The earlier figure printed here was 266, which is the
-same two-verdict discrepancy the last paragraph before the table describes; it is not a
-second one.
-That produces **298 verdicts**: three scenarios in `collections-and-reading-lists` carry two
-independent clauses each, and averaging a half-built scenario is how a half-built scenario
-reads as done, so those were scored twice. Where a verdict from an earlier round disagreed
-with the code — reading aloud, Kavita server search, the five `sources` gaps, the two
-`comic-reader` defects all landed after it was taken — the code won and the verdict was
-re-checked by hand before it was written down here.
+| Verdict | Count | Share |
+| --- | --- | --- |
+| built and tested | 232 | 56% |
+| built, asserted by nothing | 154 | 37% |
+| one platform only | 17 | 4% |
+| missing | 8 | 2% |
 
-**These counts are summed from the rows below, and last re-derived on 2026-09-06 by a script that reads the rows rather than by eye. That is a change worth saying out loud.** They used to be maintained by hand and had stopped agreeing with the
-rows: the header claimed 21 `one platform only` while the rows named 17, and claimed 137
-`built and tested` where the rows held 142. Four hands editing rows in one day, each
-adjusting the header from whatever base its worktree was cut at, is how that happens and
-would have kept happening.
+**What that says about the work left.** Of the 179 scenarios that are not built
+and tested, **154 have code on both platforms and no test asserting it** on at least one
+side. 25 need code: 17 exist on one platform only, and 8 exist
+nowhere. So the shortfall is overwhelmingly missing proof rather than missing product — but a
+capability stays *partial* until every one of its scenarios is built and tested, which is why
+all seventeen still read partial below.
 
-**Saying the header is derived did not make it derived, and that is the finding of this
-pass.** The paragraph above claimed a re-derivation at 17:00 on 2026-08-31. It was not one.
-The commit that wrote the claim (`84d7b61e`) left the table at 149 / 89 / 16 / 16 / 1, which
-is what the rows held at `7e54f7f0` — four row edits earlier. `6c931e61` is the last commit
-where the table and the rows actually agreed. Between it and 2026-09-06 the table stood still
-while three rows moved under it: `library-browsing` turned one `missing` into `built and
-tested`, `offline-downloads` turned two, and `kavita-server` closed its last one-platform
-scenario. That is +4 `built and tested`, −3 `missing` and −1 `one platform only` the header
-never took. This pass then moved two more rows, `library-browsing` and `native-experience`,
-by re-auditing them. A derivation is a thing a tool does, so
-this one was done by a throwaway script over the row text and is reported move by move in the
-delivery note. The script was not kept: it is six lines of regular expression against prose
-that will be rewritten, and a committed parser of prose is a second thing to keep true.
+**One caveat on five of the rows, and it is mine.** While the last five capabilities were
+being read — `kavita-server`, `network-share`, `collections-and-reading-lists`,
+`reading-themes` and `page-transitions` — the Android `:feature:library` test source set did
+not compile, because a commit of that same hour added a parameter and did not update two
+call sites in a test. The agent reading `collections-and-reading-lists` caught it, named the
+commit, ran the compiler itself and quoted the error. It is fixed. Any Android test evidence
+those five rows give for that one module should be re-checked before it is relied on, because
+a test that cannot run reads exactly like a test that does not exist.
 
-The rows now come to **373 verdicts against 367 scenarios**, and **every scenario in
-every spec now carries one**. The audit backlog is closed. It was 69 scenarios deep on
-2026-09-06 in the morning: `reading-themes` and `page-transitions` had never been audited in
-their own right, and `ebook-reader`, `settings-and-about`, `publication-formats` and
-`comic-reader` each counted fewer scenarios than their spec holds. Six capabilities were
-read scenario by scenario that day, every citation was checked against the line it names,
-and a verdict that could not be evidenced was moved down rather than kept.
+**This pass was adversarial about tests, and that is why the unasserted count rose from 119 to
+154.** A test that asserts a constant it also defines, that re-implements the rule it is
+checking, or that has no assertion at all was counted as no test. Three of those were found
+the same day by a separate verification, and the agents were told to look for more.
 
-**The six extra verdicts are clauses scored twice, on purpose.** Three scenarios in
-`collections-and-reading-lists` carry two independent halves. *Choosing a background* in
-`reading-themes` gained a second on 2026-09-06, and both halves are built and tested since
-that evening. *Theme follows appearance* in `ebook-reader` gained one the same evening: its
-timing half is built and tested on both, and the reader-chosen pair is still missing on both.
-*Scanning a folder* in `local-library` gained one the same day, for the same reason.
-Averaging a half-built scenario is how a half-built scenario reads as done.
+### Capability by capability, 2026-09-12
 
-**Six capabilities were re-audited on 2026-09-06 because their rows predated a summer of
-code churn.** `collections-and-reading-lists` proved the risk: it called a delete
-confirmation and a cover picker missing, and both had shipped on 2026-08-31 in `63917c7f`.
-`sources`, `network-share`, `kavita-server`, `opds-catalog` and `local-library` were re-read
-against the source that day, every citation checked against the line it names.
+| Capability | Scenarios | Built and tested | Asserted by nothing | One platform | Missing | The worst thing found |
+| --- | --- | --- | --- | --- | --- | --- |
+| `collections-and-reading-lists` | 24 | 6 | 18 | 0 | 0 | 18 of its 24 scenarios have no test on at least one platform, the worst ratio of the seventeen. Its old row claimed 15 scenarios; nine were added by *Shelves on the home surface* after that row was written |
+| `comic-reader` | 30 | 15 | 13 | 2 | 0 | Border cropping is dead on iOS while STATUS.md records it as built on both |
+| `ebook-reader` | 39 | 24 | 12 | 1 | 2 | *Fixed-layout EPUB* carries a clause that is unbuilt on both platforms and that no test and no STATUS row records |
+| `kavita-server` | 20 | 15 | 5 | 0 | 0 | A Kavita publication that the library holds but the reader has never opened or kept cannot be added to that same server's reading list, and both pl… |
+| `library-browsing` | 47 | 34 | 11 | 1 | 1 | Android narrows search to the filtered library |
+| `local-library` | 15 | 4 | 6 | 5 | 0 | Android never marks a folder source when its access goes |
+| `localization` | 12 | 4 | 8 | 0 | 0 | iOS still draws a raw Swift error description to a reader when a comic will not open |
+| `native-experience` | 44 | 21 | 18 | 3 | 2 | Android instrumented tests outside :core:format are compiled and never run, so several scenarios look asserted and are not |
+| `network-share` | 12 | 3 | 7 | 1 | 1 | Encrypted transport is scored as built while no code on either platform can answer it |
+| `offline-downloads` | 19 | 7 | 11 | 0 | 1 | iOS never attributes a download to its source, so removing a source deletes none of its files |
+| `opds-catalog` | 13 | 10 | 3 | 0 | 0 | An OPDS-LCP publication is offered as a plain download on both platforms |
+| `page-transitions` | 22 | 10 | 9 | 2 | 1 | The tap-zone tests on both platforms assert a re-implementation of the rule, not the rule |
+| `publication-formats` | 24 | 18 | 4 | 2 | 0 | PageDecoder.isSpread has no production caller on either platform |
+| `reading-progress` | 18 | 11 | 7 | 0 | 0 | The finished lifecycle is guarded by a test of dead code, and it is broken for EPUB on both platforms |
+| `reading-themes` | 18 | 14 | 4 | 0 | 0 | The iOS brightness slider writes the device-wide setting and nothing asserts that it puts it back |
+| `settings-and-about` | 28 | 15 | 13 | 0 | 0 | The acknowledgements list can empty itself in a shipped build, and every gate stays green |
+| `sources` | 26 | 21 | 5 | 0 | 0 | A test header states a cross-platform parity that does not exist, and the missing side is a rule that deletes a reader's rows |
+
+**The prose rows below were written on or before 2026-09-06.** Their reasoning is kept because
+it records how each verdict was reached, and several of them carry findings nothing else
+holds. Where a number in them disagrees with the table above, the table above is the later
+count. Each agent also reported where its own count differed from its old row — between six
+and fourteen differences per capability — and those are in the run's journal rather than
+copied here, because most are line citations that moved.
+
 
 | Verdict | Count | Means |
 | --- | --- | --- |

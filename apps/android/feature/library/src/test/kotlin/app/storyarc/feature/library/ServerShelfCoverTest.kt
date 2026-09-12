@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import java.util.concurrent.CopyOnWriteArrayList
 import org.junit.Assert.assertEquals
@@ -40,6 +41,7 @@ class ServerShelfCoverTest {
             StoryArcTheme {
                 ServerShelfCover(
                     tiles = tiles,
+                    name = "Lantern Run",
                     load = { id ->
                         asked.add(id)
                         ByteArray(0)
@@ -79,12 +81,19 @@ class ServerShelfCoverTest {
             StoryArcTheme {
                 ServerShelfCover(
                     tiles = listOf("11", "12", "13", "14"),
+                    name = "Lantern Run",
                     load = { throw java.io.IOException("the server is away") },
                 )
             }
         }
 
-        // The composition survives a failed fetch: no crash, and the shelf keeps its shape.
         compose.waitForIdle()
+
+        // **Asserted rather than implied.** This case held one `waitForIdle` and no assertion
+        // until 2026-09-12, so it passed whatever the composition did — an adversarial read of
+        // this change named it. What it has to show is that a shelf whose every fetch threw is
+        // still drawn, and is drawn as the placeholder a publication with no cover draws
+        // rather than as an empty frame, which `collections-and-reading-lists` forbids.
+        compose.onNodeWithText("Lantern Run", useUnmergedTree = true).assertExists()
     }
 }
