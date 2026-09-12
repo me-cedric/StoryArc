@@ -52,6 +52,7 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.ReadingAddress
 
 /** Enough pixels for the largest the cover is ever drawn, on the densest screen. */
 private const val DETAIL_COVER_PIXELS = 1200
@@ -187,12 +188,11 @@ fun PublicationDetailScreen(
     /**
      * Open the book, at the start or where the reader stopped.
      *
-     * The second argument is the copy this page holds and the library does not: a row fetched
-     * from a catalogue is filed under a server identifier, so the library's own location table
-     * answers nothing for it until a scan folds the file in. Null everywhere else, and the
-     * caller then asks the library as it always did. It is never an acquisition URL --
-     * `smb` is the only remote scheme `PublicationAccess` has a reader for, so an `http`
-     * address handed over here would be opened as a local file that is not there.
+     * The second argument is the whole answer to *where*: the copy this page holds, the
+     * library's own location, or -- while a transfer of this publication is running -- the
+     * address it is being fetched from, which `offline-downloads` asks to be readable before
+     * the bytes land. [ReadingAddress] decides between them, and null means there is nothing
+     * to open, in which case this is never called.
      */
     onRead: (Publication, String?) -> Unit,
     /** Another publication's own page. A cover is the detail verb everywhere in this app. */
@@ -238,12 +238,26 @@ fun PublicationDetailScreen(
     // could not happen at all: the page would go on asking for a copy it already had.
     val isHere = isOnDevice || copy.file != null
 
-    // Whether anything can open this publication where it stands. Platform truth, which is
-    // why the screen answers it rather than the decision function: the set of schemes
-    // `PublicationAccess` holds a reader for is `smb` alone in production, so a catalogue row
-    // answers false and is offered the copy instead of a read that does nothing.
-    val where = viewModel.location(publication)
-    val readsWhereItLies = isHere || (where != null && PublicationAccess.isRemote(where))
+    // Where this publication opens, if it opens at all.
+    //
+    // **`offline-downloads`' *Reading while downloading*.** A transfer that has started names
+    // an address the ranged reader can open, so a publication that is still downloading opens
+    // now instead of after four hundred megabytes. The rule is [ReadingAddress]'s and is
+    // asserted there; iOS asks the same one.
+    //
+    // Which readers can open an address is the platform's truth and therefore the screen's to
+    // state, which is what [readsFromAnAddress] answers.
+    val where = ReadingAddress.of(
+        local = copy.file?.path ?: viewModel.location(publication),
+        transfer = copy.record ?: transfer,
+        readsWhereItLies = readsFromAnAddress(publication),
+    )
+    // `isStreamed` rather than `PublicationAccess.isRemote` alone for the arriving case: the
+    // second answers from a registry the app fills at start-up, so a screen that asked only
+    // that would offer a download or a read depending on start-up order. What the address *is*
+    // does not depend on who has registered what.
+    val readsWhereItLies = isHere ||
+        (where != null && (ReadingAddress.isStreamed(where) || PublicationAccess.isRemote(where)))
 
     val provenance = provenanceOf(publication, registry, isHere, library)
     val hasProgress = viewModel.readFraction(publication) != null
@@ -359,7 +373,7 @@ fun PublicationDetailScreen(
                 stoppedIn = stoppedIn,
                 offsetMillis = offsetMillis,
                 isFinished = isFinished,
-                onRead = { onRead(publication, copy.file?.path) },
+                onRead = { onRead(publication, where) },
                 onListenFrom = onListenFrom,
                 onDownload = obtain.takeIf { download == DownloadControl.PRIMARY },
                 modifier = modifier,

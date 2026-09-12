@@ -12,7 +12,7 @@ import android.content.ContentResolver
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
-import app.storyarc.core.format.ComicArchiveReading
+import app.storyarc.core.format.AdoptingArchive
 import app.storyarc.core.format.PageCodec
 import app.storyarc.core.format.PageDecoder
 import app.storyarc.core.format.PageEntry
@@ -354,7 +354,7 @@ class ReaderViewModel(
      * *page* across the regrouping rather than its slot, so nothing moves under it.
      */
     val wideIndices: Set<Int> get() = wide
-    private var archive: ComicArchiveReading? = null
+    internal var archive: AdoptingArchive? = null
 
     /**
      * Set instead of [archive] for a PDF, whose pages are drawn rather than
@@ -422,7 +422,7 @@ class ReaderViewModel(
             val opened = withContext(Dispatchers.IO) {
                 PublicationAccess.openArchive(resolver, path)
             }
-            archive = opened
+            archive = AdoptingArchive(opened)
             _pages.value = opened.pages
             _skippedPageCount.value = opened.skippedPageCount
             wide.addAll(opened.doublePageIndices)

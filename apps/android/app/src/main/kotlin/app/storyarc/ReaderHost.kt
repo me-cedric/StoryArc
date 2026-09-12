@@ -9,6 +9,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import app.storyarc.core.model.ReadingAddress
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.persistence.AnnotationStore
 import app.storyarc.core.smb.SmbReachability
@@ -16,6 +17,7 @@ import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.KavitaSync
 import app.storyarc.feature.reader.ReaderScreen
 import app.storyarc.feature.reader.ReaderViewModel
+import app.storyarc.feature.reader.adoptLocalCopy
 import app.storyarc.navigation.Screen
 import kotlinx.coroutines.launch
 
@@ -49,6 +51,32 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
             // place.
             annotationStore = AnnotationStore.open(activity),
         )
+    }
+
+    // `offline-downloads`' *Reading while downloading*. A publication opened at an address
+    // that is still arriving switches to the file the moment the transfer finishes, and the
+    // reader is told nothing: no page moves, and nothing reopens under them.
+    //
+    // Driven by the store rather than by a queue, because the reader has no catalogue page
+    // and therefore no queue to ask -- and because every queue in the app writes there.
+    DisposableEffect(viewModel) {
+        val store = dependencies.downloads
+        // Once, and only once. The store is written on every queue event, not only this
+        // one's, so without this the next download anybody starts would reopen the file
+        // under a reader who is already reading it.
+        var hasAdopted = false
+        val watch = store.watch {
+            if (hasAdopted) return@watch
+            activity.lifecycleScope.launch {
+                val arrived = ReadingAddress.arrived(screen.path, store.library())
+                    ?: return@launch
+                hasAdopted = viewModel.adoptLocalCopy(
+                    activity.contentResolver,
+                    store.location(arrived).path,
+                )
+            }
+        }
+        onDispose { watch.close() }
     }
 
     // Closing the reader is one moment `kavita-server` sends a position. Leaving for the

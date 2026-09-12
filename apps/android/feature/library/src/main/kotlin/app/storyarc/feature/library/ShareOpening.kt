@@ -34,6 +34,27 @@ internal fun needsLocalFile(format: PublicationFormat): Boolean =
     format == PublicationFormat.PDF || format == PublicationFormat.CBR
 
 /**
+ * Whether the reader this publication opens in can read from an address rather than a file.
+ *
+ * The same three-way choice `AppShell` makes when a publication is opened, asked before the
+ * reader is reached: the player wants a file, Readium is handed a `File` for a reflowable
+ * book, and everything else goes to the comic reader, which reads through a source and
+ * therefore reads over a range request.
+ *
+ * `offline-downloads`' *Reading while downloading* needs this answered here, because a
+ * publication still arriving has an address and no file: offering *Read* for one the reader
+ * cannot open from an address is worse than offering the download it already had.
+ *
+ * A fixed-layout EPUB is a comic to this app and is on the readable side, which is the one
+ * case [needsLocalFile] alone would get wrong in either direction.
+ */
+internal fun readsFromAnAddress(publication: Publication): Boolean = when {
+    publication.format.isAudio -> false
+    publication.format == PublicationFormat.EPUB && !publication.isFixedLayout -> false
+    else -> !needsLocalFile(publication.format)
+}
+
+/**
  * What the share said the file weighs, or null when it said nothing worth repeating.
  *
  * A directory entry's length is a `Long` and a share always fills one in, so the honest
