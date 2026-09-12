@@ -91,7 +91,16 @@ jobs:
           target: google_apis
           arch: x86_64
           disable-animations: true
-          script: cd apps/android && ./gradlew :core:format:connectedDebugAndroidTest
+          # **Every module, not `:core:format` alone.** Six modules carry instrumented
+          # sources and this ran one of them, so 102 of the 153 tests were compiled on
+          # every push and executed on none. Two of those were broken and said so the
+          # moment they ran, on 2026-09-12: a settings case asserted a swatch
+          # announcement the screen had stopped making — `Colour #FFFFFF` for what now
+          # says `White` — and a playback case read a resume offset as a file time when
+          # `PlaybackPosition` states it is measured from the start of its part, so it
+          # called a correct player wrong. A test that is compiled and never run looks
+          # exactly like a test that passes.
+          script: cd apps/android && ./gradlew connectedDebugAndroidTest
 
       - name: Upload instrumented reports
         if: failure()

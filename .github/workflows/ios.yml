@@ -145,11 +145,20 @@ jobs:
         #
         # A booted simulator, not `generic/platform`: the audit reads a live view tree.
         #
-        # The script, not a copy of its command, for the reason the epub job gives. This
-        # one carries seven flags, and it is also the only way to run the audit locally:
-        # `pnpm check:devices` calls the same script.
+        # **`test:ios:ci`, not `test:ios:ui`, and that is what made this job finish.**
+        # `test:ios:ui` runs the whole target: 202 tests, 181 of them capture walks that
+        # photograph a screen for a design review. On a runner they took about two hours and
+        # attached their screenshots to a bundle nobody downloads, so every push cancelled
+        # the run before it, and this workflow went green none of its last twenty runs. Six
+        # of them also failed outright, each for a fixture a runner does not have — the
+        # 226-file corpus, a Kavita mock on 5001, an OPDS mock on 4444.
+        #
+        # `scripts/test-ios-ci.mjs` names the 21 that assert something about the app instead
+        # of photographing it, and `pnpm ios:ci:check` — part of `pnpm lint` — fails when a
+        # new test is neither in that list nor excluded with a reason. The captures stay
+        # behind `pnpm capture:ios`, on a machine with the fixtures.
         id: audit
-        run: pnpm test:ios:ui
+        run: pnpm test:ios:ci
 
       - name: Why the audit failed
         # Twelve audit failures on 2026-09-07 named twelve tests and gave no assertion

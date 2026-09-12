@@ -142,9 +142,30 @@ extension XCTestCase {
         )
 
         let action = app.buttons.matching(opensAPublication).firstMatch
+        // **By name where the name still exists, by position where it does not.** `covers`
+        // comes from `allElementsBoundByIndex`, so each entry is a position in one snapshot
+        // of the shelf. A tap on position 25 after the shelf redrew fails as *No matches
+        // found for Element at index 25*, which reads like a missing cover and is a moved
+        // one — measured on 2026-09-12, in one run, on three tests, two of them audits CI
+        // runs. A name is resolved at the moment of the tap and survives the move.
+        //
+        // The name can go too, and that is why the position is still tried: a cover standing
+        // for a series states how many titles it holds, so a scan that finds another issue
+        // rewrites the label of a cell that did not move. Neither handle is reliable alone
+        // and they fail in different circumstances, so both are used before this gives up.
+        // ``waitForTheShelfToSettle(in:)`` above makes either one likely to work.
         for cover in covers.prefix(3) {
-            cover.tap()
-            if action.waitForExistence(timeout: 5) { return action }
+            let named = app.buttons.matching(NSPredicate(format: "label == %@", cover.label)).firstMatch
+            // Hittable, not merely existing: a cover the shelf has scrolled past still exists,
+            // and tapping one taps where it is not.
+            let handle = named.exists && named.isHittable ? named : cover
+            guard handle.exists, handle.isHittable else { continue }
+            handle.tap()
+            // Ten seconds, not five. The page is drawn from the store, and on a device
+            // holding the whole corpus the first one after a launch is slower than the five
+            // this waited: three audits skipped with "no publication opens a page with an
+            // action on it" on 2026-09-12, on a device where every publication opens one.
+            if action.waitForExistence(timeout: 10) { return action }
             // Not a cover, or one that cannot be opened. Go back and try the next.
             app.navigationBars.buttons.element(boundBy: 0).tap()
         }
@@ -165,7 +186,30 @@ extension XCTestCase {
         ofFormat format: String? = nil
     ) throws -> [XCUIElement] {
         try showTheShelf(in: app)
+        waitForTheShelfToSettle(in: app)
         return coversOnScreen(in: app, named: wanted, ofFormat: format)
+    }
+
+    /// Waits until the shelf stops changing, or gives up and lets the caller try anyway.
+    ///
+    /// ``showTheShelf(in:)`` waits for the **first** cover. On a device holding the corpus
+    /// the scan then runs for another second or two, and every cover on screen can move or be
+    /// relabelled while it does — a cell standing for a series states how many titles it
+    /// holds, so finding one more issue rewrites a label without moving the cell. A walk that
+    /// reads the shelf during that window holds handles to a screen that no longer exists.
+    ///
+    /// Settled means the count of buttons is the same twice in a row. It is a weak
+    /// definition and a sufficient one: what follows this only needs a cover it can still
+    /// find a moment later.
+    func waitForTheShelfToSettle(in app: XCUIApplication, within ceiling: TimeInterval = 10) {
+        let deadline = Date().addingTimeInterval(ceiling)
+        var previous = -1
+        while Date() < deadline {
+            let count = app.buttons.count
+            if count == previous, count > 0 { return }
+            previous = count
+            hold(0.5)
+        }
     }
 
     /// Puts the library shelf on screen, and waits for it to have drawn something.

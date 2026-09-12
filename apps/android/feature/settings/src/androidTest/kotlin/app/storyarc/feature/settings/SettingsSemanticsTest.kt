@@ -166,9 +166,15 @@ class SettingsSemanticsTest {
         showSettings()
         open(R.string.settings_reading)
         SUGGESTED_BACKGROUNDS.forEach { hex ->
-            compose.onNodeWithContentDescription(
-                context.getString(R.string.reading_matte_swatch, hex),
-            ).assertExists()
+            // **The name, not the hex, and this test asked for the hex until 2026-09-12.**
+            // A swatch announced `Colour #E8EFE6`, which TalkBack reads one character at a
+            // time, so the screen was changed to say `Pale green` — and this case went on
+            // asserting the old sentence for weeks, because CI ran `:core:format` alone and
+            // no other instrumented test ever executed. It states the rule by calling
+            // `matteNameRes`, the same function the swatch calls, so a renamed colour moves
+            // both at once instead of breaking one of them.
+            compose.onNodeWithContentDescription(context.getString(matteNameRes(hex)))
+                .assertExists()
         }
         compose.onNodeWithContentDescription(context.getString(R.string.reading_matte_none))
             .assertIsSelected()

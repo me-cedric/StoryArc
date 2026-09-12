@@ -34,73 +34,20 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Validate capability specs
-        run: pnpm spec:validate
+      # **One step, and that is the point.** This job used to name fifteen gates one at a
+      # time, and `pnpm lint` chains twenty-one. The ten it did not name — the line caps, the
+      # partial-task rule, the dropped-delta rule, the four-language string check, the three
+      # mock-server self-tests, the redaction self-test, the commit-scope guard and the brand
+      # gate — existed, passed locally, and were never run by CI at all. A list in two places
+      # is a list that drifts, and this one had.
+      #
+      # `pnpm lint` names the failing script itself, so a red run still says which gate
+      # refused. Add a gate to the `lint` chain in `package.json` and CI runs it the same day.
+      - name: Every repository gate
+        run: pnpm lint
 
-      - name: The OpenSpec artifact chain is complete
-        # `spec:validate` checks the files a change has; this checks the files it
-        # should have. A change holding a proposal and nothing else passes the
-        # first and fails the second — which is how `source-lifecycle` sat
-        # half-planned from 2026-08-27 with the gate reporting green.
-        run: pnpm spec:guard
-
-      - name: The OpenSpec agent workflows match the installed CLI
-        # `openspec update` cannot serve this repository — it needs the root at
-        # <project>/openspec and the agent directories in the same place, and this
-        # root is docs/openspec. Six of the twelve workflows were missing for that
-        # reason. This fails when a CLI upgrade moves one.
-        run: pnpm openspec:workflows:check
-
-      - name: The workflow generator's own checks still fire
-        run: pnpm openspec:workflows:selftest
-
-      - name: Design token contrast gate
-        # Fails on any text/surface pair below its WCAG floor, and on any
-        # colour that falls outside the sRGB gamut.
-        run: pnpm tokens:check
-
-      - name: Generated tokens are in sync with their source
-        run: pnpm tokens:verify
-
-      - name: Third-party notices are in sync with the licence inventory
-        # A notices file that disagrees with what the app ships is a compliance gap, not
-        # a formatting one, and this is the only thing that would notice.
-        run: pnpm notices:check
-
-      - name: Vendored libarchive states one version everywhere, and is unpatched
-        # libarchive is copied sources, so it has no lockfile entry and no advisory feed.
-        # This is the only thing that would notice the tree, config.h, VENDORING.md and
-        # the notices inventory drifting apart — which they had.
-        run: pnpm libarchive:pin
-
-      - name: The libarchive pin checker's own checks still fire
-        run: pnpm libarchive:pin:selftest
-
-      - name: The iOS app's dependency graph is committed and exactly pinned
-        # StoryArc.xcodeproj is generated and ignored, so the app binary's lockfile is
-        # the one file inside it that has to survive review. Cheap here, invisible
-        # everywhere else.
-        run: pnpm lockfile:ios
-
-      - name: The iOS lockfile checker's own checks still fire
-        run: pnpm lockfile:ios:selftest
-
-      - name: The accessibility scanner's own checks still fire
-        # A scanner that silently stops matching reports a clean screen, which is worse
-        # than having no scanner. The device sweep cannot run here; its self-test can.
-        run: pnpm a11y:selftest
-
-      - name: No sentence is drawn onto the screen outside a catalogue
-        # Wired into pnpm lint on 2026-09-06, once task 2.2 removed the two literals in
-        # App/RefusedFile.swift that had held it back. No workflow runs pnpm lint, so the
-        # check needs its own step or it runs in no automated gate.
-        run: pnpm strings:drawn
-
-      - name: The drawn-strings checker's own checks still fire
-        # A checker that stops matching reports a clean tree, which is worse than no checker.
-        run: pnpm strings:drawn:selftest
-
-      - name: Fixture corpus is in sync with its generator
-        # The corpus is generated then committed, so it can go stale the same way
-        # the tokens can. ubuntu-latest ships Python 3.
-        run: pnpm fixtures:check
+      # The gates' own gates: a checker that has stopped matching reports a clean tree, which
+      # is worse than no checker. Each of these feeds a known-bad input to one gate and fails
+      # when the gate stays quiet.
+      - name: The checkers' own checks still fire
+        run: pnpm selftests
