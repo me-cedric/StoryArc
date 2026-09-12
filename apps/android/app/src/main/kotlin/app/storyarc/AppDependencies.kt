@@ -4,6 +4,7 @@ import android.content.Context
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.catalogue.OpdsCredential
 import app.storyarc.core.catalogue.OpdsOrigin
+import app.storyarc.core.format.HttpSource
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.persistence.CertificatePinStore
 import app.storyarc.core.persistence.CredentialStore
@@ -117,13 +118,18 @@ internal class AppDependencies private constructor(private val context: Context)
         }
 
     /**
-     * How the reader reaches a share.
+     * How the reader reaches a share, and an address that is still arriving.
      *
      * Registered from here because this is where the source registry and the credential
      * store both are; `core:format` stays unaware that SMB exists, which is the only way
      * that dependency can point.
      */
     private fun registerShareAccess() {
+        // `offline-downloads`' *Reading while downloading*. Without this line the ranged
+        // reader is built, tested and unreachable: nothing else registers `http`, so an
+        // acquisition URL handed to `PublicationAccess` would be opened as a local file.
+        HttpSource.register()
+
         PublicationAccess.register("smb") { path ->
             val source = sources.registry().sources
                 .firstNotNullOfOrNull { candidate ->

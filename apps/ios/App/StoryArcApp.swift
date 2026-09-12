@@ -109,6 +109,11 @@ struct StoryArcApp: App {
     @State var reconnecting: Source?
 
     init() {
+        // `offline-downloads`' *Reading while downloading*. Without this line the ranged
+        // reader is built, tested and unreachable: nothing else registers `http`, so an
+        // acquisition URL handed to `ComicArchiveOpener` would be opened as a local file.
+        HttpSource.register()
+
         // How the reader reaches a share. Registered here because this is where the source
         // registry and the credential store both are; `Formats` stays unaware that SMB
         // exists, which is the only way that dependency can point.

@@ -398,14 +398,13 @@ private fun PublicationPage(
             val path = location ?: return@PublicationDetailScreen
             host.listenFrom(publication, path, index)
         },
-        onRead = { chosen, copy ->
-            // The copy the page holds beats the library's table, and is the only address a
-            // queued download may be opened at: `location` answers nothing for a catalogue row
-            // until a scan folds the file in, and the acquisition URL it came from is not a
-            // location at all -- `smb` is the only remote scheme `PublicationAccess` reads, so
-            // an `http` address here would be opened as a local file that is not there.
-            val path = copy ?: host.library.location(chosen) ?: return@PublicationDetailScreen
-            host.open(chosen, path)
+        onRead = { chosen, address ->
+            // The page has already decided where this opens -- a copy it holds, the library's
+            // location, or the address a running transfer is fetching, which
+            // `offline-downloads` asks to be readable before the bytes land. Asking again here
+            // is how the two came to disagree: `location` answers nothing for a catalogue row
+            // until a scan folds the file in.
+            host.open(chosen, address ?: return@PublicationDetailScreen)
         },
         // A cover leads to a page, and a page's series shelf leads to more pages. The same
         // verb every other cover in the app takes, so the guard against pushing a second
