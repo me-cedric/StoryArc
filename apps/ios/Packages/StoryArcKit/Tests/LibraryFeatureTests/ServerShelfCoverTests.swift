@@ -5,48 +5,60 @@ import Testing
 
 @testable import LibraryFeature
 
-/// Which artwork a server's shelf asks for.
+/// Which members of a server's shelf its composite is built from.
 ///
-/// `collections-and-reading-lists`: a shelf's cover "is a composite of its first four member
-/// covers unless the user sets a specific one", and this change makes that hold "for a
-/// collection a server defines exactly as it does for one made on the device". Before it, a
-/// server shelf passed an empty tile list and drew a blank frame.
-///
-/// The composite itself — four quadrants, or one across the frame — is ``ShelfComposite``'s
-/// and is unchanged by this change. What is asserted here is the rule that feeds it.
-///
-/// Android's `ServerShelfCoverTest` makes the same claims.
+/// **These cases used to assert their own arithmetic.** Each one built a tuple array and
+/// re-implemented the sort, the prefix and the map inside the test body, so the only thing it
+/// touched in the app was the constant `CompositeCover.tileCount`. An adversarial read of the
+/// change on 2026-09-12 measured it: changing the view's own `prefix` to 3 left all three
+/// cases green. The rule now lives in ``ServerShelfTiles``, outside the view, and these call
+/// it — so the same mutation fails here.
 struct ServerShelfCoverTests {
 
-    @Test("Four or more entries composite the first four in the order given")
+    /// Decoded rather than constructed: the type has only a `Decodable` initialiser, which is
+    /// the shape a server's answer arrives in and the shape worth testing against.
+    private func item(order: Int, chapter: Int) -> KavitaReadingListItem {
+        let json = Data(#"{"id": \#(chapter), "order": \#(order), "chapterId": \#(chapter)}"#.utf8)
+        // A fixture this test wrote itself, so a failure to decode it is this file's own fault
+        // and should stop the run rather than be reported as a shelf defect.
+        // swiftlint:disable:next force_try
+        return try! JSONDecoder().decode(KavitaReadingListItem.self, from: json)
+    }
+
+    @Test("A reading list composites its first four entries, in the reader's order")
     func fourTiles() {
-        let entries = (11...20).map { (order: $0, chapterId: $0) }
+        let items = (11...20).map { item(order: $0, chapter: $0) }
 
-        let tiles = entries.sorted { $0.order < $1.order }
-            .prefix(CompositeCover.tileCount)
-            .map { String($0.chapterId) }
+        #expect(ServerShelfTiles.of(items: items) == ["11", "12", "13", "14"])
+    }
 
-        #expect(tiles == ["11", "12", "13", "14"])
+    /// The reader's order, not the server's listing order, which is the half a prefix alone
+    /// would get wrong.
+    @Test("A reading list sorts before it takes, so a reordered list composites its own first")
+    func orderBeatsListing() {
+        let items = [item(order: 9, chapter: 90), item(order: 1, chapter: 10), item(order: 5, chapter: 50)]
+
+        #expect(ServerShelfTiles.of(items: items) == ["10", "50", "90"])
     }
 
     @Test("Fewer than four entries hand the composite what there is")
     func fewerThanFour() {
-        let entries = [(order: 1, chapterId: 11), (order: 0, chapterId: 12)]
+        let items = [item(order: 1, chapter: 11), item(order: 0, chapter: 12)]
 
-        let tiles = entries.sorted { $0.order < $1.order }
-            .prefix(CompositeCover.tileCount)
-            .map { String($0.chapterId) }
-
-        // Sorted by the server's order, not by id: a reading list's order is its meaning.
-        #expect(tiles == ["12", "11"])
+        #expect(ServerShelfTiles.of(items: items) == ["12", "11"])
     }
 
     @Test("A shelf with nothing in it asks for no artwork")
     func nothingInIt() {
-        let entries: [(order: Int, chapterId: Int)] = []
+        #expect(ServerShelfTiles.of(items: []).isEmpty)
+        #expect(ServerShelfTiles.of(series: []).isEmpty)
+    }
 
-        let tiles = entries.prefix(CompositeCover.tileCount).map { String($0.chapterId) }
+    /// A collection has no order of its own, so the server's listing is the order.
+    @Test("A collection takes the server's own order and names its series")
+    func collectionKeepsServerOrder() {
+        let series = [7, 3, 9, 1, 5].map { KavitaSeries(id: $0, name: "Series \($0)", libraryId: 1) }
 
-        #expect(tiles.isEmpty)
+        #expect(ServerShelfTiles.of(series: series) == ["7", "3", "9", "1"])
     }
 }

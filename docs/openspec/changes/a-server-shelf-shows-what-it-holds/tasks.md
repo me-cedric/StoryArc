@@ -117,13 +117,18 @@ section is why the change is not archived yet.
   `coverImageLocked`, and `KavitaShelves.swift:8-22` decodes only id, title and summary. Only
   the reading list sets `chosenCover` — `ShelvesScreen.kt:139` and `KavitaShelfViews.swift:69`.
   So the branch is not merely untested for collections, as task 4.3 says; it is unreachable.
-- [ ] 5b.4 **Two tests cannot fail, and one of them is named in this list as proof.**
-  - `ServerShelfCoverTests.swift` builds a local tuple array and re-implements `sorted`,
-    `prefix` and `map` inside the test body. The only production symbol it touches is
-    `CompositeCover.tileCount`. Change `ServerShelfCardView.readMembers` to `prefix(3)` and
-    all three cases still pass.
-  - `ServerShelfCoverTest.kt:77`, "artwork that never arrives leaves the frame rather than the
-    app", contains one `compose.waitForIdle()` and no assertion.
+- [x] 5b.4 **Two tests could not fail, and both assert now.**
+  - `ServerShelfCoverTests.swift` built a local tuple array and re-implemented `sorted`,
+    `prefix` and `map` inside the test body, so the only production symbol it touched was
+    `CompositeCover.tileCount`. The rule moved out of the view into `ServerShelfTiles`, where
+    a test can reach it, and the five cases call it. Checked by deleting the sort from the
+    production rule: two of the five fail. A fifth case was added for the half nothing
+    covered — a collection keeps the server's own order, where a reading list keeps the
+    reader's.
+  - `ServerShelfCoverTest.kt`'s "artwork that never arrives leaves the frame rather than the
+    app" held one `compose.waitForIdle()` and no expectation. It now asserts what it is for:
+    a shelf whose every fetch threw is still drawn, and drawn as the placeholder rather than
+    as an empty frame.
 - [ ] 5b.5 **Nothing exercises the server shelf card on either platform.** Neither test tree
   mentions `ServerShelfCard` or `ServerShelfCardView`, so the collection branch is unasserted:
   which members are read (`ShelvesScreen.kt:506` against `:502`), and which artwork route is

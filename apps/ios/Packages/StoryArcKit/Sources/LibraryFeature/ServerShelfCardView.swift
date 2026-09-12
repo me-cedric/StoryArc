@@ -52,13 +52,35 @@ struct ServerShelfCardView: View {
     private func readMembers() async {
         let client = KavitaClient(address: shelf.server.address)
         if shelf.isList {
-            let items = (try? await client.readingListItems(shelf.id)) ?? []
-            tiles = items.sorted { $0.order < $1.order }
-                .prefix(CompositeCover.tileCount)
-                .map { String($0.chapterId) }
+            tiles = ServerShelfTiles.of(items: (try? await client.readingListItems(shelf.id)) ?? [])
         } else {
-            let series = (try? await client.collected(shelf.id)) ?? []
-            tiles = series.prefix(CompositeCover.tileCount).map { String($0.id) }
+            tiles = ServerShelfTiles.of(series: (try? await client.collected(shelf.id)) ?? [])
         }
+    }
+}
+
+/// Which members of a server's shelf the composite is built from, and in what order.
+///
+/// **Out of the view because a rule inside a view is a rule no test can reach.** It was inside
+/// one, and `ServerShelfCoverTests` answered that by re-implementing the same sort and prefix
+/// in its own body — so the suite passed against any view at all, and an adversarial read of
+/// this change on 2026-09-12 proved it: changing the view's `prefix` to 3 left all three cases
+/// green. The rule is here now and the tests call it.
+///
+/// A reading list is ordered by the reader, so its items are sorted by that order and named by
+/// their chapter. A collection has no order, so its series arrive in the order the server gave
+/// them and are named by the series. Android reads the same two rules in `ShelvesScreen.kt`.
+enum ServerShelfTiles {
+
+    /// A reading list's first tiles, in the reader's own order.
+    static func of(items: [KavitaReadingListItem]) -> [String] {
+        items.sorted { $0.order < $1.order }
+            .prefix(CompositeCover.tileCount)
+            .map { String($0.chapterId) }
+    }
+
+    /// A collection's first tiles, in the order the server listed them.
+    static func of(series: [KavitaSeries]) -> [String] {
+        series.prefix(CompositeCover.tileCount).map { String($0.id) }
     }
 }
