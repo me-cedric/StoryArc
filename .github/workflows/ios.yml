@@ -90,6 +90,14 @@ jobs:
       - run: brew install swiftlint
       - run: swiftlint lint --strict
 
+      # **The one gate the Contract job cannot run.** `scripts/brand-mark.swift` imports
+      # CoreGraphics and ImageIO to render the mark, and neither exists on Linux, so
+      # `pnpm brand:check` skips itself there and says so. This is the macOS job that is
+      # already cheap, so the committed assets are checked against their generator here
+      # rather than nowhere — which is where they were checked until 2026-09-12.
+      - name: The brand assets match their generator
+        run: swift scripts/brand-mark.swift --out . --check
+
   app:
     name: App — build for simulator
     runs-on: macos-26
