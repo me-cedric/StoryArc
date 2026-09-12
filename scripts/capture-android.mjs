@@ -19,14 +19,16 @@
  * Usage:
  *   node scripts/capture-android.mjs Downloads --out shot.png
  *   node scripts/capture-android.mjs Downloads --out shot.png --dark --font-scale 2.0
+ *   node scripts/capture-android.mjs Downloads --out <directory> --matrix
  *   node scripts/capture-android.mjs --list
  */
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
-import { dirname } from 'node:path'
+import { dirname, join } from 'node:path'
 
 import { adbRunner, hasDevice, resolveAdb } from './adb.mjs'
 import { ROUTES, navigator, sleep, splitLate } from './android-routes.mjs'
+import { MATRIX, describe, slug } from './device-matrix.mjs'
 
 const argv = process.argv.slice(2)
 const flag = (name, fallback = null) => {
@@ -49,6 +51,7 @@ const dark = argv.includes('--dark')
 
 if (!wanted || !out) {
     console.error('Usage: node scripts/capture-android.mjs <route> --out <path> [--dark] [--font-scale 2.0]')
+    console.error('       node scripts/capture-android.mjs <route> --out <directory> --matrix')
     console.error('       node scripts/capture-android.mjs --list')
     process.exit(2)
 }
@@ -58,6 +61,34 @@ const route = ROUTES.find(([name]) => name.toLowerCase() === wanted.toLowerCase(
 if (!route) {
     console.error(`No route matches "${wanted}". Run with --list to see them.`)
     process.exit(2)
+}
+
+/**
+ * `--matrix` photographs the route in every condition `device-matrix.mjs` names.
+ *
+ * It re-invokes this script once per condition rather than looping inside it. Everything
+ * below is per-run and hard-won -- the settings are read back before they are changed, the
+ * restore is registered against `exit` and both signals, and a font scale change restarts
+ * every activity -- and a loop wrapped around that would have to take all of it apart for no
+ * gain. One process per condition costs milliseconds against a walk that takes seconds, and
+ * each condition restores the device on its own way out even when it fails.
+ *
+ * `--out` is a directory here, and the file names come from the matrix, because
+ * `capture-compare.mjs` pairs a fresh frame with a reference frame by name.
+ */
+if (argv.includes('--matrix')) {
+    mkdirSync(out, { recursive: true })
+    let worst = 0
+    for (const condition of MATRIX.android.conditions) {
+        const file = join(out, `android-${slug(route[0])}${condition.suffix}.png`)
+        const args = [process.argv[1], route[0], '--out', file, '--font-scale', condition.fontScale]
+        if (condition.appearance === 'dark') args.push('--dark')
+        console.log(`\n${route[0]} — ${describe(condition)}`)
+        const done = spawnSync(process.execPath, args, { stdio: 'inherit' })
+        worst = Math.max(worst, done.status ?? 1)
+    }
+    console.log(`\n${MATRIX.android.conditions.length} condition(s) into ${out}`)
+    process.exit(worst)
 }
 
 const adb = resolveAdb()
