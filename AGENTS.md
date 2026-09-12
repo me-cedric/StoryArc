@@ -414,6 +414,14 @@ and the handoff must name which one applies: code behind a flag that nothing
 renders yet, and a pure refactor whose screenshots are byte-identical — where
 the identical screenshots *are* the proof.
 
+`pnpm preview:proof` is the gate, and `pnpm lint` runs it at pre-push. It refuses
+a branch that adds a line inside a `View` or a `@Composable` and adds no frame
+under `docs/designs/screenshots/`. Name an exception in a commit message on the
+branch — `Visual-proof: flag` or `Visual-proof: identical` — and it stands aside.
+It reads added lines only, cuts out every preview block, and stays quiet on a
+comment, an import or a test source. `scripts/preview-proof-check.mjs` says why
+each of those is deliberate.
+
 **A screenshot that could look the same for a boring reason needs a control.**
 The EPUB reader's chrome photographed in cream proves nothing on its own — the
 app might simply not have been set to a dark appearance. The same device, at the
