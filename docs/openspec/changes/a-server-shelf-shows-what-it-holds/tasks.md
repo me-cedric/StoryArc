@@ -83,6 +83,52 @@ says which device and which appearance it was taken on.
 - [x] 5.3 Android only, and **without a locked-cover tile**: every shelf on this server is unlocked, so `android-collections-dark-*` and `android-lists-dark-*` prove the composite (four quadrants, and one cover where there are fewer than four members) against the blank frames that preceded them. The `coverImageLocked` branch is drawn by no frame here.
 - [x] 5.4 `README.md` beside them: device, API level, server version, which build each frame came from, what each pair proves, the two gaps above, and the `adb` recipe that repeats it.
 
+## 5b. What the archive verification found, 2026-09-12
+
+All 24 boxes above were ticked, so the guard called this change ready. Three agents then read
+every scenario of the delta against the code on both platforms, and a fourth asked what they
+had missed. **Five findings, and two of them are the change's own scenarios failing.** This
+section is why the change is not archived yet.
+
+- [x] 5b.1 **A shelf with no artwork was drawn as an empty frame, which its own delta
+  forbids.** The scenario says a collection whose members' covers cannot be fetched "shows the
+  same placeholder a publication with no cover shows", and that it is "never drawn as an empty
+  frame". `ShelfComposite` drew a filled rectangle instead.
+
+  Found twice the same day and by two routes: by an agent reading `ShelfCover.kt` against the
+  delta, and by a device pass that photographed Home listing a collection of one coverless book
+  as a white tile. Before and after are
+  `docs/designs/screenshots/shelves-and-marks-2026-09-12/android-home-shelves-blank-before.png`
+  and `-named-after.png`.
+
+  **Android is fixed.** The composite draws `CoverlessWell` when none of its members' covers
+  arrived, and every caller now passes the shelf's name for it to carry — `ShelfCover`,
+  `ServerShelfCover`, the cover chooser and Home. 761 tests pass in the module.
+- [ ] 5b.2 **The same fix on iOS, which needs an API decision first.**
+  `CoverlessWell` there takes a `PublicationFormat` and draws a glyph for it
+  (`DesignSystem/CoverlessWell.swift:66-70`); a shelf has no format to give it. Two ways out,
+  and the choice belongs to whoever knows the design intent: a formatless initialiser that
+  draws the generic glyph, or the first member's format, which reads well for a collection of
+  comics and oddly for a mixed one. Android sidesteps it because its own well takes a nullable
+  format. `ShelfCover.swift:88` is the site.
+- [ ] 5b.3 **A server-defined collection cannot show the cover a reader locked on the
+  server.** The delta extends "unless the user sets a specific one" to a collection a server
+  defines, and the model drops the field for exactly that kind: `KavitaShelves.kt:13-17` has no
+  `coverImageLocked`, and `KavitaShelves.swift:8-22` decodes only id, title and summary. Only
+  the reading list sets `chosenCover` — `ShelvesScreen.kt:139` and `KavitaShelfViews.swift:69`.
+  So the branch is not merely untested for collections, as task 4.3 says; it is unreachable.
+- [ ] 5b.4 **Two tests cannot fail, and one of them is named in this list as proof.**
+  - `ServerShelfCoverTests.swift` builds a local tuple array and re-implements `sorted`,
+    `prefix` and `map` inside the test body. The only production symbol it touches is
+    `CompositeCover.tileCount`. Change `ServerShelfCardView.readMembers` to `prefix(3)` and
+    all three cases still pass.
+  - `ServerShelfCoverTest.kt:77`, "artwork that never arrives leaves the frame rather than the
+    app", contains one `compose.waitForIdle()` and no assertion.
+- [ ] 5b.5 **Nothing exercises the server shelf card on either platform.** Neither test tree
+  mentions `ServerShelfCard` or `ServerShelfCardView`, so the collection branch is unasserted:
+  which members are read (`ShelvesScreen.kt:506` against `:502`), and which artwork route is
+  taken (`:529` against `:527`), with the same pair at `ServerShelfCardView.swift:61` and `:49`.
+
 ## 6. The gates
 
 - [x] 6.1 `pnpm test:android` and `pnpm test:ios` green, and `./gradlew lint` clean for `:feature:library` — `warningsAsErrors` is on for `:app` and the module inherits the config.

@@ -30,10 +30,6 @@ Every row was read from a `uiautomator` dump, not from the picture.
 | `android-two-sources-{light,dark}` and `-large-{light,dark}` | search results | One title held by two catalogues: *Slow Transfer · From Attic Catalogue* above *Slow Transfer · From Loft Catalogue* |
 | `android-two-sources-page-{light,dark}` and `-large-{light,dark}` | publication page | The copy that row opens, after it was fetched: *Read*, and *On this device · also elsewhere in your library* |
 | `android-metered-ask-light` | metered confirmation | *Use mobile data? · Downloading "Slow Transfer" now will use mobile data. The catalogue does not state its size.* |
-| `android-four-marks-{light,dark}` | the shelf, sorted by *Last read* | all four combinations of progress and availability in one screen — for `one-library-three-destinations` task 3.3 |
-| `android-filter-libraries-{light,dark}` | the filter sheet | the *Which library* section, which is drawn only when more than one source has put something on the shelf |
-| `android-filtered-to-one-{light,dark}` | the shelf | narrowed to *Attic Catalogue*, the control reading **1 filter active** |
-| `android-clear-filters-{light,dark}` | the filter menu | *Clear filters*, offered while the shelf is narrowed — the way out |
 
 ## What the frames establish
 
@@ -82,21 +78,22 @@ just read nine titles from, while *Your libraries* read *Available* for it at th
 The line now asks the one state that means it, which is what iOS always asked. Beside it, a
 successful catalogue read marks the source *connected*, so the two screens agree.
 
-## What the four-marks frame measures
+## Frames this pass took that belong to another change
 
-The state was built rather than found: a copy was fetched from *Attic Catalogue*, read, then
-deleted while its reading position stayed, and the catalogue was stopped. So the shelf holds a
-part-read book on the device, a read book whose library is away, an unread local file, and an
-unread book whose library is away.
+Four families — the four-marks shelf, the *Which library* sheet, the narrowed shelf and
+*Clear filters* — are evidence for `one-library-three-destinations` tasks 3.2 and 3.3, so they
+live in `docs/designs/screenshots/shelves-and-marks-2026-09-12/` with their own README. They
+were taken here because the state this folder's seeding builds is what made them reachable.
 
-The accessibility labels carry the fact, which is what the task asks: *Ashfall, Ada Lovelace,
-CBZ, Needs its library to be reachable* against *Ashfall, Ada Lovelace, CBZ*.
+`android-metered-ask-light.png` has no dark twin. The dialog appears only on a metered
+connection, and the emulator had moved to Wi-Fi by the time the dark frame was wanted. No task
+asks for this frame; it is kept because the state is otherwise hard to reach.
 
-**The dim does not.** Sampled from `android-four-marks-light.png`: the available well is
-`rgb(233, 230, 227)` and the away well `rgb(236, 233, 230)` — about one percent apart, and the
-away one lighter. `AWAY_ALPHA` is 0.45 and does what it says; it is applied to a **coverless
-well**, because a row from an OPDS catalogue draws no cover at all. That second finding is
-recorded as task 3.6 of `one-library-three-destinations`.
+## What the four-marks frame measured
+
+That frame and its measurements moved to
+`docs/designs/screenshots/shelves-and-marks-2026-09-12/README.md`, which is where the dim
+sampling and the coverless-row finding are written out.
 
 ## One thing the fixture cannot show
 

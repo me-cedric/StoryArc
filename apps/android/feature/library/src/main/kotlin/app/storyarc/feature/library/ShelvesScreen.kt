@@ -518,6 +518,7 @@ private fun ServerShelfCard(
         pending = pending,
         cover = {
             ServerShelfCover(
+                name = shelf.title,
                 tiles = if (shelf.chosenCover) listOf(SERVER_COVER) else tiles,
                 load = { id ->
                     // `coverImageLocked` is the spec's "unless the user sets a specific one".

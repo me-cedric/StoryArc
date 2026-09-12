@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.storyarc.core.designsystem.cover.CoverlessWell
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcColor
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
@@ -67,6 +68,8 @@ import app.storyarc.core.model.ReadingList
 internal fun ShelfCover(
     tiles: List<String>,
     viewModel: LibraryViewModel,
+    /** The shelf's name, for the placeholder [ShelfComposite] draws when it has no artwork. */
+    name: String,
     modifier: Modifier = Modifier,
     /**
      * The widest this will ever be drawn. It sizes the decode and nothing else -- the frame
@@ -97,7 +100,7 @@ internal fun ShelfCover(
         }
     }
 
-    ShelfComposite(tiles = tiles, covers = covers, modifier = modifier)
+    ShelfComposite(tiles = tiles, covers = covers, name = name, modifier = modifier)
 }
 
 /**
@@ -117,6 +120,13 @@ internal fun ShelfCover(
 internal fun ShelfComposite(
     tiles: List<String>,
     covers: Map<String, Bitmap>,
+    /**
+     * The shelf's own name, for the placeholder below.
+     *
+     * `collections-and-reading-lists` asks a shelf with no artwork to show "the same
+     * placeholder a publication with no cover shows", and that placeholder carries the title.
+     */
+    name: String,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -132,6 +142,20 @@ internal fun ShelfComposite(
         border = BorderStroke(1.dp, palette.borderSubtle),
     ) {
         when {
+            // **Nothing to draw, so the shelf borrows the publication's own empty state.**
+            // The delta asks for exactly that -- "a collection with none of them shows the
+            // same placeholder a publication with no cover shows" -- and for the shelf never
+            // to be "drawn as an empty frame". It was one: a filled rectangle in the shape of
+            // a cover, which on a pale ground reads as a bug rather than as an empty shelf.
+            // Photographed on an emulator on 2026-09-12, where a collection of one coverless
+            // book drew a white tile with its name only underneath it.
+            //
+            // Two ways to arrive here and both belong: a shelf with no members at all, and a
+            // shelf whose members' covers could none of them be fetched. A shelf where *some*
+            // arrived is built from those, which is the clause above this one.
+            tiles.none { covers[it] != null } ->
+                CoverlessWell(title = name, format = null, modifier = Modifier.fillMaxSize())
+
             tiles.size >= CompositeCover.TILE_COUNT -> Column(Modifier.fillMaxSize()) {
                 Row(Modifier.fillMaxWidth().weight(1f)) {
                     Tile(covers[tiles[0]], Modifier.weight(1f).fillMaxSize())
@@ -143,11 +167,7 @@ internal fun ShelfComposite(
                 }
             }
 
-            tiles.isNotEmpty() -> Tile(covers[tiles.first()], Modifier.fillMaxSize())
-
-            // Nothing in it yet. A blank in the shape of a cover, so a shelf whose first
-            // collection is empty still lines up with the ones beside it.
-            else -> Tile(null, Modifier.fillMaxSize())
+            else -> Tile(covers[tiles.first { covers[it] != null }], Modifier.fillMaxSize())
         }
     }
 }
@@ -167,6 +187,8 @@ internal fun ShelfComposite(
 internal fun ServerShelfCover(
     tiles: List<String>,
     load: suspend (String) -> ByteArray,
+    /** The shelf's name, for the placeholder [ShelfComposite] draws when it has no artwork. */
+    name: String,
     modifier: Modifier = Modifier,
 ) {
     val covers = remember(tiles) { mutableStateMapOf<String, Bitmap>() }
@@ -179,7 +201,7 @@ internal fun ServerShelfCover(
                 ?.let { covers[id] = it }
         }
     }
-    ShelfComposite(tiles = tiles, covers = covers, modifier = modifier)
+    ShelfComposite(tiles = tiles, covers = covers, name = name, modifier = modifier)
 }
 
 /**
@@ -268,7 +290,7 @@ internal fun ShelfCard(
             ),
     ) {
         Box {
-            if (cover != null) cover() else ShelfCover(tiles = tiles, viewModel = viewModel)
+            if (cover != null) cover() else ShelfCover(tiles = tiles, viewModel = viewModel, name = title)
 
             if (progress != null) ShelfProgressRail(progress)
 

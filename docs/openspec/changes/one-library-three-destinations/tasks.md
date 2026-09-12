@@ -1066,7 +1066,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       pass named in 6.5.
 
       **The Android half is taken, 2026-09-12**, in
-      `docs/designs/screenshots/source-lifecycle-2026-09-11/`, and the blocker is gone:
+      `docs/designs/screenshots/shelves-and-marks-2026-09-12/`, and the blocker is gone:
       `scripts/seed-android-sources.mjs` registers two mock OPDS catalogues that do attribute
       publications, which is what *Which library* needs before it is drawn at all.
       - `android-filter-libraries-{light,dark}` — the sheet open on *Which library*, listing
@@ -1328,7 +1328,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       **Still owed: the iOS list frame**, on a shelf on record at 200+ publications.
       **The frame this task names is taken, 2026-09-12, and it is Android.**
       `android-four-marks-{light,dark}.png` in
-      `docs/designs/screenshots/source-lifecycle-2026-09-11/`, sorted by *Last read* so
+      `docs/designs/screenshots/shelves-and-marks-2026-09-12/`, sorted by *Last read* so
       the four combinations sit in one screen:
 
       | Row | Progress | Availability |

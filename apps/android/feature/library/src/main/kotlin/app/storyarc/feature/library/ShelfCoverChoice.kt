@@ -241,7 +241,7 @@ private fun CoverOption(
             .selectable(selected = isChosen, enabled = isPickable, onClick = onPick),
     ) {
         Box {
-            ShelfCover(tiles = tiles, viewModel = viewModel, width = width)
+            ShelfCover(tiles = tiles, viewModel = viewModel, name = caption, width = width)
             if (isChosen) {
                 Box(
                     Modifier

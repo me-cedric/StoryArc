@@ -115,7 +115,7 @@ private fun HomeShelfLink(
         },
     ) {
         Box {
-            HomeShelfArtwork(tiles = summary.tiles, cover = cover, width = width)
+            HomeShelfArtwork(tiles = summary.tiles, cover = cover, width = width, name = summary.name)
             summary.fraction?.let { ShelfProgressRail(it) }
         }
         Column(modifier = Modifier.padding(top = StoryArcSpace.sm)) {
@@ -143,15 +143,17 @@ private fun HomeShelfLink(
  * A shelf's artwork, resolved through the home surface's own cover loader.
  *
  * [ShelfComposite] decides what the frame holds; this only fetches. A shelf a server defined
- * has no local members, so it has no tiles and the composite draws the cover-shaped blank --
- * which is the case this surface meets most, and is why the blank had to stay a blank rather
- * than become a folder glyph.
+ * has no local members, so it has no tiles and the composite draws the placeholder a
+ * publication with no cover draws -- which is the case this surface meets most. A folder glyph
+ * was the alternative and is still refused: a shelf is a cover, not a file manager.
  */
 @Composable
 private fun HomeShelfArtwork(
     tiles: List<Publication>,
     cover: suspend (Publication, Int) -> Bitmap?,
     width: Dp,
+    /** The shelf's name, which the placeholder carries when there is no artwork to draw. */
+    name: String,
 ) {
     val density = LocalDensity.current
     val maxPixelSize = remember(density, width) { with(density) { width.roundToPx() } }
@@ -164,7 +166,7 @@ private fun HomeShelfArtwork(
         }
     }
 
-    ShelfComposite(tiles = tiles.map { it.id }, covers = covers)
+    ShelfComposite(tiles = tiles.map { it.id }, covers = covers, name = name)
 }
 
 /**
