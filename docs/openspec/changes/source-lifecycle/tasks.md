@@ -286,7 +286,7 @@ filename so a light and a dark run cannot overwrite each other.
       names it looked for.
 
       **This task is done.**
-- [ ] 4.2 The reconnect sheet reached from a rejected credential, address filled and secret blank
+- [~] 4.2 The reconnect sheet reached from a rejected credential, address filled and secret blank
 
       **The blocker named below is gone, and a defect is in its place.** On 2026-09-11 the
       refused state was made reachable on a simulator for the first time:
@@ -326,6 +326,30 @@ filename so a light and a dark run cannot overwrite each other.
       **What the sheet frame needs** is therefore a run where the probe lands on the 401, held
       long enough to tap *Reconnect*. The recipe above reproduces the state; the remaining
       work is making it land reliably, not repairing the screen.
+
+      **Taken on 2026-09-12, by not using a server at all.** The race above cannot be won
+      against a mock that answers 401 on one launch and a connection failure on the next, so
+      the state is reached by the other route to it. `LibrarySourceHealth` ends with "neither
+      page could be built, so the secret this source needs has gone" and returns
+      `.unauthorized`: a source whose `credentialReference` names a secret the keychain does
+      not hold reaches exactly the state a refusal reaches, and it cannot flicker, because
+      nothing is asked of the network. `MockCatalogues.refusedKavita` is that fixture.
+
+      Four frames in `docs/designs/screenshots/source-lifecycle-ios-2026-09-12/`, light and
+      dark at both text sizes: the Kavita sheet re-opened by *Sign in again*, with the address
+      filled — `http://127.0.0.1:5000` — the API key empty, and *Connect* disabled until one
+      is typed. That is what this task asked for, in its own words: "address field populated,
+      secret field empty, the source's identifier preserved".
+
+      The walk asserts the **state** before it taps, so a source that had quietly become
+      unreachable cannot pass it: *Sign-in needed* has to be on screen first, and only that
+      state offers the row.
+
+      **It also needed this morning's accessibility fix.** The walk finds the address field by
+      name — `app.textFields["Address"]` — which was impossible while the sheet's fields
+      carried no labels at all. The two pieces of work met here.
+
+      **Still owed: the Android half**, which has the same two routes to the same state.
       **Frames owed: 8** — 4 per platform (light/dark × default/largest). Surface *the add
       sheet re-opened by the source detail screen's `Reconnect` row*; state *address field
       populated, secret field empty, the source's identifier preserved*.

@@ -44,6 +44,7 @@ screens and one library's own screens was two subjects anyway.
 | `ios-settings-source-remove{,-dark,-ax5,-ax5-dark,-ax5-scrolled,-ax5-scrolled-dark}` | removal confirmation | *This removes 9 titles from your library* — a real count |
 | `ios-settings-source-remove-downloads{,-dark}` | removal confirmation | the other sentence, for a source that holds a finished download |
 | `ios-search-one-title-two-sources{,-dark}` | search | one title held by two catalogues, *Attic* first, each row naming its library |
+| `ios-source-reconnect-sheet{,-dark,-ax5,-ax5-dark}` | the add sheet, re-opened | the address filled, the key empty, *Connect* disabled — the state §4.2 asks for |
 | `ios-library-pull-to-refresh-midgesture` | the shelf | the refresh spinner drawn in the pulled gap, mid-gesture |
 | `ios-library-pull-to-refresh-settled` | the shelf | the same gesture finished: *Libraries checked just now.* |
 
@@ -90,11 +91,22 @@ pulled shelf shows its spinner, scale each crop to one pixel, and sort by distan
 settled frame. The pull lasts about a second, so eight or nine frames differ; the spinner is
 fully drawn in the middle of them.
 
+## The refused credential, reached without a server
+
+§4.2 sat open because its state was a race: a mock served with a rotated key answers 401 on one
+launch and a connection failure on the next, and only the first offers *Sign in again*.
+
+`LibrarySourceHealth` has a second route to the same state, and it cannot flicker — its last
+line reads "neither page could be built, so the secret this source needs has gone" and returns
+`.unauthorized`. So `MockCatalogues.refusedKavita` is a Kavita source whose
+`credentialReference` names a secret the keychain does not hold. Nothing is asked of the
+network, and the screen is the one a refusal reaches.
+
+The walk asserts *Sign-in needed* is on screen **before** it taps, so a source that had quietly
+become unreachable cannot pass it and photograph a sheet raised for another reason.
+
 ## Still owed
 
-- **The reconnect sheet from a refused credential** — §4.2. `testCaptureReconnectSheet` exists
-  and no frame does, and the state is non-deterministic: the probe lands on a 401 or on a
-  connection failure, and only the first offers *Reconnect*.
 - **The library-wide away notice**, which needs a device whose only sources are remote and all
   unreachable. This corpus is local files, so the library is never away.
 - **A largest-text variant of the unreachable detail.** Its reachable twin has one.

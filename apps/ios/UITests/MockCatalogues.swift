@@ -72,6 +72,35 @@ enum MockCatalogues {
         """
     }
 
+    /// A Kavita server whose key is gone, which is the *refused credential* state.
+    ///
+    /// **Deterministic, and that is the point.** §4.2 sat open because the refusal it needed
+    /// was a race: a mock served with a rotated key answers 401 on one launch and a connection
+    /// failure on the next, and only the first offers *Reconnect*. This needs no server at
+    /// all. `LibrarySourceHealth` ends with "neither page could be built, so the secret this
+    /// source needs has gone" and returns `.unauthorized` — the same state a refusal reaches,
+    /// reached by the one route that cannot flicker.
+    ///
+    /// A `credentialReference` naming a secret the keychain does not hold is how it is built:
+    /// `KavitaPage(source:credentials:)` is nil without the key, and its own comment says that
+    /// is what unauthorized means.
+    static var refusedKavita: String {
+        """
+        {
+          "sources": [
+            {
+              "id": "44444444-4444-4444-8444-444444444444",
+              "displayName": "Attic Kavita",
+              "kind": "kavitaServer",
+              "lastSuccessfulSync": null,
+              "credentialReference": "a-secret-this-keychain-does-not-hold",
+              "locator": "http://127.0.0.1:5000"
+            }
+          ],
+          "tombstones": []
+        }
+        """
+    }
     /// Whether the mock catalogues are actually up, so a walk skips with a reason rather than
     /// photographing three unreachable sources and calling one of them reachable.
     ///
