@@ -1065,16 +1065,20 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       What it does not prove is what TalkBack makes of the tree on a device; that is the
       pass named in 6.5.
 
-      **Frames owed**, and the state each needs, which no capture route currently produces:
-      - iOS and Android, the filter sheet open showing the **Which library** section, light
-        and dark (4 frames). Needs **two or more configured sources that actually attribute
-        publications** — not the corpus, which attributes none. The shortest route is two
-        OPDS catalogues from the mock server, both connected, then open the filter control.
-      - One frame per platform with a library filter **applied**, showing the filter control
-        counting it — the assertion `activeCount` makes, seen rather than read.
-      - One frame per platform of *Clear filters* offered while the shelf is narrowed to one
-        library, which is the exact state the requirement forbids leaving a reader in without
-        a way out.
+      **The Android half is taken, 2026-09-12**, in
+      `docs/designs/screenshots/source-lifecycle-2026-09-11/`, and the blocker is gone:
+      `scripts/seed-android-sources.mjs` registers two mock OPDS catalogues that do attribute
+      publications, which is what *Which library* needs before it is drawn at all.
+      - `android-filter-libraries-{light,dark}` — the sheet open on *Which library*, listing
+        *Everywhere*, *Attic Catalogue*, *Loft Catalogue* and *Cellar Catalogue*.
+      - `android-filtered-to-one-{light,dark}` — the shelf narrowed to *Attic Catalogue*, with
+        the control reading **1 filter active**. That is `activeCount` seen rather than read.
+      - `android-clear-filters-{light,dark}` — *Clear filters* offered in the menu while the
+        shelf is narrowed, which is the way out the requirement asks for.
+
+      **Still owed: the same six frames on iOS**, and the routes are
+      `Library > filter libraries`, `Library > filtered to one library` and
+      `Library > clear filters offered` if the iOS walks want naming after them.
 - [~] **3.3** The on-device mark on a cover, and dimming for a publication that is
       neither downloaded nor reachable — with the accessibility label carrying the
       fact, not the opacity. Screenshot: a grid with all four combinations of

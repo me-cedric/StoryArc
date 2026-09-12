@@ -31,6 +31,9 @@ Every row was read from a `uiautomator` dump, not from the picture.
 | `android-two-sources-page-{light,dark}` and `-large-{light,dark}` | publication page | The copy that row opens, after it was fetched: *Read*, and *On this device · also elsewhere in your library* |
 | `android-metered-ask-light` | metered confirmation | *Use mobile data? · Downloading "Slow Transfer" now will use mobile data. The catalogue does not state its size.* |
 | `android-four-marks-{light,dark}` | the shelf, sorted by *Last read* | all four combinations of progress and availability in one screen — for `one-library-three-destinations` task 3.3 |
+| `android-filter-libraries-{light,dark}` | the filter sheet | the *Which library* section, which is drawn only when more than one source has put something on the shelf |
+| `android-filtered-to-one-{light,dark}` | the shelf | narrowed to *Attic Catalogue*, the control reading **1 filter active** |
+| `android-clear-filters-{light,dark}` | the filter menu | *Clear filters*, offered while the shelf is narrowed — the way out |
 
 ## What the frames establish
 

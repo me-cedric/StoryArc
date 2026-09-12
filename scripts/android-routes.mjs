@@ -206,6 +206,17 @@ export const ROUTES = [
     // Everything the shelf holds is a local file, so "not downloaded" matches nothing —
     // which is the only way to reach the narrowed-to-nothing state without inventing data.
     ['Library > nothing matches', [NAMES.library, named('library_filter'), named('library_filter_download'), named('library_filter_download_no'), '@back']],
+    // --- The by-library filter, which needs two sources that attribute publications -----
+    //
+    // *Which library* is drawn only when more than one source has put something on the shelf,
+    // so the corpus alone cannot reach it: its publications belong to no source. Seed two mock
+    // catalogues first — `scripts/seed-android-sources.mjs`, and the servers it names.
+    ['Library > filter libraries', [NAMES.library, named('library_filter'), named('library_filter_library')]],
+    // Narrowed to one library, with the filter control counting it and *Clear filters* offered.
+    ['Library > filtered to one library', [NAMES.library, named('library_filter'), named('library_filter_library'), 'Attic Catalogue', '@back']],
+    // *Clear filters* is offered in the menu while anything is narrowed, which is where a
+    // reader who narrowed the shelf to one library goes to widen it again.
+    ['Library > clear filters offered', [NAMES.library, named('library_filter'), named('library_filter_library'), 'Attic Catalogue', '@back', named('library_filter')]],
     ['Library > skipped list', [NAMES.library, named('library_skipped_list')]],
     // Selection mode is the app's own overflow entry, not a long press, and it opens with
     // nothing selected — a state of its own, and the one the bar is designed around.
