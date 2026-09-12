@@ -23,6 +23,19 @@ struct DetailActions: View {
     @Binding var isKept: Bool
     /// Where the bytes are, or `nil` when the library cannot place them right now.
     let file: URL?
+
+    /// Where this publication opens from, which is not always a file.
+    ///
+    /// `offline-downloads`' *Reading while downloading*: a publication still arriving "opens
+    /// immediately by streaming". ``ReadingAddress/of(local:transfer:readsWhereItLies:)``
+    /// decides it — a copy on the device when there is one, otherwise the address the
+    /// transfer is fetching, otherwise nothing.
+    ///
+    /// Separate from ``file`` because the two answer different questions. `file` is "is a copy
+    /// here", which is what the download action and the provenance line ask. This is "can the
+    /// reader open something now", which is what the primary action asks. Overloading one on
+    /// the other would offer to download a publication that is already downloading.
+    let address: URL?
     /// The chapter a started audiobook would resume inside, when the page knows it. `nil` for
     /// everything else, which is every comic and every book never started.
     let resuming: ChapterName?
@@ -63,7 +76,7 @@ struct DetailActions: View {
                 Text("library.cell.cannotOpen", bundle: .module)
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textSecondary)
-            } else if file == nil {
+            } else if address == nil {
                 // The primary action states what it needs rather than failing when taken.
                 Text("detail.unavailable", bundle: .module)
                     .textRole(.footnote)
@@ -93,7 +106,7 @@ struct DetailActions: View {
     private var primary: some View {
         if !publication.isOpenable {
             EmptyView()
-        } else if file != nil {
+        } else if address != nil {
             Button(action: onRead) {
                 primaryLabel.frame(maxWidth: .infinity)
             }

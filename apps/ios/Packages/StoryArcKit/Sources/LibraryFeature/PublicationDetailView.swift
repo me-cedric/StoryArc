@@ -30,6 +30,12 @@ public struct PublicationDetailView: View {
     let model: LibraryModel
     let onOpen: (Publication, URL) -> Void
 
+    /// The queue's record for this publication, when one exists.
+    ///
+    /// Re-read whenever the page appears, like ``DownloadsDestination`` does: a transfer that
+    /// started in a catalogue browser has to be known here, not one visit later.
+    @State private var transfer: Download?
+
     /// How this page starts an audiobook at a chosen chapter.
     ///
     /// Separate from ``onOpen`` and optional, because they are different requests: `onOpen`
@@ -82,6 +88,7 @@ public struct PublicationDetailView: View {
                     isKept: $isKept,
                     kavitaCard: kavitaCard,
                     file: file,
+                    address: address,
                     audiobook: audiobook.restated(at: playingPlace),
                     onChooseChapter: chooseChapter,
                     onRead: read
@@ -121,6 +128,7 @@ public struct PublicationDetailView: View {
         .task(id: publication.id) {
             isKept = model.keptOffline.contains(publication.id)
             kavitaCard = KavitaCardStore().card(of: publication.id)
+            transfer = DownloadStore().library()[publication.id]
             cover = await model.cover(for: publication, maxPixelSize: 900)
         }
         // Its own task, and keyed on the file as well as the publication: reading an
@@ -167,6 +175,27 @@ public struct PublicationDetailView: View {
         // A folder whose card was pulled still has rows on the shelf and a location in the
         // model. The page says so rather than offering to open a file that is not there.
         return FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) ? url : nil
+    }
+
+    /// Where this page opens the publication from, which is not always a file.
+    ///
+    /// `offline-downloads`' *Reading while downloading* asks a publication that is still
+    /// arriving to "open immediately by streaming". ``ReadingAddress`` is the rule, shared
+    /// with Android and with the reader; this supplies the two facts only this page holds.
+    ///
+    /// **The transfer is read from the store rather than from a queue.** A `DownloadQueue` is
+    /// state inside whichever catalogue browser started it, so no queue reaches this page —
+    /// but every queue writes through ``DownloadStore``, and a `Download`'s id *is* the
+    /// publication's, which is what makes the lookup one subscript.
+    private var address: URL? {
+        ReadingAddress.of(
+            local: file,
+            transfer: transfer,
+            // The formats whose decoder insists on a file of its own are the ones that cannot
+            // stream. Stated once, in ``ShareOpening/needsLocalFile(_:)``, because the share
+            // browser asks the same question.
+            readsWhereItLies: !ShareOpening.needsLocalFile(publication.format)
+        )
     }
 
     /// Where the audio is, when it is this publication's audio, and `nil` otherwise.
@@ -217,7 +246,7 @@ public struct PublicationDetailView: View {
     }
 
     private func read() {
-        if let file { onOpen(publication, file) }
+        if let address { onOpen(publication, address) }
     }
 
     /// Starts the book at the chapter a listener chose, when a stack handed over a way to.
