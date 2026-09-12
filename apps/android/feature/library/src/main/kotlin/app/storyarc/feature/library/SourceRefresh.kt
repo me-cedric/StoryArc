@@ -80,8 +80,11 @@ sealed interface LibraryNotice {
          *    and the one that answers "did it work" at any moment rather than for three
          *    seconds after. `sources` asks the indicator to state "when it was last
          *    refreshed"; until this line that was true only for a shelf that was offline.
-         * 5. **Nothing.** A library whose sources have never answered draws no indicator,
-         *    per *Nothing to say*.
+         * 5. **Nothing.** A library with no moment to report draws no indicator here, per
+         *    *Nothing to say*. That is a statement about *timing* only: a source that was
+         *    asked and never answered is named at the foot of the shelf instead, by
+         *    [sourcesNeverReached] and [NeverReachedNotice], because `library-browsing` asks
+         *    the library to name it rather than to stay quiet about it.
          */
         fun of(
             refreshing: SourceRefreshOrigin?,
