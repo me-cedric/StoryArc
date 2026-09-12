@@ -19,6 +19,7 @@
  *   node scripts/capture-ios.mjs --out /tmp/shots --only SweepLibraryTests
  *   node scripts/capture-ios.mjs --out /tmp/shots --only SweepLibraryTests/testCaptureCoverGrid
  *   node scripts/capture-ios.mjs --out /tmp/shots --appearance dark
+ *   node scripts/capture-ios.mjs --out /tmp/shots --matrix
  *
  * `--appearance` exists because the app's default appearance is `.system`, and the settings
  * are stored as one JSON blob under a single key — so there is no launch argument that sets
@@ -28,9 +29,11 @@
  * `-dark` suffix on the filenames is added here so a light run and a dark run of the same
  * walk cannot overwrite each other, which is what made that manual route lossy.
  */
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { copyFileSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
+
+import { MATRIX, describe } from './device-matrix.mjs'
 
 const argv = process.argv.slice(2)
 const flag = (name, fallback = null) => {
@@ -41,17 +44,49 @@ const flag = (name, fallback = null) => {
 const out = flag('out')
 if (!out) {
     console.error('Usage: node scripts/capture-ios.mjs --out <directory> [--only <testName>] [--device <udid-or-name>] [--appearance light|dark]')
+    console.error('       node scripts/capture-ios.mjs --out <directory> --matrix [--only <testName>]')
     process.exit(2)
 }
 
 const only = flag('only')
-const device = flag('device', 'StoryArc-iPhone17Pro')
+// The default comes from the matrix rather than from a second copy of the name here: the
+// device a sweep is taken on is part of the matrix, and two copies of it would disagree.
+const device = flag('device', MATRIX.ios.device)
 
 /** `light`, `dark`, or null to photograph the simulator however it is already set. */
 const appearance = flag('appearance')
 if (appearance && !['light', 'dark'].includes(appearance)) {
     console.error(`--appearance takes 'light' or 'dark', not '${appearance}'.`)
     process.exit(2)
+}
+
+/**
+ * `--matrix` runs the walk in every condition `device-matrix.mjs` names for iOS.
+ *
+ * One process per condition, not a loop inside one: the appearance is read back before it is
+ * set and put back afterwards, and the result bundle path is keyed on the process id so two
+ * runs cannot write the same `.xcresult`. Both of those are per-run, and a loop around them
+ * would have to undo them.
+ *
+ * **The matrix names no text size for iOS, and that is not an omission.** The walks set it
+ * themselves through `sweepLaunch(contentSize:)` and attach those frames under names ending
+ * `-ax5`, so the largest text size is already in every sweep this runs.
+ */
+if (argv.includes('--matrix')) {
+    if (appearance) {
+        console.error('--matrix sets the appearance itself. Drop --appearance, or drop --matrix.')
+        process.exit(2)
+    }
+    let worst = 0
+    for (const condition of MATRIX.ios.conditions) {
+        const args = [process.argv[1], '--out', out, '--device', device, '--appearance', condition.appearance]
+        if (only) args.push('--only', only)
+        console.log(`\n${describe(condition)}`)
+        const done = spawnSync(process.execPath, args, { stdio: 'inherit' })
+        worst = Math.max(worst, done.status ?? 1)
+    }
+    console.log(`\n${MATRIX.ios.conditions.length} condition(s) into ${out}`)
+    process.exit(worst)
 }
 /** So a light run and a dark run of the same walk do not overwrite each other. */
 const suffix = appearance === 'dark' ? '-dark' : ''
