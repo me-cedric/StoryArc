@@ -431,6 +431,26 @@ disagrees with the rest of the app*.
 
 ## 7. Things that will bite you
 
+### Every fixture port, in one table
+
+A mock server is chosen by a port, and two suites decide whether to run by opening a socket
+on theirs. So a second fixture on a claimed port does not clash — it is *answered*, and the
+suite runs against the wrong server. Measured on 2026-09-12: a mock OPDS catalogue was put on
+4445, `SmbClientTest.isServerRunning()` opened a socket, found it, and six SMB cases ran
+against a catalogue and failed with "Failed to connect" about a server that was listening.
+
+Take the next free number, and add the row here in the same commit.
+
+| Port | Fixture | Started by |
+| --- | --- | --- |
+| 4444 | OPDS catalogue, the first one | `node scripts/opds-server.mjs <corpus> --port 4444` |
+| 4445 | SMB share, signed and unencrypted | `scripts/smb-server.sh` |
+| 4446 | SMB share, `smb encrypt = required` | `scripts/smb-server.sh --encrypted` |
+| 4447 | OPDS catalogue, the second one | `node scripts/opds-server.mjs <corpus> --port 4447` |
+| 4999 | Nothing, by design — a refused connection is what *Not answering* means | nobody |
+| 5000 | Kavita server | `node scripts/kavita-server.mjs <corpus>` |
+| 5001 | Kavita server, for the UI walks that add one through the real form | `node scripts/kavita-server.mjs <corpus> --port 5001` |
+
 - **iOS:** `StoryArcKit` builds with `InternalImportsByDefault`. Public API that
   exposes a Foundation or SwiftUI type needs `public import`, not `import`.
 - **iOS:** `StoryArc.xcodeproj` is generated and gitignored. Edit `project.yml`

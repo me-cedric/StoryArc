@@ -16,19 +16,20 @@ import XCTest
 /// an Android frame and an iOS frame of one state name the same libraries.
 ///
 /// **Two of them answer and one does not.** The mock catalogues are
-/// `node scripts/opds-server.mjs <corpus> --port 4444` and `--port 4446`; nothing listens on
+/// `node scripts/opds-server.mjs <corpus> --port 4444` and `--port 4447`; nothing listens on
 /// 4999, so *Cellar Catalogue* is a refused connection rather than a name that does not
 /// resolve — which are two different sentences, and only the first is *Not answering*.
 enum MockCatalogues {
 
     /// What the reachable catalogues answer on, as a simulator sees the Mac.
     static let firstPort = 4444
-    /// 4446 rather than 4445, and the gap is deliberate: `scripts/smb-server.sh` binds 4445,
-    /// and `SmbClientTest` decides whether to run by opening a socket there. A second OPDS
-    /// catalogue on that port answered that socket, so six SMB cases ran against a mock
-    /// catalogue and failed on 2026-09-12 with "Failed to connect" about a server that was
-    /// listening.
-    static let secondPort = 4446
+    /// 4447, and the two ports it skips are the reason. `scripts/smb-server.sh` binds 4445,
+    /// and its `--encrypted` twin binds 4446. Both SMB suites decide whether to run by
+    /// opening a socket on their port, so a mock catalogue on either one answers that socket
+    /// and the SMB cases run against a catalogue: six failed that way on 2026-09-12, with
+    /// "Failed to connect" about a server that was listening. Every fixture port this
+    /// repository uses is listed in `AGENTS.md`.
+    static let secondPort = 4447
 
     /// A port nothing listens on.
     static let deadPort = 4999
