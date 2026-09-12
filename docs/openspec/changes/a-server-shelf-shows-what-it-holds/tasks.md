@@ -111,12 +111,24 @@ section is why the change is not archived yet.
   draws the generic glyph, or the first member's format, which reads well for a collection of
   comics and oddly for a mixed one. Android sidesteps it because its own well takes a nullable
   format. `ShelfCover.swift:88` is the site.
-- [ ] 5b.3 **A server-defined collection cannot show the cover a reader locked on the
-  server.** The delta extends "unless the user sets a specific one" to a collection a server
-  defines, and the model drops the field for exactly that kind: `KavitaShelves.kt:13-17` has no
-  `coverImageLocked`, and `KavitaShelves.swift:8-22` decodes only id, title and summary. Only
-  the reading list sets `chosenCover` — `ShelvesScreen.kt:139` and `KavitaShelfViews.swift:69`.
-  So the branch is not merely untested for collections, as task 4.3 says; it is unreachable.
+- [x] 5b.3 **A server-defined collection could not show the cover a reader locked on the
+  server, and now it can.** The delta extends "unless the user sets a specific one" to a
+  collection a server defines. The model dropped the field for exactly that kind, so
+  `chosenCover` was always false: the branch was not merely untested, it was unreachable.
+
+  Three things were missing, not one. The model did not decode `coverImageLocked` for a
+  collection on either platform. No client had a route to a collection's cover — only the
+  reading list did. And the card asked the reading-list route whatever kind of shelf it was
+  drawing, so even a decoded flag would have fetched another shelf's artwork.
+
+  All three are fixed on both platforms, and the mock is fixed under them: it read only
+  `seriesId` and `chapterId`, so `readinglist-cover` answered `400 no id` and **no locked
+  cover of either kind could be driven against it**. It answers all four ids now, and its
+  self-test drives both shelf covers and the refusal — 82 checks.
+
+  Six cases hold it, three per platform: a collection carries the flag, an older server that
+  sends neither field has chosen nothing, and a collection's cover is asked for by tag id.
+  Checked by deleting the decode: the first case fails.
 - [x] 5b.4 **Two tests could not fail, and both assert now.**
   - `ServerShelfCoverTests.swift` built a local tuple array and re-implemented `sorted`,
     `prefix` and `map` inside the test body, so the only production symbol it touched was

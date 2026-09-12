@@ -177,6 +177,19 @@ class KavitaClient(val address: KavitaAddress) {
     )
 
     /**
+     * A collection's own cover, which a reader may have chosen on the server.
+     *
+     * The twin of [readingListCover], and it had no twin until 2026-09-12: a collection could
+     * not show a locked cover at all, because nothing asked for one. Kavita names the query
+     * after the thing it belongs to, so this one is `collectionTagId` — the server calls a
+     * collection a tag.
+     */
+    suspend fun collectionCover(id: Int): ByteArray = get(
+        "Image/collection-cover",
+        mapOf("collectionTagId" to id.toString(), "apiKey" to address.apiKey),
+    )
+
+    /**
      * Marks one chapter read or unread on the server.
      *
      * `kavita-server` asks for the state to be "reflected in that server's own UI", which a

@@ -200,4 +200,46 @@ struct KavitaShelvesTests {
         #expect(asked.method == "POST")
         #expect(sent.body == "{}")
     }
+
+    /// **A collection carries a locked cover, and this type used to drop it.**
+    ///
+    /// `collections-and-reading-lists` composites a shelf's first four member covers "unless
+    /// the user sets a specific one". ``KavitaCollection`` decoded three keys, so the flag
+    /// never arrived and `chosenCover` was always false: a reader who chose a collection's
+    /// cover on the server was shown the app's composite instead. Found by an archive
+    /// verification on 2026-09-12, which called the branch dead rather than untested.
+    @Test("A collection carries the cover a reader locked on the server")
+    func aCollectionCarriesItsLockedCover() async throws {
+        let asked = Asked()
+        let body = #"[{"id":4,"title":"Attic","coverImage":"tag4.png","coverImageLocked":true}]"#
+        let client = try client(asked, body: body)
+
+        let collections = try await client.collections()
+
+        #expect(collections.count == 1)
+        #expect(collections.first?.coverImageLocked == true)
+        #expect(collections.first?.coverImage == "tag4.png")
+    }
+
+    /// And an older server, which sends neither field, means nothing was chosen.
+    @Test("A collection from an older server has chosen nothing")
+    func anOlderCollectionHasChosenNothing() async throws {
+        let asked = Asked()
+        let client = try client(asked, body: #"[{"id":4,"title":"Attic"}]"#)
+
+        #expect(try await client.collections().first?.coverImageLocked == false)
+    }
+
+    /// The route a collection's own cover comes from, which is its own. Kavita names the query
+    /// after the thing it belongs to, and it calls a collection a tag. A collection asked the
+    /// reading-list route until 2026-09-12, so even a decoded flag fetched the wrong artwork.
+    @Test("A collection cover is asked for by tag id")
+    func aCollectionCoverIsAskedForByTagId() async throws {
+        let asked = Asked()
+        let client = try client(asked, body: "")
+        _ = try? await client.collectionCover(4)
+
+        #expect(asked.path == "/api/Image/collection-cover")
+        #expect(asked.query?.contains("collectionTagId=4") == true)
+    }
 }

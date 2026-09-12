@@ -326,8 +326,17 @@ const server = createServer((request, response) => {
     if (url.searchParams.get('apiKey') !== API_KEY) {
       return send(response, 401, { message: 'unauthorised' })
     }
+    // **Four routes, four names for the id.** Kavita names the parameter after the thing it
+    // belongs to, so a client asking for a reading list's own cover sends `readingListId` and
+    // one asking for a collection's sends `collectionTagId`. This read only the first two
+    // until 2026-09-12, so a locked shelf cover answered `400 no id` — and neither platform's
+    // locked-cover branch could be exercised against this mock at all.
     const id = Number(
-      url.searchParams.get('seriesId') ?? url.searchParams.get('chapterId') ?? 0,
+      url.searchParams.get('seriesId') ??
+        url.searchParams.get('chapterId') ??
+        url.searchParams.get('readingListId') ??
+        url.searchParams.get('collectionTagId') ??
+        0,
     )
     if (!id) return send(response, 400, { message: 'no id' })
     return send(response, 200, png(300, 450, COVERS[id % COVERS.length]), 'image/png')
@@ -947,6 +956,18 @@ const drive = async () => {
     (await get('/api/Server/server-info', token)).status === 404)
   check('a cover answers a get',
     (await get(`/api/Image/series-cover?seriesId=${first.id}&apiKey=${API_KEY}`, token)).status === 200)
+  // **A shelf's own cover, which a reader locks on the server.** Kavita names the parameter
+  // after the thing it belongs to, and this mock read only `seriesId` and `chapterId` until
+  // 2026-09-12 — so both of these answered `400 no id`, and neither platform's locked-cover
+  // branch could be driven against the mock. `collections-and-reading-lists` has a clause for
+  // exactly that state: the composite is what a shelf shows "unless the user sets a specific
+  // one".
+  check('a reading list cover answers a get',
+    (await get(`/api/Image/readinglist-cover?readingListId=1&apiKey=${API_KEY}`, token)).status === 200)
+  check('a collection cover answers a get',
+    (await get(`/api/Image/collection-cover?collectionTagId=1&apiKey=${API_KEY}`, token)).status === 200)
+  check('a cover route with no id it knows is refused rather than guessed at',
+    (await get(`/api/Image/series-cover?apiKey=${API_KEY}`, token)).status === 400)
   check('a chapter download answers a get',
     (await get(`/api/Download/chapter?chapterId=${chapter.id}`, token)).status === 200)
 

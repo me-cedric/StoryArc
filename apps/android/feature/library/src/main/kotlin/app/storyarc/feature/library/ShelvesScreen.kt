@@ -131,7 +131,13 @@ fun ShelvesScreen(
             val client = KavitaClient(server.address)
             runCatching { client.collections() }.getOrNull()?.let { collections ->
                 holdsCollections += server
-                found += collections.map { ServerShelf(server, it.id, it.title, isList = false) }
+                found += collections.map {
+                    // A collection carries the same locked-cover flag a reading list does. It
+                    // was read for the list and dropped for the collection until 2026-09-12,
+                    // so a reader who chose a collection's cover on the server was shown the
+                    // app's composite instead.
+                    ServerShelf(server, it.id, it.title, isList = false, chosenCover = it.coverImageLocked)
+                }
             }
             runCatching { client.readingLists() }.getOrNull()?.let { lists ->
                 holdsLists += server
@@ -521,9 +527,11 @@ private fun ServerShelfCard(
                 name = shelf.title,
                 tiles = if (shelf.chosenCover) listOf(SERVER_COVER) else tiles,
                 load = { id ->
-                    // `coverImageLocked` is the spec's "unless the user sets a specific one".
+                    // `coverImageLocked` is the spec's "unless the user sets a specific one",
+                    // and each kind of shelf has its own route to the cover it holds.
                     if (id == SERVER_COVER) {
-                        client.readingListCover(shelf.id)
+                        if (shelf.isList) client.readingListCover(shelf.id)
+                        else client.collectionCover(shelf.id)
                     } else if (shelf.isList) {
                         client.chapterCover(id.toInt())
                     } else {

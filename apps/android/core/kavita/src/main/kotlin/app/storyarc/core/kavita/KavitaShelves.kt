@@ -14,6 +14,20 @@ data class KavitaCollection(
     val id: Int,
     val title: String = "",
     val summary: String? = null,
+    /** The cover the server holds for this collection, or null when it has none. */
+    val coverImage: String? = null,
+    /**
+     * Whether a reader chose that cover.
+     *
+     * **The field a collection did not have, and the branch that was dead without it.**
+     * `collections-and-reading-lists` composites a shelf's first four member covers "unless
+     * the user sets a specific one", and the app honoured that for a reading list and ignored
+     * it for a collection: the model dropped the field, so `chosenCover` was always false and
+     * a reader who locked a collection's cover on the server still saw the app's composite.
+     * Found by an archive verification on 2026-09-12. The reading list's twin is below, and
+     * the two are decoded the same way for the same reason.
+     */
+    val coverImageLocked: Boolean = false,
 )
 
 /** A reading list the server holds: an ordered run of chapters. */

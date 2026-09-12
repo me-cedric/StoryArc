@@ -9,16 +9,31 @@ public struct KavitaCollection: Sendable, Equatable, Identifiable, Decodable {
     public let id: Int
     public let title: String
     public let summary: String?
+    /// The cover the server holds for this collection, or nil when it has none.
+    public let coverImage: String?
+    /// Whether a reader chose that cover.
+    ///
+    /// **The field a collection did not have, and the branch that was dead without it.**
+    /// `collections-and-reading-lists` composites a shelf's first four member covers "unless
+    /// the user sets a specific one". The app honoured that for a reading list and ignored it
+    /// for a collection, because this type decoded only three keys — so `chosenCover` was
+    /// always false and a reader who locked a collection's cover on the server was shown the
+    /// app's composite instead. Found by an archive verification on 2026-09-12.
+    public let coverImageLocked: Bool
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
         title = try container.decodeIfPresent(String.self, forKey: .title) ?? ""
         summary = try container.decodeIfPresent(String.self, forKey: .summary)
+        coverImage = try container.decodeIfPresent(String.self, forKey: .coverImage)
+        // An older Kavita sends neither field, and the default says what that means: nothing
+        // chosen, so the app draws its own composite.
+        coverImageLocked = try container.decodeIfPresent(Bool.self, forKey: .coverImageLocked) ?? false
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, summary
+        case id, title, summary, coverImage, coverImageLocked
     }
 }
 

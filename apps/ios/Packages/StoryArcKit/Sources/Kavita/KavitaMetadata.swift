@@ -129,6 +129,18 @@ extension KavitaClient {
         ])
     }
 
+    /// A collection's own cover, which a reader may have chosen on the server.
+    ///
+    /// The twin of ``readingListCover(_:)``, and it had no twin until 2026-09-12: a collection
+    /// could not show a locked cover at all, because nothing asked for one. Kavita names the
+    /// query after the thing it belongs to, and it calls a collection a tag.
+    public func collectionCover(_ id: Int) async throws -> Data {
+        try await get("Image/collection-cover", query: [
+            URLQueryItem(name: "collectionTagId", value: String(id)),
+            URLQueryItem(name: "apiKey", value: address.apiKey),
+        ])
+    }
+
     /// What the server holds about a series, which the spec prefers over the file's own.
     public func metadata(ofSeries id: Int) async throws -> KavitaMetadata {
         let data = try await get(

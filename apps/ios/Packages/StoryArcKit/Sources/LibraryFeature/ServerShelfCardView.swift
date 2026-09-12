@@ -41,7 +41,12 @@ struct ServerShelfCardView: View {
     private func load(_ id: String) async throws -> Data {
         let client = KavitaClient(address: shelf.server.address)
         if id == Self.serverCover {
-            return try await client.readingListCover(shelf.id)
+            // Each kind of shelf has its own route to the cover it holds. A collection asked
+            // the reading-list route until 2026-09-12, which is one reason its locked cover
+            // never appeared; the other is that its model dropped the flag.
+            return shelf.isList
+                ? try await client.readingListCover(shelf.id)
+                : try await client.collectionCover(shelf.id)
         }
         guard let numeric = Int(id) else { return Data() }
         return shelf.isList

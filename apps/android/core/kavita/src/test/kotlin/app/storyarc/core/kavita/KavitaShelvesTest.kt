@@ -5,6 +5,7 @@ import java.net.InetSocketAddress
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -192,4 +193,49 @@ class KavitaShelvesTest {
         answer = """{"message":"no"}"""
         runBlocking { client().createList("Crossover") }
     }
+
+    /**
+     * **A collection carries a locked cover, and the app read it for a reading list only.**
+     *
+     * `collections-and-reading-lists` composites a shelf's first four member covers "unless
+     * the user sets a specific one". `KavitaCollection` decoded three keys, so the flag was
+     * dropped and `chosenCover` was always false: a reader who chose a collection's cover on
+     * the server was shown the app's composite instead. Found by an archive verification on
+     * 2026-09-12, which called the branch dead rather than untested.
+     */
+    @Test
+    fun aCollectionCarriesTheCoverTheReaderLocked() = runBlocking {
+        listing = """[{"id":4,"title":"Attic","coverImage":"tag4.png","coverImageLocked":true}]"""
+
+        val collections = client().collections()
+
+        assertEquals(1, collections.size)
+        assertTrue(collections.first().coverImageLocked)
+        assertEquals("tag4.png", collections.first().coverImage)
+    }
+
+    /** And an older server, which sends neither field, means nothing was chosen. */
+    @Test
+    fun aCollectionFromAnOlderServerHasChosenNothing() = runBlocking {
+        listing = """[{"id":4,"title":"Attic"}]"""
+
+        assertFalse(client().collections().first().coverImageLocked)
+    }
+
+    /**
+     * The route a collection's own cover comes from, which is its own.
+     *
+     * Kavita names the query after the thing it belongs to, and it calls a collection a tag.
+     * A collection asked the reading-list route until 2026-09-12, so even a decoded flag would
+     * have fetched the wrong shelf's artwork.
+     */
+    @Test
+    fun aCollectionCoverIsAskedForByTagId() = runBlocking {
+        client().collectionCover(4)
+
+        assertEquals("/api/Image/collection-cover", readPath)
+        assertTrue(readQuery.orEmpty().contains("collectionTagId=4"))
+        assertTrue(readQuery.orEmpty().contains("apiKey=key"))
+    }
+
 }
