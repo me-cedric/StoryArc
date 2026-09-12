@@ -188,6 +188,67 @@ struct ShareOpeningTests {
         #expect(answers.said == nil)
     }
 
+    // MARK: - Where a publication's own page opens it from
+
+    /// A transfer in flight for this publication, in whatever state the case needs.
+    private func transfer(_ state: Download.State) -> Download {
+        var record = Download(
+            id: "solid",
+            sourceID: nil,
+            title: "Solid",
+            remote: URL(string: "http://127.0.0.1:4444/files/Solid.cbz") ?? Self.local,
+            mediaType: "application/vnd.comicbook+zip"
+        )
+        record.state = state
+        return record
+    }
+
+    @Test("A comic still arriving opens from the address the transfer is fetching")
+    func aComicStillArrivingStreams() {
+        let address = ShareOpening.address(
+            for: publication(format: .cbz),
+            local: nil,
+            transfer: transfer(.running)
+        )
+
+        #expect(address?.scheme == "http", "the page offered no address to stream from")
+    }
+
+    /// The local copy wins, which is the whole of `offline-downloads`: a publication already
+    /// here reads with no network at all.
+    @Test("A copy on this device wins over an address, whatever the transfer says")
+    func theCopyOnThisDeviceWins() {
+        #expect(
+            ShareOpening.address(for: publication(format: .cbz), local: Self.local, transfer: transfer(.running))
+                == Self.local
+        )
+    }
+
+    /// PDFKit wants a file. Offering a reader a PDF that is not there yet would open nothing.
+    @Test("A format whose decoder wants a file does not stream")
+    func aFormatThatWantsAFileDoesNotStream() {
+        #expect(
+            ShareOpening.address(for: publication(format: .pdf), local: nil, transfer: transfer(.running)) == nil
+        )
+    }
+
+    /// Finished with no local copy means the file went away, and failed is a state the spec
+    /// requires to be stated with a retry rather than read past. Neither is an address.
+    @Test("A transfer that is over is not an address, whichever way it ended")
+    func aTransferThatIsOverIsNotAnAddress() {
+        for state in [Download.State.finished, .failed(reason: "gone", attempts: 1)] {
+            #expect(
+                ShareOpening.address(for: publication(format: .cbz), local: nil, transfer: transfer(state)) == nil,
+                "a \(state) transfer was offered as somewhere to read from"
+            )
+        }
+    }
+
+    @Test("A publication with no copy and no transfer opens from nowhere")
+    func nothingToOpen() {
+        #expect(ShareOpening.address(for: publication(format: .cbz), local: nil, transfer: nil) == nil)
+    }
+
     // MARK: - The fact the rule is fed
 
     @Test("Only the formats whose decoder wants a file need one")

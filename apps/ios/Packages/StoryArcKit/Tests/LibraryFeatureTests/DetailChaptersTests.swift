@@ -348,6 +348,7 @@ struct DetailChaptersTests {
             isKept: .constant(false),
             kavitaCard: nil,
             file: nil,
+            address: nil,
             audiobook: book,
             onChooseChapter: nil,
             onRead: {}
