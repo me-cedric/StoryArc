@@ -204,4 +204,48 @@ class PublicationProvenanceTest {
 
         assertFalse(provenance.isAlsoElsewhere)
     }
+
+    /**
+     * **A source still being checked does not say it is not answering.**
+     *
+     * Only *unreachable* means not answering. Connection state is never persisted, so every
+     * source is *connecting* on every launch, and the line read `canFetch` — `Connected`
+     * alone — so it claimed a failed probe for all of that time. Seen on an emulator on
+     * 2026-09-11: *From Attic Catalogue — not answering right now* about a catalogue the
+     * shelf had just read nine titles from, while *Your libraries* read *Available* for that
+     * same source on that same device. iOS asks `if case .unreachable` and never had it.
+     */
+    @Test
+    fun aSourceStillConnectingIsNotSaidToBeNotAnswering() {
+        val source = server("Attic Catalogue", SourceConnectionState.Connecting)
+        val book = publication("Slow Transfer", source.id)
+
+        val provenance = provenanceOf(
+            book,
+            SourceRegistry(sources = listOf(source)),
+            isOnDevice = false,
+            library = listOf(book),
+        )
+
+        assertEquals(Provenance.Place.LIBRARY, provenance.place)
+        assertEquals("Attic Catalogue", provenance.libraryName)
+        assertEquals(Provenance.Readiness.NOT_DOWNLOADED, provenance.readiness)
+    }
+
+    /** And an unreachable one still says so, which is the half worth keeping. */
+    @Test
+    fun anUnreachableSourceStillSaysItIsNotAnswering() {
+        val source = server("Cellar Catalogue", SourceConnectionState.Unreachable(sinceEpochMillis = 0))
+        val book = publication("Slow Transfer", source.id)
+
+        val provenance = provenanceOf(
+            book,
+            SourceRegistry(sources = listOf(source)),
+            isOnDevice = false,
+            library = listOf(book),
+        )
+
+        assertEquals(Provenance.Readiness.SOURCE_AWAY, provenance.readiness)
+    }
+
 }

@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
 
@@ -57,6 +58,17 @@ internal data class Provenance(
      *
      * [READY] is silent rather than reassuring: a line that says "ready to read" on every
      * publication a reader owns is a line they stop reading, and then it cannot warn them.
+     *
+     * **[SOURCE_AWAY] is for a source that is not answering, and not for one nobody has
+     * asked.** Connection state is never persisted, so every source loads as *connecting* and
+     * stays there until something probes it — and this read `canFetch`, which is `Connected`
+     * alone, so the line claimed a failed probe for all of that time. Measured on an emulator
+     * on 2026-09-11: a catalogue that `curl` answered with 200, and that the shelf had just
+     * read nine titles from, read *From Attic Catalogue — not answering right now* for as
+     * long as the page was open, while *Your libraries* read *Available* for the same source
+     * on the same device. iOS never had the defect — `PublicationProvenance.swift` asks
+     * `if case .unreachable` and nothing else — so this is also the two platforms agreeing
+     * again.
      */
     enum class Readiness { READY, NOT_DOWNLOADED, SOURCE_AWAY }
 }
@@ -111,12 +123,15 @@ internal fun provenanceOf(
         )
     }
 
-    val readiness =
-        if (from.state.canFetch) {
-            Provenance.Readiness.NOT_DOWNLOADED
-        } else {
-            Provenance.Readiness.SOURCE_AWAY
-        }
+    // Asked of the one state that means it, rather than of `canFetch`, which is `Connected`
+    // alone and made *connecting* read as *not answering*. The bytes are not here either way,
+    // so a source nobody has probed yet gets the true half of the sentence and no claim about
+    // the network. iOS asks the same question in the same words — `if case .unreachable`.
+    val readiness = if (from.state is SourceConnectionState.Unreachable) {
+        Provenance.Readiness.SOURCE_AWAY
+    } else {
+        Provenance.Readiness.NOT_DOWNLOADED
+    }
 
     return Provenance(
         place = Provenance.Place.LIBRARY,
