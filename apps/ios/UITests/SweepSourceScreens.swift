@@ -290,6 +290,55 @@ final class SweepSourceScreensTests: XCTestCase {
         shutter(app, named: "settings-source-detail-ax5")
     }
 
+    /// Pull to refresh, after it has finished.
+    ///
+    /// `source-lifecycle` §4.4 asks for this gesture mid-way and settled. **The settled half is
+    /// this walk; the mid-gesture half is a recording**, for the reason `CurlWalkTests` records
+    /// at length: `press(forDuration:thenDragTo:withVelocity:thenHoldForDuration:)` returns
+    /// after the whole gesture, the lift included, so a shutter after it photographs a settled
+    /// screen. That mistake was made once in this repository and read as a shader defect before
+    /// the arithmetic gave the harness away.
+    ///
+    /// What settled looks like is the sentence at the foot: *Libraries checked just now.* It is
+    /// the refresh indicator's own completion state, and a frame of a spinner cannot show it.
+    ///
+    /// The gesture is a slow drag rather than `swipeDown()`, so the refresh is actually
+    /// triggered rather than the shelf merely scrolling: a fast swipe on a shelf already at the
+    /// top does nothing a reader would call a refresh.
+    func testCapturePullToRefreshSettled() throws {
+        guard MockCatalogues.areRunning() else {
+            throw XCTSkip("The mock catalogues are not running, so a refresh has nothing to ask.")
+        }
+        let app = sweepLaunch(sources: MockCatalogues.registry)
+        try showTheShelf(in: app)
+        pullToRefresh(in: app)
+        XCTAssertTrue(
+            app.staticTexts.matching(
+                NSPredicate(format: "label BEGINSWITH %@", "Libraries checked")
+            ).firstMatch.waitForExistence(timeout: 20),
+            "The shelf never said it had checked. On screen: "
+                + "\(app.staticTexts.allElementsBoundByIndex.prefix(12).map(\.label))"
+        )
+        hold(1)
+        shutter(app, named: "library-pull-to-refresh-settled")
+    }
+
+    /// The drag itself, held long enough at the bottom that a recording catches the spinner.
+    ///
+    /// `thenHoldForDuration` does not help a screenshot — see the walk above — but it does keep
+    /// the indicator on screen for the frames a video pulls, which is what §4.4's mid-gesture
+    /// half is taken from.
+    private func pullToRefresh(in app: XCUIApplication) {
+        let top = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.30))
+        let bottom = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.78))
+        top.press(
+            forDuration: 0.1,
+            thenDragTo: bottom,
+            withVelocity: .slow,
+            thenHoldForDuration: 1.5
+        )
+    }
+
     /// The way in, which is the one thing this shares with the settings sweep.
     private func open(_ group: String, in app: XCUIApplication) throws {
         try openSettings(in: app)

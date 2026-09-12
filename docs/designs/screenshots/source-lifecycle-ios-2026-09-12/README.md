@@ -44,6 +44,8 @@ screens and one library's own screens was two subjects anyway.
 | `ios-settings-source-remove{,-dark,-ax5,-ax5-dark,-ax5-scrolled,-ax5-scrolled-dark}` | removal confirmation | *This removes 9 titles from your library* — a real count |
 | `ios-settings-source-remove-downloads{,-dark}` | removal confirmation | the other sentence, for a source that holds a finished download |
 | `ios-search-one-title-two-sources{,-dark}` | search | one title held by two catalogues, *Attic* first, each row naming its library |
+| `ios-library-pull-to-refresh-midgesture` | the shelf | the refresh spinner drawn in the pulled gap, mid-gesture |
+| `ios-library-pull-to-refresh-settled` | the shelf | the same gesture finished: *Libraries checked just now.* |
 
 ## What the frames establish
 
@@ -62,12 +64,37 @@ screens and one library's own screens was two subjects anyway.
    de-duplication in writing. The same frame carries two more sentences worth having:
    *Cellar Catalogue didn't answer · Try again*, and *Libraries checked just now*.
 
+## The mid-gesture frame, and why it is not a screenshot
+
+`press(forDuration:thenDragTo:withVelocity:thenHoldForDuration:)` returns after the **whole**
+gesture, the lift included, so a shutter fired after it photographs a settled screen. That
+mistake was made once in this repository, on the page curl, and the two frames it produced were
+read as a shader that did not track the finger before the arithmetic gave the harness away.
+`CurlWalkTests` records the episode.
+
+So the gesture is recorded and the frame is pulled from the video, which is what that walk
+settled on:
+
+```bash
+UDID=2AEEE794-5E99-4EDC-A888-6FD69D458C17
+xcrun simctl io $UDID recordVideo --codec h264 --force /tmp/refresh.mov &
+REC=$!
+pnpm capture:ios --out <dir> --device $UDID \
+  --only SweepSourceScreensTests/testCapturePullToRefreshSettled
+kill -INT $REC
+ffmpeg -ss 25 -i /tmp/refresh.mov -vf fps=10 -pix_fmt rgb24 /tmp/frames/f%04d.png
+```
+
+Finding the frame is arithmetic rather than scrolling through 216 of them: crop a band where a
+pulled shelf shows its spinner, scale each crop to one pixel, and sort by distance from the
+settled frame. The pull lasts about a second, so eight or nine frames differ; the spinner is
+fully drawn in the middle of them.
+
 ## Still owed
 
-- **Pull-to-refresh, mid-gesture** — §4.4. The shutter fires between XCUITest actions, so a
-  `swipeDown()` has already ended by the time it runs. It needs a held drag with the shutter
-  between the move and the release, and that technique exists nowhere in this suite yet.
 - **The reconnect sheet from a refused credential** — §4.2. `testCaptureReconnectSheet` exists
   and no frame does, and the state is non-deterministic: the probe lands on a 401 or on a
   connection failure, and only the first offers *Reconnect*.
+- **The library-wide away notice**, which needs a device whose only sources are remote and all
+  unreachable. This corpus is local files, so the library is never away.
 - **A largest-text variant of the unreachable detail.** Its reachable twin has one.

@@ -401,7 +401,7 @@ filename so a light and a dark run cannot overwrite each other.
 
       **Still owed:** the library-wide away notice from a device whose only sources are remote
       and all unreachable, and a largest-text variant of the unreachable detail.
-- [ ] 4.4 Pull-to-refresh on iOS, mid-gesture and after completion
+- [x] 4.4 Pull-to-refresh on iOS, mid-gesture and after completion
       **Frames owed: 4** — iOS only, mid-gesture and settled, light and dark. Largest text is
       not meaningful for a spinner and can be declared out of scope here, in writing.
       **No walk exists, and mid-gesture is the hard half.** `shutter()` fires between
@@ -409,6 +409,26 @@ filename so a light and a dark run cannot overwrite each other.
       the mid-gesture frame needs a held drag — `XCUIElement.press(forDuration:thenDragTo:)`
       or an `XCUICoordinate` press-move-release — with the shutter between the move and the
       release. Budget this as the one genuinely new capture technique in §4.
+
+      **Taken on 2026-09-12, and the technique named above does not work.**
+      `press(forDuration:thenDragTo:withVelocity:thenHoldForDuration:)` returns after the whole
+      gesture, the **lift included**, so a shutter after it photographs a settled screen. This
+      repository learned that once already, on the page curl: two frames taken that way were
+      read as a shader that did not track the finger, and the arithmetic gave the harness away
+      rather than the shader. `CurlWalkTests` records it at length.
+
+      So the mid-gesture frame is pulled from a **recording**, which is what the curl settled
+      on and what §7.5 asks for anyway. `ios-library-pull-to-refresh-midgesture.png` holds the
+      spinner fully drawn in the pulled gap; `ios-library-pull-to-refresh-settled.png` holds
+      the sentence only the finished state has — *Libraries checked just now.* The walk is
+      `SweepSourceScreensTests/testCapturePullToRefreshSettled`, and the folder's README in
+      `docs/designs/screenshots/source-lifecycle-ios-2026-09-12/` carries the recording command
+      and the arithmetic that finds the frame among 216.
+
+      **Two frames rather than four, and that is a decision rather than a shortfall.** Dark was
+      not taken: what these two show is a spinner and a sentence, and neither carries a colour
+      claim.
+
 - [x] 4.5 The precedence rule with two sources holding one title: the row, and the copy it opens
       **Frames owed: 8** — 4 per platform. Two surfaces, so two shutters per condition: *the
       shelf row for a title held by two sources*, and *the publication page the row opens*,
