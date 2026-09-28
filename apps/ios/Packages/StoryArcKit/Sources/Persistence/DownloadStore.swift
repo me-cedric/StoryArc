@@ -223,6 +223,26 @@ public struct DownloadStore {
         (try? FileManager.default.removeItem(at: file)) != nil
     }
 
+    /// Pins ``fileProtection`` on one file, directly.
+    ///
+    /// A class set on a directory only governs a file *created* inside it — a file moved
+    /// or copied in keeps the class it already had, which for a system download is the
+    /// default class, not this one. `prepare()` sets the class on the directory for the
+    /// same reason the backup exclusion is set there, and this is the other half: every
+    /// writer that lands a file by `moveItem` or `copyItem` rather than by creating it in
+    /// place calls this once the bytes are in their final location.
+    ///
+    /// Unguarded, unlike ``prepare()``'s directory-level set: that one is `#if os(iOS)`
+    /// because setting a protection class on a *directory* on macOS makes its contents
+    /// unreadable to the process that wrote them, a host-only trap. Setting it on a single
+    /// file has no such effect on macOS — the value round-trips and the file stays
+    /// readable — so this runs on both, which is what lets a host test prove it.
+    public static func protect(_ file: URL) {
+        try? FileManager.default.setAttributes(
+            [.protectionKey: fileProtection], ofItemAtPath: file.path
+        )
+    }
+
     /// What the files actually weigh, which is not always what the record says.
     ///
     /// Asked by the storage view rather than trusted from the list: the system can reclaim
@@ -297,94 +317,5 @@ public struct DownloadStore {
     public func reset() {
         defaults.removeObject(forKey: key)
         try? FileManager.default.removeItem(at: directory)
-    }
-}
-
-/// What is actually written.
-///
-/// A separate shape rather than making ``Download`` `Codable`, for the same reason
-/// `StoredRegistry` exists: the durable fields and the runtime ones are different sets. A
-/// download that was *running* when the app died is queued when it comes back, because
-/// "running" describes a transfer that is no longer happening.
-private struct StoredDownload: Codable {
-    let id: String
-    let sourceID: UUID?
-    let title: String
-    let remote: URL
-    let mediaType: String
-    let expectedBytes: Int64?
-    let downloadedBytes: Int64
-    let completedAt: Date?
-    let isFinished: Bool
-    let failure: String?
-    let attempts: Int
-
-    /// `offline-downloads` allows a corrupt arrival exactly one re-fetch, so the count has
-    /// to outlive the process that made it — otherwise a download that was killed between
-    /// its two chances comes back with both of them.
-    ///
-    /// Optional on the way in, because a record written by a build before this field
-    /// existed has none, and `ignoreUnknownKeys` is not the same as a default.
-    let verificationFailures: Int?
-
-    /// Why the download stopped, when it stopped for a reason the reader can be told.
-    ///
-    /// `offline-downloads` requires a held queue to say what it is waiting for, and the
-    /// settings screen asks the *records* rather than a live queue. Without this the reason
-    /// died with the process: every paused row came back queued, so the screen could never
-    /// draw the sentence the spec asks for.
-    ///
-    /// Optional for ``verificationFailures``' reason: a record written before this field
-    /// existed has none, and it comes back queued.
-    let pause: String?
-
-    init(_ download: Download) {
-        id = download.id
-        sourceID = download.sourceID
-        title = download.title
-        remote = download.remote
-        mediaType = download.mediaType
-        expectedBytes = download.expectedBytes
-        downloadedBytes = download.downloadedBytes
-        completedAt = download.completedAt
-        verificationFailures = download.verificationFailures
-        isFinished = download.state.isFinished
-        if case let .paused(reason) = download.state {
-            pause = reason.rawValue
-        } else {
-            pause = nil
-        }
-        if case let .failed(reason, count) = download.state {
-            failure = reason
-            attempts = count
-        } else {
-            failure = nil
-            attempts = 0
-        }
-    }
-
-    var download: Download {
-        Download(
-            id: id,
-            sourceID: sourceID,
-            title: title,
-            remote: remote,
-            mediaType: mediaType,
-            state: state,
-            expectedBytes: expectedBytes,
-            downloadedBytes: downloadedBytes,
-            completedAt: completedAt,
-            verificationFailures: verificationFailures ?? 0
-        )
-    }
-
-    private var state: Download.State {
-        if isFinished { return .finished }
-        if let failure { return .failed(reason: failure, attempts: attempts) }
-        // A spelling this build does not know is not a reason to lose the download. Queued
-        // is the honest fallback: the queue asks the connection and the volume on its next
-        // pump and writes whichever reason is true now.
-        if let pause, let reason = Download.Pause(rawValue: pause) { return .paused(reason) }
-        return .queued
     }
 }

@@ -97,6 +97,7 @@ extension LibraryModel {
             guard (try? manager.copyItem(at: url, to: destination)) != nil,
                   let size = try? destination.resourceValues(forKeys: [.fileSizeKey]).fileSize
             else { return nil }
+            DownloadStore.protect(destination)
             return Int64(size)
         }.value
     }

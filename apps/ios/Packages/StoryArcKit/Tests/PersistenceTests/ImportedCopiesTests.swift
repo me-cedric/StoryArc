@@ -146,6 +146,20 @@ struct ImportedCopiesTests {
         #expect(fixture.store.finishedDownload(in: library) { _ in true }?.id == fetched.id)
     }
 
+    @Test("An imported copy is pinned to the download store's protection class")
+    func importedCopyIsProtected() throws {
+        // security-review #18: a moved-or-copied-in file keeps the class it was created
+        // with, not the directory's, unless something pins it directly after the copy.
+        let fixture = try fixture()
+        defer { fixture.store.reset() }
+
+        let copy = try fixture.store.importing(fixture.original, into: DownloadLibrary())
+
+        let attributes = try FileManager.default.attributesOfItem(atPath: copy.file.path)
+        let protection = attributes[.protectionKey] as? FileProtectionType
+        #expect(protection == DownloadStore.fileProtection)
+    }
+
     @Test("The identity of a copy does not move with the original")
     func identityIsNotAPath() {
         // Keyed on the original's name and size rather than its path, because the copy is
