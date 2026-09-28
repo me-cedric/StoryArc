@@ -24,15 +24,43 @@ import Testing
 /// green. So three tests read the handler back off the browser ``SmbDiscovery/start()`` built
 /// and hand it a state, which is what a refused permission does on a device.
 ///
-/// **The sentence itself is not asserted here.** `swift build` copies an `.xcstrings` without
-/// compiling it, so `String(localized:)` answers with the key on the host. What is asserted is
-/// that the key is produced, produced once, and answerable in four languages — the last read
+/// **The sentence is asserted as the key or one of its four translations.** `swift build`
+/// copies an `.xcstrings` without compiling it. An older macOS answered `String(localized:)`
+/// with the key on the host, and macOS 26 reads the catalogue itself and answers with the
+/// translation. Either answer means the key was produced, so ``sentences`` holds both, read
 /// from the catalogue on disk.
 @MainActor
 @Suite("A refused local-network permission is explained once")
 struct SmbDiscoveryRefusalTests {
 
     private static let key = "smb.discovery.denied"
+
+    /// The key, and each of its translations in the catalogue on disk.
+    ///
+    /// What ``SmbDiscovery/advice`` can hold once the key was produced, whichever way the host
+    /// resolves it.
+    private static let sentences: Set<String> = {
+        var found: Set<String> = [key]
+        let record = try? Self.localizations()
+        for case let unit as [String: Any] in (record ?? [:]).values {
+            if let value = (unit["stringUnit"] as? [String: Any])?["value"] as? String { found.insert(value) }
+        }
+        return found
+    }()
+
+    /// The catalogue record of ``key``, by language.
+    private static func localizations() throws -> [String: Any] {
+        let catalogue = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appending(path: "Sources/Smb/Resources/Localizable.xcstrings")
+        let data = try Data(contentsOf: catalogue)
+        let parsed = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let strings = try #require(parsed?["strings"] as? [String: Any])
+        let record = try #require(strings[key] as? [String: Any], "no such key")
+        return try #require(record["localizations"] as? [String: Any])
+    }
 
     @Test("A refused browser is recognised from what Network reports")
     func aRefusalIsRecognised() {
@@ -59,7 +87,7 @@ struct SmbDiscoveryRefusalTests {
         let discovery = SmbDiscovery()
         #expect(discovery.advice == nil)
         #expect(discovery.noteRefusal())
-        #expect(discovery.advice == Self.key)
+        #expect(Self.sentences.contains(discovery.advice ?? ""))
     }
 
     @Test("A second scan does not produce it again")
@@ -70,7 +98,7 @@ struct SmbDiscoveryRefusalTests {
         // again. The sentence stays the one already on screen rather than becoming a second.
         discovery.stop()
         #expect(!discovery.noteRefusal())
-        #expect(discovery.advice == Self.key)
+        #expect(Self.sentences.contains(discovery.advice ?? ""))
     }
 
     @Test("Discovery still hides itself when the permission is refused")
@@ -100,7 +128,7 @@ struct SmbDiscoveryRefusalTests {
         // `.waiting` is what a refusal produces in practice, and this is the wiring that
         // carries it: remove the line that installs the handler and this fails by name.
         handler(.waiting(.dns(-65570)))
-        #expect(discovery.advice == Self.key)
+        #expect(Self.sentences.contains(discovery.advice ?? ""))
     }
 
     @Test("A refusal that stops the browser is read the same way as one that pauses it")
@@ -108,7 +136,7 @@ struct SmbDiscoveryRefusalTests {
         let (discovery, handler) = try Self.started()
         defer { discovery.stop() }
         handler(.failed(.posix(.EPERM)))
-        #expect(discovery.advice == Self.key)
+        #expect(Self.sentences.contains(discovery.advice ?? ""))
     }
 
     @Test("An ordinary failure reaching the browser says nothing")
@@ -123,16 +151,7 @@ struct SmbDiscoveryRefusalTests {
 
     @Test("The sentence is answerable in four languages", arguments: ["en", "fr", "de", "es"])
     func theSentenceIsTranslated(_ language: String) throws {
-        let catalogue = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Sources/Smb/Resources/Localizable.xcstrings")
-        let data = try Data(contentsOf: catalogue)
-        let parsed = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        let strings = try #require(parsed?["strings"] as? [String: Any])
-        let record = try #require(strings[Self.key] as? [String: Any], "no such key")
-        let localizations = try #require(record["localizations"] as? [String: Any])
+        let localizations = try Self.localizations()
         let unit = (localizations[language] as? [String: Any])?["stringUnit"] as? [String: Any]
         #expect(unit?["state"] as? String == "translated", "not translated into \(language)")
         #expect((unit?["value"] as? String)?.isEmpty == false, "empty in \(language)")
