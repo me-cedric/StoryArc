@@ -17,11 +17,11 @@ import org.junit.Test
  * > **AND** the other five presets, the custom colour slot, the per-series memory and the
  * > global default are unchanged, because a reset is not a factory reset
  *
- * **The custom-slot clause is the one that failed, on both platforms.** `restored()` was
- * written as `ReadingTheme(preset)`, which is `adopting`'s body — and adopting a preset drops
- * the custom palette *on purpose*, because tapping one of the six is how a reader leaves their
- * own colours. A reset is not that act. A reader who had made a palette, chosen Calm, and
- * nudged the line spacing lost the palette by putting the line spacing back.
+ * **"The custom colour slot ... unchanged" is the reader's own named palette, kept in
+ * `EpubReaderViewModel.customPalette` whether or not it is on the page — not `ReadingTheme.custom`,
+ * which is only what is in force right now.** A reset drops `custom` the same as every other
+ * axis, which is what puts the background back on the preset's own value; the slot elsewhere
+ * is untouched, so the seventh card is still there afterwards.
  *
  * iOS mirrors this suite as `ThemeResetTests`, case for case.
  */
@@ -45,19 +45,20 @@ class ThemeResetTest {
     }
 
     @Test
-    fun `the custom colour slot survives, because a reset is not a factory reset`() {
+    fun `the background returns to the preset's own value, the same as any other axis`() {
         val modified = ReadingTheme(
             preset = ThemePreset.CALM,
             deviations = setOf(ThemeAxis.LINE_SPACING),
             custom = mine,
         )
 
-        assertEquals(
-            "The reset discarded the reader's own palette. `reading-themes` lists the custom" +
-                " colour slot among the things a reset leaves alone: \"a reset is not a" +
-                " factory reset\". Dropping it is what adopting a preset does, and that is a" +
-                " different act.",
-            mine,
+        assertNull(
+            "The reset kept the reader's own colour in force, so the background did not" +
+                " return to Calm's own value — the one axis \"every axis returns to that" +
+                " preset's published value\" did not reach. The custom colour *slot*" +
+                " `reading-themes` lists among the things a reset leaves alone is" +
+                " `EpubReaderViewModel.customPalette`, kept whether or not it is in force;" +
+                " `custom` here is only what is on the page now.",
             modified.restored().custom,
         )
     }
@@ -65,7 +66,7 @@ class ThemeResetTest {
     @Test
     fun `a preset with nothing deviating is already restored, and says so`() {
         for (preset in ThemePreset.entries) {
-            val clean = ReadingTheme(preset = preset, custom = mine)
+            val clean = ReadingTheme(preset = preset)
 
             assertTrue(
                 "$preset with no deviations reports itself modified, so the reset action" +

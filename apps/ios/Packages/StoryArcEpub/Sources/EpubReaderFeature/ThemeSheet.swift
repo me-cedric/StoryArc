@@ -160,12 +160,14 @@ struct ThemeSheet: View {
                         dismiss()
                     }
                 }
-                // The seventh slot, present only once the reader has made one.
+                // The seventh slot, present once the reader has made one — kept in
+                // `customPalette` whether or not it is currently in force, so tapping a
+                // preset (which drops `theme.custom`) does not make the card disappear.
                 // `reading-themes` puts it "alongside the six presets rather than
                 // overwriting one", so it is a seventh card and not a replaced one.
-                if let custom = model.theme.custom {
-                    CustomCard(palette: custom, typeface: model.values.typeface) {
-                        model.adoptColours(custom)
+                if let slot = model.customPalette {
+                    CustomCard(palette: slot, typeface: model.values.typeface) {
+                        model.adoptColours(slot)
                     }
                 }
             }

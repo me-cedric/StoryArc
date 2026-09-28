@@ -93,6 +93,8 @@ import kotlin.math.roundToInt
 internal fun ThemeSheet(
     theme: ReadingTheme,
     values: ThemeValues,
+    /** The reader's own named palette, kept whether or not [theme]'s own `custom` is. */
+    customPalette: ReaderPalette? = null,
     onAdopt: (ThemePreset) -> Unit,
     onAdoptColours: (ReaderPalette) -> Boolean,
     /** Opens level two: the axes, on a destination of their own. */
@@ -152,15 +154,17 @@ internal fun ThemeSheet(
                     )
                 }
             }
-            // The seventh slot, present only once the reader has made one.
+            // The seventh slot, present once the reader has made one — kept in
+            // `customPalette` whether or not it is currently in force, so tapping a preset
+            // (which drops `theme.custom`) does not make the card disappear.
             // `reading-themes` puts it "alongside the six presets rather than
             // overwriting one", so it is a seventh card and not a replaced one.
-            theme.custom?.let { custom ->
+            customPalette?.let { slot ->
                 add { cardModifier ->
                     CustomCard(
-                        palette = custom,
+                        palette = slot,
                         typeface = values.typeface,
-                        onSelect = { onAdoptColours(custom) },
+                        onSelect = { onAdoptColours(slot) },
                         modifier = cardModifier,
                     )
                 }
@@ -206,6 +210,7 @@ internal fun ThemeSheet(
 internal fun ThemeBottomSheet(
     theme: ReadingTheme,
     values: ThemeValues,
+    customPalette: ReaderPalette? = null,
     onAdopt: (ThemePreset) -> Unit,
     onAdoptColours: (ReaderPalette) -> Boolean,
     /** Opens level two: the axes, on a destination of their own. */
@@ -235,6 +240,7 @@ internal fun ThemeBottomSheet(
             onDismiss = onDismiss,
             theme = theme,
             values = values,
+            customPalette = customPalette,
             onAdopt = onAdopt,
             onAdoptColours = onAdoptColours,
             onCustomise = onCustomise,
