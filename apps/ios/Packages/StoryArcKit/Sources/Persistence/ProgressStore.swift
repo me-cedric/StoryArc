@@ -66,6 +66,30 @@ public actor ProgressStore {
     private let container: ModelContainer
     private let context: ModelContext
 
+    /// Held while a container is built, and for no other reason.
+    ///
+    /// **Two containers built at the same moment crash the process.** Measured on 2026-09-12,
+    /// twice — once on a `macos-26` runner and once on a loaded Mac: `SIGSEGV` inside
+    /// CoreData's own `NSSQLEntity_DerivedAttributesExtension _generateTriggerSQL`, reached
+    /// from `ModelContainer.init`, writing into a dictionary at address 8. The store files
+    /// were different on every test, so it is not two writers on one database; it is CoreData
+    /// building its derived-attribute triggers from state it does not guard.
+    ///
+    /// Swift Testing runs suites in parallel, which is what makes a test bundle the place it
+    /// shows up. The app builds one container at launch and pays nothing for this.
+    ///
+    /// A lock rather than an actor: `init` cannot await, and what has to be serialised is the
+    /// construction itself rather than any access afterwards. Every use below the constructor
+    /// is already serialised by this actor.
+    private static let building = NSLock()
+
+    /// Builds a container with no other container being built at the same time.
+    private static func opening(_ configuration: ModelConfiguration) throws -> ModelContainer {
+        building.lock()
+        defer { building.unlock() }
+        return try ModelContainer(for: StoredProgress.self, configurations: configuration)
+    }
+
     /// Opens the store on disk.
     ///
     /// The database is small and worth restoring, so it is *not* excluded from
@@ -76,10 +100,7 @@ public actor ProgressStore {
         } else {
             ModelConfiguration()
         }
-        self.container = try ModelContainer(
-            for: StoredProgress.self,
-            configurations: configuration
-        )
+        self.container = try Self.opening(configuration)
         self.context = ModelContext(container)
     }
 
@@ -89,10 +110,7 @@ public actor ProgressStore {
     }
 
     private init(configuration: ModelConfiguration) throws {
-        self.container = try ModelContainer(
-            for: StoredProgress.self,
-            configurations: configuration
-        )
+        self.container = try Self.opening(configuration)
         self.context = ModelContext(container)
     }
 
