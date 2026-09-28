@@ -29,6 +29,11 @@ struct ReaderSystemChrome: ViewModifier {
         #if os(iOS)
         content
             .statusBarHidden(!isChromeVisible)
+            // `native-experience`: the home indicator dims with the rest of the chrome.
+            // `.automatic` while the chrome is up (the indicator behaves normally);
+            // `.hidden` while it is not — the system still shows it on a touch, but it
+            // no longer sits solid over artwork the chrome has otherwise gotten out of.
+            .persistentSystemOverlays(isChromeVisible ? .automatic : .hidden)
             .toolbar(.hidden, for: .navigationBar)
             .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
             .onDisappear {
