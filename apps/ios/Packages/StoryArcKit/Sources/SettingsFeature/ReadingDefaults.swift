@@ -35,27 +35,32 @@ struct ReadingDefaults: View {
 
     var body: some View {
         ForEach(ThemeScope.allCases, id: \.self) { scope in
-            Section {
-                ForEach(ThemePreset.allCases, id: \.self) { preset in
-                    Button { choose(preset, for: scope) } label: {
-                        HStack {
-                            Text(preset.settingsTitleKey, bundle: .module)
-                                .foregroundStyle(theme.palette.textPrimary)
-                            Spacer()
-                            if memory.default(for: scope).theme.preset == preset {
-                                Image(systemName: "checkmark").foregroundStyle(theme.accent)
+            // `reading-themes`: a comic has no typography for a preset to change, so a
+            // preset picker offered nothing the comic reader honoured — the fixed-layout
+            // scope keeps only its own colour, below.
+            if scope == .reflowable {
+                Section {
+                    ForEach(ThemePreset.allCases, id: \.self) { preset in
+                        Button { choose(preset, for: scope) } label: {
+                            HStack {
+                                Text(preset.settingsTitleKey, bundle: .module)
+                                    .foregroundStyle(theme.palette.textPrimary)
+                                Spacer()
+                                if memory.default(for: scope).theme.preset == preset {
+                                    Image(systemName: "checkmark").foregroundStyle(theme.accent)
+                                }
                             }
+                            .contentShape(.rect)
                         }
-                        .contentShape(.rect)
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(
+                            memory.default(for: scope).theme.preset == preset
+                                ? [.isButton, .isSelected] : .isButton
+                        )
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(
-                        memory.default(for: scope).theme.preset == preset
-                            ? [.isButton, .isSelected] : .isButton
-                    )
+                } header: {
+                    Text(scope.titleKey, bundle: .module)
                 }
-            } header: {
-                Text(scope.titleKey, bundle: .module)
             }
 
             if scope == .fixedLayout {
@@ -161,13 +166,24 @@ struct ReadingDefaults: View {
     }
 
     private func choose(_ preset: ThemePreset, for scope: ThemeScope) {
-        // The whole settings value, not just the preset: a preset carries its own
-        // typography, and a default that kept the previous one would not be the preset
-        // the reader chose.
-        let stored = ShelfSettings(theme: ReadingTheme(preset: preset), values: preset.values)
+        let stored = Self.choosing(preset, from: memory.default(for: scope))
         let updated = store.themes().settingDefault(stored, for: scope)
         store.save(updated)
         memory = updated
+    }
+
+    /// The preset and its typography, kept beside the rest of the stored default.
+    ///
+    /// A fresh `ShelfSettings(theme:values:)` here put the transition and every other
+    /// field back to its built-in value on every change, because a value this function
+    /// never named still has to come from somewhere, and a bare initializer names the
+    /// built-in one. A plain function beside the view, because `choose(_:for:)` is a
+    /// private method on a `View` struct and no test can call it directly.
+    static func choosing(_ preset: ThemePreset, from existing: ShelfSettings) -> ShelfSettings {
+        var stored = existing
+        stored.theme = ReadingTheme(preset: preset)
+        stored.values = preset.values
+        return stored
     }
 }
 
