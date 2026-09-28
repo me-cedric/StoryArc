@@ -271,7 +271,7 @@ internal fun ThemeBottomSheet(
 @Composable
 private fun HeightToggleHeader(
     sheetState: SheetState?,
-    onDismiss: (() -> Unit)? = null,
+    onDismiss: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
