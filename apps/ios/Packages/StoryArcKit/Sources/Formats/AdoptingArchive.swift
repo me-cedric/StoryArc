@@ -32,6 +32,8 @@ public final class AdoptingArchive: ComicArchiveReading {
 
     public var doublePageIndices: [Int] { state.withLock { $0.doublePageIndices } }
 
+    public var chapterStartIndices: [Int] { state.withLock { $0.chapterStartIndices } }
+
     public func data(for page: PageEntry) async throws -> Data {
         // The lock is released before the read: a page fetched over a range request takes as
         // long as the network does, and holding a mutex across it would stop the reader.

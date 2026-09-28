@@ -46,6 +46,15 @@ interface ComicArchiveReading : AutoCloseable {
      */
     val doublePageIndices: List<Int> get() = emptyList()
 
+    /**
+     * Pages the container declares as the start of a chapter.
+     *
+     * `comic-reader`'s chapter actions (D4) move within the publication first, and
+     * this is where they find where to. `ComicInfo`'s `Bookmark` attribute, for a
+     * container that carries one.
+     */
+    val chapterStartIndices: List<Int> get() = emptyList()
+
     override fun close() {}
 }
 
@@ -68,6 +77,11 @@ object PageDeclarations {
      * than in the file.
      */
     fun spreads(pages: List<PageEntry>, declared: List<Int>): List<Int> =
+        declared.filter { it >= 0 && it < pages.size }
+
+    /** The declared chapter starts that actually name a page in this list. Same
+     * caveat, same rule, as [spreads]. */
+    fun chapterStarts(pages: List<PageEntry>, declared: List<Int>): List<Int> =
         declared.filter { it >= 0 && it < pages.size }
 }
 
@@ -145,6 +159,9 @@ class ZipComicArchive private constructor(
 
     override val doublePageIndices: List<Int>
         get() = PageDeclarations.spreads(pages, comicInfo?.doublePageIndices.orEmpty())
+
+    override val chapterStartIndices: List<Int>
+        get() = PageDeclarations.chapterStarts(pages, comicInfo?.chapterStartIndices.orEmpty())
 
     companion object {
         suspend fun open(source: RandomAccessSource): ZipComicArchive {
@@ -257,6 +274,9 @@ class TarComicArchive private constructor(
 
     override val doublePageIndices: List<Int>
         get() = PageDeclarations.spreads(pages, comicInfo?.doublePageIndices.orEmpty())
+
+    override val chapterStartIndices: List<Int>
+        get() = PageDeclarations.chapterStarts(pages, comicInfo?.chapterStartIndices.orEmpty())
 
     companion object {
         suspend fun open(source: RandomAccessSource): TarComicArchive {

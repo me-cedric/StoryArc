@@ -65,6 +65,13 @@ public struct ComicInfo: Sendable, Equatable {
     /// is a heuristic and this is a statement.
     public let doublePageIndices: [Int]
 
+    /// Pages `<Pages>` marks with a `Bookmark`, in reading order.
+    ///
+    /// `comic-reader`'s chapter actions (D4) move within the publication first, and
+    /// this is what tells them where a chapter inside it starts. Believed the same
+    /// way `doublePageIndices` is: a cataloguer's own mark, not a guess.
+    public let chapterStartIndices: [Int]
+
     /// The direction the reader should open in.
     ///
     /// Resolved with the domain's own rule so the format layer does not get a
@@ -121,15 +128,21 @@ public struct ComicInfo: Sendable, Equatable {
         // not necessarily its position in the list.
         var cover: Int?
         var spreads: [Int] = []
+        var chapters: [Int] = []
         for attributes in Self.pageElements(in: text) {
             guard let index = attributes["Image"].flatMap(Int.init) else { continue }
             if attributes["Type"] == "FrontCover", cover == nil { cover = index }
             if attributes["DoublePage"]?.lowercased() == "true" { spreads.append(index) }
+            if let bookmark = attributes["Bookmark"],
+               !bookmark.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                chapters.append(index)
+            }
         }
         // Index 0 is the default, so designating it carries no information and is
         // dropped — otherwise every well-formed file would look like an override.
         self.coverPageIndex = cover == 0 ? nil : cover
         self.doublePageIndices = spreads.sorted()
+        self.chapterStartIndices = chapters.sorted()
     }
 
     // MARK: - Minimal XML reading

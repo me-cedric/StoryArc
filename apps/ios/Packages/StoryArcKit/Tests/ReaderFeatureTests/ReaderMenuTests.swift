@@ -129,7 +129,7 @@ struct ReaderMenuTests {
         ),
         Capability(what: "the PDF outline", spelling: "findingTab = .contents", atLeast: 1),
         Capability(what: "the image adjustments", spelling: "isAdjusting = true", atLeast: 1),
-        Capability(what: "the chapter neighbours", spelling: "chapterRow", atLeast: 1),
+        Capability(what: "the chapter neighbours", spelling: "ChapterActionsSection", atLeast: 1),
         Capability(what: "the page slider", spelling: "pageSliderRow", atLeast: 1),
         Capability(what: "the page-transition choice", spelling: "transitionRow", atLeast: 2),
         Capability(what: "the page-fit choice", spelling: "fitRow", atLeast: 2),
