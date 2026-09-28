@@ -6,6 +6,74 @@ change task lists track four changes and the specs describe seventeen capabiliti
 
 Keep this current. A status document that lags is worse than none, because it is believed.
 
+## What is left to build, 2026-09-28
+
+**The counts below this section measure test coverage. This section measures product work.**
+The 2026-09-12 recount asked whether code exists for each scenario. This pass asked whether
+the code does what the scenario says. Twenty agents read each capability and each open change
+against the source on both platforms. Eight reviewers then tried to refute every claim. The
+result is **225 items that need production code**: 115 defects, 71 unbuilt clauses,
+16 one-platform gaps, 5 missing, 8 dead code and 10 open change tasks. 35 of them wait on an
+owner decision. The full list, with `path:line` evidence, is
+[`remaining-work-2026-09-28.md`](../delivery/remaining-work-2026-09-28.md).
+
+**So the sentence below that says the shortfall is "overwhelmingly missing proof rather than
+missing product" is wrong.** It was true of the question it asked. It is not true of the
+product: a scenario can have code on both platforms, a test on each side, and still do the
+wrong thing, because the test asserted a narrower rule than the scenario states.
+
+| Capability or change | Build items | Defects | Biggest item |
+| --- | --- | --- | --- |
+| `offline-downloads` | 19 | 12 | Each download queue saves its own stale copy of the store over every other writer |
+| `comic-reader` | 18 | 8 | Right-to-left: Space, Page Down and Android volume-down go back a page; the slider is not mirrored |
+| `page-transitions` | 18 | 10 | The ebook readers do not turn a page on an edge tap, a key, a controller or the volume buttons |
+| `publication-formats` | 16 | 5 | A share row is catalogued from its file name only, and a CBR, a PDF or an EPUB does not stream from a share |
+| `native-experience` | 16 | 6 | Home-screen widgets do not exist (ADR-0011 prerequisites) |
+| `network-share` | 15 | 12 | iOS SMB reads have no deadline; Android targets SDK 37 and never asks for local network access |
+| `collections-and-reading-lists` | 14 | 5 | A pending server reorder overwrites a newer server order |
+| `audiobooks-and-playback` | 14 | 2 | Android read-aloud does not drive the shared player |
+| `local-library` | 12 | 6 | Android never marks a folder source when its access goes |
+| `kavita-server` | 11 | 8 | A library-held Kavita row cannot join its own server's reading list, or be marked read on the server |
+| `opds-catalog` | 10 | 8 | An OPDS 1.2 navigation entry becomes a publication with no download, so real catalogues cannot be entered |
+| `library-browsing` | 10 | 4 | Android search obeys the by-library filter (the fix waits in a worktree) |
+| `localization` | 10 | 7 | Android resolves strings outside an activity in the system language |
+| `reading-progress` | 9 | 6 | Every local save erases the synchronised position, so conflict notices are false |
+| `reading-themes` | 9 | 7 | The custom colour slot is lost when the reader taps a preset |
+| `read-aloud-and-reader-theming` | 6 | 2 | Android read-aloud skips every sentence to the end of the book when speech fails |
+| `settings-and-about` | 6 | 3 | The licence inventory misses shipped libraries, among them jcifs-ng (LGPL) and desugar_jdk_libs |
+| `sources` | 4 | 2 | A removed source's rows come back from the shelf snapshot at the next launch |
+| `ebook-reader` | 3 | 1 | The light and dark pair that the appearance link switches between is a constant |
+| `one-library-three-destinations` | 2 | 0 | A server-backed shelf cannot be pinned to Home |
+| `one-vocabulary-in-four-languages` | 2 | 0 | The publication page vocabulary is not reconciled across the platforms |
+| `publication-detail` | 1 | 1 | iOS: the download action does nothing for a catalogue book not yet on the device |
+
+**What this pass changes in the records below.**
+
+- **`offline-downloads` *Reading while downloading* is still Android-only.** Commit
+  `a2a42c13` does not close the iOS half: the iOS publication page never finds, starts or
+  shows an OPDS download, because iOS has no download queue outside a catalogue page.
+- **The honest count of `missing` is not "two clauses".** "The eight that were built nowhere"
+  closes the eight scenarios it names. This pass finds 5 missing and 71 unbuilt clauses
+  elsewhere, SMB 3 negotiation and the reader-chosen theme pair among them.
+- **`comic-reader`: border cropping is still dead on iOS on `main`.** The fix is in worktree
+  `wf_aeae5856-c94-3`, uncommitted.
+- **`library-browsing`: Android search still obeys the by-library filter on `main`.** The fix
+  is in worktree `wf_aeae5856-c94-6`, uncommitted.
+- **`sources`: the lead is named.** The "rule that deletes a reader's rows" is source removal.
+  Android removes a folder source through `unregister`, which keeps the rows, while every
+  other kind goes through `forget`, which drops them. `SourceRemovalTest.kt` states a parity
+  that this one path does not keep.
+- **`settings-and-about`: the empty acknowledgements list is latent.** No shipped entry
+  empties it today. The inventory does miss shipped libraries, which is the larger problem.
+- **`kavita-server`: the system-trusted certificate sentence exists** on both platforms'
+  sources screen. That claim is refuted.
+- **`local-library`: "unreachable" for a folder whose grant is gone is deliberate** in the
+  code on both platforms, and the spec says "unauthorized". The spec or the code must move,
+  and that is a change for the owner to propose.
+- **The six worktrees of 2026-09-12 hold uncommitted work, and all six are worth landing.**
+  Worktree 1 still carries five mutated lines that fail nine Android tests. The list names
+  what each one needs.
+
 ## The count
 
 **Re-counted on 2026-09-12, and this time every scenario carries a verdict.** The seventeen

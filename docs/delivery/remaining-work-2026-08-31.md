@@ -1,5 +1,10 @@
 # What is left, and what a device or a server would settle
 
+> **Superseded on 2026-09-28** by [`remaining-work-2026-09-28.md`](remaining-work-2026-09-28.md)
+> as the work list. Each agent of that audit verified this file's items for its capability
+> against the source, and carried or closed each one. This file stays as the record of the
+> 2026-08-31 audit.
+
 **Date:** 2026-08-31. **Method:** three independent audits read the whole of
 [`STATUS.md`](../openspec/STATUS.md) and every open task in `docs/openspec/changes/`
 against the app source on both platforms, with `path:line` evidence. Written because the
