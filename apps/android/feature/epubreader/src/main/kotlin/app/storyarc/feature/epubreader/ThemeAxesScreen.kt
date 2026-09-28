@@ -577,19 +577,26 @@ private fun FineAxes(
                     // heading beside it is a sibling node, so a screen reader landing
                     // on the slider would otherwise announce a bare percentage of a
                     // range and never say which axis it belongs to.
-                    modifier = Modifier.semantics {
-                        contentDescription = name
-                        stateDescription = spoken
-                        // The reset, without the gesture. TalkBack, Switch Access and a
-                        // keyboard cannot long-press, and `native-experience` requires a
-                        // control to announce what it does.
-                        customActions = listOf(
-                            CustomAccessibilityAction(resetName) {
-                                resetAxis(preset, axis, onSet)
-                                true
-                            },
-                        )
-                    },
+                    modifier = Modifier
+                        // The gesture the spec names, on the slider itself. See
+                        // `detectAxisResetGesture` for why this needs its own
+                        // `Initial`-pass detector rather than `detectTapGestures`.
+                        .pointerInput(axis, preset) {
+                            detectAxisResetGesture { resetAxis(preset, axis, onSet) }
+                        }
+                        .semantics {
+                            contentDescription = name
+                            stateDescription = spoken
+                            // The reset, without the gesture. TalkBack, Switch Access and a
+                            // keyboard cannot long-press, and `native-experience` requires a
+                            // control to announce what it does.
+                            customActions = listOf(
+                                CustomAccessibilityAction(resetName) {
+                                    resetAxis(preset, axis, onSet)
+                                    true
+                                },
+                            )
+                        },
                 )
             }
         }

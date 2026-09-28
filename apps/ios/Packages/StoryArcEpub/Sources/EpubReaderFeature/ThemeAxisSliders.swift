@@ -114,6 +114,14 @@ extension ThemeAxesSheet {
                                     Self.reset(axis, on: model)
                                 }
                         )
+                        // The other gesture the same sentence names. A `TapGesture` does
+                        // not sequence a drag after it the way the long press above does,
+                        // because a double tap has already lifted twice before it is
+                        // recognised — there is no thumb left under the finger for a
+                        // third drag to steal.
+                        .simultaneousGesture(
+                            TapGesture(count: 2).onEnded { Self.reset(axis, on: model) }
+                        )
                         // The same reset, without the gesture. `native-experience`
                         // requires a control to announce what it does, and VoiceOver,
                         // Switch Control and a keyboard cannot long-press.

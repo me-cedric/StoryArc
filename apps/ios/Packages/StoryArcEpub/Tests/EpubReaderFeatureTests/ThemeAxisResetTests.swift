@@ -220,6 +220,21 @@ struct ThemeAxisResetTests {
         )
     }
 
+    @Test("A double tap on the slider resets it too")
+    func theGestureIsAlsoADoubleTap() throws {
+        let sliders = try Self.source("ThemeAxisSliders.swift")
+
+        #expect(
+            sliders.contains("TapGesture(count: 2)") &&
+                sliders.contains("TapGesture(count: 2).onEnded { Self.reset(axis, on: model) }"),
+            """
+            No double tap is attached to the axis slider, or it no longer calls the same \
+            reset the long press does. `reading-themes` asks for "a long press or a \
+            double tap", and D35 asks for both through the one reset path.
+            """
+        )
+    }
+
     @Test("An accessibility action performs the same reset, named from the catalogue")
     func theActionIsReachableWithoutTheGesture() throws {
         let sliders = try Self.source("ThemeAxisSliders.swift")
