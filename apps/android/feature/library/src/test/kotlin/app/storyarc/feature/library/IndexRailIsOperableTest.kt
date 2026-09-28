@@ -2,10 +2,13 @@ package app.storyarc.feature.library
 
 import android.content.Context
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import org.junit.Assert.assertEquals
@@ -71,5 +74,33 @@ class IndexRailIsOperableTest {
         compose.setContent { StoryArcTheme { IndexRail(entries = emptyList(), onChoose = {}) } }
 
         assertEquals(0, compose.onAllNodes(hasClickAction()).fetchSemanticsNodes().size)
+    }
+
+    /**
+     * Task 21.1: a shelf spanning every letter asks for up to 27 fixed 24 dp entries -- 648 dp,
+     * taller than the 100 dp this window offers here and taller than a phone's own landscape
+     * height on the device the field report came from. Before the rail could scroll, entries
+     * past the window's edge were not merely off screen -- `Arrangement.Center` inside a
+     * `fillMaxHeight` column with no overflow answer left some of them placed with no size at
+     * all, an unreachable rail rather than a merely cramped one.
+     */
+    @Config(sdk = [34], qualifiers = "w891dp-h180dp")
+    @Test
+    fun `every entry is reachable when the rail is taller than its window`() {
+        val alphabet = ('A'..'Z').map { RailEntry(it.toString(), it.toString()) }
+
+        compose.setContent {
+            StoryArcTheme {
+                IndexRail(entries = alphabet, onChoose = {})
+            }
+        }
+
+        val last = compose.onNodeWithContentDescription(string(R.string.library_index_jump, "Z"))
+
+        // Off the short window until the rail is asked to bring it into view -- which only
+        // means something when there is a scrollable ancestor to answer it.
+        last.assertIsNotDisplayed()
+        last.performScrollTo()
+        last.assertIsDisplayed().assertHasClickAction()
     }
 }
