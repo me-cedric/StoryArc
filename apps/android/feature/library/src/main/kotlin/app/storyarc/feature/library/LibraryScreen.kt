@@ -501,13 +501,13 @@ fun LibraryScreen(
                     onLayoutChange = viewModel::setLayout,
                     // One action, everything it undoes. The library filter and the download
                     // group are cleared with the rest of them, so there is no state a reader
-                    // can be left in without noticing.
+                    // can be left in without noticing. [LibraryNarrowing] decides what "all
+                    // of them" means, and the badge beside this button counts the same value.
                     onClearFilters = {
-                        chooseAvailability(LibraryAvailability.EVERYTHING)
-                        chooseDownloads(DownloadFilter.EITHER)
-                        viewModel.setQuery(
-                            query.withoutFilters().copy(scope = LibraryScope.AllSources),
-                        )
+                        val cleared = LibraryNarrowing(query, downloads, availability).cleared()
+                        chooseAvailability(cleared.availability)
+                        chooseDownloads(cleared.downloads)
+                        viewModel.setQuery(cleared.query)
                     },
                     viewModel = viewModel,
                 )
@@ -563,14 +563,14 @@ fun LibraryScreen(
                                     visible.isNotEmpty(),
                                 // Everything this button claims to undo, the download group
                                 // included. One that left a facet set would leave the shelf
-                                // as empty as it found it.
+                                // as empty as it found it. The search goes too, because the
+                                // term is one of the four ways to arrive at this state.
                                 onClear = {
-                                    chooseAvailability(LibraryAvailability.EVERYTHING)
-                                    chooseDownloads(DownloadFilter.EITHER)
-                                    viewModel.setQuery(
-                                        query.withoutFilters()
-                                            .copy(search = "", scope = LibraryScope.AllSources),
-                                    )
+                                    val cleared = LibraryNarrowing(query, downloads, availability)
+                                        .cleared(includingSearch = true)
+                                    chooseAvailability(cleared.availability)
+                                    chooseDownloads(cleared.downloads)
+                                    viewModel.setQuery(cleared.query)
                                 },
                                 // Offered only when the axis is what is hiding things.
                                 onWiden = if (availability.isNarrowing) {

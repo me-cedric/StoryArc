@@ -89,7 +89,7 @@ internal fun FilterChipMenu(
 ) {
     var open by remember { mutableStateOf(false) }
     var section by remember { mutableStateOf<FilterSection?>(null) }
-    val active = narrowingCount(query, downloads)
+    val active = LibraryNarrowing(query, downloads).activeCount
 
     // The chip and its menu are one item of [LibraryControls]'s wrapping row, not two. A
     // `DropdownMenu` is a popup and measures as nothing, but it still takes a slot -- and a
@@ -162,20 +162,6 @@ internal fun FilterChipMenu(
     }
 }
 
-/**
- * How much of the view the reader has narrowed, the library filter and the download group
- * included.
- *
- * `LibraryQuery.activeFilterCount` counts the seven facets it holds and cannot count the
- * other two, which are fields beside it rather than in it. Counted here so the badge matches
- * what "Clear filters" undoes — a chip reading "2 filters active" that clears three things is
- * a chip nobody trusts twice.
- */
-private fun narrowingCount(query: LibraryQuery, downloads: DownloadFilter): Int =
-    query.activeFilterCount +
-        (if (query.scope == LibraryScope.AllSources) 0 else 1) +
-        (if (downloads.isActive) 1 else 0)
-
 /** The groups themselves, each one worth opening only if the library has values for it. */
 @Composable
 private fun SectionList(
@@ -198,7 +184,7 @@ private fun SectionList(
             )
         }
     }
-    if (narrowingCount(query, downloads) > 0) {
+    if (LibraryNarrowing(query, downloads).isActive) {
         HorizontalDivider()
         DropdownMenuItem(
             text = { Text(stringResource(R.string.library_filter_clear)) },

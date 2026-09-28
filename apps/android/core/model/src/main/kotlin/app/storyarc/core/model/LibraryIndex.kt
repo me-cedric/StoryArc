@@ -55,10 +55,23 @@ object LibraryIndex {
         val term = query.search.trim().lowercase(locale)
         val collator = Collator.getInstance(locale).apply { strength = Collator.SECONDARY }
 
-        // Narrowed to the scope before anything else is asked. `library-browsing`: with a
-        // single source selected "the view, its search, and its filters apply to that source
-        // alone", so nothing outside it should ever reach a filter to be judged.
-        val kept = inScope(publications, query.scope).filter { publication ->
+        // Narrowed to the by-library filter **only while nothing is being searched for**.
+        //
+        // This used to narrow unconditionally, quoting `library-browsing`'s old *Scoping to
+        // one source*: "the view, its search, and its filters apply to that source alone".
+        // `one-library-three-destinations` replaced that sentence. Narrowing to one library is
+        // a filter now rather than a scope the view is in, and the requirement says what it
+        // may reach: it "narrows what the shelf lists and nothing else -- **search still
+        // covers the whole library**".
+        //
+        // So the filter applies to the listing and stands down for a query. That is what makes
+        // search a destination rather than a view of the shelf: a reader who narrowed the
+        // shelf to one library yesterday and searches for a title today is asking the library
+        // a question, not asking that one library. [grouped] inherits this by deriving from
+        // here, which is why the rule lives in one place. iOS's `LibraryIndex.arrange` carries
+        // the same line and the same reason.
+        val searchable = if (term.isEmpty()) inScope(publications, query.scope) else publications
+        val kept = searchable.filter { publication ->
             keeps(publication, query, progress(publication).state) &&
                 (term.isEmpty() || rank(publication, term, locale) != null)
         }
