@@ -62,4 +62,27 @@ class ReadingDefaultsChoosingTest {
             updated.theme.isModified,
         )
     }
+
+    @Test
+    fun `a matte swatch works over a comic default stored as Original`() {
+        val updated = matting("#E8EFE6", ReadingTheme(ThemePreset.ORIGINAL))
+
+        assertEquals(
+            "The matte did nothing over a comic default stored as Original. Original refuses" +
+                " every palette, and the comic reader reads only the matte. `reading-themes`," +
+                " *Separate defaults for reflowable and fixed-layout*.",
+            "#E8EFE6",
+            updated.custom?.background,
+        )
+    }
+
+    @Test
+    fun `no matte removes the colour and keeps the preset`() {
+        val matted = matting("#E8EFE6", ReadingTheme(ThemePreset.CALM))
+
+        val cleared = matting(null, matted)
+
+        assertEquals(ThemePreset.CALM, cleared.preset)
+        assertEquals("The no-matte swatch left a colour in force.", null, cleared.custom)
+    }
 }

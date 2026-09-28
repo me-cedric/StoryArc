@@ -151,15 +151,8 @@ struct ReadingDefaults: View {
     }
 
     private func chooseMatte(_ hex: String?) {
-        let existing = memory.default(for: .fixedLayout)
-        var updatedTheme = existing.theme
-        if let hex {
-            updatedTheme = updatedTheme.adopting(ReaderPalette.derived(name: hex, background: hex))
-        } else {
-            updatedTheme = updatedTheme.discardingCustomColours()
-        }
-        var stored = existing
-        stored.theme = updatedTheme
+        var stored = memory.default(for: .fixedLayout)
+        stored.theme = Self.matting(hex, over: stored.theme)
         let updated = store.themes().settingDefault(stored, for: .fixedLayout)
         store.save(updated)
         memory = updated
@@ -170,6 +163,17 @@ struct ReadingDefaults: View {
         let updated = store.themes().settingDefault(stored, for: scope)
         store.save(updated)
         memory = updated
+    }
+
+    /// The comic default's theme with the matte `hex` in force, or with no matte.
+    ///
+    /// The comic reader reads only the matte. A comic default stored as Original, from
+    /// before this scope lost its preset picker, refuses every palette, so the matte goes
+    /// over the built-in preset instead.
+    static func matting(_ hex: String?, over theme: ReadingTheme) -> ReadingTheme {
+        guard let hex else { return theme.discardingCustomColours() }
+        let base = theme.preset.keepsPublisherStyles ? ReadingTheme(preset: .paper) : theme
+        return base.adopting(ReaderPalette.derived(name: hex, background: hex))
     }
 
     /// The preset and its typography, kept beside the rest of the stored default.

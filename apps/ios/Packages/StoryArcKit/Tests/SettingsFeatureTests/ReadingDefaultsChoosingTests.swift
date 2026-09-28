@@ -46,4 +46,27 @@ struct ReadingDefaultsChoosingTests {
             "The new preset must start clean: `ReadingTheme(preset:)` is what `adopting` uses too."
         )
     }
+
+    @Test("A matte swatch works over a comic default stored as Original")
+    func theMatteWorksOverOriginal() {
+        let updated = ReadingDefaults.matting("#E8EFE6", over: ReadingTheme(preset: .original))
+
+        #expect(
+            updated.custom?.background == "#E8EFE6",
+            """
+            The matte did nothing over a comic default stored as Original. Original refuses \
+            every palette, and the comic reader reads only the matte.
+            """
+        )
+    }
+
+    @Test("No matte removes the colour and keeps the preset")
+    func noMatteClearsTheColour() {
+        let matted = ReadingDefaults.matting("#E8EFE6", over: ReadingTheme(preset: .calm))
+
+        let cleared = ReadingDefaults.matting(nil, over: matted)
+
+        #expect(cleared.preset == .calm)
+        #expect(cleared.custom == nil, "The no-matte swatch left a colour in force.")
+    }
 }
