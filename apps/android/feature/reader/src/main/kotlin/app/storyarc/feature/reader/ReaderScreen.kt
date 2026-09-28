@@ -757,7 +757,7 @@ private fun Pager(
     fun SinglePage(index: Int, stitch: ScrollAxis?, onTap: (Offset, IntSize) -> Unit) {
         // The zoom-resolution copy when one is held, the display one otherwise.
         val bitmap = viewModel.displayImage(index)
-        val trims = adjustments.cropsBorders && index !in uncropped
+        val trims = adjustments.trimmingBorders(index !in uncropped).cropsBorders
         when {
             bitmap != null -> ZoomablePage(
                 // Cropped before it becomes an `ImageBitmap`: the trim changes the page's
@@ -931,7 +931,7 @@ private fun Pager(
                                 // `comic-reader` asks for the separator *between* pages, so the
                                 // first page does not get one — a band above page one is a
                                 // margin, not a separator.
-                                if (settings.showsPageSeparator && index > 0) {
+                                if (settings.showsSeparator(aboveIndex = index)) {
                                     PageSeparator(ScrollAxis.VERTICAL, matte)
                                 }
                                 Page(index, stitch = ScrollAxis.VERTICAL)
@@ -940,7 +940,7 @@ private fun Pager(
                     } else {
                         LazyRow(state = paging.state, modifier = keyboard) {
                             items(slotCount) { index ->
-                                if (settings.showsPageSeparator && index > 0) {
+                                if (settings.showsSeparator(aboveIndex = index)) {
                                     PageSeparator(ScrollAxis.HORIZONTAL, matte)
                                 }
                                 Page(index, stitch = ScrollAxis.HORIZONTAL)
