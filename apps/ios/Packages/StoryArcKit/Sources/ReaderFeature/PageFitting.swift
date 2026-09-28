@@ -92,3 +92,16 @@ func fitted(_ imageSize: CGSize, in viewport: CGSize) -> CGSize {
     let scale = min(viewport.width / imageSize.width, viewport.height / imageSize.height)
     return CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
 }
+
+/// Whether a double-tap should zoom back to the fit scale, rather than in from it.
+///
+/// `comic-reader`: "double-tap toggles between fit and a zoomed level centred on the
+/// tapped point". Decision D5: "fit" is the chosen fit mode's own scale, not a fixed
+/// minimum — fit-to-width and fit-to-height are each greater than 1, and comparing
+/// against a fixed 1 zoomed a page that was already at its chosen fit in further on
+/// the first tap instead of the second. The tolerance absorbs the rounding a scroll
+/// view's own zoom scale carries, which an exact comparison would read as "past fit"
+/// forever.
+func isZoomedPastFit(currentScale: CGFloat, fitScale: CGFloat) -> Bool {
+    currentScale > fitScale * 1.01
+}
