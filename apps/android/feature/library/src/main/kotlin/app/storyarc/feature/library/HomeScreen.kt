@@ -1,7 +1,9 @@
 package app.storyarc.feature.library
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -147,6 +149,18 @@ fun HomeScreen(
     onOpenShelf: (HomeShelfSummary) -> Unit = {},
     /** Either shelves heading was chosen: the screen that lists every collection and list. */
     onShowAllShelves: () -> Unit = {},
+    /**
+     * A cover in one of the plain shelves (up next, a pin, finished) was held.
+     *
+     * `library-browsing`'s *A publication's actions wherever it is drawn* names the home
+     * surface as one of the places the long press did nothing. The sheet itself needs a
+     * source -- the app layer's own secrets, a view model -- which `home-screen` forbids
+     * this screen from holding, so the caller is handed the publication and does the rest,
+     * the way [serverArtwork] already answers a question this screen cannot. Not offered on
+     * the Keep reading hero: that card already carries Resume and Finish as its own two
+     * affordances, and a third one buried in a long press is not what a hero is for.
+     */
+    onLongPress: (Publication) -> Unit = {},
 ) {
     val palette = LocalStoryArcPalette.current
     // The flexible bar, not the small one all twelve of the app's other bars use. Its large
@@ -225,6 +239,7 @@ fun HomeScreen(
                 cover = cover,
                 onOpen = onOpen,
                 onShowAll = onShowAll,
+                onLongPress = onLongPress,
             )
 
             shelf(
@@ -234,6 +249,7 @@ fun HomeScreen(
                 cover = cover,
                 onOpen = onOpen,
                 onShowAll = onShowAll,
+                onLongPress = onLongPress,
             )
 
             // The index before the expansions: these two name every shelf the reader has, and
@@ -257,9 +273,9 @@ fun HomeScreen(
                 onShowAll = onShowAllShelves,
             )
 
-            pinnedShelves(surface, cover, onOpen)
+            pinnedShelves(surface, cover, onOpen, onLongPress)
 
-            finished(surface, cover, onOpen, onShowAll)
+            finished(surface, cover, onOpen, onShowAll, onLongPress)
         }
     }
 }
@@ -372,10 +388,11 @@ private fun LazyListScope.shelf(
     cover: suspend (Publication, Int) -> Bitmap?,
     onOpen: (Publication) -> Unit,
     onShowAll: (HomeSection) -> Unit,
+    onLongPress: (Publication) -> Unit = {},
 ) {
     if (entries.isEmpty()) return
     item { HomeHeading(heading) { onShowAll(section) } }
-    item { HomeCoverRun(entries = entries, cover = cover, onOpen = onOpen) }
+    item { HomeCoverRun(entries = entries, cover = cover, onOpen = onOpen, onLongPress = onLongPress) }
 }
 
 /**
@@ -398,12 +415,13 @@ private fun LazyListScope.pinnedShelves(
     surface: HomeSurface,
     cover: suspend (Publication, Int) -> Bitmap?,
     onOpen: (Publication) -> Unit,
+    onLongPress: (Publication) -> Unit = {},
 ) {
     surface.pinned.forEach { shelf ->
         item(key = "pinned-${shelf.pin.token}") {
             Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
                 HomeShelfName(shelf.name)
-                HomeCoverRun(entries = shelf.entries, cover = cover, onOpen = onOpen)
+                HomeCoverRun(entries = shelf.entries, cover = cover, onOpen = onOpen, onLongPress = onLongPress)
             }
         }
     }
@@ -441,6 +459,7 @@ private fun LazyListScope.finished(
     cover: suspend (Publication, Int) -> Bitmap?,
     onOpen: (Publication) -> Unit,
     onShowAll: (HomeSection) -> Unit,
+    onLongPress: (Publication) -> Unit = {},
 ) {
     if (surface.finished.isEmpty()) return
     item { HomeHeading(R.string.home_finished) { onShowAll(HomeSection.FINISHED) } }
@@ -448,7 +467,7 @@ private fun LazyListScope.finished(
         item(key = "finished-${group.period}") {
             Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
                 HomePeriodLabel(group.period)
-                HomeCoverRun(entries = group.entries, cover = cover, onOpen = onOpen)
+                HomeCoverRun(entries = group.entries, cover = cover, onOpen = onOpen, onLongPress = onLongPress)
             }
         }
     }
@@ -507,11 +526,13 @@ private fun HomePeriodLabel(period: HomeFinishedPeriod) {
 }
 
 /** A run of covers at the size the window can afford. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HomeCoverRun(
     entries: List<HomeEntry>,
     cover: suspend (Publication, Int) -> Bitmap?,
     onOpen: (Publication) -> Unit,
+    onLongPress: (Publication) -> Unit = {},
 ) {
     val width = homeShelfCoverWidth(homeWindowWidthDp(), LocalDensity.current.fontScale)
     LazyRow(
@@ -526,7 +547,14 @@ private fun HomeCoverRun(
                 cover = cover,
                 width = width,
                 modifier = Modifier
-                    .clickable { onOpen(entry.publication) }
+                    // `library-browsing`'s *A publication's actions wherever it is drawn*:
+                    // the owner's field report on v0.1.1 named "only the library grid",
+                    // and the home surface's plain shelves were one of the places it was
+                    // entirely missing.
+                    .combinedClickable(
+                        onClick = { onOpen(entry.publication) },
+                        onLongClick = { onLongPress(entry.publication) },
+                    )
                     .homeCardSemantics(entry, label),
             )
         }

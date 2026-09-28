@@ -196,11 +196,10 @@ struct DetailActions: View {
 
     /// Whether there is anything here a copy could be made of.
     ///
-    /// A folder of images is already on the device and has no single file to copy, which is
-    /// why ``LibraryModel/keepOffline(_:)`` skips it — offering the action anyway would be a
-    /// button that reports success and changes nothing.
+    /// ``PublicationActions/canDownload(_:)`` — moved out so ``PublicationActionMenu`` can
+    /// ask the identical question rather than a second copy of it.
     private var canCopy: Bool {
-        publication.isOpenable && publication.format != .imageFolder
+        PublicationActions.canDownload(publication)
     }
 
     private func copy() {

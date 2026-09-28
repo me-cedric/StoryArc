@@ -131,6 +131,10 @@ private struct HomeShelfCard: View {
     let model: LibraryModel
     let width: CGFloat
 
+    /// The server whose list just refused this publication, if one did.
+    @State private var refusedServer: String?
+    @State private var restarting: Publication?
+
     private var isReadable: Bool { model.isReadableNow(publication) }
     private var isFinished: Bool { model.isFinished(of: publication) }
 
@@ -167,6 +171,19 @@ private struct HomeShelfCard: View {
             )
         )
         .accessibilityAddTraits(isReadable ? .isButton : [])
+        // `library-browsing`'s *A publication's actions wherever it is drawn*: the owner's
+        // field report on v0.1.1 named the defect as offered "only in the library grid", and
+        // the home surface was one of the places it was entirely missing.
+        .contextMenu {
+            PublicationActionMenu(
+                model: model,
+                publication: publication,
+                onRefused: { refusedServer = $0 },
+                onRestart: { restarting = publication }
+            )
+        }
+        .restartConfirmation($restarting, model: model)
+        .refusedByServer($refusedServer, model: model, publication: publication)
     }
 
     private var card: some View {

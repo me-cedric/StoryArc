@@ -19,6 +19,8 @@
     <string name="source_offline_retry">Erneut versuchen</string>
     <string name="source_state_unauthorized">Anmeldung erforderlich</string>
     <string name="library_cell_cannot_open">Kann nicht geöffnet werden</string>
+    <string name="library_action_show_details">Details anzeigen</string>
+    <string name="library_action_remove_from_shelf">Von diesem Regal entfernen</string>
     <string name="library_cell_finished">Gelesen</string>
     <string name="library_cell_unavailable">Die zugehörige Bibliothek muss erreichbar sein</string>
     <string name="library_section_other">Weitere</string>

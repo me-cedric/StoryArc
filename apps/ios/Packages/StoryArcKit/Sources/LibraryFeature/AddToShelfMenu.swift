@@ -192,7 +192,10 @@ extension View {
     func refusedByServer(
         _ server: Binding<String?>,
         model: LibraryModel,
-        publication: Publication
+        /// `nil` where the row this refusal came from names no publication a local list
+        /// could hold — a reading-list entry the library no longer has, say. The alert
+        /// still names the server; only the local-list offer has nothing to act on.
+        publication: Publication?
     ) -> some View {
         alert(
             Text("shelves.serverOnly.title", bundle: .module),
@@ -201,15 +204,17 @@ extension View {
                 set: { if !$0 { server.wrappedValue = nil } }
             )
         ) {
-            Button {
-                // The offer the spec asks for: a local list can hold anything.
-                model.create(list: publication.displayTitle)
-                if let made = model.shelves.lists.last {
-                    model.append([publication.id], toList: made.id)
+            if let publication {
+                Button {
+                    // The offer the spec asks for: a local list can hold anything.
+                    model.create(list: publication.displayTitle)
+                    if let made = model.shelves.lists.last {
+                        model.append([publication.id], toList: made.id)
+                    }
+                    server.wrappedValue = nil
+                } label: {
+                    Text("shelves.serverOnly.local", bundle: .module)
                 }
-                server.wrappedValue = nil
-            } label: {
-                Text("shelves.serverOnly.local", bundle: .module)
             }
             Button(role: .cancel) { server.wrappedValue = nil } label: {
                 Text("shelves.cancel", bundle: .module)

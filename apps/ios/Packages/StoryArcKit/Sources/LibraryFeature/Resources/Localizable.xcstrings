@@ -11796,6 +11796,66 @@
           }
         }
       }
+    },
+    "library.action.showDetails": {
+      "comment": "One of the six actions library-browsing's \"A publication's actions wherever it is drawn\" requires on every menu: opens the publication's own page, the same route its cover already takes on a tap.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Details anzeigen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show details"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar detalles"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher les détails"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "library.action.removeFromShelf": {
+      "comment": "One of the six actions, offered only when the menu was opened on a shelf, a collection or a reading list the reader owns.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Von diesem Regal entfernen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove from this shelf"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar de esta estantería"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer de cette étagère"
+          }
+        }
+      },
+      "extractionState": "manual"
     }
   },
   "version": "1.0"

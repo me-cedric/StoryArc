@@ -66,6 +66,18 @@ fun AddToShelfSheet(
      * the caller's business, not the sheet's.
      */
     onRestart: (() -> Unit)? = null,
+    /**
+     * Removes the publication from the shelf this sheet was opened on. Null where the sheet
+     * was not opened from inside a shelf, a collection or a reading list the reader owns --
+     * `library-browsing`'s *A publication's actions wherever it is drawn* offers this "only
+     * where there is one".
+     */
+    onRemoveFromShelf: (() -> Unit)? = null,
+    /**
+     * Opens the publication's own page -- the same route its cover's own tap already takes.
+     * Null only where the caller has nowhere to send it, which nothing in this app does.
+     */
+    onShowDetails: (() -> Unit)? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     val shelves by viewModel.shelves.collectAsStateWithLifecycle()
@@ -139,6 +151,45 @@ fun AddToShelfSheet(
                     enabled = true,
                 ) {
                     onRestart()
+                    onDismiss()
+                }
+            }
+
+            // Download or remove the download: single-publication actions, the way
+            // [RestartOffer] above already is. A bulk long press has its own
+            // [BulkDownloadPrompt], which asks a different question -- how many of a
+            // selection, not whether one already is.
+            if (alone != null) {
+                when (DownloadOffer.of(alone, isKept = viewModel.isOnDevice(alone))) {
+                    DownloadOffer.Download -> Row(
+                        name = stringResource(R.string.catalogue_acquire_download),
+                        isMember = false,
+                        enabled = true,
+                    ) {
+                        scope.launch { viewModel.keepOffline(setOf(alone.id)) }
+                        onDismiss()
+                    }
+
+                    DownloadOffer.Remove -> Row(
+                        name = stringResource(R.string.downloads_remove),
+                        isMember = false,
+                        enabled = true,
+                    ) {
+                        viewModel.forgetKept(setOf(alone.id))
+                        onDismiss()
+                    }
+
+                    DownloadOffer.None -> {}
+                }
+            }
+
+            if (onRemoveFromShelf != null) {
+                Row(
+                    name = stringResource(R.string.library_action_remove_from_shelf),
+                    isMember = false,
+                    enabled = true,
+                ) {
+                    onRemoveFromShelf()
                     onDismiss()
                 }
             }
@@ -238,6 +289,17 @@ fun AddToShelfSheet(
                             }
                         }
                     }
+                }
+            }
+
+            if (onShowDetails != null) {
+                Row(
+                    name = stringResource(R.string.library_action_show_details),
+                    isMember = false,
+                    enabled = true,
+                ) {
+                    onShowDetails()
+                    onDismiss()
                 }
             }
         }
