@@ -16,8 +16,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
@@ -28,6 +31,7 @@ import androidx.compose.ui.unit.Dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.RememberedShelf
 
 /**
  * One of the home surface's two shelves of shelves.
@@ -49,13 +53,14 @@ internal fun LazyListScope.homeShelvesShelf(
     heading: Int,
     summaries: List<HomeShelfSummary>,
     cover: suspend (Publication, Int) -> Bitmap?,
+    serverArtwork: suspend (RememberedShelf) -> HomeShelfArtworkOutcome,
     onOpenShelf: (HomeShelfSummary) -> Unit,
     onShowAll: () -> Unit,
 ) {
     if (summaries.isEmpty()) return
     item(key = "shelves-heading-$heading") { HomeHeading(heading, onShowAll) }
     item(key = "shelves-run-$heading") {
-        HomeShelfRun(summaries = summaries, cover = cover, onOpenShelf = onOpenShelf)
+        HomeShelfRun(summaries = summaries, cover = cover, serverArtwork = serverArtwork, onOpenShelf = onOpenShelf)
     }
 }
 
@@ -64,6 +69,7 @@ internal fun LazyListScope.homeShelvesShelf(
 private fun HomeShelfRun(
     summaries: List<HomeShelfSummary>,
     cover: suspend (Publication, Int) -> Bitmap?,
+    serverArtwork: suspend (RememberedShelf) -> HomeShelfArtworkOutcome,
     onOpenShelf: (HomeShelfSummary) -> Unit,
 ) {
     // The shelves screen's own floor, not a cover cell's: a shelf is a composite of four
@@ -79,6 +85,7 @@ private fun HomeShelfRun(
             HomeShelfLink(
                 summary = summary,
                 cover = cover,
+                serverArtwork = serverArtwork,
                 width = width,
                 modifier = Modifier
                     .width(width)
@@ -102,6 +109,7 @@ private fun HomeShelfRun(
 private fun HomeShelfLink(
     summary: HomeShelfSummary,
     cover: suspend (Publication, Int) -> Bitmap?,
+    serverArtwork: suspend (RememberedShelf) -> HomeShelfArtworkOutcome,
     width: Dp,
     modifier: Modifier = Modifier,
 ) {
@@ -115,7 +123,12 @@ private fun HomeShelfLink(
         },
     ) {
         Box {
-            HomeShelfArtwork(tiles = summary.tiles, cover = cover, width = width, name = summary.name)
+            HomeShelfArtwork(
+                summary = summary,
+                cover = cover,
+                serverArtwork = serverArtwork,
+                width = width,
+            )
             summary.fraction?.let { ShelfProgressRail(it) }
         }
         Column(modifier = Modifier.padding(top = StoryArcSpace.sm)) {
@@ -142,31 +155,52 @@ private fun HomeShelfLink(
 /**
  * A shelf's artwork, resolved through the home surface's own cover loader.
  *
- * [ShelfComposite] decides what the frame holds; this only fetches. A shelf a server defined
- * has no local members, so it has no tiles and the composite draws the placeholder a
- * publication with no cover draws -- which is the case this surface meets most. A folder glyph
- * was the alternative and is still refused: a shelf is a cover, not a file manager.
+ * [ShelfComposite] decides what the frame holds; this only fetches. A shelf the reader made
+ * has local members, and its tiles are already the publications to ask the library's own
+ * `cover` for -- the same request the library shelf and the list already make.
+ *
+ * **A shelf a server defined is the other branch, and it used to be the only one this
+ * function had.** The owner's field report on v0.1.1: those cards showed a title and nothing
+ * else, because [HomeShelfSummary.tiles] is always empty for one -- `home-screen` forbids
+ * this surface from reaching a source on its own, so nothing had ever asked. [serverArtwork]
+ * is the one door left open for exactly this: supplied by the app layer, which already knows
+ * a source exists (see `HomeDestination`), so this composable still never builds a client
+ * itself.
  */
 @Composable
 private fun HomeShelfArtwork(
-    tiles: List<Publication>,
+    summary: HomeShelfSummary,
     cover: suspend (Publication, Int) -> Bitmap?,
+    serverArtwork: suspend (RememberedShelf) -> HomeShelfArtworkOutcome,
     width: Dp,
-    /** The shelf's name, which the placeholder carries when there is no artwork to draw. */
-    name: String,
 ) {
     val density = LocalDensity.current
     val maxPixelSize = remember(density, width) { with(density) { width.roundToPx() } }
     val covers = remember { mutableStateMapOf<String, Bitmap>() }
+    val serverShelf = (summary.destination as? HomeShelfDestination.OnServer)?.shelf
 
-    LaunchedEffect(tiles) {
-        for (publication in tiles) {
-            if (covers.containsKey(publication.id)) continue
-            cover(publication, maxPixelSize)?.let { covers[publication.id] = it }
+    if (serverShelf != null && summary.tiles.isEmpty()) {
+        var plan by remember(serverShelf) { mutableStateOf<HomeShelfCoverPlan>(HomeShelfCoverPlan.Blank) }
+        LaunchedEffect(serverShelf) {
+            val outcome = serverArtwork(serverShelf)
+            covers.putAll(outcome.covers)
+            plan = outcome.plan
         }
+        val tiles = when (val resolved = plan) {
+            is HomeShelfCoverPlan.Sole -> listOf(HOME_SHELF_SOLE_COVER_KEY)
+            is HomeShelfCoverPlan.Composite -> resolved.ids
+            HomeShelfCoverPlan.Blank -> emptyList()
+        }
+        ShelfComposite(tiles = tiles, covers = covers, name = summary.name)
+    } else {
+        LaunchedEffect(summary.tiles) {
+            for (publication in summary.tiles) {
+                if (covers.containsKey(publication.id)) continue
+                cover(publication, maxPixelSize)?.let { covers[publication.id] = it }
+            }
+        }
+        ShelfComposite(tiles = summary.tiles.map { it.id }, covers = covers, name = summary.name)
     }
-
-    ShelfComposite(tiles = tiles.map { it.id }, covers = covers, name = name)
 }
 
 /**
