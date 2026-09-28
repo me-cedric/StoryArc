@@ -831,13 +831,16 @@ private fun Pager(
             else -> Box(
                 modifier = Modifier
                     .then(
+                        // The nearest decoded page's own ratio, not a flat comic-page
+                        // guess — a webtoon strip is many times taller than wide. See
+                        // `PagePlaceholder`.
                         when (stitch) {
                             ScrollAxis.VERTICAL -> Modifier
                                 .fillMaxWidth()
-                                .aspectRatio(PAGE_RATIO)
+                                .aspectRatio(PagePlaceholder.ratio(index, viewModel.decodedRatios()))
                             ScrollAxis.HORIZONTAL -> Modifier
                                 .fillMaxHeight()
-                                .aspectRatio(PAGE_RATIO)
+                                .aspectRatio(PagePlaceholder.ratio(index, viewModel.decodedRatios()))
                             null -> Modifier.fillMaxSize()
                         },
                     )
@@ -1842,15 +1845,6 @@ internal fun readingOrderStep(step: Int, isRightToLeft: Boolean): Int =
  * mode in its own right, so it must not become the thing it replaces. 140 ms is
  * about the shortest a dissolve can be and still not look like a cut.
  */
-/**
- * A page's shape before it is decoded.
- *
- * Its real proportions are unknown until it is read, and a comic page is close enough
- * to two by three that the difference is not what a reader notices — an item that
- * changed height by a factor of one and a half is.
- */
-private const val PAGE_RATIO = 2f / 3f
-
 /**
  * How long a pinch has to hold still before the page behind it is re-decoded.
  *
