@@ -244,13 +244,9 @@ internal fun IndexRail(
             .padding(end = StoryArcSpace.xs)
             .background(palette.surfaceOverlay, CircleShape)
             .padding(vertical = StoryArcSpace.sm, horizontal = StoryArcSpace.xs)
-            // A shelf spanning every letter asks for up to 27 fixed 24 dp entries -- 648 dp,
-            // taller than most phones are wide, let alone a phone's own landscape height.
-            // `Arrangement.Center` inside a `fillMaxHeight` column has nowhere to put the
-            // overflow: task 21.1 found entries measured at a few dp or nothing at all,
-            // an unreachable rail rather than a merely cramped one, on rotating a shelf this
-            // long into a short window. Scrolling keeps every entry its own legible size and
-            // reachable; nothing above asks for the whole rail to be seen at once.
+            // Scrolls rather than squeezes. A shelf spanning every letter asks for up to 27
+            // fixed 24 dp entries, 648 dp, which is taller than a phone held in landscape, and
+            // a column that cannot scroll measured the last entries at 0 dp.
             .verticalScroll(rememberScrollState())
             .semantics {
                 isTraversalGroup = true
@@ -262,7 +258,7 @@ internal fun IndexRail(
             val label = spoken.getValue(entry.label)
             Box(
                 // A fixed, small target so a shelf holding every letter still fits one
-                // column. The rail is centred rather than stretched, so it clips instead of
+                // column. The rail is centred rather than stretched, and scrolls rather than
                 // pushing the covers about.
                 modifier = Modifier
                     .size(24.dp)
