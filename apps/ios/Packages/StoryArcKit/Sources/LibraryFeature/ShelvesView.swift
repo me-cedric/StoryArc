@@ -356,10 +356,7 @@ public struct ShelvesView: View {
 
     /// What the reader is making, and where it could go.
     private func draft(_ kind: ShelfDraft.Kind) -> ShelfDraft {
-        ShelfDraft(
-            kind: kind,
-            servers: kind == .list ? capable.listCapable : capable.collectionCapable
-        )
+        ShelfDraft(kind, from: capable)
     }
 
     /// Makes the shelf on the server the reader chose, and shows it beside the local ones.

@@ -33,7 +33,7 @@ struct ShelfBulkActions: ViewModifier {
     ///
     /// Worked out on the tap rather than on every redraw: both halves read the download
     /// store off disk, and a computed property would do that on each pass over the screen.
-    @State private var pending: (ids: Set<String>, bytes: Int64)?
+    @State private var pending: BulkDownloadAsk?
 
     func body(content: Content) -> some View {
         content
@@ -129,17 +129,17 @@ struct ShelfBulkActions: ViewModifier {
     /// above it for every reader who has no online library at all.
     @ViewBuilder
     private var promote: some View {
-        if let promoting, promoting.origin == .local {
+        if let offer = PromoteOffer.of(promoting, servers: model.listCapableServers) {
             Section {
                 Button {
                     isPromoting = true
                 } label: {
-                    promoteLabel
-                    if model.listCapableServers.isEmpty {
+                    promoteLabel(offer)
+                    if offer.statesWhyNot {
                         Text("shelves.promote.unavailable", bundle: .module)
                     }
                 }
-                .disabled(model.listCapableServers.isEmpty)
+                .disabled(!offer.isEnabled)
             }
         }
     }
@@ -151,9 +151,9 @@ struct ShelfBulkActions: ViewModifier {
     /// announcing itself. With two or more the generic wording is the honest one, because
     /// the choice is the next screen's.
     @ViewBuilder
-    private var promoteLabel: some View {
-        if model.listCapableServers.count == 1, let only = model.listCapableServers.first {
-            Text("shelves.promote.named \(only.title)", bundle: .module)
+    private func promoteLabel(_ offer: PromoteOffer) -> some View {
+        if let named = offer.namedServer {
+            Text("shelves.promote.named \(named)", bundle: .module)
         } else {
             Text("shelves.promote", bundle: .module)
         }
@@ -161,8 +161,10 @@ struct ShelfBulkActions: ViewModifier {
 
     /// Works out what a download would copy, and either asks or says there is nothing to do.
     private func askToDownload() {
-        let ids = BulkSelection.downloading(members, onDevice: model.keptOffline)
-        if ids.isEmpty { isAllOnDevice = true } else { pending = (ids, model.bytesOnDisk(of: ids)) }
+        let ask = BulkDownloadAsk.of(members, onDevice: model.keptOffline) {
+            model.bytesOnDisk(of: $0)
+        }
+        if let ask { pending = ask } else { isAllOnDevice = true }
     }
 
     /// Offers an undo only when there was a change. A bar reporting nought would be a bar

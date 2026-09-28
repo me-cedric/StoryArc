@@ -30,7 +30,6 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.model.BulkSelection
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadingList
-import app.storyarc.core.model.ShelfOrigin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -68,7 +67,7 @@ internal fun ShelfBulkMenu(
     val listServers by viewModel.listServers.collectAsStateWithLifecycle()
 
     var isOpen by remember { mutableStateOf(false) }
-    var pending by remember { mutableStateOf<Pair<Set<String>, Long>?>(null) }
+    var pending by remember { mutableStateOf<BulkDownloadAsk?>(null) }
     var isAllOnDevice by remember { mutableStateOf(false) }
     var isPromoting by remember { mutableStateOf(false) }
 
@@ -95,8 +94,8 @@ internal fun ShelfBulkMenu(
             text = { Text(stringResource(R.string.library_bulk_download)) },
             onClick = {
                 isOpen = false
-                val ids = BulkSelection.downloading(members, viewModel.keptOffline())
-                if (ids.isEmpty()) isAllOnDevice = true else pending = ids to viewModel.bytesOnDisk(ids)
+                val ask = BulkDownloadAsk.of(members, viewModel.keptOffline(), viewModel::bytesOnDisk)
+                if (ask == null) isAllOnDevice = true else pending = ask
             },
         )
         // `collections-and-reading-lists` offers to copy a local list to a server, and when
@@ -104,10 +103,11 @@ internal fun ShelfBulkMenu(
         // after the user has confirmed it". So it is never hidden -- but §3.6 of the revamp
         // demotes it: it is a thing a reader does occasionally, not one of the things this
         // menu is for. Hence a divider and last place below the two everyday actions.
-        if (promoting != null && promoter != null && promoting.origin == ShelfOrigin.Local) {
+        val offer = PromoteOffer.of(promoting, listServers)
+        if (offer != null && promoter != null) {
             HorizontalDivider()
             DropdownMenuItem(
-                enabled = listServers.isNotEmpty(),
+                enabled = offer.isEnabled,
                 text = {
                     Column {
                         // Named when there is one online library to name, which is the
@@ -116,11 +116,11 @@ internal fun ShelfBulkMenu(
                         // two or more the generic wording is the honest one, because the
                         // choice is the next screen's.
                         Text(
-                            text = listServers.singleOrNull()
-                                ?.let { stringResource(R.string.shelves_promote_named, it.title) }
+                            text = offer.namedServer
+                                ?.let { stringResource(R.string.shelves_promote_named, it) }
                                 ?: stringResource(R.string.shelves_promote),
                         )
-                        if (listServers.isEmpty()) {
+                        if (offer.statesWhyNot) {
                             Text(
                                 text = stringResource(R.string.shelves_promote_unavailable),
                                 style = MaterialTheme.typography.bodySmall,
@@ -235,19 +235,7 @@ internal fun BulkUndoEffect(
             )
         }
         if (answer == SnackbarResult.ActionPerformed && viewModel != null) {
-            when (val kind = record.kind) {
-                is BulkUndo.Kind.Collection -> viewModel.removeFromCollection(record.ids, kind.id)
-                is BulkUndo.Kind.Listing ->
-                    record.ids.forEach { viewModel.removeFromList(it, kind.id) }
-
-                is BulkUndo.Kind.Read -> publications
-                    .filter { it.id in record.ids }
-                    .forEach { onMark(it, !kind.wasRead) }
-
-                BulkUndo.Kind.Kept -> viewModel.forgetKept(record.ids)
-
-                is BulkUndo.Kind.Promoted -> promoter?.withdraw(kind.sourceId, kind.listId)
-            }
+            record.reverse(viewModel, publications, onMark, promoter)
         }
         onSettle()
     }
