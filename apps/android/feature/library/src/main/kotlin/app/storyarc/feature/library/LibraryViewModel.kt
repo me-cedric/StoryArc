@@ -94,7 +94,7 @@ class LibraryViewModel(
      */
     private val cards: KavitaCardStore? = null,
     /** The reader's saved server keys. Null reads no server. See [readServers]. */
-    private val credentials: CredentialStore? = null,
+    internal val credentials: CredentialStore? = null,
 ) : AndroidViewModel(application) {
 
     /**
@@ -374,7 +374,7 @@ class LibraryViewModel(
     /** Every server's publications, adopted as a scanned file is. See [ServerLibrary]. */
     internal fun readServers() = viewModelScope.launch {
         val reading = ServerLibrary.read(_registry, credentials)
-        partialSources = reading.partial
+        adoptPartialSources(reading.partial)
         reading.rows.forEach { (publication, sourceId) -> adopt(publication, sourceId) }
         if (reading.rows.isEmpty()) return@launch
         rebuild()
@@ -946,7 +946,7 @@ class LibraryViewModel(
     fun itemCount(sourceId: UUID): Int = _publications.value.count { it.sourceId == sourceId }
 
     /** Sources whose last read stopped at its own limit. [SourceSlice] explains what that is. */
-    private var partialSources: Set<UUID> = emptySet()
+    internal var partialSources: Map<UUID, SourceReadProgress> = emptyMap()
 
     /** Whether [itemCount] is a slice of what this source holds rather than the whole of it. */
     fun isPartial(sourceId: UUID): Boolean = sourceId in partialSources
@@ -1005,7 +1005,7 @@ class LibraryViewModel(
      * Shared by the folder scan and by the imported copies, which find publications two
      * entirely different ways and have to agree about what one row means.
      */
-    private fun adopt(publication: Publication, sourceId: UUID?): Boolean {
+    internal fun adopt(publication: Publication, sourceId: UUID?): Boolean {
         val seen = _publications.value.indexOfFirst { it.identity.matches(publication.identity) }
         if (seen >= 0) {
             // Unless this find came through a source the reader put higher. `sources`: the
@@ -1374,7 +1374,7 @@ class LibraryViewModel(
     internal fun readerLocale(): Locale = getApplication<Application>().readerLocale()
 
     /** Recomputes what is on screen from the library and the query. */
-    private fun rebuild() {
+    internal fun rebuild() {
         val all = _publications.value
         // The reader's language, not the device's. `localization` moves the interface to the
         // chosen language, and collation is part of the interface.

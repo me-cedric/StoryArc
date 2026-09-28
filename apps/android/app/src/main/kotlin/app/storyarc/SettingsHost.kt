@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.SourceAction
+import app.storyarc.feature.library.readProgress
 import app.storyarc.feature.settings.SettingsScreen
 import app.storyarc.navigation.AppSheet
 import app.storyarc.navigation.Screen
@@ -48,6 +49,8 @@ internal fun SettingsHost(
         sources = registry.sources,
         itemCount = { host.library.itemCount(it.id) },
         isPartial = { host.library.isPartial(it.id) },
+        readCount = { host.library.readProgress(it.id)?.read },
+        readTotal = { host.library.readProgress(it.id)?.total },
         onRemoveSource = { source ->
             // The downloads first. The registry entry is what attributes a download to a
             // source, so deleting the source before its files leaves bytes on disk that

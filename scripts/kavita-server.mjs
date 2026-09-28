@@ -1096,7 +1096,11 @@ if (selfTest) {
   server.listen(0, '127.0.0.1', () => { drive() })
 } else {
   server.listen(port, () => {
-    console.log(`kavita mock: http://localhost:${port}`)
+    // `server.address().port`, not the flag: `--port 0` asks the OS for whichever port is
+    // free, which is how a worker's own test picks one that cannot collide with a mock
+    // someone else is already watching -- and the static flag would have this print the
+    // port it was refused rather than the one it bound.
+    console.log(`kavita mock: http://localhost:${server.address().port}`)
     console.log(`  api key: ${API_KEY}`)
     console.log(`  ${libraries.length} libraries, ${series.length} series from ${root}`)
   })
