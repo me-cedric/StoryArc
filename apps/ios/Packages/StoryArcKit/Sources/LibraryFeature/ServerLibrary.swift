@@ -161,30 +161,18 @@ extension LibraryModel {
         if partialSources[source.id]?.total == nil, let all = try? await client.series() {
             partialSources[source.id]?.total = all.count
         }
-        while let progress = partialSources[source.id] {
-            guard let result = try? await KavitaContributor.page(
-                source: source.id,
-                client: client,
-                page: progress.nextPage
-            ) else { return }
-            let step = progress.advancing(
-                pageRequested: progress.nextPage,
-                unitsRead: result.seriesRead,
-                holdsMore: result.slice.holdsMore
-            )
-            switch step {
-            case .stale:
-                return
-            case .continuing(let next):
-                for publication in result.slice.publications { _ = adopt(publication, from: source.id) }
-                partialSources[source.id] = next
+        await readOnward(
+            progress: { partialSources[source.id] },
+            fetch: { try? await KavitaContributor.page(source: source.id, client: client, page: $0) },
+            land: { page, step in
+                for publication in page.slice.publications { _ = adopt(publication, from: source.id) }
+                if case .continuing(let next) = step {
+                    partialSources[source.id] = next
+                } else {
+                    partialSources.removeValue(forKey: source.id)
+                }
                 cacheLibrary(claimsFreshness: false)
-            case .finished:
-                for publication in result.slice.publications { _ = adopt(publication, from: source.id) }
-                partialSources.removeValue(forKey: source.id)
-                cacheLibrary(claimsFreshness: false)
-                return
             }
-        }
+        )
     }
 }

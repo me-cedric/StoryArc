@@ -48,3 +48,39 @@ extension SourceReadProgress {
         return holdsMore ? .continuing(merged) : .finished(merged)
     }
 }
+
+/// The continuation loop: ask for the next page, fold its answer in, and stop at a short
+/// page, a refused page, or a page another reader already took.
+///
+/// The progress is read again after the page arrives, not carried across the wait. Two
+/// readers of one source overlap whenever a `readServers()` starts while a continuation is
+/// mid-page, and the second answer for the same page is stale only when it is compared with
+/// the progress as it stands now. Compared with the progress it started from, it always
+/// matched, so both readers folded every page in and a finished read could come back as
+/// partial. A test reaches this through `fetch` and `land`, without a server. Android's
+/// `readOnward` is the same loop.
+@MainActor
+func readOnward(
+    progress: () -> SourceReadProgress?,
+    fetch: (Int) async -> KavitaContributor.Page?,
+    land: (KavitaContributor.Page, SourceReadStep) -> Void
+) async {
+    while let requested = progress()?.nextPage {
+        guard let page = await fetch(requested),
+              let step = progress()?.advancing(
+                  pageRequested: requested,
+                  unitsRead: page.seriesRead,
+                  holdsMore: page.slice.holdsMore
+              )
+        else { return }
+        switch step {
+        case .stale:
+            return
+        case .continuing:
+            land(page, step)
+        case .finished:
+            land(page, step)
+            return
+        }
+    }
+}

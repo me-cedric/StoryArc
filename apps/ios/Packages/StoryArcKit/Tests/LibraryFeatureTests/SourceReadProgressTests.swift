@@ -6,10 +6,8 @@ import Testing
 ///
 /// `sources`' *More from a source than the library holds*: the source detail states the
 /// progress while a read continues, and stops claiming a total once it has one. Every case
-/// here is the whole of what decides that — the async loop that calls it
-/// (`LibraryModel.continueReadingKavita`) only ever asks it a question and acts on the
-/// answer, which is why the loop itself is not asserted directly and this is. Android's
-/// `SourceReadProgressTest` asks the same three questions.
+/// here is the whole of what decides that. `KavitaContinuedReadTests` asserts the loop that
+/// asks it. Android's `SourceReadProgressTest` asks the same three questions.
 struct SourceReadProgressTests {
 
     @Test("A fresh source starts at page two, with the first slice already counted")

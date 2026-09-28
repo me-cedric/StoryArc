@@ -81,22 +81,54 @@ private suspend fun LibraryViewModel.continueReadingKavita(source: Source, clien
             partialSources[source.id]?.let { partialSources = partialSources + (source.id to it.copy(total = all.size)) }
         }
     }
+    readOnward(
+        progress = { partialSources[source.id] },
+        fetch = { page -> runCatching { KavitaContributor.page(source.id, client, page) }.getOrNull() },
+        land = { page, step -> land(source.id, page, step) },
+    )
+}
+
+/**
+ * Merges one page into the library and into the shelf snapshot, and stores where the read
+ * now stands.
+ *
+ * The snapshot is written here as well as by `readServers()`, because a page merged only in
+ * memory is gone at the next launch -- the task asks for each page in "the library and the
+ * shelf snapshot as it arrives". It does not claim the shelf is fresh, for the reason
+ * `readServers()` gives for its own write.
+ */
+private fun LibraryViewModel.land(sourceId: UUID, page: KavitaContributor.Page, step: SourceReadStep) {
+    page.slice.publications.forEach { adopt(it, sourceId) }
+    partialSources = when (step) {
+        is SourceReadStep.Continuing -> partialSources + (sourceId to step.progress)
+        else -> partialSources - sourceId
+    }
+    rebuild()
+    cacheLibrary(claimsFreshness = false)
+}
+
+/**
+ * The continuation loop: ask for the next page, fold its answer in, and stop at a short
+ * page, a refused page, or a page another reader already took.
+ *
+ * The progress is read again after the page arrives, not carried across the wait. Two
+ * readers of one source overlap whenever a `readServers()` starts while a continuation is
+ * mid-page, and the second answer for the same page is stale only when it is compared with
+ * the progress as it stands now. Compared with the progress it started from, it always
+ * matched, so both readers folded every page in and a finished read could come back as
+ * partial. A test reaches this through [fetch] and [land], without a server.
+ */
+internal suspend fun readOnward(
+    progress: () -> SourceReadProgress?,
+    fetch: suspend (page: Int) -> KavitaContributor.Page?,
+    land: (KavitaContributor.Page, SourceReadStep) -> Unit,
+) {
     while (true) {
-        val progress = partialSources[source.id] ?: return
-        val result = runCatching { KavitaContributor.page(source.id, client, progress.nextPage) }.getOrNull() ?: return
-        when (val step = progress.advancing(progress.nextPage, result.seriesRead, result.slice.holdsMore)) {
-            is SourceReadStep.Stale -> return
-            is SourceReadStep.Continuing -> {
-                result.slice.publications.forEach { adopt(it, source.id) }
-                partialSources = partialSources + (source.id to step.progress)
-                rebuild()
-            }
-            is SourceReadStep.Finished -> {
-                result.slice.publications.forEach { adopt(it, source.id) }
-                partialSources = partialSources - source.id
-                rebuild()
-                return
-            }
-        }
+        val requested = progress()?.nextPage ?: return
+        val page = fetch(requested) ?: return
+        val step = progress()?.advancing(requested, page.seriesRead, page.slice.holdsMore) ?: return
+        if (step is SourceReadStep.Stale) return
+        land(page, step)
+        if (step is SourceReadStep.Finished) return
     }
 }
