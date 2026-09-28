@@ -160,19 +160,18 @@ class ReaderViewModel(
     /**
      * The axis the publication implies, until the reader overrides it.
      *
-     * Measured from the first page that has been decoded rather than declared: a
-     * webtoon rarely says it is one, and `comic-reader` recognises it by pages
-     * "materially taller than they are wide".
+     * Measured from the first few decoded pages rather than declared: a webtoon
+     * rarely says it is one, and `comic-reader` recognises it by pages "materially
+     * taller than they are wide". See [EarlyPageTallness] for why more than the first.
      */
     private val impliedAxis: ScrollAxis
         get() = ScrollAxis.implied(
             isReflowable = false,
-            isTall = tallestRatio >= ScrollAxis.TALLNESS_THRESHOLD,
+            isTall = earlyTallness.tallestRatio >= ScrollAxis.TALLNESS_THRESHOLD,
             declaresHorizontal = true,
         )
 
-    /** Height over width of the first decoded page, or 0 while nothing is decoded. */
-    private var tallestRatio = 0.0
+    private val earlyTallness = EarlyPageTallness()
 
     /**
      * The colour behind the page, and only behind it.
@@ -720,11 +719,11 @@ class ReaderViewModel(
                 val bitmap = result.bitmap
                 decoded[index] = bitmap
                 refusedCodecs.remove(index)
-                // The first page that decodes settles the implied scroll axis. First
-                // rather than tallest: a webtoon's pages are all strips, and waiting for
-                // the tallest would mean waiting for the whole publication.
-                if (tallestRatio == 0.0 && bitmap.width > 0) {
-                    tallestRatio = bitmap.height.toDouble() / bitmap.width
+                // The first few pages that decode settle the implied scroll axis. Early
+                // rather than every page: waiting for the tallest of the whole run would
+                // mean waiting for the whole publication.
+                if (bitmap.width > 0) {
+                    earlyTallness.note(bitmap.height.toDouble() / bitmap.width, index)
                 }
                 // Wider than tall, with no tolerance to tune: a portrait page scanned
                 // with a slight skew is still portrait, and a spread is half again as

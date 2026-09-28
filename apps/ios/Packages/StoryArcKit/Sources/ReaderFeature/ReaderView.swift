@@ -146,14 +146,6 @@ public struct ReaderView: View {
     /// Set when the reader turns past the last page.
     @State var hasReachedEnd = false
 
-    /// Gives `.onKeyPress` a focused view to fire against.
-    ///
-    /// `.focusable()` alone offers to become first responder; nothing was asking it to.
-    /// Set true when the reader appears and whenever a sheet that took focus away closes,
-    /// so the arrow, page and space keys work the moment the reader is on screen and again
-    /// the moment a menu, the thumbnail browser or the adjustments sheet dismisses.
-    @FocusState var isKeyboardFocused: Bool
-
     /// How many turns the publication has refused this session.
     ///
     /// A count rather than a flag: `native-experience` asks for the platform's haptics,
@@ -376,17 +368,13 @@ public struct ReaderView: View {
         }
         // volume buttons are behind a setting the app does not have yet.
         .focusable()
-        .focused($isKeyboardFocused)
-        // `.focusable()` only offers; nothing takes the offer up on its own. Set once
-        // on appear, and again whenever a sheet that took focus away closes — a sheet
-        // becomes the focused view while it is up, and dismissing it does not hand
-        // focus back.
-        .onAppear { isKeyboardFocused = true }
-        .onChange(of: isShowingMenu) { _, isOpen in if !isOpen { isKeyboardFocused = true } }
-        .onChange(of: isBrowsingThumbnails) { _, isOpen in
-            if !isOpen { isKeyboardFocused = true }
-        }
-        .onChange(of: isAdjusting) { _, isOpen in if !isOpen { isKeyboardFocused = true } }
+        .modifier(
+            ReaderKeyboardFocus(
+                isShowingMenu: isShowingMenu,
+                isBrowsingThumbnails: isBrowsingThumbnails,
+                isAdjusting: isAdjusting
+            )
+        )
         .onKeyPress(.leftArrow) { turn(by: -1); return .handled }
         .onKeyPress(.rightArrow) { turn(by: 1); return .handled }
         .onKeyPress(.pageUp) { turnInReadingOrder(by: -1); return .handled }

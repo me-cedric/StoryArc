@@ -118,8 +118,8 @@ public final class ReaderModel {
     @ObservationIgnored private let canCurl: Bool
     @ObservationIgnored private let shelf: String
 
-    /// Height over width of the first decoded page, or 0 while nothing is decoded.
-    @ObservationIgnored private var firstPageRatio = 0.0
+    /// Whether the earliest decoded pages read as a webtoon. See `EarlyPageTallness`.
+    @ObservationIgnored private var earlyTallness = EarlyPageTallness()
 
     /// Which transition rows to offer, which of them cannot run, and what runs instead.
     ///
@@ -139,14 +139,14 @@ public final class ReaderModel {
 
     /// The axis the publication implies, until the reader overrides it.
     ///
-    /// Measured from the first decoded page rather than declared: a webtoon rarely says
-    /// it is one, and `comic-reader` recognises it by pages "materially taller than
-    /// they are wide". First rather than tallest, because waiting for the tallest means
-    /// waiting for the whole publication.
+    /// Measured from the first few decoded pages rather than declared: a webtoon
+    /// rarely says it is one, and `comic-reader` recognises it by pages "materially
+    /// taller than they are wide". See `EarlyPageTallness` for why more than the first
+    /// page.
     private var impliedAxis: ScrollAxis {
         ScrollAxis.implied(
             isReflowable: false,
-            isTall: firstPageRatio >= ScrollAxis.tallnessThreshold,
+            isTall: earlyTallness.tallestRatio >= ScrollAxis.tallnessThreshold,
             // A comic's own reading direction is across the page, which is what makes
             // horizontal the implied axis for anything that is not a strip.
             declaresHorizontal: true
@@ -216,12 +216,13 @@ public final class ReaderModel {
     /// Records what a decoded page's shape tells us: the implied axis, and whether the
     /// page is a spread.
     ///
-    /// The axis is taken from the first page only — a webtoon rarely declares itself and
-    /// waiting for the tallest page means waiting for the whole publication. Wideness is
-    /// per page, because that is the question being asked about each one.
+    /// The axis is taken from the first few pages, not declared — a webtoon rarely
+    /// declares itself and waiting for the tallest page of the whole run means waiting
+    /// for the whole publication. Wideness is per page, because that is the question
+    /// being asked about each one.
     func noteDecoded(_ image: CGImage, at index: Int) {
-        if firstPageRatio == 0, image.width > 0 {
-            firstPageRatio = Double(image.height) / Double(image.width)
+        if image.width > 0 {
+            earlyTallness.note(ratio: Double(image.height) / Double(image.width), at: index)
         }
         // Wider than tall, with no tolerance to tune: a portrait page scanned with a
         // slight skew is still portrait, and a spread is half again as wide as a page.
