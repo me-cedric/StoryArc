@@ -4,14 +4,18 @@ import android.content.ContentResolver
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
@@ -58,17 +62,26 @@ internal fun BrightnessControl(
     val resolver = LocalContext.current.contentResolver
     val inForce = brightness ?: systemBrightnessFraction(resolver)
 
+    val percent = stringResource(R.string.theme_brightness_percent, (inForce * 100).roundToInt())
+    val name = stringResource(R.string.theme_brightness)
+
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
-        Text(
-            text = stringResource(R.string.theme_brightness),
-            style = MaterialTheme.typography.titleMedium,
-            color = palette.textPrimary,
-        )
-        val percent = stringResource(
-            R.string.theme_brightness_percent,
-            (inForce * 100).roundToInt(),
-        )
-        val name = stringResource(R.string.theme_brightness)
+        // The value is visible beside the name, as on every other axis, and hidden from
+        // TalkBack because the slider carries it (see `AxisSlider`).
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.titleMedium,
+                color = palette.textPrimary,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = percent,
+                style = MaterialTheme.typography.labelLarge,
+                color = palette.textTertiary,
+                modifier = Modifier.semantics { hideFromAccessibility() },
+            )
+        }
         Slider(
             value = inForce,
             onValueChange = onChange,
