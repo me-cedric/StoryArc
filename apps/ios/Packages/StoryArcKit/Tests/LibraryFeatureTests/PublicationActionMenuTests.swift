@@ -42,7 +42,8 @@ struct PublicationActionMenuTests {
     @Test("A kept copy offers to remove itself, whatever else is true of it")
     func keptCopyOffersRemoval() {
         #expect(DownloadOffer.of(publication(format: .imageFolder), isKept: true, isLocalFile: true) == .remove)
-        #expect(DownloadOffer.of(publication(format: .cb7, streaming: .refused), isKept: true, isLocalFile: false) == .remove)
+        let refused = publication(format: .cb7, streaming: .refused)
+        #expect(DownloadOffer.of(refused, isKept: true, isLocalFile: false) == .remove)
     }
 
     @Test("A copy that could be fetched and is not kept offers to download")
@@ -53,7 +54,8 @@ struct PublicationActionMenuTests {
     @Test("Nothing that could be fetched offers neither")
     func nothingFetchableOffersNeither() {
         #expect(DownloadOffer.of(publication(format: .imageFolder), isKept: false, isLocalFile: true) == .none)
-        #expect(DownloadOffer.of(publication(format: .cb7, streaming: .refused), isKept: false, isLocalFile: true) == .none)
+        let refused = publication(format: .cb7, streaming: .refused)
+        #expect(DownloadOffer.of(refused, isKept: false, isLocalFile: true) == .none)
     }
 
     @Test("A row whose bytes are on a server offers no download the menu cannot deliver")
