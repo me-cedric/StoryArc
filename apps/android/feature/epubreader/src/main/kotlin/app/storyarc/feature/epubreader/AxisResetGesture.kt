@@ -18,9 +18,12 @@ import androidx.compose.ui.input.pointer.changedToUp
  * [PointerEventPass.Main] pass for its own drag, which is the pass `detectTapGestures` also
  * reads — so a tap detector wrapped around a `Slider` never starts, because the down it
  * needs has already been consumed by the time its own pass runs. Reading the
- * [PointerEventPass.Initial] pass instead sees every change before `Slider` does, and
- * nothing here ever calls `consume()`, so `Slider`'s own drag keeps working underneath this
- * exactly as if it were not here.
+ * [PointerEventPass.Initial] pass instead sees every change before `Slider` does. Nothing
+ * is consumed until a reset is decided, so a tap or a drag reaches `Slider` unchanged.
+ *
+ * **After a reset, the rest of that press is consumed.** `Slider` sets its value when a tap
+ * is released, not when it is pressed. Without the consumption, the lift after a long press,
+ * or after the second tap of a double tap, writes the value under the finger over the reset.
  *
  * The timeout reads are [AwaitPointerEventScope.withTimeoutOrNull], not
  * `kotlinx.coroutines.withTimeoutOrNull`: the pointer input dispatch loop needs its own
@@ -38,16 +41,21 @@ internal suspend fun PointerInputScope.detectAxisResetGesture(onReset: () -> Uni
         val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
 
         when (awaitPressOutcome(down.id, down.position, slop, longPressTimeoutMillis)) {
-            PressOutcome.LONG_PRESSED -> onReset()
+            PressOutcome.LONG_PRESSED -> {
+                onReset()
+                consumeUntilUp(down.id)
+            }
             PressOutcome.TAPPED_NEARBY -> {
-                // A second down within the double-tap window, anywhere on the slider,
-                // resets too — `Slider`'s own tap-to-set-value keeps moving the thumb
-                // underneath both taps, and the reset is the last write, so the reader
-                // ends on the preset's value either way.
+                // The first tap reached `Slider` and moved the thumb. The second down is
+                // taken away from `Slider`, so the reset is the last write.
                 val secondDown = withTimeoutOrNull(doubleTapTimeoutMillis) {
                     awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
                 }
-                if (secondDown != null) onReset()
+                if (secondDown != null) {
+                    secondDown.consume()
+                    onReset()
+                    consumeUntilUp(secondDown.id)
+                }
             }
             PressOutcome.MOVED_OR_CANCELED -> Unit
         }
@@ -83,4 +91,13 @@ private suspend fun AwaitPointerEventScope.awaitPressOutcome(
         PressOutcome.MOVED_OR_CANCELED
     }
     return outcome ?: PressOutcome.LONG_PRESSED
+}
+
+private suspend fun AwaitPointerEventScope.consumeUntilUp(pointerId: PointerId) {
+    while (true) {
+        val event = awaitPointerEvent(PointerEventPass.Initial)
+        val change = event.changes.firstOrNull { it.id == pointerId } ?: return
+        change.consume()
+        if (!change.pressed) return
+    }
 }
