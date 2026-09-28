@@ -31,10 +31,32 @@ extension ReaderModel {
     ///
     /// Returns as soon as the reader is not streaming, so a publication opened from disk pays
     /// nothing for this at all.
-    public func adoptTheCopyWhenItArrives() async {
-        guard ReadingAddress.isStreamed(url), let reading = archive as? AdoptingArchive else { return }
-        let store = DownloadStore()
+    ///
+    /// Started by ``ReaderLifecycle`` in its own `.task`, parallel with the one that calls
+    /// `open(maxPixelSize:)` — so this can run before `open` has set ``ReaderModel/archive``
+    /// at all. Waiting for it here, rather than reading it once and returning when it is
+    /// still nil, is what makes the watch reach a publication that opens successfully: read
+    /// once, this returned before there was ever anything to watch, and a completed
+    /// background download sat in the store for ever with nobody adopting it.
+    ///
+    /// Not `public`: `DownloadStore` is `Persistence`'s own internal type here (this file
+    /// imports it `internal`), and the only caller outside this file is ``ReaderLifecycle``,
+    /// in the same module. A test reaches it through `@testable import`.
+    ///
+    /// - Parameter store: defaults to the app's own store. A test passes its own isolated
+    ///   one — the same reason ``ReaderModel/init(publication:url:progress:preferences:canCurl:)``
+    ///   takes `progress` rather than reading a shared instance.
+    func adoptTheCopyWhenItArrives(store: DownloadStore = DownloadStore()) async {
+        guard ReadingAddress.isStreamed(url) else { return }
         while !Task.isCancelled {
+            guard let reading = archive as? AdoptingArchive else {
+                // Not open yet, or it never will be — `open` throwing leaves `archive` nil
+                // for good. Either way there is nothing to adopt into this instant, only
+                // something to check again, bounded by the same interval as the store poll
+                // below so a failed open costs no more than a successful one already did.
+                try? await Task.sleep(for: Self.pollInterval)
+                continue
+            }
             if let arrived = ReadingAddress.arrived(at: url, in: store.library()),
                // Where the store put the bytes, computed from the record the same way the
                // queue computed it when it wrote them.
