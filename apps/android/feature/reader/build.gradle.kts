@@ -10,6 +10,11 @@ android {
 
     buildFeatures { compose = true }
 
+    // Robolectric, so `ReaderViewModelScrollOffsetTest` can build a `ReaderViewModel`
+    // against a real `ContentResolver` rather than one this module has no framework
+    // to construct on the host otherwise.
+    testOptions { unitTests { isIncludeAndroidResources = true } }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -60,4 +65,5 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
 }
