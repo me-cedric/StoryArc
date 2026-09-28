@@ -49,11 +49,15 @@ class DownloadOfferTest {
     fun `a kept copy offers to remove itself, whatever else is true of it`() {
         assertEquals(
             DownloadOffer.Remove,
-            DownloadOffer.of(publication(format = PublicationFormat.IMAGE_FOLDER), isKept = true),
+            DownloadOffer.of(publication(format = PublicationFormat.IMAGE_FOLDER), isKept = true, isLocalFile = true),
         )
         assertEquals(
             DownloadOffer.Remove,
-            DownloadOffer.of(publication(format = PublicationFormat.CB7, streaming = StreamingCapability.REFUSED), isKept = true),
+            DownloadOffer.of(
+                publication(format = PublicationFormat.CB7, streaming = StreamingCapability.REFUSED),
+                isKept = true,
+                isLocalFile = false,
+            ),
         )
     }
 
@@ -61,7 +65,7 @@ class DownloadOfferTest {
     fun `a copy that could be fetched and is not kept offers to download`() {
         assertEquals(
             DownloadOffer.Download,
-            DownloadOffer.of(publication(format = PublicationFormat.CBZ), isKept = false),
+            DownloadOffer.of(publication(format = PublicationFormat.CBZ), isKept = false, isLocalFile = true),
         )
     }
 
@@ -69,11 +73,25 @@ class DownloadOfferTest {
     fun `nothing that could be fetched offers neither`() {
         assertEquals(
             DownloadOffer.None,
-            DownloadOffer.of(publication(format = PublicationFormat.IMAGE_FOLDER), isKept = false),
+            DownloadOffer.of(publication(format = PublicationFormat.IMAGE_FOLDER), isKept = false, isLocalFile = true),
         )
         assertEquals(
             DownloadOffer.None,
-            DownloadOffer.of(publication(format = PublicationFormat.CB7, streaming = StreamingCapability.REFUSED), isKept = false),
+            DownloadOffer.of(
+                publication(format = PublicationFormat.CB7, streaming = StreamingCapability.REFUSED),
+                isKept = false,
+                isLocalFile = true,
+            ),
+        )
+    }
+
+    @Test
+    fun `a row whose bytes are on a server offers no download the menu cannot deliver`() {
+        // The menu copies a file that is already on this device. A Kavita, OPDS or share
+        // row has no such file, so a Download row there would change nothing.
+        assertEquals(
+            DownloadOffer.None,
+            DownloadOffer.of(publication(format = PublicationFormat.CBZ), isKept = false, isLocalFile = false),
         )
     }
 }

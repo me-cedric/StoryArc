@@ -24,14 +24,18 @@ enum PublicationActions {
 /// A named value rather than two booleans compared inline, so a menu asks one question and a
 /// test can state all three answers without constructing a view. Android's `DownloadOffer` is
 /// the same three cases.
+///
+/// `isLocalFile`: the menu's download is ``LibraryModel/keepOffline(_:)``, which copies a file
+/// that is already on this device. A row whose bytes are on a server has no such file, so the
+/// copy is skipped and nothing happens. The menu does not offer a download it cannot deliver.
 enum DownloadOffer: Equatable {
     case download
     case remove
     case none
 
-    static func of(_ publication: Publication, isKept: Bool) -> DownloadOffer {
+    static func of(_ publication: Publication, isKept: Bool, isLocalFile: Bool) -> DownloadOffer {
         if isKept { return .remove }
-        return PublicationActions.canDownload(publication) ? .download : .none
+        return isLocalFile && PublicationActions.canDownload(publication) ? .download : .none
     }
 }
 
@@ -109,7 +113,11 @@ struct PublicationActionMenu: View {
 
     @ViewBuilder
     private var downloadAction: some View {
-        switch DownloadOffer.of(publication, isKept: model.isOnDevice(publication)) {
+        switch DownloadOffer.of(
+            publication,
+            isKept: model.isOnDevice(publication),
+            isLocalFile: model.location(of: publication)?.isFileURL ?? false
+        ) {
         case .download:
             Button {
                 isDownloading = true
