@@ -67,6 +67,34 @@ struct AdjustmentsSheet: View {
                         .foregroundStyle(theme.palette.textTertiary)
                 }
 
+                // `comic-reader`: "WHEN a user enables border cropping THEN uniform white or
+                // black margins are detected and trimmed per page, and the user can disable
+                // it for a page that crops wrongly". Two switches, because a reader makes two
+                // decisions: the series is trimmed, and this page is the exception to it.
+                Section {
+                    Toggle(isOn: $adjustments.cropsBorders) {
+                        Label {
+                            Text("reader.adjust.crop", bundle: .module)
+                        } icon: {
+                            Image(systemName: "crop")
+                        }
+                    }
+                    // Only where there is a trim to disable. A switch that excuses a page from
+                    // nothing offers a choice the reader does not have.
+                    if adjustments.cropsBorders {
+                        Toggle(isOn: $cropsThisPage) {
+                            Label {
+                                Text("reader.adjust.crop.thisPage", bundle: .module)
+                            } icon: {
+                                Image(systemName: "doc")
+                            }
+                        }
+                    }
+                } footer: {
+                    Text("reader.adjust.crop.note", bundle: .module)
+                        .foregroundStyle(theme.palette.textTertiary)
+                }
+
                 Section {
                     Button(role: .destructive) {
                         adjustments = ImageAdjustments()
