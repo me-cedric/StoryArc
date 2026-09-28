@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -242,6 +244,14 @@ internal fun IndexRail(
             .padding(end = StoryArcSpace.xs)
             .background(palette.surfaceOverlay, CircleShape)
             .padding(vertical = StoryArcSpace.sm, horizontal = StoryArcSpace.xs)
+            // A shelf spanning every letter asks for up to 27 fixed 24 dp entries -- 648 dp,
+            // taller than most phones are wide, let alone a phone's own landscape height.
+            // `Arrangement.Center` inside a `fillMaxHeight` column has nowhere to put the
+            // overflow: task 21.1 found entries measured at a few dp or nothing at all,
+            // an unreachable rail rather than a merely cramped one, on rotating a shelf this
+            // long into a short window. Scrolling keeps every entry its own legible size and
+            // reachable; nothing above asks for the whole rail to be seen at once.
+            .verticalScroll(rememberScrollState())
             .semantics {
                 isTraversalGroup = true
                 contentDescription = railName
