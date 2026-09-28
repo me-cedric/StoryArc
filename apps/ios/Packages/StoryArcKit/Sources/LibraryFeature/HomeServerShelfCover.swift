@@ -26,10 +26,13 @@ enum HomeShelfCoverPlan: Equatable {
     /// Nothing answered: no locked cover and no member drew one either.
     case blank
 
-    static func decide(hasLockedCover: Bool, memberIDs: [String]) -> HomeShelfCoverPlan {
+    /// `covered` is the members whose cover arrived. A member with no cover is not a tile:
+    /// ``ShelfComposite`` draws an empty frame for it, and a shelf whose members all failed
+    /// would be the blank frame D1 names instead of the named well.
+    static func decide(hasLockedCover: Bool, memberIDs: [String], covered: Set<String>) -> HomeShelfCoverPlan {
         if hasLockedCover { return .sole }
-        if !memberIDs.isEmpty { return .composite(memberIDs) }
-        return .blank
+        let drawn = memberIDs.filter(covered.contains)
+        return drawn.isEmpty ? .blank : .composite(drawn)
     }
 }
 
@@ -79,7 +82,7 @@ struct HomeServerShelfCover: View {
         let locked = await lockedCover(client)
         if let locked {
             covers[Self.soleCoverID] = locked
-            plan = .decide(hasLockedCover: true, memberIDs: [])
+            plan = .decide(hasLockedCover: true, memberIDs: [], covered: [])
             return
         }
 
@@ -89,7 +92,7 @@ struct HomeServerShelfCover: View {
                 covers[id] = image
             }
         }
-        plan = .decide(hasLockedCover: false, memberIDs: memberIDs)
+        plan = .decide(hasLockedCover: false, memberIDs: memberIDs, covered: Set(covers.keys))
     }
 
     private func lockedCover(_ client: KavitaClient) async -> CGImage? {

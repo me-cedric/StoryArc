@@ -9,20 +9,36 @@ struct HomeServerShelfCoverTests {
 
     @Test("The server's own locked cover wins, whatever else came back")
     func lockedCoverWins() {
-        #expect(HomeShelfCoverPlan.decide(hasLockedCover: true, memberIDs: []) == .sole)
-        #expect(HomeShelfCoverPlan.decide(hasLockedCover: true, memberIDs: ["1", "2"]) == .sole)
+        #expect(HomeShelfCoverPlan.decide(hasLockedCover: true, memberIDs: [], covered: []) == .sole)
+        #expect(HomeShelfCoverPlan.decide(hasLockedCover: true, memberIDs: ["1", "2"], covered: ["1", "2"]) == .sole)
     }
 
     @Test("With no locked cover, the first members composite")
     func membersComposite() {
         #expect(
-            HomeShelfCoverPlan.decide(hasLockedCover: false, memberIDs: ["7", "3", "9", "1"])
-                == .composite(["7", "3", "9", "1"])
+            HomeShelfCoverPlan.decide(
+                hasLockedCover: false,
+                memberIDs: ["7", "3", "9", "1"],
+                covered: ["1", "3", "7", "9"]
+            ) == .composite(["7", "3", "9", "1"])
         )
     }
 
     @Test("Nothing answered at all draws the named blank")
     func nothingAnsweredIsBlank() {
-        #expect(HomeShelfCoverPlan.decide(hasLockedCover: false, memberIDs: []) == .blank)
+        #expect(HomeShelfCoverPlan.decide(hasLockedCover: false, memberIDs: [], covered: []) == .blank)
+    }
+
+    @Test("Members whose covers all failed draw the named blank, not an empty frame")
+    func uncoveredMembersAreBlank() {
+        #expect(HomeShelfCoverPlan.decide(hasLockedCover: false, memberIDs: ["7", "3"], covered: []) == .blank)
+    }
+
+    @Test("A member whose cover failed is not a tile")
+    func uncoveredMemberIsDropped() {
+        #expect(
+            HomeShelfCoverPlan.decide(hasLockedCover: false, memberIDs: ["7", "3", "9"], covered: ["7", "9"])
+                == .composite(["7", "9"])
+        )
     }
 }
