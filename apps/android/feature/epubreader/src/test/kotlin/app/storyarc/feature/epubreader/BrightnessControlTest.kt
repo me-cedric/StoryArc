@@ -8,6 +8,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import org.junit.Assert.assertEquals
@@ -16,6 +17,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.math.abs
 
 /**
  * `reading-themes`, *Every axis states its value*, applied to brightness: before this, the
@@ -46,30 +48,23 @@ class BrightnessControlTest {
     }
 
     @Test
-    fun `a device that refuses the read states the middle of the range, not a crash`() {
-        // Robolectric's Settings provider answers with no exception when the key was
-        // never set, which is the same "unknown" case a real device with a locked-down
-        // provider would raise `SettingNotFoundException` for.
-        val fraction = systemBrightnessFraction(context.contentResolver)
-
-        assertEquals(0.5, fraction.toDouble(), 0.5)
-    }
-
-    @Test
-    fun `the stated value and the thumb agree before the reader has moved the slider`() {
-        Settings.System.putInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128)
-        val stated = systemBrightnessFraction(context.contentResolver)
+    fun `the visible value, the spoken value and the thumb state the device level`() {
+        Settings.System.putInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, 191)
 
         compose.setContent {
             StoryArcTheme { BrightnessControl(brightness = null, onChange = {}) }
         }
 
-        val percent = (stated * 100).let { it.toInt() }
+        compose.onNodeWithText("75%").assertExists(
+            "No visible value beside the brightness slider, or it does not state the device" +
+                " level. `reading-themes`: \"its current value is stated beside it\".",
+        )
         compose.onNodeWithContentDescription("Brightness")
             .assert(
-                SemanticsMatcher("states $percent%") { node ->
+                SemanticsMatcher("states 75% and puts the thumb at 0.75") { node ->
                     val state = node.config.getOrNull(SemanticsProperties.StateDescription)
-                    state?.contains("$percent") == true
+                    val range = node.config.getOrNull(SemanticsProperties.ProgressBarRangeInfo)
+                    state == "75%" && range != null && abs(range.current - 0.749f) < 0.01f
                 },
             )
     }
