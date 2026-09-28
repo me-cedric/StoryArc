@@ -14,7 +14,8 @@ struct HomeSection<Content: View, Destination: View>: View {
     @Environment(\.theme) private var theme
 
     let title: Text
-    private let destination: () -> Destination
+    private let destination: (() -> Destination)?
+    private let action: (() -> Void)?
     private let content: () -> Content
 
     init(
@@ -24,31 +25,61 @@ struct HomeSection<Content: View, Destination: View>: View {
     ) {
         self.title = title
         self.destination = destination
+        self.action = nil
+        self.content = content
+    }
+
+    /// A heading that hands off to a call rather than a view of its own.
+    ///
+    /// `navigation-shell`: a heading that opens a *library section* — the exhaustive shelves
+    /// list, in ``HomeShelvesRow`` — belongs on the Library destination's own stack, not
+    /// Home's, and only the app layer above both can switch the selected destination. A
+    /// `NavigationLink` cannot make that call; a plain action can.
+    init(
+        title: Text,
+        action: @escaping () -> Void,
+        @ViewBuilder content: @escaping () -> Content
+    ) where Destination == Never {
+        self.title = title
+        self.destination = nil
+        self.action = action
         self.content = content
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.md) {
-            NavigationLink(destination: destination) {
-                HStack(spacing: StoryArcSpace.xs) {
-                    title
-                        .textRole(.title3)
-                        .foregroundStyle(theme.palette.textPrimary)
-
-                    Image(systemName: "chevron.right")
-                        .textRole(.footnote)
-                        .foregroundStyle(theme.palette.textTertiary)
-
-                    Spacer(minLength: 0)
-                }
-                .contentShape(.rect)
-                .padding(.horizontal, StoryArcSpace.gutter)
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint(Text("home.seeAll", bundle: .module))
-
+            heading
             content()
         }
+    }
+
+    @ViewBuilder
+    private var heading: some View {
+        if let action {
+            Button(action: action) { headingLabel }
+                .buttonStyle(.plain)
+                .accessibilityHint(Text("home.seeAll", bundle: .module))
+        } else if let destination {
+            NavigationLink(destination: destination) { headingLabel }
+                .buttonStyle(.plain)
+                .accessibilityHint(Text("home.seeAll", bundle: .module))
+        }
+    }
+
+    private var headingLabel: some View {
+        HStack(spacing: StoryArcSpace.xs) {
+            title
+                .textRole(.title3)
+                .foregroundStyle(theme.palette.textPrimary)
+
+            Image(systemName: "chevron.right")
+                .textRole(.footnote)
+                .foregroundStyle(theme.palette.textTertiary)
+
+            Spacer(minLength: 0)
+        }
+        .contentShape(.rect)
+        .padding(.horizontal, StoryArcSpace.gutter)
     }
 }
 

@@ -111,6 +111,12 @@ extension LibraryView {
                         .navigationDestination(item: $browsing) { id in
                             if let source = model.registry[id] { browser(for: source) }
                         }
+                        // The exhaustive shelves list, opened from outside this screen —
+                        // see ``LibraryView/isShowingShelves``. Beside the shelf, the same
+                        // column a cover's page and a browsed source land in.
+                        .navigationDestination(isPresented: $isShowingShelves) {
+                            ShelvesView(model: model, onOpen: onOpen)
+                        }
                 }
             }
             // `.balanced`, because the leading column is the point of the screen. The default
@@ -129,12 +135,22 @@ extension LibraryView {
             .onChange(of: detailPath) { _, path in
                 if path.isEmpty { compactColumn = .sidebar }
             }
+            // A collapsed window opening the shelves list from outside needs the same
+            // hand-off `openPublicationRoute` and `openSeriesRoute` already give a cover:
+            // the detail column is where the destination is registered, so that is the
+            // column the reader has to be looking at.
+            .onChange(of: isShowingShelves) { _, isShowing in
+                compactColumn = isShowing ? .detail : .sidebar
+            }
         } else {
             NavigationStack {
                 libraryColumn
                     .publicationPages(in: model, onOpen: onOpen, onListen: onListen)
                     .navigationDestination(item: $browsing) { id in
                         if let source = model.registry[id] { browser(for: source) }
+                    }
+                    .navigationDestination(isPresented: $isShowingShelves) {
+                        ShelvesView(model: model, onOpen: onOpen)
                     }
             }
         }

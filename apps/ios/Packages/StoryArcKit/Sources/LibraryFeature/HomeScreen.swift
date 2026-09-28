@@ -41,6 +41,10 @@ public struct HomeScreen: View {
     /// ``PublicationDetailView/onListen``.
     private let onListen: ((Publication, URL, Int) -> Void)?
     private let onOpenSettings: () -> Void
+    /// Opens the exhaustive shelves list on the Library destination's own stack — see
+    /// ``HomeShelvesRow/onOpenShelves``. Both headings that lead there call this rather than
+    /// pushing ``ShelvesView`` onto Home's own stack.
+    private let onOpenShelves: () -> Void
 
     /// Which local picker is up, if either.
     ///
@@ -83,12 +87,14 @@ public struct HomeScreen: View {
         model: LibraryModel,
         onOpen: @escaping (Publication, URL) -> Void = { _, _ in },
         onListen: ((Publication, URL, Int) -> Void)? = nil,
-        onOpenSettings: @escaping () -> Void = {}
+        onOpenSettings: @escaping () -> Void = {},
+        onOpenShelves: @escaping () -> Void = {}
     ) {
         self.model = model
         self.onOpen = onOpen
         self.onListen = onListen
         self.onOpenSettings = onOpenSettings
+        self.onOpenShelves = onOpenShelves
     }
 
     // MARK: - The shelves
@@ -283,7 +289,8 @@ public struct HomeScreen: View {
                 summaries: listing.collections,
                 model: model,
                 pages: pages,
-                onOpen: onOpen
+                onOpen: onOpen,
+                onOpenShelves: onOpenShelves
             )
         }
         if !listing.lists.isEmpty {
@@ -292,7 +299,8 @@ public struct HomeScreen: View {
                 summaries: listing.lists,
                 model: model,
                 pages: pages,
-                onOpen: onOpen
+                onOpen: onOpen,
+                onOpenShelves: onOpenShelves
             )
         }
     }
@@ -355,10 +363,12 @@ public struct HomeScreen: View {
     /// A row on Home rather than a fourth destination: a shelf is something a reader made,
     /// so it belongs beside what they are reading, and `navigation-shell` is explicit that
     /// the destination set is three.
+    ///
+    /// A `Button` rather than a `NavigationLink`: the exhaustive shelves list is a library
+    /// section and `navigation-shell` puts it on the Library destination's own stack, which
+    /// only ``onOpenShelves`` — the app layer above both Home and Library — can switch to.
     private var shelvesLink: some View {
-        NavigationLink {
-            ShelvesView(model: model, onOpen: onOpen)
-        } label: {
+        Button(action: onOpenShelves) {
             HStack(spacing: StoryArcSpace.sm) {
                 Image(systemName: "square.stack")
                 Text("shelves.title", bundle: .module)

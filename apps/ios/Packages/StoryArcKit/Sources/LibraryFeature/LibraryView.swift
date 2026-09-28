@@ -122,6 +122,8 @@ public struct LibraryView: View {
     let progress: ProgressStore?
     /// See the initialiser. Watched rather than read: only a *change* is a request.
     let showLibrary: Int
+    /// See the initialiser. Watched rather than read, the same way [showLibrary] is.
+    let openShelvesRequest: Int
 
     /// One pin set for the whole app, loaded once.
     ///
@@ -160,7 +162,12 @@ public struct LibraryView: View {
         /// closure rather than a value because the reader may open a publication *while* the
         /// backoff loop is waiting, and a value captured at `init` would be stale by then.
         /// The app layer owns the state (`StoryArcApp.reading`); this view only asks.
-        isReading: @escaping @MainActor () -> Bool = { false }
+        isReading: @escaping @MainActor () -> Bool = { false },
+        /// How often the app layer has asked for the exhaustive shelves list — see
+        /// ``isShowingShelves``. The same counter idiom as ``showLibrary``, for the same reason:
+        /// where this view has navigated to is `@State`, so the app layer changes a number
+        /// rather than reaching in to push a screen onto a stack it is not inside.
+        openShelvesRequest: Int = 0
     ) {
         self.model = model
         self.surface = surface
@@ -169,6 +176,7 @@ public struct LibraryView: View {
         self.onOpen = onOpen
         self.onListen = onListen
         self.isReading = isReading
+        self.openShelvesRequest = openShelvesRequest
 
         _pins = State(initialValue: CertificatePins(CertificatePinStore().pins()))
     }
@@ -214,10 +222,22 @@ public struct LibraryView: View {
     /// column shows both. Both destinations are registered on it — see `publicationPages`.
     @State var detailPath = NavigationPath()
 
+    /// Whether the exhaustive shelves list is open beside (or in place of) the shelf.
+    ///
+    /// `navigation-shell`: "A shelf (and any library section) opened from the navigation
+    /// belongs to the Library destination." Home's own heading to the same screen used to
+    /// push it onto Home's stack instead, leaving Home marked selected and a back press the
+    /// only way to the shelves list a reader had just asked for. The app layer now flips
+    /// ``openShelvesRequest`` and switches the selected tab in the same step; this view answers
+    /// by opening the screen on its own stack, the same way ``showLibrary`` answers a number
+    /// rather than owning the tab selection itself.
+    @State var isShowingShelves = false
+
     public var body: some View {
         container
             // The shelf, asked for by name.
             .onChange(of: showLibrary) { _, _ in browsing = nil }
+            .onChange(of: openShelvesRequest) { _, _ in isShowingShelves = true }
             // `local-library`, both halves, through one presentation: a folder picked here is
             // reachable again after a restart — the security-scoped bookmark in the model —
             // and a file brought in from elsewhere is copied into storage the app owns, with

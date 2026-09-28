@@ -24,11 +24,15 @@ struct HomeShelvesRow: View {
     /// The Kavita servers this device can open, by source id — see ``KavitaPage/pages(in:)``.
     let pages: [UUID: KavitaPage]
     let onOpen: (Publication, URL) -> Void
+    /// Opens the exhaustive shelves list on the Library destination's own stack.
+    ///
+    /// Not a `NavigationLink` to ``ShelvesView`` any more: `navigation-shell` requires that
+    /// a library section opened from here "belongs to the Library destination", which only
+    /// the app layer above Home and Library both can decide. See ``HomeSection``.
+    let onOpenShelves: () -> Void
 
     var body: some View {
-        HomeSection(title: Text(title, bundle: .module)) {
-            ShelvesView(model: model, onOpen: onOpen)
-        } content: {
+        HomeSection(title: Text(title, bundle: .module), action: onOpenShelves) {
             row
         }
     }
