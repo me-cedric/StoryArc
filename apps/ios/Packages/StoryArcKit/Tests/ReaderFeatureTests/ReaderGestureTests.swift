@@ -85,7 +85,7 @@ struct ReaderGestureTests {
         ),
         Gesture(
             what: "the press that selects text in a PDF",
-            file: "ZoomablePage.swift",
+            file: "ZoomablePageSelection.swift",
             spelling: "handleSelection"
         ),
         Gesture(

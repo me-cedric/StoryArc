@@ -112,4 +112,56 @@ struct PageFittingTests {
         #expect(owed.scale(upTo: 6) == 1)
         #expect(owed.opensAtTheTop == false)
     }
+
+    // D6: "zoom level" means the pinched scale, and fit-to-width carries it to the
+    // next page rather than resetting on every turn. Android's `PageZoomTest`'s
+    // fit-to-width cases assert the same table.
+
+    @Test("fit-to-width carries a pinch past its own scale into the next page")
+    func fitToWidthCarriesAPinchForward() {
+        #expect(openingScale(fitScale: 2, carried: 4, mode: .width) == 4)
+    }
+
+    @Test("every other mode still resets, even with a carried scale in hand")
+    func everyOtherModeIgnoresTheCarriedScale() {
+        #expect(openingScale(fitScale: 1, carried: 4, mode: .screen) == 1)
+        #expect(openingScale(fitScale: 2, carried: 4, mode: .original) == 2)
+    }
+
+    @Test("nothing carried is the ordinary fit")
+    func nothingCarriedIsTheOrdinaryFit() {
+        #expect(openingScale(fitScale: 2, carried: nil, mode: .width) == 2)
+    }
+
+    @Test("a carried scale at or below the fit is not a pinch to carry")
+    func aStaleOrIdenticalCarriedScaleDoesNothing() {
+        // A page opened at its ordinary fit-to-width reports that very scale through
+        // `onZoom` on some builds; carrying it forward is a no-op either way, but the
+        // comparison has to allow for it rather than always trusting `carried`.
+        #expect(openingScale(fitScale: 2, carried: 2, mode: .width) == 2)
+        #expect(openingScale(fitScale: 2, carried: 1, mode: .width) == 2)
+    }
+
+    @Test("an OwedFit given a carried scale opens the page at it, not at its own fit")
+    func owedFitTakesACarriedScale() {
+        let owed = OwedFit(
+            pageID: "1",
+            mode: .width,
+            imageSize: CGSize(width: 500, height: 2000),
+            viewport: viewport,
+            carried: 5
+        )
+        #expect(owed.scale(upTo: 6) == 5)
+    }
+
+    @Test("a carried scale opens top-left in left-to-right, top-right in right-to-left")
+    func openingSideFollowsReadingDirection() {
+        #expect(openingXOffset(contentWidth: 800, boundsWidth: 400, isRightToLeft: false) == 0)
+        #expect(openingXOffset(contentWidth: 800, boundsWidth: 400, isRightToLeft: true) == 400)
+    }
+
+    @Test("fit-to-width itself has no horizontal slack to open into, either direction")
+    func noSlackMeansNoOffsetEitherWay() {
+        #expect(openingXOffset(contentWidth: 400, boundsWidth: 400, isRightToLeft: true) == 0)
+    }
 }

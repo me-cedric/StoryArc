@@ -185,4 +185,58 @@ class PageZoomTest {
         assertEquals(startingAtFitToWidth.scale, backToFit.scale, 0.001f)
         assertEquals(startingAtFitToWidth.offset, backToFit.offset)
     }
+
+    // D6: "zoom level" means the pinched scale, and fit-to-width carries it to the
+    // next page rather than resetting on every turn. iOS's `PageFittingTests`'
+    // `openingScale`/`openingXOffset` cases assert the same table.
+
+    @Test
+    fun `openingScale carries a pinch past its own scale, in fit-to-width`() {
+        assertEquals(4f, PageZoom.openingScale(fitScale = 2f, carried = 4f, mode = PageFit.WIDTH), 0.001f)
+    }
+
+    @Test
+    fun `openingScale ignores a carried scale outside fit-to-width`() {
+        assertEquals(1f, PageZoom.openingScale(fitScale = 1f, carried = 4f, mode = PageFit.SCREEN), 0.001f)
+    }
+
+    @Test
+    fun `openingScale ignores a carried scale at or below the fit`() {
+        assertEquals(2f, PageZoom.openingScale(fitScale = 2f, carried = 2f, mode = PageFit.WIDTH), 0.001f)
+        assertEquals(2f, PageZoom.openingScale(fitScale = 2f, carried = 1f, mode = PageFit.WIDTH), 0.001f)
+    }
+
+    @Test
+    fun `carrying a pinch past fit-to-width magnifies the next page to it`() {
+        val carried = PageZoom.carrying(PageFit.WIDTH, letterboxed, carried = 3f, isRightToLeft = false)
+        assertEquals(3f, carried.scale, 0.001f)
+    }
+
+    @Test
+    fun `a carried pinch opens top-left in left-to-right`() {
+        val carried = PageZoom.carrying(PageFit.WIDTH, letterboxed, carried = 3f, isRightToLeft = false)
+        assertEquals(0f, carried.offset.x, 0.001f)
+    }
+
+    @Test
+    fun `a carried pinch opens top-right in right-to-left`() {
+        val carried = PageZoom.carrying(PageFit.WIDTH, letterboxed, carried = 3f, isRightToLeft = true)
+        val slack = letterboxed.slack(3f)
+        assertEquals(-slack.x, carried.offset.x, 0.001f)
+    }
+
+    @Test
+    fun `nothing carried, or carried at or below the fit, opens at the ordinary fit-to-width`() {
+        val fit = PageZoom.fitting(PageFit.WIDTH, letterboxed)
+        assertEquals(fit, PageZoom.carrying(PageFit.WIDTH, letterboxed, null, isRightToLeft = false))
+        assertEquals(fit, PageZoom.carrying(PageFit.WIDTH, letterboxed, 2f, isRightToLeft = false))
+    }
+
+    @Test
+    fun `every mode but fit-to-width ignores a carried scale`() {
+        assertEquals(
+            PageZoom.fitting(PageFit.SCREEN, letterboxed),
+            PageZoom.carrying(PageFit.SCREEN, letterboxed, 5f, isRightToLeft = false),
+        )
+    }
 }
