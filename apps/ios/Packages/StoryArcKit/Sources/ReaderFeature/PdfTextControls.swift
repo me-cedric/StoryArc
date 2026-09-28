@@ -48,6 +48,14 @@ extension ReaderView {
         .sheet(isPresented: $isFindingText) {
             if let pdfText {
                 PdfTextSheet(model: pdfText, opensOn: findingTab) { page in goToPage(page) }
+            } else {
+                // D8: no text layer to search or outline, so this is the marks tab alone —
+                // a comic's or a scan's page bookmarks, in `AnnotationStore`.
+                ComicBookmarkList(
+                    store: annotations,
+                    publication: model.publication.id,
+                    onGo: goToPage
+                )
             }
         }
         .sheet(item: $noting) { annotation in
