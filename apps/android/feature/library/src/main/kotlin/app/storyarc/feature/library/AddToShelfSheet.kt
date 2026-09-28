@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.BulkSelection
@@ -160,13 +161,20 @@ fun AddToShelfSheet(
             // [BulkDownloadPrompt], which asks a different question -- how many of a
             // selection, not whether one already is.
             if (alone != null) {
-                when (DownloadOffer.of(alone, isKept = viewModel.isOnDevice(alone))) {
+                val offer = DownloadOffer.of(
+                    alone,
+                    isKept = viewModel.isOnDevice(alone),
+                    isLocalFile = isOnDevice(viewModel.location(alone)),
+                )
+                when (offer) {
                     DownloadOffer.Download -> Row(
                         name = stringResource(R.string.catalogue_acquire_download),
                         isMember = false,
                         enabled = true,
                     ) {
-                        scope.launch { viewModel.keepOffline(setOf(alone.id)) }
+                        // The view model's scope, not the sheet's: the sheet closes on the
+                        // next line, and its scope would cancel the copy half way.
+                        viewModel.viewModelScope.launch { viewModel.keepOffline(setOf(alone.id)) }
                         onDismiss()
                     }
 

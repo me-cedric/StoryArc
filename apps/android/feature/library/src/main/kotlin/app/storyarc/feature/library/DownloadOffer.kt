@@ -22,6 +22,10 @@ object PublicationActions {
  * A named value rather than two booleans compared inline, so a menu asks one question and a
  * test can state all three answers without a composition. iOS's `DownloadOffer` is the same
  * three cases.
+ *
+ * `isLocalFile`: the menu's download is [LibraryViewModel.keepOffline], which copies a file
+ * that is already on this device. A row whose bytes are on a server has no such file, so the
+ * copy is skipped and nothing happens. The menu does not offer a download it cannot deliver.
  */
 sealed class DownloadOffer {
     object Download : DownloadOffer()
@@ -29,9 +33,9 @@ sealed class DownloadOffer {
     object None : DownloadOffer()
 
     companion object {
-        fun of(publication: Publication, isKept: Boolean): DownloadOffer = when {
+        fun of(publication: Publication, isKept: Boolean, isLocalFile: Boolean): DownloadOffer = when {
             isKept -> Remove
-            PublicationActions.canDownload(publication) -> Download
+            isLocalFile && PublicationActions.canDownload(publication) -> Download
             else -> None
         }
     }

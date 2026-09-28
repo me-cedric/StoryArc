@@ -41,18 +41,25 @@ struct PublicationActionMenuTests {
 
     @Test("A kept copy offers to remove itself, whatever else is true of it")
     func keptCopyOffersRemoval() {
-        #expect(DownloadOffer.of(publication(format: .imageFolder), isKept: true) == .remove)
-        #expect(DownloadOffer.of(publication(format: .cb7, streaming: .refused), isKept: true) == .remove)
+        #expect(DownloadOffer.of(publication(format: .imageFolder), isKept: true, isLocalFile: true) == .remove)
+        #expect(DownloadOffer.of(publication(format: .cb7, streaming: .refused), isKept: true, isLocalFile: false) == .remove)
     }
 
     @Test("A copy that could be fetched and is not kept offers to download")
     func fetchableCopyOffersDownload() {
-        #expect(DownloadOffer.of(publication(format: .cbz), isKept: false) == .download)
+        #expect(DownloadOffer.of(publication(format: .cbz), isKept: false, isLocalFile: true) == .download)
     }
 
     @Test("Nothing that could be fetched offers neither")
     func nothingFetchableOffersNeither() {
-        #expect(DownloadOffer.of(publication(format: .imageFolder), isKept: false) == .none)
-        #expect(DownloadOffer.of(publication(format: .cb7, streaming: .refused), isKept: false) == .none)
+        #expect(DownloadOffer.of(publication(format: .imageFolder), isKept: false, isLocalFile: true) == .none)
+        #expect(DownloadOffer.of(publication(format: .cb7, streaming: .refused), isKept: false, isLocalFile: true) == .none)
+    }
+
+    @Test("A row whose bytes are on a server offers no download the menu cannot deliver")
+    func serverRowOffersNoDownload() {
+        // The menu copies a file that is already on this device. A Kavita, OPDS or share
+        // row has no such file, so a Download button there would change nothing.
+        #expect(DownloadOffer.of(publication(format: .cbz), isKept: false, isLocalFile: false) == .none)
     }
 }
