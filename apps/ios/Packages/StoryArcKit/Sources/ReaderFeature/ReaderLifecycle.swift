@@ -34,7 +34,8 @@ struct ReaderLifecycle: ViewModifier {
             }
             // `offline-downloads`: a publication opened by streaming "switches to the local
             // copy when the download completes, without interrupting reading". This is the
-            // watch. It returns at once for a publication opened from a file.
+            // watch. It starts in parallel with the `.task` above, before `open` has set
+            // `archive` — see ``ReaderModel/adoptTheCopyWhenItArrives()`` for how it waits.
             .task { await model.adoptTheCopyWhenItArrives() }
     }
 }
