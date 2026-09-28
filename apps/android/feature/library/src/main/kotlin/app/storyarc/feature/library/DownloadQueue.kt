@@ -210,7 +210,9 @@ class DownloadQueue(
         val waiter = CompletableDeferred<File?>()
         waiting.getOrPut(entry.id) { mutableListOf() }.add(waiter)
         val existing = _library.value[entry.id]?.state
-        if (existing is Download.State.Failed || existing == Download.State.Paused(Download.Pause.BY_READER)) {
+        val stuck = existing is Download.State.Failed ||
+            existing == Download.State.Paused(Download.Pause.BY_READER)
+        if (stuck) {
             // `enqueue` is a no-op once a publication is already known, and neither state
             // resolves itself: a failed download has no attempts left, and a download the
             // reader paused stays paused until asked. A reader pressing Read on either is
@@ -218,8 +220,7 @@ class DownloadQueue(
             // start.
             if (overridingMeteredConnection) overridden += entry.id
             entries[entry.id] = entry
-            _library.value = _library.value.marking(entry.id, Download.State.Queued)
-            store?.save(_library.value)
+            resume(entry.id)
         } else {
             enqueue(entry, acquisition, overridingMeteredConnection)
         }
@@ -228,7 +229,6 @@ class DownloadQueue(
         // earlier and are not reading -- on a metered link, where the bound is one, that was
         // the difference between a five-megabyte comic and a four-hundred-megabyte wait.
         promote(entry.id)
-        pump()
         return waiter.await()
     }
 

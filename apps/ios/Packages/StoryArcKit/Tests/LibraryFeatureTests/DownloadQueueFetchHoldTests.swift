@@ -75,9 +75,9 @@ struct DownloadQueueFetchHoldTests {
     @Test("A download the reader paused is put back in the queue rather than waited on forever")
     func readerPausedIsRequeued() async throws {
         let id = "fetch-paused-\(UUID().uuidString)"
-        let store = try store(holding: .queued, id: id)
+        let store = try store(holding: .paused(.byReader), id: id)
         let queue = queue(over: store)
-        queue.library = queue.library.marking(id, as: .paused(.byReader))
+        #expect(queue.library[id]?.state == .paused(.byReader))
 
         let (entry, acquisition) = acquisition(for: id)
         Task { _ = await queue.fetch(entry, using: acquisition) }
