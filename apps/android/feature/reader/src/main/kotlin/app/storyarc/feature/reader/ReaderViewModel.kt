@@ -297,7 +297,7 @@ class ReaderViewModel(
      * and every page sits on its spinner for ever. iOS gets this from `@Observable`
      * tracking the property; Kotlin has to say it.
      */
-    private val decoded = mutableStateMapOf<Int, Bitmap>()
+    internal val decoded = mutableStateMapOf<Int, Bitmap>()
 
     /**
      * Small versions of pages, for the thumbnail strip.

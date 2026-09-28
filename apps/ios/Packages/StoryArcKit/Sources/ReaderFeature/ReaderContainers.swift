@@ -270,7 +270,8 @@ extension ReaderView {
             label: Text("reader.pageLabel \(index + 1) \(model.pages.count)", bundle: .module),
             axis: axis,
             adjustments: trimming(at: index),
-            onTap: tapHandler()
+            onTap: tapHandler(),
+            placeholderRatio: PagePlaceholder.ratio(nearest: index, among: model.decodedRatios)
         )
     }
 

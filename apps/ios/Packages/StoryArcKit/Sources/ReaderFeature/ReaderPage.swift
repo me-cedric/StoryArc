@@ -222,13 +222,9 @@ struct StitchedPage: View {
     let adjustments: ImageAdjustments
     let onTap: (CGPoint, CGSize) -> Void
 
-    /// A page's shape before it is decoded.
-    ///
-    /// `page-transitions` asks a turn to run "against a placeholder holding the
-    /// correct aspect ratio, so the turn does not jump when the content arrives".
-    /// Until the page is decoded its real ratio is unknown, and a comic page is close
-    /// enough to this that the jump is not something a reader notices.
-    private static let placeholderRatio = 2.0 / 3.0
+    /// This page's shape before it is decoded: the nearest decoded page's own ratio, or
+    /// the ordinary comic-page default. See ``PagePlaceholder``.
+    var placeholderRatio = PagePlaceholder.defaultRatio
 
     var body: some View {
         GeometryReader { geometry in
@@ -261,7 +257,7 @@ struct StitchedPage: View {
 
     /// The page's own proportions, or the placeholder's until it has any.
     private var ratio: Double {
-        guard let image, image.height > 0 else { return Self.placeholderRatio }
+        guard let image, image.height > 0 else { return placeholderRatio }
         return Double(image.width) / Double(image.height)
     }
 }

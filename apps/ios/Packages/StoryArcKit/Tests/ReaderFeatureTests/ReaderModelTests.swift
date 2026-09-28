@@ -284,6 +284,24 @@ struct ReaderModelTests {
         #expect(second.restoredScrollFraction == 0.6)
     }
 
+    // `page-transitions`: a placeholder for a page that has not decoded holds "the
+    // nearest decoded page's ratio" — see `PagePlaceholder`. This is the model's half:
+    // a plain ratio for every page it has actually decoded, and nothing for the rest.
+
+    @Test("Every decoded page reports its own width-over-height ratio")
+    func decodedRatiosMatchTheDecodedPages() async {
+        let location = url("comics/natural-sort.cbz")
+        let model = ReaderModel(publication: publication(.cbz, at: location), url: location)
+        await model.open(maxPixelSize: 256)
+
+        let image = model.image(at: 0)
+        #expect(image != nil)
+        #expect(model.decodedRatios[0] == Double(image?.width ?? 0) / Double(image?.height ?? 1))
+        // Page 4 is outside the prefetch window (see `windowFollowsThePage`), so it has
+        // never decoded and reports no ratio at all.
+        #expect(model.decodedRatios[4] == nil)
+    }
+
     @Test("With no preferences store, nothing is remembered and nothing throws")
     func scrollFractionWithNoStoreDoesNothing() async {
         let location = url("comics/natural-sort.cbz")
