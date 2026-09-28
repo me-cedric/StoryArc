@@ -1,6 +1,8 @@
 package app.storyarc
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,6 +16,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.storyarc.core.kavita.KavitaClient
+import app.storyarc.core.model.CompositeCover
 import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.PinnedShelves
@@ -24,12 +28,15 @@ import app.storyarc.core.model.RememberedShelf
 import app.storyarc.core.model.RememberedShelfKind
 import app.storyarc.feature.library.HomeScreen
 import app.storyarc.feature.library.HomeSection
+import app.storyarc.feature.library.HomeShelfArtworkOutcome
+import app.storyarc.feature.library.HomeShelfCoverPlan
 import app.storyarc.feature.library.HomeShelfDestination
 import app.storyarc.feature.library.HomeShelfIndex
 import app.storyarc.feature.library.HomeShelfListing
 import app.storyarc.feature.library.HomeShelfSummary
 import app.storyarc.feature.library.HomeShelves
 import app.storyarc.feature.library.HomeSurface
+import app.storyarc.feature.library.HOME_SHELF_SOLE_COVER_KEY
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.ServerShelf
 import app.storyarc.navigation.AppSheet
@@ -218,6 +225,7 @@ internal fun HomeDestination(host: AppHost) {
         onAddKavita = { host.sheet(AppSheet.AddKavita) },
         onAddShare = { host.sheet(AppSheet.AddSharedFolder) },
         shelves = listing,
+        serverArtwork = { shelf -> homeShelfArtwork(host, shelf) },
         onOpenShelf = { summary -> openShelf(host, summary) },
         // Not a filtered library, unlike every other heading here: the exhaustive list of
         // collections is a screen of its own, and it is the only place a shelf is made,
@@ -227,6 +235,71 @@ internal fun HomeDestination(host: AppHost) {
         onShowAllShelves = { host.navigate { openLibrarySection(Screen.Shelves) } },
     )
 }
+
+/**
+ * A Kavita shelf's own artwork, fetched for the home surface.
+ *
+ * The owner's field report on v0.1.1: "Kavita collections and reading lists on Home show only
+ * a title, no cover." The order is the field report's own decision: the server's own cover,
+ * then the first members', then neither. This is the one function on this surface that
+ * reaches a source -- `home-screen` forbids [HomeScreen] from doing that itself, which is why
+ * the screen takes this as a lambda rather than a view model.
+ *
+ * Unconditional about the locked-cover request rather than gated on a stored flag: a
+ * [RememberedShelf] carries the shelf's name and numbering and nothing about whether its
+ * cover is locked, and growing its stored token for one avoided request is a bigger change
+ * than trying the route and reading a refusal as "no lock" -- which `runCatching` already
+ * does for every other request this function makes.
+ */
+private suspend fun homeShelfArtwork(host: AppHost, shelf: RememberedShelf): HomeShelfArtworkOutcome {
+    val source = host.library.registry.value.sources.firstOrNull { it.id == shelf.sourceId }
+        ?: return HomeShelfArtworkOutcome(HomeShelfCoverPlan.Blank)
+    val page = KavitaPage.of(source, host.dependencies.credentials)
+        ?: return HomeShelfArtworkOutcome(HomeShelfCoverPlan.Blank)
+    val client = KavitaClient(page.address)
+    val isList = shelf.kind == RememberedShelfKind.READING_LIST
+
+    val lockedBytes = runCatching {
+        if (isList) client.readingListCover(shelf.serverId) else client.collectionCover(shelf.serverId)
+    }.getOrNull()
+    val locked = lockedBytes?.let { decodeCover(it) }
+    if (locked != null) {
+        return HomeShelfArtworkOutcome(
+            plan = HomeShelfCoverPlan.decide(hasLockedCover = true, memberIds = emptyList()),
+            covers = mapOf(HOME_SHELF_SOLE_COVER_KEY to locked),
+        )
+    }
+
+    val memberIds = runCatching {
+        if (isList) {
+            client.readingListItems(shelf.serverId)
+                .sortedBy { it.order }
+                .take(CompositeCover.TILE_COUNT)
+                .map { it.chapterId.toString() }
+        } else {
+            client.collected(shelf.serverId)
+                .take(CompositeCover.TILE_COUNT)
+                .map { it.id.toString() }
+        }
+    }.getOrDefault(emptyList())
+
+    val covers = mutableMapOf<String, Bitmap>()
+    for (id in memberIds) {
+        val numeric = id.toIntOrNull() ?: continue
+        val bytes = runCatching {
+            if (isList) client.chapterCover(numeric) else client.seriesCover(numeric)
+        }.getOrNull() ?: continue
+        decodeCover(bytes)?.let { covers[id] = it }
+    }
+
+    return HomeShelfArtworkOutcome(
+        plan = HomeShelfCoverPlan.decide(hasLockedCover = false, memberIds = memberIds),
+        covers = covers,
+    )
+}
+
+private fun decodeCover(bytes: ByteArray): Bitmap? =
+    runCatching { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }.getOrNull()
 
 /**
  * What taking a shelf's card does.

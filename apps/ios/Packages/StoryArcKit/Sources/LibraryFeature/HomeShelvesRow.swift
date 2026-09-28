@@ -60,16 +60,32 @@ struct HomeShelvesRow: View {
         .contentMargins(.horizontal, StoryArcSpace.gutter, for: .scrollContent)
     }
 
-    /// The card itself: ``ShelfCard``, unchanged, because this surface and the shelves screen
-    /// draw the same thing and a second card would eventually be a different one.
+    /// The card itself: ``ShelfCard``, because this surface and the shelves screen draw the
+    /// same thing and a second card would eventually be a different one. A server's shelf
+    /// gets the one thing ``ShelfCard`` lets a caller override — its cover — because
+    /// ``HomeShelfSummary/tiles`` is always empty for one and the default composite would
+    /// draw the same blank frame the field report named. ``ServerShelfCardView`` on the
+    /// Shelves screen makes the identical substitution for the identical reason.
+    @ViewBuilder
     private func card(_ summary: HomeShelfSummary) -> some View {
-        ShelfCard(
-            model: model,
-            title: summary.name,
-            subtitle: shelfSubtitle(count: summary.count, sourceName: summary.sourceName),
-            tiles: summary.tiles.map(\.id),
-            progress: summary.progress
-        )
+        if case let .onServer(shelf) = summary.destination, let page = pages[shelf.sourceID] {
+            ShelfCard(
+                model: model,
+                title: summary.name,
+                subtitle: shelfSubtitle(count: summary.count, sourceName: summary.sourceName),
+                tiles: [],
+                progress: summary.progress,
+                cover: AnyView(HomeServerShelfCover(shelf: shelf, page: page))
+            )
+        } else {
+            ShelfCard(
+                model: model,
+                title: summary.name,
+                subtitle: shelfSubtitle(count: summary.count, sourceName: summary.sourceName),
+                tiles: summary.tiles.map(\.id),
+                progress: summary.progress
+            )
+        }
     }
 
     /// Where a card leads.

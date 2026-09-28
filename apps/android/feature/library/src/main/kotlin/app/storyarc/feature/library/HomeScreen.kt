@@ -46,6 +46,7 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.RememberedShelf
 
 /**
  * A shelf on the home surface, named so its heading can lead somewhere exhaustive.
@@ -131,6 +132,17 @@ fun HomeScreen(
      * Empty by default, so a preview and a test that does not care about shelves is unchanged.
      */
     shelves: HomeShelfListing = HomeShelfListing(),
+    /**
+     * A server shelf's artwork, asked for once the card appears.
+     *
+     * The one door out of `home-screen`'s "assembled from local data" rule: a remembered
+     * shelf carries no cover, and this is where the app layer supplies one -- built from a
+     * source `HomeDestination` already knows about, never from one this screen looked up
+     * itself.
+     */
+    serverArtwork: suspend (RememberedShelf) -> HomeShelfArtworkOutcome = {
+        HomeShelfArtworkOutcome(HomeShelfCoverPlan.Blank)
+    },
     /** A shelf's card was chosen: that shelf's own screen, local or on its server. */
     onOpenShelf: (HomeShelfSummary) -> Unit = {},
     /** Either shelves heading was chosen: the screen that lists every collection and list. */
@@ -231,6 +243,7 @@ fun HomeScreen(
                 heading = R.string.shelves_collections,
                 summaries = shelves.collections,
                 cover = cover,
+                serverArtwork = serverArtwork,
                 onOpenShelf = onOpenShelf,
                 onShowAll = onShowAllShelves,
             )
@@ -239,6 +252,7 @@ fun HomeScreen(
                 heading = R.string.shelves_lists,
                 summaries = shelves.lists,
                 cover = cover,
+                serverArtwork = serverArtwork,
                 onOpenShelf = onOpenShelf,
                 onShowAll = onShowAllShelves,
             )
