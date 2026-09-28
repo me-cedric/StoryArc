@@ -159,6 +159,7 @@ enum KavitaKeep {
         // removal that only got half way is not a reason to refuse the reader their comic.
         try? manager.removeItem(at: destination)
         guard (try? manager.moveItem(at: staged, to: destination)) != nil else { return nil }
+        DownloadStore.protect(destination)
         return Int64((try? destination.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
     }
 

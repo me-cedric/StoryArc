@@ -1,5 +1,6 @@
 public import Foundation
 internal import Formats
+internal import Persistence
 public import StoryArcCore
 
 /// What happens to a download when its transfer ends.
@@ -28,6 +29,7 @@ extension DownloadQueue {
         )
         try? FileManager.default.removeItem(at: file)
         try FileManager.default.moveItem(at: temporary, to: file)
+        DownloadStore.protect(file)
         // The transfer this token described is over. Left behind, it would be offered to the
         // next download of the same publication, which would carry on a transfer that has
         // already finished.

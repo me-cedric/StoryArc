@@ -245,4 +245,24 @@ struct DownloadStoreTests {
         #expect(FileManager.default.fileExists(atPath: downloads.path))
     }
 
+    // MARK: - Backup exclusion (security-review #18)
+
+    @Test("A file is pinned to the download store's protection class")
+    func fileIsProtected() throws {
+        // A class set on the directory only governs a file *created* inside it. A file
+        // moved or copied in — which is how every landing writer puts bytes there —
+        // keeps the class it already had, unless something pins it directly afterward.
+        let root = URL.temporaryDirectory.appending(path: "protect-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let file = root.appending(path: "book.cbz")
+        try Data("bytes".utf8).write(to: file)
+
+        DownloadStore.protect(file)
+
+        let attributes = try FileManager.default.attributesOfItem(atPath: file.path)
+        let protection = attributes[.protectionKey] as? FileProtectionType
+        #expect(protection == DownloadStore.fileProtection)
+    }
+
 }

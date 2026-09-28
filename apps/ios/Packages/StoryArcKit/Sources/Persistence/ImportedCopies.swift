@@ -135,6 +135,7 @@ extension DownloadStore {
             // the copy and the save — and `copyItem` onto an existing path throws.
             try? FileManager.default.removeItem(at: file)
             try FileManager.default.copyItem(at: original, to: file)
+            DownloadStore.protect(file)
         } catch {
             throw ImportedCopies.ImportError.unreadable
         }
