@@ -103,13 +103,11 @@ class EpubReaderViewModel(
      */
     private val shelf = ShelfMemory.shelf(series, identity.stableId)
 
-    /**
-     * Always reflowable. A fixed-layout EPUB never reaches this reader —
-     * `ebook-reader` sends it to the comic reader, which has pages.
-     */
+    /** Always reflowable: `ebook-reader` sends a fixed-layout EPUB to the comic reader. */
     private val themeScope = ThemeScope.REFLOWABLE
 
-    private val stored = themeStore?.themes()?.theme(themeScope, shelf) ?: ShelfSettings()
+    private val atOpen = themeStore?.themes()
+    private val stored = atOpen?.theme(themeScope, shelf) ?: ShelfSettings()
 
     /**
      * The reading order's hrefs, for the progress fallback below.
@@ -177,8 +175,8 @@ class EpubReaderViewModel(
     private val _transition = MutableStateFlow(stored.transition)
     val transition: StateFlow<PageTransition> = _transition.asStateFlow()
 
-    /** The reader's own named palette, kept whether or not [theme]'s own `custom` is. */
-    private val _customPalette = MutableStateFlow(stored.customPalette)
+    /** [ShelfMemory.customPalette], or a palette in force from before that slot existed. */
+    private val _customPalette = MutableStateFlow(atOpen?.customPalette ?: stored.theme.custom)
     val customPalette: StateFlow<ReaderPalette?> = _customPalette.asStateFlow()
 
     /**
@@ -203,7 +201,7 @@ class EpubReaderViewModel(
     fun adopt(preset: ThemePreset, recorded: Boolean = true) {
         val next = _theme.value.adopting(preset)
         if (!recorded) {
-            notRecorded = ShelfSettings(next, preset.values, _transition.value, customPalette = _customPalette.value)
+            notRecorded = ShelfSettings(next, preset.values, _transition.value)
         }
         _theme.value = next
         _values.value = preset.values
@@ -285,9 +283,7 @@ class EpubReaderViewModel(
         val store = themeStore
         if (store != null) {
             val series = store.themes().theme(themeScope, shelf)
-            notRecorded = ShelfSettings(
-                _theme.value, _values.value, transition, customPalette = _customPalette.value,
-            )
+            notRecorded = ShelfSettings(_theme.value, _values.value, transition)
             store.save(store.themes().remembering(series.copy(transition = transition), themeScope, shelf))
         }
         _transition.value = transition
@@ -313,12 +309,12 @@ class EpubReaderViewModel(
      *
      * `reading-themes`: a pairing below 4.5 to 1 "is refused with the measured ratio
      * stated". The refusal is returned rather than thrown or swallowed, because the
-     * sheet has to show the number — a refusal without one is just an obstacle.
-     *
-     * @return whether the palette was applied.
+     * sheet has to show the number — a refusal without one is just an obstacle. Under
+     * Original, which takes no colour, the seventh card moves the reader to Paper.
      */
     fun adoptColours(palette: ReaderPalette): Boolean {
         if (!palette.isReadable) return false
+        if (_theme.value.preset.keepsPublisherStyles) adopt(ThemePreset.PAPER)
         _theme.value = _theme.value.adopting(palette)
         _customPalette.value = palette
         return true
@@ -359,15 +355,18 @@ class EpubReaderViewModel(
         val store = themeStore ?: return
         scope.launch {
             combine(_theme, _values, _transition, _customPalette) { theme, values, transition, palette ->
-                ShelfSettings(theme, values, transition, customPalette = palette)
+                ShelfSettings(theme, values, transition) to palette
             }
                 .drop(1)
-                .filter {
+                .filter { (settings, _) ->
                     val settling = notRecorded ?: return@filter true
-                    if (it == settling) notRecorded = null
+                    if (settings == settling) notRecorded = null
                     false
                 }
-                .collect { store.save(store.themes().remembering(it, themeScope, shelf)) }
+                .collect { (settings, palette) ->
+                    val updated = store.themes().remembering(settings, themeScope, shelf)
+                    store.save(updated.copy(customPalette = palette))
+                }
         }
     }
 

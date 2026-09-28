@@ -55,10 +55,6 @@ enum class ThemeScope { REFLOWABLE, FIXED_LAYOUT }
  *   `ReaderPreferences.themes()`), so a reader who had chosen
  *   fit-to-width keeps opening at fit-to-width rather than being quietly returned to
  *   fit-to-screen on the day they update.
- * @property customPalette the reader's own named colour pairing, kept whether or not it is
- *   currently in force. `reading-themes`: a custom colour is "a seventh, user-named slot
- *   alongside the six presets" — this is that slot. [ReadingTheme.custom] is only what is
- *   on the page right now, and a preset tap or a reset both drop it; this does not.
  */
 @Serializable
 data class ShelfSettings(
@@ -71,7 +67,6 @@ data class ShelfSettings(
     val offsetsSpreads: Boolean = false,
     val showsPageSeparator: Boolean = false,
     val fit: PageFit = PageFit.SCREEN,
-    val customPalette: ReaderPalette? = null,
 ) {
     /**
      * Whether a continuous scroll draws a separator above the page at [aboveIndex].
@@ -105,6 +100,14 @@ data class ShelfMemory(
     private val shelves: Map<String, ShelfSettings> = emptyMap(),
     /** The fallback for a shelf never opened, one per scope. */
     private val defaults: Map<String, ShelfSettings> = emptyMap(),
+    /**
+     * The reader's own named colour pairing, kept whether or not it is in force.
+     * `reading-themes`: a custom colour is "a seventh, user-named slot alongside the six
+     * presets". The six presets are the same on every shelf, so the slot is too.
+     * [ReadingTheme.custom] is only what is on the page now, and a preset tap or a reset
+     * drops it. This slot stays.
+     */
+    val customPalette: ReaderPalette? = null,
 ) {
     /** The theme for a shelf: its own if it has one, else the scope's default. */
     fun theme(scope: ThemeScope, shelf: String): ShelfSettings =
