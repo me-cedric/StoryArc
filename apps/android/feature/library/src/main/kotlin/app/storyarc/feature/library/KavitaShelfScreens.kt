@@ -130,6 +130,11 @@ fun KavitaListScreen(
     val client = remember(server.address) { KavitaClient(server.address) }
     var items by remember(listId) { mutableStateOf<List<KavitaReadingListItem>>(emptyList()) }
     var fetching by remember(listId) { mutableStateOf<Int?>(null) }
+    // The title of the entry a reader last tried to open, when that try failed. `kavita-server`
+    // task 21.4: an entry that cannot be fetched used to leave the tap's own spinner and say
+    // nothing else, which is a chapter that "never opens" exactly as the field report named it
+    // -- so this is said instead, and cleared the moment another entry is tried.
+    var openFailure by remember(listId) { mutableStateOf<String?>(null) }
 
     // The order this device has given the list and the server has not taken yet. Read from
     // the same queue a failed position waits in. Empty means the server holds the reader's
@@ -213,6 +218,15 @@ fun KavitaListScreen(
                     )
                 }
             }
+            openFailure?.let { title ->
+                item(key = "open-failure") {
+                    Text(
+                        text = stringResource(R.string.kavita_open_failed, title),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = StoryArcColor.Status.offline,
+                    )
+                }
+            }
             itemsIndexed(rows, key = { _, row -> row.id }) { index, row ->
                 val entry = items.firstOrNull { it.chapterId.toString() == row.id }
                 val held = rows.count { !it.isPending }
@@ -239,9 +253,10 @@ fun KavitaListScreen(
                     if (entry == null) return@EntryRow
                     scope.launch {
                         fetching = entry.chapterId
-                        fetchEntry(context, client, entry)?.let { (publication, path) ->
-                            onOpen(publication, path)
-                        }
+                        openFailure = null
+                        val outcome = fetchEntry(context, client, entry)
+                        outcome.getOrNull()?.let { (publication, path) -> onOpen(publication, path) }
+                        openFailure = kavitaOpenFailureTitle(entry.displayName, outcome)
                         fetching = null
                     }
                 }
@@ -391,14 +406,26 @@ private suspend fun fetchEntry(
     context: android.content.Context,
     client: KavitaClient,
     entry: KavitaReadingListItem,
-): Pair<Publication, String>? = runCatching {
+): Result<Pair<Publication, String>> = runCatching {
     val fetched = client.chapter(entry.chapterId)
     val file = withContext(Dispatchers.IO) {
         kavitaCacheFile(context, entry.chapterId, fetched.mediaType)
             .apply { writeBytes(fetched.bytes) }
     }
     PublicationIndexer.index(file, catalogueSeries = entry.seriesName) to file.absolutePath
-}.getOrNull()
+}
+
+/**
+ * What [KavitaListScreen] tells the reader after trying to open [title]: nothing on success,
+ * [title] itself otherwise, for the row's own "couldn't open" sentence.
+ *
+ * Pure, and beside the view for the reason `IndexRailIsOperableTest` gives about
+ * `LibraryRail`: the coroutine that calls this runs inside a `Composable` a test cannot
+ * reach, so the one decision worth asserting -- a failure is named rather than left as a
+ * spinner that quietly clears -- is lifted out where `KavitaOpenFailureTest` can call it.
+ */
+internal fun kavitaOpenFailureTitle(title: String, outcome: Result<*>): String? =
+    if (outcome.isFailure) title else null
 
 /** How tall an entry's poster is. A row, not a cell: the list is a run of titles. */
 private val POSTER_HEIGHT = 56.dp
