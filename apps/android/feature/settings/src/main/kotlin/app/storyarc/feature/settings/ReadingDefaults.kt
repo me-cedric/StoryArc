@@ -16,6 +16,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,6 +35,7 @@ import app.storyarc.core.model.ShelfMemory
 import app.storyarc.core.model.SUGGESTED_BACKGROUNDS
 import app.storyarc.core.model.SUGGESTED_BACKGROUND_NAMES
 import app.storyarc.core.model.ReaderPalette
+import app.storyarc.core.model.ReadingTheme
 import app.storyarc.core.model.ShelfSettings
 import app.storyarc.core.model.ThemePreset
 import app.storyarc.core.model.ThemeScope
@@ -59,9 +64,12 @@ internal fun ReadingDefaults(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
-    // Read once per composition of this screen. The reader owns these while it is open;
-    // here nothing else is writing them.
-    val memory = store.themes()
+    // Kept as Compose state and set again after each save, the way iOS's `@State memory`
+    // does (`ReadingDefaults.swift`). Reading `store.themes()` as a plain value compiled
+    // and drew, but a tap on a row or a swatch called `store.save` and nothing here
+    // observed it, so the radio button and the matte ring never moved until the screen
+    // recomposed for an unrelated reason.
+    var memory by remember { mutableStateOf(store.themes()) }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md)) {
         Text(
@@ -76,9 +84,19 @@ internal fun ReadingDefaults(
         )
 
         ThemeScope.entries.forEach { scope ->
-            ScopeDefaults(scope = scope, memory = memory, store = store)
+            // `reading-themes`: a comic has no typography for a preset to change, so a
+            // preset picker offered nothing a comic reader honoured — the fixed-layout
+            // scope keeps only its own colour, below.
+            if (scope == ThemeScope.REFLOWABLE) {
+                ScopeDefaults(
+                    scope = scope,
+                    memory = memory,
+                    store = store,
+                    onSaved = { memory = it },
+                )
+            }
             if (scope == ThemeScope.FIXED_LAYOUT) {
-                ComicMatte(memory = memory, store = store)
+                ComicMatte(memory = memory, store = store, onSaved = { memory = it })
             }
         }
     }
@@ -98,7 +116,7 @@ internal fun ReadingDefaults(
  * already, so a picker would offer a refusal path with no way to see why.
  */
 @Composable
-private fun ComicMatte(memory: ShelfMemory, store: ReaderPreferences) {
+private fun ComicMatte(memory: ShelfMemory, store: ReaderPreferences, onSaved: (ShelfMemory) -> Unit) {
     val palette = LocalStoryArcPalette.current
     val current = memory.default(ThemeScope.FIXED_LAYOUT).theme.custom?.background
 
@@ -127,13 +145,20 @@ private fun ComicMatte(memory: ShelfMemory, store: ReaderPreferences) {
         ) {
             // Black first and unlabelled as a swatch of its own: it is the default, and
             // "none" has to be reachable or a reader who tries a colour is stuck with one.
-            MatteSwatch(hex = null, isActive = current == null, store = store, memory = memory)
+            MatteSwatch(
+                hex = null,
+                isActive = current == null,
+                store = store,
+                memory = memory,
+                onSaved = onSaved,
+            )
             SUGGESTED_BACKGROUNDS.forEach { hex ->
                 MatteSwatch(
                     hex = hex,
                     isActive = current?.equals(hex, ignoreCase = true) == true,
                     store = store,
                     memory = memory,
+                    onSaved = onSaved,
                 )
             }
         }
@@ -146,6 +171,7 @@ private fun MatteSwatch(
     isActive: Boolean,
     store: ReaderPreferences,
     memory: ShelfMemory,
+    onSaved: (ShelfMemory) -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
     // The colour's name, not its hex. TalkBack read "Colour #E8EFE6" one character at a
@@ -173,12 +199,12 @@ private fun MatteSwatch(
                             current.adopting(ReaderPalette.derived(hex, hex))
                         }
                     }
-                    store.save(
-                        store.themes().settingDefault(
-                            existing.copy(theme = theme),
-                            ThemeScope.FIXED_LAYOUT,
-                        ),
+                    val updated = store.themes().settingDefault(
+                        existing.copy(theme = theme),
+                        ThemeScope.FIXED_LAYOUT,
                     )
+                    store.save(updated)
+                    onSaved(updated)
                 },
             )
             .semantics { contentDescription = description },
@@ -230,11 +256,27 @@ private fun matteSwatchColour(hex: String?): Color {
     )
 }
 
+/**
+ * The chosen preset and its typography, kept beside the rest of the stored default.
+ *
+ * `reading-themes`, *Changing the global default*: a fresh `ShelfSettings(theme, values)`
+ * here put the transition, the adjustments and the matte back to their built-in values on
+ * every change, because a value this function never named still has to come from
+ * somewhere, and a bare constructor names the built-in one.
+ *
+ * A plain function beside the composable, because no JVM test can press a row inside
+ * `ScopeDefaults` and this is what `ReadingDefaultsChoosingTest` proves the behaviour over.
+ * iOS splits it the same way, into `ReadingDefaults.choosing(_:from:)`.
+ */
+internal fun choosingPreset(preset: ThemePreset, existing: ShelfSettings): ShelfSettings =
+    existing.copy(theme = ReadingTheme(preset), values = preset.values)
+
 @Composable
 private fun ScopeDefaults(
     scope: ThemeScope,
     memory: ShelfMemory,
     store: ReaderPreferences,
+    onSaved: (ShelfMemory) -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
     val current = memory.default(scope).theme.preset
@@ -252,18 +294,10 @@ private fun ScopeDefaults(
                 modifier = Modifier
                     .fillMaxWidth()
                     .selectableRow(selected = current == preset) {
-                        // The whole settings value, not just the preset: a preset carries
-                        // its own typography, and a default that kept the previous one
-                        // would not be the preset the reader chose.
-                        store.save(
-                            store.themes().settingDefault(
-                                ShelfSettings(
-                                    theme = app.storyarc.core.model.ReadingTheme(preset),
-                                    values = preset.values,
-                                ),
-                                scope,
-                            ),
-                        )
+                        val stored = choosingPreset(preset, memory.default(scope))
+                        val updated = store.themes().settingDefault(stored, scope)
+                        store.save(updated)
+                        onSaved(updated)
                     }
                     .padding(vertical = StoryArcSpace.xs),
                 verticalAlignment = Alignment.CenterVertically,
