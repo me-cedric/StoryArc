@@ -26,11 +26,26 @@ enum KavitaContributor {
     /// the request count, near enough. A starting value chosen to be re-chosen.
     static let firstSlice = 60
 
-    /// The chapters of a server's most recently added series, as publications.
+    /// One page of a server's most recently added series, as publications, and how many
+    /// series that page held.
+    ///
+    /// `sources`' *More from a source than the library holds*: the first read is
+    /// ``publications(source:client:)``, page one, and ``LibraryModel/continueReading()``
+    /// asks for every page after it the same way, so there is one function that knows how a
+    /// Kavita page becomes a slice rather than the first read and the continuation each
+    /// carrying their own copy of it.
     ///
     /// A series whose chapters cannot be read is skipped rather than failing the round.
-    static func publications(source: UUID, client: KavitaClient) async throws -> SourceSlice {
-        let series = try await client.recentSeries(page: 1, size: firstSlice)
+    struct Page {
+        let slice: SourceSlice
+        /// Series read in this page, which is what the source detail screen counts —
+        /// distinct from `slice.publications.count`, a chapter total that means nothing to
+        /// a reader who thinks of a library in series.
+        let seriesRead: Int
+    }
+
+    static func page(source: UUID, client: KavitaClient, page: Int) async throws -> Page {
+        let series = try await client.recentSeries(page: page, size: firstSlice)
         var found: [Publication] = []
         for each in series {
             let volumes = (try? await client.volumes(ofSeries: each.id)) ?? []
@@ -42,7 +57,15 @@ enum KavitaContributor {
         // than proof: a library of exactly sixty series reads as partial once, and says so
         // until the page comes back short. Overstating what is held back is the safe way
         // round — the other way tells a reader their five-thousand-title server has 137.
-        return SourceSlice(publications: found, holdsMore: series.count >= firstSlice)
+        return Page(
+            slice: SourceSlice(publications: found, holdsMore: series.count >= firstSlice),
+            seriesRead: series.count
+        )
+    }
+
+    /// The chapters of a server's most recently added series, as publications.
+    static func publications(source: UUID, client: KavitaClient) async throws -> SourceSlice {
+        try await page(source: source, client: client, page: 1).slice
     }
 
     /// One chapter as a row in the library.

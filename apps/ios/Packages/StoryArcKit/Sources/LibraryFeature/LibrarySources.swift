@@ -26,7 +26,13 @@ extension LibraryModel {
     /// Whether ``itemCount(of:)`` is a slice of what this source holds rather than the
     /// whole of it. ``SourceSlice`` is where that distinction is explained.
     public func isPartial(_ sourceID: Source.ID) -> Bool {
-        partialSources.contains(sourceID)
+        partialSources[sourceID] != nil
+    }
+
+    /// How far a partial source's continued read has gone, for the source detail screen's
+    /// progress line. `nil` for a source that is not partial at all.
+    public func readProgress(of sourceID: Source.ID) -> (read: Int, total: Int?)? {
+        partialSources[sourceID].map { ($0.read, $0.total) }
     }
 
     // Internal, not private: `private` is file-scoped, and the callers now sit

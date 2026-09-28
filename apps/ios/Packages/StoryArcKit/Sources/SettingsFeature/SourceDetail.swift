@@ -50,9 +50,7 @@ struct SourceDetail: View {
                 // that from a server that holds 137. `SourceSlice` is where the flag from.
                 field(
                     "sources.detail.items",
-                    value: diagnosis.isPartial
-                        ? Text("sources.detail.partial \(diagnosis.itemCount)", bundle: .module)
-                        : Text("sources.detail \(diagnosis.itemCount)", bundle: .module)
+                    value: itemsText
                 )
                 // ``Persistence/DownloadStore/formatted(_:)`` rather than `.byteCount` here,
                 // and the difference is only ever visible at zero — which is every source a
@@ -248,6 +246,23 @@ struct SourceDetail: View {
     /// security that no code had measured.
     private var transportKey: LocalizedStringKey? {
         transportNote(for: source.kind, isEncrypted: isTransportEncrypted)
+    }
+
+    /// What the item row says: the exact count once a continued read has finished, "at
+    /// least" while it has not learned a total, or "N of M" while it has.
+    ///
+    /// `sources`' *More from a source than the library holds*: "the source detail states
+    /// the progress ... while it reads, and 'holds more' disappears when the read
+    /// completes" — the same three states ``diagnosis`` already carries, read in the order
+    /// that makes each one true only when the last one is not.
+    private var itemsText: Text {
+        guard diagnosis.isPartial else {
+            return Text("sources.detail \(diagnosis.itemCount)", bundle: .module)
+        }
+        if let read = diagnosis.readCount, let total = diagnosis.readTotal {
+            return Text("sources.detail.progress \(read) \(total)", bundle: .module)
+        }
+        return Text("sources.detail.partial \(diagnosis.itemCount)", bundle: .module)
     }
 
     private var syncedAt: Text {

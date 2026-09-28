@@ -25,6 +25,11 @@ struct SourcesSettings: View {
     let itemCount: (Source.ID) -> Int
     /// Whether that count is a slice of what the source holds. `SourceSlice` says why.
     let isPartial: (Source.ID) -> Bool
+    /// How far a continued read has gone, and the server's own total once it is learned.
+    /// `nil` when neither is known yet, or for a source kind nothing continues reading
+    /// past its first slice.
+    var readCount: (Source.ID) -> Int? = { _ in nil }
+    var readTotal: (Source.ID) -> Int? = { _ in nil }
     let onRemove: (Source) -> Void
     let onRename: (Source, String) -> Void
 
@@ -271,7 +276,9 @@ struct SourcesSettings: View {
             itemCount: itemCount(source.id),
             downloads: downloads.downloads,
             isRemovable: source.id != ImportedCopies.sourceID,
-            isPartial: isPartial(source.id)
+            isPartial: isPartial(source.id),
+            readCount: readCount(source.id),
+            readTotal: readTotal(source.id)
         )
     }
 }

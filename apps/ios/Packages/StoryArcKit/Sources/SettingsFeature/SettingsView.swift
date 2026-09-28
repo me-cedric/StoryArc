@@ -40,6 +40,8 @@ public struct SettingsView: View {
     private let sources: [Source]
     private let itemCount: (Source.ID) -> Int
     private let isPartial: (Source.ID) -> Bool
+    private let readCount: (Source.ID) -> Int?
+    private let readTotal: (Source.ID) -> Int?
     private let onRemoveSource: (Source) -> Void
     private let onRenameSource: (Source, String) -> Void
     /// Moves a source to the position a drag reports. `sources`: the order persists, and
@@ -90,6 +92,8 @@ public struct SettingsView: View {
         sources: [Source] = [],
         itemCount: @escaping (Source.ID) -> Int = { _ in 0 },
         isPartial: @escaping (Source.ID) -> Bool = { _ in false },
+        readCount: @escaping (Source.ID) -> Int? = { _ in nil },
+        readTotal: @escaping (Source.ID) -> Int? = { _ in nil },
         onRemoveSource: @escaping (Source) -> Void = { _ in },
         onRenameSource: @escaping (Source, String) -> Void = { _, _ in },
         onReorderSource: @escaping (Source.ID, Int) -> Void = { _, _ in },
@@ -106,6 +110,8 @@ public struct SettingsView: View {
         self.sources = sources
         self.itemCount = itemCount
         self.isPartial = isPartial
+        self.readCount = readCount
+        self.readTotal = readTotal
         self.onRemoveSource = onRemoveSource
         self.onRenameSource = onRenameSource
         self.onReorderSource = onReorderSource
@@ -224,6 +230,8 @@ public struct SettingsView: View {
                 sources: sources,
                 itemCount: itemCount,
                 isPartial: isPartial,
+                readCount: readCount,
+                readTotal: readTotal,
                 onRemove: onRemoveSource,
                 onRename: onRenameSource,
                 downloads: downloads,
