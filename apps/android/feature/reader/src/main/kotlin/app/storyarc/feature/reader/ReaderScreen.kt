@@ -330,6 +330,12 @@ private fun Pager(
     val slotCount = layout.count
 
     /**
+     * One slot past the last page, for Slide and Scroll to reach on a swipe or a scroll
+     * with nothing left to turn to. See the `LaunchedEffect(position)` guard below.
+     */
+    val endSlot = slotCount
+
+    /**
      * The slot a display position holds.
      *
      * Right-to-left reverses the *display* order and maps the index here, so the model
@@ -612,6 +618,14 @@ private fun Pager(
 
     // The pager owns its position and the model follows, in one direction only.
     LaunchedEffect(position) {
+        // `comic-reader`: "a swipe or a scroll past the last page reaches the end
+        // screen". Slide and Scroll each carry one extra slot after the last page
+        // (`endSlot`) for exactly this — reaching it is not a page to load.
+        if (position == endSlot) {
+            if (!hasReachedEnd) haptics.play(StoryArcFeedback.COMPLETION)
+            hasReachedEnd = true
+            return@LaunchedEffect
+        }
         readingPage = modelIndex(position)
         // Reading back to where a jump started retires the offer to go there.
         pageReturn = pageReturn.moved(readingPage)
@@ -716,17 +730,24 @@ private fun Pager(
         turn(target)
     }
 
+    // Turns by `step` in reading order — "the next page to read" — rather than in the
+    // display order `turn` takes its target in. Space, Page Up/Down and the volume keys
+    // are non-spatial this way, unlike the arrow keys and the edge taps, which stay
+    // spatial on purpose (`comic-reader`). `readingOrderStep` is what flips the sign
+    // under right-to-left, where the display order is reversed (`slotIndex`).
+    fun turnInReadingOrder(step: Int) {
+        turn(paging.current + readingOrderStep(step, isRightToLeft))
+    }
+
     // `page-transitions`: the volume buttons turn pages "where enabled in settings". A
     // volume key never reaches Compose — it arrives at the activity, and only the activity
     // can consume it before the system changes the volume — so the reader offers a handler
-    // and the host decides whether to call it.
+    // and the host decides whether to call it. Volume-down is documented as always "next"
+    // (`MainActivity.onKeyDown`), so this is a reading-order turn, not a display-order one.
     val volume = LocalVolumeTurns.current
     DisposableEffect(volume, isRightToLeft) {
         volume.turn = { forward ->
-            // In turn-space, so a right-to-left publication still advances on volume-up.
-            // The display order is already reversed, which is why this is a step of one
-            // either way rather than a sign flip.
-            turn(paging.current + if (forward) 1 else -1)
+            turnInReadingOrder(if (forward) 1 else -1)
             true
         }
         onDispose { volume.turn = null }
@@ -743,12 +764,13 @@ private fun Pager(
         .focusable()
         .onKeyEvent { event ->
             if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
-            val step = when (event.key) {
-                Key.DirectionLeft, Key.PageUp -> -1
-                Key.DirectionRight, Key.PageDown, Key.Spacebar -> 1
+            when (event.key) {
+                Key.DirectionLeft -> turn(paging.current - 1)
+                Key.DirectionRight -> turn(paging.current + 1)
+                Key.PageUp -> turnInReadingOrder(-1)
+                Key.PageDown, Key.Spacebar -> turnInReadingOrder(1)
                 else -> return@onKeyEvent false
             }
-            turn(paging.current + step)
             true
         }
 
@@ -905,7 +927,10 @@ private fun Pager(
                 when (paging) {
                     is Paging.Paged -> HorizontalPager(state = paging.state, modifier = keyboard) { page ->
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Page(page)
+                            // `page == endSlot`: the extra slot past the last page
+                            // (`Paging.kt`'s `count + 1`). Nothing to draw — reaching it
+                            // opens `hasReachedEnd`, which covers this the same frame.
+                            if (page != endSlot) Page(page)
                         }
                     }
 
@@ -927,7 +952,15 @@ private fun Pager(
 
                     is Paging.Scrolled -> if (choices.effective == PageTransition.VERTICAL_SCROLL) {
                         LazyColumn(state = paging.state, modifier = keyboard) {
-                            items(slotCount) { index ->
+                            // `slotCount + 1`: one slot past the last page, sized to the
+                            // viewport (`fillParentMaxSize`) so scrolling into it reads as
+                            // "one more screen" rather than a sliver. `comic-reader`: "a
+                            // scroll past the last page reaches the end screen".
+                            items(slotCount + 1) { index ->
+                                if (index == endSlot) {
+                                    Box(Modifier.fillParentMaxSize())
+                                    return@items
+                                }
                                 // `comic-reader` asks for the separator *between* pages, so the
                                 // first page does not get one — a band above page one is a
                                 // margin, not a separator.
@@ -939,7 +972,11 @@ private fun Pager(
                         }
                     } else {
                         LazyRow(state = paging.state, modifier = keyboard) {
-                            items(slotCount) { index ->
+                            items(slotCount + 1) { index ->
+                                if (index == endSlot) {
+                                    Box(Modifier.fillParentMaxSize())
+                                    return@items
+                                }
                                 if (settings.showsSeparator(aboveIndex = index)) {
                                     PageSeparator(ScrollAxis.HORIZONTAL, matte)
                                 }
@@ -1094,7 +1131,16 @@ private fun Pager(
             colours = coverColours,
             next = nextInSeries,
             onOpenNext = onOpen,
-            onBack = { hasReachedEnd = false },
+            onBack = {
+                hasReachedEnd = false
+                // Slide and Scroll actually moved into `endSlot` to get here; Curl,
+                // a tap or a key did not, because `turn` refuses before advancing
+                // past the last page. Snap back to the last page underneath,
+                // invisibly, so returning finds the reader where they left off.
+                if (paging.current == endSlot) {
+                    scope.launch { paging.goTo(endSlot - 1, animate = false) }
+                }
+            },
             onClose = onClose,
         )
         return
@@ -1754,6 +1800,18 @@ internal const val EDGE_ZONE_FRACTION = 1f / 3f
 internal fun spreadTap(half: Int, point: Offset, size: IntSize): Pair<Offset, IntSize> =
     Offset(if (half == 0) point.x else point.x + size.width, point.y) to
         IntSize(size.width * 2, size.height)
+
+/**
+ * The display-order step that a reading-order turn of `step` performs.
+ *
+ * `comic-reader`: Space, Page Up/Down and the volume keys mean "the next page to read",
+ * not "the next position on screen". Under right-to-left those differ, because the
+ * display order is reversed (`slotIndex`) while the reading order is not, so the step
+ * has to flip to keep meaning "next". Held outside the composable so `ReaderScreen`'s
+ * own test can reach it.
+ */
+internal fun readingOrderStep(step: Int, isRightToLeft: Boolean): Int =
+    if (isRightToLeft) -step else step
 
 /**
  * The cross-dissolve, short enough not to read as an animation.

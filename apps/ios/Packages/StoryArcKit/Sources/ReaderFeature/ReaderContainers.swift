@@ -49,6 +49,12 @@ extension ReaderView {
                 page(at: displayIndex)
                     .tag(displayIndex)
             }
+            // `comic-reader`: "a swipe past the last page reaches the end screen".
+            // Without a tagged view past the last page, `TabView` has nowhere to swipe
+            // to and the gesture simply stops at the last page. `hasReachedEnd` covers
+            // this slot the instant it becomes current (`pages(in:)`), so nothing here
+            // is ever actually seen.
+            Color.clear.tag(endSlot)
         }
         #if os(iOS)
         .tabViewStyle(.page(indexDisplayMode: .never))
@@ -98,10 +104,18 @@ extension ReaderView {
                 stitchedPage(at: displayIndex, along: axis)
                     .id(displayIndex)
             }
+            // `comic-reader`: "a scroll past the last page reaches the end screen". A
+            // continuous scroll has no natural end the way a discrete turn does — the
+            // stack simply stops — so this gives it one more, page-sized slot to reach.
+            // `containerRelativeFrame` sizes it to the viewport, same as a real page
+            // fills it, so reaching it reads as "one more screen", not a sliver.
+            let end = Color.clear
+                .containerRelativeFrame(axis == .vertical ? .vertical : .horizontal)
+                .id(endSlot)
             if axis == .vertical {
-                LazyVStack(spacing: 0) { content }
+                LazyVStack(spacing: 0) { content; end }
             } else {
-                LazyHStack(spacing: 0) { content }
+                LazyHStack(spacing: 0) { content; end }
             }
         }
         .scrollTargetLayout()

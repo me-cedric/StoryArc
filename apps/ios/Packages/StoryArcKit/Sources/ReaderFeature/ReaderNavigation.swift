@@ -20,6 +20,22 @@ extension ReaderView {
     /// `comic-reader` means by a pair being "never split across two turns".
     var displayOrder: [Int] { Array(layout.slots.indices) }
 
+    /// One slot past the last page, for Slide and Scroll to reach on a swipe or a scroll
+    /// with nothing left to turn to. See `pages(in:)`'s shared `onChange`.
+    var endSlot: Int { layout.count }
+
+    /// Moves back off `endSlot`, invisibly, once the end screen closes.
+    ///
+    /// Slide and Scroll actually moved into `endSlot` to reach the end screen; Curl and a
+    /// tap or a key did not, because `turn(by:)` refuses before advancing past the last
+    /// page. Only the first two need this, and the guard is what tells them apart.
+    func snapBackFromEndSlot() {
+        guard displayIndex == endSlot, endSlot > 0 else { return }
+        var instant = Transaction()
+        instant.disablesAnimations = true
+        withTransaction(instant) { displayIndex = endSlot - 1 }
+    }
+
     /// The slot a display position holds.
     ///
     /// The only place the right-to-left reversal lives. Everything above and below this

@@ -41,6 +41,13 @@ extension ReaderView {
         container
             // One direction only: the container moves, the model follows.
             .onChange(of: displayIndex) { _, new in
+                // `comic-reader`: "a swipe or a scroll past the last page reaches the end
+                // screen". Slide and Scroll each carry one extra slot after the last page
+                // (see `endSlot`) for exactly this — reaching it is not a page to load.
+                guard new != endSlot else {
+                    withAnimation(.easeInOut(duration: 0.2)) { hasReachedEnd = true }
+                    return
+                }
                 let index = modelIndex(forDisplay: new)
                 guard model.pages.indices.contains(index) else { return }
                 // Reading back to where a jump started retires the offer to go there.

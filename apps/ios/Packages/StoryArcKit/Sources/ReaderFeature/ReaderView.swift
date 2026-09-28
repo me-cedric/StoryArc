@@ -291,7 +291,7 @@ public struct ReaderView: View {
                         colours: model.coverColours,
                         next: nextInSeries,
                         onOpenNext: onOpen,
-                        onBack: { hasReachedEnd = false },
+                        onBack: { hasReachedEnd = false; snapBackFromEndSlot() },
                         onClose: { dismiss() }
                     )
                 }
@@ -370,9 +370,9 @@ public struct ReaderView: View {
         .focusable()
         .onKeyPress(.leftArrow) { turn(by: -1); return .handled }
         .onKeyPress(.rightArrow) { turn(by: 1); return .handled }
-        .onKeyPress(.pageUp) { turn(by: -1); return .handled }
-        .onKeyPress(.pageDown) { turn(by: 1); return .handled }
-        .onKeyPress(.space) { turn(by: 1); return .handled }
+        .onKeyPress(.pageUp) { turnInReadingOrder(by: -1); return .handled }
+        .onKeyPress(.pageDown) { turnInReadingOrder(by: 1); return .handled }
+        .onKeyPress(.space) { turnInReadingOrder(by: 1); return .handled }
         // The status bar, the idle timer and the orientation lock — see
         // ``ReaderSystemChrome``, which is where the `#if os(iOS)` around all three lives.
         .modifier(

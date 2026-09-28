@@ -13,6 +13,16 @@ internal import DesignSystem
 // comic asked the archive for two hundred pages on the way. Now the drag moves a
 // scrub position, the release moves the reader, and the thumbnail is what the reader
 // looks at in between.
+
+/// Which way the page slider's track should run.
+///
+/// Spec line 44: "the page slider is mirrored" under right-to-left, so page one sits at
+/// the right end — the side the reader turns from. Held outside the view so a test can
+/// call it without building a `Slider`.
+func sliderLayoutDirection(isRightToLeft: Bool) -> LayoutDirection {
+    isRightToLeft ? .rightToLeft : .leftToRight
+}
+
 extension ReaderView {
     /// The page the counter and the slider are talking about.
     ///
@@ -47,7 +57,8 @@ extension ReaderView {
 
             // Bound to the *publication's* page number, not the pager's position.
             // In right-to-left the two run opposite ways, and a slider whose left
-            // end is the last page would be a puzzle.
+            // end is the last page would be a puzzle — which is why spec line 44
+            // mirrors the track instead: page one at the right end.
             Slider(
                 value: pageSlider,
                 in: 0...Double(max(1, model.pages.count - 1)),
@@ -71,6 +82,9 @@ extension ReaderView {
             .accessibilityValue(
                 Text("reader.page \(sliderIndex + 1) \(model.pages.count)", bundle: .module)
             )
+            // Scoped to the slider alone — mirroring the whole row would also flip the
+            // page label's text alignment, which the digits do not want.
+            .environment(\.layoutDirection, sliderLayoutDirection(isRightToLeft: isRightToLeft))
         }
     }
 

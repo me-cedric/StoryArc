@@ -24,16 +24,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.LayoutDirection
 import app.storyarc.core.designsystem.control.StoryArcSliderTrack
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -153,6 +156,7 @@ internal fun ReaderMenuSheet(
                     index = scrubbing ?: facts.pageIndex,
                     count = facts.pageCount,
                     scrubbing = scrubbing,
+                    isRightToLeft = facts.direction == ReadingDirection.RIGHT_TO_LEFT,
                     onScrub = actions.onScrub,
                     onJump = actions.onJump,
                 )
@@ -277,6 +281,7 @@ private fun PageSlider(
     index: Int,
     count: Int,
     scrubbing: Int?,
+    isRightToLeft: Boolean,
     onScrub: (Int?) -> Unit,
     onJump: (Int) -> Unit,
 ) {
@@ -291,28 +296,46 @@ private fun PageSlider(
                 modifier = Modifier.padding(bottom = StoryArcSpace.xs),
             )
         }
-        Slider(
-            value = index.toFloat(),
-            onValueChange = { value -> onScrub(value.roundToInt()) },
-            onValueChangeFinished = {
-                scrubbing?.let(onJump)
-                onScrub(null)
-            },
-            valueRange = 0f..(count - 1).toFloat(),
-            steps = (count - 2).coerceAtLeast(0),
-            // The handle stands on the rail rather than beside it. See `StoryArcSliderTrack`:
-            // at page one there is no active half to separate it from, and the sweep read the
-            // result as a rendering fault.
-            track = { state -> StoryArcSliderTrack(state) },
-            // Named, and reading the page rather than the range percent Compose announces
-            // by default.
-            modifier = Modifier.fillMaxWidth().semantics {
-                contentDescription = sliderName
-                stateDescription = pageLabel
-            },
-        )
+        // Spec line 44: "the page slider is mirrored" under right-to-left, so page one
+        // sits at the right end — the side the reader turns from. `LocalLayoutDirection`
+        // is what a Material `Slider` reads to lay its track out; scoped to the slider
+        // alone, so the thumbnail and the page label above it keep their own direction.
+        CompositionLocalProvider(
+            LocalLayoutDirection provides
+                sliderLayoutDirection(isRightToLeft = isRightToLeft),
+        ) {
+            Slider(
+                value = index.toFloat(),
+                onValueChange = { value -> onScrub(value.roundToInt()) },
+                onValueChangeFinished = {
+                    scrubbing?.let(onJump)
+                    onScrub(null)
+                },
+                valueRange = 0f..(count - 1).toFloat(),
+                steps = (count - 2).coerceAtLeast(0),
+                // The handle stands on the rail rather than beside it. See
+                // `StoryArcSliderTrack`: at page one there is no active half to separate
+                // it from, and the sweep read the result as a rendering fault.
+                track = { state -> StoryArcSliderTrack(state) },
+                // Named, and reading the page rather than the range percent Compose
+                // announces by default.
+                modifier = Modifier.fillMaxWidth().semantics {
+                    contentDescription = sliderName
+                    stateDescription = pageLabel
+                },
+            )
+        }
     }
 }
+
+/**
+ * Which way the page slider's track should run.
+ *
+ * A free function so `PageSliderMirrorTest` can reach it without composing a `Slider`.
+ * iOS's `sliderLayoutDirection` is the same rule.
+ */
+internal fun sliderLayoutDirection(isRightToLeft: Boolean): LayoutDirection =
+    if (isRightToLeft) LayoutDirection.Rtl else LayoutDirection.Ltr
 
 /**
  * Previous and next chapter, as two named rows.

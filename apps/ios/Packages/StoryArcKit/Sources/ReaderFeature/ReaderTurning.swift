@@ -1,5 +1,13 @@
 public import SwiftUI
 
+/// The display-order step that a reading-order turn of `step` performs.
+///
+/// Held outside `ReaderView` so a test can call it without building a view. See
+/// `turnInReadingOrder(by:)`.
+func readingOrderStep(_ step: Int, isRightToLeft: Bool) -> Int {
+    isRightToLeft ? -step : step
+}
+
 // Where a tap lands and what a page turn does.
 //
 // Split out of `ReaderView.swift`, which had reached the 400-line cap this project
@@ -65,6 +73,17 @@ extension ReaderView {
 
     /// The same zones the page's own recognisers use to route a tap.
     var edgeZoneFraction: CGFloat { ZoomablePage.edgeZoneFraction }
+
+    /// Turns by `step` in reading order — "the next page to read" — rather than in the
+    /// display order `turn(by:)` takes. Space, Page Up/Down and the volume keys are
+    /// non-spatial in this way, unlike the arrow keys and the edge taps, which stay
+    /// spatial on purpose (`comic-reader`). Under right-to-left the display order is
+    /// reversed (`ReaderNavigation.displayIndex(forModel:)`), so reading order and
+    /// display order point opposite ways, and the step has to flip to keep meaning
+    /// "next".
+    func turnInReadingOrder(by step: Int) {
+        turn(by: readingOrderStep(step, isRightToLeft: isRightToLeft))
+    }
 
     func turn(by step: Int) {
         let next = displayIndex + step
