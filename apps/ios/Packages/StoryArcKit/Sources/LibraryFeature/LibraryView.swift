@@ -122,7 +122,7 @@ public struct LibraryView: View {
     let progress: ProgressStore?
     /// See the initialiser. Watched rather than read: only a *change* is a request.
     let showLibrary: Int
-    /// See the initialiser. Watched rather than read, the same way [showLibrary] is.
+    /// See the initialiser. Watched rather than read, the same way ``showLibrary`` is.
     let openShelvesRequest: Int
 
     /// One pin set for the whole app, loaded once.
@@ -225,19 +225,24 @@ public struct LibraryView: View {
     /// Whether the exhaustive shelves list is open beside (or in place of) the shelf.
     ///
     /// `navigation-shell`: "A shelf (and any library section) opened from the navigation
-    /// belongs to the Library destination." Home's own heading to the same screen used to
-    /// push it onto Home's stack instead, leaving Home marked selected and a back press the
-    /// only way to the shelves list a reader had just asked for. The app layer now flips
-    /// ``openShelvesRequest`` and switches the selected tab in the same step; this view answers
-    /// by opening the screen on its own stack, the same way ``showLibrary`` answers a number
-    /// rather than owning the tab selection itself.
+    /// belongs to the Library destination." The app layer counts ``openShelvesRequest`` up and
+    /// switches the selected tab in the same step; this view answers by opening the screen on
+    /// its own stack.
     @State var isShowingShelves = false
+    /// The last ``openShelvesRequest`` this view answered. The first request after launch
+    /// arrives with the view itself, because that tap is what creates the Library tab, so a
+    /// plain `onChange` never saw it change.
+    @State private var answeredShelvesRequest = 0
 
     public var body: some View {
         container
             // The shelf, asked for by name.
             .onChange(of: showLibrary) { _, _ in browsing = nil }
-            .onChange(of: openShelvesRequest) { _, _ in isShowingShelves = true }
+            .onChange(of: openShelvesRequest, initial: true) { _, request in
+                guard request != answeredShelvesRequest else { return }
+                answeredShelvesRequest = request
+                isShowingShelves = true
+            }
             // `local-library`, both halves, through one presentation: a folder picked here is
             // reachable again after a restart — the security-scoped bookmark in the model —
             // and a file brought in from elsewhere is copied into storage the app owns, with
