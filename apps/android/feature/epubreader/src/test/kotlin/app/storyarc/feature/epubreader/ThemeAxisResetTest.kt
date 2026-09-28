@@ -205,20 +205,15 @@ class ThemeAxisResetTest {
     }
 
     @Test
-    fun `the slider's detector reads the Initial pass and never consumes`() {
+    fun `the slider's detector reads the Initial pass`() {
         val gesture = code("AxisResetGesture.kt")
 
         assertTrue(
             "The detector no longer reads `PointerEventPass.Initial`, so it runs on the" +
                 " same `Main` pass `Slider` already consumes the down on — which is the" +
-                " defect `detectAxisResetGesture` exists to fix.",
+                " defect `detectAxisResetGesture` exists to fix. `AxisResetGestureTest`" +
+                " presses the real slider.",
             gesture.contains("PointerEventPass.Initial"),
-        )
-        assertFalse(
-            "The detector calls `.consume()`. `Slider`'s own drag reads the same events on" +
-                " its `Main` pass, and a consumed change there stops the drag working" +
-                " underneath this gesture.",
-            gesture.contains(".consume()"),
         )
     }
 
