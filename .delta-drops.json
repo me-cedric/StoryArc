@@ -6,6 +6,20 @@
         "one-library-three-destinations"
       ],
       "reason": "reader-theming's block is already a subset of one-library-three-destinations', which adds two scenarios about reaching destinations and a window too small for a layout. Nothing needed merging; the order is recorded because no tool can infer it and syncing one-library first would leave reader-theming's later sync deleting those two scenarios."
+    },
+    "settings-and-about → \"Appearance\"": {
+      "order": [
+        "reader-theming-and-page-transitions",
+        "close-the-audited-gaps"
+      ],
+      "reason": "close-the-audited-gaps' block is reader-theming's Natural-theme block carried whole, plus one new scenario, 'Choosing the linked pair', that decision D15 adds: two pickers under the opt-in link that choose which reading theme stands for light and which for dark. Nothing needed merging on the shared scenarios; the order is recorded because no tool can infer it and syncing close-the-audited-gaps first, then reader-theming second with its narrower block, would delete the picker scenario on that later sync."
+    },
+    "ebook-reader → \"Reflowable rendering\"": {
+      "order": [
+        "reader-theming-and-page-transitions",
+        "close-the-audited-gaps"
+      ],
+      "reason": "close-the-audited-gaps' block carries reader-theming's whole block (its own reworded Typography-controls sentence included) and adds one scenario, 'Typeface, weight and margins apply under publisher styles', plus one clause on 'An axis is inert while publisher styles are on', both from decision D16. The order is recorded because no tool can infer it and syncing close-the-audited-gaps first, then reader-theming second with its narrower block, would delete the D16 scenario and clause on that later sync."
     }
   },
   "one-library-three-destinations/library-browsing": {
