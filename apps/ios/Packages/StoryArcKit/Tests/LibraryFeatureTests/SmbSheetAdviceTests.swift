@@ -18,15 +18,37 @@ import Testing
 /// `discovery.advice` — and every test passed, because all of them stopped at the producer.
 /// So this walks the sheet's own body and looks for the sentence in it.
 ///
-/// **The sentence is the key here, not the words.** `swift build` copies an `.xcstrings`
-/// without compiling it, so `String(localized:)` answers with the key on the host.
-/// ``SmbDiscoveryRefusalTests`` reads the four translations off the catalogue on disk.
+/// **The sentence is the key or one of its translations.** `swift build` copies an
+/// `.xcstrings` without compiling it. An older macOS answered `String(localized:)` with the key
+/// on the host, and macOS 26 reads the catalogue itself and answers with the translation. So
+/// each claim accepts either, read from the catalogue on disk.
 @MainActor
 @Suite("The add-share sheet explains a refused local-network permission")
 struct SmbSheetAdviceTests {
 
-    /// What `SmbDiscovery` writes on a refusal, which on the host is the key itself.
-    private static let sentence = "smb.discovery.denied"
+    /// What `SmbDiscovery` writes on a refusal: the key, or one of its translations.
+    private static let sentences = accepted("smb.discovery.denied", module: "Smb")
+
+    /// What the sheet draws for the host field's label: the key, or one of its translations.
+    private static let hostLabels = accepted("smb.host.label", module: "LibraryFeature")
+
+    /// A key and each of its translations in the named module's catalogue on disk.
+    private static func accepted(_ key: String, module: String) -> Set<String> {
+        let catalogue = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appending(path: "Sources/\(module)/Resources/Localizable.xcstrings")
+        var found: Set<String> = [key]
+        guard let data = try? Data(contentsOf: catalogue),
+              let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let record = (parsed["strings"] as? [String: Any])?[key] as? [String: Any],
+              let localizations = record["localizations"] as? [String: Any] else { return found }
+        for case let unit as [String: Any] in localizations.values {
+            if let value = (unit["stringUnit"] as? [String: Any])?["value"] as? String { found.insert(value) }
+        }
+        return found
+    }
 
     /// Every string the sheet's body carries, verbatim ones and localization keys alike.
     ///
@@ -70,7 +92,7 @@ struct SmbSheetAdviceTests {
         let discovery = SmbDiscovery()
         discovery.noteRefusal()
         let drawn = Self.strings(of: Self.sheet(discovery))
-        #expect(drawn.contains(Self.sentence), "the sheet drew \(drawn.sorted())")
+        #expect(!drawn.isDisjoint(with: Self.sentences), "the sheet drew \(drawn.sorted())")
     }
 
     @Test("A permission that was never refused puts nothing there")
@@ -79,8 +101,8 @@ struct SmbSheetAdviceTests {
         // A reader whose network simply holds no NAS is not told to change a setting that is
         // already right.
         let drawn = Self.strings(of: Self.sheet(SmbDiscovery()))
-        #expect(!drawn.contains(Self.sentence), "the sheet drew \(drawn.sorted())")
-        #expect(drawn.contains("smb.host.label"), "the walk found nothing: \(drawn.sorted())")
+        #expect(drawn.isDisjoint(with: Self.sentences), "the sheet drew \(drawn.sorted())")
+        #expect(!drawn.isDisjoint(with: Self.hostLabels), "the walk found nothing: \(drawn.sorted())")
     }
 
     @Test("A refusal still leaves the host list empty, so discovery keeps hiding itself")
