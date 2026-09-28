@@ -110,6 +110,8 @@ internal data class ReaderMenuActions(
     val onScrub: (Int?) -> Unit,
     val onJump: (Int) -> Unit,
     val onOpenPublication: (Publication) -> Unit,
+    /** D8: bookmarks the current page of a comic or a scan. */
+    val onBookmarkThisPage: () -> Unit,
 )
 
 /**
@@ -164,17 +166,20 @@ internal fun ReaderMenuSheet(
 
             HorizontalDivider()
 
-            // Marks and search both live in the PDF text sheet, which opens on the panel the
-            // row names — that is what makes each of them one action rather than two. Absent
-            // for a comic and for a scan: `ebook-reader` hides a text-dependent control
-            // rather than disabling it, and there is no text layer to search.
+            // D8: bookmarks apply to every fixed-page publication, so this row is never
+            // hidden — only what it opens (the PDF text sheet's marks panel, or the
+            // simpler `ComicBookmarkSheet`) depends on `hasPdfText`. Search stays
+            // text-dependent: `ebook-reader` hides a text-dependent control rather than
+            // disabling it, and there is no text layer to search in a comic or a scan.
+            MenuRow(ReaderMenuEntry.BOOKMARKS, Icons.Filled.Bookmark) {
+                actions.onOpenText(PdfTextTab.MARKS)
+            }
             if (facts.hasPdfText) {
-                MenuRow(ReaderMenuEntry.BOOKMARKS, Icons.Filled.Bookmark) {
-                    actions.onOpenText(PdfTextTab.MARKS)
-                }
                 MenuRow(ReaderMenuEntry.SEARCH, Icons.AutoMirrored.Filled.ManageSearch) {
                     actions.onOpenText(PdfTextTab.SEARCH)
                 }
+            } else {
+                BookmarkThisPageRow(actions.onBookmarkThisPage)
             }
 
             MenuRow(ReaderMenuEntry.THEMES, Icons.Filled.Tune, actions.onAdjust)
