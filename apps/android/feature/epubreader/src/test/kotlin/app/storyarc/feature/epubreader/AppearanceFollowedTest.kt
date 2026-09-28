@@ -213,6 +213,27 @@ class AppearanceFollowedTest {
         )
     }
 
+    @Test
+    fun `choosing the page turn already in force leaves the next change recorded`() {
+        val store = ReaderPreferences.open(RuntimeEnvironment.getApplication())
+        val model = reader(on = ThemePreset.PAPER, themeStore = store)
+        val shelf = ShelfMemory.shelf(null, PublicationIdentity(normalizedPath = NOWHERE).stableId)
+        settle()
+
+        model.choose(model.transition.value)
+        settle()
+        model.set(ThemeAxis.LINE_SPACING, 2.4)
+        settle()
+
+        assertEquals(
+            "A tap on the page turn already in force armed the not-recorded filter, and no" +
+                " emission ever matched it, so the reader's next axis move was never stored.",
+            2.4,
+            store.themes().theme(ThemeScope.REFLOWABLE, shelf).values.lineHeight,
+            0.0,
+        )
+    }
+
     /** Lets the view model's own collector run: it records the theme off the main thread. */
     private fun settle() {
         shadowOf(Looper.getMainLooper()).idle()

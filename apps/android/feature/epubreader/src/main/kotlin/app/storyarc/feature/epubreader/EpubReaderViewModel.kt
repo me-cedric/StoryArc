@@ -280,6 +280,8 @@ class EpubReaderViewModel(
      * marking the natural emission `notRecorded` so the collector saves neither twice.
      */
     fun choose(transition: PageTransition) {
+        // The same turn emits nothing: an armed `notRecorded` would swallow the next change.
+        if (transition == _transition.value) return
         val store = themeStore
         if (store != null) {
             val series = store.themes().theme(themeScope, shelf)
