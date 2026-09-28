@@ -92,7 +92,7 @@ extension ReaderView {
             let content = ForEach(displayOrder, id: \.self) { displayIndex in
                 // `comic-reader` asks for the separator between pages, so the first page
                 // does not get one — a band above page one is a margin, not a separator.
-                if model.settings.showsPageSeparator, displayIndex > 0 {
+                if model.settings.showsSeparator(above: displayIndex) {
                     PageSeparator(axis: axis, matte: model.matte)
                 }
                 stitchedPage(at: displayIndex, along: axis)
@@ -210,12 +210,7 @@ extension ReaderView {
     /// Trimming them would also move the words out from under the marks a reader put on them,
     /// because a highlight is normalised to the whole page and the trimmed raster is not it.
     func trimming(at index: Int) -> ImageAdjustments {
-        guard !uncropped.contains(index), pdfText == nil else {
-            var excused = adjustments
-            excused.cropsBorders = false
-            return excused
-        }
-        return adjustments
+        adjustments.trimmingBorders(!uncropped.contains(index) && pdfText == nil)
     }
 
     /// Short enough not to read as an animation, which is the point of the name.
