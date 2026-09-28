@@ -14,9 +14,8 @@ public struct DownloadStore {
 
     /// The data-protection class every downloaded file is written under.
     ///
-    /// Set on the directory, so it applies to every file put in it rather than to
-    /// whichever ones remembered to ask — the same argument that puts the backup
-    /// exclusion there.
+    /// Set on the directory, which covers a file created in it. A file moved or copied
+    /// in keeps its own class, so each writer that lands a file calls ``protect(_:)``.
     ///
     /// **Why not `.complete`.** `offline-downloads` promises a backgrounded
     /// download "continues under the platform's background transfer mechanism as
