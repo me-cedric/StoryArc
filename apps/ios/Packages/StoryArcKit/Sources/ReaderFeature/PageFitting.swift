@@ -55,24 +55,37 @@ struct OwedFit {
     let mode: PageFit
     let imageSize: CGSize
     let viewport: CGSize
+    /// What the reader pinched to on the last page, carried into this one. See
+    /// ``openingScale(fitScale:carried:mode:)``.
+    let carried: CGFloat?
+    /// Which side a page carried into horizontal slack opens against. See
+    /// ``openingXOffset(contentWidth:boundsWidth:isRightToLeft:)``.
+    let isRightToLeft: Bool
 
-    init(pageID: String, mode: PageFit, imageSize: CGSize, viewport: CGSize) {
+    init(
+        pageID: String,
+        mode: PageFit,
+        imageSize: CGSize,
+        viewport: CGSize,
+        carried: CGFloat? = nil,
+        isRightToLeft: Bool = false
+    ) {
         self.key = AppliedFit.key(pageID: pageID, fit: mode, viewport: viewport)
         self.mode = mode
         self.imageSize = imageSize
         self.viewport = viewport
+        self.carried = carried
+        self.isRightToLeft = isRightToLeft
     }
 
     /// The zoom scale the page opens at, never past what the view will hold.
     func scale(upTo ceiling: CGFloat) -> CGFloat {
-        min(
-            mode.scale(
-                fitted: fitted(imageSize, in: viewport),
-                viewport: viewport,
-                pixelWidth: imageSize.width
-            ),
-            ceiling
+        let fit = mode.scale(
+            fitted: fitted(imageSize, in: viewport),
+            viewport: viewport,
+            pixelWidth: imageSize.width
         )
+        return min(openingScale(fitScale: fit, carried: carried, mode: mode), ceiling)
     }
 
     /// Whether the page opens at its top rather than its middle.
@@ -104,4 +117,27 @@ func fitted(_ imageSize: CGSize, in viewport: CGSize) -> CGSize {
 /// forever.
 func isZoomedPastFit(currentScale: CGFloat, fitScale: CGFloat) -> Bool {
     currentScale > fitScale * 1.01
+}
+
+/// The scale a page opens at: the chosen fit's own scale, or a carried pinch.
+///
+/// Decision D6: "zoom level" means the pinched scale, and in fit-to-width it "carries
+/// to the next page" rather than resetting on every turn — every other mode still
+/// resets, which is what "a reader who pinches ... stays zoomed until they ... turn
+/// the page" already meant before this. A carried scale at or below the fit scale is
+/// not a pinch to carry at all — it is the page opening at its ordinary fit, or a
+/// stale value from a page the reader has since zoomed back out of.
+func openingScale(fitScale: CGFloat, carried: CGFloat?, mode: PageFit) -> CGFloat {
+    guard mode == .width, let carried, carried > fitScale else { return fitScale }
+    return carried
+}
+
+/// The horizontal offset a page opens at, when ``OwedFit/opensAtTheTop`` is true.
+///
+/// Decision D6: a carried zoom past fit-to-width can leave horizontal slack, and a
+/// manga opens against the side its reading order starts from — the right — rather
+/// than always the left.
+func openingXOffset(contentWidth: CGFloat, boundsWidth: CGFloat, isRightToLeft: Bool) -> CGFloat {
+    guard isRightToLeft else { return 0 }
+    return max(0, contentWidth - boundsWidth)
 }

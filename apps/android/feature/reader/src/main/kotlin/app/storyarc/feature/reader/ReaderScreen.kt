@@ -533,6 +533,9 @@ private fun Pager(
     /** Set when the reader turns past the last page. */
     var hasReachedEnd by remember { mutableStateOf(false) }
 
+    /** D6: the pinched scale to carry into the next page, while `fit` is fit-to-width. */
+    var carriedZoomScale by remember { mutableStateOf<Float?>(null) }
+
     // `native-experience`: haptics, for the two events that have nothing else to
     // announce them. Not for a page turn — a comic read at speed is two hundred of
     // those, and a buzz on each is a defect.
@@ -793,6 +796,10 @@ private fun Pager(
                 // page — and the reader never chose that name.
                 contentDescription = stringResource(R.string.reader_page_label, index + 1, pages.size),
                 fit = fit,
+                // D6: only fit-to-width carries a pinch forward; every other mode
+                // still resets on a turn, which `null` here leaves unchanged.
+                carriedZoomScale = if (fit == PageFit.WIDTH) carriedZoomScale else null,
+                isRightToLeft = isRightToLeft,
                 adjustments = adjustments,
                 onTap = onTap,
                 // In a continuous scroll a page takes the height its own proportions
@@ -800,7 +807,10 @@ private fun Pager(
                 // background between every pair, which is the opposite of the
                 // "stitched with no gap" `comic-reader` asks for.
                 stitch = stitch,
-                onZoom = { scale -> viewModel.holdZoom(scale, index) },
+                onZoom = { scale ->
+                    viewModel.holdZoom(scale, index)
+                    if (fit == PageFit.WIDTH) carriedZoomScale = scale
+                },
                 decoration = pdfDecoration(index),
                 onSelect = pdfSelectionHandler(index),
             )
@@ -1295,6 +1305,9 @@ private fun ZoomablePage(
     pageId: String,
     contentDescription: String?,
     fit: PageFit,
+    /** D6: what the reader pinched to on the last page, offered to this one. */
+    carriedZoomScale: Float?,
+    isRightToLeft: Boolean,
     adjustments: ImageAdjustments,
     onTap: (Offset, IntSize) -> Unit,
     /**
@@ -1363,7 +1376,9 @@ private fun ZoomablePage(
     // and re-taken the moment `onSizeChanged` reports a real one. iOS had to be told
     // this explicitly — see `AppliedFit` there — because UIKit is asked once and does
     // not ask again.
-    var zoom by remember(pageId, fit, size) { mutableStateOf(PageZoom.fitting(fit, page)) }
+    var zoom by remember(pageId, fit, size) {
+        mutableStateOf(PageZoom.carrying(fit, page, carriedZoomScale, isRightToLeft))
+    }
 
     val transform = rememberTransformableState { centroid, zoomChange, panChange, _ ->
         zoom = zoom.pinched(centroid, zoomChange, panChange, page)

@@ -33,10 +33,15 @@ struct ZoomablePage: View {
 
     let image: CGImage
     /// Changes when the page does, so the zoom resets rather than carrying a
-    /// magnified corner of the last page onto the next one.
+    /// magnified corner of the last page onto the next one — except in fit-to-width,
+    /// which `carriedZoomScale` carries forward instead. See `openingScale`.
     let pageID: String
     /// How the page is sized before any pinch. `comic-reader` names four modes.
     let fit: PageFit
+    /// D6: what the reader pinched to on the last page, offered to this one. Only
+    /// taken up while `fit` is `.width` — every other mode still resets on a turn.
+    var carriedZoomScale: Double?
+    var isRightToLeft: Bool = false
     /// Where the tap landed, in the page's own coordinates, and how big the page
     /// was — the caller decides whether that is an edge or the centre.
     let onTap: (CGPoint, CGSize) -> Void
@@ -74,6 +79,8 @@ struct ZoomablePage: View {
                 image: image,
                 pageID: pageID,
                 fit: fit,
+                carriedZoomScale: carriedZoomScale,
+                isRightToLeft: isRightToLeft,
                 viewport: geometry.size,
                 onTap: onTap,
                 onZoom: onZoom,
@@ -93,10 +100,14 @@ struct ZoomablePage: View {
 }
 
 #if os(iOS)
-private struct ScrollingPage: UIViewRepresentable {
+// Not `private`: `ZoomablePageSelection.swift` extends `Coordinator` from another
+// file, the way every other split-out reader file extends `ReaderView`.
+struct ScrollingPage: UIViewRepresentable {
     let image: CGImage
     let pageID: String
     let fit: PageFit
+    let carriedZoomScale: Double?
+    let isRightToLeft: Bool
     let viewport: CGSize
     let onTap: (CGPoint, CGSize) -> Void
     let onZoom: (Double) -> Void
@@ -146,23 +157,6 @@ private struct ScrollingPage: UIViewRepresentable {
         addTaps(to: scrollView, coordinator: context.coordinator)
 
         return scrollView
-    }
-
-    /// The press that starts a selection, installed only where there is text under the finger.
-    ///
-    /// `ebook-reader` requires a text-dependent control to be absent rather than present and
-    /// inert, and a recogniser is a control: one that could never resolve would still swallow
-    /// a long press the page has other plans for.
-    private func addSelection(to scrollView: UIScrollView, coordinator: Coordinator) {
-        guard onSelect != nil else { return }
-        let press = UILongPressGestureRecognizer(
-            target: coordinator,
-            action: #selector(Coordinator.handleSelection(_:))
-        )
-        // Long enough not to fire on a tap that is on its way to being a double tap, short
-        // enough that a reader who means to select does not wonder whether it worked.
-        press.minimumPressDuration = 0.35
-        scrollView.addGestureRecognizer(press)
     }
 
     /// The three tap recognisers, and the split between the last two is deliberate.
@@ -231,7 +225,9 @@ private struct ScrollingPage: UIViewRepresentable {
             pageID: pageID,
             mode: fit,
             imageSize: CGSize(width: image.width, height: image.height),
-            viewport: viewport
+            viewport: viewport,
+            carried: carriedZoomScale.map(CGFloat.init),
+            isRightToLeft: isRightToLeft
         )
         context.coordinator.applyFit(to: scrollView)
     }
@@ -244,7 +240,8 @@ private struct ScrollingPage: UIViewRepresentable {
         weak var overlay: PdfPageOverlayView?
         var onSelect: ((CGPoint, CGPoint, Bool) -> Void)?
         /// Where the press started, normalised to the page. The drag extends from it.
-        private var selectionOrigin: CGPoint?
+        /// Not `private`: `ZoomablePageSelection.swift` reads and sets it.
+        var selectionOrigin: CGPoint?
         /// The fit SwiftUI last asked for, which is not always one that could be applied.
         var owed: OwedFit?
         /// Which fit the zoom was actually set from.
@@ -274,7 +271,12 @@ private struct ScrollingPage: UIViewRepresentable {
             scrollView.setZoomScale(owed.scale(upTo: scrollView.maximumZoomScale), animated: false)
             layout(scrollView)
             if owed.opensAtTheTop {
-                scrollView.contentOffset = CGPoint(x: 0, y: -scrollView.contentInset.top)
+                let x = openingXOffset(
+                    contentWidth: scrollView.contentSize.width,
+                    boundsWidth: scrollView.bounds.width,
+                    isRightToLeft: owed.isRightToLeft
+                )
+                scrollView.contentOffset = CGPoint(x: x, y: -scrollView.contentInset.top)
             }
         }
 
@@ -336,39 +338,7 @@ private struct ScrollingPage: UIViewRepresentable {
             onTap(recogniser.location(in: view), view.bounds.size)
         }
 
-        /// A press that becomes a drag: the selection starts at the word pressed and runs to
-        /// wherever the finger is now.
-        ///
-        /// The scroll is turned off for the length of it. Without that a zoomed page pans
-        /// under the drag, and the reader selects one word while the page slides away.
-        @objc func handleSelection(_ recogniser: UILongPressGestureRecognizer) {
-            guard let imageView, let onSelect else { return }
-            let point = normalisedPoint(
-                recogniser.location(in: imageView),
-                imageSize: imageView.image?.size ?? .zero,
-                in: imageView.bounds.size
-            )
-
-            switch recogniser.state {
-            case .began:
-                (recogniser.view as? UIScrollView)?.isScrollEnabled = false
-                selectionOrigin = point
-                // The platform's own selection feedback, which is what a reader's thumb
-                // already expects from a press that selects.
-                UISelectionFeedbackGenerator().selectionChanged()
-                onSelect(point, point, false)
-            case .changed:
-                guard let origin = selectionOrigin else { return }
-                onSelect(origin, point, false)
-            case .ended, .cancelled, .failed:
-                (recogniser.view as? UIScrollView)?.isScrollEnabled = true
-                guard let origin = selectionOrigin else { return }
-                selectionOrigin = nil
-                onSelect(origin, point, true)
-            default:
-                break
-            }
-        }
+        // `handleSelection(_:)` is in `ZoomablePageSelection.swift`.
 
         @objc func handleDoubleTap(_ recogniser: UITapGestureRecognizer) {
             guard let scrollView = recogniser.view as? UIScrollView else { return }

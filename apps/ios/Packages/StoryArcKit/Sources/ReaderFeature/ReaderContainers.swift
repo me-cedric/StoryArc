@@ -184,10 +184,15 @@ extension ReaderView {
                 pageID: model.pages[index].path,
                 label: Text("reader.pageLabel \(index + 1) \(model.pages.count)", bundle: .module),
                 fit: fit,
+                // D6: only fit-to-width carries a pinch forward; every other mode
+                // still resets on a turn, which `nil` here leaves unchanged.
+                carriedZoomScale: fit == .width ? carriedZoomScale : nil,
+                isRightToLeft: isRightToLeft,
                 adjustments: trimming(at: index),
                 onTap: onTap,
                 onZoom: { scale in
                     Task { await model.holdZoom(scale, at: index) }
+                    if fit == .width { carriedZoomScale = scale }
                 },
                 decoration: decoration(at: index),
                 onSelect: selectionHandler(at: index)

@@ -161,5 +161,33 @@ internal data class PageZoom(
             val slack = page.slack(scale)
             return PageZoom(scale, Offset(0f, slack.y))
         }
+
+        /**
+         * The scale a page opens at: the chosen fit's own scale, or a carried pinch.
+         *
+         * Decision D6: "zoom level" means the pinched scale, and in fit-to-width it
+         * "carries to the next page" rather than resetting on every turn — every
+         * other mode still resets, which is [fitting] alone. A carried scale at or
+         * below the fit scale is not a pinch to carry at all.
+         */
+        fun openingScale(fitScale: Float, carried: Float?, mode: PageFit): Float {
+            if (mode != PageFit.WIDTH || carried == null || carried <= fitScale) return fitScale
+            return carried
+        }
+
+        /**
+         * The zoom a page opens at, carrying a pinch forward where [openingScale] says to.
+         *
+         * A carried zoom opens against the side its reading order starts from — the
+         * right, under right-to-left — rather than always the left, the way [fitting]
+         * alone does.
+         */
+        fun carrying(fit: PageFit, page: PageBounds, carried: Float?, isRightToLeft: Boolean): PageZoom {
+            val plain = fitting(fit, page)
+            val scale = openingScale(plain.scale, carried, fit)
+            if (scale == plain.scale) return plain
+            val slack = page.slack(scale)
+            return PageZoom(scale, Offset(if (isRightToLeft) -slack.x else 0f, slack.y))
+        }
     }
 }

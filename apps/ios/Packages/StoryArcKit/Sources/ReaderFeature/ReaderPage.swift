@@ -21,6 +21,9 @@ struct PageView: View {
     /// which names a file inside a CBZ rather than a page.
     let label: Text
     let fit: PageFit
+    /// D6: what the reader pinched to on the last page, offered to this one.
+    var carriedZoomScale: Double?
+    var isRightToLeft = false
     let adjustments: ImageAdjustments
     let onTap: (CGPoint, CGSize) -> Void
     /// How far the reader has magnified the page, reported when a pinch settles.
@@ -43,6 +46,8 @@ struct PageView: View {
                 image: sharpened(cropped(image, when: adjustments.cropsBorders), by: adjustments.sharpness),
                 pageID: pageID,
                 fit: fit,
+                carriedZoomScale: carriedZoomScale,
+                isRightToLeft: isRightToLeft,
                 onTap: onTap,
                 onZoom: onZoom,
                 decoration: decoration,
