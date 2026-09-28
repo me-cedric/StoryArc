@@ -54,6 +54,9 @@ const RUN = [
   'ReadingContinuityUITests',
   // A notice that has to outlive six seconds, which only a running app can say.
   'SkippedNoticeTests',
+  // Home's Shelves row lands on the Library tab on the first tap after launch, when the
+  // same tap creates that tab.
+  'ShelvesFromHomeTests',
   // Two assertions that live inside capture classes.
   'ScreenshotTests/testTheInertCapsuleIsDimmerThanTheLiveOne',
   'SweepSearchTests/testSearchOffersAFieldToTypeIn',
