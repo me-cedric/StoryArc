@@ -46,10 +46,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
@@ -74,7 +76,6 @@ import app.storyarc.core.model.sliderRange
 import app.storyarc.core.model.unit
 import app.storyarc.core.model.value
 import app.storyarc.core.model.values
-import kotlin.math.roundToInt
 
 /**
  * Level two of the theme surface: the axes, over the publication's own text.
@@ -631,52 +632,15 @@ private fun AlignmentControl(
     }
 }
 
-/**
- * `reading-themes`: reader-local, and it does not permanently move the device's own.
- * On Android the value is a window attribute, so leaving reverts it by itself.
- */
-@Composable
-private fun BrightnessControl(
-    brightness: Float?,
-    onChange: (Float) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val palette = LocalStoryArcPalette.current
-
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
-        Text(
-            text = stringResource(R.string.theme_brightness),
-            style = MaterialTheme.typography.titleMedium,
-            color = palette.textPrimary,
-        )
-        val percent = stringResource(
-            R.string.theme_brightness_percent,
-            ((brightness ?: 0.5f) * 100).roundToInt(),
-        )
-        val name = stringResource(R.string.theme_brightness)
-        Slider(
-            // Until the reader moves it there is no reader-local value, and the
-            // window is following the device. Half-way is the honest resting
-            // position for a control that has not been used.
-            value = brightness ?: 0.5f,
-            onValueChange = onChange,
-            valueRange = 0.1f..1f,
-            modifier = Modifier.semantics {
-                contentDescription = name
-                stateDescription = percent
-            },
-        )
-    }
-}
-
 /** `reading-themes`: stepped, with the position shown, never a free slider. */
 @Composable
-private fun FontSizeControl(
+internal fun FontSizeControl(
     values: ThemeValues,
     onChange: (ThemeAxis, ThemeValues) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
+    val name = stringResource(R.string.theme_font_size)
     val label = stringResource(R.string.theme_font_size_percent, values.fontSize.percent)
     // Position first, then the percentage. `native-experience` asks the stepper to
     // announce "its position out of the total rather than only larger" — a
@@ -689,12 +653,19 @@ private fun FontSizeControl(
 
     Column(
         // One control, spoken as one: two unlabelled buttons make a screen reader
-        // hunt for the thing they adjust.
-        modifier = modifier.semantics(mergeDescendants = true) { contentDescription = spoken },
+        // hunt for the thing they adjust. `stateDescription` carries the position and
+        // percentage separately from the name, with `liveRegion` so TalkBack speaks
+        // the new position the moment a tap changes it — a tap on Larger used to leave
+        // focus on the button with the change unannounced.
+        modifier = modifier.semantics(mergeDescendants = true) {
+            contentDescription = name
+            stateDescription = spoken
+            liveRegion = LiveRegionMode.Polite
+        },
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
     ) {
         Text(
-            text = stringResource(R.string.theme_font_size),
+            text = name,
             style = MaterialTheme.typography.titleMedium,
             color = palette.textPrimary,
         )
