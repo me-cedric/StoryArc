@@ -3,7 +3,6 @@ package app.storyarc.feature.epubreader
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,8 +30,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -43,20 +40,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.control.ConnectedButtonGroup
-import app.storyarc.core.designsystem.control.StoryArcSliderTrack
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -66,14 +57,12 @@ import app.storyarc.core.model.ReaderPalette
 import app.storyarc.core.model.ReaderTextAlignment
 import app.storyarc.core.model.ReaderTypeface
 import app.storyarc.core.model.ReadingTheme
-import app.storyarc.core.model.STEPS_PER_AXIS
 import app.storyarc.core.model.ThemeAxis
 import app.storyarc.core.model.ThemePreset
 import app.storyarc.core.model.ThemeValues
 import app.storyarc.core.model.TransitionChoices
 import app.storyarc.core.model.TransitionUnavailability
 import app.storyarc.core.model.sliderRange
-import app.storyarc.core.model.unit
 import app.storyarc.core.model.value
 import app.storyarc.core.model.values
 
@@ -170,12 +159,17 @@ internal fun ThemeAxesScreen(
 
             FontSizeControl(values, onChange)
             TypefaceControl(values, onChange)
+            // `ThemeAxis.requiresPublisherStylesOff` says margins reaches the page
+            // under Original too, same as font size, family and weight above — so it
+            // draws outside the branch that hides everything publisher styles overrides.
+            MarginsControl(theme.preset, values, onSet)
 
             if (theme.preset.keepsPublisherStyles) {
                 PublisherStylesNotice(onLeavePublisherStyles)
             } else {
                 FineAxes(theme.preset, values, onSet)
                 AlignmentControl(values, onChange)
+                HyphenationToggle(values, onChange)
                 // A custom background cannot apply under Original, where the publisher's own
                 // colours are the point — so it lives in the same branch as the other
                 // overrides.
@@ -385,18 +379,28 @@ private fun TypefaceControl(
             checked = values.isBold,
             onCheckedChange = { onChange(ThemeAxis.BOLD_TEXT, values.copy(isBold = it)) },
         )
-
-        // Beside bold rather than among the sliders: both are switches, and
-        // `ebook-reader` lists hyphenation with the things a reader adjusts.
-        SwitchRow(
-            label = stringResource(R.string.theme_axis_hyphenation),
-            supporting = stringResource(R.string.theme_axis_hyphenation_note),
-            checked = values.isHyphenated,
-            onCheckedChange = {
-                onChange(ThemeAxis.HYPHENATION, values.copy(isHyphenated = it))
-            },
-        )
     }
+}
+
+/**
+ * Hyphenation, alone: a publisher's own stylesheet can set `hyphens`, so — unlike bold,
+ * beside it in [TypefaceControl] — this cannot reach the page under Original.
+ * `ThemeAxis.requiresPublisherStylesOff` says so, [PublisherStylesNotice] names it there
+ * instead, and this control draws only where it can do something.
+ */
+@Composable
+private fun HyphenationToggle(
+    values: ThemeValues,
+    onChange: (ThemeAxis, ThemeValues) -> Unit,
+) {
+    SwitchRow(
+        label = stringResource(R.string.theme_axis_hyphenation),
+        supporting = stringResource(R.string.theme_axis_hyphenation_note),
+        checked = values.isHyphenated,
+        onCheckedChange = {
+            onChange(ThemeAxis.HYPHENATION, values.copy(isHyphenated = it))
+        },
+    )
 }
 
 /**
@@ -484,121 +488,13 @@ private fun FineAxes(
             color = palette.textPrimary,
         )
 
+        // Margins is a slider axis too, but it is effective under Original
+        // (`ThemeAxis.requiresPublisherStylesOff`), so it draws on its own, always,
+        // as `MarginsControl` — never here, where every axis is hidden under Original.
         ThemeAxis.entries.forEach { axis ->
+            if (axis == ThemeAxis.MARGINS) return@forEach
             val range = axis.sliderRange ?: return@forEach
-            Column(
-                verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair),
-                // `reading-themes`, *Resetting an axis*: a long press or a double tap
-                // returns that axis to its preset value.
-                //
-                // **On the axis block, not on the slider the spec names, and that is a
-                // gap rather than a design.** `detectTapGestures` waits on the Main pass,
-                // and the `Slider` handles the down inside its own node first, so a
-                // detector wrapped around the slider does not start a gesture. A detector
-                // reading the `Initial` pass would see the down before the slider does, so
-                // the track is reachable — but it would then need its own slop and timeout
-                // test to leave the drag alone, and no JVM test here can press a Compose
-                // gesture to prove one. Task 3.5 of `reader-theming-and-page-transitions`
-                // records that work as open.
-                //
-                // So the press lands on the axis block: the name, the value and the space
-                // around them, directly above the track. iOS puts its press on the slider
-                // itself, so the same documented gesture has a different target on the two
-                // apps — which is why the accessibility action below is not a fallback. It
-                // is the only path that reaches the slider, and it reaches every reader.
-                modifier = Modifier.pointerInput(axis, preset) {
-                    detectTapGestures(onLongPress = { resetAxis(preset, axis, onSet) })
-                },
-            ) {
-                val spoken = spokenValue(values.value(axis), axis.unit)
-                val name = stringResource(axis.labelRes)
-                val resetName = stringResource(R.string.theme_axis_reset)
-
-                // The name on the left, the value on the right.
-                //
-                // `reading-themes`: "its current value is stated beside it in the reader's
-                // own language and units, and updates as the control moves **AND** the value
-                // is available to assistive technology as part of the control rather than as
-                // a separate unlabelled element". Both halves are load-bearing in opposite
-                // directions, which is why the visible value is cleared of semantics and the
-                // slider carries the reading instead: a label left visible to TalkBack lands
-                // between the axis's name and its slider and reads a bare number.
-                //
-                // There is no value-label API in `SliderDefaults` at all, and Material
-                // sanctions this arrangement independently: "If the value is shown elsewhere,
-                // the indicator is not required."
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = name,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = palette.textSecondary,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(
-                        text = spoken,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = palette.textTertiary,
-                        modifier = Modifier.clearAndSetSemantics {},
-                    )
-                }
-
-                Slider(
-                    value = values.value(axis).toFloat(),
-                    onValueChange = { onSet(axis, it.toDouble()) },
-                    valueRange = range.start.toFloat()..range.endInclusive.toFloat(),
-                    // Discrete, so TalkBack's adjust action moves the value by
-                    // something a reader can notice, and so a drag submits ten
-                    // preference changes to the renderer rather than one per frame.
-                    steps = STEPS_PER_AXIS - 1,
-                    // Centred where the preset's own value sits mid-range, which is what the
-                    // centred variant is for: character spacing, word spacing and margins all
-                    // open in the middle of their range and are moved in either direction, so
-                    // a track filled from the left says the reader has *raised* an axis they
-                    // have only nudged. Stable API, verified by `javap` over
-                    // `material3-1.5.0-alpha26.aar`.
-                    // The gap between the handle and the rail goes, on both variants. See
-                    // `StoryArcSliderTrack`: at either end of an axis's travel one half of
-                    // the rail has no width, and the handle is then floating beside a rail
-                    // it is not touching.
-                    track = { state ->
-                        if (axis in CENTRED_AXES) {
-                            SliderDefaults.CenteredTrack(
-                                sliderState = state,
-                                thumbTrackGapSize = 0.dp,
-                            )
-                        } else {
-                            StoryArcSliderTrack(state)
-                        }
-                    },
-                    // The name and the reading both belong on the slider itself. The
-                    // heading beside it is a sibling node, so a screen reader landing
-                    // on the slider would otherwise announce a bare percentage of a
-                    // range and never say which axis it belongs to.
-                    modifier = Modifier
-                        // The gesture the spec names, on the slider itself. See
-                        // `detectAxisResetGesture` for why this needs its own
-                        // `Initial`-pass detector rather than `detectTapGestures`.
-                        .pointerInput(axis, preset) {
-                            detectAxisResetGesture { resetAxis(preset, axis, onSet) }
-                        }
-                        .semantics {
-                            contentDescription = name
-                            stateDescription = spoken
-                            // The reset, without the gesture. TalkBack, Switch Access and a
-                            // keyboard cannot long-press, and `native-experience` requires a
-                            // control to announce what it does.
-                            customActions = listOf(
-                                CustomAccessibilityAction(resetName) {
-                                    resetAxis(preset, axis, onSet)
-                                    true
-                                },
-                            )
-                        },
-                )
-            }
+            AxisSlider(preset, axis, range, values, onSet)
         }
     }
 }
@@ -771,7 +667,7 @@ private fun PublisherStylesNotice(onLeave: () -> Unit, modifier: Modifier = Modi
  * inset icon has no API, and Material forbids it below a 40dp track and on centred sliders
  * anyway.
  */
-private val CENTRED_AXES = setOf(
+internal val CENTRED_AXES = setOf(
     ThemeAxis.CHARACTER_SPACING,
     ThemeAxis.WORD_SPACING,
     ThemeAxis.MARGINS,

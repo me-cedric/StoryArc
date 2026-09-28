@@ -34,21 +34,27 @@ extension ReadingTheme {
         // takes that still in `EpubReaderModel.turnWithFade(forward:)`; Curl needs the
         // incoming page as well, which is task 4.3b.
         preferences.scroll = transition.isScroll
+        preferences.publisherStyles = preset.keepsPublisherStyles
 
-        // Original means the publication as published. Everything below this line
-        // is an override, so Original takes none of it.
-        guard !preset.keepsPublisherStyles else {
-            preferences.publisherStyles = true
-            return preferences
-        }
-
-        preferences.publisherStyles = false
-        preferences.backgroundColor = Self.colour(background)
-        preferences.textColor = Self.colour(foreground)
+        // `ThemeAxis.requiresPublisherStylesOff` says these three reach the page under
+        // every preset including Original, same as font size above — Readium honours
+        // family, weight and margins whether or not its own `publisherStyles` flag is
+        // set. Setting `publisherStyles = true` above and stopping here regardless kept
+        // the domain's own claim about these three axes from ever being tested: the
+        // model said they were effective and the mapping never sent them.
         preferences.fontFamily = values.typeface.readium
         // A weight rather than a family: `reading-themes` says bold "raises weight
         // without changing family".
         preferences.fontWeight = values.isBold ? 1.5 : nil
+        preferences.pageMargins = values.pageMargins
+
+        // Original means the publication as published from here down. Colour, spacing,
+        // alignment and hyphenation are the publisher's while its stylesheet is in
+        // force — `ThemeAxis.requiresPublisherStylesOff` lists exactly these.
+        guard !preset.keepsPublisherStyles else { return preferences }
+
+        preferences.backgroundColor = Self.colour(background)
+        preferences.textColor = Self.colour(foreground)
         // Nil rather than false when the reader has not asked for it, so the publication
         // keeps whatever its own stylesheet says. Passing false would be StoryArc turning
         // off a publisher's hyphenation on every book that wanted it.
@@ -57,7 +63,6 @@ extension ReadingTheme {
         preferences.letterSpacing = values.letterSpacing
         preferences.wordSpacing = values.wordSpacing
         preferences.paragraphSpacing = values.paragraphSpacing
-        preferences.pageMargins = values.pageMargins
         preferences.textAlign = values.textAlignment.readium
 
         return preferences

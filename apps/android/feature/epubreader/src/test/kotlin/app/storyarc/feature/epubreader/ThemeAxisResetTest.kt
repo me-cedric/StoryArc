@@ -183,24 +183,24 @@ class ThemeAxisResetTest {
 
     @Test
     fun `a long press on the axis block performs the reset`() {
-        val screen = code("ThemeAxesScreen.kt")
+        val axisSlider = code("AxisSlider.kt")
 
         assertTrue(
             "No long press is attached to an axis. `reading-themes` asks for a long press" +
                 " or a double tap.",
-            screen.contains("detectTapGestures(") && screen.contains("onLongPress ="),
+            axisSlider.contains("detectTapGestures(") && axisSlider.contains("onLongPress ="),
         )
     }
 
     @Test
     fun `the slider itself also carries the long press and the double tap`() {
-        val screen = code("ThemeAxesScreen.kt")
+        val axisSlider = code("AxisSlider.kt")
 
         assertTrue(
             "The slider's own modifier no longer wires `detectAxisResetGesture`, so the" +
                 " gesture the spec names — a press on the slider — has no detector on the" +
                 " one element it names. `reader-theming-and-page-transitions` 3.5, item 2.",
-            screen.contains("detectAxisResetGesture { resetAxis(preset, axis, onSet) }"),
+            axisSlider.contains("detectAxisResetGesture { resetAxis(preset, axis, onSet) }"),
         )
     }
 
@@ -224,20 +224,20 @@ class ThemeAxisResetTest {
 
     @Test
     fun `an accessibility action performs the same reset, named from the catalogue`() {
-        val screen = code("ThemeAxesScreen.kt")
+        val axisSlider = code("AxisSlider.kt")
 
         assertTrue(
             "The axis slider carries no custom accessibility action, so the reset is" +
                 " reachable only by a gesture. TalkBack, Switch Access and a keyboard cannot" +
                 " perform one. `native-experience` requires every control to announce what" +
                 " it does.",
-            screen.contains("CustomAccessibilityAction("),
+            axisSlider.contains("CustomAccessibilityAction("),
         )
         assertTrue(
             "The accessibility action is not named from the string catalogue, so a reader" +
                 " in French, German or Spanish hears English. `lint` proves the four" +
                 " translations; this proves the action asks for them.",
-            screen.contains("stringResource(R.string.theme_axis_reset)"),
+            axisSlider.contains("stringResource(R.string.theme_axis_reset)"),
         )
     }
 

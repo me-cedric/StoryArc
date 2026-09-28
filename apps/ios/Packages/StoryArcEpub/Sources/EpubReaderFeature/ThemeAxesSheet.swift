@@ -64,11 +64,17 @@ struct ThemeAxesSheet: View {
                     pageTurn
                     fontSize
                     typeface
+                    // `ThemeAxis.requiresPublisherStylesOff` says margins reaches the
+                    // page under Original too, same as font size, family and weight
+                    // above — so it draws outside the branch that hides everything
+                    // publisher styles overrides.
+                    marginsControl
                     if model.theme.preset.keepsPublisherStyles {
                         publisherNotice
                     } else {
                         fineAxes
                         alignment
+                        hyphenationToggle
                         // A custom background cannot apply under Original, where
                         // the publisher's own colours are the point — so it lives
                         // in the same branch as the other overrides.
@@ -226,14 +232,18 @@ struct ThemeAxesSheet: View {
                     .textRole(.body)
                     .foregroundStyle(theme.palette.textPrimary)
             }
+        }
+    }
 
-            // Beside bold rather than among the sliders: both are switches, and
-            // `ebook-reader` lists hyphenation with the things a reader adjusts.
-            Toggle(isOn: hyphenationBinding) {
-                Text("theme.axis.hyphenation", bundle: .module)
-                    .textRole(.body)
-                    .foregroundStyle(theme.palette.textPrimary)
-            }
+    /// Hyphenation, alone: a publisher's own stylesheet can set `hyphens`, so —
+    /// unlike bold, right above it — this cannot reach the page under Original.
+    /// `ThemeAxis.requiresPublisherStylesOff` says so, `publisherNotice` names it
+    /// there instead, and this control draws only where it can do something.
+    private var hyphenationToggle: some View {
+        Toggle(isOn: hyphenationBinding) {
+            Text("theme.axis.hyphenation", bundle: .module)
+                .textRole(.body)
+                .foregroundStyle(theme.palette.textPrimary)
         }
     }
 

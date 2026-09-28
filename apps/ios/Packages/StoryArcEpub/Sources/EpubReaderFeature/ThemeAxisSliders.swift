@@ -57,8 +57,10 @@ extension ThemeAxesSheet {
     /// the press rather than to the press itself.
     private static let pressTravel: CGFloat = 10
 
-    /// The sliders. One loop rather than five blocks, because the domain answers
-    /// every question a slider asks: its range, its value, and how to set it.
+    /// The sliders that need the publisher's stylesheet switched off. Exactly
+    /// `ThemeAxis.allCases` with a `sliderRange`, minus margins — margins reaches the
+    /// page under Original too (`ThemeAxis.requiresPublisherStylesOff` says so), so it
+    /// draws on its own, unconditionally, as ``marginsControl``.
     var fineAxes: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.md) {
             Text("theme.spacing", bundle: .module)
@@ -67,76 +69,90 @@ extension ThemeAxesSheet {
                 .accessibilityAddTraits(.isHeader)
 
             ForEach(ThemeAxis.allCases, id: \.self) { axis in
-                if let range = axis.sliderRange {
-                    VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                        axisHeader(
-                            Text(axis.titleKey, bundle: .module),
-                            value: Self.spoken(model.values.value(of: axis), in: axis.unit)
-                        )
-
-                        Slider(
-                            value: Binding(
-                                get: { model.values.value(of: axis) },
-                                set: { model.set(axis, to: $0) }
-                            ),
-                            in: range,
-                            // Stepped, so a screen reader's adjust action moves the
-                            // value by something a reader can notice, and so a drag
-                            // submits twenty preference changes to the renderer
-                            // rather than one per frame.
-                            step: axis.step ?? range.upperBound
-                        )
-                        .tint(theme.accent)
-                        // `reading-themes`, *Resetting an axis*: a long press or a
-                        // double tap on a slider returns that axis to its preset
-                        // value. A long press on a control is the iOS idiom, and
-                        // `simultaneousGesture` runs it beside the slider's own drag
-                        // rather than instead of it.
-                        //
-                        // **The reset waits for the finger to lift, and drops when the
-                        // finger travelled.** `LongPressGesture` on its own ends the
-                        // moment its half-second elapses, with the finger still down.
-                        // A reader who rests on the thumb before dragging — reading
-                        // the value, or deciding — therefore lost the axis they were
-                        // about to set, and then had to chase a thumb that had jumped
-                        // out from under them. Sequencing a zero-distance drag after
-                        // the press moves the decision to the lift, which is the first
-                        // moment the travel is known.
-                        .simultaneousGesture(
-                            LongPressGesture()
-                                .sequenced(before: DragGesture(minimumDistance: 0))
-                                .onEnded { phase in
-                                    guard case .second(true, let drag) = phase else { return }
-                                    let travel = drag?.translation ?? .zero
-                                    guard abs(travel.width) < Self.pressTravel,
-                                          abs(travel.height) < Self.pressTravel
-                                    else { return }
-                                    Self.reset(axis, on: model)
-                                }
-                        )
-                        // The other gesture the same sentence names. A `TapGesture` does
-                        // not sequence a drag after it the way the long press above does,
-                        // because a double tap has already lifted twice before it is
-                        // recognised — there is no thumb left under the finger for a
-                        // third drag to steal.
-                        .simultaneousGesture(
-                            TapGesture(count: 2).onEnded { Self.reset(axis, on: model) }
-                        )
-                        // The same reset, without the gesture. `native-experience`
-                        // requires a control to announce what it does, and VoiceOver,
-                        // Switch Control and a keyboard cannot long-press.
-                        .accessibilityAction(named: Text("theme.axis.reset", bundle: .module)) {
-                            Self.reset(axis, on: model)
-                        }
-                        // The name belongs on the slider. The heading above it is a
-                        // sibling element, so VoiceOver landing on the slider would
-                        // otherwise announce a bare percentage and never say which
-                        // axis it belongs to.
-                        .accessibilityLabel(Text(axis.titleKey, bundle: .module))
-                        .accessibilityValue(Self.spoken(model.values.value(of: axis), in: axis.unit))
-                    }
+                if axis != .margins, let range = axis.sliderRange {
+                    axisSlider(axis, range: range)
                 }
             }
+        }
+    }
+
+    /// Margins alone, effective — and drawn — under every preset including
+    /// Original. `ThemeAxesSheet.body` shows this regardless of
+    /// `keepsPublisherStyles`, unlike ``fineAxes``.
+    var marginsControl: some View {
+        axisSlider(.margins, range: ThemeAxis.margins.sliderRange ?? 0...1)
+    }
+
+    /// One axis's slider, its stated value, its long press and double tap reset, and
+    /// the accessibility action that reaches the same reset without a gesture.
+    @ViewBuilder
+    private func axisSlider(_ axis: ThemeAxis, range: ClosedRange<Double>) -> some View {
+        VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
+            axisHeader(
+                Text(axis.titleKey, bundle: .module),
+                value: Self.spoken(model.values.value(of: axis), in: axis.unit)
+            )
+
+            Slider(
+                value: Binding(
+                    get: { model.values.value(of: axis) },
+                    set: { model.set(axis, to: $0) }
+                ),
+                in: range,
+                // Stepped, so a screen reader's adjust action moves the
+                // value by something a reader can notice, and so a drag
+                // submits twenty preference changes to the renderer
+                // rather than one per frame.
+                step: axis.step ?? range.upperBound
+            )
+            .tint(theme.accent)
+            // `reading-themes`, *Resetting an axis*: a long press or a
+            // double tap on a slider returns that axis to its preset
+            // value. A long press on a control is the iOS idiom, and
+            // `simultaneousGesture` runs it beside the slider's own drag
+            // rather than instead of it.
+            //
+            // **The reset waits for the finger to lift, and drops when the
+            // finger travelled.** `LongPressGesture` on its own ends the
+            // moment its half-second elapses, with the finger still down.
+            // A reader who rests on the thumb before dragging — reading
+            // the value, or deciding — therefore lost the axis they were
+            // about to set, and then had to chase a thumb that had jumped
+            // out from under them. Sequencing a zero-distance drag after
+            // the press moves the decision to the lift, which is the first
+            // moment the travel is known.
+            .simultaneousGesture(
+                LongPressGesture()
+                    .sequenced(before: DragGesture(minimumDistance: 0))
+                    .onEnded { phase in
+                        guard case .second(true, let drag) = phase else { return }
+                        let travel = drag?.translation ?? .zero
+                        guard abs(travel.width) < Self.pressTravel,
+                              abs(travel.height) < Self.pressTravel
+                        else { return }
+                        Self.reset(axis, on: model)
+                    }
+            )
+            // The other gesture the same sentence names. A `TapGesture` does
+            // not sequence a drag after it the way the long press above does,
+            // because a double tap has already lifted twice before it is
+            // recognised — there is no thumb left under the finger for a
+            // third drag to steal.
+            .simultaneousGesture(
+                TapGesture(count: 2).onEnded { Self.reset(axis, on: model) }
+            )
+            // The same reset, without the gesture. `native-experience`
+            // requires a control to announce what it does, and VoiceOver,
+            // Switch Control and a keyboard cannot long-press.
+            .accessibilityAction(named: Text("theme.axis.reset", bundle: .module)) {
+                Self.reset(axis, on: model)
+            }
+            // The name belongs on the slider. The heading above it is a
+            // sibling element, so VoiceOver landing on the slider would
+            // otherwise announce a bare percentage and never say which
+            // axis it belongs to.
+            .accessibilityLabel(Text(axis.titleKey, bundle: .module))
+            .accessibilityValue(Self.spoken(model.values.value(of: axis), in: axis.unit))
         }
     }
 
