@@ -307,9 +307,13 @@ private fun HeightToggleHeader(
         // as the `TopAppBar` navigation icon in `ThemeAxesScreen`, and this row is level
         // one's own header — a nested `clickable` consumes the tap before the row's own
         // height toggle sees it, the way a trailing icon inside a clickable list row
-        // always has.
+        // always has. The sheet slides away first, as Material's own sample closes one.
         if (onDismiss != null) {
-            IconButton(onClick = onDismiss) {
+            IconButton(
+                onClick = {
+                    scope.launch { sheetState?.hide() }.invokeOnCompletion { onDismiss() }
+                },
+            ) {
                 Icon(
                     imageVector = Icons.Filled.Close,
                     contentDescription = stringResource(R.string.epub_close),
