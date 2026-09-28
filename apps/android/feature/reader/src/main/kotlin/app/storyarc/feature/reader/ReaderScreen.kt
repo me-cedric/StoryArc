@@ -437,6 +437,10 @@ private fun Pager(
     val resources = LocalContext.current.resources
     val pageLabel: (Int) -> String = { resources.getString(R.string.reader_pdf_page, it + 1) }
 
+    // D8: a comic's or a scan's page bookmarks -- the same store, and the same "Page N"
+    // labelling, that a PDF's own marks use.
+    val comicBookmarks = rememberComicBookmarks(viewModel.annotationStore, viewModel.publication.id)
+
     // `comic-reader`: "the user can disable it for a page that crops wrongly". Detection on
     // a scan is a guess, and a guess needs a way to be overruled. Held for the session
     // rather than stored: an exemption is about one page of one book in front of the reader
@@ -1142,6 +1146,9 @@ private fun Pager(
                     isReaderMenuOpen = false
                     onOpen(publication)
                 },
+                onBookmarkThisPage = {
+                    comicBookmarks.add(modelIndex(paging.current), count, pageLabel)
+                },
             ),
             scrubbing = scrubbing,
         )
@@ -1254,6 +1261,16 @@ private fun Pager(
                         AnnotationExport.document(pdfAnnotations, text.title, format),
                     )
                 },
+            )
+        }
+    } else if (isFindingText) {
+        // D8: no text layer to search or an outline to browse, so this is the marks panel
+        // alone -- a comic's or a scan's page bookmarks.
+        ModalBottomSheet(onDismissRequest = { isFindingText = false }) {
+            ComicBookmarkSheet(
+                annotations = comicBookmarks.annotations,
+                onGo = { page -> jump(page); isFindingText = false },
+                onRemove = comicBookmarks::remove,
             )
         }
     }

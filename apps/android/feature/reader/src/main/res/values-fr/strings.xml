@@ -6,6 +6,8 @@
     <string name="reader_menu_contents">Sommaire</string>
     <string name="reader_menu_bookmarks">Signets</string>
     <string name="reader_menu_search">Rechercher</string>
+    <string name="reader_bookmark_add">Ajouter cette page aux favoris</string>
+    <string name="reader_bookmark_empty">Aucune page ajoutée aux favoris pour l’instant.</string>
     <string name="reader_menu_themes">Apparence</string>
     <string name="reader_menu_settings">Réglages</string>
     <string name="reader_page_label">Page %1$d sur %2$d</string>

@@ -6,6 +6,8 @@
     <string name="reader_menu_contents">Contents</string>
     <string name="reader_menu_bookmarks">Bookmarks</string>
     <string name="reader_menu_search">Search</string>
+    <string name="reader_bookmark_add">Bookmark this page</string>
+    <string name="reader_bookmark_empty">No pages bookmarked yet.</string>
     <string name="reader_menu_themes">Appearance</string>
     <string name="reader_menu_settings">Settings</string>
     <string name="reader_page_label">Page %1$d of %2$d</string>

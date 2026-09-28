@@ -105,7 +105,7 @@ class ReaderViewModel(
      * a PDF and a mark made in a novel come out of one export, which is what `ebook-reader`
      * means by "listed in one place".
      */
-    private val annotationStore: AnnotationStore? = null,
+    internal val annotationStore: AnnotationStore? = null,
 ) : ViewModel() {
 
     /** The shelf this publication's reading mode is remembered under. */

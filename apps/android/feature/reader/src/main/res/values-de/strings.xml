@@ -6,6 +6,8 @@
     <string name="reader_menu_contents">Inhalt</string>
     <string name="reader_menu_bookmarks">Lesezeichen</string>
     <string name="reader_menu_search">Suchen</string>
+    <string name="reader_bookmark_add">Diese Seite als Lesezeichen speichern</string>
+    <string name="reader_bookmark_empty">Noch keine Seite als Lesezeichen gespeichert.</string>
     <string name="reader_menu_themes">Darstellung</string>
     <string name="reader_menu_settings">Einstellungen</string>
     <string name="reader_page_label">Seite %1$d von %2$d</string>
