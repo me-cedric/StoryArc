@@ -47,6 +47,13 @@ wrong thing, because the test asserted a narrower rule than the scenario states.
 | `one-vocabulary-in-four-languages` | 2 | 0 | The publication page vocabulary is not reconciled across the platforms |
 | `publication-detail` | 1 | 1 | iOS: the download action does nothing for a catalogue book not yet on the device |
 
+**Build progress.** The build runs as the OpenSpec change
+[`close-the-audited-gaps`](changes/close-the-audited-gaps/tasks.md); its task list is the
+record of what has landed. **Wave 0 landed on 2026-09-28**: the six worktrees of
+2026-09-12, with the iOS border-trim fix (task 3.1) and the Android search-filter fix
+(task 17.1). The owner's field report on the v0.1.1 closed-testing build added tasks 21
+and 22, which run in wave 1.
+
 **What this pass changes in the records below.**
 
 - **`offline-downloads` *Reading while downloading* is still Android-only.** Commit
