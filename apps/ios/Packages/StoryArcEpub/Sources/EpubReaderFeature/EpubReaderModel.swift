@@ -307,10 +307,17 @@ public final class EpubReaderModel {
     }
 
     /// Chooses a page turn, for this shelf, from now on.
+    ///
+    /// **Keeps the shelf's own theme, not whatever is in force.** `theme`/`values` hold
+    /// a followed theme while the appearance link is on — `follow(_:)` never records
+    /// it — so this reads the shelf's own last recorded theme back rather than write
+    /// that one over the series. `reading-themes`: turning the link off "brings the
+    /// series theme back".
     public func choose(_ transition: PageTransition) {
         self.transition = transition
-        remember()
-        applyTheme()
+        let series = preferences?.themes().theme(for: Self.scope, shelf: shelf)
+        remember(theme: series?.theme, values: series?.values)
+        applyTheme(remembering: false)
     }
 
     /// Puts the reader's own colours in force, or refuses and says why.
@@ -350,9 +357,11 @@ public final class EpubReaderModel {
     /// steps rather than one per frame, and the blob is a handful of small records,
     /// so this is cheaper than a debounce would be to get right. Debounce it if a
     /// reader with a thousand shelves ever notices.
-    func remember() {
+    func remember(theme override: ReadingTheme? = nil, values overrideValues: ThemeValues? = nil) {
         guard let preferences else { return }
-        let stored = ShelfSettings(theme: theme, values: values, transition: transition)
+        let stored = ShelfSettings(
+            theme: override ?? theme, values: overrideValues ?? values, transition: transition
+        )
         preferences.save(
             preferences.themes().remembering(stored, for: Self.scope, shelf: shelf)
         )

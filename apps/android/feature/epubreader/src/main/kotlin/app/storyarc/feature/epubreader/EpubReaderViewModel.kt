@@ -76,11 +76,10 @@ class EpubReaderViewModel(
     private val identity: PublicationIdentity,
     private val progress: ProgressStore?,
     /**
-     * Where the reader's theme choices live between sessions. Null in a test.
-     *
-     * Named `themeStore` rather than `preferences`, because this type already has a
-     * `preferences` — the Readium value it hands the navigator. Two different things
-     * with one name in one file is how a wrong one gets passed.
+     * Where the reader's theme choices live between sessions. Null in a test. Named
+     * `themeStore` rather than `preferences`: this type already has a `preferences`, the
+     * Readium value it hands the navigator, and one name for two things is how a wrong one
+     * gets passed.
      */
     private val themeStore: ReaderPreferences? = null,
     /** Where the marks a reader makes live between sessions. Null in a test. */
@@ -90,19 +89,11 @@ class EpubReaderViewModel(
     /** What shelf this book sits on. Null for a standalone book. */
     series: String? = null,
     /**
-     * A preset the *app appearance* dictates, when the reader opted into that.
-     *
-     * `settings-and-about` keeps appearance and reading theme apart by default and allows
-     * "a single opt-in setting" that links them. When it is on, this is what the page is
-     * read with, and the shelf's own stored theme is *not* overwritten on open — so turning
-     * the setting off again brings it back.
-     *
-     * One edge, stated rather than glossed: adjusting a theme *while* linked does record it
-     * against the shelf, replacing what was there. That is the reader changing their mind
-     * on purpose, and a change that silently failed to stick would be the worse surprise.
-     *
-     * Passed in already resolved, because "System" is a question about the device and the
-     * host is the only thing that can answer it.
+     * A preset the *app appearance* dictates, when the reader opted into that. Read with
+     * this while the shelf's own stored theme is left untouched — see [follow] — unless the
+     * reader moves an axis, which does record it, replacing what was there on purpose.
+     * Passed in already resolved: "System" is a question about the device, and the host is
+     * the only thing that can answer it.
      */
     linkedPreset: ThemePreset? = null,
 ) {
@@ -203,10 +194,8 @@ class EpubReaderViewModel(
     val preferences get() = _theme.value.preferences(_values.value, _transition.value)
 
     /**
-     * What an unrecorded [adopt] is putting in force, until the flows have settled on it.
-     *
-     * Two flows move for one adopt, so the collector sees the half-way state as well as the
-     * settled one. Both belong to the device rather than to the reader.
+     * What an unrecorded [adopt] or [choose] is putting in force, until the collector has
+     * seen it settle — both belong to the device or the store, not to the reader.
      */
     private var notRecorded: ShelfSettings? = null
 
@@ -289,8 +278,19 @@ class EpubReaderViewModel(
             isReflowable = true,
         )
 
-    /** Chooses a page turn, for this shelf, from now on. */
+    /**
+     * Chooses a page turn, for this shelf alone. Keeps the shelf's own theme rather
+     * than whatever a followed appearance theme has put in force — see [follow] — by
+     * writing the series' own stored theme back with only the transition moved, and
+     * marking the natural emission `notRecorded` so the collector saves neither twice.
+     */
     fun choose(transition: PageTransition) {
+        val store = themeStore
+        if (store != null) {
+            val series = store.themes().theme(themeScope, shelf)
+            notRecorded = ShelfSettings(_theme.value, _values.value, transition)
+            store.save(store.themes().remembering(series.copy(transition = transition), themeScope, shelf))
+        }
         _transition.value = transition
     }
 
