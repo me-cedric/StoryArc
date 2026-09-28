@@ -31,6 +31,8 @@ class ImageFolderArchive private constructor(
     override val doublePageIndices: List<Int>
         get() = PageDeclarations.spreads(pages, comicInfo?.doublePageIndices.orEmpty())
 
+    override val chapterStartIndices: List<Int>
+        get() = PageDeclarations.chapterStarts(pages, comicInfo?.chapterStartIndices.orEmpty())
 
     companion object {
         fun open(directory: File): ImageFolderArchive {

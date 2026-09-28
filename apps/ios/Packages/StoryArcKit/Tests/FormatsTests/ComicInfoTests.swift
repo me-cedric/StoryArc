@@ -174,6 +174,39 @@ struct ComicInfoTests {
         #expect(info.doublePageIndices == [2])
     }
 
+    @Test("A page's Bookmark attribute marks a chapter start")
+    func chapterMarkers() {
+        let info = ComicInfo(
+            data: Data("""
+            <ComicInfo><Pages>
+            <Page Image="0"/>
+            <Page Image="12" Bookmark="Chapter Two"/>
+            <Page Image="30" Bookmark="Chapter Three"/>
+            </Pages></ComicInfo>
+            """.utf8)
+        )
+        #expect(info?.chapterStartIndices == [12, 30])
+    }
+
+    @Test("A Bookmark that is empty or only whitespace marks nothing")
+    func blankBookmarkIsNotAChapter() {
+        let info = ComicInfo(
+            data: Data("""
+            <ComicInfo><Pages>
+            <Page Image="5" Bookmark=""/>
+            <Page Image="9" Bookmark="   "/>
+            </Pages></ComicInfo>
+            """.utf8)
+        )
+        #expect(info?.chapterStartIndices.isEmpty == true)
+    }
+
+    @Test("No Pages list at all is no chapters, not a crash")
+    func noPagesListIsNoChapters() {
+        let info = ComicInfo(data: Data("<ComicInfo><Series>Only This</Series></ComicInfo>".utf8))
+        #expect(info?.chapterStartIndices.isEmpty == true)
+    }
+
     // MARK: - Robustness
 
     @Test("Bytes that are not ComicInfo yield nothing")

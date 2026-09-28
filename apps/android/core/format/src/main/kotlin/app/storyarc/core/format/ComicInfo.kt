@@ -76,6 +76,14 @@ data class ComicInfo(
      * is a heuristic and this is a statement.
      */
     val doublePageIndices: List<Int>,
+    /**
+     * Pages `<Pages>` marks with a `Bookmark`, in reading order.
+     *
+     * `comic-reader`'s chapter actions (D4) move within the publication first, and
+     * this is what tells them where a chapter inside it starts. Believed the same
+     * way [doublePageIndices] is: a cataloguer's own mark, not a guess.
+     */
+    val chapterStartIndices: List<Int>,
 ) {
     /**
      * The direction the reader should open in.
@@ -108,10 +116,12 @@ data class ComicInfo(
 
             var cover: Int? = null
             val spreads = mutableListOf<Int>()
+            val chapters = mutableListOf<Int>()
             for (attributes in pageElements(text)) {
                 val index = attributes["Image"]?.toIntOrNull() ?: continue
                 if (attributes["Type"] == "FrontCover" && cover == null) cover = index
                 if (attributes["DoublePage"]?.lowercase() == "true") spreads += index
+                if (attributes["Bookmark"]?.trim().isNullOrEmpty().not()) chapters += index
             }
 
             return ComicInfo(
@@ -140,6 +150,7 @@ data class ComicInfo(
                 // an override.
                 coverPageIndex = cover?.takeIf { it != 0 },
                 doublePageIndices = spreads.sorted(),
+                chapterStartIndices = chapters.sorted(),
             )
         }
 

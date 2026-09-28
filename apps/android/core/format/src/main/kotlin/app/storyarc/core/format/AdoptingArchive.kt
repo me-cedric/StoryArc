@@ -31,6 +31,8 @@ class AdoptingArchive(private var reading: ComicArchiveReading) : ComicArchiveRe
 
     override val doublePageIndices: List<Int> get() = reading.doublePageIndices
 
+    override val chapterStartIndices: List<Int> get() = reading.chapterStartIndices
+
     override suspend fun data(page: PageEntry): ByteArray = reading.data(page)
 
     /**

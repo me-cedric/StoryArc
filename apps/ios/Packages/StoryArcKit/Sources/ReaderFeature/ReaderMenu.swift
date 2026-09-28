@@ -157,12 +157,21 @@ extension ReaderView {
         isFindingText = true
     }
 
-    /// Moving between the publications of a series, when there are any.
-    @ViewBuilder
+    /// Moving between chapters. See ``ChapterActionsSection``.
     private var chapterSection: some View {
-        if previousInSeries != nil || nextInSeries != nil {
-            Section { chapterRow }
-        }
+        ChapterActionsSection(
+            model: model,
+            previousInSeries: previousInSeries,
+            nextInSeries: nextInSeries,
+            onJump: { index in
+                isShowingMenu = false
+                jump(to: index)
+            },
+            onOpen: { destination in
+                isShowingMenu = false
+                onOpen(destination)
+            }
+        )
     }
 
     /// How many entries the archive could not give us, when any.

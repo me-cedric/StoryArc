@@ -182,6 +182,9 @@ internal fun ReaderMenuSheet(
             ChapterRows(
                 previous = facts.previousInSeries,
                 next = facts.nextInSeries,
+                pageIndex = facts.pageIndex,
+                chapterStarts = viewModel.chapterStartIndices(),
+                onJump = actions.onJump,
                 onOpen = actions.onOpenPublication,
             )
 
@@ -340,36 +343,61 @@ internal fun sliderLayoutDirection(isRightToLeft: Boolean): LayoutDirection =
 /**
  * Previous and next chapter, as two named rows.
  *
- * Two icon-only pills over the page until now. Named here, because the neighbour of a
- * chapter is a *publication* and its title is the only thing that says which one pressing
- * this opens. Disabled at the end of the run rather than absent: the first and the last issue
- * of a series each have one neighbour, and a section that changed shape between them would
- * move the other row under the finger.
+ * D4: each action moves *within* this publication first — `ComicInfo`'s bookmarks,
+ * Android having no PDF outline (ADR-0012) — and opens a neighbouring publication only
+ * past the first or last chapter. Two icon-only pills over the page until now. Named
+ * here, because the neighbour of a chapter is a *publication* and its title is the only
+ * thing that says which one pressing this opens. Disabled at the end of the run rather
+ * than absent: the first and the last issue of a series each have one neighbour, and a
+ * section that changed shape between them would move the other row under the finger.
  *
  * Skip-previous and skip-next rather than a chevron: this is the track-skip idiom, and it
  * does not mirror for a right-to-left publication — the series still runs from its first
  * issue to its last whichever way its pages do.
  */
 @Composable
-private fun ChapterRows(previous: Publication?, next: Publication?, onOpen: (Publication) -> Unit) {
-    if (previous == null && next == null) return
-    ChapterRow(previous, Icons.Filled.SkipPrevious, R.string.reader_chapter_previous, onOpen)
-    ChapterRow(next, Icons.Filled.SkipNext, R.string.reader_chapter_next, onOpen)
+private fun ChapterRows(
+    previous: Publication?,
+    next: Publication?,
+    pageIndex: Int,
+    chapterStarts: List<Int>,
+    onJump: (Int) -> Unit,
+    onOpen: (Publication) -> Unit,
+) {
+    val previousChapter = ChapterNavigation.previousStart(pageIndex, chapterStarts)
+    val nextChapter = ChapterNavigation.nextStart(pageIndex, chapterStarts)
+    if (previous == null && next == null && previousChapter == null && nextChapter == null) return
+    ChapterRow(previousChapter, previous, Icons.Filled.SkipPrevious, R.string.reader_chapter_previous, onJump, onOpen)
+    ChapterRow(nextChapter, next, Icons.Filled.SkipNext, R.string.reader_chapter_next, onJump, onOpen)
 }
 
 @Composable
 private fun ChapterRow(
-    destination: Publication?,
+    inPublication: Int?,
+    neighbour: Publication?,
     icon: ImageVector,
     labelRes: Int,
+    onJump: (Int) -> Unit,
     onOpen: (Publication) -> Unit,
 ) {
+    val canGo = inPublication != null || neighbour != null
     ListItem(
-        supportingContent = destination?.let { { Text(it.displayTitle) } },
+        // Only a neighbouring publication has a title worth naming; a jump within this
+        // one is still the book already on screen.
+        supportingContent = (if (inPublication == null) neighbour else null)
+            ?.let { { Text(it.displayTitle) } },
         leadingContent = { Icon(imageVector = icon, contentDescription = null) },
         modifier = Modifier
             .fillMaxWidth()
-            .let { if (destination == null) it else it.clickableRow { onOpen(destination) } },
+            .let {
+                if (!canGo) {
+                    it
+                } else {
+                    it.clickableRow {
+                        if (inPublication != null) onJump(inPublication) else neighbour?.let(onOpen)
+                    }
+                }
+            },
     ) { Text(stringResource(labelRes)) }
 }
 

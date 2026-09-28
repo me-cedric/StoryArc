@@ -169,6 +169,39 @@ class ComicInfoTest {
         assertEquals(listOf(2), comicInfo("manga-metadata.cbz").doublePageIndices)
     }
 
+    @Test
+    fun `a page's Bookmark attribute marks a chapter start`() {
+        val info = parse(
+            """
+            <ComicInfo><Pages>
+            <Page Image="0"/>
+            <Page Image="12" Bookmark="Chapter Two"/>
+            <Page Image="30" Bookmark="Chapter Three"/>
+            </Pages></ComicInfo>
+            """,
+        )
+        assertEquals(listOf(12, 30), info?.chapterStartIndices)
+    }
+
+    @Test
+    fun `a Bookmark that is empty or only whitespace marks nothing`() {
+        val info = parse(
+            """
+            <ComicInfo><Pages>
+            <Page Image="5" Bookmark=""/>
+            <Page Image="9" Bookmark="   "/>
+            </Pages></ComicInfo>
+            """,
+        )
+        assertTrue(info?.chapterStartIndices?.isEmpty() == true)
+    }
+
+    @Test
+    fun `no Pages list at all is no chapters, not a crash`() {
+        val info = parse("<ComicInfo><Series>Only This</Series></ComicInfo>")
+        assertTrue(info?.chapterStartIndices?.isEmpty() == true)
+    }
+
     // Robustness.
 
     @Test
