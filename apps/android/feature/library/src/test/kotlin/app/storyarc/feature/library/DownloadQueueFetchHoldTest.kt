@@ -34,7 +34,7 @@ import org.robolectric.annotation.Config
  * `waiter.await()` -- the requeue, `promote`, `pump` -- is ordinary (non-suspending) code, so
  * an unconfined launch runs all of it inline and only then suspends, with no looper to idle.
  * Nothing here waits for `fetch` to return, which -- under the bug -- would hang the test
- * along with it. iOS asserts the same three things in `DownloadQueueFetchHoldTests.swift`.
+ * along with it. iOS asserts the first two cases in `DownloadQueueFetchHoldTests.swift`.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])

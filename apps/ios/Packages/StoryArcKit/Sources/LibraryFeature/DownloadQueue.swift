@@ -190,8 +190,7 @@ public final class DownloadQueue {
             // is ever going to start.
             if overridingMeteredConnection { overridden.insert(entry.id) }
             titles[entry.id] = entry
-            library = library.marking(entry.id, as: .queued)
-            store?.save(library)
+            resume(entry.id)
         default:
             enqueue(
                 entry,
@@ -204,10 +203,6 @@ public final class DownloadQueue {
         // up earlier and are not reading — on a metered link, where the bound is one, that
         // was the difference between a five-megabyte comic and a four-hundred-megabyte wait.
         promote(entry.id)
-        // `promote` only pumps when reordering actually moved something, and a download
-        // that was failed or reader-paused a moment ago is already at the head of a short
-        // queue — nothing to reorder, and `enqueue`'s own pump did not run for it either.
-        pump()
         return await withCheckedContinuation { continuation in
             waiting[entry.id, default: []].append(continuation)
         }
