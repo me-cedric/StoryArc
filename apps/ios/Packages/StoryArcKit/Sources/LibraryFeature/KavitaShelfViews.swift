@@ -81,6 +81,12 @@ struct KavitaListView: View {
 
     @State private var items: [KavitaReadingListItem] = []
     @State private var fetching: Int?
+    /// The title of the entry a reader last tried to open, when that try failed.
+    ///
+    /// Task 21.4: an entry that could not be fetched used to leave [fetching] cleared and say
+    /// nothing else, a chapter that "never opens" exactly as the field report named it. Named
+    /// here instead, and cleared the moment another entry is tried.
+    @State private var openFailure: String?
 
     /// The order this device has given the list and the server has not taken yet.
     ///
@@ -134,6 +140,11 @@ struct KavitaListView: View {
                     .textRole(.footnote)
                     .foregroundStyle(StoryArcColor.Status.offline)
             }
+            if let openFailure {
+                Text("kavita.open.failed \(openFailure)", bundle: .module)
+                    .textRole(.footnote)
+                    .foregroundStyle(StoryArcColor.Status.offline)
+            }
             ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                 entryRow(index: index, row: row)
                     // An entry the server has not heard of has no place in the server's own
@@ -167,6 +178,7 @@ struct KavitaListView: View {
             guard let entry = items.first(where: { String($0.chapterId) == row.id }) else {
                 return
             }
+            openFailure = nil
             Task { await open(entry) }
         } label: {
                 HStack(spacing: StoryArcSpace.sm) {
@@ -304,7 +316,21 @@ struct KavitaListView: View {
                   fileAt: file,
                   catalogueSeries: entry.seriesName
               )
-        else { return }
+        else {
+            openFailure = kavitaOpenFailureTitle(entry.displayName, succeeded: false)
+            return
+        }
         onOpen(publication, file)
     }
+}
+
+/// What [KavitaListView] tells the reader after trying to open `title`: nothing on success,
+/// `title` itself otherwise, for the row's own "couldn't open" sentence.
+///
+/// Pure, and beside the view for the reason a Swift Testing target cannot reach a
+/// `Task` started from inside a `Composable`-like `View` body: the one decision worth
+/// asserting -- a failure is named rather than left as a spinner that quietly clears -- is
+/// lifted out where `KavitaOpenFailureTests` can call it directly.
+func kavitaOpenFailureTitle(_ title: String, succeeded: Bool) -> String? {
+    succeeded ? nil : title
 }
