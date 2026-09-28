@@ -15,6 +15,7 @@ import app.storyarc.core.persistence.AnnotationStore
 import app.storyarc.core.smb.SmbReachability
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.KavitaSync
+import app.storyarc.feature.reader.DownloadCleanupOffer
 import app.storyarc.feature.reader.ReaderScreen
 import app.storyarc.feature.reader.ReaderViewModel
 import app.storyarc.feature.reader.adoptLocalCopy
@@ -114,6 +115,14 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
         onClose = {
             onClose()
             activity.lifecycleScope.launch { report() }
+        },
+        // D7: `null` when this publication was never a download.
+        downloadCleanup = host.downloads.value[publication.id]?.let {
+            DownloadCleanupOffer(
+                automaticCleanupIsOn = dependencies.settings.settings().removeDownloadsAfterFinishing,
+                onRemove = { activity.lifecycleScope.launch { removeDownloadNow(host, publication.id) } },
+                onKeep = { keepDownloadFromCleanup(host, publication.id) },
+            )
         },
         blockedSince = blockedSince,
         onDismissTrouble = { SmbReachability.clear() },

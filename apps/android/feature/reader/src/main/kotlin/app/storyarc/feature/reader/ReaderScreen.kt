@@ -172,6 +172,8 @@ fun ReaderScreen(
     previousInSeries: Publication? = null,
     nextInSeries: Publication? = null,
     onOpen: (Publication) -> Unit = {},
+    /** `null` for a publication that was never a download. See [DownloadCleanupOffer]. */
+    downloadCleanup: DownloadCleanupOffer? = null,
     /**
      * When reads from the source started failing, if they have.
      *
@@ -244,6 +246,7 @@ fun ReaderScreen(
                 previousInSeries = previousInSeries,
                 nextInSeries = nextInSeries,
                 onOpen = onOpen,
+                downloadCleanup = downloadCleanup,
                 fit = fit,
                 onFitChange = viewModel::chooseFit,
                 matte = matte,
@@ -290,6 +293,7 @@ private fun Pager(
     previousInSeries: Publication?,
     nextInSeries: Publication?,
     onOpen: (Publication) -> Unit,
+    downloadCleanup: DownloadCleanupOffer?,
     fit: PageFit,
     onFitChange: (PageFit) -> Unit,
     /** What shows behind and beside the page. See [matteColour]. */
@@ -1160,6 +1164,7 @@ private fun Pager(
                 }
             },
             onClose = onClose,
+            downloadCleanup = downloadCleanup,
         )
         return
     }
@@ -1639,8 +1644,9 @@ private fun PageSeparator(
  * records `isFinished` as it is turned to, because a reader who closes the app on
  * the last page has still finished it.
  *
- * Deleting the download is offered by the same scenario and is not here: there are
- * no downloads yet, and a button that deletes nothing is worse than none.
+ * Deleting the download is offered by the same scenario, and is here now (D7): an
+ * action to remove it, or — when the automatic sweep would already do that — a
+ * sentence saying so and an action to keep this one instead.
  */
 @Composable
 private fun EndOfPublication(
@@ -1650,6 +1656,8 @@ private fun EndOfPublication(
     onOpenNext: (Publication) -> Unit,
     onBack: () -> Unit,
     onClose: () -> Unit,
+    /** `null` for a publication that was never a download. See [DownloadCleanupOffer]. */
+    downloadCleanup: DownloadCleanupOffer? = null,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -1700,6 +1708,8 @@ private fun EndOfPublication(
                 Text(stringResource(R.string.reader_end_next, next.displayTitle))
             }
         }
+
+        DownloadCleanupRow(downloadCleanup)
 
         // Wrapping, not a Row: at a 2x font scale "Back to the last page" takes the
         // whole width and left the Library button a few dp wide.

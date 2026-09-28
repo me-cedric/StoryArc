@@ -21,6 +21,9 @@
     <string name="reader_end_next">Suivant : %1$s</string>
     <string name="reader_end_back">Revenir à la dernière page</string>
     <string name="reader_end_library">Bibliothèque</string>
+    <string name="reader_end_remove_download">Supprimer le téléchargement</string>
+    <string name="reader_end_download_will_be_removed">Ce téléchargement sera supprimé à la fermeture du lecteur.</string>
+    <string name="reader_end_keep_download">Conserver</string>
     <string name="reader_fit">Ajuster</string>
     <string name="reader_fit_screen">Ajuster à l’écran</string>
     <string name="reader_fit_width">Ajuster à la largeur</string>
