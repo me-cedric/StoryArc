@@ -120,3 +120,11 @@ None.
   decision D26); the acknowledgements inventory gains the iOS `SMBClient`
   package, the eight Readium transitive packages, `bcprov`, `jsoup` and
   `desugar_jdk_libs` (decision D20).
+
+## Added on 2026-09-28: the field report
+
+The owner's test of the v0.1.1 closed-testing build added sections 21 and 22 to
+`tasks.md`, which run first. They add two requirements: a source is read in full in
+the background (`sources`), and every publication offers the same actions wherever it
+is drawn, with a finished mark a reader sees at a glance (`library-browsing`).
+

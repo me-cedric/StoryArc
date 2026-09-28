@@ -454,3 +454,20 @@ task in `tasks.md` ticks itself on that step:
   battery and a frame or two of latency the OS-level path does not. Accepted
   because the alternative is an unavailable control on two still-supported
   API levels, and the owner's rule favours the fuller feature.
+
+## The field report of 2026-09-28
+
+The owner tested the v0.1.1 closed-testing build on an Android phone and reported seven
+problems. Four are defects inside existing requirements, and three need the two new
+requirements in this change's `sources` and `library-browsing` deltas.
+
+| Report | Decision |
+| --- | --- |
+| Rotation freezes the app on the library page | A defect. Reproduce on an emulator, find the blocking work, fix it. Check the iOS rotation path. |
+| A shelf keeps the previous destination selected, and back is needed to return to search | A shelf and every library section opened from the navigation belong to the Library destination. The navigation marks Library, and the shelf goes on the Library stack. |
+| The rail's menu button is at the far left in landscape | Material 3 puts the menu button at the top of the navigation rail, on the leading edge. Keep it when it matches; fix it when it does not. |
+| A comic from a Kavita reading list spins for ever | A defect. It opens as the same chapter opened from its series does, or it states why it cannot. |
+| The library may not hold all of a Kavita server | It does not: the first read takes the 60 newest series and never continues (SMB: 200 publications). The app now keeps reading in the background until it holds all of each source, and states its progress. |
+| Kavita collections and reading lists on Home have no cover | Draw the server's own cover (Image/collection-cover, Image/readinglist-cover), then the first members' covers, then the coverless well. |
+| The finished mark is hard to see; long press should offer actions everywhere | A finished badge in each platform's own form (Material 3 badge on Android, an SF Symbol in the system material on iOS). One action builder per platform, offered by a long press with a DropdownMenu on Android and by .contextMenu on iOS, on every surface that draws a publication. |
+

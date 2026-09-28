@@ -5,16 +5,25 @@ and design. A tick does **not** mean a person watched it run on a device or a
 simulator — that is a separate, later step, and this change deliberately asks
 for only a few screenshots where they earn their place, not one per task.
 
+The owner's field report of 2026-09-28, from the v0.1.1 closed-testing build, adds
+sections 21 and 22, and they run first. The build runs in waves of five packages:
+
+- Wave 1: `field-a`, `field-b`, `dl-core`, `comic`, `themes`
+- Wave 2: `progress`, `share`, `dl-ui`, `curl`, `local`
+- Wave 3: `collections`, `ebook-nav`, `opds`, `kavita-shelves`, `audio-android`
+- Wave 4: `formats`, `l10n`, `audio-rest`, `browse`, `smb3`
+- Wave 5: `settings-native`, `widgets`
+
 ## 0. Wave 0: land the six worktrees of 2026-09-12
 
-- [ ] 0.1 Land worktree `wf_aeae5856-c94-1` (collections-and-reading-lists): finish the named files, prove each new test can fail, rebase onto `main`, run the gates, fast-forward.
-- [ ] 0.2 Land worktree `wf_aeae5856-c94-2` (native-experience): finish the named files, prove each new test can fail, rebase onto `main`, run the gates, fast-forward.
-- [ ] 0.3 Land worktree `wf_aeae5856-c94-3` (comic-reader): finish the named files, prove each new test can fail, rebase onto `main`, run the gates, fast-forward. This closes the iOS border-cropping defect (task 3.1).
-- [ ] 0.4 Land worktree `wf_aeae5856-c94-4` (settings-and-about): finish the named files, prove each new test can fail, rebase onto `main`, run the gates, fast-forward.
-- [ ] 0.5 Land worktree `wf_aeae5856-c94-5` (ebook-reader): finish the named files, prove each new test can fail, rebase onto `main`, run the gates, fast-forward.
-- [ ] 0.6 Land worktree `wf_aeae5856-c94-6` (library-browsing): finish the named files, prove each new test can fail, rebase onto `main`, run the gates, fast-forward. This closes the Android search-filter defect (task 17.1).
+- [x] 0.1 Land worktree `wf_aeae5856-c94-1` (collections-and-reading-lists): finish the named files, prove each new test can fail, rebase onto `main`, run the gates, fast-forward.
+- [x] 0.2 Land worktree `wf_aeae5856-c94-2` (native-experience): finish the named files, prove each new test can fail, rebase onto `main`, run the gates, fast-forward.
+- [x] 0.3 Land worktree `wf_aeae5856-c94-3` (comic-reader): finish the named files, prove each new test can fail, rebase onto `main`, run the gates, fast-forward. This closes the iOS border-cropping defect (task 3.1).
+- [x] 0.4 Land worktree `wf_aeae5856-c94-4` (settings-and-about): finish the named files, prove each new test can fail, rebase onto `main`, run the gates, fast-forward.
+- [x] 0.5 Land worktree `wf_aeae5856-c94-5` (ebook-reader): finish the named files, prove each new test can fail, rebase onto `main`, run the gates, fast-forward.
+- [x] 0.6 Land worktree `wf_aeae5856-c94-6` (library-browsing): finish the named files, prove each new test can fail, rebase onto `main`, run the gates, fast-forward. This closes the Android search-filter defect (task 17.1).
 
-## 1. Wave 1, package `dl-core` (offline-downloads, publication-detail)
+## 1. Package `dl-core` (offline-downloads, publication-detail)
 
 - [ ] 1.1 **Each queue saves its own stale copy of the download store over every other writer** (defect, both). Decision D30. Make one app-level queue per platform the only writer of the download store. Screens send stop, reorder, retry and removal to that queue, and the concurrency bound becomes global instead of per catalogue. Start at: `DownloadQueue.swift:65`, `CatalogueBrowserView.swift:57`, `DownloadStore.swift:58-62`.
 - [ ] 1.2 **OPDS downloads are keyed by the raw entry id and carry no source** (defect, both). Carry the source id on the catalogue page into every enqueue and fetch. Key OPDS records by source and entry, as Kavita does with 'kavita:<source>:<chapter>', and migrate stored records. Start at: `DownloadQueue.swift:146-162`, `LibraryDownloads.swift:37`, `StoryArcAppActions.swift:366`.
@@ -30,7 +39,7 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 1.12 **The iOS reader stops watching for the local copy before the streamed open sets its archive** (defect, ios). Start the adoption watch after model.open returns, in the same task, or make the watch wait until archive is set. Start at: `ReaderLifecycle.swift:22-27`, `ReaderModel.swift:264-265`, `ReaderAdoption.swift:35`.
 - [ ] 1.13 **The iOS background session keeps the first pin set it is given, which is empty after a background relaunch** (defect, ios). Build the background session with the app-wide pin set at launch, and make the background-event handler use the same set. Start at: `BackgroundDownloads.swift:16`, `BackgroundTransfers.swift:30-36`.
 
-## 2. Wave 1, package `progress` (kavita-server, reading-progress)
+## 2. Package `progress` (kavita-server, reading-progress)
 
 - [ ] 2.1 **Continue opens Kavita's next chapter at page one, not at the page Kavita reports** (unbuilt-clause, both). The gap is larger than Continue. Every chapter opened from the browser with no local record (Continue, a chapter row, a reading-list entry) opens at page one. When the reader leaves, the app reports that page, so Kavita's position moves back silently. Seed the local record from pagesRead in the shared open path before the reader opens. Start at: `KavitaChapterList.swift:110`, `KavitaSync.swift:70-71`, `KavitaChapters.kt:108`.
 - [ ] 2.2 **A chapter read from the Kavita browser never shows progress on its library row** (defect, both). Use one form, 'chapter:<id>', for KavitaOrigin.serverIdentifier on both platforms. Re-key stored serverKey values of the old form once at launch, so no reading position is lost. Start at: `KavitaProgressStore.swift:37-41`, `KavitaProgressStore.kt:38-40`, `KavitaChapterList.swift:355`.
@@ -47,9 +56,9 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 2.13 **A successful report leaves an older held position in the queue, and the next flush moves Kavita back** (defect, both). After a report succeeds, drop the held position with the same key. Start at: `KavitaSync.swift:24-37`, `KavitaSync.kt:36-46`, `KavitaSync.kt:226-237`.
 - [ ] 2.14 **The Kavita queue keys a held position without its server, so two servers' chapter N overwrite each other** (defect, both). Put origin.sourceId in the key of every held entry. Start at: `KavitaProgressStore.swift:74-79`, `KavitaProgressStore.kt:79-81`.
 
-## 3. Wave 1, package `comic` (comic-reader, page-transitions)
+## 3. Package `comic` (comic-reader, page-transitions)
 
-- [ ] 3.1 **iOS border cropping cannot be turned on** (one-platform, ios). Add a Toggle bound to `$adjustments.cropsBorders` with the crop note to AdjustmentsSheet. Add a second Toggle bound to `$cropsThisPage` that shows only while trimming is on, as Android does. Start at: `AdjustmentsSheet.swift:21`, `Localizable.xcstrings:91`, `ReaderPage.swift:43`.
+- [x] 3.1 **iOS border cropping cannot be turned on** (one-platform, ios). Add a Toggle bound to `$adjustments.cropsBorders` with the crop note to AdjustmentsSheet. Add a second Toggle bound to `$cropsThisPage` that shows only while trimming is on, as Android does. Start at: `AdjustmentsSheet.swift:21`, `Localizable.xcstrings:91`, `ReaderPage.swift:43`.
 - [ ] 3.2 **Space, Page Down and Android volume-down go back a page in right-to-left** (defect, both). Map Space, Page Down, Page Up and the volume keys in reading order, not in display order. Flip the step when the direction is right-to-left, and keep the arrow keys spatial. Start at: `ReaderView.swift:374-375`, `ReaderTurning.swift:69-70`, `ReaderTurning.swift:72`.
 - [ ] 3.3 **Page slider is not mirrored in right-to-left** (defect, both). Mirror the slider track when the publication reads right-to-left, so that page one is at the right end. On iOS, set the slider's layout direction. On Android, provide `LocalLayoutDirection` as Rtl around the slider. Start at: `ReaderSlider.swift:24-35`, `ReaderMenuSheet.kt:294-312`, `ReaderSlider.swift:48-53`.
 - [ ] 3.4 **A swipe or a scroll past the last page never reaches the end screen** (unbuilt-clause, both). Detect a swipe past the last page in Slide, and a scroll to the end in Scroll, and show the end screen as `turn` does. One way is to add a trailing end slot that opens the end screen when it becomes current. Start at: `ReaderTurning.swift:74-75`, `ReaderContainers.swift:46-63`, `ReaderContainers.swift:90-110`.
@@ -66,7 +75,7 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 3.15 **iOS reads no game controller** (one-platform, ios). Observe GCController.current and map d-pad left/right and the shoulder buttons to turn(by:) in the comic reader, and in the ebook reader after the first item. Start at: `ReaderView.swift:370-375`, `ReaderScreen.kt:741-752`, `ReaderView.swift:371-375`.
 - [ ] 3.16 **Webtoon axis is decided from the first decoded page only** (unbuilt-clause, both). Decide tallness from more than the first decoded page, for example the tallest of the first few decoded pages. Apply the same rule on both platforms. Start at: `ReaderModel.swift:223-225`, `ReaderViewModel.kt:726-727`.
 
-## 4. Wave 1, package `themes` (ebook-reader, native-experience, read-aloud-and-reader-theming, reading-themes)
+## 4. Package `themes` (ebook-reader, native-experience, read-aloud-and-reader-theming, reading-themes)
 
 - [ ] 4.1 **The light and dark reading themes that the appearance link switches between are a constant, not a pair the reader chooses** (unbuilt-clause, both). Decision D15. Add a stored light preset and a stored dark preset to AppSettings on both platforms, with Paper and Quiet as the defaults for current settings. Add two preset pickers under the link toggle in Appearance settings, in four locales, and resolve linkedPreset and ReaderAppearance.of from the stored pair. Start at: `AppearanceMode.swift:50`, `LinkedPreset.swift:30`, `AppSettings.swift:49`.
 - [ ] 4.2 **The custom colour slot is lost when the reader taps a preset** (defect, both). Store the reader's named palette in its own slot that does not depend on the in-force theme, for example one key in ReaderPreferences on each platform. Show the seventh card when that slot exists. Tapping a preset must keep the slot, and tapping the card must put the palette back in force. After this change, `restored()` can put the preset's own colours back and leave the slot unchanged. Start at: `ReadingTheme.swift:128-133`, `EpubReaderModel.swift:256-259`, `ShelfMemory.swift:25-27`.
@@ -85,7 +94,7 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 4.15 **A page-turn change while the appearance link is on writes the appearance theme over the series theme** (defect, both). While a followed theme is in force, keep the series' own theme and values. When the reader changes only the page turn, write that series theme with the new transition. Record the followed theme only when the reader moves a theme axis or taps a preset. Start at: `LinkedPreset.swift:65-69`, `EpubReaderModel.swift:310`, `EpubReaderViewModel.kt:358-371`.
 - [ ] 4.16 **A double tap on an axis slider does not reset the axis on either platform** (unbuilt-clause, both). Decision D35. Add a double-tap reset on each axis slider that goes through the same reset path as the long press, or change the scenario to name the long press only. Start at: `ThemeAxisSliders.swift:90-91`, `ThemeAxesScreen.kt:490`.
 
-## 5. Wave 1, package `share` (network-share)
+## 5. Package `share` (network-share)
 
 - [ ] 5.1 **Android targets SDK 37 but never declares or requests ACCESS_LOCAL_NETWORK** (defect, android). Decision D25. Declare ACCESS_LOCAL_NETWORK and request it at runtime before discovery and before the first connect to a share. On denial, hide discovery, keep manual entry, tell the reader once how to grant the permission in system settings, and give a connect failure its own sentence. Start at: `gradle.kts:25`, `AndroidManifest.xml:6`, `AndroidManifest.xml:9`.
 - [ ] 5.2 **iOS keep-for-offline copy writes to a path that the server chooses** (defect, ios). Name the kept copy from the download store (publication id and format), or pass the name through the same sanitiser as cacheLocation. Then check that the resolved path stays inside the download directory. Start at: `KeepForOffline.swift:26`, `SmbBrowserView.swift:219`, `SmbAddress.swift:145`.
@@ -102,7 +111,7 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 5.13 **A share row in the library opens its share-relative path as a local file** (defect, both). Give a share row its smb:// address (SmbLocator plus the entry path) as its location. Open it through ShareOpening.offerOrOpen with the metered confirmation and the size offer. Do not count it as on the device. Start at: `SmbContributor.kt:86`, `SmbContributor.swift:75`, `LibraryViewModel.kt:1036`.
 - [ ] 5.14 **The share browser download reads the whole file into memory, and Android writes an empty file above 2 GiB** (defect, both). Copy the file in fixed-size chunks to a temporary file, then move it into place, on both platforms. Use one helper for this path and for keep-for-offline. Start at: `SmbBrowserScreen.kt:370`, `SmbClient.kt:234-235`, `SmbBrowserView.swift:263`.
 
-## 6. Wave 2, package `dl-ui` (offline-downloads)
+## 6. Package `dl-ui` (offline-downloads)
 
 - [ ] 6.1 **Read from the catalogue's own page waits for the whole file** (unbuilt-clause, both). For a format that reads from a source, enqueue and open the acquisition address through ReadingAddress, as the publication page does. Start at: `CatalogueDetailView.swift:170-175`, `CatalogueDetailScreen.kt:436-453`, `CatalogueDetailScreen.kt:448-450`.
 - [ ] 6.2 **Progress never moves during a transfer, and the feed's stated size is never used** (unbuilt-clause, both). Set expectedBytes from the acquisition length at enqueue. Report bytes written, throttled, into advancing (iOS didWriteData; Android a callback in the copy loop). Make the downloads views observe the queue, and state the size on the Android row. Start at: `DownloadQueueOutcome.swift:44`, `DownloadQueue.swift:153-158`, `OpdsFeed.swift:234`.
@@ -112,7 +121,7 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 6.6 **The storage limit states a remedy but offers no removal** (unbuilt-clause, both). Add an action on the hold that lists finished publications, largest first, and removes the chosen ones with the usual undo. Start at: `DownloadsGroup.kt:78`, `strings.xml:166`, `DownloadsSettings.swift:192-197`.
 - [ ] 6.7 **A resumed or restarted download does not say which happened** (unbuilt-clause, both). Record on the Download whether the last attempt resumed or restarted, and state it on the row in four languages. Start at: `OpdsClient.kt:153-160`, `BackgroundTransfers.swift:105-111`, `OpdsClient.kt:339`.
 
-## 7. Wave 2, package `collections` (collections-and-reading-lists)
+## 7. Package `collections` (collections-and-reading-lists)
 
 - [ ] 7.1 **The next-entry flow stops at an unavailable entry** (defect, both). Walk forward in the same list past entries with no publication, and return the first available one before trying the next list or the series. Apply the same fix to previous(). Start at: `LibraryViewModel.kt:1659-1666`, `LibrarySources.swift:311-318`, `Shelves.kt:67-71`.
 - [ ] 7.2 **Finishing an EPUB or audiobook entry offers no next entry** (unbuilt-clause, both). At the end of a reflowable EPUB and of an audiobook, offer library.next(after:) the way the paged reader's end screen does, on both platforms. Start at: `ReaderHost.kt:137-139`, `StoryArcApp.swift:329-331`, `StoryArcApp.swift:296-313`.
@@ -129,7 +138,7 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 7.13 **A reading list's cover cannot be chosen** (unbuilt-clause, both). Add an optional chosen cover to ReadingList and to its stored form. Open ShelfCoverPicker from the reading-list screen, and use the choice wherever the list's composite is drawn. Start at: `Shelves.kt:50-58`, `Shelves.swift:59-66`, `ShelfDetailScreen.kt:137-143`.
 - [ ] 7.14 **The next entry is offered at the end, but choosing it does nothing when it has no file on the device** (defect, both). Open a row with no file through its source's own route, or leave it out of the offer. Start at: `StoryArcAppActions.swift:262-265`, `ReaderHost.kt:139`, `KavitaContributor.swift:47-51`.
 
-## 8. Wave 2, package `curl` (comic-reader, page-transitions)
+## 8. Package `curl` (comic-reader, page-transitions)
 
 - [ ] 8.1 **Curl mode draws pages without image adjustments or border trim** (defect, both). Hand the curl the same adjusted and trimmed page that the other containers draw. Apply trim and sharpness to the decoded image before the curl receives it, and apply the colour adjustments to the curl's draw layer. Start at: `ReaderContainers.swift:21-26`, `CurledPages.swift:121`, `ReaderPage.swift:43`.
 - [ ] 8.2 **Fast fade in the comic reader has no swipe** (unbuilt-clause, both). Add a horizontal drag detector to the Fast fade container on both platforms that calls turn(by: +1/-1) past a threshold, mirrored for right-to-left. Start at: `ReaderContainers.swift:66-77`, `Paging.kt:41-54`, `ReaderScreen.kt:912-927`.
@@ -148,7 +157,7 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 8.15 **Curl mode shows a bare matte for a page that is loading or cannot be decoded** (defect, both). When the current page is nil in Curl mode, draw the same delayed progress indicator and the same page-problem notice that the other modes draw, over the matte. Start at: `CurledPages.swift:81-91`, `CurledPages.kt:162`, `ReaderPage.swift:60-64`.
 - [ ] 8.16 **Curl mode ignores the fit mode, pinch zoom and PDF marks** (defect, both). Decision D33. While the curl is at rest, draw the page with the normal page body (fit, zoom, marks). Hand the curl a raster only while a turn is in progress. As an alternative, disable the fit rows in Curl and state the reason. Start at: `PageCurl.metal:8-19`, `PageCurl.kt:175-185`, `CurledPages.swift:95-96`.
 
-## 9. Wave 2, package `ebook-nav` (ebook-reader, native-experience, page-transitions)
+## 9. Package `ebook-nav` (ebook-reader, native-experience, page-transitions)
 
 - [ ] 9.1 **The ebook readers do not turn a page on an edge tap, a key, a controller or (Android) the volume buttons** (defect, both). Add one input observer per EPUB reader that turns on edge-third taps (gated by turnPagesByTappingTheEdges), arrow, page and space keys, and routes the turn through Fast fade when that mode runs. On Android, forward volume keys from EpubReaderActivity.onKeyDown when turnPagesWithVolumeButtons is on. Start at: `EpubReaderActivity.kt:676-683`, `MainActivity.kt:75-84`, `EpubReaderHost.swift:32-35`.
 - [ ] 9.2 **The ebook readers ignore the Reduce Motion substitution** (defect, both). Drive the turn owner and the Readium preferences from transitions(reduceMotion).effective instead of the chosen transition, in both EPUB readers. Start at: `EpubReaderModel.swift:247`, `EpubReaderView.swift:121`, `EpubReaderOpening.swift:133`.
@@ -162,7 +171,7 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 9.10 **The Android EPUB web view has no accessible name** (defect, android). Decision D23. Give the navigator's web view a name, for example the publication title, when PublicationEgress.deny(view) runs. Start at: `PublicationEgress.kt:93-95`.
 - [ ] 9.11 **The EPUB readers do not turn pages from a keyboard, and no reader toggles its chrome from a keyboard** (unbuilt-clause, both). Bind the arrow, Page Up/Down and Space keys to turns in both EPUB readers (Readium DirectionalNavigationAdapter or app key handlers). Bind one key, for example Return, to toggle the chrome in all four readers. Start at: `ReaderView.swift:371-375`, `ReaderScreen.kt:744-750`, `EpubReaderHost.swift:32`.
 
-## 10. Wave 2, package `local` (local-library, sources)
+## 10. Package `local` (local-library, sources)
 
 - [ ] 10.1 **Android: mark a folder source unreachable and name it when its access goes** (defect, android). Decision LL. At restore and on resume, mark each LOCAL_FOLDER source (not the imported one) whose locator is not a readable persisted tree as Unreachable. Add its registry display name to unavailableFolders. Start at: `LibraryViewModel.kt:406-414`, `SourceStore.kt:21-22`, `LibraryViewModel.kt:666-675`.
 - [ ] 10.2 **Re-pick clears the wrong unavailable-folder names** (defect, both). When a folder is added, remove only that folder's name from unavailableFolders on both platforms. Start at: `LibraryRestore.swift:39`, `LibraryModel.swift:314-324`, `LibraryBottomBar.swift:42-43`.
@@ -180,7 +189,7 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 10.14 **Adding a removed server source again does not restore its reading positions** (unbuilt-clause, both). Store kind and locator in `SourceTombstone`. When a source is added, look for a tombstone with the same kind and locator. If one exists, add the source through `readding` with the old id. Start at: `CatalogueConnection.swift:202`, `KavitaConnection.swift:171`, `CatalogueConnection.kt:225`.
 - [ ] 10.15 **A removed source's rows come back from the shelf snapshot at next launch** (defect, both). On removal on both platforms, write the snapshot through as `clearSourceCache` does: clear it when the shelf is empty, otherwise write it. On Android, also call `rebuild()` in `forget`. Start at: `LibraryViewModel.kt:686-691`, `LibrarySources.swift:216-221`, `LibrarySnapshot.kt:29-30`.
 
-## 11. Wave 3, package `opds` (opds-catalog)
+## 11. Package `opds` (opds-catalog)
 
 - [ ] 11.1 **OPDS 1.2 navigation entries become publications with no download, so real catalogues cannot be entered** (defect, both). In both Atom parsers, turn an entry that has no acquisition and has a link of type application/atom+xml (not self/up/start) into an OpdsSection. Use the entry title as the section title and the link's thr:count as its count. Start at: `OpdsAtom.swift:159-167`, `OpdsAtom.kt:53-58`, `CatalogueEntryCell.swift:94-96`.
 - [ ] 11.2 **iOS keeps several certificate pin sets, so a pin made in one tab is refused in another and can erase earlier pins** (defect, ios). Create one CertificatePins for the iOS app and pass it to Home, every LibraryView surface and the reconnect sheet. Make the pin save merge with the stored set instead of overwriting it. Start at: `HomeScreen.swift:59`, `LibraryView.swift:173`, `AppShell.swift:144`.
@@ -193,7 +202,7 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 11.9 **Forgetting a pin when its source is removed has no caller** (dead-code, both). Call forget for the source host from both source-removal paths, unless another saved source uses the same host. Start at: `OpdsTrust.swift:40`, `OpdsClient.kt:502`, `CertificatePinStore.swift:35`.
 - [ ] 11.10 **Android library search keeps its own pin set, so a pin accepted later is refused by remote search** (defect, android). Pass dependencies.pins into LibrarySearchBar and remove its own CertificatePins. Start at: `LibrarySearchBar.kt:110`, `AppDependencies.kt:63`, `RemoteSearch.kt:137`.
 
-## 12. Wave 3, package `kavita-shelves` (kavita-server)
+## 12. Package `kavita-shelves` (kavita-server)
 
 - [ ] 12.1 **A library-held Kavita row cannot join its own server's reading list** (defect, both). Resolve an origin for a row whose server identifier is 'chapter:<id>' on the list's own server. Record the library, series and volume ids when KavitaContributor reads each chapter, in a store that KavitaProgressStore.publication(forChapter:) does not read, because that lookup returns the first match. Start at: `LibrarySourceHealth.swift:133-137`, `AddToShelfMenu.swift:163`, `LibraryViewModel.kt:360-361`.
 - [ ] 12.2 **Marking a library-held Kavita row read or unread never reaches Kavita** (defect, both). Decision D2. Use the origin resolver from the reading-list item in both mark paths. A mark on a library-held row then goes to Kavita, or to the queue when the server is away. Start at: `LibrarySources.swift:359-369`, `LibraryViewModel.kt:299-317`, `LibrarySources.swift:365`.
@@ -202,7 +211,7 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 12.5 **The library's publication page cannot keep or open a Kavita row** (defect, both). Send Download on a row with a 'chapter:<id>' server identifier to KavitaKeep.keep, with the ids the contributor recorded. On iOS, remove the button when no route exists. Start at: `DetailActions.swift:118-127`, `KeepOffline.swift:50-57`, `LibraryLookups.swift:26-27`.
 - [ ] 12.6 **An entry cannot be removed from a server reading list or collection, and a server shelf cannot be deleted** (unbuilt-clause, both). Decision D32. Add a remove-entry action to server list rows and a delete action to server shelves. Send both through the Kavita queue, with the confirmation that local shelves use. Start at: `ShelvesView.swift:199-211`, `ShelvesScreen.kt:289`, `KavitaShelfScreens.kt:217-238`.
 
-## 13. Wave 3, package `audio-android` (audiobooks-and-playback, read-aloud-and-reader-theming)
+## 13. Package `audio-android` (audiobooks-and-playback, read-aloud-and-reader-theming)
 
 - [ ] 13.1 **Android read-aloud skips every sentence to the end of the book when speech fails** (defect, android). End the session after a small number of consecutive utterance errors, or at once on engine-level error codes. Write the position when an utterance starts (onStart), not when it is queued. Start at: `ReadAloudController.kt:258-261`, `SpokenSource.swift:191-198`, `ReadAloudHost.kt:321-341`.
 - [ ] 13.2 **Android read-aloud does not drive the shared player** (one-platform, android). The voice has no compact bar, no full player (speed, skip, sleep timer, chapter list), no car row and a second notification. The resume-at-the-spoken-sentence half (task 6.2) already works on Android through ReadAloudHost.adopt and redrawSpokenSentence at EpubReaderActivity.kt:862-863. Start at: `AppShell.kt:318-320`, `ReadAloudService.kt:44`, `ReadAloudHost.kt:93`.
@@ -213,7 +222,7 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 13.7 **Android read-aloud ignores a refused speak() call and stays playing with no sound** (defect, android). Check the speak() result. On ERROR, end the session through stop(), with the position of the last spoken sentence recorded, in the same path that item 'Android read-aloud skips every sentence' adds. Start at: `ReadAloudController.kt:296-301`.
 - [ ] 13.8 **Android read-aloud keeps speaking out loud when headphones are removed** (one-platform, android). Register for ACTION_AUDIO_BECOMING_NOISY while the voice speaks. Pause it as a listener pause, so reconnecting does not resume it. A speech PlayerSource does not get this from ExoPlayer, so keep it when read-aloud moves to the shared player. Start at: `ReadAloudController.kt:83-101`, `PlaybackService.kt:89`, `PlaybackAudioSession.swift:132-139`.
 
-## 14. Wave 3, package `formats` (publication-formats)
+## 14. Package `formats` (publication-formats)
 
 - [ ] 14.1 **Android: a compressed CBR on a share gives an unexpected-failure notice instead of a download offer** (one-platform, android). Give RarComicArchive an index-only mode on both platforms. In this mode, it lists compressed page entries from the headers when no decoder is available, and the indexer marks the publication download-only. The mode must not throw UnsupportedContainer. Start at: `SmbBrowserScreen.kt:338-342`, `ComicArchive.kt:374`, `ComicArchive.kt:388`.
 - [ ] 14.2 **iOS: a remote CBR is catalogued as a bare record, not from its headers** (one-platform, ios). In the remote .rar branch at PublicationIndexer.swift:226, open RarComicArchive(source:) and build the publication with comic(...). Take the page list, the sizes and the streaming state from the headers. Start at: `PublicationIndexer.swift:226`, `PublicationIndexer+Building.swift:21-37`, `SmbBrowserView.swift:222`.
@@ -232,7 +241,7 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 14.15 **A PDF and a reflowable EPUB do not stream from a share (iOS: no EPUB streams)** (unbuilt-clause, both). Back PDFKit with a CGDataProvider over the ranged source, and back PdfRenderer with StorageManager.openProxyFileDescriptor. Give Readium a resource that reads through the source on both platforms. Then remove these formats from needsLocalFile. Start at: `ShareOpening.kt:33-34`, `ShareOpening.kt:53`, `EpubReaderViewModel.kt:399`.
 - [ ] 14.16 **The share browser reports every indexing refusal as 'The share could not be reached.'** (defect, both). In offerOrOpen on both platforms, map the typed index errors to the named sentences that Open-in uses. Keep the network sentence for SmbError only. Start at: `ShareOpening.kt:100`, `strings.xml:316`, `ShareOpening.swift:115-117`.
 
-## 15. Wave 3, package `l10n` (localization, one-vocabulary-in-four-languages)
+## 15. Package `l10n` (localization, one-vocabulary-in-four-languages)
 
 - [ ] 15.1 **iOS comic reader shows a raw Swift error when a comic does not open** (defect, ios). Add the key reader.cannotOpen in en, fr, de and es to the ReaderFeature catalogue. Set it with locale: .storyArc at ReaderModel.swift:293 and :332, and send the error to the log only. Start at: `ReaderModel.swift:293`, `ReaderView.swift:267-268`, `ReaderPage.swift:80`.
 - [ ] 15.2 **Catalogue failures show parser text, Swift descriptions and English exception messages** (defect, both). Remove the parser reason from the reader-facing malformed sentence on both platforms, and log it. Map every other transport failure to a fixed unreachable sentence: Android already has catalogue_error_unreachable, iOS needs catalogue.error.unreachable in 4 languages. Start at: `CatalogueMessages.swift:29-33`, `OpdsJson.swift:14`, `OpdsAtom.swift:15`.
@@ -247,7 +256,7 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 15.11 **Thirteen cross-platform wording rows still unreconciled** (open-task, both). Decision D31. Get the two undecided wordings signed off and land the string edits for the remaining rows in all four locales. Start at: see the capability spec.
 - [ ] 15.12 **Android joins lists with a hand-written comma** (one-platform, android). Join each reader-facing list with android.icu.text.ListFormatter.getInstance(LocalConfiguration.current.locales[0]), so French, German and Spanish get their own conjunction. Start at: `CatalogueDetailScreen.kt:277`, `CatalogueEntryCell.kt:197`, `NeverReached.kt:86`.
 
-## 16. Wave 4, package `audio-rest` (audiobooks-and-playback, local-library, read-aloud-and-reader-theming)
+## 16. Package `audio-rest` (audiobooks-and-playback, local-library, read-aloud-and-reader-theming)
 
 - [ ] 16.1 **iOS inline compact bar gives no one-step way to sentence skip for a voice** (unbuilt-clause, ios). Decision D17. In the inline placement, give a read-aloud bar one step to the full player, for example by making the row open the player, which already carries the way back to the book. Start at: `PlayerDock.swift:179`.
 - [ ] 16.2 **Opening a comic or a PDF does not end a running voice** (unbuilt-clause, both). Decision D18. Ask the handover when the comic and PDF readers open, displace the voice with its position written, and show the existing voice-stopped notice. Start at: `StoryArcAppActions.swift:86-93`, `EpubReadAloud.swift:100-109`, `StoryArcAppActions.swift:114`.
@@ -261,9 +270,9 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 16.10 **iOS player ignores a cover the library holds** (one-platform, ios). Load the library cover for the playing publication in the iOS player and in NowPlaying artwork, and fall back to the well only when there is none. Start at: `FullPlayerView.swift:96-97`, `PlayerArtwork.swift:32-43`, `PlayerArtwork.kt:100-104`.
 - [ ] 16.11 **iOS: audiobooks cannot be imported or opened from another app** (one-platform, ios). Add the audio UTTypes (mpeg4Audio, mp3, public.audio and an m4b type) to ImportableTypes and to CFBundleDocumentTypes with the rank Alternate. Start at: `LibraryImportAction.swift:119-127`, `Info.plist:11-50`, `Info.plist:90`.
 
-## 17. Wave 4, package `browse` (library-browsing, one-library-three-destinations)
+## 17. Package `browse` (library-browsing, one-library-three-destinations)
 
-- [ ] 17.1 **Android search obeys the by-library filter** (defect, android). In LibraryIndex.arrange, apply inScope only when the search term is empty, as iOS does. Publish the launcher shortcut from the whole library, not from the scoped continue list. Start at: `LibraryIndex.kt:61`, `LibraryMatch.kt:68`, `LibraryViewModel.kt:1383`.
+- [x] 17.1 **Android search obeys the by-library filter** (defect, android). In LibraryIndex.arrange, apply inScope only when the search term is empty, as iOS does. Publish the launcher shortcut from the whole library, not from the scoped continue list. Start at: `LibraryIndex.kt:61`, `LibraryMatch.kt:68`, `LibraryViewModel.kt:1383`.
 - [ ] 17.2 **Local search does not match tags or genres** (unbuilt-clause, both). Add tag and genre matches to rank at the TAG rank, mirrored on both platforms, so the tag group holds tags and genres as well as publishers. Start at: `LibraryIndex.kt:223-233`, `LibraryIndex.swift:216-225`, `LibraryMatch.kt:28-29`.
 - [ ] 17.3 **An opened series lists its issues in library order** (defect, both). Sort the series members with the library's SERIES comparison, ascending, on both platforms before the grid draws them. Start at: `SeriesShelfView.swift:25-27`, `LibraryMerge.swift:102`, `LibraryDownloads.swift:86`.
 - [ ] 17.4 **iOS shelf rows from a Kavita server draw no cover** (one-platform, ios). In LibraryLookups.cover, when a row has no location and a Kavita 'chapter:' identity, fetch the chapter cover through KavitaClient and store it in CoverCache, as Android ServerLibrary.cachedCover does. Start at: `LibraryLookups.swift:77`, `KavitaContributor.swift:49-59`, `EntryPoster.swift:42`.
@@ -276,13 +285,13 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 17.11 **iOS LibrarySurface.onDevice and OnDeviceEmpty are dead code** (dead-code, ios). Delete the LibrarySurface.onDevice case, the OnDeviceEmpty view and the branches that serve them. Update the tests that construct the case. Start at: `AppShell.swift:155`, `AppShell.swift:160-164`, `LibraryContent.swift:27`.
 - [ ] 17.12 **The EPUB readers do not offer the next volume at the end of a book** (unbuilt-clause, both). Pass the library's next publication into both EPUB readers. When the book is finished, offer that publication to the reader. Start at: `StoryArcApp.swift:296-309`, `ReaderHost.kt:137-139`, `EpubReaderActivity.kt:164-216`.
 
-## 18. Wave 4, package `smb3` (network-share, settings-and-about)
+## 18. Package `smb3` (network-share, settings-and-about)
 
 - [ ] 18.1 **The acknowledgements list empties itself with no message when the inventory does not decode** (defect, both). Decision D20. Latent only. No shipped entry triggers it. The gap is the strict iOS decode of platforms (scripts/notices.mjs:35 treats it as optional) and the silent empty section when a future entry breaks the decode. Start at: `Licences.swift:24`, `Licences.swift:50-54`, `AboutSettings.swift:17`.
 - [ ] 18.2 **The inventory does not list every third-party library that ships, and it has no MIT or LGPL text** (defect, both). Decision D20. Missing entries: iOS SMBClient plus the eight Readium transitive packages; Android jcifs-ng (LGPL), bcprov (Bouncy Castle), jsoup through Readium, and desugar_jdk_libs (GPL-2.0 with Classpath Exception), which the claim did not name. media3 is androidx.media3 and the existing 'AndroidX and Jetpack Compose' Apache-2.0 entry covers it. Start at: `Package.swift:43-46`, `gradle.kts:47`, `gradle.kts:38`.
 - [ ] 18.3 **No SMB 3 encryption negotiation, and iOS cannot connect to a share that is SMB 3 only** (missing, both). Decision D26. Choose a client on each platform that negotiates SMB 3 with encryption. Report the negotiated state for each session through SmbIdentity and SourceDiagnosis, and make the detail sentence read that state instead of the constant. For Android, evaluate smbj (Apache-2.0) as a candidate. Start at: `ShareTransport.swift:23`, `ShareTransport.kt:27`, `SmbClient.swift:62-69`.
 
-## 19. Wave 4, package `settings-native` (native-experience, settings-and-about)
+## 19. Package `settings-native` (native-experience, settings-and-about)
 
 - [ ] 19.1 **Reset settings leaves the Natural theme on** (defect, both). Make reset also set Natural to off on both platforms: NaturalTheme.set(context, false) on Android, and remove the key on iOS. Start at: `StoryArcAppActions.swift:311-316`, `SettingsStore.swift:42-44`, `NaturalTheme.swift:40`.
 - [ ] 19.2 **The Reading summary row describes the group but does not state its values** (unbuilt-clause, both). Build the Reading summary from the group's current values, for example the default preset for books and for comics. You can also let the About summary state the version. Start at: `SettingsGroup.swift:64`, `SettingsGroup.kt:82-88`, `AppearanceSettings.swift:143`.
@@ -295,6 +304,20 @@ for only a few screenshots where they earn their place, not one per task.
 - [ ] 19.9 **The iOS AppSettings.turnPagesWithVolumeButtons field drives nothing** (dead-code, ios). Delete the field, its init parameter and its decode line. Keep decodeIfPresent tolerance for stored blobs. Update the tests and the SweepWalk seed. Start at: `AppSettings.swift:30`, `SettingsStoreTests.swift:45-122`, `SweepWalk.swift:167`.
 - [ ] 19.10 **The reading-defaults 'not here yet' string has no caller** (dead-code, both). Delete the string in all four locales on both platforms, together with the three pending strings. Start at: `strings.xml:39`, `Localizable.xcstrings:2500`.
 
-## 20. Wave 4, package `widgets` (native-experience)
+## 20. Package `widgets` (native-experience)
 
 - [ ] 20.1 **Home-screen widgets do not exist** (missing, both). Build the shared reading snapshot beside QuickActions in StoryArcCore and :core:model. Then build one widget on each platform that reads only that snapshot. Start at: see the capability spec.
+
+## 21. Package `field-a` (native-experience, navigation-shell, kavita-server): the field report, device and navigation
+
+- [ ] 21.1 **Rotating the device freezes the app (Android, reported from the field on the library page)** (defect, android). Rotating on any destination keeps the app responsive, and keeps the destination, its scroll position and its filters.
+- [ ] 21.2 **Opening a shelf keeps the previous destination selected, and a shelf is pushed onto that destination's back stack** (defect, both). A shelf (and any library section) opened from the navigation belongs to the Library destination: the navigation marks Library (and the shelf entry in the expanded rail or drawer), the shelf is pushed onto the Library stack, and choosing another destination switches to that destination's own stack without a back press. Check the iOS sidebar and tab bar for the same rule.
+- [ ] 21.3 **Check the position of the navigation rail menu button against Material 3** (defect, android). Compare the rail with the Material 3 navigation rail guidance (menu button at the top of the rail, above the destinations, aligned with them). Keep the placement if it matches; fix it if it does not. State the guidance in the report.
+- [ ] 21.4 **Opening a comic from a Kavita reading list shows a spinner and never opens** (defect, both). Reproduce against scripts/kavita-server.mjs on an emulator, find the cause, and make a reading-list entry open like the same chapter opened from its series. A failure states its reason instead of spinning.
+
+## 22. Package `field-b` (sources, home-screen, library-browsing): the field report, library and covers
+
+- [ ] 22.1 **The library reads only the 60 newest Kavita series and the first 200 SMB publications, so a large library looks incomplete** (unbuilt-clause, both). Keep the first slice for a fast first screen, then keep reading the rest of each source in the background, page by page, until the library holds all of it: Kavita through the next pages of Series/recently-added-v2, SMB through the rest of the walk, OPDS through the feed next links. Merge each page into the library and the shelf snapshot as it arrives. The source detail states the progress ("120 of 215 series") while it reads, and "holds more" disappears when the read completes. Respect Wi-Fi-only for nothing here (metadata is small), but stop and resume cleanly when the source becomes unreachable. Both platforms.
+- [ ] 22.2 **Kavita collections and reading lists on Home show only a title, no cover** (defect, both). Draw each server shelf tile with the server's own cover for that collection or reading list, through the authenticated client and the cover cache. When the server has none, draw the covers of the first members, and only then the coverless well (D1).
+- [ ] 22.3 **The finished mark on a cover is hard to see** (unbuilt-clause, both). Draw finished as a clear badge on the cover: on Android a Material 3 badge (a filled check in primaryContainer with its onPrimaryContainer icon, in the cover corner, with a TalkBack label); on iOS a checkmark.circle.fill symbol in the system material, with a VoiceOver label. Keep it legible on light and dark covers and at the largest text size. Same on list rows.
+- [ ] 22.4 **A long press on a publication offers its actions only in the library grid** (unbuilt-clause, both). Give every publication cell the same actions everywhere it is drawn (library grid and list, Home rows, search results, shelves, collection and reading-list detail pages, Kavita and OPDS browsers): Open, Mark as read or Mark as unread (sent to the server for a server row), Start from the beginning, Add to shelf, Download or Remove download, Remove from this shelf where the page is a shelf, and Show details. Android: a long press opens a Material 3 DropdownMenu anchored to the cell, with haptic feedback. iOS: .contextMenu with a preview. One shared action builder per platform so every page offers the same list.
