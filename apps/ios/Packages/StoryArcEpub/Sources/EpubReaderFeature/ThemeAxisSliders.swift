@@ -156,8 +156,6 @@ extension ThemeAxesSheet {
         }
     }
 
-    /// `reading-themes`: reader-local, and it does not permanently move the
-    /// device's own. The reader's value is restored on leaving by `EpubReaderView`.
     /// The value the brightness control shows: the reader's own choice, or the
     /// device's current level while the reader has not moved the slider yet.
     /// Both the stated value and the thumb read from this, so they cannot disagree.
@@ -172,6 +170,8 @@ extension ThemeAxesSheet {
         model.brightness ?? device
     }
 
+    /// `reading-themes`: reader-local, and it does not permanently move the
+    /// device's own. The reader's value is restored on leaving by `EpubReaderBrightness`.
     var brightness: some View {
         let inForce = Self.brightnessInForce(model)
         return VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
