@@ -53,9 +53,21 @@ internal fun ReadingTheme.preferences(
     // task 4.3b.
     val scroll = transition.isScroll
 
-    // Original means the publication as published, so it takes no override.
+    // Original means the publication as published — except for the three axes
+    // `ThemeAxis.requiresPublisherStylesOff` says reach the page regardless, the same
+    // as font size above. Readium honours family, weight and margins whether or not
+    // its own `publisherStyles` flag is set; returning here with only font size kept
+    // the domain's own claim about these three axes from ever being tested — the
+    // model said they were effective and the mapping never sent them.
     if (preset.keepsPublisherStyles) {
-        return EpubPreferences(fontSize = fontSize, publisherStyles = true, scroll = scroll)
+        return EpubPreferences(
+            fontFamily = values.typeface.readium,
+            fontSize = fontSize,
+            fontWeight = if (values.isBold) 1.5 else null,
+            pageMargins = values.pageMargins,
+            publisherStyles = true,
+            scroll = scroll,
+        )
     }
 
     return EpubPreferences(

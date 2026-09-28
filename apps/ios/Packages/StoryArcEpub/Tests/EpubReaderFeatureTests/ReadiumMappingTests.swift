@@ -13,22 +13,50 @@ import StoryArcCore
 @Suite("Readium mapping")
 struct ReadiumMappingTests {
 
-    @Test("Original leaves the publisher in charge and overrides only size")
+    @Test("Original overrides size, family, weight and margins, and leaves the rest to the publisher")
     func original() {
         let theme = ReadingTheme(preset: .original)
         var values = theme.preset.values
         values.fontSize = .large
+        values.pageMargins = 2.1
+        // Original's own default is `.publisher`, whose `readium` mapping is nil by
+        // design — "leaves the publication's own family in place". A reader who has
+        // moved the axis holds a real face, which is the case this asserts.
+        values.typeface = .serif
 
         let preferences = theme.preferences(values: values)
 
         #expect(preferences.publisherStyles == true)
         #expect(preferences.fontSize == FontSizeStep.large.fraction)
+        // `ThemeAxis.requiresPublisherStylesOff` says these three reach the page
+        // regardless of `publisherStyles`, same as font size above.
+        #expect(preferences.fontFamily != nil)
+        #expect(preferences.pageMargins == 2.1)
         // Everything the publisher styles: untouched, not set to a default.
         #expect(preferences.backgroundColor == nil)
         #expect(preferences.textColor == nil)
-        #expect(preferences.fontFamily == nil)
+        #expect(preferences.hyphens == nil)
         #expect(preferences.lineHeight == nil)
         #expect(preferences.textAlign == nil)
+    }
+
+    @Test("Bold raises the weight under Original too")
+    func boldAppliesUnderOriginal() {
+        var values = ThemePreset.original.values
+        values.isBold = true
+        let theme = ReadingTheme(preset: .original)
+
+        let preferences = theme.preferences(values: values)
+
+        #expect(
+            preferences.fontWeight != nil,
+            """
+            Bold did nothing under Original. `boldText` is in the `false` half of \
+            `ThemeAxis.requiresPublisherStylesOff`, so the control was live while it \
+            changed nothing on the page — the defect `reading-themes`'s publisher-styles \
+            scenario forbids for a control that is shown as usable.
+            """
+        )
     }
 
     @Test("Every other preset takes over, with colours from the tokens")

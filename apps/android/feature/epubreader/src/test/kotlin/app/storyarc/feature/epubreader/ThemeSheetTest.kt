@@ -153,7 +153,7 @@ class ThemeSheetTest {
 
     @Test
     fun `every slider states its value beside it, once`() {
-        val level = code("ThemeAxesScreen.kt")
+        val level = code("AxisSlider.kt")
 
         assertTrue(
             "The sliders do not state their value beside them. `reading-themes`: \"its" +
