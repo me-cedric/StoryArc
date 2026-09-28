@@ -94,7 +94,12 @@ internal fun rememberPaging(mode: PageTransition, count: Int, position: Int): Pa
         remember(index) { Paging.Indexed(index) }
     }
     else -> {
-        val state = rememberPagerState(initialPage = position, pageCount = { count })
+        // `count + 1`: one slot past the last page, for a swipe with nothing left to
+        // turn to. `comic-reader`: "a swipe past the last page reaches the end
+        // screen" — without it `HorizontalPager` simply resists at the last page, the
+        // way it resists at the first. `ReaderScreen`'s own composable turns reaching
+        // it into `hasReachedEnd`.
+        val state = rememberPagerState(initialPage = position, pageCount = { count + 1 })
         remember(state) { Paging.Paged(state) }
     }
 }
