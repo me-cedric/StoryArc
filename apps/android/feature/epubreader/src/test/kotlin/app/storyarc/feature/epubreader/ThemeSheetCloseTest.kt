@@ -49,6 +49,7 @@ class ThemeSheetCloseTest {
         }
 
         compose.onNodeWithContentDescription("Close").performClick()
+        compose.waitForIdle()
 
         assertEquals(
             "The header's close control drew but did not call onDismiss.",
