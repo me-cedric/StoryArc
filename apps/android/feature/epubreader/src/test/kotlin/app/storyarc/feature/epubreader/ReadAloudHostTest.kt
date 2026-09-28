@@ -6,6 +6,7 @@ import app.storyarc.core.playback.PlaybackSession
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -13,6 +14,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.readium.r2.shared.publication.Locator
+import org.readium.r2.shared.util.Url
+import org.readium.r2.shared.util.mediatype.MediaType
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
@@ -51,8 +54,15 @@ class ReadAloudHostTest {
         var starts = 0
         var releases = 0
 
+        /** Where the host told this voice to begin. */
+        var startedFrom: Locator? = null
+
+        /** How the host asks to be told a sentence was said. */
+        var said: (suspend (Sentence) -> Unit)? = null
+
         override fun start(from: Locator?) {
             starts += 1
+            startedFrom = from
             if (canStart) _session.value = _session.value.started()
         }
 
@@ -74,7 +84,19 @@ class ReadAloudHostTest {
         override suspend fun withdrawSpokenHighlight() = Unit
     }
 
-    private fun begin(voice: Voice) = ReadAloudHost.begin(
+    /** A screen that keeps what it was asked to draw. */
+    private class Page : SpokenSentenceFollower {
+        val drawn = mutableListOf<Sentence>()
+
+        override suspend fun drawSpokenSentence(sentence: Sentence) { drawn += sentence }
+        override suspend fun withdrawSpokenHighlight() = Unit
+    }
+
+    private fun begin(
+        voice: Voice,
+        from: Locator? = null,
+        drawnBy: SpokenSentenceFollower = nobodyDrawing,
+    ) = ReadAloudHost.begin(
         book = SpokenBook(
             id = "harbour-lights-01",
             location = "/books/harbour-lights-01.epub",
@@ -87,9 +109,9 @@ class ReadAloudHostTest {
             readingOrder = emptyList(),
             store = null,
         ),
-        from = null,
-        drawnBy = nobodyDrawing,
-    ) { voice }
+        from = from,
+        drawnBy = drawnBy,
+    ) { said -> voice.also { it.said = said } }
 
     /** The host is a process-wide object; a session left running would be the next test's. */
     @After
@@ -144,5 +166,97 @@ class ReadAloudHostTest {
         assertNull(ReadAloudHost.speaking)
         assertEquals(1, voice.releases)
         assertTrue(!ReadAloudHost.session.value.isActive)
+    }
+
+    // MARK: - Starting playback
+
+    /*
+     * `ebook-reader`, *Starting playback*:
+     *
+     *   **THEN** speech begins at the current position, the spoken sentence is highlighted,
+     *   and the page follows
+     *
+     * The three cases below are those three clauses. Until now the file asserted that the
+     * host announced a started voice; where the voice was told to begin, and whether the
+     * sentence it said ever reached the page, were asserted by nothing.
+     *
+     * The locator is a real Readium `Locator`. Robolectric supplies the `android.net.Uri`
+     * that Readium's `Url` is built on — a plain JVM unit test gets the stub, which is the
+     * reason `ReturnPointTest` is instrumented.
+     */
+
+    private fun sentence(href: String, title: String?, text: String) = Sentence(
+        locator = Locator(
+            href = requireNotNull(Url(href)),
+            mediaType = MediaType.XHTML,
+            title = title,
+            locations = Locator.Locations(progression = 0.25, totalProgression = 0.4),
+        ),
+        text = text,
+        language = null,
+    )
+
+    /**
+     * Speech begins where the reader is, not at the top of the book.
+     *
+     * The locator `EpubReaderActivity` hands over is the navigator's own, so a listener who
+     * presses *read aloud* on page two hundred is not read the first two hundred pages.
+     */
+    @Test
+    fun `the voice begins at the position the reader was on`() {
+        val voice = Voice()
+        val here = sentence("/chapter-7.xhtml", "Chapter Seven", "The tide was out.").locator
+
+        begin(voice, from = here)
+
+        assertEquals(here, voice.startedFrom)
+    }
+
+    /** And a book nobody has opened yet begins at the beginning. */
+    @Test
+    fun `a book with no recorded position begins at its beginning`() {
+        val voice = Voice()
+
+        begin(voice, from = null)
+
+        assertNull(voice.startedFrom)
+    }
+
+    /**
+     * The sentence being spoken reaches the page, so the highlight and the page can follow.
+     *
+     * The host holds the screen weakly and feeds it from the callback it gave the voice.
+     * Nothing asserted that the callback arrives anywhere: a host that dropped the sentence
+     * would speak the whole book with the page standing still.
+     */
+    @Test
+    fun `the sentence the voice says is drawn on the page`() {
+        val voice = Voice()
+        val page = Page()
+        begin(voice, drawnBy = page)
+        val said = requireNotNull(voice.said) { "the host gave the voice no way to report a sentence" }
+        val spoken = sentence("/chapter-7.xhtml", "Chapter Seven", "The tide was out.")
+
+        runBlocking { said(spoken) }
+
+        assertEquals(listOf(spoken), page.drawn)
+    }
+
+    /**
+     * And the transport's second line follows the voice across a chapter boundary.
+     *
+     * `ebook-reader`, *Background and lock screen*: "the second line names the chapter being
+     * spoken". `SpokenLabel` decides how that line reads and `ReadAloudSessionTest` asserts
+     * it; this asserts that the line is kept up to date while the voice walks.
+     */
+    @Test
+    fun `the transport names the chapter the voice has reached`() {
+        val voice = Voice()
+        begin(voice)
+        val said = requireNotNull(voice.said)
+
+        runBlocking { said(sentence("/chapter-9.xhtml", "Chapter Nine", "Sea room.")) }
+
+        assertEquals("Chapter Nine", ReadAloudHost.book.value?.label?.detail)
     }
 }
