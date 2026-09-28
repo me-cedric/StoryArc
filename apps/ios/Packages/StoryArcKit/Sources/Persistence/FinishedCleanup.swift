@@ -52,12 +52,16 @@ extension DownloadStore {
     /// because "the catalogue can be asked for it again", and nothing can be asked for an
     /// import — `local-library` promises the copy outlives the original, so deleting it on
     /// the last page would be the app breaking its own promise.
+    ///
+    /// Nor is one the reader kept (D7): `isKept` skips it in favour of the next finished
+    /// download, rather than reporting nothing swept at all this pass.
     public func finishedDownload(
         in library: DownloadLibrary,
+        isKept: (Download.ID) -> Bool = { _ in false },
         isFinished: (String) -> Bool
     ) -> Download? {
         library.finished.first {
-            !ImportedCopies.isImported($0) && isFinished(location(of: $0).path)
+            !ImportedCopies.isImported($0) && !isKept($0.id) && isFinished(location(of: $0).path)
         }
     }
 
