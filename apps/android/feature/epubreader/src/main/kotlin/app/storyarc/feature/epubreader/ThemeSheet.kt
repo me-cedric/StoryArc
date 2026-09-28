@@ -16,6 +16,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.TextDecrease
 import androidx.compose.material.icons.filled.TextIncrease
 import androidx.compose.material3.Icon
@@ -103,6 +104,11 @@ internal fun ThemeSheet(
      * else, which is what it did before Material asked for the toggle.
      */
     sheetState: SheetState? = null,
+    /**
+     * Closes the sheet from its own header. Null in a preview or a test that draws the
+     * sheet with nothing to close it into, which is also when [sheetState] is null.
+     */
+    onDismiss: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     /** The chapter the reader is in, for the live preview to name. */
     chapter: String? = null,
@@ -125,7 +131,7 @@ internal fun ThemeSheet(
         // First, because it is the thing every control below it changes.
         ThemePreview(theme = theme, values = values, title = chapter, excerpt = excerpt)
 
-        HeightToggleHeader(sheetState)
+        HeightToggleHeader(sheetState, onDismiss)
 
         // Three by two, each card in its own colours. `ebook-reader`: the grid
         // previews "each preset in its own colours — six samples, not six labels".
@@ -226,6 +232,7 @@ internal fun ThemeBottomSheet(
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         ThemeSheet(
             sheetState = sheetState,
+            onDismiss = onDismiss,
             theme = theme,
             values = values,
             onAdopt = onAdopt,
@@ -256,7 +263,11 @@ internal fun ThemeBottomSheet(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HeightToggleHeader(sheetState: SheetState?, modifier: Modifier = Modifier) {
+private fun HeightToggleHeader(
+    sheetState: SheetState?,
+    onDismiss: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
     val palette = LocalStoryArcPalette.current
     val scope = rememberCoroutineScope()
     val isExpanded = sheetState?.currentValue == SheetValue.Expanded
@@ -285,6 +296,21 @@ private fun HeightToggleHeader(sheetState: SheetState?, modifier: Modifier = Mod
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Level one had no way to leave itself: a swipe or a tap on the scrim closes the
+        // sheet, but nothing in the sheet's own content does. Level two already has this,
+        // as the `TopAppBar` navigation icon in `ThemeAxesScreen`, and this row is level
+        // one's own header — a nested `clickable` consumes the tap before the row's own
+        // height toggle sees it, the way a trailing icon inside a clickable list row
+        // always has.
+        if (onDismiss != null) {
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.epub_close),
+                    tint = palette.textSecondary,
+                )
+            }
+        }
         Text(
             text = stringResource(R.string.theme_presets),
             style = MaterialTheme.typography.titleMedium,
