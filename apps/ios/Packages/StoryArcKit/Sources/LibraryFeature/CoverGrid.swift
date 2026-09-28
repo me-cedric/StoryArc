@@ -302,7 +302,9 @@ struct FinishedMark: View {
     var body: some View {
         Image(systemName: "checkmark.circle.fill")
             .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(.white)
+            // The label colour, not white: the material under it is light in light mode,
+            // and a white glyph on it had almost no contrast on any cover.
+            .foregroundStyle(.primary)
             .font(.subheadline)
             .padding(StoryArcSpace.xs)
             .background(.regularMaterial, in: .circle)
