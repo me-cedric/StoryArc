@@ -102,6 +102,20 @@ struct ReaderSystemChromeTests {
         )
     }
 
+    @Test("The home indicator dims with the rest of the chrome")
+    func theHomeIndicatorDimsWithTheChrome() throws {
+        let code = try code()
+        #expect(
+            code.contains(
+                ".persistentSystemOverlays(isChromeVisible ? .automatic : .hidden)"
+            ),
+            """
+            The reader no longer dims the home indicator with the rest of the chrome. Its \
+            own doc comment requires it, and `SystemBars.kt` already does it on Android.
+            """
+        )
+    }
+
     @Test("The orientation lock is the reader's own, and is given back on the way out")
     func theOrientationIsHandedBack() throws {
         let code = try code()
