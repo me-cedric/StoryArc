@@ -25,7 +25,35 @@ import app.storyarc.core.kavita.KavitaClient
  *
  * iOS's `ShelfDraft` offers the same destinations in the same order.
  */
-data class ShelfDraft(val isList: Boolean, val servers: List<KavitaPage>)
+data class ShelfDraft(val isList: Boolean, val servers: List<KavitaPage>) {
+
+    /**
+     * Whether confirming keeps the shelf on this device.
+     *
+     * The dialogue states one of two sentences from this, and labels its confirming button
+     * from it too. A property rather than the emptiness test written out three times: the
+     * sentence, the button and a test all have to agree, and three copies of one condition
+     * agree only until somebody edits two of them.
+     */
+    val isKeptOnThisDevice: Boolean get() = servers.isEmpty()
+
+    companion object {
+        /**
+         * The draft for the kind being made, out of what each server answered.
+         *
+         * A server answers the two questions separately, so the two capability lists differ.
+         * A reading list must be offered only the servers that hold reading lists: a server
+         * that holds collections and refuses lists would take the reader's name and their
+         * confirmation, and fail afterwards -- which is the "discovered later" the scenario
+         * forbids.
+         */
+        fun of(
+            isList: Boolean,
+            collectionCapable: List<KavitaPage>,
+            listCapable: List<KavitaPage>,
+        ): ShelfDraft = ShelfDraft(isList, if (isList) listCapable else collectionCapable)
+    }
+}
 
 /** Making a shelf somewhere other than this device. */
 object ShelfCreation {
@@ -84,7 +112,7 @@ internal fun ShelfCreationDialog(
                 // choice is being made now. Either way the reader is told before, not after.
                 Text(
                     stringResource(
-                        if (draft.servers.isEmpty()) {
+                        if (draft.isKeptOnThisDevice) {
                             R.string.shelves_new_stored_locally
                         } else {
                             R.string.shelves_new_choose_where
@@ -106,7 +134,7 @@ internal fun ShelfCreationDialog(
             TextButton(onClick = onDevice) {
                 Text(
                     stringResource(
-                        if (draft.servers.isEmpty()) {
+                        if (draft.isKeptOnThisDevice) {
                             R.string.shelves_create
                         } else {
                             R.string.shelves_new_here

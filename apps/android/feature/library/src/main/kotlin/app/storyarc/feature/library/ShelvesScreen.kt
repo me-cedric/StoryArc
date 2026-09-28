@@ -340,7 +340,7 @@ fun ShelvesScreen(
 
     creating?.let { isList ->
         ShelfCreationDialog(
-            draft = ShelfDraft(isList, if (isList) listCapable else collectionCapable),
+            draft = ShelfDraft.of(isList, collectionCapable, listCapable),
             name = draft,
             onName = { draft = it },
             onDevice = {

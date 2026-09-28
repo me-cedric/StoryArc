@@ -28,6 +28,26 @@ struct ShelfDraft: Identifiable {
     let kind: Kind
     /// The servers that could hold a shelf of this kind, in the order they were found.
     let servers: [KavitaPage]
+
+    /// The draft for the kind being made, out of what each server answered.
+    ///
+    /// A server answers the two questions separately, so the two capability lists differ. A
+    /// reading list must be offered only the servers that hold reading lists: a server that
+    /// holds collections and refuses lists would take the reader's name and their
+    /// confirmation, and fail afterwards — which is the "discovered later" the scenario
+    /// forbids.
+    init(_ kind: Kind, from capable: ServerShelves) {
+        self.kind = kind
+        servers = kind == .list ? capable.listCapable : capable.collectionCapable
+    }
+
+    /// Whether confirming keeps the shelf on this device.
+    ///
+    /// The alert states one of two sentences from this, and labels its confirming button from
+    /// it too. A property rather than the emptiness test written out three times: the
+    /// sentence, the button and a test all have to agree, and three copies of one condition
+    /// agree only until somebody edits two of them.
+    var isKeptOnThisDevice: Bool { servers.isEmpty }
 }
 
 /// Making a shelf somewhere other than this device.
@@ -90,7 +110,10 @@ extension View {
             Button {
                 onDevice(asked.kind, name.wrappedValue)
             } label: {
-                Text(asked.servers.isEmpty ? "shelves.create" : "shelves.new.here", bundle: .module)
+                Text(
+                    asked.isKeptOnThisDevice ? "shelves.create" : "shelves.new.here",
+                    bundle: .module
+                )
             }
             ForEach(asked.servers) { page in
                 Button {
@@ -103,7 +126,9 @@ extension View {
             // One location means saying which it is; more than one means saying that the
             // choice is being made now. Either way the reader is told before, not after.
             Text(
-                asked.servers.isEmpty ? "shelves.new.storedLocally" : "shelves.new.chooseWhere",
+                asked.isKeptOnThisDevice
+                    ? "shelves.new.storedLocally"
+                    : "shelves.new.chooseWhere",
                 bundle: .module
             )
         }
