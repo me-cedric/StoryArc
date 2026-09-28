@@ -42,6 +42,16 @@ const scratchCorpus = () => {
     'Tidal Reach 01.cbz', 'Tidal Reach 02.cbz', 'Undertow 01.cbz', 'Vale.pdf',
     'Winter Field.epub',
   ]
+  // `sources`' *More from a source than the library holds*: a first read takes only
+  // `KavitaContributor.firstSlice` series (60), so the continued read needs a server that
+  // holds more than that to prove itself against. Named to sort after every name above --
+  // `Z` follows `W` -- so `series[0]` stays `Tidal Reach` and every existing index below is
+  // unmoved. No space before the number, on purpose: the "stem without its trailing number"
+  // grouping right below only fires after whitespace, and without it each name is its own
+  // series rather than one series of a hundred and fifty chapters.
+  for (let n = 1; n <= 150; n += 1) {
+    names.push(`ZzBulkSeries${String(n).padStart(4, '0')}.cbz`)
+  }
   for (const name of names) {
     writeFileSync(join(at, name), Buffer.from('not a real publication'))
   }
@@ -235,6 +245,11 @@ const ROUTES = [
   { at: /^\/api\/Image\//, verb: 'GET', example: `/api/Image/series-cover?seriesId=1&apiKey=${API_KEY}` },
   { at: '/api/Library/libraries', verb: 'GET', example: '/api/Library/libraries' },
   { at: '/api/Series/all-v2', verb: 'POST', example: '/api/Series/all-v2' },
+  {
+    at: '/api/Series/recently-added-v2',
+    verb: 'POST',
+    example: '/api/Series/recently-added-v2?pageNumber=2&pageSize=60',
+  },
   { at: /^\/api\/Series\/\d+$/, verb: 'GET', example: '/api/Series/1' },
   { at: '/api/Series/metadata', verb: 'GET', example: '/api/Series/metadata?seriesId=1' },
   { at: '/api/Series/volumes', verb: 'GET', example: '/api/Series/volumes?seriesId=1' },
@@ -373,6 +388,25 @@ const server = createServer((request, response) => {
       })))
     })
     return undefined
+  }
+
+  // The library's own newest-first page, for a reader whose server holds more than a first
+  // screen should wait for. `Series/recently-added-v2` carries no total in its body, so
+  // "id descending" -- the order series were made in this mock -- stands in for "newest
+  // added first": a full page is what the reader's own client reads as "there is more".
+  if (url.pathname === '/api/Series/recently-added-v2') {
+    const pageNumber = Number(url.searchParams.get('pageNumber') ?? url.searchParams.get('PageNumber') ?? '1')
+    const pageSize = Number(url.searchParams.get('pageSize') ?? url.searchParams.get('PageSize') ?? '20')
+    const newestFirst = [...series].sort((a, b) => b.id - a.id)
+    const start = Math.max(0, (pageNumber - 1) * pageSize)
+    const shown = newestFirst.slice(start, start + pageSize)
+    return send(response, 200, shown.map((each) => ({
+      id: each.id,
+      name: each.name,
+      libraryId: each.libraryId,
+      pages: each.chapters.reduce((total, chapter) => total + chapter.pages, 0),
+      pagesRead: each.chapters.reduce((total, chapter) => total + chapter.pagesRead, 0),
+    })))
   }
 
   // One series by identity. A search result names a series without always naming the library
@@ -714,6 +748,30 @@ const drive = async () => {
   check('a get on the series list is refused',
     (await get('/api/Series/all-v2', token)).status === 405,
     (await get('/api/Series/all-v2', token)).status)
+
+  // `sources`' *More from a source than the library holds*: a page beyond the first slice,
+  // proof the corpus and the route both hold up past sixty series.
+  check('the corpus holds more series than a first slice reads',
+    series.length >= 150, series.length)
+  const page1 = await post('/api/Series/recently-added-v2?pageNumber=1&pageSize=60', {}, token)
+  check('a first page of recently-added answers', page1.status === 200, page1.status)
+  const firstPage = await page1.json()
+  check('a first page of recently-added is a full page', firstPage.length === 60, firstPage.length)
+  check('recently-added reads newest first',
+    firstPage[0].id > firstPage[firstPage.length - 1].id,
+    firstPage.map((each) => each.id))
+  const page3 = await post('/api/Series/recently-added-v2?pageNumber=3&pageSize=60', {}, token)
+  const thirdPage = await page3.json()
+  check('the last page of recently-added is shorter than a full page',
+    thirdPage.length > 0 && thirdPage.length < 60, thirdPage.length)
+  const seenAcrossPages = new Set([...firstPage, ...await (
+    await post('/api/Series/recently-added-v2?pageNumber=2&pageSize=60', {}, token)
+  ).json(), ...thirdPage].map((each) => each.id))
+  check('three pages of recently-added cover the whole corpus with nothing repeated',
+    seenAcrossPages.size === series.length, seenAcrossPages.size)
+  check('a get on recently-added is refused',
+    (await get('/api/Series/recently-added-v2', token)).status === 405,
+    (await get('/api/Series/recently-added-v2', token)).status)
 
   // The library filter, which Kavita reads from the body and nowhere else. Measured against
   // a live server on 2026-09-06: `POST /api/Series/all-v2?libraryId=3` with an empty body
