@@ -1494,8 +1494,8 @@ class LibraryViewModel(
      * mid-scan is a half-library, and restoring one would show a shelf missing books for no
      * reason a reader could see.
      */
-    private fun cacheLibrary(partial: Boolean = false) =
-        shelfCache.write(_publications.value, locations.toMap(), partial)
+    internal fun cacheLibrary(partial: Boolean = false, claimsFreshness: Boolean = true) =
+        shelfCache.write(_publications.value, locations.toMap(), partial, claimsFreshness)
 
     suspend fun cover(publication: Publication, maxPixelSize: Int): Bitmap? {
         covers[publication.id]?.let { return it }

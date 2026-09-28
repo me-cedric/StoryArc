@@ -8,10 +8,8 @@ import org.junit.Test
  *
  * `sources`' *More from a source than the library holds*: the source detail states the
  * progress while a read continues, and stops claiming a total once it has one. Every case
- * here is the whole of what decides that -- the coroutine that calls it
- * (`continueReadingKavita`) only ever asks it a question and acts on the answer, which is
- * why the loop itself is not asserted directly and this is. iOS's `SourceReadProgressTests`
- * asks the same three questions.
+ * here is the whole of what decides that. `KavitaContinuedReadTest` asserts the loop that
+ * asks it. iOS's `SourceReadProgressTests` asks the same three questions.
  */
 class SourceReadProgressTest {
 
