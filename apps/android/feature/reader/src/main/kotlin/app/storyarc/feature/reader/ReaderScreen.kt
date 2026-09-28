@@ -1418,7 +1418,7 @@ private fun ZoomablePage(
             // point of a double-tap is to magnify *that* panel.
             .tappable(
                 onTap = onTap,
-                onDoubleTap = { zoom = zoom.doubleTapped(it, page) },
+                onDoubleTap = { zoom = zoom.doubleTapped(it, page, fit) },
                 turns = LocalTapTurnsPages.current,
             )
             .selectable(onSelect, zoom, page)

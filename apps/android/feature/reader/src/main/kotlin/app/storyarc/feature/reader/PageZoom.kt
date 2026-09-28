@@ -90,8 +90,18 @@ internal data class PageZoom(
         page.centre + (point - page.centre - offset) / scale
 
     /** A double tap: in to [DOUBLE_TAP] centred on the point, or back out to fit. */
-    fun doubleTapped(at: Offset, page: PageBounds): PageZoom {
-        if (isMagnified) return PageZoom()
+    /**
+     * Toggles between the chosen fit and a zoom about the tapped point.
+     *
+     * Decision D5: "fit" is the chosen mode's own scale, not a fixed 1 — fit-to-width
+     * and fit-to-height are each greater than 1, and comparing against a fixed [FIT]
+     * zoomed a page that was already at its chosen fit further in on the first
+     * double-tap instead of the second. [fitting] is what both the comparison and the
+     * reset target need: the mode's own scale, and the offset that opens it correctly.
+     */
+    fun doubleTapped(at: Offset, page: PageBounds, fit: PageFit): PageZoom {
+        val fitted = fitting(fit, page)
+        if (isZoomedPastFit(scale, fitted.scale)) return fitted
         return PageZoom(DOUBLE_TAP, (page.centre - at) * DOUBLE_TAP).bounded(page)
     }
 
@@ -118,6 +128,15 @@ internal data class PageZoom(
         const val DOUBLE_TAP = 2.5f
 
         const val MAXIMUM = 6f
+
+        /**
+         * Whether a double-tap should zoom back to the fit scale, rather than in from it.
+         *
+         * The tolerance absorbs the rounding [fitting] carries, which an exact comparison
+         * would read as "past fit" forever. iOS's `isZoomedPastFit` is the same rule.
+         */
+        fun isZoomedPastFit(currentScale: Float, fitScale: Float): Boolean =
+            currentScale > fitScale * 1.01f
 
         /**
          * Where a fit mode starts.

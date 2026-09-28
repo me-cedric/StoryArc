@@ -372,8 +372,10 @@ private struct ScrollingPage: UIViewRepresentable {
 
         @objc func handleDoubleTap(_ recogniser: UITapGestureRecognizer) {
             guard let scrollView = recogniser.view as? UIScrollView else { return }
-            if scrollView.zoomScale > scrollView.minimumZoomScale {
-                scrollView.setZoomScale(scrollView.minimumZoomScale, animated: true)
+            // D5: "fit" is the chosen mode's own scale. See `isZoomedPastFit`.
+            let fit = owed?.scale(upTo: scrollView.maximumZoomScale) ?? scrollView.minimumZoomScale
+            if isZoomedPastFit(currentScale: scrollView.zoomScale, fitScale: fit) {
+                scrollView.setZoomScale(fit, animated: true)
                 return
             }
             // Centred on what was tapped, not on the middle of the screen: the

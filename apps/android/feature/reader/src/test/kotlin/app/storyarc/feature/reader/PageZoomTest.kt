@@ -145,7 +145,7 @@ class PageZoomTest {
     @Test
     fun `a double tap magnifies about the tapped point`() {
         val point = Offset(250f, 500f)
-        val zoom = PageZoom().doubleTapped(point, page)
+        val zoom = PageZoom().doubleTapped(point, page, PageFit.SCREEN)
 
         assertEquals(PageZoom.DOUBLE_TAP, zoom.scale, 0.001f)
         assertTrue(zoom.isMagnified)
@@ -157,10 +157,32 @@ class PageZoomTest {
 
     @Test
     fun `a second double tap returns to fit`() {
-        val magnified = PageZoom().doubleTapped(Offset(250f, 500f), page)
-        val fitted = magnified.doubleTapped(Offset(250f, 500f), page)
+        val magnified = PageZoom().doubleTapped(Offset(250f, 500f), page, PageFit.SCREEN)
+        val fitted = magnified.doubleTapped(Offset(250f, 500f), page, PageFit.SCREEN)
 
         assertEquals(PageZoom.FIT, fitted.scale, 0.001f)
         assertEquals(Offset.Zero, fitted.offset)
+    }
+
+    @Test
+    fun `from fit-to-width, a double tap zooms in rather than out to fit-to-screen`() {
+        // D5: before this, comparing against a fixed 1 read fit-to-width (scale 2 on
+        // this letterboxed page) as already magnified, so the very first double-tap
+        // zoomed *out* to fit-to-screen instead of in.
+        val startingAtFitToWidth = PageZoom.fitting(PageFit.WIDTH, letterboxed)
+        val zoom = startingAtFitToWidth.doubleTapped(Offset(250f, 500f), letterboxed, PageFit.WIDTH)
+
+        assertEquals(PageZoom.DOUBLE_TAP, zoom.scale, 0.001f)
+    }
+
+    @Test
+    fun `a second double tap from fit-to-width returns to fit-to-width, not fit-to-screen`() {
+        val startingAtFitToWidth = PageZoom.fitting(PageFit.WIDTH, letterboxed)
+        val zoomedIn =
+            startingAtFitToWidth.doubleTapped(Offset(250f, 500f), letterboxed, PageFit.WIDTH)
+        val backToFit = zoomedIn.doubleTapped(Offset(250f, 500f), letterboxed, PageFit.WIDTH)
+
+        assertEquals(startingAtFitToWidth.scale, backToFit.scale, 0.001f)
+        assertEquals(startingAtFitToWidth.offset, backToFit.offset)
     }
 }
