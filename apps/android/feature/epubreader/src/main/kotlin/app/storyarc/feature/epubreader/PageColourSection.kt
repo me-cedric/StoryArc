@@ -28,8 +28,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
@@ -202,26 +204,36 @@ internal fun PageColourSection(
         }
 
         refused?.let {
-            // The band leads here too, so the refusal opens with what the reader can
-            // act on rather than with arithmetic.
-            Text(
-                text = stringResource(ReadingComfort.band(it).label),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.error,
-            )
+            // Polite, so TalkBack speaks this the moment it appears. The tapped swatch
+            // does not move and the reason renders at the foot of the section, so
+            // without a live region a reader who cannot see the sheet hears nothing —
+            // the measured ratio never reaches the reader it refused. iOS posts the
+            // same two lines as one `AccessibilityNotification.Announcement`.
+            Column(
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair),
+            ) {
+                // The band leads here too, so the refusal opens with what the reader
+                // can act on rather than with arithmetic.
+                Text(
+                    text = stringResource(ReadingComfort.band(it).label),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.error,
+                )
 
-            // The number, not just the word. `reading-themes`: refused "with the
-            // measured ratio stated", because "that is not allowed" without a number
-            // is an obstacle rather than an explanation.
-            Text(
-                text = stringResource(
-                    R.string.theme_page_colour_refused,
-                    ratio(it),
-                    ratio(ReadingContrast.AA),
-                ),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.error,
-            )
+                // The number, not just the word. `reading-themes`: refused "with the
+                // measured ratio stated", because "that is not allowed" without a
+                // number is an obstacle rather than an explanation.
+                Text(
+                    text = stringResource(
+                        R.string.theme_page_colour_refused,
+                        ratio(it),
+                        ratio(ReadingContrast.AA),
+                    ),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
     }
 }
