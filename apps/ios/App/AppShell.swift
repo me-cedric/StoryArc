@@ -111,6 +111,15 @@ struct AppShell: View {
     /// The dock still decides *when* to open it; it no longer hosts it.
     @State private var isShowingPlayer = false
 
+    /// Counted up each time Home asks for the exhaustive shelves list, and handed to the
+    /// Library tab's own ``LibraryView/openShelvesRequest``.
+    ///
+    /// `navigation-shell`: "A shelf (and any library section) opened from the navigation
+    /// belongs to the Library destination" — so opening it also switches ``tab``, in
+    /// ``openLibraryShelves()``, rather than letting Home push it onto its own stack and
+    /// leave the Home tab marked selected with no way back to it but a back press.
+    @State private var libraryShelvesRequest = 0
+
     let model: LibraryModel
     let progress: ProgressStore?
     let onOpen: (Publication, URL) -> Void
@@ -145,14 +154,15 @@ struct AppShell: View {
                     model: model,
                     onOpen: onOpen,
                     onListen: onListen,
-                    onOpenSettings: onOpenSettings
+                    onOpenSettings: onOpenSettings,
+                    onOpenShelves: openLibraryShelves
                 )
             } label: {
                 label(Text("tab.home"), LibraryDestination.home.symbolName)
             }
 
             Tab(value: .destination(.library)) {
-                library(.shelf)
+                library(.shelf, openShelvesRequest: libraryShelvesRequest)
             } label: {
                 label(Text("tab.library"), LibraryDestination.library.symbolName)
             }
@@ -263,7 +273,7 @@ struct AppShell: View {
     /// The same view each time, and deliberately: the shelf, the on-device shelf and
     /// search are one screen over three sets, so a cover looks and behaves the same on all
     /// of them and opens the same reader.
-    private func library(_ surface: LibrarySurface) -> some View {
+    private func library(_ surface: LibrarySurface, openShelvesRequest: Int = 0) -> some View {
         LibraryView(
             model: model,
             surface: surface,
@@ -274,8 +284,16 @@ struct AppShell: View {
             // `sources`' automatic recovery must not interrupt reading, and the app layer is
             // the only place that knows whether a publication is open — the shelf cannot see
             // a reader presented over it.
-            isReading: isReading
+            isReading: isReading,
+            openShelvesRequest: openShelvesRequest
         )
+    }
+
+    /// What Home's shelves headings call, and what the rail's own secondary entry answers
+    /// to on Android — see ``libraryShelvesRequest``.
+    private func openLibraryShelves() {
+        tab = .destination(.library)
+        libraryShelvesRequest += 1
     }
 }
 
