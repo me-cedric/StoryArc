@@ -67,7 +67,20 @@ data class ShelfSettings(
     val offsetsSpreads: Boolean = false,
     val showsPageSeparator: Boolean = false,
     val fit: PageFit = PageFit.SCREEN,
-)
+) {
+    /**
+     * Whether a continuous scroll draws a separator above the page at [aboveIndex].
+     *
+     * `comic-reader`: pages are "stitched with no gap by default, with an option to show a
+     * separator". Two rules in one sentence, and this states both: nothing is drawn unless the
+     * reader asked for it, and nothing is drawn above the first page — a band over page one is
+     * a margin, not a separator.
+     *
+     * A function beside the value rather than a condition inside each reader's scroll
+     * container. Both platforms state the rule once, and a test can read it.
+     */
+    fun showsSeparator(aboveIndex: Int): Boolean = showsPageSeparator && aboveIndex > 0
+}
 
 /**
  * What the reader has chosen, remembered at the level they would expect.

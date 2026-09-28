@@ -46,6 +46,19 @@ data class ImageAdjustments(
      */
     val contrastFactor: Float get() = 1f + contrast
 
+    /**
+     * These adjustments, with the border trim off where this page must not be trimmed.
+     *
+     * `comic-reader`: "the user can disable it for a page that crops wrongly". Detection on a
+     * scan is a guess, and a guess needs a way to be overruled. Every other adjustment stays,
+     * because the reader excused one page from the trim and not from the brightness.
+     *
+     * A function beside the value rather than a condition inside each reader's page view.
+     * Both platforms state the rule once, and a test can read it.
+     */
+    fun trimmingBorders(isAllowed: Boolean): ImageAdjustments =
+        if (isAllowed) this else copy(cropsBorders = false)
+
     /** The same values, brought back into the ranges the renderers assume. */
     fun clamped(): ImageAdjustments = copy(
         brightness = brightness.coerceIn(-1f, 1f),

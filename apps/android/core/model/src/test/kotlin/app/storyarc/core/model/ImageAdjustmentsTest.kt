@@ -32,6 +32,38 @@ class ImageAdjustmentsTest {
         assertEquals(0f, ImageAdjustments(contrast = -1f).contrastFactor, 0f)
     }
 
+    /**
+     * `comic-reader`, *Cropping borders*: "the user can disable it for a page that crops
+     * wrongly".
+     */
+    @Test
+    fun aPageTheReaderExcusedIsNotTrimmed() {
+        val trimming = ImageAdjustments(cropsBorders = true)
+        assertTrue(trimming.trimmingBorders(true).cropsBorders)
+        assertFalse(trimming.trimmingBorders(false).cropsBorders)
+    }
+
+    @Test
+    fun excusingAPageFromTheTrimLeavesEveryOtherAdjustmentAlone() {
+        val adjustments = ImageAdjustments(
+            brightness = 0.25f,
+            contrast = -0.5f,
+            sharpness = 0.75f,
+            isInverted = true,
+            isGreyscale = true,
+            cropsBorders = true,
+        )
+        assertEquals(
+            adjustments.copy(cropsBorders = false),
+            adjustments.trimmingBorders(false),
+        )
+    }
+
+    @Test
+    fun allowingATrimOnASeriesThatAskedForNoneDoesNotStartOne() {
+        assertFalse(ImageAdjustments().trimmingBorders(true).cropsBorders)
+    }
+
     @Test
     fun aStoreWrittenBeforeAFieldExistedStillReads() {
         // The same forgiveness `ShelfSettings` needs, for the same reason: a build that adds
