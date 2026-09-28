@@ -207,4 +207,8 @@
         <item quantity="one">Au moins %1$d titre</item>
         <item quantity="other">Au moins %1$d titres</item>
     </plurals>
+    <plurals name="sources_detail_progress">
+        <item quantity="one">%1$d sur %2$d titre</item>
+        <item quantity="other">%1$d sur %2$d titres</item>
+    </plurals>
 </resources>

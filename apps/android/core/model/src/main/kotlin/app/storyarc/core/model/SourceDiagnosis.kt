@@ -40,6 +40,15 @@ data class SourceDiagnosis(
      */
     val isPartial: Boolean = false,
     /**
+     * How far a continued read has gone, and how much the server holds in all -- in
+     * whatever unit the source counts progress by (a Kavita server's is series, not the
+     * chapters [itemCount] counts). Both null together: either nothing continues reading
+     * this source kind past its first slice, or a continuation has not yet learned the
+     * total. The detail screen falls back to "at least [itemCount]" in either case.
+     */
+    val readCount: Int? = null,
+    val readTotal: Int? = null,
+    /**
      * How many of them are downloaded, and what they weigh.
      *
      * Counted from the finished downloads alone: a queued one has no bytes on disk to free,
@@ -64,6 +73,8 @@ data class SourceDiagnosis(
             downloads: List<Download>,
             isRemovable: Boolean = true,
             isPartial: Boolean = false,
+            readCount: Int? = null,
+            readTotal: Int? = null,
         ): SourceDiagnosis {
             val mine = downloads.filter { it.sourceId == source.id && it.state.isFinished }
             val actions = buildList {
@@ -89,6 +100,8 @@ data class SourceDiagnosis(
                 failure = SourceFailure.of(source.state),
                 itemCount = itemCount,
                 isPartial = isPartial,
+                readCount = readCount,
+                readTotal = readTotal,
                 downloadCount = mine.size,
                 downloadedBytes = mine.sumOf { it.downloadedBytes },
                 actions = actions,

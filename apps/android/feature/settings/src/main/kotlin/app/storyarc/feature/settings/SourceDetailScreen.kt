@@ -175,17 +175,14 @@ internal fun SourceDetailScreen(
             }
             Field(
                 label = stringResource(R.string.sources_detail_items),
-                // *At least*, where the read stopped at its own limit. `library-browsing`
-                // asks that "the number shown is never presented as the whole", and every
-                // source is read in a bounded first helping — so a reader whose server
-                // holds five thousand titles was shown "137 titles" with no way to tell
-                // that from a server that holds 137. `SourceSlice` is where the flag comes
-                // from.
-                value = pluralStringResource(
-                    if (diagnosis.isPartial) R.plurals.sources_detail_partial else R.plurals.sources_detail,
-                    diagnosis.itemCount,
-                    diagnosis.itemCount,
-                ),
+                // *At least*, where the read stopped at its own limit and no total is known
+                // yet. `library-browsing` asks that "the number shown is never presented as
+                // the whole", and every source is read in a bounded first helping — so a
+                // reader whose server holds five thousand titles was shown "137 titles" with
+                // no way to tell that from a server that holds 137. Once a continuation
+                // learns the server's own total, the field states the progress instead —
+                // `sources`' *More from a source than the library holds*.
+                value = itemsText(diagnosis),
             )
             Field(
                 label = stringResource(R.string.sources_detail_downloaded),
@@ -268,6 +265,28 @@ internal fun SourceDetailScreen(
             }
         }
     }
+}
+
+/**
+ * What the item row says: the exact count once a read finished, "at least" while it has not
+ * learned a total, or "N of M" while it has.
+ *
+ * `sources`' *More from a source than the library holds*: "the source detail states the
+ * progress ... while it reads, and 'holds more' disappears when the read completes" -- the
+ * same three states [diagnosis] already carries, read in the order that makes each one true
+ * only when the last one is not.
+ */
+@Composable
+private fun itemsText(diagnosis: SourceDiagnosis): String {
+    if (!diagnosis.isPartial) {
+        return pluralStringResource(R.plurals.sources_detail, diagnosis.itemCount, diagnosis.itemCount)
+    }
+    val read = diagnosis.readCount
+    val total = diagnosis.readTotal
+    if (read != null && total != null) {
+        return pluralStringResource(R.plurals.sources_detail_progress, total, read, total)
+    }
+    return pluralStringResource(R.plurals.sources_detail_partial, diagnosis.itemCount, diagnosis.itemCount)
 }
 
 /**

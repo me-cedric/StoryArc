@@ -90,6 +90,9 @@ fun SettingsScreen(
     itemCount: (Source) -> Int = { 0 },
     /** Whether that count is a slice of what the source holds. `SourceSlice` says why. */
     isPartial: (Source) -> Boolean = { false },
+    /** How far a continued read has gone, and the server's own total once it is known. */
+    readCount: (Source) -> Int? = { null },
+    readTotal: (Source) -> Int? = { null },
     onRemoveSource: (Source) -> Unit = {},
     onRenameSource: (Source, String) -> Unit = { _, _ -> },
     /** Moves a source one place, up or down. `sources`: the order persists and decides precedence. */
@@ -144,6 +147,8 @@ fun SettingsScreen(
             downloads = downloads.downloads,
             isRemovable = source.id != ImportedCopies.SOURCE_ID,
             isPartial = isPartial(source),
+            readCount = readCount(source),
+            readTotal = readTotal(source),
         )
     }
 

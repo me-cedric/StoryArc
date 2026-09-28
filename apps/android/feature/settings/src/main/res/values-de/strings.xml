@@ -207,4 +207,8 @@
         <item quantity="one">Mindestens %1$d Titel</item>
         <item quantity="other">Mindestens %1$d Titel</item>
     </plurals>
+    <plurals name="sources_detail_progress">
+        <item quantity="one">%1$d von %2$d Titel</item>
+        <item quantity="other">%1$d von %2$d Titeln</item>
+    </plurals>
 </resources>
