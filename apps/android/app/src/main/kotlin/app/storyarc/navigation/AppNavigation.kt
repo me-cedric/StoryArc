@@ -70,6 +70,30 @@ data class AppNavigation(
         copy(stacks = stacks + (destination to stack + screen))
 
     /**
+     * Open a library section from outside the Library destination.
+     *
+     * `navigation-shell`: "A shelf (and any library section) opened from the navigation
+     * belongs to the Library destination: the navigation marks Library … the shelf is
+     * pushed onto the Library stack". [push] alone answers neither half when the reader is
+     * on another destination — it stacks the screen onto *that* destination, which is what
+     * left Home (or Search) marked selected with the shelf a back press behind it. This
+     * switches to Library first, so the section always lands on Library's own stack and
+     * the reader who chooses a different destination next leaves it there rather than
+     * needing to back out of it.
+     */
+    fun openLibrarySection(screen: Screen): AppNavigation {
+        val libraryStack = stacks[AppDestination.LIBRARY].orEmpty()
+        return if (destination == AppDestination.LIBRARY && libraryStack.lastOrNull() == screen) {
+            this
+        } else {
+            copy(
+                destination = AppDestination.LIBRARY,
+                stacks = stacks + (AppDestination.LIBRARY to libraryStack + screen),
+            )
+        }
+    }
+
+    /**
      * A cover was chosen: descend to that publication's page.
      *
      * `publication-detail` requires the page to be reachable "from every surface that shows

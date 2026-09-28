@@ -221,8 +221,10 @@ internal fun HomeDestination(host: AppHost) {
         onOpenShelf = { summary -> openShelf(host, summary) },
         // Not a filtered library, unlike every other heading here: the exhaustive list of
         // collections is a screen of its own, and it is the only place a shelf is made,
-        // renamed or deleted.
-        onShowAllShelves = { host.navigate { push(Screen.Shelves) } },
+        // renamed or deleted. `navigation-shell` puts that screen on the Library
+        // destination's own stack rather than Home's, so this switches destinations
+        // instead of pushing onto whichever one Home already is.
+        onShowAllShelves = { host.navigate { openLibrarySection(Screen.Shelves) } },
     )
 }
 
