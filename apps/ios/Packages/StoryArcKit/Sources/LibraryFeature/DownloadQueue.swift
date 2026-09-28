@@ -181,16 +181,33 @@ public final class DownloadQueue {
         overridingMeteredConnection: Bool = false
     ) async -> URL? {
         if let file = downloaded(entry) { return file }
-        enqueue(
-            entry,
-            using: acquisition,
-            overridingMeteredConnection: overridingMeteredConnection
-        )
+        switch library[entry.id]?.state {
+        case .failed, .paused(.byReader):
+            // `enqueue` is a no-op once a publication is already known, and neither state
+            // resolves itself: a failed download has no attempts left, and a download the
+            // reader paused stays paused until asked. A reader pressing Read on either is
+            // that ask — without this, the continuation below waits on a transfer nothing
+            // is ever going to start.
+            if overridingMeteredConnection { overridden.insert(entry.id) }
+            titles[entry.id] = entry
+            library = library.marking(entry.id, as: .queued)
+            store?.save(library)
+        default:
+            enqueue(
+                entry,
+                using: acquisition,
+                overridingMeteredConnection: overridingMeteredConnection
+            )
+        }
         // `offline-downloads`' *Reading while downloading*. The reader is waiting on this
         // one, so it goes to the head of the queue rather than behind whatever they lined
         // up earlier and are not reading — on a metered link, where the bound is one, that
         // was the difference between a five-megabyte comic and a four-hundred-megabyte wait.
         promote(entry.id)
+        // `promote` only pumps when reordering actually moved something, and a download
+        // that was failed or reader-paused a moment ago is already at the head of a short
+        // queue — nothing to reorder, and `enqueue`'s own pump did not run for it either.
+        pump()
         return await withCheckedContinuation { continuation in
             waiting[entry.id, default: []].append(continuation)
         }

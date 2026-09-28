@@ -209,12 +209,26 @@ class DownloadQueue(
         downloaded(entry)?.let { return it }
         val waiter = CompletableDeferred<File?>()
         waiting.getOrPut(entry.id) { mutableListOf() }.add(waiter)
-        enqueue(entry, acquisition, overridingMeteredConnection)
+        val existing = _library.value[entry.id]?.state
+        if (existing is Download.State.Failed || existing == Download.State.Paused(Download.Pause.BY_READER)) {
+            // `enqueue` is a no-op once a publication is already known, and neither state
+            // resolves itself: a failed download has no attempts left, and a download the
+            // reader paused stays paused until asked. A reader pressing Read on either is
+            // that ask -- without this, [waiter] awaits a transfer nothing is ever going to
+            // start.
+            if (overridingMeteredConnection) overridden += entry.id
+            entries[entry.id] = entry
+            _library.value = _library.value.marking(entry.id, Download.State.Queued)
+            store?.save(_library.value)
+        } else {
+            enqueue(entry, acquisition, overridingMeteredConnection)
+        }
         // `offline-downloads`' *Reading while downloading*. The reader is waiting on this
         // one, so it goes to the head of the queue rather than behind whatever they lined up
         // earlier and are not reading -- on a metered link, where the bound is one, that was
         // the difference between a five-megabyte comic and a four-hundred-megabyte wait.
         promote(entry.id)
+        pump()
         return waiter.await()
     }
 
