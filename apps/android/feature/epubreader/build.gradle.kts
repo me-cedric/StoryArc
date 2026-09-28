@@ -137,12 +137,16 @@ dependencies {
     // host's first act on a started voice is to start a foreground service. That needs the
     // Android runtime; see `testOptions` above.
     testImplementation(libs.robolectric)
-    // A composition on the JVM, so the unit gate can ask which rows the reader's menu drew.
+    // A composition on the JVM, so the unit gate can ask what the reader drew.
     // `ReadAloudRowTest` asks whether the read-aloud row is there at all, which is an
-    // absence, and an absence is only observable in a tree. `:feature:library` composes in
-    // its unit tests for the same reason.
+    // absence, and an absence is only observable in a tree. `ThemePresetGridTest` asks where
+    // the six preset cards land, which only a laid-out tree answers. `:core:designsystem` and
+    // `:app` carry the same three declarations.
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
+    // The `ComponentActivity` the compose rule launches into. Without it Robolectric has no
+    // activity to resolve and every test using the rule fails at the rule.
+    testImplementation(libs.androidx.compose.ui.test.manifest)
     // The theme sheet's accessibility semantics are only observable through a
     // composition. `uiautomator dump` reports a Compose slider as an unnamed
     // SeekBar whatever its semantics say, so it cannot answer the question this
