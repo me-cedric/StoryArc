@@ -190,17 +190,8 @@ private fun MatteSwatch(
                 role = Role.RadioButton,
                 onClick = {
                     val existing = memory.default(ThemeScope.FIXED_LAYOUT)
-                    val theme = existing.theme.let { current ->
-                        if (hex == null) {
-                            current.discardingCustomColours()
-                        } else {
-                            // Named by its hex, not by the localised announcement: what
-                            // is stored must not depend on the language it was set in.
-                            current.adopting(ReaderPalette.derived(hex, hex))
-                        }
-                    }
                     val updated = store.themes().settingDefault(
-                        existing.copy(theme = theme),
+                        existing.copy(theme = matting(hex, existing.theme)),
                         ThemeScope.FIXED_LAYOUT,
                     )
                     store.save(updated)
@@ -254,6 +245,20 @@ private fun matteSwatchColour(hex: String?): Color {
         green = ((value shr 8) and 0xFF) / 255f,
         blue = (value and 0xFF) / 255f,
     )
+}
+
+/**
+ * The comic default's theme with the matte [hex] in force, or with no matte.
+ *
+ * The comic reader reads only the matte. A comic default stored as Original, from before this
+ * scope lost its preset picker, refuses every palette, so the matte goes over the built-in
+ * preset instead. Named by its hex, not by the localised announcement: what is stored must not
+ * depend on the language it was set in.
+ */
+internal fun matting(hex: String?, theme: ReadingTheme): ReadingTheme {
+    if (hex == null) return theme.discardingCustomColours()
+    val base = if (theme.preset.keepsPublisherStyles) ReadingTheme() else theme
+    return base.adopting(ReaderPalette.derived(hex, hex))
 }
 
 /**
