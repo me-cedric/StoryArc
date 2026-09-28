@@ -403,7 +403,7 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       iOS, and `an axis put back to the preset's own value stops deviating` and `resetting
       one axis leaves the other moved axis deviating` failed by name on Android.
 
-      **Two pieces are open, which is why this is `[~]` rather than `[x]`.**
+      **One piece is open, which is why this is `[~]` rather than `[x]`.**
 
       1. **The reading position is not proved on either platform.** The iOS case that
          claimed it compared `navigator.currentLocation` before the reset and after it.
@@ -414,11 +414,22 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
          of the capture, the submit and the return inside `applyTheme`, and Android carries
          the same kind of tripwire over `EpubReaderActivity`. A proof needs a navigator with
          a laid-out page, which no unit-test host in this repository provides.
-      2. **The Android long press does not reach the slider the spec names.** It sits on
-         the axis block above the track. `detectTapGestures` waits on the Main pass, and the
-         `Slider` handles the down inside its own node first. A detector reading the
-         `Initial` pass would see the down before the slider does and would reach the track;
-         it needs its own slop and timeout test so that it leaves the drag alone.
+
+      **Item 2 closed on 2026-09-29.** The Android long press now reaches the slider the
+      spec names, alongside the axis block it already reached. `AxisResetGesture.kt`'s
+      `detectAxisResetGesture` reads the `Initial` pass — before `Slider`'s own drag reads
+      the `Main` pass — and never calls `.consume()`, so the drag keeps working underneath
+      it; a slop check cancels the reset the moment the finger travels, and a timeout that
+      elapses while it has not is the long press. The same detector also answers the other
+      half of "long-presses or double-taps a slider": a second down inside the double-tap
+      window resets too. iOS gained the matching `TapGesture(count: 2)`, next to its
+      existing `LongPressGesture`, since the spec asked for both gestures on both
+      platforms and only the long press had one. `ThemeAxisResetTest` (Android, two new
+      cases) and `ThemeAxisResetTests` (iOS, one new case) were watched failing by name
+      first: with the wiring removed, `the slider itself also carries the long press and
+      the double tap` and `theGestureIsAlsoADoubleTap` failed; with the `Initial` pass
+      read replaced by `Main`, `the slider's detector reads the Initial pass and never
+      consumes` failed on the same line as its `.consume()` half, proven separately.
 - [x] **3.6** Live preview rendered by the **real** renderer, showing a chapter
       title and body text, reflowing continuously during a drag. **Done, and what
       "the real renderer" turned out to mean is worth stating exactly, because it is

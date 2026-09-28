@@ -182,13 +182,43 @@ class ThemeAxisResetTest {
     }
 
     @Test
-    fun `a long press on the axis performs the reset`() {
+    fun `a long press on the axis block performs the reset`() {
         val screen = code("ThemeAxesScreen.kt")
 
         assertTrue(
             "No long press is attached to an axis. `reading-themes` asks for a long press" +
                 " or a double tap.",
             screen.contains("detectTapGestures(") && screen.contains("onLongPress ="),
+        )
+    }
+
+    @Test
+    fun `the slider itself also carries the long press and the double tap`() {
+        val screen = code("ThemeAxesScreen.kt")
+
+        assertTrue(
+            "The slider's own modifier no longer wires `detectAxisResetGesture`, so the" +
+                " gesture the spec names — a press on the slider — has no detector on the" +
+                " one element it names. `reader-theming-and-page-transitions` 3.5, item 2.",
+            screen.contains("detectAxisResetGesture { resetAxis(preset, axis, onSet) }"),
+        )
+    }
+
+    @Test
+    fun `the slider's detector reads the Initial pass and never consumes`() {
+        val gesture = code("AxisResetGesture.kt")
+
+        assertTrue(
+            "The detector no longer reads `PointerEventPass.Initial`, so it runs on the" +
+                " same `Main` pass `Slider` already consumes the down on — which is the" +
+                " defect `detectAxisResetGesture` exists to fix.",
+            gesture.contains("PointerEventPass.Initial"),
+        )
+        assertFalse(
+            "The detector calls `.consume()`. `Slider`'s own drag reads the same events on" +
+                " its `Main` pass, and a consumed change there stops the drag working" +
+                " underneath this gesture.",
+            gesture.contains(".consume()"),
         )
     }
 
