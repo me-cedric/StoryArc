@@ -43,14 +43,16 @@ extension ReaderView {
                 }
 
                 Section {
-                    // Marks and search both live in the PDF text sheet, which opens on the
-                    // tab the row names — that is what makes each of them one action rather
-                    // than two. Absent for a comic and for a scan: `ebook-reader` hides a
-                    // text-dependent control rather than disabling it, and there is no text
-                    // layer to search.
+                    // D8: bookmarks apply to every fixed-page publication, so this row is
+                    // never hidden — only what it opens changes, in `pdfTextControls`'
+                    // sheet. Search stays text-dependent: `ebook-reader` hides a
+                    // text-dependent control rather than disabling it, and there is no
+                    // text layer to search in a comic or a scan.
+                    menuRow(.bookmarks) { openText(on: .marks) }
                     if pdfText != nil {
-                        menuRow(.bookmarks) { openText(on: .marks) }
                         menuRow(.search) { openText(on: .search) }
+                    } else {
+                        bookmarkThisPageRow
                     }
 
                     menuRow(.themes) {
@@ -142,6 +144,27 @@ extension ReaderView {
                 Text(LocalizedStringKey(entry.titleKey), bundle: .module)
             } icon: {
                 Image(systemName: entry.systemImage)
+            }
+        }
+    }
+
+    /// D8: "bookmark the current page", for a comic or a scan — neither has words to
+    /// select, which is how a PDF with text marks one instead. Not `menuRow`: it is not
+    /// one of ``ReaderMenuEntry``'s five, and does not belong in the reflowable reader's
+    /// menu, which marks a position through `toggleBookmark` already.
+    private var bookmarkThisPageRow: some View {
+        Button {
+            ComicPageBookmark.add(
+                model.currentIndex,
+                of: model.pages.count,
+                to: annotations,
+                for: model.publication.id
+            )
+        } label: {
+            Label {
+                Text("reader.bookmark.add", bundle: .module)
+            } icon: {
+                Image(systemName: "bookmark")
             }
         }
     }
