@@ -66,6 +66,21 @@ extension ImageAdjustments {
 
     /// The offset a renderer wants for brightness, in the same units as the pixel values.
     public var brightnessOffset: Double { brightness }
+
+    /// These adjustments, with the border trim off where this page must not be trimmed.
+    ///
+    /// `comic-reader`: "the user can disable it for a page that crops wrongly". Detection on
+    /// a scan is a guess, and a guess needs a way to be overruled. Every other adjustment
+    /// stays, because the reader excused one page from the trim and not from the brightness.
+    ///
+    /// A function beside the value rather than a condition inside each reader's page view.
+    /// Both platforms state the rule once, and a test can read it.
+    public func trimmingBorders(_ isAllowed: Bool) -> ImageAdjustments {
+        guard !isAllowed else { return self }
+        var excused = self
+        excused.cropsBorders = false
+        return excused
+    }
 }
 
 extension Double {

@@ -121,6 +121,19 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
 }
 
 extension ShelfSettings {
+    /// Whether a continuous scroll draws a separator above the page at `displayIndex`.
+    ///
+    /// `comic-reader`: pages are "stitched with no gap by default, with an option to show a
+    /// separator". Two rules in one sentence, and this states both: nothing is drawn unless
+    /// the reader asked for it, and nothing is drawn above the first page — a band over
+    /// page one is a margin, not a separator.
+    ///
+    /// A function beside the value rather than a condition inside each reader's scroll
+    /// container. Both platforms state the rule once, and a test can read it.
+    public func showsSeparator(above displayIndex: Int) -> Bool {
+        showsPageSeparator && displayIndex > 0
+    }
+
     /// The same settings with a different page transition.
     public func settingTransition(_ transition: PageTransition) -> ShelfSettings {
         var copy = self

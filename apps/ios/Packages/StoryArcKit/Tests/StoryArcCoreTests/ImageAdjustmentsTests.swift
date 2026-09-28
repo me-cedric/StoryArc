@@ -30,6 +30,41 @@ struct ImageAdjustmentsTests {
         #expect(ImageAdjustments(contrast: -1).contrastFactor == 0)
     }
 
+    /// `comic-reader`, *Cropping borders*: "the user can disable it for a page that crops
+    /// wrongly".
+    @Test("A page the reader excused is not trimmed, and the rest of the series still is")
+    func excusedPageKeepsItsMargin() {
+        let trimming = ImageAdjustments(cropsBorders: true)
+        #expect(trimming.trimmingBorders(true).cropsBorders)
+        #expect(trimming.trimmingBorders(false).cropsBorders == false)
+    }
+
+    @Test("Excusing a page from the trim leaves every other adjustment alone")
+    func excusingTouchesNothingElse() {
+        let adjustments = ImageAdjustments(
+            brightness: 0.25,
+            contrast: -0.5,
+            sharpness: 0.75,
+            isInverted: true,
+            isGreyscale: true,
+            cropsBorders: true
+        )
+        let excused = adjustments.trimmingBorders(false)
+        #expect(excused == ImageAdjustments(
+            brightness: 0.25,
+            contrast: -0.5,
+            sharpness: 0.75,
+            isInverted: true,
+            isGreyscale: true,
+            cropsBorders: false
+        ))
+    }
+
+    @Test("Allowing a trim on a series that asked for none does not start one")
+    func allowingDoesNotEnable() {
+        #expect(ImageAdjustments().trimmingBorders(true).cropsBorders == false)
+    }
+
     @Test("A stored adjustment survives a round trip")
     func codable() throws {
         let original = ImageAdjustments(
