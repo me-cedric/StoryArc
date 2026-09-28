@@ -62,6 +62,7 @@ public struct ReaderView: View {
     let previousInSeries: Publication?
     let nextInSeries: Publication?
     let onOpen: (Publication) -> Void
+    let downloadCleanup: DownloadCleanupOffer?
 
     /// Supplied by the app layer for the same reason as the above: the reader does not know
     /// what a network share is, and `network-share`'s two thresholds are the only part of
@@ -86,6 +87,7 @@ public struct ReaderView: View {
         previousInSeries: Publication? = nil,
         nextInSeries: Publication? = nil,
         onOpen: @escaping (Publication) -> Void = { _ in },
+        downloadCleanup: DownloadCleanupOffer? = nil,
         blockedSince: @escaping () -> Date? = { nil },
         onDismissTrouble: @escaping () -> Void = {},
         onDownloadForOffline: (() -> Void)? = nil
@@ -106,6 +108,7 @@ public struct ReaderView: View {
         self.previousInSeries = previousInSeries
         self.nextInSeries = nextInSeries
         self.onOpen = onOpen
+        self.downloadCleanup = downloadCleanup
         let shelf = publication.series ?? publication.displayTitle
         self.shelf = shelf
         _adjustments = State(
@@ -295,7 +298,8 @@ public struct ReaderView: View {
                         next: nextInSeries,
                         onOpenNext: onOpen,
                         onBack: { hasReachedEnd = false; snapBackFromEndSlot() },
-                        onClose: { dismiss() }
+                        onClose: { dismiss() },
+                        downloadCleanup: downloadCleanup
                     )
                 }
             }

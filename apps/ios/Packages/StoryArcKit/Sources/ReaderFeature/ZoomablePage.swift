@@ -226,7 +226,12 @@ struct ScrollingPage: UIViewRepresentable {
             mode: fit,
             imageSize: CGSize(width: image.width, height: image.height),
             viewport: viewport,
-            carried: carriedZoomScale.map(CGFloat.init),
+            // Not `CGFloat.init` as a bare function reference: `GameController`'s own
+            // cross-import overlay with SwiftUI (loaded because `GameControllerTurning.swift`
+            // imports both in this module) adds another candidate initializer, and the two
+            // together make the unapplied reference ambiguous. A closure picks the concrete
+            // `Double` one explicitly.
+            carried: carriedZoomScale.map { CGFloat($0) },
             isRightToLeft: isRightToLeft
         )
         context.coordinator.applyFit(to: scrollView)

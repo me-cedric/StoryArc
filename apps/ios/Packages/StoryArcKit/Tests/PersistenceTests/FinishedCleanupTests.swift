@@ -54,6 +54,17 @@ struct FinishedCleanupTests {
         #expect(store.finishedDownload(in: libraryWith(store, id: "one")) { _ in false } == nil)
     }
 
+    @Test("a download the reader kept is skipped, not swept")
+    func keptIsSkipped() {
+        let store = store("kept")
+        let found = store.finishedDownload(
+            in: libraryWith(store, id: "one"),
+            isKept: { $0 == "one" },
+            isFinished: { $0.hasSuffix("one.cbz") }
+        )
+        #expect(found == nil)
+    }
+
     @Test("the bytes wait rather than going, so the removal can be undone")
     func undoable() throws {
         let store = store("undo")

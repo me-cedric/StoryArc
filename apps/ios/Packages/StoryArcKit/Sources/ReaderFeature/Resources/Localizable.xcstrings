@@ -526,6 +526,35 @@
         }
       }
     },
+    "reader.end.downloadWillBeRemoved": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Download wird beim Schließen des Lesers entfernt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This download will be removed when you close the reader."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta descarga se eliminará al cerrar el lector."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce téléchargement sera supprimé à la fermeture du lecteur."
+          }
+        }
+      }
+    },
     "reader.end.finished": {
       "extractionState": "manual",
       "localizations": {
@@ -551,6 +580,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Terminé"
+          }
+        }
+      }
+    },
+    "reader.end.keepDownload": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Behalten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conservar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conserver"
           }
         }
       }
@@ -609,6 +667,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Suivant : %@"
+          }
+        }
+      }
+    },
+    "reader.end.removeDownload": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download entfernen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove download"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar descarga"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer le téléchargement"
           }
         }
       }
