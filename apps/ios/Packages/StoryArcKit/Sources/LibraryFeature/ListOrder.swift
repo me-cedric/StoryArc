@@ -49,9 +49,38 @@ struct ListOrder: Equatable, Hashable, Sendable {
     ///
     /// The control naming the current order is what labels the curated one as curated —
     /// `library-browsing` asks for exactly that and for nothing more elaborate.
-    var titleKey: LocalizedStringKey {
-        sort?.titleKey ?? "shelves.list.order"
+    var titleKey: LocalizedStringKey { LocalizedStringKey(naming.value) }
+
+    /// The two halves of what this control says about itself.
+    ///
+    /// ``OrderingNaming/name`` is the label, ``OrderingNaming/value`` the accessibility value,
+    /// and a reader hears them in that order.
+    var naming: OrderingNaming {
+        OrderingNaming(name: OrderingNaming.orderingControl, value: sort?.titleKeyName ?? "shelves.list.order")
     }
+}
+
+/// What a control carrying an ordering says about itself: the kind of choice, then the order.
+///
+/// **Two strings and never one.** `library-browsing`, *An ordering says that it is an
+/// ordering*: the current sort "reads as an ordering rather than as a value — a reader seeing
+/// the field name alone cannot tell a sort from a filter". So a field name is this control's
+/// *value*, and its *name* says which kind of choice it is. A control whose whole name was
+/// *Title* would be a filter to anyone who had not already learnt the row.
+///
+/// A value beside the views rather than two literals inside them, so both controls provably
+/// carry the same name and a test can reach it. Android frames the same rule into one string,
+/// `ListOrder.chipLabel()`, because a chip has one label and no accessibility value to put the
+/// field in.
+struct OrderingNaming: Equatable, Sendable {
+    /// The key naming the kind of choice. Never a field name.
+    let name: String
+
+    /// The key naming the order the control is set to.
+    let value: String
+
+    /// The name every ordering control carries — the shelf's and the reading list's alike.
+    static let orderingControl = "library.sort"
 }
 
 /// The order itself, applied.
@@ -133,7 +162,7 @@ struct ListOrderMenu: View {
                     Text(sort.titleKey, bundle: .module).tag(LibrarySort?.some(sort))
                 }
             } label: {
-                Text("library.sort", bundle: .module)
+                Text(LocalizedStringKey(OrderingNaming.orderingControl), bundle: .module)
             }
 
             if !order.isCurated {
@@ -148,14 +177,14 @@ struct ListOrderMenu: View {
             }
         } label: {
             Label {
-                Text("library.sort", bundle: .module)
+                Text(LocalizedStringKey(order.naming.name), bundle: .module)
             } icon: {
                 Image(systemName: "arrow.up.arrow.down")
             }
         }
         // Which order it is in, spoken. The glyph says a control is here and cannot say what
         // it is set to, and DESIGN.md forbids a state carried by appearance alone.
-        .accessibilityValue(Text(order.titleKey, bundle: .module))
+        .accessibilityValue(Text(LocalizedStringKey(order.naming.value), bundle: .module))
     }
 
     private var sortBinding: Binding<LibrarySort?> {

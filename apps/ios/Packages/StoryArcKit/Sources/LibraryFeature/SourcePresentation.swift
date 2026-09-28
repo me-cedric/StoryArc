@@ -66,7 +66,12 @@ extension SourceConnectionState {
 /// has no bundle and no business holding UI copy. Naming them is presentation,
 /// so it lives beside the other presentation.
 extension LibrarySort {
-    var titleKey: LocalizedStringKey {
+    /// The catalogue key this field is named by.
+    ///
+    /// The `String` rather than the ``LocalizedStringKey``, and the one place either is
+    /// written. A `LocalizedStringKey` keeps its key and exposes nothing, so a rule about the
+    /// *words* a control gives a reader cannot reach one -- see ``OrderingNaming``.
+    var titleKeyName: String {
         switch self {
         case .title: "library.sort.title"
         case .series: "library.sort.series"
@@ -77,6 +82,8 @@ extension LibrarySort {
         case .fileSize: "library.sort.fileSize"
         }
     }
+
+    var titleKey: LocalizedStringKey { LocalizedStringKey(titleKeyName) }
 }
 
 extension ReadState {
