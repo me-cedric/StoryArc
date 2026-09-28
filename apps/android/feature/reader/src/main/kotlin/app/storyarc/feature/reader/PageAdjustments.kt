@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import app.storyarc.core.model.BorderCrop
 import app.storyarc.core.model.ImageAdjustments
+import kotlin.math.roundToInt
 
 /**
  * The colour part of an adjustment, as the one matrix a renderer takes.
@@ -109,13 +110,14 @@ private fun Bitmap.thumbnail(): Bitmap? {
 }
 
 /**
- * Whether this device can sharpen at all.
+ * Whether this device can draw sharpening live, while the page is composed.
  *
- * Sharpening is a convolution, and the only way to run one while drawing is a runtime
- * shader, which arrives in API 33. StoryArc supports 31. The control is hidden rather than
- * shown doing nothing on the two releases that cannot.
+ * A runtime shader is the only way to run the convolution *while drawing*, and it
+ * arrives in API 33. Below that, `Bitmap.sharpened` runs the same convolution on the
+ * decoded page instead (D9) — slower, and once per page rather than once per frame,
+ * which is why it is not the answer on every version.
  */
-internal val canSharpen: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+internal val canSharpenWithShader: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
 /**
  * A 3x3 sharpening convolution, or null when nothing was asked for.
@@ -124,7 +126,7 @@ internal val canSharpen: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_
  * the colour channels separately fringes every line of a colour scan.
  */
 internal fun ImageAdjustments.sharpeningEffect(): androidx.compose.ui.graphics.RenderEffect? {
-    if (sharpness <= 0f || !canSharpen) return null
+    if (sharpness <= 0f || !canSharpenWithShader) return null
     val shader = RuntimeShader(SHARPEN_SHADER)
     // 0..1 covers "slightly crisper" to "as far as this is worth taking". Past that the
     // filter finds noise rather than lines.
@@ -157,3 +159,57 @@ private val SHARPEN_SHADER = """
         return half4(clamp(mixed.rgb, 0.0, 1.0), here.a);
     }
 """.trimIndent()
+
+/**
+ * The same unsharp mask [sharpeningEffect] draws with a shader, computed on the CPU
+ * instead — API 31 and 32 have no runtime shader to draw it with (D9).
+ *
+ * Luminance-only, the same reason the shader is: sharpening each colour channel on its
+ * own fringes every line of a colour scan. Each pixel's own channels are scaled by how
+ * much its luminance moved, rather than sharpened separately.
+ *
+ * ponytail: a plain per-pixel loop, not a native or `RenderScript` pass — this is the
+ * one CPU path in the app that touches every pixel of a full-resolution page, so it
+ * belongs off the main thread (the caller's job) rather than optimised further until a
+ * profile says so.
+ */
+internal fun Bitmap.sharpened(amount: Float): Bitmap {
+    if (amount <= 0f) return this
+    val w = width
+    val h = height
+    val pixels = IntArray(w * h)
+    getPixels(pixels, 0, w, 0, 0, w, h)
+    val out = IntArray(w * h)
+    for (y in 0 until h) {
+        for (x in 0 until w) {
+            val here = pixels[y * w + x]
+            val left = pixels[y * w + maxOf(x - 1, 0)]
+            val right = pixels[y * w + minOf(x + 1, w - 1)]
+            val up = pixels[maxOf(y - 1, 0) * w + x]
+            val down = pixels[minOf(y + 1, h - 1) * w + x]
+            out[y * w + x] = sharpenedPixel(here, neighbourSum = luma(left) + luma(right) + luma(up) + luma(down), amount)
+        }
+    }
+    return Bitmap.createBitmap(out, w, h, Bitmap.Config.ARGB_8888)
+}
+
+private fun luma(pixel: Int): Float {
+    val r = (pixel shr 16) and 0xFF
+    val g = (pixel shr 8) and 0xFF
+    val b = pixel and 0xFF
+    return 0.299f * r + 0.587f * g + 0.114f * b
+}
+
+/** One pixel of [Bitmap.sharpened]'s convolution, isolated so `PageAdjustmentsTest` can
+ * drive it with plain numbers instead of a whole bitmap. */
+internal fun sharpenedPixel(pixel: Int, neighbourSum: Float, amount: Float): Int {
+    val here = luma(pixel)
+    val sharp = here * 5f - neighbourSum
+    val mixed = here + (sharp - here) * amount
+    val ratio = if (here > 0f) (mixed / here).coerceIn(0f, 3f) else 1f
+    val a = (pixel shr 24) and 0xFF
+    val r = (((pixel shr 16) and 0xFF) * ratio).roundToInt().coerceIn(0, 255)
+    val g = (((pixel shr 8) and 0xFF) * ratio).roundToInt().coerceIn(0, 255)
+    val b = ((pixel and 0xFF) * ratio).roundToInt().coerceIn(0, 255)
+    return (a shl 24) or (r shl 16) or (g shl 8) or b
+}
