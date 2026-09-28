@@ -134,12 +134,27 @@ extension ThemeAxesSheet {
 
     /// `reading-themes`: reader-local, and it does not permanently move the
     /// device's own. The reader's value is restored on leaving by `EpubReaderView`.
+    /// The value the brightness control shows: the reader's own choice, or the
+    /// device's current level while the reader has not moved the slider yet.
+    /// Both the stated value and the thumb read from this, so they cannot disagree.
+    ///
+    /// `device` defaults to the real screen and is only ever overridden by a test —
+    /// `BrightnessValueTests` proves the fallback without depending on the
+    /// simulator's own brightness happening to differ from the old hardcoded 0.5.
+    static func brightnessInForce(
+        _ model: EpubReaderModel,
+        device: Double = Double(UIScreen.main.brightness)
+    ) -> Double {
+        model.brightness ?? device
+    }
+
     var brightness: some View {
-        VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
+        let inForce = Self.brightnessInForce(model)
+        return VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
             axisHeader(
                 Text("theme.brightness", bundle: .module),
                 value: Text(
-                    "theme.brightness.percent \(Int(((model.brightness ?? 0.5) * 100).rounded()))",
+                    "theme.brightness.percent \(Int((inForce * 100).rounded()))",
                     bundle: .module
                 ),
                 isSectionHeading: true
@@ -147,7 +162,7 @@ extension ThemeAxesSheet {
 
             Slider(
                 value: Binding(
-                    get: { model.brightness ?? Double(UIScreen.main.brightness) },
+                    get: { Self.brightnessInForce(model) },
                     set: { model.brightness = $0 }
                 ),
                 in: 0.1...1
@@ -161,7 +176,7 @@ extension ThemeAxesSheet {
             .tint(theme.accent)
             .accessibilityValue(
                 Text(
-                    "theme.brightness.percent \(Int(((model.brightness ?? 0.5) * 100).rounded()))",
+                    "theme.brightness.percent \(Int((inForce * 100).rounded()))",
                     bundle: .module
                 )
             )

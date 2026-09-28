@@ -24,6 +24,7 @@ public struct EpubReaderView: View {
     // are extensions in their own files, and a `private` member cannot be reached from one.
     @Environment(\.theme) var theme
     @Environment(\.dismiss) var dismiss
+    @Environment(\.scenePhase) private var scenePhase
 
     /// The device's own light or dark, read here because only a view can read it.
     ///
@@ -126,7 +127,17 @@ public struct EpubReaderView: View {
                     // is a preview or a test, and the zones are on for them.
                     tapTurnsPages: settings?.turnPagesByTappingTheEdges ?? true
                 ) {
-                    withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible.toggle() }
+                    // `native-experience`, *Opening the sheet*: a tap outside a popover
+                    // dismisses it. `presentationBackgroundInteraction` lets a tap on the
+                    // page reach this closure instead of the system dismissing the sheet
+                    // for us, so the theme sheet has to be the one thing a page tap closes
+                    // while it is up — toggling the chrome behind an open sheet would leave
+                    // the sheet open and unreachable from the tap that was meant to close it.
+                    if isShowingTheme {
+                        isShowingTheme = false
+                    } else {
+                        withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible.toggle() }
+                    }
                 }
                 .ignoresSafeArea()
             } else {
@@ -308,7 +319,6 @@ public struct EpubReaderView: View {
         // one page is reading, not idling.
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = true
-            deviceBrightness = UIScreen.main.brightness
             // The link's first answer, resolved here rather than at construction, where no
             // view can read the device's colour scheme. It does nothing where the reader
             // never linked the two, or where the appearance already names the theme in force.
@@ -322,16 +332,10 @@ public struct EpubReaderView: View {
             // go of the session rather than ending it. Ending it here is what made leaving
             // the book the same act as leaving the audio.
             model.detachReadAloud()
-            // `reading-themes`: the system brightness "is not permanently
-            // modified". iOS's brightness is global, so leaving has to put it back
-            // — Android's is a window attribute and reverts by itself.
-            if let deviceBrightness { UIScreen.main.brightness = deviceBrightness }
         }
-        // Applied while reading rather than when the slider is released, so the
-        // reader sees what they are choosing.
-        .onChange(of: model.brightness) { _, new in
-            if let new { UIScreen.main.brightness = CGFloat(new) }
-        }
+        // Reader-local screen brightness, across arrival, departure, a slider move and a
+        // return from the background. Its own file: `EpubReaderBrightness.swift`.
+        .epubBrightness(model: model, scenePhase: scenePhase, captured: $deviceBrightness)
         // `ebook-reader`: the reading theme follows the appearance "then and there rather
         // than at the next open", and only for the reader who linked the two. This fires when
         // the device switches while the book is open. See ``EpubReaderModel/follow(_:)``.
