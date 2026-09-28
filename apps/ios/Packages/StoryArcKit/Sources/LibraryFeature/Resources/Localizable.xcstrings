@@ -3884,6 +3884,93 @@
         }
       }
     },
+    "kavita.open.failed %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ konnte nicht geöffnet werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t open “%@”."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo abrir «%@»."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’ouvrir « %@ »."
+          }
+        }
+      }
+    },
+    "kavita.open.notSent %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hat es nicht gesendet. Versuchen Sie es erneut, wenn der Server antwortet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ did not send it. Try again when the server answers."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ no lo envió. Inténtelo de nuevo cuando el servidor responda."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ne l’a pas envoyé. Réessayez quand le serveur répond."
+          }
+        }
+      }
+    },
+    "kavita.open.unreadable %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hat eine Datei gesendet, die StoryArc nicht lesen kann."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sent a file StoryArc cannot read."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ envió un archivo que StoryArc no puede leer."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ a envoyé un fichier que StoryArc ne sait pas lire."
+          }
+        }
+      }
+    },
     "kavita.search.cached": {
       "extractionState": "manual",
       "localizations": {
@@ -11676,35 +11763,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lu à deux endroits"
-          }
-        }
-      }
-    },
-    "kavita.open.failed %@": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "„%@“ konnte nicht geöffnet werden."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn’t open “%@”."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No se pudo abrir «%@»."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impossible d’ouvrir « %@ »."
           }
         }
       }

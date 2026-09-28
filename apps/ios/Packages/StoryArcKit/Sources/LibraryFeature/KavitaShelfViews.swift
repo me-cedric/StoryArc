@@ -81,12 +81,9 @@ struct KavitaListView: View {
 
     @State private var items: [KavitaReadingListItem] = []
     @State private var fetching: Int?
-    /// The title of the entry a reader last tried to open, when that try failed.
-    ///
-    /// Task 21.4: an entry that could not be fetched used to leave [fetching] cleared and say
-    /// nothing else, a chapter that "never opens" exactly as the field report named it. Named
-    /// here instead, and cleared the moment another entry is tried.
-    @State private var openFailure: String?
+    /// The entry whose last open failed, and why. An alert rather than a line in the list: the
+    /// reader who tapped entry forty is looking at entry forty, not at the top of the list.
+    @State private var openFailure: (title: String, reason: String)?
 
     /// The order this device has given the list and the server has not taken yet.
     ///
@@ -140,11 +137,6 @@ struct KavitaListView: View {
                     .textRole(.footnote)
                     .foregroundStyle(StoryArcColor.Status.offline)
             }
-            if let openFailure {
-                Text("kavita.open.failed \(openFailure)", bundle: .module)
-                    .textRole(.footnote)
-                    .foregroundStyle(StoryArcColor.Status.offline)
-            }
             ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                 entryRow(index: index, row: row)
                     // An entry the server has not heard of has no place in the server's own
@@ -162,6 +154,14 @@ struct KavitaListView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        .alert(
+            openFailure.map { Text("kavita.open.failed \($0.title)", bundle: .module) } ?? Text(verbatim: ""),
+            isPresented: Binding(get: { openFailure != nil }, set: { if !$0 { openFailure = nil } })
+        ) {
+            Button { openFailure = nil } label: { Text("library.import.dismiss", bundle: .module) }
+        } message: {
+            Text(openFailure?.reason ?? "")
+        }
         .task {
             wanted = KavitaSync.wantedOrder(of: listID, on: server.id, in: KavitaProgressStore())
             guard items.isEmpty else { return }
@@ -178,7 +178,6 @@ struct KavitaListView: View {
             guard let entry = items.first(where: { String($0.chapterId) == row.id }) else {
                 return
             }
-            openFailure = nil
             Task { await open(entry) }
         } label: {
                 HStack(spacing: StoryArcSpace.sm) {
@@ -304,9 +303,27 @@ struct KavitaListView: View {
         fetching = entry.chapterId
         defer { fetching = nil }
 
-        let client = KavitaClient(address: server.address)
-        guard let fetched = try? await client.chapter(entry.chapterId),
-              let file = kavitaCacheFile(
+        let opening = await KavitaEntryOpening.attempt(entry, from: KavitaClient(address: server.address))
+        if case let .opened(publication, file) = opening { onOpen(publication, file) }
+        openFailure = opening.reason(server: server.title).map { (entry.displayName, $0) }
+    }
+}
+
+/// How one try to open a reading-list entry ended.
+///
+/// A failed open used to clear the row's spinner and say nothing, so the reader could not tell
+/// a refusal from a wait. `kavita-server` asks that a failure state its reason instead.
+enum KavitaEntryOpening: Sendable {
+    case opened(Publication, URL)
+    /// The server did not hand the file over: unreachable, refused or unwell.
+    case notSent
+    /// The file arrived, and it is not one StoryArc can read.
+    case unreadable
+
+    /// Fetches one entry's chapter and indexes it, the way the chapter list does.
+    static func attempt(_ entry: KavitaReadingListItem, from client: KavitaClient) async -> Self {
+        guard let fetched = try? await client.chapter(entry.chapterId) else { return .notSent }
+        guard let file = kavitaCacheFile(
                   chapterId: entry.chapterId,
                   mediaType: fetched.mediaType,
                   named: entry.seriesName.map { "\($0) \(entry.chapterId)" }
@@ -316,21 +333,18 @@ struct KavitaListView: View {
                   fileAt: file,
                   catalogueSeries: entry.seriesName
               )
-        else {
-            openFailure = kavitaOpenFailureTitle(entry.displayName, succeeded: false)
-            return
-        }
-        onOpen(publication, file)
+        else { return .unreadable }
+        return .opened(publication, file)
     }
-}
 
-/// What [KavitaListView] tells the reader after trying to open `title`: nothing on success,
-/// `title` itself otherwise, for the row's own "couldn't open" sentence.
-///
-/// Pure, and beside the view for the reason a Swift Testing target cannot reach a
-/// `Task` started from inside a `Composable`-like `View` body: the one decision worth
-/// asserting -- a failure is named rather than left as a spinner that quietly clears -- is
-/// lifted out where `KavitaOpenFailureTests` can call it directly.
-func kavitaOpenFailureTitle(_ title: String, succeeded: Bool) -> String? {
-    succeeded ? nil : title
+    /// Why the open failed, in the reader's words, or nil when it opened.
+    func reason(server: String) -> String? {
+        switch self {
+        case .opened: nil
+        case .notSent:
+            String(localized: "kavita.open.notSent \(server)", bundle: .module, locale: .storyArc)
+        case .unreadable:
+            String(localized: "kavita.open.unreadable \(server)", bundle: .module, locale: .storyArc)
+        }
+    }
 }
