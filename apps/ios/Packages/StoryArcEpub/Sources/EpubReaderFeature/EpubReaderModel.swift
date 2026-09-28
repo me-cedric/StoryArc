@@ -12,18 +12,15 @@ public import StoryArcCore
 
 /// One EPUB, open for reading.
 ///
-/// `ebook-reader` requires reflowable EPUB 2 and 3 to render with real
-/// typography, and ADR-0005 puts Readium behind that: laying out XHTML with
-/// pagination, hyphenation and a stable position across a type-size change is a
-/// rendering engine's job, not a weekend's work.
+/// `ebook-reader` requires reflowable EPUB 2 and 3 to render with real typography, and
+/// ADR-0005 puts Readium behind that: laying out XHTML with pagination, hyphenation and
+/// a stable position across a type-size change is a rendering engine's job.
 ///
-/// What is *not* Readium's job here is the library. `EpubReader` in `Formats`
-/// still indexes the book — title, author, reading order, cover — with no
-/// dependency and on the host, because that is all the shelf needs. This type
-/// exists only from the moment someone opens one.
+/// The library stays `Formats`' `EpubReader`, which indexes title, author, reading
+/// order and cover with no dependency and on the host. This type exists only from the
+/// moment someone opens a book.
 ///
-/// `@MainActor` because it is view state, and because the navigator is a
-/// `UIViewController`.
+/// `@MainActor` because it is view state, and because the navigator is a `UIViewController`.
 @MainActor
 @Observable
 public final class EpubReaderModel {
@@ -55,6 +52,10 @@ public final class EpubReaderModel {
 
     /// The typography in force: the preset's own values until an axis is moved.
     public internal(set) var values: ThemeValues
+
+    /// The reader's own named palette, kept whether or not it is in force — unlike
+    /// `theme.custom`, which is only what is on the page right now.
+    public internal(set) var customPalette: ReaderPalette?
 
     /// Reader-local screen brightness, 0…1, or `nil` for the device's own.
     ///
@@ -235,6 +236,7 @@ public final class EpubReaderModel {
         self.theme = stored.theme
         self.values = stored.values
         self.transition = stored.transition
+        self.customPalette = stored.customPalette
     }
 
     /// How a page becomes the next page. Paginated or scrolling, for an EPUB.
@@ -329,6 +331,7 @@ public final class EpubReaderModel {
     public func adoptColours(_ palette: ReaderPalette) -> Bool {
         guard palette.isReadable else { return false }
         theme = theme.adopting(palette)
+        customPalette = palette
         applyTheme()
         return true
     }
@@ -351,16 +354,14 @@ public final class EpubReaderModel {
     }
 
     /// Writes the theme back, so the next book on this shelf opens the way this one
-    /// was left.
-    ///
-    /// ponytail: reads and rewrites the whole blob per change. A drag now emits ten
-    /// steps rather than one per frame, and the blob is a handful of small records,
-    /// so this is cheaper than a debounce would be to get right. Debounce it if a
-    /// reader with a thousand shelves ever notices.
+    /// was left. ponytail: rewrites the whole blob per change, cheaper than a correct
+    /// debounce for a blob this small — debounce it if a reader with a thousand
+    /// shelves ever notices.
     func remember(theme override: ReadingTheme? = nil, values overrideValues: ThemeValues? = nil) {
         guard let preferences else { return }
         let stored = ShelfSettings(
-            theme: override ?? theme, values: overrideValues ?? values, transition: transition
+            theme: override ?? theme, values: overrideValues ?? values, transition: transition,
+            customPalette: customPalette
         )
         preferences.save(
             preferences.themes().remembering(stored, for: Self.scope, shelf: shelf)

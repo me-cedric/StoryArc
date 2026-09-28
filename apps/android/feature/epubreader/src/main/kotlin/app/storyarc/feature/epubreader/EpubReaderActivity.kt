@@ -366,6 +366,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     val isVisible by model.isChromeVisible.collectAsStateWithLifecycle()
                     val theme by model.theme.collectAsStateWithLifecycle()
                     val values by model.values.collectAsStateWithLifecycle()
+                    val customPalette by model.customPalette.collectAsStateWithLifecycle()
                     val transition by model.transition.collectAsStateWithLifecycle()
                     val brightness by model.brightness.collectAsStateWithLifecycle()
                     val contents by model.tableOfContents.collectAsStateWithLifecycle()
@@ -510,16 +511,16 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     }
 
                     if (isShowingTheme) {
-                        // Words from where the reader is, read once when the sheet opens.
-                        // The position does not move while the sheet is up, and re-reading
-                        // the resource on every slider step would put a disk read inside a
-                        // drag.
+                        // Words from where the reader is, read once when the sheet opens —
+                        // re-reading the resource on every slider step would put a disk read
+                        // inside a drag.
                         var excerpt by remember { mutableStateOf("") }
                         LaunchedEffect(Unit) { excerpt = model.previewExcerpt() }
 
                         ThemeBottomSheet(
                             theme = theme,
                             values = values,
+                            customPalette = customPalette,
                             onAdopt = { preset ->
                                 model.adopt(preset)
                                 // `ebook-reader`: "picking a preset applies it and leaves the

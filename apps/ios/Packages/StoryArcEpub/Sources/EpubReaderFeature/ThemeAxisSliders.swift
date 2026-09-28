@@ -70,7 +70,7 @@ extension ThemeAxesSheet {
 
             ForEach(ThemeAxis.allCases, id: \.self) { axis in
                 if axis != .margins, let range = axis.sliderRange {
-                    axisSlider(axis, range: range)
+                    axisControl(axis, range: range)
                 }
             }
         }
@@ -80,13 +80,13 @@ extension ThemeAxesSheet {
     /// Original. `ThemeAxesSheet.body` shows this regardless of
     /// `keepsPublisherStyles`, unlike ``fineAxes``.
     var marginsControl: some View {
-        axisSlider(.margins, range: ThemeAxis.margins.sliderRange ?? 0...1)
+        axisControl(.margins, range: ThemeAxis.margins.sliderRange ?? 0...1)
     }
 
     /// One axis's slider, its stated value, its long press and double tap reset, and
     /// the accessibility action that reaches the same reset without a gesture.
     @ViewBuilder
-    private func axisSlider(_ axis: ThemeAxis, range: ClosedRange<Double>) -> some View {
+    private func axisControl(_ axis: ThemeAxis, range: ClosedRange<Double>) -> some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
             axisHeader(
                 Text(axis.titleKey, bundle: .module),

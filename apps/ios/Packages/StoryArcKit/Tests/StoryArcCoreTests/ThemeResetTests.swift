@@ -13,11 +13,11 @@ internal import StoryArcCore
 /// > **AND** the other five presets, the custom colour slot, the per-series memory and the
 /// > global default are unchanged, because a reset is not a factory reset
 ///
-/// **The custom-slot clause is the one that failed.** `restored()` was written as
-/// `ReadingTheme(preset: preset)`, which is `adopting(_:)`'s body — and `adopting` drops the
-/// custom palette *on purpose*, because tapping one of the six is how a reader leaves their
-/// own colours. A reset is not that act. A reader who had made a palette, chosen Calm, and
-/// nudged the line spacing lost the palette by putting the line spacing back.
+/// **"The custom colour slot ... unchanged" is the reader's own named palette, kept in
+/// `EpubReaderModel.customPalette` whether or not it is on the page — not `ReadingTheme.custom`,
+/// which is only what is in force right now.** A reset drops `custom` the same as every other
+/// axis, which is what puts the background back on the preset's own value; the slot elsewhere
+/// is untouched, so the seventh card is still there afterwards.
 ///
 /// Android mirrors this suite in `ThemeResetTest`, case for case.
 @Suite("A reset restores the preset, not the factory")
@@ -37,8 +37,8 @@ struct ThemeResetTests {
         #expect(!reset.isModified)
     }
 
-    @Test("The custom colour slot survives, because a reset is not a factory reset")
-    func theCustomSlotSurvives() {
+    @Test("The background returns to the preset's own value, the same as any other axis")
+    func theBackgroundReturnsToo() {
         let modified = ReadingTheme(
             preset: .calm,
             deviations: [.lineSpacing],
@@ -48,12 +48,13 @@ struct ThemeResetTests {
         let reset = modified.restored()
 
         #expect(
-            reset.custom == mine,
+            reset.custom == nil,
             """
-            The reset discarded the reader's own palette. `reading-themes` lists the custom \
-            colour slot among the things a reset leaves alone: "a reset is not a factory \
-            reset". Dropping it is `adopting(_:)`'s behaviour, and that is a different act — \
-            tapping one of the six presets is how a reader leaves their own colours.
+            The reset kept the reader's own colour in force, so the background did not \
+            return to Calm's own value — the one axis "every axis returns to that preset's \
+            published value" did not reach. The custom colour *slot* `reading-themes` lists \
+            among the things a reset leaves alone is `EpubReaderModel.customPalette`, kept \
+            whether or not it is in force; `custom` here is only what is on the page now.
             """
         )
     }
@@ -61,7 +62,7 @@ struct ThemeResetTests {
     @Test("A preset with nothing deviating is already restored, and says so")
     func anUnmodifiedPresetIsUnchanged() {
         for preset in ThemePreset.allCases {
-            let clean = ReadingTheme(preset: preset, custom: mine)
+            let clean = ReadingTheme(preset: preset)
 
             #expect(
                 !clean.isModified,

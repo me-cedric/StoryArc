@@ -65,6 +65,12 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
     /// day they update, and only the series they later say otherwise about differ.
     public var fit: PageFit
 
+    /// The reader's own named colour pairing, kept whether or not it is currently in
+    /// force. `reading-themes`: a custom colour is "a seventh, user-named slot alongside
+    /// the six presets" — this is that slot. `ReadingTheme.custom` is only what is on the
+    /// page right now, and a preset tap or a reset both drop it; this does not.
+    public var customPalette: ReaderPalette?
+
     /// - Parameter values: the typography. Defaults to the preset's own, which is
     ///   what an unmodified theme means.
     public init(
@@ -76,7 +82,8 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
         adjustments: ImageAdjustments = ImageAdjustments(),
         offsetsSpreads: Bool = false,
         showsPageSeparator: Bool = false,
-        fit: PageFit = .screen
+        fit: PageFit = .screen,
+        customPalette: ReaderPalette? = nil
     ) {
         self.theme = theme
         self.values = values ?? theme.preset.values
@@ -87,6 +94,7 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
         self.offsetsSpreads = offsetsSpreads
         self.showsPageSeparator = showsPageSeparator
         self.fit = fit
+        self.customPalette = customPalette
     }
 
     /// Decodes what is there and defaults what is not.
@@ -115,7 +123,8 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
                 Bool.self,
                 forKey: .showsPageSeparator
             ) ?? false,
-            fit: try container.decodeIfPresent(PageFit.self, forKey: .fit) ?? .screen
+            fit: try container.decodeIfPresent(PageFit.self, forKey: .fit) ?? .screen,
+            customPalette: try container.decodeIfPresent(ReaderPalette.self, forKey: .customPalette)
         )
     }
 }

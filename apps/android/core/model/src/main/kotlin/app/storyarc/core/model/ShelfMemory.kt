@@ -55,6 +55,10 @@ enum class ThemeScope { REFLOWABLE, FIXED_LAYOUT }
  *   `ReaderPreferences.themes()`), so a reader who had chosen
  *   fit-to-width keeps opening at fit-to-width rather than being quietly returned to
  *   fit-to-screen on the day they update.
+ * @property customPalette the reader's own named colour pairing, kept whether or not it is
+ *   currently in force. `reading-themes`: a custom colour is "a seventh, user-named slot
+ *   alongside the six presets" — this is that slot. [ReadingTheme.custom] is only what is
+ *   on the page right now, and a preset tap or a reset both drop it; this does not.
  */
 @Serializable
 data class ShelfSettings(
@@ -67,6 +71,7 @@ data class ShelfSettings(
     val offsetsSpreads: Boolean = false,
     val showsPageSeparator: Boolean = false,
     val fit: PageFit = PageFit.SCREEN,
+    val customPalette: ReaderPalette? = null,
 ) {
     /**
      * Whether a continuous scroll draws a separator above the page at [aboveIndex].

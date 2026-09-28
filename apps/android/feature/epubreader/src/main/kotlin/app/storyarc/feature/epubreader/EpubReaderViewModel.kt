@@ -62,13 +62,10 @@ import org.readium.r2.streamer.parser.DefaultPublicationParser
 import java.io.File
 
 /**
- * What the EPUB screen knows.
- *
- * Deliberately not an `AndroidViewModel`: the activity owns it and its lifetime is
- * the activity's. Readium's `Publication` holds open file handles, so a value that
- * outlived the screen would hold them too.
- *
- * iOS's `EpubReaderModel` does the same three things — open, follow, record.
+ * What the EPUB screen knows. Deliberately not an `AndroidViewModel`: the activity owns it
+ * and its lifetime is the activity's. Readium's `Publication` holds open file handles, so a
+ * value that outlived the screen would hold them too. iOS's `EpubReaderModel` does the same
+ * three things — open, follow, record.
  */
 class EpubReaderViewModel(
     private val application: Application,
@@ -120,15 +117,10 @@ class EpubReaderViewModel(
     private var readingOrder: List<String> = emptyList()
 
     /**
-     * Why the book will not open, as a string-resource id rather than a sentence.
-     *
-     * An id, because the sentence has to be resolved where the reader's language is known.
-     * `application.getString` reads the Application's resources, and the language override
-     * reaches an activity only — `InterfaceLanguage.speaking()` builds the overridden context
-     * and `EpubReaderActivity.attachBaseContext` takes it. So a reader who chose French on a
-     * German device was refused in German. `EpubChrome` resolves the id with
-     * `stringResource`, which reads `LocalContext`. `:feature:reader` holds its own failure
-     * the same way, for the same reason.
+     * Why the book will not open, as a string-resource id: the sentence resolves where the
+     * reader's language is known, and `application.getString` does not — the override reaches
+     * only `EpubReaderActivity.attachBaseContext`, via `InterfaceLanguage.speaking()`.
+     * `EpubChrome` resolves the id with `stringResource`, which reads `LocalContext`.
      */
     private val _failure = MutableStateFlow<Int?>(null)
     val failure: StateFlow<Int?> = _failure.asStateFlow()
@@ -185,6 +177,10 @@ class EpubReaderViewModel(
     private val _transition = MutableStateFlow(stored.transition)
     val transition: StateFlow<PageTransition> = _transition.asStateFlow()
 
+    /** The reader's own named palette, kept whether or not [theme]'s own `custom` is. */
+    private val _customPalette = MutableStateFlow(stored.customPalette)
+    val customPalette: StateFlow<ReaderPalette?> = _customPalette.asStateFlow()
+
     /**
      * What Readium should render with, recomputed whenever either changes.
      *
@@ -193,10 +189,7 @@ class EpubReaderViewModel(
      */
     val preferences get() = _theme.value.preferences(_values.value, _transition.value)
 
-    /**
-     * What an unrecorded [adopt] or [choose] is putting in force, until the collector has
-     * seen it settle — both belong to the device or the store, not to the reader.
-     */
+    /** What an unrecorded [adopt] or [choose] is putting in force, until it settles. */
     private var notRecorded: ShelfSettings? = null
 
     /**
@@ -209,7 +202,9 @@ class EpubReaderViewModel(
      */
     fun adopt(preset: ThemePreset, recorded: Boolean = true) {
         val next = _theme.value.adopting(preset)
-        if (!recorded) notRecorded = ShelfSettings(next, preset.values, _transition.value)
+        if (!recorded) {
+            notRecorded = ShelfSettings(next, preset.values, _transition.value, customPalette = _customPalette.value)
+        }
         _theme.value = next
         _values.value = preset.values
     }
@@ -288,7 +283,9 @@ class EpubReaderViewModel(
         val store = themeStore
         if (store != null) {
             val series = store.themes().theme(themeScope, shelf)
-            notRecorded = ShelfSettings(_theme.value, _values.value, transition)
+            notRecorded = ShelfSettings(
+                _theme.value, _values.value, transition, customPalette = _customPalette.value,
+            )
             store.save(store.themes().remembering(series.copy(transition = transition), themeScope, shelf))
         }
         _transition.value = transition
@@ -321,6 +318,7 @@ class EpubReaderViewModel(
     fun adoptColours(palette: ReaderPalette): Boolean {
         if (!palette.isReadable) return false
         _theme.value = _theme.value.adopting(palette)
+        _customPalette.value = palette
         return true
     }
 
@@ -358,8 +356,8 @@ class EpubReaderViewModel(
     private fun rememberThemeChanges() {
         val store = themeStore ?: return
         scope.launch {
-            combine(_theme, _values, _transition) { theme, values, transition ->
-                ShelfSettings(theme, values, transition)
+            combine(_theme, _values, _transition, _customPalette) { theme, values, transition, palette ->
+                ShelfSettings(theme, values, transition, customPalette = palette)
             }
                 .drop(1)
                 .filter {
