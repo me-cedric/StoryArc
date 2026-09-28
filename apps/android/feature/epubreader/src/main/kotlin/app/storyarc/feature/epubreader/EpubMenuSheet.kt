@@ -86,84 +86,98 @@ internal data class EpubMenuActions(
 @Composable
 internal fun EpubMenuSheet(facts: EpubMenuFacts, actions: EpubMenuActions) {
     ModalBottomSheet(onDismissRequest = actions.onDismiss) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-            ContentsRow(
-                position = ReadingPositionLine.of(
-                    totalProgression = facts.progression,
-                    chapter = facts.chapter,
-                    withinChapter = facts.withinChapter,
-                ),
-                fraction = facts.progression.coerceIn(0.0, 1.0).toFloat(),
-                isReady = facts.isContentsReady,
-                onOpen = { actions.onOpenContents(ContentsTab.CONTENTS) },
-            )
+        EpubMenuBody(facts, actions)
+    }
+}
 
-            MenuRow(ReaderMenuEntry.BOOKMARKS, Icons.Filled.Bookmark) {
-                actions.onOpenContents(ContentsTab.BOOKMARKS)
-            }
+/**
+ * The rows themselves, without the sheet that carries them.
+ *
+ * Separated so a test can compose the menu. A `ModalBottomSheet` opens a window of its own
+ * and animates into it, and what has to be asserted here is which rows exist:
+ * `ReadAloudRowTest` asserts that the read-aloud row is absent when the publication has
+ * nothing to say. This is the pattern `ServerShelfTiles` and `LibraryAway.everythingAway`
+ * already use — the rule lives beside the view, and the view and the test both call it.
+ */
+@Composable
+internal fun EpubMenuBody(facts: EpubMenuFacts, actions: EpubMenuActions) {
+    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+        ContentsRow(
+            position = ReadingPositionLine.of(
+                totalProgression = facts.progression,
+                chapter = facts.chapter,
+                withinChapter = facts.withinChapter,
+            ),
+            fraction = facts.progression.coerceIn(0.0, 1.0).toFloat(),
+            isReady = facts.isContentsReady,
+            onOpen = { actions.onOpenContents(ContentsTab.CONTENTS) },
+        )
 
-            // One row, not an add beside a remove: `ebook-reader` marks a *position*, and a
-            // position is either marked or it is not. A circular pill whose filled and hollow
-            // bookmark glyphs were the only statement of which, until now.
+        MenuRow(ReaderMenuEntry.BOOKMARKS, Icons.Filled.Bookmark) {
+            actions.onOpenContents(ContentsTab.BOOKMARKS)
+        }
+
+        // One row, not an add beside a remove: `ebook-reader` marks a *position*, and a
+        // position is either marked or it is not. A circular pill whose filled and hollow
+        // bookmark glyphs were the only statement of which, until now.
+        LabelledRow(
+            label = stringResource(
+                if (facts.isPageBookmarked) {
+                    R.string.epub_bookmark_remove
+                } else {
+                    R.string.epub_bookmark_add
+                },
+            ),
+            icon = if (facts.isPageBookmarked) {
+                Icons.Filled.Bookmark
+            } else {
+                Icons.Outlined.BookmarkBorder
+            },
+            onClick = actions.onToggleBookmark,
+        )
+
+        MenuRow(ReaderMenuEntry.SEARCH, Icons.Filled.Search) {
+            actions.onOpenContents(ContentsTab.SEARCH)
+        }
+
+        // Not one of the five doors, and offered anyway: highlights and notes were
+        // reachable before this change, from the same sheet's fourth panel, and
+        // `comic-reader` requires everything that was reachable to stay reachable in one
+        // action.
+        LabelledRow(
+            label = stringResource(R.string.annotations_title),
+            icon = Icons.Filled.Highlight,
+            onClick = { actions.onOpenContents(ContentsTab.ANNOTATIONS) },
+        )
+
+        HorizontalDivider()
+
+        Text(
+            text = stringResource(ReaderMenuEntry.SETTINGS.labelRes),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(
+                horizontal = StoryArcSpace.gutter,
+                vertical = StoryArcSpace.sm,
+            ),
+        )
+
+        MenuRow(ReaderMenuEntry.THEMES, Icons.Filled.TextFormat, actions.onOpenTheme)
+
+        // Absent, not disabled, when the publication has no text a voice could say.
+        // `ebook-reader` says a control a platform cannot honour is "absent rather than
+        // empty", and this app does not ship a button that does nothing.
+        if (facts.canReadAloud) {
             LabelledRow(
                 label = stringResource(
-                    if (facts.isPageBookmarked) {
-                        R.string.epub_bookmark_remove
-                    } else {
-                        R.string.epub_bookmark_add
-                    },
+                    if (facts.isReadingAloud) R.string.readaloud_stop else R.string.readaloud_start,
                 ),
-                icon = if (facts.isPageBookmarked) {
-                    Icons.Filled.Bookmark
+                icon = Icons.AutoMirrored.Filled.VolumeUp,
+                onClick = if (facts.isReadingAloud) {
+                    actions.onStopReadAloud
                 } else {
-                    Icons.Outlined.BookmarkBorder
+                    actions.onStartReadAloud
                 },
-                onClick = actions.onToggleBookmark,
             )
-
-            MenuRow(ReaderMenuEntry.SEARCH, Icons.Filled.Search) {
-                actions.onOpenContents(ContentsTab.SEARCH)
-            }
-
-            // Not one of the five doors, and offered anyway: highlights and notes were
-            // reachable before this change, from the same sheet's fourth panel, and
-            // `comic-reader` requires everything that was reachable to stay reachable in one
-            // action.
-            LabelledRow(
-                label = stringResource(R.string.annotations_title),
-                icon = Icons.Filled.Highlight,
-                onClick = { actions.onOpenContents(ContentsTab.ANNOTATIONS) },
-            )
-
-            HorizontalDivider()
-
-            Text(
-                text = stringResource(ReaderMenuEntry.SETTINGS.labelRes),
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.padding(
-                    horizontal = StoryArcSpace.gutter,
-                    vertical = StoryArcSpace.sm,
-                ),
-            )
-
-            MenuRow(ReaderMenuEntry.THEMES, Icons.Filled.TextFormat, actions.onOpenTheme)
-
-            // Absent, not disabled, when the publication has no text a voice could say.
-            // `ebook-reader` says a control a platform cannot honour is "absent rather than
-            // empty", and this app does not ship a button that does nothing.
-            if (facts.canReadAloud) {
-                LabelledRow(
-                    label = stringResource(
-                        if (facts.isReadingAloud) R.string.readaloud_stop else R.string.readaloud_start,
-                    ),
-                    icon = Icons.AutoMirrored.Filled.VolumeUp,
-                    onClick = if (facts.isReadingAloud) {
-                        actions.onStopReadAloud
-                    } else {
-                        actions.onStartReadAloud
-                    },
-                )
-            }
         }
     }
 }
