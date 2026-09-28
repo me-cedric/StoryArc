@@ -95,15 +95,14 @@ internal fun AdjustmentsSheet(
                 range = -1f..1f,
             ) { onChange(adjustments.copy(contrast = it)) }
 
-            // Hidden rather than shown doing nothing: sharpening needs a runtime shader,
-            // which arrives in API 33, and StoryArc supports 31.
-            if (canSharpen) {
-                AdjustmentSlider(
-                    labelRes = R.string.reader_adjust_sharpness,
-                    value = adjustments.sharpness,
-                    range = 0f..1f,
-                ) { onChange(adjustments.copy(sharpness = it)) }
-            }
+            // D9: a runtime shader draws this on API 33 and a CPU convolution draws it
+            // below that (see `Bitmap.sharpened`), so the control is available on every
+            // version this app supports rather than hidden on the two that cannot shade.
+            AdjustmentSlider(
+                labelRes = R.string.reader_adjust_sharpness,
+                value = adjustments.sharpness,
+                range = 0f..1f,
+            ) { onChange(adjustments.copy(sharpness = it)) }
 
             AdjustmentSwitch(
                 labelRes = R.string.reader_adjust_greyscale,

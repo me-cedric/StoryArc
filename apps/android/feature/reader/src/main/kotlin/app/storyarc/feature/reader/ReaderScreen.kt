@@ -792,11 +792,9 @@ private fun Pager(
         val trims = adjustments.trimmingBorders(index !in uncropped).cropsBorders
         when {
             bitmap != null -> ZoomablePage(
-                // Cropped before it becomes an `ImageBitmap`: the trim changes the page's
-                // size, which everything downstream measures from.
-                bitmap = remember(bitmap, trims) {
-                    bitmap.cropped(trims).asImageBitmap()
-                },
+                // Cropped before it becomes an `ImageBitmap`, and sharpened there too on
+                // the two versions with no shader for it (D9). See `pageDisplayBitmap`.
+                bitmap = pageDisplayBitmap(bitmap, trims, adjustments.sharpness),
                 pageId = pages.getOrNull(index)?.path ?: index.toString(),
                 // The page number, not the archive entry's path. TalkBack read
                 // "page10.png" aloud, which names a file inside a CBZ rather than a
