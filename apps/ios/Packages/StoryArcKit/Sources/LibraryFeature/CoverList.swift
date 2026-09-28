@@ -255,6 +255,12 @@ struct ListRow: View {
                 .overlay(alignment: .bottomTrailing) {
                     if model.isOnDevice(publication) { OnDeviceMark() }
                 }
+                // `library-browsing`'s *The finished mark*, "same on list rows": the corner
+                // a thumbnail this size still has room for. Withheld while picking, as the
+                // grid's is — ``LibraryMarks/showsFinishedMark(isPicked:isFinished:)``.
+                .overlay(alignment: .topLeading) {
+                    if isFinished { FinishedMark() }
+                }
                 // `library-browsing` does not make dimming a property of a layout: a reader
                 // who prefers rows does not stop needing to know which of their books will
                 // open on a train. On the thumbnail alone, as in the grid — the title beside
@@ -281,7 +287,14 @@ struct ListRow: View {
 
             Spacer(minLength: 0)
 
-            if let fraction = model.readFraction(of: publication) {
+            if isFinished {
+                // The badge on the thumbnail is easy to miss beside a hundred percent that
+                // reads the same as a number a reader has to stop and compare. The word says
+                // it once, plainly, where the row is read rather than looked at.
+                Text("library.cell.finished", bundle: .module)
+                    .textRole(.caption)
+                    .foregroundStyle(theme.palette.textSecondary)
+            } else if let fraction = model.readFraction(of: publication) {
                 // A number here rather than a bar: a list row is read, and "48%"
                 // is quicker to read than a sliver of colour is to measure.
                 Text("library.cell.progress \(Int(fraction * 100))", bundle: .module)
@@ -306,6 +319,15 @@ struct ListRow: View {
     /// The grid's rule, asked by the row. Internal so it can be asserted without a window.
     var isReachableNow: Bool { model.isReachableNow(publication) }
 
+    /// Whether this row carries the finished badge.
+    ///
+    /// ``CoverCell/showsFinishedMark`` asks the same rule for the grid's cell; the list is
+    /// not picked from a `Set<String>` the way the grid's `isPicked` sometimes is not-nil
+    /// while empty, so this reads the same optional the grid's property does.
+    var isFinished: Bool {
+        LibraryMarks.showsFinishedMark(isPicked: isPicked, isFinished: model.isFinished(of: publication))
+    }
+
     /// What the whole row says out loud, its two marks included.
     ///
     /// ``LibraryMarks/spoken(_:isOnDevice:isReadableNow:)`` rather than a second composition
@@ -325,7 +347,8 @@ struct ListRow: View {
                 },
             ],
             isOnDevice: model.isOnDevice(publication),
-            isReadableNow: isReachableNow
+            isReadableNow: isReachableNow,
+            isFinished: model.isFinished(of: publication)
         )
     }
 

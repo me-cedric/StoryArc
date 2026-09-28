@@ -147,6 +147,9 @@ private val SourceConnectionState.isAnswering: Boolean
  * @param downloaded the words for a publication held on the device. The catalogue's own
  *   wording, in the four languages it already has.
  * @param unavailable the words for one that needs its source to be reachable.
+ * @param finished the word for a publication the reader has finished, spoken because the
+ *   badge in the corner cannot be. `library-browsing`'s *The finished mark* requires TalkBack
+ *   to announce it.
  */
 internal fun spokenCellLabel(
     parts: List<String?>,
@@ -154,8 +157,34 @@ internal fun spokenCellLabel(
     isReadableNow: Boolean,
     downloaded: String?,
     unavailable: String?,
+    isFinished: Boolean = false,
+    finished: String? = null,
 ): String = (
     parts +
+        finished.takeIf { isFinished } +
         downloaded.takeIf { isOnDevice } +
         unavailable.takeIf { !isReadableNow }
     ).filterNotNull().joinToString(", ")
+
+/**
+ * Whether a cover draws the finished badge.
+ *
+ * `library-browsing` caps a cover at two marks and the badge is not a third one: it replaces
+ * the progress rail rather than joining it, on the same terms [OnDeviceMark] stands down for
+ * [PickMark] while the reader is selecting. iOS's `LibraryMarks.showsFinishedMark` is the same
+ * rule.
+ */
+internal fun showsFinishedMark(isPicked: Boolean?, isFinished: Boolean): Boolean =
+    isPicked == null && isFinished
+
+/**
+ * Whether the reader has finished this publication.
+ *
+ * An extension on the view model rather than a member of it: `LibraryViewModel.kt` is already
+ * recorded in `scripts/line-cap.mjs` as over the Kotlin line cap and may not grow, and
+ * [LibraryViewModel.recordOf] already exposes the one field this needs. iOS's
+ * `LibraryModel.isFinished` is the same lookup, kept out of `LibraryModel.swift` for the same
+ * reason.
+ */
+internal fun LibraryViewModel.isFinished(publication: Publication): Boolean =
+    recordOf(publication)?.isFinished == true

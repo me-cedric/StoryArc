@@ -282,6 +282,9 @@ private fun ListRow(
     )
     val unavailable = stringResource(R.string.library_cell_unavailable)
     val downloaded = stringResource(R.string.catalogue_entry_downloaded)
+    val isFinished = viewModel.isFinished(publication)
+    val finished = stringResource(R.string.library_cell_finished)
+    val showsFinished = showsFinishedMark(isPicked, isFinished)
     val title = if (seriesCount == null) {
         publication.displayTitle
     } else {
@@ -317,13 +320,15 @@ private fun ListRow(
                 // network — are the two a shelf exists to answer. Said rather than only
                 // shown. The row's own text is read as well, so this adds the two facts and
                 // repeats nothing.
-                if (isKept || !isReadable) {
+                if (isKept || !isReadable || isFinished) {
                     contentDescription = spokenCellLabel(
                         parts = listOf(title, subtitle),
                         isOnDevice = isKept,
                         isReadableNow = isReadable,
                         downloaded = downloaded,
                         unavailable = unavailable,
+                        isFinished = isFinished,
+                        finished = finished,
                     )
                 }
                 if (isPicked != null) selected = isPicked
@@ -350,6 +355,14 @@ private fun ListRow(
             if (isKept) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
                     OnDeviceMark()
+                }
+            }
+            // `library-browsing`'s *The finished mark*, "same on list rows": the corner a
+            // thumbnail this size still has room for. Android's grid draws the same badge
+            // in the same corner — see `CoverGrid.kt`.
+            if (showsFinished) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopStart) {
+                    FinishedMark()
                 }
             }
             val bitmap = cover
@@ -388,14 +401,25 @@ private fun ListRow(
             )
         }
 
-        viewModel.readFraction(publication)?.let { fraction ->
-            // A number here rather than a bar: a list row is read, and "48%" is
-            // quicker to read than a sliver of colour is to measure.
+        if (isFinished) {
+            // The badge on the thumbnail is easy to miss beside a hundred percent that reads
+            // the same as a number a reader has to stop and compare. The word says it once,
+            // plainly, where the row is read rather than looked at.
             Text(
-                text = stringResource(R.string.library_cell_progress, (fraction * 100).toInt()),
+                text = finished,
                 style = MaterialTheme.typography.labelLarge,
                 color = palette.textSecondary,
             )
+        } else {
+            viewModel.readFraction(publication)?.let { fraction ->
+                // A number here rather than a bar: a list row is read, and "48%" is
+                // quicker to read than a sliver of colour is to measure.
+                Text(
+                    text = stringResource(R.string.library_cell_progress, (fraction * 100).toInt()),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = palette.textSecondary,
+                )
+            }
         }
     }
 }

@@ -159,9 +159,15 @@ struct CoverCell: View {
                         .strokeBorder(theme.palette.borderSubtle, lineWidth: 1)
                 }
                 .overlay(alignment: .bottom) {
-                    if let fraction = model.readFraction(of: publication) {
+                    // Withheld once finished: the badge in the opposite corner is what a
+                    // finished cover says now, and a full rail underneath it would be the
+                    // same fact twice — see ``showsFinishedMark``.
+                    if let fraction = model.readFraction(of: publication), !showsFinishedMark {
                         ProgressBar(fraction: fraction)
                     }
+                }
+                .overlay(alignment: .topLeading) {
+                    if showsFinishedMark { FinishedMark() }
                 }
                 .overlay(alignment: .topTrailing) {
                     if let isPicked { PickMark(isPicked: isPicked) }
@@ -263,6 +269,16 @@ struct CoverCell: View {
         isPicked == nil && model.isOnDevice(publication)
     }
 
+    /// Whether this cover carries the finished badge.
+    ///
+    /// `library-browsing`'s *The finished mark*: legible at a glance, on every surface that
+    /// draws a finished publication. ``LibraryMarks/showsFinishedMark(isPicked:isFinished:)``
+    /// decides it, not this property — a rule asked by two views has to live where both can
+    /// reach it, which is why the property here only asks.
+    var showsFinishedMark: Bool {
+        LibraryMarks.showsFinishedMark(isPicked: isPicked, isFinished: model.isFinished(of: publication))
+    }
+
     /// Whether this cover is drawn at full brightness.
     ///
     /// Asked by the cell rather than handed to it, which is the point: the shelf above no
@@ -330,7 +346,8 @@ struct CoverCell: View {
                 },
             ],
             isOnDevice: model.isOnDevice(publication),
-            isReadableNow: isReachableNow
+            isReadableNow: isReachableNow,
+            isFinished: model.isFinished(of: publication)
         )
     }
 }

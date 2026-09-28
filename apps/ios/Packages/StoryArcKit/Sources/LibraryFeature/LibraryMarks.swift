@@ -47,12 +47,21 @@ enum LibraryMarks {
     ///     dropped, so a caller may pass an absent subtitle without composing around it.
     ///   - isOnDevice: whether the app's own store holds the bytes.
     ///   - isReadableNow: whether it can be opened at this instant.
+    ///   - isFinished: whether the reader has finished it. `library-browsing`'s *The finished
+    ///     mark* requires VoiceOver to announce it, because the badge that draws it is a
+    ///     glyph in a corner and glyphs are silent.
     static func spoken(
         _ parts: [String?],
         isOnDevice: Bool,
-        isReadableNow: Bool
+        isReadableNow: Bool,
+        isFinished: Bool = false
     ) -> String {
         var spoken = parts.compactMap { $0 }
+        if isFinished {
+            spoken.append(
+                String(localized: "library.cell.finished", bundle: .module, locale: .storyArc)
+            )
+        }
         // The wording the catalogue already uses for the same state, in the four languages
         // it is already translated into.
         if isOnDevice {
@@ -68,6 +77,19 @@ enum LibraryMarks {
             )
         }
         return spoken.joined(separator: ", ")
+    }
+
+    /// Whether a cover draws the finished badge.
+    ///
+    /// `library-browsing`'s cap of two marks is not broken by this: the badge *replaces* the
+    /// progress rail rather than joining it, the way ``CoverCell/showsOnDeviceMark`` already
+    /// substitutes for the pick mark while the reader is selecting. Withheld while picking for
+    /// the same reason the on-device mark is — the only question that mode asks is which
+    /// covers are picked. A named function rather than the condition inline, so a test can
+    /// reach it without a window: Android's `showsFinishedMark` in `LibraryMarks.kt` is the
+    /// same rule.
+    static func showsFinishedMark(isPicked: Bool?, isFinished: Bool) -> Bool {
+        isPicked == nil && isFinished
     }
 }
 
@@ -87,5 +109,16 @@ extension LibraryModel {
             location: location(of: publication),
             registry: registry
         )
+    }
+
+    /// Whether the reader has finished this publication.
+    ///
+    /// `reading-progress` stamps `isFinished` on the record itself rather than leaving a
+    /// reader who reached the last page and closed the book without turning it to look
+    /// unread forever after — ``readFraction(of:)`` already reads the same field to answer
+    /// "1" for it. This is the boolean half of that answer, for the badge rather than the
+    /// rail. Android's `LibraryViewModel.isFinished` is the same lookup.
+    func isFinished(of publication: Publication) -> Bool {
+        progress[publication.id]?.isFinished ?? false
     }
 }

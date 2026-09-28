@@ -132,6 +132,7 @@ private struct HomeShelfCard: View {
     let width: CGFloat
 
     private var isReadable: Bool { model.isReadableNow(publication) }
+    private var isFinished: Bool { model.isFinished(of: publication) }
 
     /// The card, and where it leads.
     ///
@@ -157,7 +158,14 @@ private struct HomeShelfCard: View {
                 .buttonStyle(.plain)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel([publication.displayTitle, subtitle].compactMap { $0 }.joined(separator: ", "))
+        .accessibilityLabel(
+            LibraryMarks.spoken(
+                [publication.displayTitle, subtitle],
+                isOnDevice: false,
+                isReadableNow: true,
+                isFinished: isFinished
+            )
+        )
         .accessibilityAddTraits(isReadable ? .isButton : [])
     }
 
@@ -173,9 +181,14 @@ private struct HomeShelfCard: View {
                         .strokeBorder(theme.palette.borderSubtle, lineWidth: 1)
                 }
                 .overlay(alignment: .bottom) {
-                    if let fraction = model.readFraction(of: publication) {
+                    if let fraction = model.readFraction(of: publication), !isFinished {
                         ProgressBar(fraction: fraction)
                     }
+                }
+                // `library-browsing`'s *The finished mark*: "the home surface … draws a
+                // finished publication" with the same badge the grid uses.
+                .overlay(alignment: .topLeading) {
+                    if isFinished { FinishedMark() }
                 }
 
             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {

@@ -74,6 +74,35 @@ struct LibraryMarksTests {
         // reader moving between the two screens saw the same book at two brightnesses.
         #expect(LibraryMarks.awayOpacity == 0.45)
     }
+
+    @Test("A finished cover says so, because the badge in its corner cannot")
+    func finishedIsSpoken() {
+        let spoken = LibraryMarks.spoken(["Ashfall #1"], isOnDevice: false, isReadableNow: true, isFinished: true)
+
+        #expect(spoken == "Ashfall #1, Finished")
+    }
+
+    @Test("An unfinished cover says nothing about it, by default")
+    func unfinishedSaysNothingExtra() {
+        #expect(
+            LibraryMarks.spoken(["Ashfall #1"], isOnDevice: false, isReadableNow: true)
+                == "Ashfall #1"
+        )
+    }
+
+    @Test("The badge stands down while the reader is picking")
+    func finishedMarkStandsDownWhilePicking() {
+        // `library-browsing` caps a cover at two marks, and the pick mark is the
+        // substitution the other one already makes — this one follows the same rule.
+        #expect(!LibraryMarks.showsFinishedMark(isPicked: true, isFinished: true))
+        #expect(!LibraryMarks.showsFinishedMark(isPicked: false, isFinished: true))
+    }
+
+    @Test("The badge draws for a finished publication outside selection mode")
+    func finishedMarkDrawsOutsidePicking() {
+        #expect(LibraryMarks.showsFinishedMark(isPicked: nil, isFinished: true))
+        #expect(!LibraryMarks.showsFinishedMark(isPicked: nil, isFinished: false))
+    }
 }
 
 /// That the dim and the mark reach every layout, not just the one shelf that used to apply
@@ -150,5 +179,67 @@ struct ShelfMarkReachTests {
             ListRow(publication: publication, model: model, thumbnailWidth: 44, maxPixelSize: 132)
                 .isReachableNow
         )
+    }
+
+    /// A publication with no recorded progress at all, so a finished flag written onto its
+    /// entry is the only thing that could be making the badge draw.
+    private func unopenedLibrary() -> (LibraryModel, Publication) {
+        let publication = Publication(
+            identity: PublicationIdentity(normalizedPath: "/comics/finished.cbz"),
+            format: .cbz,
+            displayTitle: "Finished One",
+            origin: .inferred
+        )
+        let model = LibraryModel()
+        model.publications = [publication]
+        return (model, publication)
+    }
+
+    @Test("A grid cell draws the finished badge by asking the model, not by guessing")
+    func gridCellAsksForFinished() {
+        let (model, publication) = unopenedLibrary()
+        let cell = CoverCell(publication: publication, model: model, maxPixelSize: 200)
+        #expect(!cell.showsFinishedMark)
+
+        model.progress[publication.id] = ReadingProgress(
+            identity: publication.identity,
+            position: .page(index: 9, of: 10),
+            isFinished: true,
+            updatedAt: .now
+        )
+        #expect(cell.showsFinishedMark)
+    }
+
+    @Test("The badge stands down on a grid cell while the reader is picking")
+    func gridCellFinishedStandsDownWhilePicking() {
+        let (model, publication) = unopenedLibrary()
+        model.progress[publication.id] = ReadingProgress(
+            identity: publication.identity,
+            position: .page(index: 9, of: 10),
+            isFinished: true,
+            updatedAt: .now
+        )
+        let picking = CoverCell(
+            publication: publication,
+            model: model,
+            maxPixelSize: 200,
+            isPicked: false
+        )
+        #expect(!picking.showsFinishedMark)
+    }
+
+    @Test("A list row draws the finished badge by asking the same model")
+    func listRowAsksForFinished() {
+        let (model, publication) = unopenedLibrary()
+        let row = ListRow(publication: publication, model: model, thumbnailWidth: 44, maxPixelSize: 132)
+        #expect(!row.isFinished)
+
+        model.progress[publication.id] = ReadingProgress(
+            identity: publication.identity,
+            position: .page(index: 9, of: 10),
+            isFinished: true,
+            updatedAt: .now
+        )
+        #expect(row.isFinished)
     }
 }
