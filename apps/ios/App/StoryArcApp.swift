@@ -206,6 +206,8 @@ struct StoryArcApp: App {
                     sources: library.registry.sources,
                     itemCount: { library.itemCount(of: $0) },
                     isPartial: { library.isPartial($0) },
+                    readCount: { library.readProgress(of: $0)?.read },
+                    readTotal: { library.readProgress(of: $0)?.total },
                     onRemoveSource: removeSource,
                     onRenameSource: { library.rename($0, to: $1) },
                     onReorderSource: { library.move($0, to: $1) },

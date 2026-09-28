@@ -38,6 +38,14 @@ public struct SourceDiagnosis: Sendable, Equatable {
     /// this is the flag that makes the screen say *at least*.
     public let isPartial: Bool
 
+    /// How far a continued read has gone, and how much the server holds in all — in
+    /// whatever unit the source counts progress by (a Kavita server's is series, not the
+    /// chapters ``itemCount`` counts). Both `nil` together: either nothing continues
+    /// reading this source kind past its first slice, or a continuation has not yet learned
+    /// the total. The detail screen falls back to "at least `itemCount`" in either case.
+    public let readCount: Int?
+    public let readTotal: Int?
+
     /// How many of them are downloaded, and what they weigh.
     ///
     /// Counted from the finished downloads alone: a queued one has no bytes on disk to
@@ -54,6 +62,8 @@ public struct SourceDiagnosis: Sendable, Equatable {
         failure: SourceFailure?,
         itemCount: Int,
         isPartial: Bool = false,
+        readCount: Int? = nil,
+        readTotal: Int? = nil,
         downloadCount: Int,
         downloadedBytes: Int64,
         actions: [SourceAction]
@@ -63,6 +73,8 @@ public struct SourceDiagnosis: Sendable, Equatable {
         self.failure = failure
         self.itemCount = itemCount
         self.isPartial = isPartial
+        self.readCount = readCount
+        self.readTotal = readTotal
         self.downloadCount = downloadCount
         self.downloadedBytes = downloadedBytes
         self.actions = actions
@@ -78,7 +90,9 @@ public struct SourceDiagnosis: Sendable, Equatable {
         itemCount: Int,
         downloads: [Download],
         isRemovable: Bool = true,
-        isPartial: Bool = false
+        isPartial: Bool = false,
+        readCount: Int? = nil,
+        readTotal: Int? = nil
     ) -> SourceDiagnosis {
         let mine = downloads.filter { $0.sourceID == source.id && $0.state.isFinished }
         var actions: [SourceAction] = []
@@ -99,6 +113,8 @@ public struct SourceDiagnosis: Sendable, Equatable {
             failure: SourceFailure(source.state),
             itemCount: itemCount,
             isPartial: isPartial,
+            readCount: readCount,
+            readTotal: readTotal,
             downloadCount: mine.count,
             downloadedBytes: mine.reduce(0) { $0 + $1.downloadedBytes },
             actions: actions
