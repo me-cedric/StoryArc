@@ -3,6 +3,14 @@ internal import SwiftUI
 internal import DesignSystem
 internal import StoryArcCore
 
+/// Each visible page's own frame in `ReaderContainers.scrollSpace`, for ``ScrollProgress``.
+private struct PageFramePreferenceKey: PreferenceKey {
+    static var defaultValue: [Int: CGRect] { [:] }
+    static func reduce(value: inout [Int: CGRect], nextValue: () -> [Int: CGRect]) {
+        value.merge(nextValue()) { _, new in new }
+    }
+}
+
 // One container per transition mode, over one page body.
 //
 // `page-transitions` treats the mode as a property of the container, and this file is
@@ -94,33 +102,78 @@ extension ReaderView {
     /// `PageTransition.turnWindow` states the same rule where it can be tested.
     @ViewBuilder
     func stitched(_ axis: ScrollAxis) -> some View {
-        ScrollView(axis == .vertical ? .vertical : .horizontal) {
-            let content = ForEach(displayOrder, id: \.self) { displayIndex in
-                // `comic-reader` asks for the separator between pages, so the first page
-                // does not get one — a band above page one is a margin, not a separator.
-                if model.settings.showsSeparator(above: displayIndex) {
-                    PageSeparator(axis: axis, matte: model.matte)
+        ScrollViewReader { proxy in
+            ScrollView(axis == .vertical ? .vertical : .horizontal) {
+                let content = ForEach(displayOrder, id: \.self) { displayIndex in
+                    // `comic-reader` asks for the separator between pages, so the first
+                    // page does not get one — a band above page one is a margin, not a
+                    // separator.
+                    if model.settings.showsSeparator(above: displayIndex) {
+                        PageSeparator(axis: axis, matte: model.matte)
+                    }
+                    stitchedPage(at: displayIndex, along: axis)
+                        .id(displayIndex)
+                        // `comic-reader`: the scroll position is "preserved exactly", which
+                        // a page *index* alone cannot do for a page many screens tall. This
+                        // reports each page's own frame in the scroll's coordinate space, so
+                        // ``ScrollProgress`` can turn it into a fraction through whichever
+                        // page is current. See `saveScrollProgress` below.
+                        .background(
+                            GeometryReader { geometry in
+                                Color.clear.preference(
+                                    key: PageFramePreferenceKey.self,
+                                    value: [displayIndex: geometry.frame(in: .named(Self.scrollSpace))]
+                                )
+                            }
+                        )
                 }
-                stitchedPage(at: displayIndex, along: axis)
-                    .id(displayIndex)
+                // `comic-reader`: "a scroll past the last page reaches the end screen". A
+                // continuous scroll has no natural end the way a discrete turn does — the
+                // stack simply stops — so this gives it one more, page-sized slot to reach.
+                // `containerRelativeFrame` sizes it to the viewport, same as a real page
+                // fills it, so reaching it reads as "one more screen", not a sliver.
+                let end = Color.clear
+                    .containerRelativeFrame(axis == .vertical ? .vertical : .horizontal)
+                    .id(endSlot)
+                if axis == .vertical {
+                    LazyVStack(spacing: 0) { content; end }
+                } else {
+                    LazyHStack(spacing: 0) { content; end }
+                }
             }
-            // `comic-reader`: "a scroll past the last page reaches the end screen". A
-            // continuous scroll has no natural end the way a discrete turn does — the
-            // stack simply stops — so this gives it one more, page-sized slot to reach.
-            // `containerRelativeFrame` sizes it to the viewport, same as a real page
-            // fills it, so reaching it reads as "one more screen", not a sliver.
-            let end = Color.clear
-                .containerRelativeFrame(axis == .vertical ? .vertical : .horizontal)
-                .id(endSlot)
-            if axis == .vertical {
-                LazyVStack(spacing: 0) { content; end }
-            } else {
-                LazyHStack(spacing: 0) { content; end }
+            .scrollTargetLayout()
+            .scrollPosition(id: scrollPosition)
+            .ignoresSafeArea()
+            .coordinateSpace(name: Self.scrollSpace)
+            // ponytail: unthrottled — every geometry change writes. `UserDefaults` coalesces
+            // its own writeback, and a debounce would need stored state this function, on
+            // `ReaderView`, cannot add without crossing the line cap; raise this ceiling if a
+            // profile ever shows it costing something.
+            .onPreferenceChange(PageFramePreferenceKey.self) { frames in
+                saveScrollProgress(frames, axis: axis)
+            }
+            // Once, when Scroll is what the reader opens into: restores the fraction
+            // through the current page that the last session left off at. Reads
+            // `model.currentIndex` rather than `displayIndex`, so it does not race
+            // `pages(in:)`'s own `.onAppear` for which sets first.
+            .task {
+                let fraction = model.restoredScrollFraction
+                guard fraction > 0 else { return }
+                proxy.scrollTo(
+                    displayIndex(forModel: model.currentIndex),
+                    anchor: ScrollProgress.anchor(forFraction: fraction, axis: axis)
+                )
             }
         }
-        .scrollTargetLayout()
-        .scrollPosition(id: scrollPosition)
-        .ignoresSafeArea()
+    }
+
+    /// Where the current page's own frame is reported, for ``ScrollProgress``.
+    static var scrollSpace: String { "ReaderContainers.scroll" }
+
+    /// Remembers where a continuous scroll sits within its current page.
+    private func saveScrollProgress(_ frames: [Int: CGRect], axis: ScrollAxis) {
+        guard let frame = frames[displayIndex] else { return }
+        model.saveScrollFraction(ScrollProgress.fraction(pageFrame: frame, axis: axis))
     }
 
     /// The scroll's position, as the same `displayIndex` every other mode uses.

@@ -114,7 +114,7 @@ public final class ReaderModel {
     /// What this shelf is read with.
     public private(set) var settings: ShelfSettings
 
-    @ObservationIgnored private let preferences: ReaderPreferences?
+    @ObservationIgnored let preferences: ReaderPreferences?
     @ObservationIgnored private let canCurl: Bool
     @ObservationIgnored private let shelf: String
 

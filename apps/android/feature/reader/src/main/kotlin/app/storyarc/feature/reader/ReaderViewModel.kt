@@ -83,7 +83,7 @@ class ReaderViewModel(
      * persistence — per series, with a global default, and comics independent of
      * reflowable — so it is the same store.
      */
-    private val shelfStore: ReaderPreferences? = null,
+    internal val shelfStore: ReaderPreferences? = null,
     /**
      * Whether this device can render the curl.
      *

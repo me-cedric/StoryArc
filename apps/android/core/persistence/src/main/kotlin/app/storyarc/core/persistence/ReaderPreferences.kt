@@ -3,6 +3,7 @@ package app.storyarc.core.persistence
 import android.content.Context
 import android.content.SharedPreferences
 import app.storyarc.core.model.PageFit
+import app.storyarc.core.model.ScrollOffsetMemory
 import app.storyarc.core.model.ShelfMemory
 import app.storyarc.core.model.ThemeScope
 import kotlinx.serialization.json.Json
@@ -22,6 +23,7 @@ class ReaderPreferences(private val preferences: SharedPreferences) {
          */
         private const val LEGACY_FIT = "pageFit"
         private const val THEMES = "themes"
+        private const val SCROLL_OFFSETS = "scrollOffsets"
 
         /**
          * Lenient about fields it does not know.
@@ -72,4 +74,14 @@ class ReaderPreferences(private val preferences: SharedPreferences) {
         preferences.getString(THEMES, null)
             ?.let { runCatching { json.decodeFromString<ShelfMemory>(it) }.getOrNull() }
             ?: ShelfMemory()
+
+    /** Where a continuous scroll sits within its current page, per publication. */
+    fun scrollOffsets(): ScrollOffsetMemory =
+        preferences.getString(SCROLL_OFFSETS, null)
+            ?.let { runCatching { json.decodeFromString<ScrollOffsetMemory>(it) }.getOrNull() }
+            ?: ScrollOffsetMemory()
+
+    fun save(memory: ScrollOffsetMemory) {
+        preferences.edit().putString(SCROLL_OFFSETS, json.encodeToString(memory)).apply()
+    }
 }

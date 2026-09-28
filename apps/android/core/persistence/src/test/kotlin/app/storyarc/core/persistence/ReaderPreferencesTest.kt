@@ -1,6 +1,8 @@
 package app.storyarc.core.persistence
 
 import app.storyarc.core.model.PageFit
+import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.model.ScrollOffsetMemory
 import app.storyarc.core.model.ShelfMemory
 import app.storyarc.core.model.ShelfSettings
 import app.storyarc.core.model.ThemeScope
@@ -86,5 +88,19 @@ class ReaderPreferencesTest {
         // and losing a reader's whole theme over an added field is the thing to avoid.
         preferences.edit().putString("themes", """{"shelves":{},"defaults":{}}""").apply()
         assertEquals(PageFit.SCREEN, store.themes().default(ThemeScope.FIXED_LAYOUT).fit)
+    }
+
+    @Test
+    fun `a scroll fraction survives the round trip through preferences`() {
+        val comic = PublicationIdentity(normalizedPath = "/comics/one.cbz")
+        store.save(ScrollOffsetMemory().remembering(comic, 0.65f))
+
+        assertEquals(0.65f, store.scrollOffsets().fraction(comic)!!, 0.001f)
+    }
+
+    @Test
+    fun `a fresh store has never stored a scroll fraction`() {
+        val comic = PublicationIdentity(normalizedPath = "/comics/one.cbz")
+        assertNull(store.scrollOffsets().fraction(comic))
     }
 }

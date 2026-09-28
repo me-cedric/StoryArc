@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 
+import Persistence
 import StoryArcCore
 @testable import ReaderFeature
 
@@ -258,5 +259,39 @@ struct ReaderModelTests {
 
         #expect(model.zoomed == nil)
         #expect(model.displayImage(at: 0) == nil)
+    }
+
+    // `comic-reader`: the scroll position is "preserved exactly" across a reopen, which
+    // a page index alone cannot do for a page many screens tall — see `ScrollProgress`
+    // for the fraction math. This is the storage half: a model remembers one, and a
+    // fresh model for the same publication reads it back.
+
+    @Test("A saved scroll fraction comes back to a fresh model for the same publication")
+    func scrollFractionRoundTrips() async throws {
+        let location = url("comics/natural-sort.cbz")
+        let defaults = try #require(UserDefaults(suiteName: "test-\(UUID().uuidString)"))
+        let preferences = ReaderPreferences(defaults: defaults)
+        let publication = publication(.cbz, at: location)
+
+        let first = ReaderModel(publication: publication, url: location, preferences: preferences)
+        await first.open(maxPixelSize: 256)
+        #expect(first.restoredScrollFraction == 0, "Nothing was ever stored for this publication.")
+
+        first.saveScrollFraction(0.6)
+
+        let second = ReaderModel(publication: publication, url: location, preferences: preferences)
+        await second.open(maxPixelSize: 256)
+        #expect(second.restoredScrollFraction == 0.6)
+    }
+
+    @Test("With no preferences store, nothing is remembered and nothing throws")
+    func scrollFractionWithNoStoreDoesNothing() async {
+        let location = url("comics/natural-sort.cbz")
+        let model = ReaderModel(publication: publication(.cbz, at: location), url: location)
+        await model.open(maxPixelSize: 256)
+
+        model.saveScrollFraction(0.5)
+
+        #expect(model.restoredScrollFraction == 0)
     }
 }

@@ -8,6 +8,7 @@ public struct ReaderPreferences {
     /// fixed-layout default, and removed. See ``themes()``.
     private let legacyFitKey = "app.storyarc.pageFit"
     private let themesKey = "app.storyarc.themes"
+    private let scrollOffsetsKey = "app.storyarc.scrollOffsets"
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -52,5 +53,19 @@ public struct ReaderPreferences {
               let memory = try? JSONDecoder().decode(ShelfMemory.self, from: data)
         else { return ShelfMemory() }
         return memory
+    }
+
+    /// Where a continuous scroll sits within its current page, per publication. See
+    /// ``ScrollOffsetMemory``.
+    public func scrollOffsets() -> ScrollOffsetMemory {
+        guard let data = defaults.data(forKey: scrollOffsetsKey),
+              let memory = try? JSONDecoder().decode(ScrollOffsetMemory.self, from: data)
+        else { return ScrollOffsetMemory() }
+        return memory
+    }
+
+    public func save(_ memory: ScrollOffsetMemory) {
+        guard let data = try? JSONEncoder().encode(memory) else { return }
+        defaults.set(data, forKey: scrollOffsetsKey)
     }
 }
