@@ -73,6 +73,27 @@ androidComponents {
     }
 }
 
+// `AboutContentsTest` asserts that the support address is written in one file. That claim is
+// about every module, not this one, so the Android root is handed over rather than found by a
+// walk: this repository nests agent worktrees at `.claude/worktrees/<name>/`, and a walk that
+// climbs looking for a marker leaves the checkout under test.
+//
+// Declaring the files as inputs is the other half. A `Test` task's inputs are its classpath and
+// its candidate classes, never another module's Kotlin sources, so without this the guard is
+// UP-TO-DATE after a second call site is added in `:feature:library`. `:core:designsystem` wires
+// its own cross-module guard the same way.
+tasks.withType<Test>().configureEach {
+    systemProperty("storyarc.android.rootDir", rootDir.absolutePath)
+    inputs.files(
+        fileTree(rootDir) {
+            include("**/src/main/**/*.kt")
+            exclude("**/build/**")
+        },
+    )
+        .withPropertyName("supportLinkGuardSources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:model"))
