@@ -139,26 +139,44 @@ public final class NowPlaying {
     /// present and refusing", applied to the lock screen.
     private func wire() {
         guard let centre else { return }
+        enable(for: centre)
+
+        guard !isWired else { return }
+        isWired = true
+        addTargets()
+    }
+
+    /// Turns on the commands this session's source can honour, and only those.
+    ///
+    /// ``TransportCommands`` decides which; this carries the answer to the platform. The
+    /// decision is a value so a host test can read it — `MPRemoteCommandCenter` exists only
+    /// on iOS, and this method is the whole of what no test can reach.
+    private func enable(for centre: PlayerCentre) {
         let commands = MPRemoteCommandCenter.shared()
+        let offered = TransportCommands.of(
+            skipUnit: centre.skipUnit,
+            isScrubbable: centre.time.isScrubbable
+        )
 
-        commands.playCommand.isEnabled = true
-        commands.pauseCommand.isEnabled = true
-        commands.togglePlayPauseCommand.isEnabled = true
+        commands.playCommand.isEnabled = offered.play
+        commands.pauseCommand.isEnabled = offered.pause
+        commands.togglePlayPauseCommand.isEnabled = offered.togglePlayPause
 
-        let byTime = centre.skipUnit == .time
-        commands.skipBackwardCommand.isEnabled = byTime
-        commands.skipForwardCommand.isEnabled = byTime
+        commands.skipBackwardCommand.isEnabled = offered.skipByTime
+        commands.skipForwardCommand.isEnabled = offered.skipByTime
         commands.skipBackwardCommand.preferredIntervals = [NSNumber(value: SkipIntervals.back)]
         commands.skipForwardCommand.preferredIntervals = [NSNumber(value: SkipIntervals.forward)]
         // Sentence skip, in the buttons the platform gives an audio app for it. A voice has
         // no tracks, so these are the only two controls a lock screen offers that mean
         // "move by one unit of the thing being played".
-        commands.nextTrackCommand.isEnabled = !byTime
-        commands.previousTrackCommand.isEnabled = !byTime
-        commands.changePlaybackPositionCommand.isEnabled = centre.time.isScrubbable
+        commands.nextTrackCommand.isEnabled = offered.skipBySentence
+        commands.previousTrackCommand.isEnabled = offered.skipBySentence
+        commands.changePlaybackPositionCommand.isEnabled = offered.scrub
+    }
 
-        guard !isWired else { return }
-        isWired = true
+    /// Points every button at the session, once for the life of this object.
+    private func addTargets() {
+        let commands = MPRemoteCommandCenter.shared()
 
         commands.playCommand.addTarget { [weak self] _ in
             guard let centre = self?.centre, !centre.isPlaying else { return .commandFailed }
@@ -200,4 +218,49 @@ public final class NowPlaying {
         }
     }
     #endif
+}
+
+/// Which of the system's remote commands the transport turns on.
+///
+/// **A value, so the rule can be read without a lock screen.** `MPRemoteCommandCenter` is a
+/// process-wide singleton and exists only on iOS, so ``NowPlaying`` cannot be asked what it
+/// decided from a host test. This says the same thing as data, and ``NowPlaying`` is its only
+/// caller — so the lock screen offers what this type says it offers.
+///
+/// **The rule reads the source's shape, never which source it is.** `audio-playback`: "every
+/// control the player offers works, or is absent — none is present and refusing". A narrated
+/// file has seconds, so it gets skip-by-seconds and a scrubber. A synthesised voice has none,
+/// so it gets sentence skip in the platform's track buttons and no scrubber at all — which is
+/// `ebook-reader`'s "platform media controls show the publication title and offer play, pause,
+/// and sentence skip".
+///
+/// Android decides the same thing in `ReadAloudService`: three buttons, no scrubber, and an
+/// unknown position reported so the system draws none either.
+struct TransportCommands {
+
+    /// Play, pause, and the one button that means both. Every source can start and stop.
+    let play: Bool
+    let pause: Bool
+    let togglePlayPause: Bool
+
+    /// Skip by the fixed interval, which only a source measured in seconds can honour.
+    let skipByTime: Bool
+
+    /// Skip by one sentence, in the previous-track and next-track buttons.
+    let skipBySentence: Bool
+
+    /// The lock screen's scrubber, which needs a total to scrub through.
+    let scrub: Bool
+
+    /// What a source of this shape offers.
+    static func of(skipUnit: SkipUnit, isScrubbable: Bool) -> TransportCommands {
+        TransportCommands(
+            play: true,
+            pause: true,
+            togglePlayPause: true,
+            skipByTime: skipUnit == .time,
+            skipBySentence: skipUnit == .sentence,
+            scrub: isScrubbable
+        )
+    }
 }
