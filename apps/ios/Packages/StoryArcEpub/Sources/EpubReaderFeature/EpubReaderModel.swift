@@ -53,8 +53,8 @@ public final class EpubReaderModel {
     /// The typography in force: the preset's own values until an axis is moved.
     public internal(set) var values: ThemeValues
 
-    /// The reader's own named palette, kept whether or not it is in force — unlike
-    /// `theme.custom`, which is only what is on the page right now.
+    /// `ShelfMemory.customPalette`, or a palette in force from before that slot existed.
+    /// Unlike `theme.custom`, it stays when the page stops showing it.
     public internal(set) var customPalette: ReaderPalette?
 
     /// Reader-local screen brightness, 0…1, or `nil` for the device's own.
@@ -229,14 +229,15 @@ public final class EpubReaderModel {
 
         // The reflowable scope. A fixed-layout EPUB never reaches this reader —
         // `ebook-reader` sends it to the comic reader, which has pages.
-        let stored = preferences?.themes().theme(for: Self.scope, shelf: shelf) ?? ShelfSettings()
+        let memory = preferences?.themes()
+        let stored = memory?.theme(for: Self.scope, shelf: shelf) ?? ShelfSettings()
         // The shelf's own theme, always. The appearance link is applied by the view, in force
         // and unrecorded, so that turning the setting off brings this one back. See
         // ``EpubReaderModel/follow(_:)``.
         self.theme = stored.theme
         self.values = stored.values
         self.transition = stored.transition
-        self.customPalette = stored.customPalette
+        self.customPalette = memory?.customPalette ?? stored.theme.custom
     }
 
     /// How a page becomes the next page. Paginated or scrolling, for an EPUB.
@@ -322,14 +323,14 @@ public final class EpubReaderModel {
         applyTheme(remembering: false)
     }
 
-    /// Puts the reader's own colours in force, or refuses and says why.
-    ///
-    /// `reading-themes`: a pairing below 4.5:1 "is refused with the measured ratio
-    /// stated". The refusal is returned rather than thrown or swallowed, because the
-    /// sheet has to show the number — a refusal without one is just an obstacle.
+    /// Puts the reader's colours in force, or returns false below 4.5:1 so the sheet states the ratio.
+    /// Under Original, which takes no colour, the seventh card moves the reader to Paper.
     @discardableResult
     public func adoptColours(_ palette: ReaderPalette) -> Bool {
         guard palette.isReadable else { return false }
+        if theme.preset.keepsPublisherStyles {
+            (theme, values) = (ReadingTheme(preset: .paper), ThemePreset.paper.values)
+        }
         theme = theme.adopting(palette)
         customPalette = palette
         applyTheme()
@@ -360,12 +361,11 @@ public final class EpubReaderModel {
     func remember(theme override: ReadingTheme? = nil, values overrideValues: ThemeValues? = nil) {
         guard let preferences else { return }
         let stored = ShelfSettings(
-            theme: override ?? theme, values: overrideValues ?? values, transition: transition,
-            customPalette: customPalette
+            theme: override ?? theme, values: overrideValues ?? values, transition: transition
         )
-        preferences.save(
-            preferences.themes().remembering(stored, for: Self.scope, shelf: shelf)
-        )
+        var memory = preferences.themes().remembering(stored, for: Self.scope, shelf: shelf)
+        memory.customPalette = customPalette
+        preferences.save(memory)
     }
 
     /// - Parameter remembering: false for a theme the *device* put in force rather than the

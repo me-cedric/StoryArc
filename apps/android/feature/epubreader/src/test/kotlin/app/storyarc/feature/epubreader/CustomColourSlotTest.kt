@@ -36,13 +36,18 @@ class CustomColourSlotTest {
 
     private val mine = ReaderPalette(name = "Mine", background = "#123456", foreground = "#FEDCBA")
 
-    private fun reader(on: ThemePreset, themeStore: ReaderPreferences? = null): EpubReaderViewModel {
+    private fun reader(
+        on: ThemePreset,
+        themeStore: ReaderPreferences? = null,
+        series: String? = null,
+    ): EpubReaderViewModel {
         val model = EpubReaderViewModel(
             application = RuntimeEnvironment.getApplication(),
             location = NOWHERE,
             identity = PublicationIdentity(normalizedPath = NOWHERE),
             progress = null,
             themeStore = themeStore,
+            series = series,
         )
         model.adopt(on)
         return model
@@ -124,6 +129,56 @@ class CustomColourSlotTest {
                 " to it.",
             mine,
             second.customPalette.value,
+        )
+    }
+
+    @Test
+    fun `under Original the seventh card leaves for Paper and puts the slot in force`() {
+        val reader = reader(on = ThemePreset.PAPER)
+        reader.adoptColours(mine)
+        reader.adopt(ThemePreset.ORIGINAL)
+
+        reader.adoptColours(requireNotNull(reader.customPalette.value))
+
+        assertEquals(
+            "The seventh card drew under Original and its tap did nothing. Original takes no" +
+                " colour, so the tap must leave it for Paper.",
+            mine,
+            reader.theme.value.custom,
+        )
+        assertEquals(ThemePreset.PAPER, reader.theme.value.preset)
+    }
+
+    @Test
+    fun `the slot is there on a book of another series too`() {
+        val store = ReaderPreferences.open(RuntimeEnvironment.getApplication())
+        reader(on = ThemePreset.PAPER, themeStore = store, series = "First").adoptColours(mine)
+        settle()
+
+        val other = reader(on = ThemePreset.PAPER, themeStore = store, series = "Second")
+
+        assertEquals(
+            "The slot stayed on the series it was made in. `reading-themes` stores it" +
+                " \"alongside the six presets\", and the six presets are there on every shelf.",
+            mine,
+            other.customPalette.value,
+        )
+        assertNull("The other series' own theme took the colour too.", other.theme.value.custom)
+    }
+
+    @Test
+    fun `a palette in force from before the slot existed becomes the slot`() {
+        val store = ReaderPreferences.open(RuntimeEnvironment.getApplication())
+        reader(on = ThemePreset.PAPER, themeStore = store).adoptColours(mine)
+        settle()
+        store.save(store.themes().copy(customPalette = null))
+
+        val reader = reader(on = ThemePreset.PAPER, themeStore = store)
+
+        assertEquals(
+            "A reader who made a colour before this update lost the seventh card for it.",
+            mine,
+            reader.customPalette.value,
         )
     }
 

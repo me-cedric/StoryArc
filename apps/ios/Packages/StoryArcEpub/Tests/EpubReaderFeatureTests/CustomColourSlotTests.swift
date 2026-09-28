@@ -34,13 +34,17 @@ struct CustomColourSlotTests {
         fatalError("fixture corpus not found above \(#filePath)")
     }()
 
-    private func model(preferences: ReaderPreferences? = nil) -> EpubReaderModel {
+    private func model(
+        preferences: ReaderPreferences? = nil,
+        series: String? = nil
+    ) -> EpubReaderModel {
         let url = Self.corpus.appending(path: "ebooks/fixture.epub")
         return EpubReaderModel(
             publication: Publication(
                 identity: PublicationIdentity(normalizedPath: url.path),
                 format: .epub,
                 displayTitle: "fixture.epub",
+                series: series,
                 origin: .embedded
             ),
             url: url,
@@ -124,6 +128,63 @@ struct CustomColourSlotTests {
             The slot did not reach the store, or did not come back. A reader who left the \
             book and opened it again lost their own named colour, with no way back to it.
             """
+        )
+    }
+
+    @Test("Under Original the seventh card leaves for Paper and puts the slot in force")
+    func theCardLeavesOriginal() throws {
+        let reader = model()
+        reader.adoptColours(mine)
+        reader.adopt(.original)
+
+        reader.adoptColours(try #require(reader.customPalette))
+
+        #expect(
+            reader.theme.custom == mine,
+            """
+            The seventh card drew under Original and its tap did nothing. Original takes no \
+            colour, so the tap must leave it for Paper.
+            """
+        )
+        #expect(reader.theme.preset == .paper)
+    }
+
+    @Test("The slot is there on a book of another series too")
+    func theSlotIsNotPerSeries() throws {
+        let suite = "CustomColourSlotTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let preferences = ReaderPreferences(defaults: defaults)
+
+        model(preferences: preferences, series: "First").adoptColours(mine)
+        let other = model(preferences: preferences, series: "Second")
+
+        #expect(
+            other.customPalette == mine,
+            """
+            The slot stayed on the series it was made in. `reading-themes` stores it "alongside \
+            the six presets", and the six presets are there on every shelf.
+            """
+        )
+        #expect(other.theme.custom == nil, "The other series' own theme took the colour too.")
+    }
+
+    @Test("A palette in force from before the slot existed becomes the slot")
+    func anOlderPaletteBecomesTheSlot() throws {
+        let suite = "CustomColourSlotTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let preferences = ReaderPreferences(defaults: defaults)
+        model(preferences: preferences).adoptColours(mine)
+        var older = preferences.themes()
+        older.customPalette = nil
+        preferences.save(older)
+
+        let reader = model(preferences: preferences)
+
+        #expect(
+            reader.customPalette == mine,
+            "A reader who made a colour before this update lost the seventh card for it."
         )
     }
 }
