@@ -498,12 +498,51 @@ class LibraryIndexTest {
     }
 
     @Test
-    fun `a scope narrows the search as well as the shelf`() {
-        // "o" is in Bone and in Maus... and only Bone is on the server.
-        val query = LibraryQuery(search = "o", scope = LibraryScope.OneSource(server))
+    fun `a scope narrows the shelf and stands down for a search`() {
+        // This asserted the opposite until 2026-09-12, quoting `library-browsing`'s old
+        // *Scoping to one source*: "the view, its search, and its filters apply to that source
+        // alone". `one-library-three-destinations` replaced that requirement -- the by-library
+        // narrowing "narrows what the shelf lists and nothing else -- search still covers the
+        // whole library" -- and this half of the code had never followed it. iOS was corrected
+        // on 2026-09-05 and Android was not, so the two platforms answered one query two ways.
+        //
+        // **And the case it used to make was vacuous, which is why it never caught this.** It
+        // searched for "o" and expected `["Bone"]`, on a comment reading "'o' is in Bone and in
+        // Maus" -- Maus has no "o" in it. Bone was the only match either way, so the assertion
+        // held whether the scope narrowed the search or not.
+        //
+        // "Maus" is the term that tells them apart: it belongs to no source, so under the old
+        // rule a shelf narrowed to the server answered nothing at all.
+        val searched = LibraryQuery(search = "Maus", scope = LibraryScope.OneSource(server))
+        assertEquals(
+            listOf("Maus"),
+            titles(LibraryIndex.arrange(mixedLibrary(), searched, Locale.ENGLISH)),
+        )
+
+        // And the shelf underneath it is still narrowed: the filter did not stop applying, it
+        // stopped applying to the question being asked.
+        val unsearched = LibraryQuery(scope = LibraryScope.OneSource(server))
         assertEquals(
             listOf("Bone"),
-            titles(LibraryIndex.arrange(mixedLibrary(), query, Locale.ENGLISH)),
+            titles(LibraryIndex.arrange(mixedLibrary(), unsearched, Locale.ENGLISH)),
+        )
+    }
+
+    @Test
+    fun `grouping covers the whole library, because a shelf filter is not a search filter`() {
+        // Grouping derives from [LibraryIndex.arrange], so the rule that the by-library filter
+        // stands down for a query is inherited here rather than decided a second time. Both
+        // books match "bone"; one is on the server, one in a folder.
+        val library = listOf(
+            publication("Bone", source = folder),
+            publication("Bone Sharps", source = server),
+        )
+        val query = LibraryQuery(search = "bone", scope = LibraryScope.OneSource(server))
+        val groups = LibraryIndex.grouped(library, query, Locale.ENGLISH)
+
+        assertEquals(
+            setOf("Bone", "Bone Sharps"),
+            groups.flatMap { titles(it.publications) }.toSet(),
         )
     }
 
@@ -628,14 +667,4 @@ class LibraryIndexTest {
         )
     }
 
-    @Test
-    fun `grouping obeys the scope, because it groups what the shelf already shows`() {
-        val library = listOf(
-            publication("Bone", source = folder),
-            publication("Bone Sharps", source = server),
-        )
-        val query = LibraryQuery(search = "bone", scope = LibraryScope.OneSource(server))
-        val groups = LibraryIndex.grouped(library, query, Locale.ENGLISH)
-        assertEquals(listOf("Bone Sharps"), groups.flatMap { titles(it.publications) })
-    }
 }
