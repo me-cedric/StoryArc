@@ -28,8 +28,7 @@ import org.robolectric.annotation.Config
  * `native-experience`, applied to the font-size stepper: a tap on Larger used to leave
  * TalkBack focus on the button with the new position unannounced, because the merged node
  * carried no live region. `FontSizeControl` moved from `private` to `internal` so this test
- * can reach it directly, the same lift `AGENTS.md` §... describes for a rule a test cannot
- * otherwise reach through the view.
+ * can reach it directly.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
