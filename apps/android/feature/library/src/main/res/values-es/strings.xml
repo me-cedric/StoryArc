@@ -19,6 +19,8 @@
     <string name="source_offline_retry">Reintentar</string>
     <string name="source_state_unauthorized">Se requiere iniciar sesión</string>
     <string name="library_cell_cannot_open">No se puede abrir</string>
+    <string name="library_action_show_details">Mostrar detalles</string>
+    <string name="library_action_remove_from_shelf">Quitar de esta estantería</string>
     <string name="library_cell_finished">Terminado</string>
     <string name="library_cell_unavailable">Necesita que su biblioteca esté disponible</string>
     <string name="library_section_other">Otros</string>

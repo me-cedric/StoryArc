@@ -27,7 +27,11 @@ struct CollectionDetail: View {
                     .foregroundStyle(theme.palette.textSecondary)
                     .padding(StoryArcSpace.xl)
             } else {
-                CoverGrid(publications: members, model: model)
+                CoverGrid(
+                    publications: members,
+                    model: model,
+                    onRemoveFromShelf: { model.remove(Set([$0.id]), fromCollection: self.id) }
+                )
             }
         }
         .background(theme.palette.surfaceCanvas)
@@ -195,6 +199,10 @@ struct ReadingListDetail: View {
         .shelfBulkActions(model: model, members: Set(entries), promoting: list)
     }
 
+    /// The server whose list just refused a row's publication, if one did.
+    @State private var refusedServer: String?
+    @State private var restarting: Publication?
+
     @ViewBuilder
     private func row(_ entry: String, number: Int, isFinished: Bool) -> some View {
         let publication = model.publications.first { $0.id == entry }
@@ -243,5 +251,22 @@ struct ReadingListDetail: View {
         }
         .buttonStyle(.plain)
         .disabled(publication == nil)
+        // `library-browsing`'s *A publication's actions wherever it is drawn*: a reading
+        // list's own row had none at all, only the swipe this screen already offered for
+        // removal. An entry the library no longer holds a publication for has nothing a
+        // menu could act on, so it draws none.
+        .contextMenu {
+            if let publication {
+                PublicationActionMenu(
+                    model: model,
+                    publication: publication,
+                    onRemoveFromShelf: { model.remove(entry, fromList: self.id) },
+                    onRefused: { refusedServer = $0 },
+                    onRestart: { restarting = publication }
+                )
+            }
+        }
+        .restartConfirmation($restarting, model: model)
+        .refusedByServer($refusedServer, model: model, publication: publication)
     }
 }

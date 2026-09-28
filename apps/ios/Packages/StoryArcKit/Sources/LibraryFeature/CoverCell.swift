@@ -37,6 +37,9 @@ struct CoverCell: View {
     /// named for the series, captioned with the count, and leads to the series rather than
     /// to whichever issue happens to lead it.
     var series: (name: String, count: Int)?
+    /// Removes this publication from the shelf the grid is drawing, or `nil` on the
+    /// library's own grid. See ``CoverGrid/onRemoveFromShelf``.
+    var onRemoveFromShelf: (() -> Void)?
 
     @State private var cover: CGImage?
     @State private var didAttemptLoad = false
@@ -108,9 +111,10 @@ struct CoverCell: View {
         // already offering the same actions for everything that is picked.
         .contextMenu {
             if isPicked == nil {
-                AddToShelfMenu(
+                PublicationActionMenu(
                     model: model,
-                    publications: [publication],
+                    publication: publication,
+                    onRemoveFromShelf: onRemoveFromShelf,
                     onRefused: { refusedServer = $0 },
                     onRestart: { restarting = publication }
                 )

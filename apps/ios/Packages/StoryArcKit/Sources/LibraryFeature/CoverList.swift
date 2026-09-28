@@ -204,9 +204,9 @@ struct ListRow: View {
                 // so *Start from the beginning* drew and did nothing. `onRestart` is
                 // optional now and the menu declines to draw a button it cannot deliver,
                 // but the call reads as what it means either way.
-                AddToShelfMenu(
+                PublicationActionMenu(
                     model: model,
-                    publications: [publication],
+                    publication: publication,
                     onRefused: { refusedServer = $0 },
                     onRestart: { restarting = publication }
                 )

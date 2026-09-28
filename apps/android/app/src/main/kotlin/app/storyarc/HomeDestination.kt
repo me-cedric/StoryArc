@@ -26,6 +26,7 @@ import app.storyarc.core.model.ReadState
 import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.model.RememberedShelf
 import app.storyarc.core.model.RememberedShelfKind
+import app.storyarc.feature.library.AddToShelfSheet
 import app.storyarc.feature.library.HomeScreen
 import app.storyarc.feature.library.HomeSection
 import app.storyarc.feature.library.HomeShelfArtworkOutcome
@@ -38,6 +39,7 @@ import app.storyarc.feature.library.HomeShelves
 import app.storyarc.feature.library.HomeSurface
 import app.storyarc.feature.library.HOME_SHELF_SOLE_COVER_KEY
 import app.storyarc.feature.library.KavitaPage
+import app.storyarc.feature.library.RestartConfirmation
 import app.storyarc.feature.library.ServerShelf
 import app.storyarc.navigation.AppSheet
 import app.storyarc.navigation.Screen
@@ -202,6 +204,15 @@ internal fun HomeDestination(host: AppHost) {
         }
     }
 
+    // The publication a long press on a plain-shelf cover opened the sheet for.
+    // `library-browsing`'s *A publication's actions wherever it is drawn* named the home
+    // surface as one of the places that offered none at all. `home-screen` forbids
+    // [HomeScreen] itself from reaching a source, so the sheet -- which needs the view
+    // model -- lives here rather than there, the way [homeShelfArtwork] already does for a
+    // question this screen cannot answer on its own.
+    var shelving by remember { mutableStateOf<Publication?>(null) }
+    var restarting by remember { mutableStateOf<Publication?>(null) }
+
     HomeScreen(
         surface = surface,
         cover = host.library::cover,
@@ -233,7 +244,37 @@ internal fun HomeDestination(host: AppHost) {
         // destination's own stack rather than Home's, so this switches destinations
         // instead of pushing onto whichever one Home already is.
         onShowAllShelves = { host.navigate { openLibrarySection(Screen.Shelves) } },
+        onLongPress = { shelving = it },
     )
+
+    val shelved = shelving
+    if (shelved != null) {
+        AddToShelfSheet(
+            viewModel = host.library,
+            publications = listOf(shelved),
+            onDismiss = { shelving = null },
+            onMark = { changing, isRead -> changing.forEach { host.mark(it, isRead) } },
+            onRestart = { restarting = shelved },
+            onAddToServerList = { publication, list ->
+                host.library.addToServerList(
+                    publication,
+                    list,
+                    host.dependencies.kavitaProgress,
+                    host.dependencies.credentials,
+                )
+            },
+            onShowDetails = { host.openPage(shelved) },
+        )
+    }
+
+    val restart = restarting
+    if (restart != null) {
+        RestartConfirmation(
+            publication = restart,
+            viewModel = host.library,
+            onDismiss = { restarting = null },
+        )
+    }
 }
 
 /**

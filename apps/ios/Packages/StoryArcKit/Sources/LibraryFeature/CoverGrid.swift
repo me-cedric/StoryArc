@@ -136,6 +136,12 @@ struct CoverGrid: View {
     var selection: Set<String>?
     var onToggle: (Publication) -> Void = { _ in }
 
+    /// Removes a publication from the shelf this grid is drawing, or `nil` on the library's
+    /// own grid, which is not one. `library-browsing`'s *A publication's actions wherever it
+    /// is drawn* offers this "only where there is one" — a collection or reading-list
+    /// detail page passes its own removal, and nothing else does.
+    var onRemoveFromShelf: ((Publication) -> Void)?
+
     /// How much room the shelf itself has.
     ///
     /// Measured rather than read from `horizontalSizeClass`, for the reason
@@ -211,7 +217,8 @@ struct CoverGrid: View {
                     series: seriesRows[publication.id].flatMap { row in
                         guard case let .series(name, members) = row else { return nil }
                         return (name: name, count: members.count)
-                    }
+                    },
+                    onRemoveFromShelf: onRemoveFromShelf.map { remove in { remove(publication) } }
                 )
             }
         }

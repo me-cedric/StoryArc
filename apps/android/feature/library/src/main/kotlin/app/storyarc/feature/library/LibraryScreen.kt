@@ -632,6 +632,7 @@ fun LibraryScreen(
             onMark = { changing, isRead -> changing.forEach { onMark(it, isRead) } },
             onRestart = { restarting = shelved },
             onAddToServerList = onAddToServerList,
+            onShowDetails = { onOpenPage(shelved) },
         )
     }
 
@@ -665,26 +666,10 @@ fun LibraryScreen(
     // is the only copy the app promises never to lose.
     val restart = restarting
     if (restart != null && viewModel != null) {
-        AlertDialog(
-            onDismissRequest = { restarting = null },
-            title = { Text(stringResource(R.string.library_restart_title, restart.displayTitle)) },
-            text = { Text(stringResource(R.string.library_restart_body)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.restart(restart)
-                    restarting = null
-                }) {
-                    Text(
-                        text = stringResource(R.string.library_restart_confirm),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { restarting = null }) {
-                    Text(stringResource(R.string.shelves_cancel))
-                }
-            },
+        RestartConfirmation(
+            publication = restart,
+            viewModel = viewModel,
+            onDismiss = { restarting = null },
         )
     }
 }
