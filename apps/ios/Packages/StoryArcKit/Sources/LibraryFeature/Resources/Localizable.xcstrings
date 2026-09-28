@@ -4880,6 +4880,36 @@
         }
       }
     },
+    "library.cell.finished": {
+      "comment": "Spoken and shown when a publication is finished: the badge on its cover, and the word in place of a percentage in the list row. library-browsing's \"The finished mark\".",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gelesen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finished"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminé"
+          }
+        }
+      }
+    },
     "library.cell.pages %lld": {
       "comment": "Spoken by VoiceOver as part of a cover cell's label. Never shown visually.",
       "extractionState": "manual",

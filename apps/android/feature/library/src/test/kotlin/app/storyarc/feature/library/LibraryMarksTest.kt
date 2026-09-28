@@ -201,6 +201,50 @@ class LibraryMarksTest {
         )
     }
 
+    // MARK: - The finished badge
+
+    @Test
+    fun `a finished cover says so, because the badge in its corner cannot`() {
+        val spoken = spokenCellLabel(
+            parts = listOf("Ashfall #1"),
+            isOnDevice = false,
+            isReadableNow = true,
+            downloaded = "Downloaded",
+            unavailable = "Unavailable",
+            isFinished = true,
+            finished = "Finished",
+        )
+
+        assertTrue(spoken == "Ashfall #1, Finished")
+    }
+
+    @Test
+    fun `an unfinished cover says nothing about it, by default`() {
+        val spoken = spokenCellLabel(
+            parts = listOf("Ashfall #1"),
+            isOnDevice = false,
+            isReadableNow = true,
+            downloaded = "Downloaded",
+            unavailable = "Unavailable",
+        )
+
+        assertTrue(spoken == "Ashfall #1")
+    }
+
+    @Test
+    fun `the badge stands down while the reader is picking`() {
+        // `library-browsing` caps a cover at two marks, and the pick mark is the
+        // substitution the other one already makes -- this one follows the same rule.
+        assertFalse(showsFinishedMark(isPicked = true, isFinished = true))
+        assertFalse(showsFinishedMark(isPicked = false, isFinished = true))
+    }
+
+    @Test
+    fun `the badge draws for a finished publication outside selection mode`() {
+        assertTrue(showsFinishedMark(isPicked = null, isFinished = true))
+        assertFalse(showsFinishedMark(isPicked = null, isFinished = false))
+    }
+
     @Test
     fun `a publication no decoder will open is not dimmed for it`() {
         // A different message, carried by the cell's own caption. Dimming it as well would

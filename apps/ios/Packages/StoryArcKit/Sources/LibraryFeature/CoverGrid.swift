@@ -280,6 +280,30 @@ struct OnDeviceMark: View {
     }
 }
 
+/// A publication the reader has finished.
+///
+/// The owner's field report on v0.1.1: "the finished indicator could be more prominent" — a
+/// full-width rail in ``ProgressBar``'s own muted tone was the only sign, and a full bar in a
+/// rail colour reads as decoration rather than as news. This is a badge instead, in the
+/// system material rather than a palette colour, so it stays legible over a cover of any
+/// tone — light or dark, the corner keeps the same disc.
+///
+/// It stands in for the progress rail rather than joining it — see
+/// ``LibraryMarks/showsFinishedMark(isPicked:isFinished:)`` — so `library-browsing`'s cap of
+/// two marks is unbroken.
+struct FinishedMark: View {
+    var body: some View {
+        Image(systemName: "checkmark.circle.fill")
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(.white)
+            .font(.subheadline)
+            .padding(StoryArcSpace.xs)
+            .background(.regularMaterial, in: .circle)
+            // Announced by the cell, which already names the publication this belongs to.
+            .accessibilityHidden(true)
+    }
+}
+
 /// How far through a publication the reader got.
 ///
 /// `library-browsing`: "its cover carries an unobtrusive progress indicator", and

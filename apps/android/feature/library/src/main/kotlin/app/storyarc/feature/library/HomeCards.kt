@@ -406,15 +406,23 @@ internal fun HomeShelfCell(
         modifier = modifier.width(width),
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
     ) {
-        HomeCoverArt(
-            publication = entry.publication,
-            cover = cover,
-            width = width,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(width * HOME_COVER_ASPECT)
-                .alpha(dim),
-        )
+        Box(modifier = Modifier.fillMaxWidth().height(width * HOME_COVER_ASPECT)) {
+            HomeCoverArt(
+                publication = entry.publication,
+                cover = cover,
+                width = width,
+                modifier = Modifier.fillMaxSize().alpha(dim),
+            )
+            // `library-browsing`'s *The finished mark*: "the home surface … draws a
+            // finished publication" with the same badge the library grid uses. Home used to
+            // say so only in the spoken label `homeCardSemantics` builds -- a fact stated to
+            // TalkBack and to nobody looking at the shelf.
+            if (entry.state == ReadState.FINISHED) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopStart) {
+                    FinishedMark()
+                }
+            }
+        }
         Text(
             text = entry.publication.displayTitle,
             style = MaterialTheme.typography.bodyMedium,

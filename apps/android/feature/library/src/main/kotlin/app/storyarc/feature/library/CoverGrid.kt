@@ -504,6 +504,9 @@ private fun CoverCell(
     )
     val unavailable = stringResource(R.string.library_cell_unavailable)
     val downloaded = stringResource(R.string.catalogue_entry_downloaded)
+    val isFinished = viewModel.isFinished(publication)
+    val finished = stringResource(R.string.library_cell_finished)
+    val showsFinished = showsFinishedMark(isPicked, isFinished)
 
     Column(
         // One label for the whole cell. Read as three elements it would announce
@@ -548,6 +551,8 @@ private fun CoverCell(
                     isReadableNow = isReadable,
                     downloaded = downloaded,
                     unavailable = unavailable,
+                    isFinished = isFinished,
+                    finished = finished,
                 )
                 // Spoken, because a tick in the corner of a cover is invisible to
                 // TalkBack and "is this one picked" is the only question selection mode
@@ -612,7 +617,10 @@ private fun CoverCell(
             // glance without a label covering the artwork". A bar along the foot
             // does both — it never crosses the artwork, and a full one reads as
             // finished without a word on top of the cover.
-            if (fraction != null) {
+            //
+            // Withheld once finished: the badge in the opposite corner is what a finished
+            // cover says now, and a full rail underneath it would be the same fact twice.
+            if (fraction != null && !showsFinished) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -638,6 +646,17 @@ private fun CoverCell(
             if (isPicked != null) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) {
                     PickMark(isPicked)
+                }
+            }
+
+            // The owner's field report on v0.1.1: "the finished indicator could be more
+            // prominent" — a full rail in the rail's own muted tone was the only sign. This
+            // corner is free: the pick mark takes the opposite one and the on-device mark
+            // the one below it, so the badge cannot collide with either. Stands down while
+            // picking, on the same terms as the on-device mark below.
+            if (showsFinished) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopStart) {
+                    FinishedMark()
                 }
             }
 
@@ -761,7 +780,7 @@ internal fun OnDeviceMark(modifier: Modifier = Modifier) {
 }
 
 /** Large enough to read over artwork, small enough not to be a second thing on the cover. */
-private val ON_DEVICE_MARK_SIZE = 18.dp
+internal val ON_DEVICE_MARK_SIZE = 18.dp
 
 /** The second line: what distinguishes this cell from its neighbours. */
 @Composable
