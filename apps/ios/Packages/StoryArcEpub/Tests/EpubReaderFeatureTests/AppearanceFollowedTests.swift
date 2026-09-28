@@ -153,6 +153,34 @@ struct AppearanceFollowedTests {
         )
     }
 
+    @Test("A page-turn change while a followed theme is in force keeps the series' own theme")
+    func choosingATransitionDoesNotRecordTheFollowedTheme() throws {
+        let suite = "AppearanceFollowedTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let preferences = ReaderPreferences(defaults: defaults)
+
+        let model = reader(on: .paper, preferences: preferences)
+        model.follow(.quiet)
+
+        model.choose(.verticalScroll)
+
+        let stored = preferences.themes().theme(for: EpubReaderModel.scope, shelf: model.shelf)
+        #expect(
+            stored.theme.preset == .paper,
+            """
+            Turning only the page put Quiet — the appearance's followed theme, never \
+            recorded by `follow(_:)` — into the shelf's own stored theme. `reading-themes`, \
+            *Presets follow the appearance polarity*: turning the link off "brings the \
+            series theme back", and Paper is what it should bring back.
+            """
+        )
+        #expect(
+            stored.transition == .verticalScroll,
+            "the transition the reader just chose did not reach the store at all"
+        )
+    }
+
     // MARK: - The wiring, which no host test can watch
 
     @Test("The follow goes through the one path that preserves the reading position")

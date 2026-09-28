@@ -2,6 +2,7 @@ package app.storyarc.feature.epubreader
 
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.AppearanceMode
+import app.storyarc.core.model.PageTransition
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReaderPalette
 import app.storyarc.core.model.ShelfMemory
@@ -180,6 +181,35 @@ class AppearanceFollowedTest {
             2.4,
             store.themes().theme(ThemeScope.REFLOWABLE, shelf).values.lineHeight,
             0.0,
+        )
+    }
+
+    @Test
+    fun `a page-turn change while a followed theme is in force keeps the series' own theme`() {
+        val store = ReaderPreferences.open(RuntimeEnvironment.getApplication())
+        val model = reader(on = ThemePreset.PAPER, themeStore = store)
+        val shelf = ShelfMemory.shelf(null, PublicationIdentity(normalizedPath = NOWHERE).stableId)
+        settle()
+
+        model.follow(ThemePreset.QUIET)
+        settle()
+        model.choose(PageTransition.VERTICAL_SCROLL)
+        settle()
+
+        val stored = store.themes().theme(ThemeScope.REFLOWABLE, shelf)
+        assertEquals(
+            "Turning only the page put Quiet — the appearance's followed theme, never" +
+                " recorded by `follow` — into the shelf's own stored theme." +
+                " `reading-themes`, *Presets follow the appearance polarity*: turning the" +
+                " link off \"brings the series theme back\", and Paper is what it should" +
+                " bring back.",
+            ThemePreset.PAPER,
+            stored.theme.preset,
+        )
+        assertEquals(
+            "The transition the reader just chose did not reach the store at all.",
+            PageTransition.VERTICAL_SCROLL,
+            stored.transition,
         )
     }
 
