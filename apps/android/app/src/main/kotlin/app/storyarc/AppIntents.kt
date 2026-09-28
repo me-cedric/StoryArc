@@ -15,6 +15,7 @@ import app.storyarc.core.model.QuickActionRequest
 import app.storyarc.core.persistence.finishedDownload
 import app.storyarc.core.persistence.removeAfterFinishing
 import app.storyarc.navigation.AppDestination
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -143,22 +144,43 @@ private fun ForgetFinishedDownloads(host: AppHost, settings: AppSettings, isRead
     LaunchedEffect(settings.removeDownloadsAfterFinishing, publications, isReading) {
         if (isReading || !settings.removeDownloadsAfterFinishing) return@LaunchedEffect
         val store = host.dependencies.downloads
-        val target = finishedDownload(store, host.downloads.value) { path ->
+        val target = finishedDownload(
+            store,
+            host.downloads.value,
+            isKept = host.dependencies.keptFromCleanup::contains,
+        ) { path ->
             host.dependencies.progress
                 .progress(PublicationIdentity(normalizedPath = path))
                 ?.isFinished == true
         } ?: return@LaunchedEffect
-        removeAfterFinishing(store, host.downloads.value, target.id)?.let { (without, taken) ->
-            host.downloads.value = without
-            host.removed.value?.settle()
-            host.removed.value = taken
-            launch {
-                delay(UNDO_WINDOW_MILLIS)
-                if (host.removed.value === taken) {
-                    taken.settle()
-                    host.removed.value = null
-                }
+        removeDownloadNow(host, target.id)
+    }
+}
+
+/**
+ * D7: the end screen's "Remove download" action, when automatic cleanup is off. The same
+ * removal the sweep does, done now rather than waited for.
+ */
+internal suspend fun CoroutineScope.removeDownloadNow(host: AppHost, id: String) {
+    val store = host.dependencies.downloads
+    removeAfterFinishing(store, host.downloads.value, id)?.let { (without, taken) ->
+        host.downloads.value = without
+        host.removed.value?.settle()
+        host.removed.value = taken
+        launch {
+            delay(UNDO_WINDOW_MILLIS)
+            if (host.removed.value === taken) {
+                taken.settle()
+                host.removed.value = null
             }
         }
     }
+}
+
+/**
+ * D7: the end screen's "Keep" action, when automatic cleanup is on. The sweep skips this
+ * download from here on.
+ */
+internal fun keepDownloadFromCleanup(host: AppHost, id: String) {
+    host.dependencies.keptFromCleanup.keep(id)
 }

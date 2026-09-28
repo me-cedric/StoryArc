@@ -57,6 +57,18 @@ class FinishedCleanupTest {
     }
 
     @Test
+    fun `a download the reader kept is skipped, not swept`() = runBlocking {
+        val store = store()
+        val found = finishedDownload(
+            store,
+            libraryWith(store, "one"),
+            isKept = { it == "one" },
+            isFinished = { it.endsWith("one.cbz") },
+        )
+        assertNull(found)
+    }
+
+    @Test
     fun `the bytes wait rather than going, so the removal can be undone`() = runBlocking {
         val store = store()
         val library = libraryWith(store, "one")

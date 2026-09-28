@@ -44,16 +44,23 @@ data class RemovedDownload(
  * "the catalogue can be asked for it again", and nothing can be asked for an import --
  * `local-library` promises the copy outlives the original, so deleting it on the last page
  * would be the app breaking its own promise.
+ *
+ * Nor is one the reader kept (D7): [isKept] skips it in favour of the next finished
+ * download, rather than reporting nothing swept at all this pass.
  */
 suspend fun finishedDownload(
     store: DownloadStore,
     library: DownloadLibrary,
+    isKept: (String) -> Boolean = { false },
     isFinished: suspend (String) -> Boolean,
 ): Download? = withContext(Dispatchers.IO) {
-    library.finished.filterNot(ImportedCopies::isImported).firstOrNull { download ->
-        val path = store.location(download).absolutePath
-        isFinished(path)
-    }
+    library.finished
+        .filterNot(ImportedCopies::isImported)
+        .filterNot { isKept(it.id) }
+        .firstOrNull { download ->
+            val path = store.location(download).absolutePath
+            isFinished(path)
+        }
 }
 
 /**
