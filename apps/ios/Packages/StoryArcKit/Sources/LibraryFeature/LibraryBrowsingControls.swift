@@ -117,12 +117,16 @@ struct ViewMenu: View {
 
             Divider()
 
+            // Named by ``OrderingNaming/orderingControl`` rather than by a literal, so this
+            // control and the reading list's carry one name. `library-browsing`, *An ordering
+            // says that it is an ordering*: the seven fields are this picker's values and
+            // never its name.
             Picker(selection: sortBinding) {
                 ForEach(LibrarySort.allCases, id: \.self) { sort in
                     Text(sort.titleKey, bundle: .module).tag(sort)
                 }
             } label: {
-                Text("library.sort", bundle: .module)
+                Text(LocalizedStringKey(OrderingNaming.orderingControl), bundle: .module)
             }
 
             Picker(selection: directionBinding) {
