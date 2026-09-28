@@ -296,6 +296,45 @@ class AppNavigationTest {
         assertEquals(navigation, navigation.openPage(chosen))
     }
 
+    /**
+     * Task 21.2: a shelf opened from Home used to stay on Home's own stack, with Home still
+     * marked as the destination. `navigation-shell` puts it on Library's instead.
+     */
+    @Test
+    fun `a library section opened from another destination switches to Library`() {
+        val navigation = AppNavigation().openLibrarySection(Screen.Shelves)
+
+        assertEquals(AppDestination.LIBRARY, navigation.destination)
+        assertEquals(Screen.Shelves, navigation.current)
+        // Home's own stack never received it, so a back press from Shelves does not
+        // surface a copy of it sitting behind Library's root.
+        assertNull(navigation.select(AppDestination.HOME).current)
+    }
+
+    @Test
+    fun `opening a library section from Library itself is a plain push`() {
+        val navigation = AppNavigation()
+            .select(AppDestination.LIBRARY)
+            .openLibrarySection(Screen.Shelves)
+
+        assertEquals(AppDestination.LIBRARY, navigation.destination)
+        assertEquals(Screen.Shelves, navigation.current)
+    }
+
+    @Test
+    fun `choosing another destination after a library section leaves without a back press`() {
+        val navigation = AppNavigation()
+            .select(AppDestination.SEARCH)
+            .openLibrarySection(Screen.Shelves)
+            .select(AppDestination.DOWNLOADS)
+
+        // One `select`, not a `back()` first: the reader is on Downloads' own root
+        // immediately, and Search never held the section it did not ask for.
+        assertEquals(AppDestination.DOWNLOADS, navigation.destination)
+        assertNull(navigation.current)
+        assertNull(navigation.select(AppDestination.SEARCH).current)
+    }
+
     @Test
     fun `a page opened from a page stacks, so back is the way the reader came`() {
         val first = publication("bone one")

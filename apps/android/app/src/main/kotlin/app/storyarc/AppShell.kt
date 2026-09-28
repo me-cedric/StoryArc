@@ -282,13 +282,12 @@ internal fun AppShell(
             NavigationEntry(
                 label = stringResource(R.string.destination_shelves),
                 icon = Icons.Filled.Inventory2,
-                selected = navigation.current is Screen.Shelves,
-                onSelect = {
-                    // Choosing the entry a reader is already on is not a second copy of it.
-                    if (navigation.current !is Screen.Shelves) {
-                        navigation = navigation.push(Screen.Shelves)
-                    }
-                },
+                // Library too, not only the shelf on top of it: `navigation-shell` asks
+                // that opening it "marks Library", and a reader on Home who opened Shelves
+                // used to see Home stay marked here while Shelves showed selected below it.
+                selected = navigation.destination == AppDestination.LIBRARY &&
+                    navigation.current is Screen.Shelves,
+                onSelect = { navigation = navigation.openLibrarySection(Screen.Shelves) },
             ),
             NavigationEntry(
                 label = stringResource(R.string.destination_settings),
