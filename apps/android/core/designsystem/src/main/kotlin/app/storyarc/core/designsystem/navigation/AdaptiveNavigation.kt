@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
@@ -40,6 +41,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.rememberWindowClass
 import kotlinx.coroutines.CoroutineScope
@@ -355,10 +357,13 @@ internal fun accentedItemColours(defaults: NavigationItemColors): NavigationItem
  * name on it, which here is the content description, because the glyph is the whole control
  * — and the glyph changes with the state, so the button is not leaning on position alone to
  * say which way it goes.
+ *
+ * Inset by [RailMenuInset]. The rail places its header at its leading edge, so a bare 48 dp
+ * button sat 24 dp to the side of the destination icons below it.
  */
 @Composable
 private fun RailMenuButton(isOpen: Boolean, labels: RailMenuLabels, onToggle: () -> Unit) {
-    IconButton(onClick = onToggle) {
+    IconButton(onClick = onToggle, modifier = Modifier.padding(start = RailMenuInset)) {
         Icon(
             imageVector = if (isOpen) Icons.AutoMirrored.Filled.MenuOpen else Icons.Filled.Menu,
             contentDescription = if (isOpen) labels.collapse else labels.expand,
@@ -392,6 +397,15 @@ private fun RailMenuButton(isOpen: Boolean, labels: RailMenuLabels, onToggle: ()
  * is drawn at.
  */
 private const val NavigationLabelFontScale = 1f
+
+/**
+ * The start inset that puts the rail's menu button on the same axis as its destination icons.
+ *
+ * Material 3's own `WideNavigationRail` samples give the header's `IconButton`
+ * `Modifier.padding(start = 24.dp)`: half of the 96 dp collapsed rail, less half of the 48 dp
+ * button. The same inset lines the icon up with the expanded rail's icons.
+ */
+internal val RailMenuInset = 24.dp
 
 /**
  * Whether this control is one whose labels have to be held to their design size.
