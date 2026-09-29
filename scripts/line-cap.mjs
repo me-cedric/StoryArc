@@ -73,13 +73,7 @@ export const capFor = (path) => {
 const ALLOWED = {
     'apps/android/feature/reader/src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt': 1893,
     'apps/android/feature/library/src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt': 1690,
-    // Grew by 7 lines for task 2.6: reporting a Kavita position needs the publication's
-    // own identity, which this activity had no way to carry before -- an `Intent` extra,
-    // a constructor parameter, and the one override that reports on leaving. The
-    // reporting logic itself moved out to `EpubKavitaReport.kt`, which is most of what
-    // the fix added; this is what could not follow it without duplicating the intent
-    // extras or the activity's own lifecycle hook.
-    'apps/android/feature/epubreader/src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt': 1058,
+    'apps/android/feature/epubreader/src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt': 1051,
 }
 
 /** Source this project writes. Generated files and dependencies are nobody's to split. */

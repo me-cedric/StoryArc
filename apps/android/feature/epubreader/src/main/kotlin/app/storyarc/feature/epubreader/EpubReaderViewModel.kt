@@ -110,9 +110,7 @@ class EpubReaderViewModel(
     private val atOpen = themeStore?.themes()
     private val stored = atOpen?.theme(themeScope, shelf) ?: ShelfSettings()
 
-    /**
-     * The reading order's hrefs, for the progress fallback below.
-     */
+    /** The reading order's hrefs, for the progress fallback and the end-of-book check. */
     private var readingOrder: List<String> = emptyList()
 
     /**
@@ -488,6 +486,13 @@ class EpubReaderViewModel(
         }
     }
 
+    /** Readium's page report, which alone can say the last page is on screen. See [isLastPage]. */
+    fun pageShown(pageIndex: Int, totalPages: Int, locator: Locator) {
+        val href = locator.href.toString()
+        if (!isLastPage(pageIndex, totalPages, href, readingOrder, _transition.value)) return
+        scope.launch { record(locator, totalProgressionOf(locator), atEnd = true) }
+    }
+
     /** Where the reader is, kept so a bookmark can be made of it. */
     private var here: Locator? = null
 
@@ -762,13 +767,11 @@ class EpubReaderViewModel(
     }
 
     /**
-     * Writes the position down.
-     *
-     * Every move, not on leaving: ADR-0006 makes the local record authoritative,
-     * and a reader that only saves on a clean exit loses the evening when the app
-     * is killed in the background.
+     * Writes the position down on every move, not on leaving: ADR-0006 makes the local
+     * record authoritative, and a reader that only saves on a clean exit loses the evening
+     * when the app is killed in the background.
      */
-    private suspend fun record(locator: Locator, total: Double) {
+    private suspend fun record(locator: Locator, total: Double, atEnd: Boolean = false) {
         val store = progress ?: return
         store.save(
             ReadingProgress(
@@ -777,9 +780,8 @@ class EpubReaderViewModel(
                     progression = total,
                     locator = locator.toJSON().toString(),
                 ),
-                // A book is finished at its end, and "the end" of a reflowable book
-                // is the last of its content rather than a page number.
-                isFinished = total >= 0.999,
+                // The end of a reflowable book is the last of its content, not a page number.
+                isFinished = atEnd || total >= 0.999,
                 updatedAtEpochMillis = System.currentTimeMillis(),
             ),
         )
