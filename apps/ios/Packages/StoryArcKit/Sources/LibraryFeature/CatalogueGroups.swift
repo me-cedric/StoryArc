@@ -24,6 +24,7 @@ struct CatalogueGroupSection: View {
     let browser: CatalogueBrowser
 
     let queue: DownloadQueue
+    let sourceID: UUID
     let onDevice: Set<String>
     let onOpen: (Publication, URL) -> Void
 
@@ -35,7 +36,9 @@ struct CatalogueGroupSection: View {
             // whatever a feed holds — so both are shown rather than only the ones a
             // catalogue happens to use most.
             ForEach(group.navigation) { section in
-                CatalogueSectionLink(section: section, browser: browser, onOpen: onOpen)
+                CatalogueSectionLink(
+                    section: section, browser: browser, sourceID: sourceID, onOpen: onOpen
+                )
             }
 
             if !group.publications.isEmpty {
@@ -63,6 +66,7 @@ struct CatalogueGroupSection: View {
                         credential: browser.credential,
                         pins: browser.pins,
                         origin: browser.origin,
+                        sourceID: sourceID,
                         onOpen: onOpen
                     )
                 } label: {
@@ -89,7 +93,7 @@ struct CatalogueGroupSection: View {
                         entry: entry,
                         browser: browser,
                         queue: queue,
-                        isDownloaded: onDevice.contains(entry.id),
+                        isDownloaded: onDevice.contains(queue.downloadID(for: entry.id)),
                         onOpen: onOpen
                     )
                     .frame(width: StoryArcSpace.huge * 2)
@@ -111,6 +115,7 @@ struct CatalogueGroupSection: View {
 struct CatalogueSectionLink: View {
     let section: OpdsSection
     let browser: CatalogueBrowser
+    let sourceID: UUID
     let onOpen: (Publication, URL) -> Void
 
     var body: some View {
@@ -121,6 +126,7 @@ struct CatalogueSectionLink: View {
                 credential: browser.credential,
                 pins: browser.pins,
                 origin: browser.origin,
+                sourceID: sourceID,
                 onOpen: onOpen
             )
         } label: {
@@ -207,7 +213,7 @@ struct CatalogueEntryLink: View {
         .contextMenu {
             if isDownloaded {
                 Button(role: .destructive) {
-                    queue.remove(entry.id)
+                    queue.remove(queue.downloadID(for: entry.id))
                 } label: {
                     Text("downloads.remove", bundle: .module)
                 }

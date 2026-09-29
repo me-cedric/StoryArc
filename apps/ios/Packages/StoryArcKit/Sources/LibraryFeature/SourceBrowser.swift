@@ -57,6 +57,7 @@ struct SourceBrowser: View {
                 url: page.url,
                 credential: page.credential,
                 pins: pins,
+                sourceID: page.sourceID,
                 onOpen: onOpen
             )
         } else if let page = SmbPage(source: source, credentials: credentials) {

@@ -262,6 +262,10 @@ public struct CataloguePage: Sendable {
     /// The origin the credential belongs to: this address, and nowhere the feed names.
     public let origin: OpdsOrigin?
 
+    /// The registered source this page belongs to, so a download from it can be keyed
+    /// against the catalogue rather than its raw entry id alone. See `DownloadQueue`.
+    public let sourceID: UUID
+
     /// Nil when the source is not a catalogue or has no address, which is what stops a
     /// folder from being opened as one.
     public init?(source: Source, credentials: CredentialStore?) {
@@ -273,6 +277,7 @@ public struct CataloguePage: Sendable {
         title = source.displayName
         self.url = url
         origin = OpdsOrigin(url: url)
+        sourceID = source.id
         credential = source.credentialReference
             .flatMap { credentials?.secret(for: $0) }
             .flatMap(OpdsCredential.init(stored:))

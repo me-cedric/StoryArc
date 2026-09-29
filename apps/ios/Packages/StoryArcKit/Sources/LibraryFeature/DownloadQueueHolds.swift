@@ -130,7 +130,7 @@ extension DownloadQueue {
     public func needsMeteredConfirmation(_ entry: OpdsEntry) -> Bool {
         MeteredDownload.needsConfirmation(
             isMetered: network.isCareful,
-            isOverridden: overridden.contains(entry.id)
+            isOverridden: overridden.contains(downloadID(for: entry.id))
         )
     }
 
@@ -142,7 +142,7 @@ extension DownloadQueue {
     /// before a first download is usually nothing, and the dialog says so in words rather
     /// than showing a number nobody supplied.
     public func statedBytes(of entry: OpdsEntry) -> Int64? {
-        library[entry.id]?.expectedBytes
+        library[downloadID(for: entry.id)]?.expectedBytes
     }
 
     /// Whether this one may start over the connection the device is on.

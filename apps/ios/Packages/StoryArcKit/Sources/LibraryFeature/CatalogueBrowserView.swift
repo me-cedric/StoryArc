@@ -28,6 +28,10 @@ public struct CatalogueBrowserView: View {
     /// What is downloading, and what is already here.
     @State private var queue: DownloadQueue
 
+    /// The registered source this page belongs to, carried to every page below so a
+    /// download from a section or a facet is keyed the same way as one from the top.
+    let sourceID: UUID
+
     /// The term as typed, and the result of the last search that was not the server's.
     @State private var term = ""
     @State private var filtered: [OpdsEntry]?
@@ -41,9 +45,11 @@ public struct CatalogueBrowserView: View {
         /// screen's own address is it; carried down explicitly from every screen below,
         /// because their addresses come out of a feed.
         origin: OpdsOrigin? = nil,
+        sourceID: UUID,
         onOpen: @escaping (Publication, URL) -> Void = { _, _ in }
     ) {
         let home = origin ?? OpdsOrigin(url: url)
+        self.sourceID = sourceID
         _browser = State(
             initialValue: CatalogueBrowser(
                 title: title,
@@ -59,6 +65,7 @@ public struct CatalogueBrowserView: View {
                 store: DownloadStore(),
                 credential: { _ in credential },
                 origin: home,
+                sourceID: sourceID,
                 // The reader's own choices, read from the store on every pump rather than
                 // captured here. Without this the queue answers from `AppSettings.defaults`,
                 // where Wi-Fi-only is off and there is no storage limit — so it is never
@@ -141,6 +148,7 @@ public struct CatalogueBrowserView: View {
                     credential: browser.credential,
                     pins: browser.pins,
                     origin: browser.origin,
+                    sourceID: sourceID,
                     onOpen: onOpen
                 )
             }
@@ -210,7 +218,9 @@ public struct CatalogueBrowserView: View {
     private func sections(_ list: [OpdsSection]) -> some View {
         VStack(spacing: StoryArcSpace.sm) {
             ForEach(list) { section in
-                CatalogueSectionLink(section: section, browser: browser, onOpen: onOpen)
+                CatalogueSectionLink(
+                    section: section, browser: browser, sourceID: sourceID, onOpen: onOpen
+                )
             }
         }
     }
@@ -226,7 +236,7 @@ public struct CatalogueBrowserView: View {
                     entry: entry,
                     browser: browser,
                     queue: queue,
-                    isDownloaded: onDevice.contains(entry.id),
+                    isDownloaded: onDevice.contains(queue.downloadID(for: entry.id)),
                     onOpen: onOpen
                 )
                 .task {
@@ -251,6 +261,7 @@ public struct CatalogueBrowserView: View {
                     group: group,
                     browser: browser,
                     queue: queue,
+                    sourceID: sourceID,
                     onDevice: onDevice,
                     onOpen: onOpen
                 )
@@ -272,6 +283,7 @@ public struct CatalogueBrowserView: View {
                                 credential: browser.credential,
                                 pins: browser.pins,
                                 origin: browser.origin,
+                                sourceID: sourceID,
                                 onOpen: onOpen
                             )
                         } label: {
