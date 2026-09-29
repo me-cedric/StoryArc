@@ -303,9 +303,9 @@ extension StoryArcApp {
     /// The copying lives in `KeepForOffline.swift`, beside Android's own file of that
     /// name; what belongs here is only which publication the reader is then looking at.
     ///
-    /// Returns whether the copy started reading. `false` leaves ``SmbReachability`` exactly
-    /// as it was — the share is still unreachable, which is why this was offered at all, and
-    /// `NetworkNotice` is what tells the reader the attempt itself did not land.
+    /// Returns whether the copy landed. On `false` the share is still unreachable, which is
+    /// why this was offered at all, and `NetworkNotice` tells the reader the attempt did not
+    /// land.
     @discardableResult
     func keepForOffline(_ selection: ReadingSelection) async -> Bool {
         guard let copy = await keptForOffline(selection, into: downloadStore.directory) else { return false }
@@ -319,7 +319,6 @@ extension StoryArcApp {
                 )
             )
         )
-        SmbReachability.clear()
         reading = ReadingSelection(publication: selection.publication, url: copy.file)
         dismissed = reading
         return true

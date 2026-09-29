@@ -7,11 +7,9 @@ import Testing
 ///
 /// `network-share`'s *Connection drops while reading*: `SmbSource` used to have no timeout at
 /// all, on a read or on a reopen, because `NWConnection.receive` has none of its own. A
-/// connection that goes silent waited without end, and `SmbReachability.noteFailure()` — the
-/// call the 2 s notice and the 60 s offer both depend on — was never reached. This is the
-/// mechanism read, tested directly rather than through a share that would have to hang on
-/// cue: `SmbSource` itself is private to `SmbClient.swift`, and the race is the one thing
-/// worth pinning on its own.
+/// connection that goes silent waited without end, and the page on screen never failed. This
+/// is the mechanism read, tested directly rather than through a share that would have to hang
+/// on cue.
 @Suite("A read or a reopen fails rather than waiting past its deadline")
 struct SmbDeadlineTests {
     private struct Boom: Error, Equatable {}
