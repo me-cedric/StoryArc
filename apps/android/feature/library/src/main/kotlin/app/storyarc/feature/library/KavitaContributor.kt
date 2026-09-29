@@ -99,9 +99,6 @@ internal object KavitaContributor {
         )
     }
 
-    /** The chapters of a server's most recently added series, as publications. */
-    suspend fun publications(sourceId: UUID, client: KavitaClient): SourceSlice = page(sourceId, client, 1).slice
-
     private suspend fun chapters(client: KavitaClient, series: KavitaSeries): List<KavitaChapter> =
         client.volumes(series.id).flatMap { it.chapters }
 
