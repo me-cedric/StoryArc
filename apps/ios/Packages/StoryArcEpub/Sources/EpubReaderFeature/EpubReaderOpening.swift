@@ -58,6 +58,12 @@ extension EpubReaderModel {
         // and compiling it is not. ADR-0015.
         await PublicationEgress.prepare()
 
+        // Set here, ahead of the rest of this function's own assignment below, so
+        // `recordedLocator()` can read it back through the `nonisolated(unsafe)` stored
+        // property rather than carrying a second, freshly-isolated copy of the same
+        // publication across the call.
+        self.opened = opened
+
         // A recorded position wins over the beginning. `reading-progress` is about
         // picking up where you left off, and a book you are halfway through should
         // not reopen at its title page.
@@ -80,7 +86,6 @@ extension EpubReaderModel {
             navigator.submitPreferences(theme.preferences(values: values, transition: transition))
             locator = resumed
             readingOrder = opened.readingOrder.map(\.href)
-            self.opened = opened
             progression = resumed.map(totalProgression(of:)) ?? 0
             // Painted once the navigator exists, not when the marks were loaded: a
             // decoration applied to a navigator that is not on screen yet is a decoration
@@ -94,22 +99,33 @@ extension EpubReaderModel {
         }
     }
 
-    /// The stored position, turned back into a Readium `Locator`.
-    ///
-    /// The locator is stored as its own JSON rather than as a page number:
-    /// `ebook-reader` requires the position to survive a type-size change, and a
-    /// page number cannot. The progression is stored beside it so the library can
-    /// draw a bar without parsing anything.
+    /// The stored position, turned back into a Readium `Locator`; JSON survives a
+    /// type-size change where a page number cannot.
     private func recordedLocator() async -> Locator? {
-        guard let record = try? await progress?.progress(for: publication.identity),
-              // A finished book reopens at its beginning, not at the last page it was
-              // marked finished on -- the same as the comic and PDF readers.
-              !record.isFinished,
-              case let .reflowable(_, json) = record.position,
-              !json.isEmpty,
-              let value = try? JSONValue(jsonString: json, warnings: nil)
+        guard let record = try? await progress?.progress(for: publication.identity), !record.isFinished
         else { return nil }
-        return try? Locator(json: value, warnings: nil)
+        // `nonisolated`: hands `opened` to Readium's async lookup without sending a
+        // main-actor value across -- the same `nonisolated(unsafe)` escape as
+        // `EpubBookmarks.markup`, passing the property through rather than a local copy.
+        return await Self.locator(for: record.position, in: opened)
+    }
+
+    /// The position's own locator, or the place its fraction alone names -- a
+    /// pull-adopted position has no locator of its own, only a fraction Readium
+    /// can still open directly. A finished record never reaches here (see
+    /// `recordedLocator`), so it always reopens at the beginning.
+    nonisolated private static func locator(
+        for position: ReadingPosition,
+        in opened: ReadiumShared.Publication?
+    ) async -> Locator? {
+        guard case let .reflowable(progression, json) = position else { return nil }
+        if !json.isEmpty,
+           let value = try? JSONValue(jsonString: json, warnings: nil),
+           let locator = try? Locator(json: value, warnings: nil) {
+            return locator
+        }
+        guard let opened else { return nil }
+        return await opened.locate(progression: progression)
     }
 
     /// How far through the whole book, 0…1.

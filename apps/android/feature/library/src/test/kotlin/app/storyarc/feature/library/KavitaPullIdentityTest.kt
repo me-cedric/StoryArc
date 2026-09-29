@@ -148,6 +148,37 @@ class KavitaPullIdentityTest {
     }
 
     @Test
+    fun `a server ahead of a reflowable record is adopted as a fraction, not a page`() = runTest {
+        // The defect: the remote candidate was always a page, so an EPUB's own record
+        // that the server was ahead of adopted a page position -- which this reader
+        // cannot open, and reopened the book at its first page. iOS's
+        // `KavitaPullIdentityTests` asserts the same case.
+        val progress = progress()
+        val kavita = kavita()
+        progress.save(
+            ReadingProgress(
+                PublicationIdentity(
+                    serverIdentifier = PublicationIdentity.ServerIdentifier(source, "chapter:42"),
+                    normalizedPath = "/downloads/Bone 01.epub",
+                ),
+                ReadingPosition.Reflowable(0.2, "{}"),
+                false,
+                updatedAtEpochMillis = 1_000,
+            ),
+        )
+        kavita.remember("path:/caches/Kavita/42/Bone 1.epub", origin())
+
+        KavitaSync.pull(listOf(chapter()), kavita, progress)
+
+        val read = progress.progress(
+            PublicationIdentity(serverIdentifier = PublicationIdentity.ServerIdentifier(source, "chapter:42")),
+        )
+        val reflowable = read?.position as? ReadingPosition.Reflowable
+        assertEquals(ReadingPosition.Page(7, 10).fraction, reflowable?.progression)
+        assertEquals("", reflowable?.locator)
+    }
+
+    @Test
     fun `a record written before server identifiers existed is still found by its id`() = runTest {
         // Every position in the shipped app was written against a path alone, and the
         // browser remembered that same path. The fallback is the only route to those.

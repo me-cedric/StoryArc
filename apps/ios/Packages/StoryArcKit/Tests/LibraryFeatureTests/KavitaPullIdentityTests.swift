@@ -144,6 +144,43 @@ struct KavitaPullIdentityTests {
         #expect(read?.isFinished == true)
     }
 
+    @Test("A server ahead of a reflowable record is adopted as a fraction, not a page")
+    func serverAheadOfAReflowableRecordIsAFraction() async throws {
+        // The defect: the remote candidate was always a page, so an EPUB's own record
+        // that the server was ahead of adopted a page position -- which this reader
+        // cannot open, and reopened the book at its first page. Android's
+        // `KavitaPullIdentityTest` asserts the same case.
+        let progress = try ProgressStore.inMemory()
+        let kavita = try kavita()
+        try await progress.save(
+            ReadingProgress(
+                identity: PublicationIdentity(
+                    serverIdentifier: .init(sourceID: source, remoteID: "chapter:42"),
+                    normalizedPath: "/downloads/Bone 01.epub"
+                ),
+                position: .reflowable(progression: 0.2, locator: "{}"),
+                updatedAt: Date(timeIntervalSince1970: 1_000)
+            )
+        )
+        kavita.remember(origin(), for: "path:/caches/Kavita/42/Bone 1.epub")
+
+        await KavitaSync.pull(
+            [KavitaChapter(id: 42, number: "1", pages: 10, pagesRead: 8)],
+            in: kavita,
+            into: progress
+        )
+
+        let read = try await progress.progress(
+            for: PublicationIdentity(serverIdentifier: .init(sourceID: source, remoteID: "chapter:42"))
+        )
+        guard case let .reflowable(fraction, locator) = read?.position else {
+            Issue.record("expected a reflowable position, got \(String(describing: read?.position))")
+            return
+        }
+        #expect(fraction == ReadingPosition.page(index: 7, of: 10).fraction)
+        #expect(locator.isEmpty)
+    }
+
     @Test("A record written before server identifiers existed is still found by its id")
     func theStableIdRemainsTheFallback() async throws {
         // Every position in the shipped app was written against a path alone, and the

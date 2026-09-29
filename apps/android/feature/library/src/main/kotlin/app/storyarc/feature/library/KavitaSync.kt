@@ -139,7 +139,7 @@ object KavitaSync {
             // server that had finished a chapter this device had not, because the flag
             // never actually changed.
             remote += settledHeld.copy(
-                position = KavitaExchange.position(chapter.pagesRead, chapter.pages),
+                position = KavitaExchange.position(chapter.pagesRead, chapter.pages, like = settledHeld.position),
                 isFinished = chapter.isFinished,
                 finishedAtEpochMillis = if (chapter.isFinished && !settledHeld.isFinished) {
                     System.currentTimeMillis()

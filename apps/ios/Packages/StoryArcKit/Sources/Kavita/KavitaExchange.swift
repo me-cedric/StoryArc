@@ -68,6 +68,20 @@ public extension KavitaExchange {
         return .page(index: min(max(0, pagesRead - 1), pages - 1), of: pages)
     }
 
+    /// The position a chapter's `pagesRead` describes, expressed the way the local record
+    /// already is.
+    ///
+    /// A server counts pages; a reflowable position does not use them at all — an EPUB's
+    /// own place in the book is a fraction of the whole, and writing a page number over it
+    /// is what sent every synced EPUB back to its first page, because a page is not a
+    /// locator the reader can open. `locator` is empty: the server has no locator to give,
+    /// and the reader opens at the fraction alone. See `EpubReaderOpening.recordedLocator`.
+    static func position(readingTo pagesRead: Int, of pages: Int, like local: ReadingPosition) -> ReadingPosition {
+        let paged = position(readingTo: pagesRead, of: pages)
+        guard case .reflowable = local else { return paged }
+        return .reflowable(progression: paged.fraction, locator: "")
+    }
+
     /// The `pageNum` a server is told, from a stored position and the chapter's length.
     ///
     /// A reflowable position is carried across by its fraction, because that is the only
