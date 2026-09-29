@@ -65,8 +65,10 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ShelfEntry
 import app.storyarc.core.model.ShelfKey
 import app.storyarc.core.model.ShelfMerge
+import app.storyarc.core.persistence.KavitaOrigin
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.persistence.ShelfEditStore
+import app.storyarc.core.persistence.serverIdentifier
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -247,7 +249,13 @@ fun KavitaListScreen(
                     if (entry == null) return@EntryRow
                     scope.launch {
                         fetching = entry.chapterId
-                        val opening = fetchEntry(context, client, entry)
+                        val opening = fetchEntry(
+                            context,
+                            client,
+                            entry,
+                            server.id,
+                            KavitaProgressStore.open(context),
+                        )
                         fetching = null
                         if (opening is EntryOpening.Opened) onOpen(opening.publication, opening.path)
                         opening.failure(context, entry.displayName, server.title)?.let {
@@ -412,11 +420,19 @@ private sealed interface EntryOpening {
     data object Unreadable : EntryOpening
 }
 
-/** Fetches one entry's chapter and indexes it, the way the chapter list does. */
+/**
+ * Fetches one entry's chapter and indexes it, the way the chapter list does.
+ *
+ * A reading-list entry used to open with neither an origin nor a recorded server identity:
+ * the reader could read here and the position never left the device, because nothing named
+ * which server or which chapter it belonged to.
+ */
 private suspend fun fetchEntry(
     context: Context,
     client: KavitaClient,
     entry: KavitaReadingListItem,
+    sourceId: String,
+    store: KavitaProgressStore,
 ): EntryOpening {
     val fetched = runCatching { client.chapter(entry.chapterId) }.getOrNull()
         ?: return EntryOpening.NotSent
@@ -425,10 +441,19 @@ private suspend fun fetchEntry(
             kavitaCacheFile(context, entry.chapterId, fetched.mediaType)
                 .apply { writeBytes(fetched.bytes) }
         }
-        EntryOpening.Opened(
-            PublicationIndexer.index(file, catalogueSeries = entry.seriesName),
-            file.absolutePath,
+        val indexed = PublicationIndexer.index(file, catalogueSeries = entry.seriesName)
+        val origin = KavitaOrigin(
+            sourceId = sourceId,
+            libraryId = entry.libraryId,
+            seriesId = entry.seriesId,
+            volumeId = entry.volumeId,
+            chapterId = entry.chapterId,
         )
+        val publication = indexed.copy(
+            identity = indexed.identity.recordingServer(origin.serverIdentifier),
+        )
+        store.remember(publication.id, origin)
+        EntryOpening.Opened(publication, file.absolutePath)
     }.getOrDefault(EntryOpening.Unreadable)
 }
 

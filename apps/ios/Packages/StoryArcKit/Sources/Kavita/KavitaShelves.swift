@@ -102,6 +102,11 @@ public struct KavitaReadingListItem: Sendable, Equatable, Identifiable, Decodabl
     /// `collections-and-reading-lists` asks for nothing to be claimed in that case. It is
     /// the only honest signal: `pagesRead` is zero for an unread entry as well.
     public let pagesTotal: Int
+    /// The volume this entry's chapter sits in, which ``KavitaOrigin`` needs to name where
+    /// a position or a mark goes on the server.
+    public let volumeId: Int
+    /// The library this entry's chapter sits in, for the same reason.
+    public let libraryId: Int
 
     /// What to call it in a list. The chapter's own title, or the series it belongs to.
     public var displayName: String {
@@ -119,10 +124,13 @@ public struct KavitaReadingListItem: Sendable, Equatable, Identifiable, Decodabl
         seriesName = try container.decodeIfPresent(String.self, forKey: .seriesName)
         pagesRead = try container.decodeIfPresent(Int.self, forKey: .pagesRead) ?? 0
         pagesTotal = try container.decodeIfPresent(Int.self, forKey: .pagesTotal) ?? 0
+        volumeId = try container.decodeIfPresent(Int.self, forKey: .volumeId) ?? 0
+        libraryId = try container.decodeIfPresent(Int.self, forKey: .libraryId) ?? 0
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, order, seriesId, chapterId, title, seriesName, pagesRead, pagesTotal
+        case volumeId, libraryId
     }
 }
 

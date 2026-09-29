@@ -303,7 +303,12 @@ struct KavitaListView: View {
         fetching = entry.chapterId
         defer { fetching = nil }
 
-        let opening = await KavitaEntryOpening.attempt(entry, from: KavitaClient(address: server.address))
+        let opening = await KavitaEntryOpening.attempt(
+            entry,
+            sourceId: server.id,
+            store: KavitaProgressStore(),
+            from: KavitaClient(address: server.address)
+        )
         if case let .opened(publication, file) = opening { onOpen(publication, file) }
         openFailure = opening.reason(server: server.title).map { (entry.displayName, $0) }
     }
@@ -321,7 +326,16 @@ enum KavitaEntryOpening: Sendable {
     case unreadable
 
     /// Fetches one entry's chapter and indexes it, the way the chapter list does.
-    static func attempt(_ entry: KavitaReadingListItem, from client: KavitaClient) async -> Self {
+    ///
+    /// A reading-list entry used to open with neither an origin nor a recorded server
+    /// identity: the reader could read here and the position never left the device, because
+    /// nothing named which server or which chapter it belonged to.
+    static func attempt(
+        _ entry: KavitaReadingListItem,
+        sourceId: String,
+        store: KavitaProgressStore,
+        from client: KavitaClient
+    ) async -> Self {
         guard let fetched = try? await client.chapter(entry.chapterId) else { return .notSent }
         guard let file = kavitaCacheFile(
                   chapterId: entry.chapterId,
@@ -329,11 +343,21 @@ enum KavitaEntryOpening: Sendable {
                   named: entry.seriesName.map { "\($0) \(entry.chapterId)" }
               ),
               (try? fetched.bytes.write(to: file, options: .atomic)) != nil,
-              let publication = try? await PublicationIndexer.index(
+              var publication = try? await PublicationIndexer.index(
                   fileAt: file,
                   catalogueSeries: entry.seriesName
               )
         else { return .unreadable }
+
+        let origin = KavitaOrigin(
+            sourceId: sourceId,
+            libraryId: entry.libraryId,
+            seriesId: entry.seriesId,
+            volumeId: entry.volumeId,
+            chapterId: entry.chapterId
+        )
+        publication.identity = publication.identity.recordingServer(origin.serverIdentifier)
+        store.remember(origin, for: publication.id)
         return .opened(publication, file)
     }
 

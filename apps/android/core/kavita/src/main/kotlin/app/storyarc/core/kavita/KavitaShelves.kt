@@ -70,6 +70,11 @@ data class KavitaReadingListItem(
      * only honest signal: `pagesRead` is zero for an unread entry as well.
      */
     val pagesTotal: Int = 0,
+    /** The volume this entry's chapter sits in, which [KavitaOrigin] needs to name where a
+     * position or a mark goes on the server. */
+    val volumeId: Int = 0,
+    /** The library this entry's chapter sits in, for the same reason. */
+    val libraryId: Int = 0,
 ) {
     /** What to call it in a list. The chapter's own title, or the series it belongs to. */
     val displayName: String
