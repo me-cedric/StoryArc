@@ -39,6 +39,15 @@ extension ReaderView {
             }
         }
         container
+            // D13: a refused tap or key gives a little and springs back, beside its haptic.
+            .modifier(RefusalResistance(
+                trigger: refusals,
+                response: .of(
+                    reduceMotion: reduceMotion,
+                    isRightToLeft: isRightToLeft,
+                    scrolls: choices.effective.scrollAxis != nil
+                )
+            ))
             // One direction only: the container moves, the model follows.
             .onChange(of: displayIndex) { _, new in
                 // `comic-reader`: "a swipe or a scroll past the last page reaches the end

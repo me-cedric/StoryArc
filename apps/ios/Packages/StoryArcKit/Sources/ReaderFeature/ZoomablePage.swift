@@ -68,8 +68,12 @@ struct ZoomablePage: View {
     /// installed at all — a gesture that could only ever fail is a gesture that eats presses.
     var onSelect: ((CGPoint, CGPoint, Bool) -> Void)?
 
+    @Environment(\.swipeTurn) private var swipeTurn
+
     var body: some View {
         #if os(iOS)
+        // Read here, in the body pass. See `tapHandler` for what a later read returns.
+        let onSwipe = swipeTurn
         // The size the fit is computed from comes from SwiftUI rather than from the
         // scroll view's bounds: `updateUIView` runs before the first layout, so
         // `bounds` is still zero on the way in. The scroll view's own bounds are
@@ -86,7 +90,8 @@ struct ZoomablePage: View {
                 onTap: onTap,
                 onZoom: onZoom,
                 decoration: decoration,
-                onSelect: onSelect
+                onSelect: onSelect,
+                onSwipe: onSwipe
             )
         }
         #else
@@ -114,6 +119,7 @@ struct ScrollingPage: UIViewRepresentable {
     let onZoom: (_ scale: Double, _ overFit: Double) -> Void
     let decoration: PdfPageDecoration
     let onSelect: ((CGPoint, CGPoint, Bool) -> Void)?
+    let onSwipe: SwipeTurn?
 
     /// How far a double-tap zooms in. Enough to read the lettering on a dense
     /// page, not so far that the reader loses the panel they tapped.
@@ -156,6 +162,7 @@ struct ScrollingPage: UIViewRepresentable {
 
         addSelection(to: scrollView, coordinator: context.coordinator)
         addTaps(to: scrollView, coordinator: context.coordinator)
+        addSwipe(to: scrollView, coordinator: context.coordinator)
 
         return scrollView
     }
@@ -195,6 +202,7 @@ struct ScrollingPage: UIViewRepresentable {
 
     func updateUIView(_ scrollView: UIScrollView, context: Context) {
         context.coordinator.onTap = onTap
+        context.coordinator.onSwipe = onSwipe
         context.coordinator.onZoom = onZoom
         context.coordinator.onSelect = onSelect
         context.coordinator.overlay?.decoration = decoration
@@ -245,6 +253,8 @@ struct ScrollingPage: UIViewRepresentable {
         weak var centreTap: UITapGestureRecognizer?
         weak var overlay: PdfPageOverlayView?
         var onSelect: ((CGPoint, CGPoint, Bool) -> Void)?
+        var onSwipe: SwipeTurn?
+        weak var swipe: UIPanGestureRecognizer?
         /// Where the press started, normalised to the page. The drag extends from it.
         /// Not `private`: `ZoomablePageSelection.swift` reads and sets it.
         var selectionOrigin: CGPoint?

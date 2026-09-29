@@ -120,7 +120,7 @@ extension ReaderView {
         .probingTurns(displayIndex, of: .slide)
     }
 
-    /// Fast fade: no container, and no translation. Taps, keys and the slider turn.
+    /// Fast fade: no container, and no translation. Taps, swipes, keys and the slider turn.
     ///
     /// `.id` is what makes the dissolve happen: without it SwiftUI reuses the view and
     /// swaps the image inside, which is a cut rather than a fade.
@@ -131,6 +131,8 @@ extension ReaderView {
             .animation(.easeInOut(duration: Self.fadeDuration), value: displayIndex)
             // Nothing turns a page here but the index, so the index bounds the count.
             .probingTurns(displayIndex, of: .fastFade)
+            // Task 8.2: with no container there is no swipe, so the page brings one.
+            .environment(\.swipeTurn, SwipeTurn { turn(by: $0) })
     }
 
     /// Scroll: continuous, with pages meeting edge to edge.

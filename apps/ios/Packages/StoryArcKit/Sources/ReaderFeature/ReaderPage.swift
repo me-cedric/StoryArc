@@ -37,7 +37,10 @@ struct PageView: View {
     /// How a press-and-drag over the page is answered, or `nil` where there is no text.
     var onSelect: ((CGPoint, CGPoint, Bool) -> Void)?
 
+    @Environment(\.swipeTurn) private var swipeTurn
+
     var body: some View {
+        let onSwipe = swipeTurn
         if let image {
             // Fit, not fill: cropping a comic page loses artwork, and
             // `comic-reader` treats the whole page as the unit. Zoom starts from
@@ -70,6 +73,14 @@ struct PageView: View {
                 }
                 .contentShape(.rect)
                 .onTapGesture { location in onTap(location, geometry.size) }
+                // Task 8.2: and a page still loading turns on a swipe in Fast fade too.
+                .gesture(
+                    DragGesture(minimumDistance: 24).onEnded { value in
+                        let step = fadeSwipeStep(travel: value.translation.width)
+                        if step != 0 { onSwipe?(step) }
+                    },
+                    isEnabled: onSwipe != nil
+                )
             }
         }
     }

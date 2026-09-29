@@ -139,7 +139,7 @@ class ReaderViewModel(
      * `page-transitions` requires turning the setting off mid-session to restore the
      * chosen mode "without the reader being reopened".
      */
-    private val reduceMotion: Boolean
+    internal val reduceMotion: Boolean
         get() = Settings.Global.getFloat(
             resolver,
             Settings.Global.ANIMATOR_DURATION_SCALE,
