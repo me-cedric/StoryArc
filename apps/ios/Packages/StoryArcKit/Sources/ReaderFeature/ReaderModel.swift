@@ -20,7 +20,9 @@ public import StoryArcCore
 public final class ReaderModel {
     public let publication: Publication
     public private(set) var pages: [PageEntry] = []
-    public private(set) var currentIndex = 0
+    // `internal(set)`, not `private(set)`: `go(to:)` sets it from `ReaderDecoding.swift`
+    // now, beside the tracking a page turn resets — this file is at its line cap.
+    public internal(set) var currentIndex = 0
     /// Set when the publication could not be opened at all.
     public private(set) var failure: String?
 
@@ -79,7 +81,10 @@ public final class ReaderModel {
     /// this one is at its line cap — and the address is what tells it whether to watch at all.
     let url: URL
     var maxPixelSize = 2048
-    private let progress: ProgressStore?
+    // Internal rather than private: `go(to:)` and its own `record(_:)` live in
+    // `ReaderDecoding.swift` now, beside the tracking a page turn resets — see
+    // `pageWaitStarted`. This file is at its line cap.
+    let progress: ProgressStore?
 
     /// - Parameters:
     ///   - preferences: where the reading mode is remembered. `nil` in a test.
@@ -362,39 +367,21 @@ public final class ReaderModel {
 
     var zoomed: ZoomedPage?
 
-    public func go(to index: Int) async {
-        guard pages.indices.contains(index) else { return }
-        currentIndex = index
-        await warm(around: index)
-        await record(index)
-    }
+    /// When the page currently on screen started waiting for bytes it does not have —
+    /// set the moment a read for it begins and cleared the moment that read ends,
+    /// whichever way. `network-share`'s 2 s notice counts from here, not from after both
+    /// of `SmbClient`'s own attempts have already failed against a page nobody is looking
+    /// at. See `ReaderDecoding.swift`'s `decode(_:)`.
+    public internal(set) var pageWaitStarted: Date?
 
-    /// Writes the position down.
-    ///
-    /// Every turn, not on leaving: ADR-0006 makes the local store authoritative,
-    /// and a reader that only saves on a clean exit loses the evening when the app
-    /// is killed in the background — which is the normal way a phone closes an app.
-    ///
-    /// The last page marks the publication finished. Finished is sticky, so
-    /// turning back afterwards does not unmark it.
-    private func record(_ index: Int) async {
-        guard let progress, !pages.isEmpty else { return }
-        try? await progress.save(
-            ReadingProgress(
-                identity: publication.identity,
-                position: .page(index: index, of: pages.count),
-                isFinished: index == pages.count - 1,
-                updatedAt: Date()
-            )
-        )
-    }
+    /// When the page currently on screen first failed to arrive, kept apart from
+    /// `pageWaitStarted` so dismissing the notice does not restart the 60 s clock.
+    /// Cleared only once that page decodes or is permanently refused — either of which
+    /// ends the wait this exists to time.
+    public internal(set) var pageFailingSince: Date?
 
-    /// The next page in *reading* order, which is not always the next index.
-    public func advance() async {
-        await go(to: currentIndex + 1)
-    }
-
-    public func retreat() async {
-        await go(to: currentIndex - 1)
-    }
+    /// What `NetworkNotice` counts from: the current page's own trouble, whichever began
+    /// first — its very first read, still open, or a failure since a read against it.
+    /// `nil` while the page on screen has none.
+    public var pageBlockedSince: Date? { pageFailingSince ?? pageWaitStarted }
 }
