@@ -28,6 +28,8 @@ public enum KavitaSync {
     private struct Server {
         let id: String
         let address: KavitaAddress
+        /// The session a test answers through. Nil in the app.
+        let configuration: URLSessionConfiguration?
     }
 
     /// Sends one position, keeping it for later if the server is not there.
@@ -155,10 +157,9 @@ public enum KavitaSync {
         let pull = ProgressPull.merging(remote: remote) { local[$0.stableID] }
         let exchange = KavitaExchange.of(pull, against: reported)
         for record in exchange.toSave { try? await progress.save(record) }
-        let server = sourceId.flatMap { id in address.map { Server(id: id, address: $0) } }
-        await settle(
-            exchange.owed, from: origins, to: server, in: kavita, into: progress, configuration: configuration
-        )
+        var server: Server?
+        if let sourceId, let address { server = Server(id: sourceId, address: address, configuration: configuration) }
+        await settle(exchange.owed, from: origins, to: server, in: kavita, into: progress)
         return pull.conflicts.map { conflict in
             KavitaConflict(
                 title: reported[conflict.resolved.identity.stableID]?.displayName ?? "",
@@ -187,8 +188,7 @@ public enum KavitaSync {
         from origins: [String: KavitaOrigin],
         to server: Server?,
         in kavita: KavitaProgressStore,
-        into progress: ProgressStore,
-        configuration: URLSessionConfiguration?
+        into progress: ProgressStore
     ) async {
         // A finished record is owed a mark, not a page — see `KavitaOwed.isMarkRead`.
         func unsent(for each: KavitaOwed, origin: KavitaOrigin) -> KavitaUnsent {
@@ -206,7 +206,7 @@ public enum KavitaSync {
         // above is the whole promise until one turns up.
         guard let server else { return }
         let deliveredKeys = Set(
-            await flush(server.id, to: server.address, in: kavita, configuration: configuration).map(\.key)
+            await flush(server.id, to: server.address, in: kavita, configuration: server.configuration).map(\.key)
         )
         for each in owed {
             guard let origin = origins[each.settled.identity.stableID],
