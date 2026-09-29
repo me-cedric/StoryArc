@@ -44,15 +44,15 @@ extension ReaderView {
     var curled: some View {
         CurledPages(
             page: adjustedImage(forDisplay: displayIndex),
-            beneath: adjacentDisplayIndex(
+            beneath: curlSheet(at: adjacentDisplayIndex(
                 from: displayIndex, steps: 1, slotCount: layout.count, isRightToLeft: isRightToLeft
-            ).flatMap { adjustedImage(forDisplay: $0) },
+            )),
             // The page behind, for the other direction. The reader met a curl that "only
             // seems to work in one direction": the shader had nothing to turn backwards
             // because nothing was handed to it.
-            previous: adjacentDisplayIndex(
+            previous: curlSheet(at: adjacentDisplayIndex(
                 from: displayIndex, steps: -1, slotCount: layout.count, isRightToLeft: isRightToLeft
-            ).flatMap { adjustedImage(forDisplay: $0) },
+            )),
             isRightToLeft: isRightToLeft,
             matte: model.matte,
             adjustments: adjustments,
@@ -62,6 +62,18 @@ extension ReaderView {
             onTurnedBack: { turnInReadingOrder(by: -1) },
             onTap: tapHandler()
         )
+    }
+
+    /// A neighbouring sheet, or a matte placeholder at its expected ratio while it decodes.
+    private func curlSheet(at display: Int?) -> CGImage? {
+        CurlPlaceholder.sheet(at: display, decoded: adjustedImage(forDisplay:)) { display in
+            CurlPlaceholder.image(
+                ratio: PagePlaceholder.ratio(
+                    nearest: modelIndex(forDisplay: display), among: model.decodedRatios
+                ),
+                matte: model.matte
+            )
+        }
     }
 
     /// The decoded page with the series' trim and sharpness baked in, the way every

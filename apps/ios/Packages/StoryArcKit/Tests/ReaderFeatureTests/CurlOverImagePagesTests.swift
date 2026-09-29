@@ -109,7 +109,19 @@ struct CurlOverImagePagesTests {
             )
         }
 
+        // The page in view directly, and its two neighbours through `curlSheet(at:)`, which
+        // reads the same function and adds the placeholder of task 8.4.
         let decodes = builder.ranges(of: "adjustedImage(forDisplay:").count
+            + builder.ranges(of: "curlSheet(at:").count
+        let sheet = try body(
+            opening: "private func curlSheet(at display: Int?) -> CGImage? {",
+            in: try code(of: Self.curlPath[0].url),
+            missing: "`ReaderContainers.swift` no longer declares `curlSheet(at:)`."
+        )
+        #expect(
+            sheet.contains("CurlPlaceholder.sheet(at: display, decoded: adjustedImage(forDisplay:))"),
+            "`curlSheet(at:)` no longer reads the decoded page first and the placeholder after it."
+        )
         #expect(
             decodes == Self.sheets.count,
             """
