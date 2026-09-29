@@ -160,6 +160,23 @@ struct CurlOverImagePagesTests {
         )
     }
 
+    @Test("The curl's sheets and completed turns are one reading-order step apart")
+    func curlStepsInReadingOrder() throws {
+        // Task 8.14: right-to-left reverses the display order, so a raw `displayIndex + 1`
+        // is the previous page there. `adjacentDisplayIndex` is the rule, and this is the
+        // tripwire that the curl still goes through it.
+        let builder = try curlBuilder()
+        #expect(
+            builder.ranges(of: "adjacentDisplayIndex(").count == 2,
+            "The curl's beneath and previous sheets no longer both come from `adjacentDisplayIndex`."
+        )
+        #expect(
+            builder.contains("onTurned: { turnInReadingOrder(by: 1) }")
+                && builder.contains("onTurnedBack: { turnInReadingOrder(by: -1) }"),
+            "A completed curl no longer turns by a reading-order step."
+        )
+    }
+
     @Test("The curl is handed whether the current page could not be decoded, and its codec")
     func curlCarriesUnavailability() throws {
         // task 8.15: a curl over a page that has not decoded showed a bare matte. The
