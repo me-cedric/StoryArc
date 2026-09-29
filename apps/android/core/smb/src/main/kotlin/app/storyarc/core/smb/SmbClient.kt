@@ -90,8 +90,8 @@ class SmbClient(private val address: SmbAddress) : AutoCloseable {
      * failure named. Listing the root is the cheapest thing that exercises all four.
      */
     suspend fun connect(): SmbIdentity = withContext(Dispatchers.IO) {
-        val root = file(address.path)
         translating {
+            val root = file(address.path)
             if (!root.exists()) throw SmbError.ShareNotFound
             // What the connection actually did, not what the client was configured to
             // allow. jcifs' public API says only whether the tree is SMB 2 or later --
@@ -175,6 +175,8 @@ class SmbClient(private val address: SmbAddress) : AutoCloseable {
         body()
     } catch (error: SmbError) {
         throw error
+    } catch (error: java.net.MalformedURLException) {
+        throw SmbError.AddressInvalid
     } catch (error: SmbAuthException) {
         throw SmbError.AuthenticationRejected
     } catch (error: SmbException) {

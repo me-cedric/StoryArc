@@ -131,6 +131,8 @@ class SmbConnection(
                 _step.value = Step.Browsing(identity, "", client.list(""))
             } catch (error: SmbError) {
                 _step.value = Step.Failed(describe(error))
+            } catch (error: Exception) {
+                _step.value = Step.Failed(context.getString(R.string.smb_error_unexpected))
             }
         }
     }
@@ -192,6 +194,7 @@ class SmbConnection(
             is SmbError.AuthenticationRejected -> R.string.smb_error_authentication
             is SmbError.ProtocolUnsupported -> R.string.smb_error_smb1
             is SmbError.EncryptionRequired -> R.string.smb_error_encryption
+            is SmbError.AddressInvalid -> R.string.smb_error_not_an_address
             is SmbError.Unexpected -> R.string.smb_error_unexpected
         },
     )
