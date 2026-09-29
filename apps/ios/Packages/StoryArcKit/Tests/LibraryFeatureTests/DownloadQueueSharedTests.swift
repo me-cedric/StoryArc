@@ -17,7 +17,7 @@ import StoryArcCore
 /// dl-core 1.1, not this task."
 ///
 /// Every test resets `DownloadQueue`'s shared instance first, because it is process-wide
-/// state and `swift test` can run this suite's cases beside `DownloadQueueRetryTests`'.
+/// state and `swift test` can run this suite's cases beside other suites'.
 @Suite("The shared download queue is the only writer")
 @MainActor
 struct DownloadQueueSharedTests {
@@ -121,6 +121,81 @@ struct DownloadQueueSharedTests {
         #expect(queue.library[queue.downloadID(for: "entry-1", sourceID: kept)]?.title == "Stays")
         // The removal is the queue's own save, not a separate write a later pump could undo.
         #expect(shared.library().downloads.count == 1)
+    }
+
+    @Test("A clear made through the queue is not undone by the queue's next save")
+    func clearingStays() throws {
+        DownloadQueue.resetShared()
+        defer { DownloadQueue.resetShared() }
+        let shared = try store()
+        let queue = DownloadQueue.shared(store: shared, settings: { AppSettings() })
+        queue.enqueue(OpdsEntry(id: "entry-1", title: "Cleared"), using: try acquisition("a"))
+        queue.enqueue(OpdsEntry(id: "entry-2", title: "Cleared too"), using: try acquisition("b"))
+
+        queue.clearing()
+        // The next write the queue makes for something unrelated. A clear written to the store
+        // behind the queue came back here, with every record the queue still held.
+        queue.enqueue(OpdsEntry(id: "entry-3", title: "After"), using: try acquisition("c"))
+
+        #expect(shared.library().downloads.map(\.id) == ["entry-3"])
+        #expect(queue.library.downloads.map(\.id) == ["entry-3"])
+    }
+
+    @Test("The size a confirmation states is found under the page's own source")
+    func statedBytesUseThePageSource() throws {
+        DownloadQueue.resetShared()
+        defer { DownloadQueue.resetShared() }
+        let queue = DownloadQueue.shared(store: try store(), settings: { AppSettings() })
+        let source = UUID()
+        let entry = OpdsEntry(id: "entry-1", title: "Sized")
+        queue.record(
+            Download(
+                id: queue.downloadID(for: entry.id, sourceID: source),
+                sourceID: source,
+                title: entry.title,
+                remote: try #require(URL(string: "https://example.invalid/entry-1.epub")),
+                mediaType: "application/epub+zip",
+                expectedBytes: 4_000
+            )
+        )
+
+        #expect(queue.statedBytes(of: entry, sourceID: source) == 4_000)
+    }
+
+    @Test("A download that steps down from its source's https is refused")
+    func downgradeIsRefused() async throws {
+        DownloadQueue.resetShared()
+        defer { DownloadQueue.resetShared() }
+        let source = Source(
+            displayName: "Library", kind: .opdsCatalog, locator: "https://library.invalid"
+        )
+        let queue = DownloadQueue.shared(
+            store: try store(),
+            sources: { [source] },
+            credentials: nil,
+            settings: { AppSettings(downloadOverWifiOnly: false) }
+        )
+        let entry = OpdsEntry(id: "entry-1", title: "Cleartext")
+        let cleartext = OpdsAcquisition(
+            href: try #require(URL(string: "http://library.invalid/entry-1.epub")),
+            mediaType: "application/epub+zip",
+            kind: .open
+        )
+
+        queue.enqueue(entry, using: cleartext, sourceID: source.id)
+        let id = queue.downloadID(for: entry.id, sourceID: source.id)
+        for _ in 0..<200 {
+            if case .failed = queue.library[id]?.state { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        #expect(
+            queue.library[id]?.state == .failed(
+                reason: CatalogueMessages.describe(.refusedAddress),
+                attempts: DownloadLibrary.attemptLimit
+            ),
+            "The queue fetched a book over cleartext from an https catalogue."
+        )
     }
 
     /// A per-page queue's own `origin` used to refuse a credential to any address but the

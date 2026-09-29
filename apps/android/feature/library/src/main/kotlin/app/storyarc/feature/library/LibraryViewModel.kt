@@ -95,6 +95,8 @@ class LibraryViewModel(
     private val cards: KavitaCardStore? = null,
     /** The reader's saved server keys. Null reads no server. See [readServers]. */
     internal val credentials: CredentialStore? = null,
+    /** The app-level download queue, the only writer of the download store. See [keepOffline]. */
+    private val downloadQueue: DownloadQueue? = null,
 ) : AndroidViewModel(application) {
 
     /**
@@ -1581,10 +1583,10 @@ class LibraryViewModel(
 
     /** Copies a whole selection into the download store, and reports what it copied. */
     suspend fun keepOffline(selection: Set<String>): Set<String> =
-        KeepOffline.keep(resolver, downloads, _publications.value, selection, ::location)
+        KeepOffline.keep(resolver, downloads, _publications.value, selection, ::location, downloadQueue)
 
     /** Forgets copies [keepOffline] made, deleting the files with them. */
-    fun forgetKept(ids: Set<String>) = KeepOffline.forget(downloads, ids)
+    fun forgetKept(ids: Set<String>) = KeepOffline.forget(downloads, ids, downloadQueue)
 
     fun removeFromCollection(members: Set<String>, id: UUID) {
         _shelves.update { it.removing(members, id) }

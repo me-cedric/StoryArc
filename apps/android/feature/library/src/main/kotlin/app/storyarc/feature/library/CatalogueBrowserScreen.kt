@@ -102,8 +102,8 @@ fun CatalogueBrowserScreen(
     // copies of this decision is one copy too many.
     val download: (OpdsEntry) -> Unit = { entry ->
         CatalogueAcquisition.best(entry)?.let { link ->
-            if (queue.needsMeteredConfirmation(entry)) {
-                meteredAsk = MeteredAsk(entry, link, queue.statedBytes(entry))
+            if (queue.needsMeteredConfirmation(entry, sourceId)) {
+                meteredAsk = MeteredAsk(entry, link, queue.statedBytes(entry, sourceId))
             } else {
                 queue.enqueue(entry, link, sourceId = sourceId)
             }

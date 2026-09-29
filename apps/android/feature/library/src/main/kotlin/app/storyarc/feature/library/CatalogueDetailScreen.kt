@@ -112,8 +112,8 @@ fun CatalogueDetailScreen(
         // "explicitly downloads a specific publication" the scenario describes, so the
         // reader is asked, with the size, before their allowance is spent -- and the fetch
         // resumes from the dialog rather than from here.
-        if (queue.needsMeteredConfirmation(entry)) {
-            meteredAsk = MeteredAsk(entry, link, queue.statedBytes(entry))
+        if (queue.needsMeteredConfirmation(entry, sourceId)) {
+            meteredAsk = MeteredAsk(entry, link, queue.statedBytes(entry, sourceId))
         } else {
             scope.launch { openWhenReady(queue, entry, link, sourceId, onOpen) }
         }

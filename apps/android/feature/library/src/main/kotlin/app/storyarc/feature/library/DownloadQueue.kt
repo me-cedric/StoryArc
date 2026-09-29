@@ -64,7 +64,15 @@ class DownloadQueue(
      * the app that carries a credential to one with nobody watching. Null only where there
      * is no catalogue behind the queue.
      */
-    origin: OpdsOrigin? = null,
+    private val origin: OpdsOrigin? = null,
+    /**
+     * The origin of the source a record names, for a queue with no [origin] of its own.
+     *
+     * The app-level queue runs every catalogue at once, so the rule [origin] states has to
+     * come from the record's own source. Without it, the origin is the download address
+     * itself, and an `https` catalogue could send its books over cleartext.
+     */
+    private val sourceOrigin: (UUID) -> OpdsOrigin? = { null },
     /**
      * The source this catalogue belongs to, so an enqueued download is keyed against the
      * catalogue it came from rather than its raw entry id alone.
@@ -174,10 +182,17 @@ class DownloadQueue(
      * `offline-downloads`' *Overriding once*. The answer is [MeteredDownload]'s; what this
      * adds is the two facts it needs -- whether the link is one to be careful with, and
      * whether this publication already carries a grant.
+     *
+     * @param sourceId the catalogue page's own source, as for [downloadId]. The app-level
+     *   queue has none of its own, so without it a grant recorded under the source-keyed id
+     *   is never found.
      */
-    fun needsMeteredConfirmation(entry: OpdsEntry): Boolean = MeteredDownload.needsConfirmation(
+    fun needsMeteredConfirmation(
+        entry: OpdsEntry,
+        sourceId: UUID? = this@DownloadQueue.sourceId,
+    ): Boolean = MeteredDownload.needsConfirmation(
         isMetered = NetworkCost.isCareful(context),
-        isOverridden = downloadId(entry.id) in overridden,
+        isOverridden = downloadId(entry.id, sourceId) in overridden,
     )
 
     /**
@@ -189,7 +204,8 @@ class DownloadQueue(
      * a first download is usually nothing, and the dialog says so in words rather than
      * showing a number nobody supplied.
      */
-    fun statedBytes(entry: OpdsEntry): Long? = _library.value[downloadId(entry.id)]?.expectedBytes
+    fun statedBytes(entry: OpdsEntry, sourceId: UUID? = this@DownloadQueue.sourceId): Long? =
+        _library.value[downloadId(entry.id, sourceId)]?.expectedBytes
 
     /** Whether this one may start over the connection the device is on. */
     private fun mayStart(download: Download): Boolean = MeteredDownload.mayStart(
@@ -579,6 +595,10 @@ class DownloadQueue(
         // `DownloadQueueWakingTest` counts these calls to count started transfers, and a
         // credential read after a suspension counts a transfer that has not started yet.
         val credential = credential(download.id)
+        // The rule `OpdsClient` applies to a feed, against the record's own source: an
+        // address that steps down from that source's `https` is not fetched at all.
+        val home = origin ?: download.sourceId?.let(sourceOrigin) ?: OpdsOrigin.of(download.remote)
+        if (home?.downgrades(download.remote) == true) throw OpdsError.RefusedAddress
         val file = store.location(download)
         withContext(Dispatchers.IO) {
             store.prepare(file)
@@ -690,6 +710,18 @@ class DownloadQueue(
             if (!DownloadLibrary.shouldRetry(download)) store?.remove(download)
         }
         store?.save(_library.value)
+    }
+
+    /**
+     * Stops these transfers and releases whoever waits on them, and leaves the records alone.
+     * For [removingAll] and [clearing], which forget the records themselves.
+     */
+    internal fun stop(ids: Iterable<String>) {
+        ids.forEach { id ->
+            running.remove(id)?.cancel()
+            finish(id, null)
+        }
+        follow()
     }
 
     /** Hands the result to whoever was waiting to read it. */

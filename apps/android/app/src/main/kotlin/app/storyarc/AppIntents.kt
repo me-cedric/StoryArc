@@ -13,7 +13,7 @@ import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.QuickActionRequest
 import app.storyarc.core.persistence.finishedDownload
-import app.storyarc.core.persistence.removeAfterFinishing
+import app.storyarc.feature.library.removeAfterFinishing
 import app.storyarc.navigation.AppDestination
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -150,7 +150,7 @@ private fun ForgetFinishedDownloads(host: AppHost, settings: AppSettings, isRead
         val store = host.dependencies.downloads
         val target = finishedDownload(
             store,
-            host.downloads.value,
+            host.dependencies.queue.library.value,
             isKept = choices::isKept,
         ) { path ->
             host.dependencies.progress
@@ -163,9 +163,11 @@ private fun ForgetFinishedDownloads(host: AppHost, settings: AppSettings, isRead
 
 /** Takes one download off the device, with the ten-second undo in the library. */
 private suspend fun CoroutineScope.removeDownloadNow(host: AppHost, id: String) {
-    val store = host.dependencies.downloads
-    removeAfterFinishing(store, host.downloads.value, id)?.let { (without, taken) ->
-        host.downloads.value = without
+    // Through the app-level queue, the only writer of the download store: a removal written
+    // beside it comes back at the queue's next save -- dl-core 1.1.
+    val queue = host.dependencies.queue
+    queue.removeAfterFinishing(id)?.let { taken ->
+        host.downloads.value = queue.library.value
         host.removed.value?.settle()
         host.removed.value = taken
         launch {

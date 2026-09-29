@@ -57,6 +57,8 @@ internal object KeepOffline {
         publications: List<Publication>,
         selection: Set<String>,
         locate: (Publication) -> String?,
+        /** The app-level queue, the only writer of [store]. Null only where none exists. */
+        queue: DownloadQueue? = null,
     ): Set<String> {
         val wanted = BulkSelection.downloading(selection, kept(store))
         store.prepare()
@@ -69,14 +71,15 @@ internal object KeepOffline {
             if (publication.format == PublicationFormat.IMAGE_FOLDER) continue
             val path = locate(publication) ?: continue
             val bytes = copy(resolver, store, publication, path) ?: continue
-            record(store, publication, path, bytes)
+            record(store, publication, path, bytes, queue)
             copied += publication.id
         }
         return copied
     }
 
     /** Forgets copies this made, deleting the files with them. */
-    fun forget(store: DownloadStore, ids: Set<String>) {
+    fun forget(store: DownloadStore, ids: Set<String>, queue: DownloadQueue? = null) {
+        if (queue != null) return ids.forEach(queue::remove)
         var library = store.library()
         for (id in ids) {
             val download = library[id] ?: continue
@@ -119,25 +122,29 @@ internal object KeepOffline {
     }
 
     /** Writes the record that makes the copy a download rather than a stray file. */
-    private fun record(store: DownloadStore, publication: Publication, path: String, bytes: Long) {
+    private fun record(
+        store: DownloadStore,
+        publication: Publication,
+        path: String,
+        bytes: Long,
+        queue: DownloadQueue?,
+    ) {
         // The copy would not exist without one; `copy` refuses before reaching here.
         val mediaType = publication.format.mediaType ?: return
-        store.save(
-            store.library().queueing(
-                Download(
-                    id = publication.id,
-                    sourceId = publication.sourceId,
-                    title = publication.displayTitle,
-                    // Where it came from, which for this one is the reader's own folder.
-                    remote = path,
-                    mediaType = mediaType,
-                    state = Download.State.Finished,
-                    expectedBytes = bytes,
-                    downloadedBytes = bytes,
-                    completedAt = Date(),
-                ),
-            ),
+        val download = Download(
+            id = publication.id,
+            sourceId = publication.sourceId,
+            title = publication.displayTitle,
+            // Where it came from, which for this one is the reader's own folder.
+            remote = path,
+            mediaType = mediaType,
+            state = Download.State.Finished,
+            expectedBytes = bytes,
+            downloadedBytes = bytes,
+            completedAt = Date(),
         )
+        // Through the app-level queue, the only writer of the store -- dl-core 1.1.
+        if (queue != null) queue.record(download) else store.save(store.library().queueing(download))
     }
 
     /**

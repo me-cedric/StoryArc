@@ -254,7 +254,8 @@ struct StoryArcApp: App {
                         // pending removal is what stops a later undo putting a record back
                         // for bytes nobody has. Android has the same two lines.
                         removedDownload = nil
-                        downloads = downloadStore.clearing()
+                        DownloadQueue.shared().clearing()
+                        downloads = DownloadQueue.shared().library
                     }
                 )
                     .storyArcTheme(appearance: settings.appearance)

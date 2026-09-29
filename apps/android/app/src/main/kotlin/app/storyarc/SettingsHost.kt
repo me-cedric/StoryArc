@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.SourceAction
+import app.storyarc.feature.library.clearing
 import app.storyarc.feature.library.readProgress
 import app.storyarc.feature.settings.SettingsScreen
 import app.storyarc.navigation.AppSheet
@@ -94,7 +95,9 @@ internal fun SettingsHost(
             // removal is what stops the snackbar going on offering to restore a file that
             // no longer exists. No `settle()`: there is nothing left to delete.
             host.removed.value = null
-            host.downloads.value = store.clearing()
+            // Through the app-level queue, which also stops what it is running -- dl-core 1.1.
+            dependencies.queue.clearing()
+            host.downloads.value = dependencies.queue.library.value
         },
         // Written through on every change rather than on the way out.
         // `settings-and-about` requires an appearance to apply immediately, and the state

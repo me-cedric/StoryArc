@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import app.storyarc.core.model.Download
+import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.persistence.RemovedDownload
 import java.util.UUID
 
@@ -60,11 +61,28 @@ suspend fun DownloadQueue.restore(removed: RemovedDownload) {
 /**
  * Forgets every download a source contributed, deleting the files, for when the source
  * itself is removed.
+ *
+ * A transfer still running for that source is stopped first, so it cannot land a file in a
+ * directory the removal has just emptied.
  */
 fun DownloadQueue.removingAll(sourceId: UUID): List<Download> {
     val (kept, removed) = _library.value.removingAll(sourceId)
+    stop(removed.map { it.id })
     removed.forEach { store?.remove(it) }
     _library.value = kept
     store?.save(kept)
     return removed
+}
+
+/**
+ * Stops every transfer and forgets every download, deleting the files -- the clear in
+ * Settings.
+ *
+ * Through the queue for the reason the removals above are: a store cleared behind the queue
+ * comes back at the queue's next save, and a transfer that is still running lands its file in
+ * the cleared directory.
+ */
+fun DownloadQueue.clearing() {
+    stop(_library.value.downloads.map { it.id })
+    _library.value = store?.clearing() ?: DownloadLibrary()
 }

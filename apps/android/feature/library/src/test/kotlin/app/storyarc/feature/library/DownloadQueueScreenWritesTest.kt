@@ -1,10 +1,13 @@
 package app.storyarc.feature.library
 
 import android.content.Context
+import android.os.Looper.getMainLooper
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.catalogue.OpdsAcquisition
 import app.storyarc.core.catalogue.OpdsEntry
+import app.storyarc.core.catalogue.OpdsError
+import app.storyarc.core.catalogue.OpdsOrigin
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
 import app.storyarc.core.persistence.DownloadStore
@@ -20,6 +23,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
@@ -172,5 +176,70 @@ class DownloadQueueScreenWritesTest {
             queue.library.value[finished.id],
         )
         assertTrue(file.exists())
+    }
+
+    @Test
+    fun `clearing through the queue is not undone by the queue's next save`() {
+        val store = store()
+        val queue = queue(store)
+        queue.enqueue(OpdsEntry(id = "entry-1", title = "Cleared"), acquisition("a"))
+        queue.enqueue(OpdsEntry(id = "entry-2", title = "Cleared too"), acquisition("b"))
+
+        queue.clearing()
+        // The next write the queue makes for something unrelated. A clear written to the store
+        // behind the queue came back here, with every record the queue still held.
+        queue.enqueue(OpdsEntry(id = "entry-3", title = "After"), acquisition("c"))
+
+        assertEquals(listOf("entry-3"), store.library().downloads.map { it.id })
+        assertEquals(listOf("entry-3"), queue.library.value.downloads.map { it.id })
+    }
+
+    @Test
+    fun `the size a confirmation states is found under the page's own source`() {
+        val queue = queue(store())
+        val source = UUID.randomUUID()
+        val entry = OpdsEntry(id = "entry-1", title = "Sized")
+        queue.record(
+            Download(
+                id = queue.downloadId(entry.id, source),
+                sourceId = source,
+                title = entry.title,
+                remote = "https://example.invalid/entry-1.epub",
+                mediaType = "application/epub+zip",
+                expectedBytes = 4_000,
+            ),
+        )
+
+        assertEquals(4_000L, queue.statedBytes(entry, source))
+    }
+
+    @Test
+    fun `a download that steps down from its source's https is refused`() {
+        val source = UUID.randomUUID()
+        // The app-level queue has no origin of its own; the record's source supplies it.
+        val queue = DownloadQueue(
+            context,
+            CertificatePins(),
+            store(),
+            sourceOrigin = { id -> OpdsOrigin.of("https://library.invalid").takeIf { id == source } },
+            settings = { AppSettings() },
+            onWifi = MutableStateFlow(true),
+        )
+        val entry = OpdsEntry(id = "entry-1", title = "Cleartext")
+        val cleartext = OpdsAcquisition(
+            href = "http://library.invalid/entry-1.epub",
+            mediaType = "application/epub+zip",
+            kind = OpdsAcquisition.Kind.OPEN,
+        )
+
+        queue.enqueue(entry, cleartext, sourceId = source)
+        shadowOf(getMainLooper()).idle()
+
+        val state = queue.library.value[queue.downloadId(entry.id, source)]?.state
+        assertEquals(
+            "The queue fetched a book over cleartext from an https catalogue.",
+            CatalogueMessages.describe(context, OpdsError.RefusedAddress),
+            (state as? Download.State.Failed)?.reason,
+        )
     }
 }

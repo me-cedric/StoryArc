@@ -35,6 +35,13 @@ public final class DownloadQueue {
     /// with nobody watching.
     let origin: OpdsOrigin?
 
+    /// The origin of the source a record names, for a queue with no ``origin`` of its own.
+    ///
+    /// The shared queue runs every catalogue at once, so the rule above has to come from
+    /// the record's own source. Without it, the origin is the download address itself, and
+    /// an `https` catalogue could send its books over cleartext.
+    let sourceOrigin: (UUID) -> OpdsOrigin?
+
     /// The source this catalogue belongs to, so an enqueued download can be keyed against
     /// the catalogue it came from rather than its raw entry id alone.
     ///
@@ -58,6 +65,7 @@ public final class DownloadQueue {
         store: DownloadStore? = nil,
         credential: @escaping (Download.ID) -> OpdsCredential? = { _ in nil },
         origin: OpdsOrigin? = nil,
+        sourceOrigin: @escaping (UUID) -> OpdsOrigin? = { _ in nil },
         sourceID: UUID? = nil,
         /// What the reader has asked of the queue, re-asked rather than captured.
         ///
@@ -68,6 +76,7 @@ public final class DownloadQueue {
     ) {
         self.settings = settings
         self.origin = origin
+        self.sourceOrigin = sourceOrigin
         self.sourceID = sourceID
         client = OpdsClient(pins: pins, origin: origin)
         transfers = BackgroundTransfers.shared(pins: pins)
@@ -76,16 +85,11 @@ public final class DownloadQueue {
         // A stray pre-1.2 record is re-keyed before this read, by the shared queue's own
         // construction. See `DownloadMigration.migratingStrays(in:sources:)`.
         library = store?.library() ?? DownloadLibrary()
-        // So a retry pressed on a screen that owns no queue can reach this one while it is
-        // alive — see `DownloadQueueRetry.swift`.
-        remember()
         // The monitor's own update handler is `offline-downloads`' "automatically". Weakly,
         // because the queue owns the monitor and a strong capture would be a cycle.
         network.onChange = { [weak self] in self?.reconsider() }
         // Anything that was mid-flight when the app died comes back queued, so the pump
-        // picks it up rather than leaving it stuck at "in progress" for ever. A record the
-        // Downloads screen put back in the queue while no queue was alive is picked up here
-        // for the same reason and by the same line.
+        // picks it up rather than leaving it stuck at "in progress" for ever.
         pump()
         transfers.onOrphan { [weak self] name, file in
             Task { @MainActor in await self?.adopt(name, from: file) }

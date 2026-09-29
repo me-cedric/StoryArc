@@ -160,11 +160,11 @@ struct CatalogueDetailView: View {
         // the "explicitly downloads a specific publication" the scenario describes, so the
         // reader is asked, with the size, before their allowance is spent — and the fetch
         // resumes from the dialog rather than from here.
-        if !overridingMeteredConnection, queue.needsMeteredConfirmation(entry) {
+        if !overridingMeteredConnection, queue.needsMeteredConfirmation(entry, sourceID: sourceID) {
             meteredAsk = MeteredAsk(
                 entry: entry,
                 acquisition: link,
-                bytes: queue.statedBytes(of: entry)
+                bytes: queue.statedBytes(of: entry, sourceID: sourceID)
             )
             return
         }

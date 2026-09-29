@@ -225,11 +225,11 @@ struct CatalogueEntryLink: View {
                     // `offline-downloads`' *Overriding once*: on a metered link the reader
                     // is asked, with the size, before a byte of their allowance is spent.
                     // Off it, the tap is the whole interaction it has always been.
-                    if queue.needsMeteredConfirmation(entry) {
+                    if queue.needsMeteredConfirmation(entry, sourceID: sourceID) {
                         meteredAsk = MeteredAsk(
                             entry: entry,
                             acquisition: best,
-                            bytes: queue.statedBytes(of: entry)
+                            bytes: queue.statedBytes(of: entry, sourceID: sourceID)
                         )
                     } else {
                         queue.enqueue(entry, using: best, sourceID: sourceID)

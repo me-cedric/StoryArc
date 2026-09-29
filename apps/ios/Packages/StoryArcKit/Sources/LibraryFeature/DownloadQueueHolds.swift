@@ -1,3 +1,4 @@
+public import Foundation
 public import Catalogue
 internal import Formats
 public import StoryArcCore
@@ -127,10 +128,14 @@ extension DownloadQueue {
     /// `offline-downloads`' *Overriding once*. The answer is ``MeteredDownload``'s; what
     /// this adds is the two facts it needs — whether the link is one to be careful with,
     /// and whether this publication already carries a grant.
-    public func needsMeteredConfirmation(_ entry: OpdsEntry) -> Bool {
+    ///
+    /// - Parameter sourceID: the catalogue page's own source, as for
+    ///   ``DownloadQueue/downloadID(for:sourceID:)``. The shared queue has none of its own,
+    ///   so without it a grant recorded under the source-keyed id is never found.
+    public func needsMeteredConfirmation(_ entry: OpdsEntry, sourceID: UUID? = nil) -> Bool {
         MeteredDownload.needsConfirmation(
             isMetered: network.isCareful,
-            isOverridden: overridden.contains(downloadID(for: entry.id))
+            isOverridden: overridden.contains(downloadID(for: entry.id, sourceID: sourceID))
         )
     }
 
@@ -141,8 +146,8 @@ extension DownloadQueue {
     /// an honest blank". An OPDS acquisition link carries no length, so the honest answer
     /// before a first download is usually nothing, and the dialog says so in words rather
     /// than showing a number nobody supplied.
-    public func statedBytes(of entry: OpdsEntry) -> Int64? {
-        library[downloadID(for: entry.id)]?.expectedBytes
+    public func statedBytes(of entry: OpdsEntry, sourceID: UUID? = nil) -> Int64? {
+        library[downloadID(for: entry.id, sourceID: sourceID)]?.expectedBytes
     }
 
     /// Whether this one may start over the connection the device is on.
