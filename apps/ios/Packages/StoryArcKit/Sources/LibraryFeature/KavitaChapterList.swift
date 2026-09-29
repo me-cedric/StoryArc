@@ -323,7 +323,8 @@ struct KavitaChapterList: View {
             libraryId: series.libraryId,
             seriesId: series.id,
             volumeId: volumes.first { $0.chapters.contains(chapter) }?.id ?? 0,
-            chapterId: chapter.id
+            chapterId: chapter.id,
+            pages: chapter.pages
         )
     }
 

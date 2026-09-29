@@ -21,6 +21,17 @@ data class KavitaOrigin(
     val seriesId: Int,
     val volumeId: Int,
     val chapterId: Int,
+    /**
+     * How many pages the server counts this chapter as having, or 0 when not known.
+     *
+     * What a reflowable position needs to become the page number Kavita's `progress`
+     * route wants -- [KavitaExchange.pageNumber] converts a fraction with it. Zero for an
+     * origin remembered before this field existed: kotlinx.serialization defaults a
+     * missing key rather than losing the whole record, and zero reads the same as "this
+     * chapter's length is not known", which is what a reflowable report already checks
+     * for.
+     */
+    val pages: Int = 0,
 )
 
 /**

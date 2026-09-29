@@ -354,7 +354,8 @@ enum KavitaEntryOpening: Sendable {
             libraryId: entry.libraryId,
             seriesId: entry.seriesId,
             volumeId: entry.volumeId,
-            chapterId: entry.chapterId
+            chapterId: entry.chapterId,
+            pages: entry.pagesTotal
         )
         publication.identity = publication.identity.recordingServer(origin.serverIdentifier)
         store.remember(origin, for: publication.id)

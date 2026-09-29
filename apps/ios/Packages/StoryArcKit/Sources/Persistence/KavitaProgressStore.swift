@@ -1,5 +1,6 @@
 public import Foundation
 
+public import Kavita
 public import StoryArcCore
 
 /// Which server chapter a publication came from.
@@ -13,13 +14,43 @@ public struct KavitaOrigin: Sendable, Equatable, Codable {
     public let seriesId: Int
     public let volumeId: Int
     public let chapterId: Int
+    /// How many pages the server counts this chapter as having, or 0 when not known.
+    ///
+    /// What a reflowable position needs to become the page number Kavita's `progress`
+    /// route wants — ``KavitaExchange/pageNumber(of:in:)`` converts a fraction with it.
+    /// Zero for an origin remembered before this field existed: `decode` below tolerates
+    /// its absence rather than losing the whole record, and zero reads the same as "this
+    /// chapter's length is not known", which is what a reflowable report already checks for.
+    public let pages: Int
 
-    public init(sourceId: String, libraryId: Int, seriesId: Int, volumeId: Int, chapterId: Int) {
+    public init(
+        sourceId: String,
+        libraryId: Int,
+        seriesId: Int,
+        volumeId: Int,
+        chapterId: Int,
+        pages: Int = 0
+    ) {
         self.sourceId = sourceId
         self.libraryId = libraryId
         self.seriesId = seriesId
         self.volumeId = volumeId
         self.chapterId = chapterId
+        self.pages = pages
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        sourceId = try container.decode(String.self, forKey: .sourceId)
+        libraryId = try container.decode(Int.self, forKey: .libraryId)
+        seriesId = try container.decode(Int.self, forKey: .seriesId)
+        volumeId = try container.decode(Int.self, forKey: .volumeId)
+        chapterId = try container.decode(Int.self, forKey: .chapterId)
+        pages = try container.decodeIfPresent(Int.self, forKey: .pages) ?? 0
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case sourceId, libraryId, seriesId, volumeId, chapterId, pages
     }
 }
 
@@ -43,6 +74,25 @@ extension KavitaOrigin {
     public var serverIdentifier: PublicationIdentity.ServerIdentifier? {
         UUID(uuidString: sourceId).map {
             PublicationIdentity.ServerIdentifier(sourceID: $0, remoteID: "chapter:\(chapterId)")
+        }
+    }
+
+    /// The page number a recorded position reports to Kavita, or nil when there is
+    /// nothing to convert it with.
+    ///
+    /// A reflowable position -- an EPUB's -- carries no page number of its own, only a
+    /// fraction. ``KavitaExchange/pageNumber(of:in:)`` is the one place that turns a
+    /// fraction into a page, and it needs the chapter's own length to do it, which is why
+    /// ``pages`` exists. `pages == 0` means an origin remembered before that field
+    /// existed, or a chapter the server never reported a length for -- nothing to convert
+    /// against, so nothing is sent.
+    public func pageToReport(_ position: ReadingPosition) -> Int? {
+        switch position {
+        case let .page(index, _):
+            return index
+        case .reflowable, .listening:
+            guard pages > 0 else { return nil }
+            return KavitaExchange.pageNumber(of: position, in: pages)
         }
     }
 }

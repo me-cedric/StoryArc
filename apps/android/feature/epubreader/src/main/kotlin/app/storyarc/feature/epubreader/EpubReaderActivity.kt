@@ -62,6 +62,7 @@ import app.storyarc.core.playback.SpokenAudio
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import org.json.JSONObject
 import org.readium.r2.navigator.Decoration
 import org.readium.r2.navigator.HyperlinkNavigator
@@ -164,6 +165,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
         private const val EXTRA_LOCATION = "location"
         private const val EXTRA_TITLE = "title"
         private const val EXTRA_SERIES = "series"
+        private const val EXTRA_IDENTITY = "identity"
         private const val NAVIGATOR_TAG = "epub-navigator"
 
         /** The decoration group the sentence being spoken is drawn under. */
@@ -195,20 +197,20 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
             location: String,
             title: String,
             series: String?,
+            identity: PublicationIdentity = PublicationIdentity(normalizedPath = location),
         ): Intent =
             Intent(context, EpubReaderActivity::class.java)
                 .putExtra(EXTRA_LOCATION, location)
                 .putExtra(EXTRA_TITLE, title)
                 .putExtra(EXTRA_SERIES, series)
+                .putExtra(EXTRA_IDENTITY, Json.encodeToString(PublicationIdentity.serializer(), identity))
     }
 
     private val model: EpubReaderViewModel by lazy {
         EpubReaderViewModel(
             application = application,
             location = requireNotNull(intent.getStringExtra(EXTRA_LOCATION)),
-            identity = PublicationIdentity(
-                normalizedPath = requireNotNull(intent.getStringExtra(EXTRA_LOCATION)),
-            ),
+            identity = Json.decodeFromString(PublicationIdentity.serializer(), requireNotNull(intent.getStringExtra(EXTRA_IDENTITY))),
             progress = ProgressStore.open(applicationContext),
             themeStore = ReaderPreferences.open(applicationContext),
             bookmarkStore = BookmarkStore.open(applicationContext),
@@ -974,6 +976,11 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
         ReadAloudHost.release(drawing)
         speakable = null
         super.onDestroy()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        lifecycleScope.launch { reportToKavita(applicationContext, model.identity) }
     }
 
     /**

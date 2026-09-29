@@ -110,6 +110,7 @@ tasks.withType<Test>().configureEach {
 
 dependencies {
     implementation(project(":core:designsystem"))
+    implementation(project(":core:kavita"))
     implementation(project(":core:model"))
     implementation(project(":core:persistence"))
     // `api`, not `implementation`: `ReadAloudHost.session` is a `PlaybackSession`, and the
