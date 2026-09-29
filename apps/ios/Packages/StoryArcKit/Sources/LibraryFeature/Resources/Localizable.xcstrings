@@ -12006,6 +12006,64 @@
           }
         }
       }
+    },
+    "smb.error.smbNewer": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Server benötigt eine neuere SMB-Version, als StoryArc bisher verwenden kann."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This server needs a newer version of SMB than StoryArc can use yet."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este servidor necesita una versión de SMB más reciente de la que StoryArc puede usar por ahora."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce serveur a besoin d’une version de SMB plus récente que celle que StoryArc sait utiliser."
+          }
+        }
+      }
+    },
+    "smb.error.localNetworkDenied": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc kann das lokale Netzwerk nicht erreichen. Schalten Sie es in Einstellungen unter Datenschutz & Sicherheit, dann Lokales Netzwerk, wieder ein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc cannot reach the local network. Turn it on again in Settings, under Privacy & Security, then Local Network."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc no puede acceder a la red local. Actívala de nuevo en Ajustes, en Privacidad y seguridad, luego Red local."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc ne peut pas accéder au réseau local. Réactivez-le dans Réglages, sous Confidentialité et sécurité, puis Réseau local."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

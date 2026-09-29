@@ -2,6 +2,7 @@ public import Foundation
 
 public import Formats
 
+internal import Network
 internal import StoryArcCore
 
 // The module and its main class share a name, so the class is imported by itself: written
@@ -144,26 +145,67 @@ public actor SmbClient {
             throw error.code == .userAuthenticationRequired
                 ? SmbError.authenticationRejected
                 : SmbError.hostUnreachable
+        } catch let error as NWError {
+            throw Self.meaning(of: error)
         } catch let error as NSError where error.domain == NSPOSIXErrorDomain {
-            throw SmbError.hostUnreachable
+            throw Self.meaning(ofPosix: Int32(error.code))
         } catch {
             throw SmbError.unexpected(detail: String(describing: error))
         }
     }
 
+    /// What the network itself said, read out of `NWError` rather than a status this
+    /// connection never reached far enough to receive.
+    ///
+    /// SMBClient's `Connection` throws the raw `NWError` from `.waiting` or `.failed` (see
+    /// its `Connection.swift`), and every one of the cases below bridges to
+    /// `NSPOSIXErrorDomain` or `"Network.NWError"` before it ever reaches a `catch` clause
+    /// that can read it as a POSIX code, which is why this reads `NWError` directly instead.
+    static func meaning(of error: NWError) -> SmbError {
+        switch error {
+        case .dns:
+            .hostUnreachable
+        case let .posix(code):
+            meaning(ofPosix: code.rawValue)
+        default:
+            .unexpected(detail: String(describing: error))
+        }
+    }
+
+    /// A POSIX errno, read the same way whether it arrived wrapped in an `NWError` or as a
+    /// bare `NSError` in `NSPOSIXErrorDomain`.
+    static func meaning(ofPosix code: Int32) -> SmbError {
+        switch code {
+        case POSIXErrorCode.EPERM.rawValue:
+            // The Local Network permission is off: the connect never left the device, and
+            // that is a setting for the reader to change here, not a server to chase.
+            .localNetworkDenied
+        case POSIXErrorCode.ECONNREFUSED.rawValue,
+            POSIXErrorCode.EHOSTUNREACH.rawValue,
+            POSIXErrorCode.ENETUNREACH.rawValue,
+            POSIXErrorCode.ETIMEDOUT.rawValue:
+            .hostUnreachable
+        default:
+            .unexpected(detail: "posix \(code)")
+        }
+    }
+
     /// The four failures `network-share` names, read out of the server's NT status.
     static func meaning(of status: UInt32, isHandshake: Bool = false) -> SmbError {
-        // A server that offers only SMB 1 answers this client's SMB 2 NEGOTIATE one of two
-        // ways, and both of them arrive here. MS-SMB2 tells a server with no dialect in
-        // common to fail the request with STATUS_NOT_SUPPORTED; an older server answers in
-        // the CIFS error classes instead, whose statuses all end in `0002` and which an
-        // SMB 2 server never sends. Read only while the two ends are still agreeing on a
-        // dialect, because STATUS_NOT_SUPPORTED means something much narrower afterwards.
+        // Two shapes of "no dialect in common", and they do not mean the same thing.
+        // STATUS_NOT_SUPPORTED is what MS-SMB2 has *any* server with nothing in common send,
+        // including one that requires SMB 3 or later -- newer than this client, not older.
+        // The CIFS error-class statuses, whose codes all end in `0002`, are what an SMB 2
+        // server has no way to send at all: only a genuine SMB-1-only server answers this
+        // way. Read only while the two ends are still agreeing on a dialect, because
+        // STATUS_NOT_SUPPORTED means something much narrower afterwards.
         //
-        // It says the server offers only SMB 1 and where to turn SMB 2 on. It does not say
-        // why SMB 1 is not spoken here -- that is a sentence for the ADR, not for a reader
-        // trying to reach their NAS.
-        if isHandshake, Self.dialectRefusals.contains(status) { return .protocolUnsupported }
+        // The SMB 1 sentence says where to turn SMB 2 on. It does not say why SMB 1 is not
+        // spoken here -- that is a sentence for the ADR, not for a reader trying to reach
+        // their NAS. The "too new" sentence has no setting to name: this client cannot speak
+        // a dialect it was never built to offer.
+        if isHandshake, status == Self.noDialectInCommon { return .protocolTooNew }
+        if isHandshake, Self.cifsErrorClassRefusals.contains(status) { return .protocolUnsupported }
         // ACCESS_DENIED from a server that has agreed a dialect usually means a refused
         // password, but a server with `reject unencrypted access` answers the same way to a
         // client that cannot encrypt. Those two are indistinguishable *from a status*, so
@@ -198,13 +240,16 @@ public actor SmbClient {
     /// `SMB2_SHAREFLAG_ENCRYPT_DATA`, from MS-SMB2 2.2.10.
     private static let encryptDataShareFlag: UInt32 = 0x0000_8000
 
-    /// Statuses that can only mean the server would not agree a dialect this client speaks.
-    ///
-    /// `STATUS_NOT_SUPPORTED`, then the CIFS error-class statuses: `STATUS_INVALID_SMB`,
-    /// `STATUS_SMB_BAD_COMMAND`, `STATUS_SMB_BAD_TID`, `STATUS_SMB_BAD_UID` and
-    /// `STATUS_SMB_USE_STANDARD`. An SMB 2 server has no way to send the last five.
-    private static let dialectRefusals: Set<UInt32> = [
-        0xC000_00BB, 0x0001_0002, 0x0016_0002, 0x0005_0002, 0x005B_0002, 0x00FB_0002,
+    /// `STATUS_NOT_SUPPORTED`. Either end may be the one with nothing to offer the other, so
+    /// this alone never says which -- ``meaning(of:isHandshake:)`` reads it as this client
+    /// needing a server that speaks a newer dialect than it does.
+    private static let noDialectInCommon: UInt32 = 0xC000_00BB
+
+    /// The CIFS error-class statuses: `STATUS_INVALID_SMB`, `STATUS_SMB_BAD_COMMAND`,
+    /// `STATUS_SMB_BAD_TID`, `STATUS_SMB_BAD_UID` and `STATUS_SMB_USE_STANDARD`. An SMB 2
+    /// server has no way to send any of these, so only a genuine SMB-1-only server does.
+    private static let cifsErrorClassRefusals: Set<UInt32> = [
+        0x0001_0002, 0x0016_0002, 0x0005_0002, 0x005B_0002, 0x00FB_0002,
     ]
 
     /// What this client offers. The library negotiates SMB 2.0.2 and 2.1 and no more.
