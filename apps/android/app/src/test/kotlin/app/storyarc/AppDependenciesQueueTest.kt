@@ -5,7 +5,13 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadLibrary
+import app.storyarc.core.model.Source
+import app.storyarc.core.model.SourceKind
+import app.storyarc.core.model.SourceRegistry
+import app.storyarc.core.persistence.SourceStore
 import app.storyarc.feature.library.DownloadService
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -71,6 +77,40 @@ class AppDependenciesQueueTest {
         assertTrue(
             "Nothing restarted the download left running when the process died: $followed",
             DownloadService::class.java.name in followed,
+        )
+    }
+
+    @Test
+    fun `A download recorded before source-keyed ids is re-keyed when the app queue is built`() {
+        // dl-core 1.2's migration, reached the way the app reaches it: the one queue is the
+        // only one built, and it has no catalogue origin of its own to match a stray against.
+        val source = Source(
+            displayName = "Library",
+            kind = SourceKind.OPDS_CATALOG,
+            locator = "https://library.example",
+        )
+        SourceStore.open(context).save(SourceRegistry(sources = listOf(source)))
+        app.storyarc.core.persistence.DownloadStore.open(context).save(
+            DownloadLibrary(
+                downloads = listOf(
+                    Download(
+                        id = "entry-7",
+                        title = "Harbour Lights 07",
+                        remote = "https://library.example/download/entry-7.epub",
+                        mediaType = "application/epub+zip",
+                        state = Download.State.Finished,
+                        downloadedBytes = 1_000,
+                    ),
+                ),
+            ),
+        )
+
+        val queue = AppDependencies.open(context).queue
+
+        assertEquals(source.id, queue.library.value["opds:${source.id}:entry-7"]?.sourceId)
+        assertNull(
+            "The stray kept its bare entry id, so another catalogue can still collide with it.",
+            queue.library.value["entry-7"],
         )
     }
 }

@@ -62,6 +62,9 @@ extension DownloadQueue {
         settings: @escaping () -> AppSettings = SettingsStore().settings
     ) -> DownloadQueue {
         if let instance { return instance }
+        // dl-core 1.2: a record from before source-keyed ids is re-keyed here, because this
+        // is the only queue the app builds and it has no single origin to match against.
+        DownloadMigration.migratingStrays(in: store, sources: sources())
         let queue = DownloadQueue(
             pins: pins,
             store: store,

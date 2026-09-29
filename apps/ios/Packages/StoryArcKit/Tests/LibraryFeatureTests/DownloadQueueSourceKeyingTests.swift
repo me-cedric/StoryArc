@@ -84,12 +84,13 @@ struct DownloadQueueSourceKeyingTests {
         #expect(queue.downloadID(for: "entry-3") == "opds:\(source.uuidString):entry-3")
     }
 
-    @Test("A stray record this catalogue's origin owns is re-keyed when the queue opens")
-    func strayRecordIsMigrated() throws {
-        let origin = try #require(OpdsOrigin(url: URL(string: "https://library.example")!))
-        let remote = URL(string: "https://library.example/download/entry-7.epub")!
-        let store = try store()
-        // What a pre-1.2 build wrote: no source, the bare entry id.
+    /// A catalogue at `https://library.example`, as the source registry holds it.
+    private func catalogue(_ id: UUID) -> Source {
+        Source(id: id, displayName: "Library", kind: .opdsCatalog, locator: "https://library.example")
+    }
+
+    /// What a pre-1.2 build wrote: no source, the bare entry id.
+    private func stray(at remote: URL, in store: DownloadStore) {
         store.save(
             DownloadLibrary(downloads: [
                 Download(
@@ -102,14 +103,19 @@ struct DownloadQueueSourceKeyingTests {
                 )
             ])
         )
+    }
 
+    @Test("A stray record a registered catalogue owns is re-keyed when the shared queue opens")
+    func strayRecordIsMigrated() throws {
+        DownloadQueue.resetShared()
+        defer { DownloadQueue.resetShared() }
+        let store = try store()
+        stray(at: URL(string: "https://library.example/download/entry-7.epub")!, in: store)
         let source = UUID()
-        let queue = DownloadQueue(
-            store: store,
-            credential: { _ in nil },
-            origin: origin,
-            sourceID: source,
-            settings: { AppSettings() }
+        let registered = catalogue(source)
+
+        let queue = DownloadQueue.shared(
+            store: store, sources: { [registered] }, settings: { AppSettings() }
         )
 
         let migrated = try #require(queue.library["opds:\(source.uuidString):entry-7"])
@@ -125,24 +131,14 @@ struct DownloadQueueSourceKeyingTests {
 
     @Test("A record from a different origin is left alone")
     func recordFromAnotherOriginIsNotMigrated() throws {
-        let origin = try #require(OpdsOrigin(url: URL(string: "https://library.example")!))
-        let elsewhere = URL(string: "https://elsewhere.invalid/entry-7.epub")!
+        DownloadQueue.resetShared()
+        defer { DownloadQueue.resetShared() }
         let store = try store()
-        store.save(
-            DownloadLibrary(downloads: [
-                Download(
-                    id: "entry-7",
-                    title: "Harbour Lights 07",
-                    remote: elsewhere,
-                    mediaType: "application/epub+zip",
-                    state: .finished,
-                    downloadedBytes: 1_000
-                )
-            ])
-        )
+        stray(at: URL(string: "https://elsewhere.invalid/entry-7.epub")!, in: store)
+        let registered = catalogue(UUID())
 
-        let queue = DownloadQueue(
-            store: store, origin: origin, sourceID: UUID(), settings: { AppSettings() }
+        let queue = DownloadQueue.shared(
+            store: store, sources: { [registered] }, settings: { AppSettings() }
         )
 
         #expect(queue.library["entry-7"] != nil, "A record this origin does not own was migrated anyway.")

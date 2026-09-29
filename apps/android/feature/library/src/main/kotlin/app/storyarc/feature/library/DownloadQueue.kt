@@ -98,9 +98,6 @@ class DownloadQueue(
      */
     private val onWifi: Flow<Boolean> = NetworkCost.onWifi(context),
 ) : RememberObserver {
-    /** Kept for [loadMigratedLibrary], which the [client] property below does not need. */
-    private val origin: OpdsOrigin? = origin
-
     /**
      * The id a download of this entry is recorded under.
      *
@@ -130,30 +127,12 @@ class DownloadQueue(
     }
 
     /**
-     * What the store holds, with any pre-1.2 stray this catalogue's origin owns re-keyed --
-     * see [DownloadMigration]. Reclaimed after, because nothing outside this process carries
-     * a transfer on Android, so a download the store calls running is one whose process died
-     * mid-flight; it goes back in the queue rather than waiting for a coroutine that no
-     * longer exists.
+     * What the store holds. Reclaimed, because nothing outside this process carries a
+     * transfer on Android, so a download the store calls running is one whose process died
+     * mid-flight; it goes back in the queue rather than waiting for a coroutine that no longer
+     * exists. A pre-1.2 stray is re-keyed before this read -- see [migratingOpdsStrays].
      */
-    private fun loadMigratedLibrary(): DownloadLibrary {
-        val loaded = store?.library() ?: DownloadLibrary()
-        val fixed = if (store != null && sourceId != null && origin != null) {
-            val migration = DownloadMigration.migrating(loaded, sourceId, origin)
-            if (migration.renamed.isNotEmpty()) {
-                migration.renamed.forEach { (from, to) -> store.rename(from, to) }
-                store.save(migration.library)
-                migration.library
-            } else {
-                loaded
-            }
-        } else {
-            loaded
-        }
-        return fixed.reclaiming(emptySet())
-    }
-
-    internal val _library = MutableStateFlow(loadMigratedLibrary())
+    internal val _library = MutableStateFlow((store?.library() ?: DownloadLibrary()).reclaiming(emptySet()))
 
     /** What has been downloaded and what is on its way. */
     val library: StateFlow<DownloadLibrary> = _library.asStateFlow()
