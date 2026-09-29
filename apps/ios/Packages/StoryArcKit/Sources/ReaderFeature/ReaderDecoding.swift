@@ -118,16 +118,26 @@ extension ReaderModel {
     private func decode(_ index: Int) async {
         guard pages.indices.contains(index) else { return }
         attempted.insert(index)
-        switch await outcome(at: index, maxPixelSize: maxPixelSize) {
+        // Only the page on screen, and only for a share: `network-share`'s notice is
+        // about *that* page's own trouble, not a prefetched neighbour's, and a plain
+        // local file offers no download-for-offline and no "share" to name.
+        let tracksNetwork = index == currentIndex && url.scheme == "smb"
+        if tracksNetwork { pageWaitStarted = Date() }
+        let result = await outcome(at: index, maxPixelSize: maxPixelSize)
+        if tracksNetwork { pageWaitStarted = nil }
+
+        switch result {
         case .decoded(let image):
             decoded[index] = image
             refusedCodecs.removeValue(forKey: index)
             noteDecoded(image, at: index)
+            if tracksNetwork { pageFailingSince = nil }
 
         case .refused(let codec):
             // Remembered as tried, which is what makes the placeholder appear: the bytes
             // are here and the decoder will say the same thing about them next time.
             if let codec { refusedCodecs[index] = codec }
+            if tracksNetwork { pageFailingSince = nil }
 
         case .unread:
             // Forgotten rather than remembered as tried. A page that failed because the
@@ -135,7 +145,93 @@ extension ReaderModel {
             // app to "resume streaming at the current page" after reconnecting, and a page
             // marked attempted for ever never gets a second chance.
             attempted.remove(index)
+            // The *first* failure only: `network-share`'s 60 s offer counts continuously
+            // from here, unaffected by a reader dismissing the notice or by the gaps
+            // between ``watchForPageRecovery()``'s own retries.
+            if tracksNetwork, pageFailingSince == nil { pageFailingSince = Date() }
         }
+    }
+
+    /// Re-reads the page on screen at a short interval while it has not arrived, so
+    /// streaming resumes at the current page without the reader turning away and back.
+    ///
+    /// `network-share`'s *Connection drops while reading*: `warm(around:)`'s only other
+    /// callers are `open`, `go(to:)` and `noteMemoryPressure`, none of which fire on
+    /// their own while the reader sits still on one page waiting — a page that failed
+    /// stayed a spinner until a turn away and back asked for it again.
+    public func watchForPageRecovery() async {
+        while !Task.isCancelled {
+            try? await Task.sleep(for: Self.recoveryInterval)
+            guard Self.needsRecovery(
+                currentIndex: currentIndex,
+                pageCount: pages.count,
+                decoded: Set(decoded.keys),
+                attempted: attempted,
+                refused: Set(refusedCodecs.keys)
+            ) else { continue }
+            await decode(currentIndex)
+        }
+    }
+
+    private static let recoveryInterval: Duration = .seconds(3)
+
+    /// Whether the page on screen still needs a read, lifted beside ``watchForPageRecovery()``
+    /// so a test can hold the rule without owning a publication to wait on.
+    ///
+    /// Not already in flight: ``decode(_:)`` inserts into `attempted` before it awaits, and
+    /// only a failure removes the entry again — so a page mid-read reads as attempted here,
+    /// and this declines to ask again under it.
+    static func needsRecovery(
+        currentIndex: Int,
+        pageCount: Int,
+        decoded: Set<Int>,
+        attempted: Set<Int>,
+        refused: Set<Int>
+    ) -> Bool {
+        (0..<pageCount).contains(currentIndex)
+            && !decoded.contains(currentIndex)
+            && !refused.contains(currentIndex)
+            && !attempted.contains(currentIndex)
+    }
+
+    public func go(to index: Int) async {
+        guard pages.indices.contains(index) else { return }
+        currentIndex = index
+        // Belongs to the page being left. `decode(_:)` sets both again for the page
+        // being turned to, if it still needs reading — see `tracksNetwork` above.
+        pageWaitStarted = nil
+        pageFailingSince = nil
+        await warm(around: index)
+        await record(index)
+    }
+
+    /// Writes the position down.
+    ///
+    /// Every turn, not on leaving: ADR-0006 makes the local store authoritative,
+    /// and a reader that only saves on a clean exit loses the evening when the app
+    /// is killed in the background — which is the normal way a phone closes an app.
+    ///
+    /// The last page marks the publication finished. Finished is sticky, so
+    /// turning back afterwards does not unmark it.
+    private func record(_ index: Int) async {
+        guard let progress, !pages.isEmpty else { return }
+        try? await progress.save(
+            ReadingProgress(
+                identity: publication.identity,
+                position: .page(index: index, of: pages.count),
+                isFinished: index == pages.count - 1,
+                updatedAt: Date()
+            )
+        )
+    }
+
+    /// The next page in *reading* order, which is not always the next index.
+    public func advance() async {
+        await go(to: currentIndex + 1)
+    }
+
+    public func retreat() async {
+        await go(to: currentIndex - 1)
     }
 
     /// One decode of one page, and what it settled.

@@ -65,9 +65,7 @@ public struct ReaderView: View {
     let downloadCleanup: DownloadCleanupOffer?
 
     /// Supplied by the app layer for the same reason as the above: the reader does not know
-    /// what a network share is, and `network-share`'s two thresholds are the only part of
-    /// that it needs.
-    private let blockedSince: () -> Date?
+    /// what a network share is.
     private let onDismissTrouble: () -> Void
     private let onDownloadForOffline: (() async -> Bool)?
 
@@ -88,7 +86,6 @@ public struct ReaderView: View {
         nextInSeries: Publication? = nil,
         onOpen: @escaping (Publication) -> Void = { _ in },
         downloadCleanup: DownloadCleanupOffer? = nil,
-        blockedSince: @escaping () -> Date? = { nil },
         onDismissTrouble: @escaping () -> Void = {},
         onDownloadForOffline: (() async -> Bool)? = nil
     ) {
@@ -102,7 +99,6 @@ public struct ReaderView: View {
         )
         self.preferences = preferences
         self.annotations = annotations
-        self.blockedSince = blockedSince
         self.onDismissTrouble = onDismissTrouble
         self.onDownloadForOffline = onDownloadForOffline
         self.previousInSeries = previousInSeries
@@ -367,7 +363,7 @@ public struct ReaderView: View {
         // read to stay readable while the network is away.
         .overlay(alignment: .bottom) {
             NetworkNotice(
-                blockedSince: blockedSince,
+                blockedSince: { model.pageBlockedSince },
                 onDismiss: onDismissTrouble,
                 onDownload: onDownloadForOffline,
                 onLeave: { dismiss() }

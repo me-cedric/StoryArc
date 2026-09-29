@@ -358,8 +358,6 @@ struct StoryArcApp: App {
                         nextInSeries: library.next(after: selection.publication),
                         onOpen: openNext,
                         downloadCleanup: downloadCleanupOffer(for: selection.publication),
-                        blockedSince: { SmbReachability.blockedSince },
-                        onDismissTrouble: { SmbReachability.clear() },
                         // Only for a publication that lives on a share. Everything else is
                         // already on the device, and offering to download it would be
                         // offering nothing.

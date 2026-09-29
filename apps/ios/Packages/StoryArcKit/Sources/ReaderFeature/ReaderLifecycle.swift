@@ -2,15 +2,16 @@ internal import SwiftUI
 
 /// What the reader starts when it appears, and stops when it goes.
 ///
-/// Three tasks that are one subject: opening the publication, following the memory pressure
-/// that narrows the prefetch window, and watching for the local copy of a publication that is
-/// still arriving. Each is bounded by the reader being on screen — leaving cancels the task,
-/// which cancels what it is driving.
+/// Four tasks that are one subject: opening the publication, following the memory pressure
+/// that narrows the prefetch window, watching for the local copy of a publication that is
+/// still arriving, and re-reading the page on screen while it has failed to arrive. Each is
+/// bounded by the reader being on screen — leaving cancels the task, which cancels what it is
+/// driving.
 ///
-/// **A modifier rather than three `.task` calls in the view.** `ReaderView.swift` is at the
+/// **A modifier rather than four `.task` calls in the view.** `ReaderView.swift` is at the
 /// 400-line cap, and a file that may not grow is a file where the next thing is added
 /// somewhere else. This is a real seam rather than a place to put the overflow: what these
-/// three share is a lifetime, and nothing above them needs to know how many there are.
+/// four share is a lifetime, and nothing above them needs to know how many there are.
 struct ReaderLifecycle: ViewModifier {
     let model: ReaderModel
 
@@ -37,6 +38,10 @@ struct ReaderLifecycle: ViewModifier {
             // watch. It starts in parallel with the `.task` above, before `open` has set
             // `archive` — see ``ReaderModel/adoptTheCopyWhenItArrives()`` for how it waits.
             .task { await model.adoptTheCopyWhenItArrives() }
+            // `network-share`'s *Connection drops while reading*: "resume streaming at the
+            // current page" after reconnecting — nothing else on this page turns itself
+            // back into a read once the first one has failed.
+            .task { await model.watchForPageRecovery() }
     }
 }
 

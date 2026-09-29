@@ -243,6 +243,23 @@ struct ReaderModelTests {
         #expect(model.displayImage(at: 0)?.width == fitted)
     }
 
+    @Test("Turning the page forgets the trouble the page being left had")
+    func turningResetsPageTrouble() async {
+        // `network-share`'s notice is about the page on screen. A turn away leaves that
+        // page's own wait and failure behind with it, rather than carrying either onto
+        // whatever the reader turns to next -- see `pageBlockedSince`.
+        let location = url("comics/natural-sort.cbz")
+        let model = ReaderModel(publication: publication(.cbz, at: location), url: location)
+        await model.open(maxPixelSize: 256)
+        model.pageWaitStarted = Date()
+        model.pageFailingSince = Date()
+
+        await model.go(to: 6)
+
+        #expect(model.pageWaitStarted == nil)
+        #expect(model.pageFailingSince == nil)
+    }
+
     @Test("Turning away from a zoomed page drops the copy it was holding")
     func turningDropsTheZoom() async {
         // Asserted on the held copy rather than on its pixel width: this fixture's pages
