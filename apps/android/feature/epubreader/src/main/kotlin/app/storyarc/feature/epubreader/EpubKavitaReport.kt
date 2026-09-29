@@ -35,10 +35,12 @@ internal suspend fun reportToKavita(context: Context, identity: PublicationIdent
     val progress = ProgressStore.open(context)
     val recorded = progress.progress(identity) ?: return
     val page = pageToReport(recorded.position, origin) ?: return
-    val source = SourceStore.open(context).registry().sources
-        .firstOrNull { it.id.toString() == origin.sourceId } ?: return
-    val address = kavitaAddressOf(source, CredentialStore.open(context)) ?: return
+    val address = SourceStore.open(context).registry().sources
+        .firstOrNull { it.id.toString() == origin.sourceId }
+        ?.let { kavitaAddressOf(it, CredentialStore.open(context)) }
     val unsent = KavitaUnsent(origin, page)
+    // No address is the "not there" case `KavitaSync.report` holds for, not a reason to drop.
+    if (address == null) return kavitaProgress.hold(unsent)
     val sent = runCatching {
         KavitaClient(address).report(
             KavitaPosition(

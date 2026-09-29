@@ -59,6 +59,8 @@ import app.storyarc.core.persistence.chosenLanguage
 import app.storyarc.core.persistence.speaking
 import app.storyarc.core.playback.SessionHandover
 import app.storyarc.core.playback.SpokenAudio
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -89,10 +91,6 @@ import org.readium.r2.shared.util.Url
  * `ebook-reader` forbids presenting a reflowable page number as a stable identity —
  * the count changes with the type size — so the chrome shows a percentage and the
  * chapter, which do not.
- *
- * Typography controls are absent rather than disabled. They belong to the
- * `reader-theming-and-page-transitions` change, and a sheet of sliders that does
- * nothing would be worse than no sheet at all.
  */
 class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
 
@@ -186,8 +184,6 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
         /**
          * @param location where the book lives, as the library recorded it: a
          *   filesystem path, or a `content://` URI from a folder the user picked.
-         */
-        /**
          * @param series what shelf the book sits on, so the theme it is read with is
          *   the one the rest of the series was read with. Null for a standalone book,
          *   which then remembers a theme of its own.
@@ -263,28 +259,21 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
     private var isTurning = false
 
     /**
-     * The publication, once it is open and Readium can extract text from it.
-     *
-     * Held so pressing play has something to hand [ReadAloudHost] — the session is built
-     * when a listener asks for it, not when the book opens, because it outlives this screen
-     * and a screen should not create something longer-lived than itself for nobody.
+     * The open publication, held so pressing play has something to hand [ReadAloudHost]: the
+     * session is built when a listener asks for it, not when the book opens, because it
+     * outlives this screen.
      */
     private var speakable: Publication? = null
 
     /**
-     * Whether the control belongs on screen at all.
-     *
-     * Its own flow: the chrome is composed before the publication is parsed, so the answer
-     * has to arrive rather than be asked for.
+     * Whether the control belongs on screen. Its own flow, because the chrome is composed
+     * before the publication is parsed.
      */
     private val canReadAloud = MutableStateFlow(false)
 
     /**
-     * The shade's copy of the transport, which from API 33 has to be asked for.
-     *
-     * Nothing is done with the answer. Refusing does not stop the voice and does not take
-     * the lock screen's own media controls away -- those come from the media session -- so
-     * the only honest response to a refusal is to carry on without the notification.
+     * The shade's copy of the transport, which from API 33 has to be asked for. A refusal
+     * stops neither the voice nor the media session's lock-screen controls, so it is ignored.
      */
     private val notifications =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -660,11 +649,15 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     onSearch = { searchSelection() },
                 )
             },
+            // The only report that can say the last page is on screen. See `isLastPage`.
+            paginationListener = object : EpubNavigatorFragment.PaginationListener {
+                override fun onPageChanged(pageIndex: Int, totalPages: Int, locator: Locator) =
+                    model.pageShown(pageIndex, totalPages, locator)
+            },
         )
 
-        // Replace rather than add: on a process restore the dummy fragment is
-        // already in the container, and adding beside it would leave a blank view
-        // stacked over the book.
+        // Replace rather than add: on a process restore the dummy fragment is already in the
+        // container, and adding beside it would leave a blank view stacked over the book.
         supportFragmentManager.commitNow {
             replace(container.id, EpubNavigatorFragment::class.java, Bundle(), NAVIGATOR_TAG)
         }
@@ -673,9 +666,8 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
             supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
                 ?: return
 
-        // Through Readium's own input listener, not a Compose gesture: a gesture
-        // layered over the web view swallows the taps the reader needs to turn
-        // pages and follow links.
+        // Through Readium's own input listener, not a Compose gesture: a gesture layered over
+        // the web view swallows the taps the reader needs to turn pages and follow links.
         navigator.addInputListener(
             object : InputListener {
                 override fun onTap(event: TapEvent): Boolean {
@@ -980,7 +972,8 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
 
     override fun onStop() {
         super.onStop()
-        lifecycleScope.launch { reportToKavita(applicationContext, model.identity) }
+        // Not `lifecycleScope`: closing the book destroys it right after this, mid-send.
+        CoroutineScope(Dispatchers.IO).launch { reportToKavita(applicationContext, model.identity) }
     }
 
     /**
