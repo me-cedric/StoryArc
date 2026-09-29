@@ -33,11 +33,29 @@ class EarlyPageTallnessTest {
     }
 
     @Test
-    fun `a page past the sample does not raise the ratio`() {
+    fun `a page decoded after the sample does not raise the ratio`() {
         val tallness = EarlyPageTallness()
-        tallness.note(1.0, 0)
+        repeat(EarlyPageTallness.SAMPLE_COUNT) { tallness.note(1.0, it) }
         tallness.note(9.0, EarlyPageTallness.SAMPLE_COUNT)
         assertEquals(1.0, tallness.tallestRatio, 0.0)
+    }
+
+    @Test
+    fun `a reader who resumes deep in a webtoon still reads it as tall`() {
+        // Resumed on page fifty: pages 0 to 2 never decode, so a rule over file
+        // positions would never see a page at all.
+        val tallness = EarlyPageTallness()
+        tallness.note(3.5, 50)
+        tallness.note(3.4, 51)
+        assertEquals(3.5, tallness.tallestRatio, 0.0)
+    }
+
+    @Test
+    fun `a page decoded again counts once`() {
+        val tallness = EarlyPageTallness()
+        repeat(EarlyPageTallness.SAMPLE_COUNT) { tallness.note(1.0, 0) }
+        tallness.note(3.5, 1)
+        assertEquals(3.5, tallness.tallestRatio, 0.0)
     }
 
     @Test

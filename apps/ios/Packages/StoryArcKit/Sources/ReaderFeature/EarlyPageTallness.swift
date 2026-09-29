@@ -12,15 +12,20 @@
 /// — `ReaderModel` needs a real decoded `CGImage` for each page, which is not
 /// something a host-run test can make three of cheaply.
 struct EarlyPageTallness {
-    /// How many of the earliest pages count. Three catches a one-page title card
-    /// without waiting long enough to matter for anything longer.
+    /// How many of the earliest decoded pages count. Three catches a one-page title
+    /// card without waiting long enough to matter for anything longer.
     static let sampleCount = 3
 
     private(set) var tallestRatio = 0.0
+    private var sampled: Set<Int> = []
 
-    /// Notes one decoded page's height-over-width ratio, if it is early enough to count.
+    /// Notes one decoded page's height-over-width ratio, if it is among the first pages
+    /// to decode. The first to *decode*, not the first in the file: a reader who resumes
+    /// on page fifty never decodes page one, and a rule that counted only pages 0 to 2
+    /// left that webtoon reading as not tall. A page decoded again counts once.
     mutating func note(ratio: Double, at index: Int) {
-        guard index < Self.sampleCount else { return }
+        guard sampled.contains(index) || sampled.count < Self.sampleCount else { return }
+        sampled.insert(index)
         tallestRatio = max(tallestRatio, ratio)
     }
 }

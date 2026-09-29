@@ -30,10 +30,28 @@ struct EarlyPageTallnessTests {
         #expect(tallness.tallestRatio == 3.5)
     }
 
-    @Test("A page past the sample does not raise the ratio")
+    @Test("A reader who resumes deep in a webtoon still reads it as tall")
+    func resumedDeepInside() {
+        // Resumed on page fifty: pages 0 to 2 never decode, so a rule over file
+        // positions would never see a page at all.
+        var tallness = EarlyPageTallness()
+        tallness.note(ratio: 3.5, at: 50)
+        tallness.note(ratio: 3.4, at: 51)
+        #expect(tallness.tallestRatio == 3.5)
+    }
+
+    @Test("A page decoded again counts once")
+    func redecodeCountsOnce() {
+        var tallness = EarlyPageTallness()
+        for _ in 0..<EarlyPageTallness.sampleCount { tallness.note(ratio: 1.0, at: 0) }
+        tallness.note(ratio: 3.5, at: 1)
+        #expect(tallness.tallestRatio == 3.5)
+    }
+
+    @Test("A page decoded after the sample does not raise the ratio")
     func pastTheSampleDoesNotCount() {
         var tallness = EarlyPageTallness()
-        tallness.note(ratio: 1.0, at: 0)
+        for index in 0..<EarlyPageTallness.sampleCount { tallness.note(ratio: 1.0, at: index) }
         tallness.note(ratio: 9.0, at: EarlyPageTallness.sampleCount)
         #expect(
             tallness.tallestRatio == 1.0,
