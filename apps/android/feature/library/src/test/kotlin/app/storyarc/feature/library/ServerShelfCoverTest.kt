@@ -44,7 +44,7 @@ class ServerShelfCoverTest {
                     name = "Lantern Run",
                     load = { id ->
                         asked.add(id)
-                        ByteArray(0)
+                        null
                     },
                 )
             }

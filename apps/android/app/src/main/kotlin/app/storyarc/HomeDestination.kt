@@ -2,7 +2,6 @@ package app.storyarc
 
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -41,6 +40,7 @@ import app.storyarc.feature.library.HOME_SHELF_SOLE_COVER_KEY
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.RestartConfirmation
 import app.storyarc.feature.library.ServerShelf
+import app.storyarc.feature.library.serverCover
 import app.storyarc.navigation.AppSheet
 import app.storyarc.navigation.Screen
 import java.util.UUID
@@ -289,8 +289,14 @@ internal fun HomeDestination(host: AppHost) {
  * Unconditional about the locked-cover request rather than gated on a stored flag: a
  * [RememberedShelf] carries the shelf's name and numbering and nothing about whether its
  * cover is locked, and growing its stored token for one avoided request is a bigger change
- * than trying the route and reading a refusal as "no lock" -- which `runCatching` already
+ * than trying the route and reading a refusal as "no lock" -- which the cache miss already
  * does for every other request this function makes.
+ *
+ * Every cover this function decodes goes through [serverCover] rather than a bare
+ * `BitmapFactory.decodeByteArray` — the reviewer's own correction on task 22.2: a card that
+ * had already asked once, and asks again because it scrolled out of view and back, or because
+ * the app relaunched, now reads the answer off disk instead of asking the server for it and
+ * decoding it a second time.
  */
 private suspend fun homeShelfArtwork(host: AppHost, shelf: RememberedShelf): HomeShelfArtworkOutcome {
     val source = host.library.registry.value.sources.firstOrNull { it.id == shelf.sourceId }
@@ -299,11 +305,14 @@ private suspend fun homeShelfArtwork(host: AppHost, shelf: RememberedShelf): Hom
         ?: return HomeShelfArtworkOutcome(HomeShelfCoverPlan.Blank)
     val client = KavitaClient(page.address)
     val isList = shelf.kind == RememberedShelfKind.READING_LIST
+    val kind = if (isList) "list" else "coll"
 
-    val lockedBytes = runCatching {
+    val locked = host.library.serverCover(
+        id = "srv:${source.id}:$kind:${shelf.serverId}",
+        maxPixelSize = HOME_SHELF_COVER_PIXELS,
+    ) {
         if (isList) client.readingListCover(shelf.serverId) else client.collectionCover(shelf.serverId)
-    }.getOrNull()
-    val locked = lockedBytes?.let { decodeCover(it) }
+    }
     if (locked != null) {
         return HomeShelfArtworkOutcome(
             plan = HomeShelfCoverPlan.decide(hasLockedCover = true, memberIds = emptyList()),
@@ -324,13 +333,17 @@ private suspend fun homeShelfArtwork(host: AppHost, shelf: RememberedShelf): Hom
         }
     }.getOrDefault(emptyList())
 
+    val memberKind = if (isList) "chapter" else "series"
     val covers = mutableMapOf<String, Bitmap>()
     for (id in memberIds) {
         val numeric = id.toIntOrNull() ?: continue
-        val bytes = runCatching {
+        val bitmap = host.library.serverCover(
+            id = "srv:${source.id}:$memberKind:$numeric",
+            maxPixelSize = HOME_SHELF_COVER_PIXELS,
+        ) {
             if (isList) client.chapterCover(numeric) else client.seriesCover(numeric)
-        }.getOrNull() ?: continue
-        decodeCover(bytes)?.let { covers[id] = it }
+        } ?: continue
+        covers[id] = bitmap
     }
 
     return HomeShelfArtworkOutcome(
@@ -339,8 +352,15 @@ private suspend fun homeShelfArtwork(host: AppHost, shelf: RememberedShelf): Hom
     )
 }
 
-private fun decodeCover(bytes: ByteArray): Bitmap? =
-    runCatching { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }.getOrNull()
+/**
+ * The pixel size a server shelf's card is cached at.
+ *
+ * [ShelfCover]'s own default is 180.dp; this is device-independent because [homeShelfArtwork]
+ * has no [androidx.compose.ui.unit.Dp] to read one from -- it runs from `LaunchedEffect`,
+ * off the composition that would give it a density. A cache key one card's own width off from
+ * the pixels it draws costs a re-fetch the first time a density disagrees, not a wrong image.
+ */
+private const val HOME_SHELF_COVER_PIXELS = 360
 
 /**
  * What taking a shelf's card does.
