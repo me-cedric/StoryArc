@@ -73,19 +73,9 @@ public final class DownloadQueue {
         transfers = BackgroundTransfers.shared(pins: pins)
         self.store = store
         self.credential = credential
-        var loaded = store?.library() ?? DownloadLibrary()
-        // A stray pre-1.2 record this catalogue's own origin owns is re-keyed the moment
-        // this queue is built, so it stops sharing a record with whatever else on this
-        // device numbers its entries the same way. See `DownloadMigration`.
-        if let store, let sourceID, let origin {
-            let migration = DownloadMigration.migrating(loaded, sourceID: sourceID, origin: origin)
-            if !migration.renamed.isEmpty {
-                for pair in migration.renamed { store.renaming(pair.from, to: pair.to) }
-                loaded = migration.library
-                store.save(loaded)
-            }
-        }
-        library = loaded
+        // A stray pre-1.2 record is re-keyed before this read, by the shared queue's own
+        // construction. See `DownloadMigration.migratingStrays(in:sources:)`.
+        library = store?.library() ?? DownloadLibrary()
         // So a retry pressed on a screen that owns no queue can reach this one while it is
         // alive — see `DownloadQueueRetry.swift`.
         remember()

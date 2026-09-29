@@ -5,10 +5,11 @@ import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.catalogue.OpdsAcquisition
 import app.storyarc.core.catalogue.OpdsEntry
-import app.storyarc.core.catalogue.OpdsOrigin
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadLibrary
+import app.storyarc.core.model.Source
+import app.storyarc.core.model.SourceKind
 import app.storyarc.core.persistence.DownloadStore
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,12 +43,10 @@ class DownloadQueueSourceKeyingTest {
     private fun queue(
         store: DownloadStore,
         sourceId: UUID? = null,
-        origin: OpdsOrigin? = null,
     ) = DownloadQueue(
         context,
         CertificatePins(),
         store,
-        origin = origin,
         sourceId = sourceId,
         settings = { AppSettings() },
         onWifi = MutableStateFlow(true),
@@ -100,29 +99,36 @@ class DownloadQueueSourceKeyingTest {
         assertEquals("opds:$source:entry-3", queue.downloadId("entry-3"))
     }
 
-    @Test
-    fun `a stray record this catalogue's origin owns is re-keyed when the queue opens`() {
-        val origin = requireNotNull(OpdsOrigin.of("https://library.example"))
-        val remote = "https://library.example/download/entry-7.epub"
-        val store = store()
-        // What a pre-1.2 build wrote: no source, the bare entry id.
-        store.save(
-            DownloadLibrary(
-                listOf(
-                    Download(
-                        id = "entry-7",
-                        title = "Harbour Lights 07",
-                        remote = remote,
-                        mediaType = "application/epub+zip",
-                        state = Download.State.Finished,
-                        downloadedBytes = 1_000,
-                    ),
-                ),
-            ),
-        )
+    /** A catalogue at `https://library.example`, as the source registry holds it. */
+    private fun catalogue(id: UUID) = Source(
+        id = id,
+        displayName = "Library",
+        kind = SourceKind.OPDS_CATALOG,
+        locator = "https://library.example",
+    )
 
+    /** What a pre-1.2 build wrote: no source, the bare entry id. */
+    private fun stray(remote: String) = DownloadLibrary(
+        listOf(
+            Download(
+                id = "entry-7",
+                title = "Harbour Lights 07",
+                remote = remote,
+                mediaType = "application/epub+zip",
+                state = Download.State.Finished,
+                downloadedBytes = 1_000,
+            ),
+        ),
+    )
+
+    @Test
+    fun `a stray record a registered catalogue owns is re-keyed before the queue reads it`() {
+        val store = store()
+        store.save(stray("https://library.example/download/entry-7.epub"))
         val source = UUID.randomUUID()
-        val migrated = queue(store, sourceId = source, origin = origin)
+
+        store.migratingOpdsStrays(listOf(catalogue(source)))
+        val migrated = queue(store)
 
         val record = migrated.library.value["opds:$source:entry-7"]
         assertEquals(source, record?.sourceId)
@@ -137,28 +143,14 @@ class DownloadQueueSourceKeyingTest {
 
     @Test
     fun `a record from a different origin is left alone`() {
-        val origin = requireNotNull(OpdsOrigin.of("https://library.example"))
         val store = store()
-        store.save(
-            DownloadLibrary(
-                listOf(
-                    Download(
-                        id = "entry-7",
-                        title = "Harbour Lights 07",
-                        remote = "https://elsewhere.invalid/entry-7.epub",
-                        mediaType = "application/epub+zip",
-                        state = Download.State.Finished,
-                        downloadedBytes = 1_000,
-                    ),
-                ),
-            ),
-        )
+        store.save(stray("https://elsewhere.invalid/entry-7.epub"))
 
-        val untouched = queue(store, sourceId = UUID.randomUUID(), origin = origin)
+        store.migratingOpdsStrays(listOf(catalogue(UUID.randomUUID())))
 
         assertTrue(
             "A record this origin does not own was migrated anyway.",
-            untouched.library.value["entry-7"] != null,
+            queue(store).library.value["entry-7"] != null,
         )
     }
 }

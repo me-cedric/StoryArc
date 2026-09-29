@@ -26,6 +26,7 @@ import app.storyarc.feature.library.DownloadQueue
 import app.storyarc.feature.library.SmbLocator
 import app.storyarc.feature.library.SmbPage
 import app.storyarc.feature.library.SourceRangeTransport
+import app.storyarc.feature.library.migratingOpdsStrays
 
 /**
  * Every store the app opens, opened once.
@@ -106,6 +107,9 @@ internal class AppDependencies private constructor(private val context: Context)
      * expose without reflection. dl-core 1.3 asks [open] to force it before any screen does.
      */
     private val lazyQueue = lazy {
+        // dl-core 1.2: a record from before source-keyed ids is re-keyed here, because this is
+        // the only queue the app builds and it has no single origin to match against.
+        downloads.migratingOpdsStrays(sources.registry().sources)
         DownloadQueue(
             context,
             pins,
