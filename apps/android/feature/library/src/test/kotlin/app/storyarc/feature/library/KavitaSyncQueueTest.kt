@@ -140,6 +140,20 @@ class KavitaSyncQueueTest {
     }
 
     @Test
+    fun `a pull that reaches its server sends what was held, even with nothing owed`() = runBlocking {
+        // The library's own refresh is a pull. A held write waited for the chapter screen
+        // before, because a pull flushed only when its own merge owed the server something.
+        val store = store()
+        val origin = origin("refresh-server")
+        store.hold(KavitaUnsent(origin, page = 4))
+
+        val address = KavitaAddress("http://localhost:${server.address.port}", "key")
+        KavitaSync.pull(emptyList(), store, progressStore(), origin.sourceId, address)
+
+        assertTrue("the held write must go out on the refresh", store.unsent().isEmpty())
+    }
+
+    @Test
     fun `a held position stamps its local record too, once flush delivers it`() = runBlocking {
         val store = store()
         val origin = origin("flush-stamp-server")

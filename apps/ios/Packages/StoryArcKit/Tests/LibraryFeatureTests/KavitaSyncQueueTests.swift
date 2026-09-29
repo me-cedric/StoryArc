@@ -96,6 +96,23 @@ struct KavitaSyncQueueTests {
         #expect(held.origin.chapterId == chapterOrigin.chapterId)
     }
 
+    @Test("A pull that reaches its server sends what was held, even with nothing owed")
+    func pullFlushesWithNothingOwed() async throws {
+        // The library's own refresh is a pull. A held write waited for the chapter screen
+        // before, because a pull flushed only when its own merge owed the server something.
+        let store = store()
+        let origin = origin()
+        store.hold(KavitaUnsent(origin: origin, page: 4))
+
+        let (address, configuration) = try acceptingAddress(host: "\(UUID().uuidString).sync-refresh.test")
+        await KavitaSync.pull(
+            [], in: store, into: try ProgressStore.inMemory(),
+            of: origin.sourceId, to: address, configuration: configuration
+        )
+
+        #expect(store.unsent().isEmpty, "the held write must go out on the refresh")
+    }
+
     @Test("A held position stamps its local record too, once flush delivers it")
     func flushStampsSyncedPosition() async throws {
         let store = store()

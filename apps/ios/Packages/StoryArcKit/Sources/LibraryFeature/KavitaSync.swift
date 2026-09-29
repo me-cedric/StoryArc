@@ -96,7 +96,8 @@ public enum KavitaSync {
         in kavita: KavitaProgressStore,
         into progress: ProgressStore,
         of sourceId: String? = nil,
-        to address: KavitaAddress? = nil
+        to address: KavitaAddress? = nil,
+        configuration: URLSessionConfiguration? = nil
     ) async -> [KavitaConflict] {
         var remote: [ReadingProgress] = []
         var local: [String: ReadingProgress] = [:]
@@ -155,7 +156,9 @@ public enum KavitaSync {
         let exchange = KavitaExchange.of(pull, against: reported)
         for record in exchange.toSave { try? await progress.save(record) }
         let server = sourceId.flatMap { id in address.map { Server(id: id, address: $0) } }
-        await settle(exchange.owed, from: origins, to: server, in: kavita, into: progress)
+        await settle(
+            exchange.owed, from: origins, to: server, in: kavita, into: progress, configuration: configuration
+        )
         return pull.conflicts.map { conflict in
             KavitaConflict(
                 title: reported[conflict.resolved.identity.stableID]?.displayName ?? "",
@@ -176,15 +179,17 @@ public enum KavitaSync {
     /// Only a position the server actually took is stamped as synchronised. One it did not
     /// stays exactly as it was and waits for the next flush, so an evening's reading offline
     /// is a queue entry rather than a lost place and never an error the reader has to read.
+    ///
+    /// The flush runs when nothing is owed too: a pull that reached its server is the "next
+    /// successful connection" `kavita-server` retries a held write on.
     private static func settle(
         _ owed: [KavitaOwed],
         from origins: [String: KavitaOrigin],
         to server: Server?,
         in kavita: KavitaProgressStore,
-        into progress: ProgressStore
+        into progress: ProgressStore,
+        configuration: URLSessionConfiguration?
     ) async {
-        guard !owed.isEmpty else { return }
-
         // A finished record is owed a mark, not a page — see `KavitaOwed.isMarkRead`.
         func unsent(for each: KavitaOwed, origin: KavitaOrigin) -> KavitaUnsent {
             each.isMarkRead
@@ -201,7 +206,7 @@ public enum KavitaSync {
         // above is the whole promise until one turns up.
         guard let server else { return }
         let deliveredKeys = Set(
-            await flush(server.id, to: server.address, in: kavita).map(\.key)
+            await flush(server.id, to: server.address, in: kavita, configuration: configuration).map(\.key)
         )
         for each in owed {
             guard let origin = origins[each.settled.identity.stableID],
