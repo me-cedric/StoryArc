@@ -14,6 +14,7 @@ internal import StoryArcCore
 /// own `@State`.
 struct ComicBookmarkList: View {
     @Environment(\.theme) private var theme
+    @Environment(\.dismiss) private var dismiss
 
     let store: AnnotationStore?
     let publication: String
@@ -35,7 +36,10 @@ struct ComicBookmarkList: View {
                     List {
                         ForEach(annotations) { annotation in
                             Button {
+                                // Jumps, then gets out of the way — the page it jumped to
+                                // is behind this sheet. `PdfTextSheet` does the same.
                                 ComicPageBookmark.pageIndex(of: annotation).map(onGo)
+                                dismiss()
                             } label: {
                                 Text(annotation.text)
                             }
@@ -58,6 +62,11 @@ struct ComicBookmarkList: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button { dismiss() } label: { Text("reader.pdf.done", bundle: .module) }
+                }
+            }
         }
         .task { annotations = (store?.annotations(for: publication) ?? []) }
     }
