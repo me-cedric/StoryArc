@@ -52,7 +52,13 @@ wrong thing, because the test asserted a narrower rule than the scenario states.
 record of what has landed. **Wave 0 landed on 2026-09-28**: the six worktrees of
 2026-09-12, with the iOS border-trim fix (task 3.1) and the Android search-filter fix
 (task 17.1). The owner's field report on the v0.1.1 closed-testing build added tasks 21
-and 22, which run in wave 1.
+and 22. **Wave 1 landed on 2026-09-29** with 34 more tasks: a shelf opened from the
+navigation lands on Library on both platforms (21.2); a Kavita reading-list entry that
+cannot be fetched says so instead of spinning (21.4); the finished badge (22.3); 14 comic
+reader fixes; 13 reading-theme fixes; and three download fixes. The rotation freeze
+(21.1) has one fix, an index rail that scrolls in landscape, and its cause is not yet
+confirmed on a device. The single app-wide download queue (1.1) is not built yet and
+moves to wave 2.
 
 **What this pass changes in the records below.**
 
