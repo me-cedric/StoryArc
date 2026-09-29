@@ -117,11 +117,14 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
             activity.lifecycleScope.launch { report() }
         },
         // D7: `null` when this publication was never a download.
+        // Both actions only record the choice; the sweep acts on it when the reader closes.
         downloadCleanup = host.downloads.value[publication.id]?.let {
+            val choices = dependencies.cleanupChoices
+            val isSweeping = dependencies.settings.settings().removeDownloadsAfterFinishing
             DownloadCleanupOffer(
-                automaticCleanupIsOn = dependencies.settings.settings().removeDownloadsAfterFinishing,
-                onRemove = { activity.lifecycleScope.launch { removeDownloadNow(host, publication.id) } },
-                onKeep = { keepDownloadFromCleanup(host, publication.id) },
+                isRemovedOnClose = { choices.isRemovedOnClose(publication.id, isSweeping) },
+                onRemove = { choices.removeOnClose(publication.id) },
+                onKeep = { choices.keep(publication.id) },
             )
         },
         blockedSince = blockedSince,

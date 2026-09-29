@@ -255,7 +255,9 @@ struct StoryArcApp: App {
             // in a reader's close path, because there are two readers and this is the one
             // moment both of them pass through.
             .task(id: reading?.id) {
-                guard reading == nil, settings.removeDownloadsAfterFinishing else { return }
+                // Not gated on the sweep setting: a removal asked for on the end screen
+                // (D7) goes here too. `sweepFinishedDownload` checks the setting itself.
+                guard reading == nil else { return }
                 await sweepFinishedDownload()
             }
             .onOpenURL { url in Task { await openHandedOver(url) } }

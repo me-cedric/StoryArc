@@ -12,10 +12,17 @@ import StoryArcCore
 /// way and for the same reason.
 extension StoryArcApp {
     /// Cheap to build: it wraps `UserDefaults.standard` and holds nothing of its own.
-    private var keptFromCleanup: KeptFromCleanup { KeptFromCleanup() }
+    private var cleanupChoices: CleanupChoices { CleanupChoices() }
 
     /// Takes a finished publication's download off the device, reversibly.
+    ///
+    /// First whatever the reader asked for on an end screen (D7), sweep or no sweep;
+    /// then, with the sweep on, one finished download the reader did not keep.
     func sweepFinishedDownload() async {
+        for id in cleanupChoices.takeRemovals() {
+            remove(id, from: downloadStore.library())
+        }
+        guard settings.removeDownloadsAfterFinishing else { return }
         let library = downloadStore.library()
 
         // Asked of the store one path at a time, and awaited: `ProgressStore` is an actor,
@@ -32,32 +39,23 @@ extension StoryArcApp {
 
         let finished = downloadStore.finishedDownload(
             in: library,
-            isKept: keptFromCleanup.contains
+            isKept: cleanupChoices.isKept
         ) { done.contains($0) }
         guard let finished else { return }
         remove(finished.id, from: library)
     }
 
-    /// D7: the end screen's "Remove download" action, when automatic cleanup is off. The
-    /// same removal the sweep does, done now rather than waited for.
-    func removeDownloadNow(_ id: Download.ID) {
-        remove(id, from: downloadStore.library())
-    }
-
-    /// D7: the end screen's "Keep" action, when automatic cleanup is on. The sweep skips
-    /// this download from here on.
-    func keepDownloadFromCleanup(_ id: Download.ID) {
-        keptFromCleanup.keep(id)
-    }
-
     /// What the end screen offers about `publication`'s download — `nil` when it was
-    /// never one. See ``DownloadCleanupOffer``.
+    /// never one. See ``DownloadCleanupOffer``. Both actions only record the choice; the
+    /// sweep acts on it when the reader closes, where its undo can be seen.
     func downloadCleanupOffer(for publication: Publication) -> DownloadCleanupOffer? {
         guard downloads[publication.id] != nil else { return nil }
+        let id = publication.id
+        let isSweeping = settings.removeDownloadsAfterFinishing
         return DownloadCleanupOffer(
-            automaticCleanupIsOn: settings.removeDownloadsAfterFinishing,
-            onRemove: { removeDownloadNow(publication.id) },
-            onKeep: { keepDownloadFromCleanup(publication.id) }
+            isRemovedOnClose: { cleanupChoices.isRemovedOnClose(id, automaticCleanupIsOn: isSweeping) },
+            onRemove: { cleanupChoices.removeOnClose(id) },
+            onKeep: { cleanupChoices.keep(id) }
         )
     }
 
