@@ -2115,7 +2115,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "La progression conservée sur un serveur que vous lisez n'est pas modifiée."
+            "value": "La progression conservée sur un serveur depuis lequel vous lisez n’est pas modifiée."
           }
         }
       }

@@ -85,7 +85,7 @@
     <string name="privacy_clear_cache">Libérer de l’espace</string>
     <string name="privacy_clear_history">Effacer l’historique de lecture</string>
     <string name="privacy_clear_history_body">Chaque livre et chaque bande dessinée revient à sa première page. Vos fichiers, vos bibliothèques et vos réglages ne sont pas touchés.</string>
-    <string name="privacy_clear_history_server_note">La progression conservée sur un serveur que vous lisez n\'est pas modifiée.</string>
+    <string name="privacy_clear_history_server_note">La progression conservée sur un serveur depuis lequel vous lisez n’est pas modifiée.</string>
     <string name="privacy_downloads">Téléchargements · %1$s</string>
     <string name="privacy_downloads_note">Conservés sur cet appareil pour s’ouvrir sans réseau. Effacer supprime les fichiers, pas ce que vous avez lu.</string>
     <string name="privacy_clear_downloads">Effacer les téléchargements</string>
