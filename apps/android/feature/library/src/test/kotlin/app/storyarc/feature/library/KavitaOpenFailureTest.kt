@@ -8,9 +8,13 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.kavita.KavitaAddress
+import app.storyarc.core.model.Publication
+import app.storyarc.core.persistence.KavitaProgressStore
 import com.sun.net.httpserver.HttpServer
+import java.io.File
 import java.net.InetSocketAddress
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -45,8 +49,18 @@ class KavitaOpenFailureTest {
           "pagesRead":0,"pagesTotal":22,"volumeId":516,"libraryId":2,"title":"Issue #43"}]
     """.trimIndent()
 
-    /** A server that lists the entry, and answers the chapter download with [chapter]. */
-    private fun serve(chapter: (com.sun.net.httpserver.HttpExchange) -> Unit): Int {
+    /** The committed fixture corpus, from this module's own directory rather than a walk. */
+    private val corpus: File = File(
+        requireNotNull(System.getProperty("storyarc.library.projectDir")) {
+            "storyarc.library.projectDir is not set — see this module's build.gradle.kts"
+        },
+    ).resolve("../../../..").canonicalFile.resolve("packages/test-fixtures")
+
+    /** A server that lists [items] itself, and answers the chapter download with [chapter]. */
+    private fun serve(
+        items: String = this.items,
+        chapter: (com.sun.net.httpserver.HttpExchange) -> Unit,
+    ): Int {
         val started = HttpServer.create(InetSocketAddress("localhost", 0), 0)
         started.createContext("/") { exchange ->
             val path = exchange.requestURI.path
@@ -69,17 +83,22 @@ class KavitaOpenFailureTest {
         server?.stop(0)
     }
 
-    private fun tapTheEntry(port: Int) {
-        val page = KavitaPage("kavita-open", "Attic", KavitaAddress("http://localhost:$port", "key"))
+    private fun tapTheEntry(
+        port: Int,
+        title: String = "Issue #43",
+        sourceId: String = "kavita-open",
+        onOpen: (Publication, String) -> Unit = { _, _ -> },
+    ) {
+        val page = KavitaPage(sourceId, "Attic", KavitaAddress("http://localhost:$port", "key"))
         compose.setContent {
             StoryArcTheme {
-                KavitaListScreen(server = page, listId = 8, title = "Crossover", onOpen = { _, _ -> }, onBack = {})
+                KavitaListScreen(server = page, listId = 8, title = "Crossover", onOpen = onOpen, onBack = {})
             }
         }
         compose.waitUntil(10_000) {
-            compose.onAllNodes(hasText("Issue #43")).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodes(hasText(title)).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("Issue #43").performClick()
+        compose.onNodeWithText(title).performClick()
     }
 
     private fun waitForSnackbar(expected: String) {
@@ -113,5 +132,39 @@ class KavitaOpenFailureTest {
             context.getString(R.string.kavita_open_failed, "Issue #43") + " " +
                 context.getString(R.string.kavita_open_unreadable, "Attic"),
         )
+    }
+
+    @Test
+    fun `an opened entry remembers its origin and its server identity`() {
+        // Its own chapter id, distinct from `items` above: the cache path a download is
+        // written to is named from it, and this is the one test in the suite that writes a
+        // real, indexable comic there.
+        val entryItems = """
+            [{"id":2,"order":0,"chapterId":9002,"seriesId":312,"seriesName":"Marsh Auburn",
+              "pagesRead":0,"pagesTotal":1,"volumeId":55,"libraryId":7,"title":"Issue #1"}]
+        """.trimIndent()
+        val comic = corpus.resolve("comics/single-page.cbz").readBytes()
+        var opened: Publication? = null
+        val sourceId = java.util.UUID.randomUUID().toString()
+
+        tapTheEntry(
+            serve(items = entryItems) { exchange ->
+                exchange.sendResponseHeaders(200, comic.size.toLong())
+                exchange.responseBody.use { it.write(comic) }
+            },
+            title = "Issue #1",
+            sourceId = sourceId,
+            onOpen = { publication, _ -> opened = publication },
+        )
+
+        compose.waitUntil(10_000) { opened != null }
+        val publication = requireNotNull(opened)
+        assertEquals("chapter:9002", publication.identity.serverIdentifier?.remoteId)
+        val origin = KavitaProgressStore.open(context).origin(publication.id)
+        assertEquals(sourceId, origin?.sourceId)
+        assertEquals(7, origin?.libraryId)
+        assertEquals(312, origin?.seriesId)
+        assertEquals(55, origin?.volumeId)
+        assertEquals(9002, origin?.chapterId)
     }
 }
