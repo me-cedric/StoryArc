@@ -334,10 +334,10 @@ private fun Pager(
     val slotCount = layout.count
 
     /**
-     * One slot past the last page, for Slide and Scroll to reach on a swipe or a scroll
-     * with nothing left to turn to. See the `LaunchedEffect(position)` guard below.
+     * One slot past the last page in reading order, for Slide and Scroll to reach on a
+     * swipe or a scroll with nothing left to turn to. See [endSlotPosition].
      */
-    val endSlot = slotCount
+    val endSlot = endSlotPosition(slotCount, isRightToLeft)
 
     /**
      * The slot a display position holds.
@@ -466,7 +466,7 @@ private fun Pager(
         onDispose { activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED }
     }
 
-    val paging = rememberPaging(choices.effective, slotCount, position)
+    val paging = rememberPaging(choices.effective, slotCount, position, isRightToLeft)
     LaunchedEffect(paging) {
         snapshotFlow { paging.current }.collect { position = it }
     }
@@ -953,10 +953,10 @@ private fun Pager(
                 when (paging) {
                     is Paging.Paged -> HorizontalPager(state = paging.state, modifier = keyboard) { page ->
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            // `page == endSlot`: the extra slot past the last page
-                            // (`Paging.kt`'s `count + 1`). Nothing to draw — reaching it
-                            // opens `hasReachedEnd`, which covers this the same frame.
-                            if (page != endSlot) Page(page)
+                            // `endSlot`: the extra slot past the last page (`Paging.kt`'s
+                            // `count + 1`). Nothing to draw — reaching it opens
+                            // `hasReachedEnd`, which covers this the same frame.
+                            if (page - paging.lead != endSlot) Page(page - paging.lead)
                         }
                     }
 
@@ -982,7 +982,8 @@ private fun Pager(
                             // viewport (`fillParentMaxSize`) so scrolling into it reads as
                             // "one more screen" rather than a sliver. `comic-reader`: "a
                             // scroll past the last page reaches the end screen".
-                            items(slotCount + 1) { index ->
+                            items(slotCount + 1) { item ->
+                                val index = item - paging.lead
                                 if (index == endSlot) {
                                     Box(Modifier.fillParentMaxSize())
                                     return@items
@@ -998,7 +999,8 @@ private fun Pager(
                         }
                     } else {
                         LazyRow(state = paging.state, modifier = keyboard) {
-                            items(slotCount + 1) { index ->
+                            items(slotCount + 1) { item ->
+                                val index = item - paging.lead
                                 if (index == endSlot) {
                                     Box(Modifier.fillParentMaxSize())
                                     return@items
@@ -1167,7 +1169,7 @@ private fun Pager(
                 // past the last page. Snap back to the last page underneath,
                 // invisibly, so returning finds the reader where they left off.
                 if (paging.current == endSlot) {
-                    scope.launch { paging.goTo(endSlot - 1, animate = false) }
+                    scope.launch { paging.goTo(displayIndex(pages.lastIndex), animate = false) }
                 }
             },
             onClose = onClose,

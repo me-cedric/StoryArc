@@ -1,6 +1,8 @@
 import Foundation
 import Testing
 
+@testable import ReaderFeature
+
 /// A swipe or a scroll past the last page reaches the end screen.
 ///
 /// `comic-reader`: "a swipe or a scroll past the last page reaches the end screen". Before
@@ -68,6 +70,25 @@ struct EndSlotTests {
             """
         )
         #expect(pages.contains("hasReachedEnd = true"))
+    }
+
+    @Test("Left-to-right puts the end slot after the last page")
+    func leftToRightEndsAfterTheRun() {
+        #expect(endSlotPosition(slotCount: 5, isRightToLeft: false) == 5)
+    }
+
+    @Test("Right-to-left puts the end slot before the last page, not after page one")
+    func rightToLeftEndsBeforeTheRun() {
+        // Under right-to-left the last page is display position 0, so the slot past it
+        // is -1. At `slotCount` it sat past page one, and a swipe back opened the end.
+        #expect(endSlotPosition(slotCount: 5, isRightToLeft: true) == -1)
+    }
+
+    @Test("The containers put the end slot on the reading order's own side")
+    func containersFollowTheDirection() throws {
+        let containers = try code(of: "ReaderContainers.swift")
+        // Slide, and both Scroll axes.
+        #expect(containers.components(separatedBy: "withEndSlot(").count - 1 >= 3)
     }
 
     @Test("Going back off the end screen snaps off the extra slot")
