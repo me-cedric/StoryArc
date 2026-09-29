@@ -18,16 +18,16 @@ struct SyncConflictNotice: ViewModifier {
         content
             .alert(
                 Text("sync.conflict.title", bundle: .module),
-                isPresented: Binding(
-                    get: { !conflicts.isEmpty && !showingList },
-                    set: { if !$0 { conflicts = [] } }
-                )
+                // No setter: each button says what its dismissal means. Clearing here would
+                // empty the list `Show` is about to open.
+                isPresented: Binding(get: { !conflicts.isEmpty && !showingList }, set: { _ in })
             ) {
                 alertButtons
             } message: {
                 alertMessage
             }
-            .sheet(isPresented: $showingList) {
+            // A swipe down is the reader keeping what was kept, not a reason to ask again.
+            .sheet(isPresented: $showingList, onDismiss: { conflicts = [] }) {
                 list
             }
     }
