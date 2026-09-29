@@ -18,6 +18,17 @@ import Testing
 @Suite("A network failure is read for what it is")
 struct SmbNetworkErrorTests {
 
+    @Test("A host that refuses the connection is named as unreachable, through the client")
+    func refusedConnectionThroughTheClient() async {
+        // Port 4999 is kept free on purpose (AGENTS.md, the fixture port table): a refused
+        // connect is what a host that does not answer looks like, and SMBClient reports it as
+        // the raw `NWError` its socket produced.
+        let address = SmbAddress(host: "127.0.0.1", share: "Comics", port: 4999)
+        await #expect(throws: SmbError.hostUnreachable) {
+            try await SmbClient(address: address).connect()
+        }
+    }
+
     @Test("An unreachable or unresolvable host is read as such from NWError")
     func hostUnreachableFromNWError() {
         #expect(SmbClient.meaning(of: .dns(-65563)) == .hostUnreachable)
