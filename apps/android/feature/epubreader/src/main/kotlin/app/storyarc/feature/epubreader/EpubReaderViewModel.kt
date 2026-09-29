@@ -459,9 +459,7 @@ class EpubReaderViewModel(
      */
     suspend fun initialLocator(): Locator? {
         val record = progress?.progress(identity) ?: return null
-        // A finished book reopens at its beginning, not at the last page it was marked
-        // finished on -- the same as the comic and PDF readers.
-        if (record.isFinished) return null
+        if (record.isFinished) return null // reopens at the start, like the other readers
         val position = record.position as? ReadingPosition.Reflowable ?: return null
         if (position.locator.isEmpty()) return null
         return runCatching { Locator.fromJSON(JSONObject(position.locator)) }.getOrNull()
