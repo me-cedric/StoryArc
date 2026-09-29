@@ -97,8 +97,12 @@ internal class AppDependencies private constructor(private val context: Context)
      * transfer's credential from the record's own source id rather than from one source pinned
      * to the queue -- the origin itself needs no such change, because [app.storyarc.core.catalogue.OpdsClient]
      * already falls back to the address's own origin when none is fixed on it.
+     *
+     * A held [Lazy] rather than a `by lazy` property, so [open] -- and a test -- can ask
+     * [queueIsBuilt] whether this has already run, which a delegated property does not
+     * expose without reflection. dl-core 1.3 asks [open] to force it before any screen does.
      */
-    val queue: DownloadQueue by lazy {
+    private val lazyQueue = lazy {
         DownloadQueue(
             context,
             pins,
@@ -111,6 +115,10 @@ internal class AppDependencies private constructor(private val context: Context)
             settings = settings::settings,
         )
     }
+    val queue: DownloadQueue get() = lazyQueue.value
+
+    /** Whether [queue] has been built. See [lazyQueue]. */
+    val queueIsBuilt: Boolean get() = lazyQueue.isInitialized()
 
     /**
      * A transfer's credential, resolved from the record's own source rather than from a
@@ -159,6 +167,13 @@ internal class AppDependencies private constructor(private val context: Context)
     companion object {
         /** Opened against the application context, so nothing here outlives its own owner. */
         fun open(context: Context): AppDependencies =
-            AppDependencies(context.applicationContext).apply { registerShareAccess() }
+            AppDependencies(context.applicationContext).apply {
+                registerShareAccess()
+                // dl-core 1.3: the queue used to come to life only when a reader opened a
+                // catalogue page (`AppScreens.kt`'s `remember`), so nothing restarted a
+                // queued or held download after process death until then. Read here, before
+                // any screen, to build it now instead.
+                queue
+            }
     }
 }
