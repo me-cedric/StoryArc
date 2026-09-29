@@ -1,3 +1,4 @@
+import Catalogue
 import DesignSystem
 import EpubReaderFeature
 import LibraryFeature
@@ -112,7 +113,18 @@ struct StoryArcApp: App {
         // `offline-downloads`' *Reading while downloading*. Without this line the ranged
         // reader is built, tested and unreachable: nothing else registers `http`, so an
         // acquisition URL handed to `ComicArchiveOpener` would be opened as a local file.
-        HttpSource.register()
+        //
+        // `SourceRangeTransport` rather than the default: a streamed read has to carry the
+        // same credential and trust the same certificates the download queue does, or a
+        // catalogue behind Basic, Bearer or a pinned self-signed certificate answers 401 or
+        // fails TLS the moment a reader opens a book while it is still arriving — dl-core 1.6.
+        HttpSource.register(
+            transport: SourceRangeTransport(
+                pins: CertificatePins(CertificatePinStore().pins()),
+                credentials: CredentialStore(),
+                sources: { SourceStore().registry().sources }
+            )
+        )
 
         // dl-core 1.3: the queue used to come to life only when a reader opened a catalogue
         // page, so a background completion arriving before that had no queue to adopt it —

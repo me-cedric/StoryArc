@@ -65,6 +65,15 @@ extension DownloadQueue {
     /// A transfer's credential, resolved from the record's own source rather than from a
     /// single source fixed on the queue.
     ///
+    /// **Also where this queue keeps the promise its own `origin?.admits(url)` check no
+    /// longer can.** `DownloadQueueTransfer.one()` derives `home` from `download.remote`
+    /// itself whenever the queue's `origin` is nil — true for this queue always, now that
+    /// it runs every source at once — so `home.admits(download.remote)` compares a value
+    /// against itself and is never false. Refusing here, before a credential is even
+    /// looked up, unless the record's *own* source really is configured at the address the
+    /// record is about to be fetched from, is what keeps `sources`' "data leaves the device
+    /// only to the sources the user configured" true for a shared queue.
+    ///
     /// A fresh `store` read rather than `self.library`: this closure is built before the
     /// queue that will call it exists, so it cannot capture the queue, and asking disk once
     /// per attempted transfer is the cost of a queue that is no longer one page's own.
@@ -74,8 +83,12 @@ extension DownloadQueue {
         credentials: CredentialStore?
     ) -> (Download.ID) -> OpdsCredential? {
         { id in
-            guard let sourceID = store.library()[id]?.sourceID,
-                  let source = sources().first(where: { $0.id == sourceID })
+            guard let download = store.library()[id],
+                  let sourceID = download.sourceID,
+                  let source = sources().first(where: { $0.id == sourceID }),
+                  let locator = source.locator, let home = URL(string: locator),
+                  let sourceOrigin = OpdsOrigin(url: home),
+                  sourceOrigin.admits(download.remote)
             else { return nil }
             return source.credentialReference
                 .flatMap { credentials?.secret(for: $0) }

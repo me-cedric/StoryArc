@@ -3,8 +3,10 @@ package app.storyarc
 import android.content.Context
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.catalogue.OpdsCredential
+import app.storyarc.core.catalogue.OpdsOrigin
 import app.storyarc.core.format.HttpSource
 import app.storyarc.core.format.PublicationAccess
+import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.CertificatePinStore
 import app.storyarc.core.persistence.CleanupChoices
 import app.storyarc.core.persistence.CredentialStore
@@ -23,6 +25,7 @@ import app.storyarc.core.smb.SmbClient
 import app.storyarc.feature.library.DownloadQueue
 import app.storyarc.feature.library.SmbLocator
 import app.storyarc.feature.library.SmbPage
+import app.storyarc.feature.library.SourceRangeTransport
 
 /**
  * Every store the app opens, opened once.
@@ -124,15 +127,40 @@ internal class AppDependencies private constructor(private val context: Context)
      * A transfer's credential, resolved from the record's own source rather than from a
      * single source fixed on the queue.
      *
+     * **Also where this queue keeps the promise its own `origin?.admits(url)` check no
+     * longer can.** `DownloadQueue`'s transfer path derives `home` from `download.remote`
+     * itself whenever the queue's `origin` is null -- true for this queue always, now that
+     * it runs every source at once -- so `home.admits(download.remote)` compares a value
+     * against itself and is never false. Refusing here, before a credential is even looked
+     * up, unless the record's *own* source really is configured at the address the record
+     * is about to be fetched from, is what keeps `sources`' "data leaves the device only to
+     * the sources the user configured" true for a shared queue.
+     *
      * A fresh [downloads] read rather than the queue's own state: this closure is built
      * before the queue that will call it exists, so it cannot capture the queue, and asking
      * disk once per attempted transfer is the cost of a queue that is no longer one
      * catalogue's own.
      */
     private fun credentialFor(downloadId: String): OpdsCredential? {
-        val sourceId = downloads.library()[downloadId]?.sourceId ?: return null
-        val source = sources.registry().sources.firstOrNull { it.id == sourceId } ?: return null
+        val source = sourceEligibleForCredential(downloadId) ?: return null
         return source.credentialReference?.let { credentials?.secret(it) }?.let(OpdsCredential::of)
+    }
+
+    /**
+     * The record's own source, but only when that source is really configured at the
+     * address the record names -- the gate [credentialFor] asks before it will even look up
+     * a secret. Separated from it because the secret store is the platform Keystore, which
+     * only a device or an emulator can open; a test asks this instead, and proves the origin
+     * check without needing one.
+     *
+     * Internal, not private, for exactly that test.
+     */
+    internal fun sourceEligibleForCredential(downloadId: String): Source? {
+        val download = downloads.library()[downloadId] ?: return null
+        val sourceId = download.sourceId ?: return null
+        val source = sources.registry().sources.firstOrNull { it.id == sourceId } ?: return null
+        val sourceOrigin = source.locator?.let(OpdsOrigin::of) ?: return null
+        return source.takeIf { sourceOrigin.admits(download.remote) }
     }
 
     /**
@@ -146,7 +174,12 @@ internal class AppDependencies private constructor(private val context: Context)
         // `offline-downloads`' *Reading while downloading*. Without this line the ranged
         // reader is built, tested and unreachable: nothing else registers `http`, so an
         // acquisition URL handed to `PublicationAccess` would be opened as a local file.
-        HttpSource.register()
+        //
+        // `SourceRangeTransport` rather than the default: a streamed read has to carry the
+        // same credential and trust the same certificates the download queue does, or a
+        // catalogue behind Basic, Bearer or a pinned self-signed certificate answers 401 or
+        // fails TLS the moment a reader opens a book while it is still arriving -- dl-core 1.6.
+        HttpSource.register { SourceRangeTransport(pins, credentials) { sources.registry().sources } }
 
         PublicationAccess.register("smb") { path ->
             val source = sources.registry().sources

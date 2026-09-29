@@ -68,8 +68,11 @@ sealed class OpdsCredential {
      * store follows: `sources` forbids a secret in "preferences, logs, crash reports,
      * backups, or exported diagnostics", and a value held longer than the request is a
      * value something else can read.
+     *
+     * Public rather than `internal`: `feature:library`'s `SourceRangeTransport` (dl-core
+     * 1.6) attaches this to a streamed read the same way `OpdsClient` attaches it to a feed.
      */
-    internal val header: String
+    val header: String
         get() = when (this) {
             // `java.util.Base64`, not `android.util.Base64`: the same output, and it runs
             // in a JVM unit test. minSdk is 31, so it is available everywhere this ships.
