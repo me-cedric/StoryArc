@@ -75,7 +75,7 @@ struct HomeShelvesRow: View {
                 subtitle: shelfSubtitle(count: summary.count, sourceName: summary.sourceName),
                 tiles: [],
                 progress: summary.progress,
-                cover: AnyView(HomeServerShelfCover(shelf: shelf, page: page))
+                cover: AnyView(HomeServerShelfCover(model: model, shelf: shelf, page: page))
             )
         } else {
             ShelfCard(

@@ -48,6 +48,7 @@ enum HomeShelfCoverPlan: Equatable {
 /// step. Kavita's own `Image/collection-cover` and `Image/readinglist-cover` answer an unset
 /// cover with an error rather than a placeholder, so `try?` already tells the two apart.
 struct HomeServerShelfCover: View {
+    let model: LibraryModel
     let shelf: RememberedShelf
     let page: KavitaPage
 
@@ -95,14 +96,18 @@ struct HomeServerShelfCover: View {
         plan = .decide(hasLockedCover: false, memberIDs: memberIDs, covered: Set(covers.keys))
     }
 
+    /// Cached the same way a local shelf's cover is -- task 22.2's own correction. The id
+    /// is scoped by the server and by "lock" versus "series"/"chapter": a locked cover and
+    /// a member share none of a shelf's own numbering, so the two cannot collide, but two
+    /// different Kavita servers answering the same small integer can.
     private func lockedCover(_ client: KavitaClient) async -> CGImage? {
-        do {
-            let data = shelf.kind == .readingList
+        await model.serverCover(
+            for: "srv:\(page.id):lock:\(shelf.serverID)",
+            maxPixelSize: Self.coverPixelSize
+        ) {
+            shelf.kind == .readingList
                 ? try await client.readingListCover(shelf.serverID)
                 : try await client.collectionCover(shelf.serverID)
-            return Self.decode(data)
-        } catch {
-            return nil
         }
     }
 
@@ -117,19 +122,22 @@ struct HomeServerShelfCover: View {
 
     private func memberCover(_ client: KavitaClient, id: String) async -> CGImage? {
         guard let numeric = Int(id) else { return nil }
-        let data = try? await (shelf.kind == .readingList
-            ? client.chapterCover(numeric)
-            : client.seriesCover(numeric))
-        return data.flatMap(Self.decode)
+        let kind = shelf.kind == .readingList ? "chapter" : "series"
+        return await model.serverCover(
+            for: "srv:\(page.id):\(kind):\(numeric)",
+            maxPixelSize: Self.coverPixelSize
+        ) {
+            try await (shelf.kind == .readingList
+                ? client.chapterCover(numeric)
+                : client.seriesCover(numeric))
+        }
     }
 
-    private static func decode(_ data: Data) -> CGImage? {
-        #if canImport(UIKit)
-        UIImage(data: data)?.cgImage
-        #else
-        nil
-        #endif
-    }
+    /// ``ShelfCover``'s own default width (180 points) at a plausible @2x, since this view
+    /// has no display scale of its own to size the decode from -- it runs from `.task`,
+    /// off the view hierarchy that would give it one. A cache key one shelf's own scale off
+    /// from the pixels it draws costs a re-fetch, not a wrong image.
+    private static let coverPixelSize = 360
 }
 
 /// The blank a Kavita shelf draws when nothing answered: no locked cover, and no member's

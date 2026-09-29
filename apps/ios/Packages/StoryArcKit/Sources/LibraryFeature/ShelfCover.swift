@@ -122,9 +122,14 @@ struct ShelfComposite: View {
 ///
 /// A cover that never arrives leaves its quadrant blank rather than collapsing the
 /// composite, so a shelf whose server is away still lines up with the ones beside it.
+///
+/// `load` answers a decoded, cached image rather than raw bytes -- task 22.2's own
+/// correction. `ServerShelfCardView` builds it from `LibraryModel.serverCover(for:)`, so a
+/// cover this card already decoded once is read off disk instead of asked of the server and
+/// decoded again every time this view redraws.
 struct ServerShelfCover: View {
     let tiles: [String]
-    let load: (String) async throws -> Data
+    let load: (String) async -> CGImage?
 
     @State private var covers: [String: CGImage] = [:]
 
@@ -135,10 +140,9 @@ struct ServerShelfCover: View {
 
     private func fetch() async {
         for id in tiles where covers[id] == nil {
-            guard let data = try? await load(id) else { continue }
-            #if canImport(UIKit)
-            covers[id] = UIImage(data: data)?.cgImage
-            #endif
+            if let image = await load(id) {
+                covers[id] = image
+            }
         }
     }
 }

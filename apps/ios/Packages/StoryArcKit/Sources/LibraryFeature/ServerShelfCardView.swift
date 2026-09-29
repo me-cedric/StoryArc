@@ -39,14 +39,26 @@ struct ServerShelfCardView: View {
     }
 
     /// `coverImageLocked` is the spec's "unless the user sets a specific one".
-    private func load(_ id: String) async throws -> Data {
-        let client = KavitaClient(address: shelf.server.address)
-        switch ServerShelfArtwork.route(for: id, isList: shelf.isList, shelf: shelf.id) {
-        case .shelfCoverOfList(let list): return try await client.readingListCover(list)
-        case .shelfCoverOfCollection(let tag): return try await client.collectionCover(tag)
-        case .chapter(let chapter): return try await client.chapterCover(chapter)
-        case .series(let series): return try await client.seriesCover(series)
-        case .nothing: return Data()
+    ///
+    /// Cached the same way a local shelf's cover is -- task 22.2's own correction. The
+    /// route's own name scopes the disk entry, alongside the server: a series id and a
+    /// chapter id are both small integers, and two different servers can answer the same
+    /// one.
+    private func load(_ id: String) async -> CGImage? {
+        let route = ServerShelfArtwork.route(for: id, isList: shelf.isList, shelf: shelf.id)
+        guard route != .nothing else { return nil }
+        return await model.serverCover(
+            for: "srv:\(shelf.server.id):\(route)",
+            maxPixelSize: 180
+        ) {
+            let client = KavitaClient(address: shelf.server.address)
+            switch route {
+            case .shelfCoverOfList(let list): return try await client.readingListCover(list)
+            case .shelfCoverOfCollection(let tag): return try await client.collectionCover(tag)
+            case .chapter(let chapter): return try await client.chapterCover(chapter)
+            case .series(let series): return try await client.seriesCover(series)
+            case .nothing: return Data()
+            }
         }
     }
 
