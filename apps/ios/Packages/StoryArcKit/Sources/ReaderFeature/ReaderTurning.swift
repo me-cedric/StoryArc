@@ -8,6 +8,21 @@ func readingOrderStep(_ step: Int, isRightToLeft: Bool) -> Int {
     isRightToLeft ? -step : step
 }
 
+/// The display step a finished horizontal swipe asks for in Fast fade, or 0 for none.
+///
+/// `page-transitions` "Turning the tap zones off": every other trigger still turns pages,
+/// swipe included. A finger that moves left asks for the next display position, as it does
+/// in Slide's pager. Right-to-left needs no flip here, because its display order is already
+/// reversed. Android's `fadeSwipeStep` is the same rule.
+func fadeSwipeStep(travel: Double, threshold: Double = fadeSwipeThreshold) -> Int {
+    if travel <= -threshold { return 1 }
+    if travel >= threshold { return -1 }
+    return 0
+}
+
+/// How far a swipe travels, in points, before it turns the page.
+let fadeSwipeThreshold = 48.0
+
 // Where a tap lands and what a page turn does.
 //
 // Split out of `ReaderView.swift`, which had reached the 400-line cap this project
@@ -25,6 +40,19 @@ extension EnvironmentValues {
     /// True by default: the setting's own default, and the right answer for a preview or
     /// a test that composes the reader with no app above it.
     @Entry public var turnPagesByTappingTheEdges: Bool = true
+
+    /// What a horizontal swipe over a page turns by, or `nil` where the container owns the
+    /// swipe itself. Only Fast fade sets it: Slide's pager and the curl bring their own drag.
+    @Entry var swipeTurn: SwipeTurn?
+}
+
+/// A turn by a display step, handed down to the page. A type rather than a bare closure,
+/// the way `OpenPublicationRoute` is, because a closure in the environment is never equal
+/// to the last one and invalidates every view that reads it on each update.
+struct SwipeTurn {
+    let turn: (Int) -> Void
+
+    func callAsFunction(_ step: Int) { turn(step) }
 }
 
 extension ReaderView {

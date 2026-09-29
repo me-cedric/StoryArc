@@ -552,6 +552,7 @@ private fun Pager(
     // announce them. Not for a page turn — a comic read at speed is two hundred of
     // those, and a buzz on each is a defect.
     val haptics = rememberHaptics()
+    val resistance = rememberRefusalResistance()
 
     /** Whether the browser of every page is open. */
     var isBrowsingThumbnails by remember { mutableStateOf(false) }
@@ -677,6 +678,8 @@ private fun Pager(
             // Nothing on screen says the reader is already at the first page — the page
             // simply stays put, which is indistinguishable from a missed tap.
             haptics.play(StoryArcFeedback.REFUSAL)
+            val response = RefusalResponse.of(viewModel.reduceMotion, isRightToLeft, paging is Paging.Scrolled)
+            scope.launch { resistance.play(response) }
         }
     }
 
@@ -932,7 +935,7 @@ private fun Pager(
      */
     @Composable
     fun PageSurface() {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxSize().then(resistance.modifier), contentAlignment = Alignment.Center) {
             // One container per mode, over one page body. `page-transitions` treats the mode
             // as a property of the container, which is exactly what this is: the pager brings
             // its own gesture and edge resistance, the fade has no container at all, the scroll
@@ -940,8 +943,7 @@ private fun Pager(
             if (choices.effective == PageTransition.PAGE_CURL) {
                 CurledPages(
                     page = curlPage(paging.current),
-                    // One reading-order step each way, not one display position: right-to-left
-                    // reverses the display order, so `paging.current + 1` is the previous page.
+                    // Reading-order steps: under right-to-left `paging.current + 1` is the previous page.
                     beneath = curlSheet(adjacentDisplayIndex(paging.current, 1, slotCount, isRightToLeft)),
                     previous = curlSheet(adjacentDisplayIndex(paging.current, -1, slotCount, isRightToLeft)),
                     isRightToLeft = isRightToLeft,
@@ -971,7 +973,7 @@ private fun Pager(
 
                     is Paging.Indexed -> AnimatedContent(
                     targetState = paging.index.intValue,
-                    modifier = keyboard,
+                    modifier = keyboard.fadeSwipe { turn(paging.current + it) },
                     // Short enough not to read as an animation, which is the whole point of
                     // the name. `page-transitions` uses this as the Reduce Motion substitute,
                     // so it must not become the thing it replaces.
