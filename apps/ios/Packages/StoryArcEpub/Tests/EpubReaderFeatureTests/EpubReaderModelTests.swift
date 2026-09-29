@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 
+import Persistence
 import StoryArcCore
 @testable import EpubReaderFeature
 
@@ -68,5 +69,59 @@ struct EpubReaderModelTests {
 
         #expect(reader.failure != nil)
         #expect(reader.navigator == nil)
+    }
+
+    @Test("A finished book reopens at its start, not at the page it was marked finished on")
+    func finishedBookReopensAtStart() async throws {
+        let base = model("fixture.epub")
+        let progress = try ProgressStore.inMemory()
+        try await progress.save(
+            ReadingProgress(
+                identity: base.publication.identity,
+                position: .reflowable(
+                    progression: 0.87,
+                    locator: #"""
+                    {"href":"/chapter-1.xhtml","type":"text/html",
+                     "locations":{"totalProgression":0.87}}
+                    """#
+                ),
+                isFinished: true,
+                updatedAt: Date()
+            )
+        )
+
+        let reader = EpubReaderModel(publication: base.publication, url: base.url, progress: progress)
+        await reader.open()
+
+        #expect(reader.failure == nil)
+        // The stored locator sat at 87%, and would win were the record not finished — see
+        // the sibling test below.
+        #expect(reader.progression == 0)
+    }
+
+    @Test("An unfinished book resumes at its stored locator, so the fix above is not a no-op")
+    func unfinishedBookResumesAtItsLocator() async throws {
+        let base = model("fixture.epub")
+        let progress = try ProgressStore.inMemory()
+        try await progress.save(
+            ReadingProgress(
+                identity: base.publication.identity,
+                position: .reflowable(
+                    progression: 0.87,
+                    locator: #"""
+                    {"href":"/chapter-1.xhtml","type":"text/html",
+                     "locations":{"totalProgression":0.87}}
+                    """#
+                ),
+                isFinished: false,
+                updatedAt: Date()
+            )
+        )
+
+        let reader = EpubReaderModel(publication: base.publication, url: base.url, progress: progress)
+        await reader.open()
+
+        #expect(reader.failure == nil)
+        #expect(reader.progression == 0.87)
     }
 }
