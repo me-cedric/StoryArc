@@ -19,6 +19,8 @@ import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
@@ -225,6 +227,14 @@ internal val MIGRATION_4_5 = object : Migration(4, 5) {
 class ProgressStore internal constructor(private val database: ProgressDatabase) {
 
     companion object {
+        /**
+         * One save at a time in the process, as the iOS store's actor gives. A save reads
+         * the row and then writes it, so two interleaved saves could let a stale read undo
+         * the sticky finished flag -- the EPUB reader's last-page save and its locator save
+         * start in the same frame.
+         */
+        private val writes = Mutex()
+
         /** Opens the store on disk. */
         fun open(context: Context, name: String = "progress.db"): ProgressStore =
             ProgressStore(
@@ -278,7 +288,10 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
      * Last write wins *locally* — this is one device, and the interesting conflict
      * rules apply between devices, not within one.
      */
-    suspend fun save(progress: ReadingProgress): Unit = withContext(Dispatchers.IO) {
+    suspend fun save(progress: ReadingProgress): Unit =
+        withContext(Dispatchers.IO) { writes.withLock { write(progress) } }
+
+    private suspend fun write(progress: ReadingProgress) {
         val dao = database.progress()
         val existing = existing(progress.identity)
         val position = progress.position
