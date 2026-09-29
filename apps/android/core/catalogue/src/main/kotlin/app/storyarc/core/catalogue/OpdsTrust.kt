@@ -14,8 +14,13 @@ import javax.net.ssl.X509TrustManager
  *
  * The rule is: the system decides, and the reader can overrule it only for one certificate
  * they have seen. iOS's `OpdsTrustDelegate` applies the same rule through `URLSession`.
+ *
+ * Public rather than `internal`, and not just to this module: `feature:library`'s
+ * `SourceRangeTransport` (dl-core 1.6) applies this same rule to a streamed read, which is
+ * the same kind of address as a feed and has to trust the same certificates. iOS's
+ * `OpdsTrustDelegate` is `public` for the same reason.
  */
-internal object OpdsTrust {
+object OpdsTrust {
 
     /**
      * Installs the rule on one connection, and returns where a refusal will be recorded.

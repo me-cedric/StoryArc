@@ -122,4 +122,85 @@ struct DownloadQueueSharedTests {
         // The removal is the queue's own save, not a separate write a later pump could undo.
         #expect(shared.library().downloads.count == 1)
     }
+
+    /// A per-page queue's own `origin` used to refuse a credential to any address but the
+    /// one the reader configured — `DownloadQueueTransfer.one()`'s `home?.admits(url)`. A
+    /// shared queue has no one origin to check against, so that line now always passes
+    /// trivially. `credentialResolver` is where the promise moves: it must refuse the
+    /// credential itself unless the record's own source really is configured at the
+    /// address the record names.
+    @Test("A transfer's credential is refused when the record's source is not configured at that address")
+    func credentialRefusedForMismatchedOrigin() throws {
+        let store = try store()
+        let credentials = CredentialStore(service: "app.storyarc.tests.\(UUID().uuidString)")
+        let sourceID = UUID()
+        let reference = CredentialStore.reference(for: sourceID)
+        let secret = OpdsCredential.basic(user: "ada", password: "lovelace")
+        #expect(credentials.save(secret.stored, for: reference))
+        defer { credentials.remove(reference) }
+
+        let source = Source(
+            id: sourceID,
+            displayName: "Library",
+            kind: .opdsCatalog,
+            credentialReference: reference,
+            locator: "https://library.example"
+        )
+        // The download's own address is a different origin from the source it is filed
+        // under — a redirect, or a record built before the source's address changed.
+        let elsewhere = try #require(URL(string: "https://elsewhere.invalid/book.epub"))
+        let download = Download(
+            id: "book-1",
+            sourceID: sourceID,
+            title: "Book",
+            remote: elsewhere,
+            mediaType: "application/epub+zip"
+        )
+        store.save(DownloadLibrary(downloads: [download]))
+
+        let resolver = DownloadQueue.credentialResolver(
+            store: store,
+            sources: { [source] },
+            credentials: credentials
+        )
+        #expect(
+            resolver(download.id) == nil,
+            "The credential travelled to an address the source was never configured at."
+        )
+    }
+
+    @Test("A transfer's credential is resolved when the record's source is configured at that address")
+    func credentialResolvedForMatchingOrigin() throws {
+        let store = try store()
+        let credentials = CredentialStore(service: "app.storyarc.tests.\(UUID().uuidString)")
+        let sourceID = UUID()
+        let reference = CredentialStore.reference(for: sourceID)
+        let secret = OpdsCredential.basic(user: "ada", password: "lovelace")
+        #expect(credentials.save(secret.stored, for: reference))
+        defer { credentials.remove(reference) }
+
+        let source = Source(
+            id: sourceID,
+            displayName: "Library",
+            kind: .opdsCatalog,
+            credentialReference: reference,
+            locator: "https://library.example"
+        )
+        let home = try #require(URL(string: "https://library.example/book.epub"))
+        let download = Download(
+            id: "book-1",
+            sourceID: sourceID,
+            title: "Book",
+            remote: home,
+            mediaType: "application/epub+zip"
+        )
+        store.save(DownloadLibrary(downloads: [download]))
+
+        let resolver = DownloadQueue.credentialResolver(
+            store: store,
+            sources: { [source] },
+            credentials: credentials
+        )
+        #expect(resolver(download.id) == secret)
+    }
 }
