@@ -53,6 +53,7 @@ import app.storyarc.core.designsystem.grid.rememberCoverColumns
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import java.util.UUID
 import kotlinx.coroutines.launch
 
 /**
@@ -67,6 +68,12 @@ import kotlinx.coroutines.launch
 fun CatalogueBrowserScreen(
     browser: CatalogueBrowser,
     queue: DownloadQueue,
+    /**
+     * The source this page belongs to, so a download from it is keyed the same way as one
+     * from any other page sharing [queue] -- `offline-downloads` 1.1 made the queue an
+     * app-level instance running downloads for every source at once.
+     */
+    sourceId: UUID?,
     onEnter: (title: String, url: String) -> Unit,
     /** Where a chosen publication goes: its own screen, which is where a format is chosen. */
     onSelect: (OpdsEntry) -> Unit,
@@ -77,7 +84,10 @@ fun CatalogueBrowserScreen(
     val feed by browser.feed.collectAsStateWithLifecycle()
     val entries by browser.entries.collectAsStateWithLifecycle()
     val downloads by queue.library.collectAsStateWithLifecycle()
-    val onDevice = downloads.finished.map { queue.rawEntryId(it.id) }.toSet()
+    val onDevice = downloads.finished
+        .filter { it.sourceId == sourceId }
+        .map { queue.rawEntryId(it.id, sourceId) }
+        .toSet()
     val active = downloads.pending
 
     // The term as typed, and the result of the last search that was not the server's.
@@ -95,7 +105,7 @@ fun CatalogueBrowserScreen(
             if (queue.needsMeteredConfirmation(entry)) {
                 meteredAsk = MeteredAsk(entry, link, queue.statedBytes(entry))
             } else {
-                queue.enqueue(entry, link)
+                queue.enqueue(entry, link, sourceId = sourceId)
             }
         }
     }
@@ -107,7 +117,7 @@ fun CatalogueBrowserScreen(
             meteredAsk = null
             // The grant is this publication's, not the queue's: everything else behind it
             // goes on waiting for Wi-Fi.
-            queue.enqueue(asked.entry, asked.acquisition, overridingMeteredConnection = true)
+            queue.enqueue(asked.entry, asked.acquisition, overridingMeteredConnection = true, sourceId = sourceId)
         },
     )
     var filtered by remember { mutableStateOf<List<OpdsEntry>?>(null) }
@@ -219,7 +229,7 @@ fun CatalogueBrowserScreen(
                         // packing for a flight wants the download without the reading, and
                         // without a walk through the detail screen either.
                         onDownload = { download(entry) },
-                        onRemove = { queue.remove(queue.downloadId(entry.id)) },
+                        onRemove = { queue.remove(queue.downloadId(entry.id, sourceId)) },
                     )
                     // The next page arrives because the reader scrolled, not because they
                     // pressed anything. Skipped while a local filter is showing: the filter
@@ -249,7 +259,7 @@ fun CatalogueBrowserScreen(
                             onEnter = onEnter,
                             onSelect = onSelect,
                             onDownload = download,
-                            onRemove = { entry -> queue.remove(queue.downloadId(entry.id)) },
+                            onRemove = { entry -> queue.remove(queue.downloadId(entry.id, sourceId)) },
                         )
                     }
                 }

@@ -3,7 +3,6 @@ package app.storyarc
 import android.content.Context
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.catalogue.OpdsCredential
-import app.storyarc.core.catalogue.OpdsOrigin
 import app.storyarc.core.format.HttpSource
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.persistence.CertificatePinStore
@@ -21,7 +20,6 @@ import app.storyarc.core.persistence.SettingsStore
 import app.storyarc.core.persistence.ShelvesStore
 import app.storyarc.core.persistence.SourceStore
 import app.storyarc.core.smb.SmbClient
-import app.storyarc.feature.library.CataloguePage
 import app.storyarc.feature.library.DownloadQueue
 import app.storyarc.feature.library.SmbLocator
 import app.storyarc.feature.library.SmbPage
@@ -80,46 +78,54 @@ internal class AppDependencies private constructor(private val context: Context)
      */
     val scanJournal: ScanJournal = ScanJournal.open(context)
 
-    private val queues = mutableMapOf<Pair<OpdsOrigin?, OpdsCredential?>, DownloadQueue>()
+    /**
+     * The one app-level download queue, built on first use and kept for as long as the app
+     * runs -- the only writer of [downloads].
+     *
+     * **The bug this closes.** A queue keyed per catalogue -- by the origin and the credential
+     * it was given -- held its own in-memory copy of [downloads]' records. Two of them open at
+     * once, or one of them beside a screen with no queue of its own writing [DownloadStore]
+     * directly, each saved over whatever the other had just written: a Stop that did not reach
+     * the running transfer, a Kavita keep or a source removal undone by the next catalogue's
+     * queue pumping. One instance, asked for however many catalogues are open, is what removes
+     * the race rather than narrowing it.
+     *
+     * **Multiple sources, one queue.** The queue used to capture one source's origin and
+     * credential at construction, which a single app-wide instance cannot do: it runs
+     * downloads for every source at once. [DownloadQueue.enqueue] and its neighbours take the
+     * source explicitly instead, from the page that knows it, and [credentialFor] resolves a
+     * transfer's credential from the record's own source id rather than from one source pinned
+     * to the queue -- the origin itself needs no such change, because [app.storyarc.core.catalogue.OpdsClient]
+     * already falls back to the address's own origin when none is fixed on it.
+     */
+    val queue: DownloadQueue by lazy {
+        DownloadQueue(
+            context,
+            pins,
+            downloads,
+            credential = ::credentialFor,
+            // The reader's own choices, read from the store on every pump rather than
+            // captured here. Without this the queue answers from `AppSettings.Defaults`,
+            // where Wi-Fi-only is off and there is no storage limit -- so it is never
+            // held, and a queue that is never held has nothing to resume.
+            settings = settings::settings,
+        )
+    }
 
     /**
-     * One download queue per catalogue, built on first use and kept for as long as the app runs.
+     * A transfer's credential, resolved from the record's own source rather than from a
+     * single source fixed on the queue.
      *
-     * **Why one, and why here.** Two queues over one [DownloadStore] fight: a queue puts back
-     * every download the store calls running when it is built, because nothing outside the
-     * process carries a transfer -- so a second queue re-queues a row the first is fetching,
-     * and both drive one foreground service that stops when its own count reaches zero. The
-     * queue also has to outlive every screen: `offline-downloads` requires a transfer to
-     * continue after the reader leaves the page and a held queue to "resume automatically" when
-     * Wi-Fi returns, and a queue remembered by a composition ends when that composition does.
-     *
-     * **Why per catalogue rather than one for the whole app.** The queue captures the origin it
-     * may send a credential to and the credential it sends. One queue for everything would have
-     * to be given a null origin, which confines the `Authorization` header only to the
-     * acquisition URL's own origin -- that is, to whatever address the *server* named. `sources`
-     * promises that "data leaves the device only to the sources the user configured", so the
-     * origin the reader configured is what travels beside their secret.
-     *
-     * Keyed on the origin **and** the credential, because those two are exactly what is
-     * captured: two catalogues on one host that the reader signs into differently are two
-     * sources, and they must not share the queue that carries their headers.
+     * A fresh [downloads] read rather than the queue's own state: this closure is built
+     * before the queue that will call it exists, so it cannot capture the queue, and asking
+     * disk once per attempted transfer is the cost of a queue that is no longer one
+     * catalogue's own.
      */
-    fun queue(page: CataloguePage): DownloadQueue =
-        queues.getOrPut(page.origin to page.credential) {
-            DownloadQueue(
-                context,
-                pins,
-                downloads,
-                credential = { page.credential },
-                origin = page.origin,
-                sourceId = page.sourceId,
-                // The reader's own choices, read from the store on every pump rather than
-                // captured here. Without this the queue answers from `AppSettings.Defaults`,
-                // where Wi-Fi-only is off and there is no storage limit -- so it is never
-                // held, and a queue that is never held has nothing to resume.
-                settings = settings::settings,
-            )
-        }
+    private fun credentialFor(downloadId: String): OpdsCredential? {
+        val sourceId = downloads.library()[downloadId]?.sourceId ?: return null
+        val source = sources.registry().sources.firstOrNull { it.id == sourceId } ?: return null
+        return source.credentialReference?.let { credentials?.secret(it) }?.let(OpdsCredential::of)
+    }
 
     /**
      * How the reader reaches a share, and an address that is still arriving.

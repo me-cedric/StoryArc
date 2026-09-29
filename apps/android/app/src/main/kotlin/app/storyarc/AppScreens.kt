@@ -387,7 +387,7 @@ private fun PublicationPage(
         isBesideList = isBesideList,
         transfer = record,
         page = catalogue,
-        queue = catalogue?.let { dependencies.queue(it) },
+        queue = catalogue?.let { dependencies.queue },
         chapters = chapters,
         stoppedIn = place.partIndex,
         offsetMillis = place.offsetInChapterMillis,
@@ -500,7 +500,7 @@ private fun CatalogueScreen(host: AppHost, screen: Screen.Catalogue) {
     val browser = remember(page.url) {
         CatalogueBrowser(context, page.title, page.url, page.credential, dependencies.pins, page.origin)
     }
-    val queue = dependencies.queue(page)
+    val queue = dependencies.queue
     val entry = screen.entry
     if (entry != null) {
         CatalogueDetailScreen(
@@ -508,6 +508,7 @@ private fun CatalogueScreen(host: AppHost, screen: Screen.Catalogue) {
             credential = page.credential,
             client = browser.client,
             queue = queue,
+            sourceId = page.sourceId,
             // The same door a local publication goes through. A book fetched from an online
             // library is a book.
             onOpen = host.open,
@@ -517,6 +518,7 @@ private fun CatalogueScreen(host: AppHost, screen: Screen.Catalogue) {
         CatalogueBrowserScreen(
             browser = browser,
             queue = queue,
+            sourceId = page.sourceId,
             onEnter = { title, url ->
                 // The origin travels down, not the section's own address: a section URL is
                 // one the server chose.

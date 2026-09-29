@@ -57,6 +57,7 @@ import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import java.text.DateFormat
+import java.util.UUID
 import kotlinx.coroutines.launch
 
 /**
@@ -79,12 +80,18 @@ fun CatalogueDetailScreen(
     /** The page's client, so the cover comes down behind the same credential the feed did. */
     client: OpdsClient,
     queue: DownloadQueue,
+    /**
+     * The source this page belongs to, so a download from it is keyed the same way as one
+     * from any other page sharing [queue] -- `offline-downloads` 1.1 made the queue an
+     * app-level instance running downloads for every source at once.
+     */
+    sourceId: UUID?,
     onOpen: (Publication, String) -> Unit,
     onBack: () -> Unit = {},
 ) {
     val palette = LocalStoryArcPalette.current
     val downloads by queue.library.collectAsStateWithLifecycle()
-    val isDownloaded = downloads.finished.any { it.id == queue.downloadId(entry.id) }
+    val isDownloaded = downloads.finished.any { it.id == queue.downloadId(entry.id, sourceId) }
     val active = downloads.pending
     val scope = rememberCoroutineScope()
     var cover by remember(entry.id) { mutableStateOf<Bitmap?>(null) }
@@ -108,7 +115,7 @@ fun CatalogueDetailScreen(
         if (queue.needsMeteredConfirmation(entry)) {
             meteredAsk = MeteredAsk(entry, link, queue.statedBytes(entry))
         } else {
-            scope.launch { openWhenReady(queue, entry, link, onOpen) }
+            scope.launch { openWhenReady(queue, entry, link, sourceId, onOpen) }
         }
     }
 
@@ -122,6 +129,7 @@ fun CatalogueDetailScreen(
                     queue,
                     asked.entry,
                     asked.acquisition,
+                    sourceId,
                     onOpen,
                     overridingMeteredConnection = true,
                 )
@@ -165,7 +173,7 @@ fun CatalogueDetailScreen(
                     isDownloaded = isDownloaded,
                     onTake = take,
                     onRead = { CatalogueAcquisition.best(entry)?.let(take) },
-                    onRemove = { queue.remove(queue.downloadId(entry.id)) },
+                    onRemove = { queue.remove(queue.downloadId(entry.id, sourceId)) },
                 )
 
                 entry.summary?.takeIf { it.isNotBlank() }?.let { summary ->
@@ -437,6 +445,7 @@ internal suspend fun openWhenReady(
     queue: DownloadQueue,
     entry: OpdsEntry,
     link: OpdsAcquisition,
+    sourceId: UUID?,
     onOpen: (Publication, String) -> Unit,
     /**
      * The reader has already been asked and agreed. Only ever true on the way back from
@@ -445,8 +454,8 @@ internal suspend fun openWhenReady(
      */
     overridingMeteredConnection: Boolean = false,
 ) {
-    val file = queue.downloaded(entry)
-        ?: queue.fetch(entry, link, overridingMeteredConnection)
+    val file = queue.downloaded(entry, sourceId)
+        ?: queue.fetch(entry, link, overridingMeteredConnection, sourceId)
         ?: return
     runCatching { PublicationIndexer.index(file, catalogueSeries = entry.series) }
         .getOrNull()

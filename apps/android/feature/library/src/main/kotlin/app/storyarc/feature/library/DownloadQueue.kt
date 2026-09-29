@@ -52,7 +52,10 @@ import kotlinx.coroutines.withContext
 class DownloadQueue(
     private val context: Context,
     pins: CertificatePins,
-    private val store: DownloadStore?,
+    // Internal, not private: `DownloadQueueScreenWrites.kt` is a screen-facing extension of
+    // this class kept in its own file for the 800-line cap, and needs this and [_library] to
+    // write through the same cache the transfer path does -- dl-core 1.1.
+    internal val store: DownloadStore?,
     private val credential: (String) -> OpdsCredential? = { null },
     /**
      * The origin of the catalogue this queue is downloading from.
@@ -104,8 +107,14 @@ class DownloadQueue(
      * Namespaced by source when one is known, as Kavita already keys a chapter. Without a
      * source the raw entry id stands, which keeps a queue built with none (a host test,
      * mostly) working exactly as it did.
+     *
+     * @param sourceId the catalogue page's own source, when this queue is the one app-level
+     *   instance handed out to every page at once. Null -- the default -- falls back to the
+     *   queue's own [sourceId], which is what a queue built for a single catalogue (a host
+     *   test, mostly) still carries.
      */
-    fun downloadId(entryId: String): String = sourceId?.let { "opds:$it:$entryId" } ?: entryId
+    fun downloadId(entryId: String, sourceId: UUID? = this@DownloadQueue.sourceId): String =
+        sourceId?.let { "opds:$it:$entryId" } ?: entryId
 
     /**
      * The entry id [downloadId] was built from, for a screen comparing a live feed's ids
@@ -115,7 +124,7 @@ class DownloadQueue(
      * origin does not own -- has no such prefix and is returned unchanged, which simply
      * never matches an OPDS entry id and is exactly what the pre-1.2 behaviour was.
      */
-    fun rawEntryId(downloadId: String): String {
+    fun rawEntryId(downloadId: String, sourceId: UUID? = this@DownloadQueue.sourceId): String {
         val prefix = sourceId?.let { "opds:$it:" } ?: return downloadId
         return downloadId.removePrefix(prefix)
     }
@@ -144,7 +153,7 @@ class DownloadQueue(
         return fixed.reclaiming(emptySet())
     }
 
-    private val _library = MutableStateFlow(loadMigratedLibrary())
+    internal val _library = MutableStateFlow(loadMigratedLibrary())
 
     /** What has been downloaded and what is on its way. */
     val library: StateFlow<DownloadLibrary> = _library.asStateFlow()
@@ -232,7 +241,7 @@ class DownloadQueue(
         overridingMeteredConnection: Boolean = false,
         sourceId: UUID? = this@DownloadQueue.sourceId,
     ) {
-        val id = downloadId(entry.id)
+        val id = downloadId(entry.id, sourceId)
         if (overridingMeteredConnection) overridden += id
         _library.value = _library.value.queueing(
             Download(
@@ -260,9 +269,10 @@ class DownloadQueue(
         entry: OpdsEntry,
         acquisition: OpdsAcquisition,
         overridingMeteredConnection: Boolean = false,
+        sourceId: UUID? = this@DownloadQueue.sourceId,
     ): File? {
-        downloaded(entry)?.let { return it }
-        val id = downloadId(entry.id)
+        downloaded(entry, sourceId)?.let { return it }
+        val id = downloadId(entry.id, sourceId)
         val waiter = CompletableDeferred<File?>()
         waiting.getOrPut(id) { mutableListOf() }.add(waiter)
         val existing = _library.value[id]?.state
@@ -278,7 +288,7 @@ class DownloadQueue(
             entries[id] = entry
             resume(id)
         } else {
-            enqueue(entry, acquisition, overridingMeteredConnection)
+            enqueue(entry, acquisition, overridingMeteredConnection, sourceId)
         }
         // `offline-downloads`' *Reading while downloading*. The reader is waiting on this
         // one, so it goes to the head of the queue rather than behind whatever they lined up
@@ -343,8 +353,8 @@ class DownloadQueue(
      * Asked of the filesystem: a download the system reclaimed is one the reader should be
      * offered again rather than shown a missing file.
      */
-    fun downloaded(entry: OpdsEntry): File? {
-        val download = _library.value[downloadId(entry.id)]?.takeIf { it.state.isFinished }
+    fun downloaded(entry: OpdsEntry, sourceId: UUID? = this@DownloadQueue.sourceId): File? {
+        val download = _library.value[downloadId(entry.id, sourceId)]?.takeIf { it.state.isFinished }
             ?: return null
         val file = store?.location(download) ?: return null
         return file.takeIf { it.exists() }
