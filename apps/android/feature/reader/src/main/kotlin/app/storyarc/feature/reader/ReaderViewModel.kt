@@ -316,6 +316,9 @@ class ReaderViewModel(
     // does above.
     internal val attempted = mutableStateSetOf<Int>()
 
+    /** The pages with a read under way. See `warm` in `ReaderDecoding.kt`. */
+    internal val reading = mutableSetOf<Int>()
+
     /**
      * The codec of each page that was attempted and refused. See [codecName].
      *
@@ -687,17 +690,16 @@ class ReaderViewModel(
 
     /**
      * When the page currently on screen started waiting for bytes it does not have — set
-     * the moment a read for it begins and cleared the moment that read ends, whichever
-     * way. `network-share`'s 2 s notice counts from here, not from after a read has
-     * already failed against a page nobody is looking at. See `ReaderDecoding.kt`'s
-     * `decode`.
+     * when a read for it begins, or when the reader turns to a page whose read is already
+     * under way, and cleared when that read ends. `network-share`'s 2 s notice counts from
+     * here. See `ReaderDecoding.kt`'s `warm` and `decode`.
      */
     var pageWaitStarted: Long? by mutableStateOf(null)
         internal set
 
     /**
-     * When the page currently on screen first failed to arrive, kept apart from
-     * [pageWaitStarted] so dismissing the notice does not restart the 60 s clock. Cleared
+     * When the page currently on screen began the wait that its first failed read ended,
+     * kept apart from [pageWaitStarted] so a retry does not restart the 60 s clock. Cleared
      * only once that page decodes or is permanently refused — either of which ends the
      * wait this exists to time.
      */

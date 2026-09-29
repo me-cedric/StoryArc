@@ -24,13 +24,13 @@ import kotlinx.coroutines.withContext
 /** Decodes the page at [index] and its neighbours, and drops the rest. */
 suspend fun ReaderViewModel.warm(index: Int) {
     if (index != currentIndex) {
-        // Belongs to the page being left. `decode` sets both again for the page being
-        // turned to, if it still needs reading — see `tracksNetwork` below. Guarded so
-        // `noteMemoryPressure` re-warming the same index does not wipe a failure that is
-        // still going on.
+        // The trouble belongs to the page being left. A page turned to while its prefetch
+        // is still reading has been waiting since this turn; `decode` sets the wait itself
+        // for a read it starts. Guarded so `noteMemoryPressure` re-warming the same index
+        // does not wipe a failure that is still going on.
         currentIndex = index
-        pageWaitStarted = null
         pageFailingSince = null
+        pageWaitStarted = System.currentTimeMillis().takeIf { isShare && index in reading }
     }
     record(index)
     val pageList = pages.value
@@ -48,7 +48,6 @@ suspend fun ReaderViewModel.warm(index: Int) {
     // The current page first: a turn should not wait on its neighbours.
     for (target in listOf(index) + wanted.sortedBy { kotlin.math.abs(it - index) }) {
         if (target !in pageList.indices || target in attempted) continue
-        attempted += target
         decode(target, pageList[target])
     }
 }
@@ -74,14 +73,27 @@ private sealed interface PageOutcome {
     data object Unread : PageOutcome
 }
 
+/**
+ * Only the page on screen, and only for a share: `network-share`'s notice is about *that*
+ * page's own trouble, not a prefetched neighbour's, and a plain local file offers no
+ * download-for-offline and no "share" to name.
+ */
+private val ReaderViewModel.isShare: Boolean get() = path.startsWith("smb://")
+
 private suspend fun ReaderViewModel.decode(index: Int, page: PageEntry) {
-    // Only the page on screen, and only for a share: `network-share`'s notice is about
-    // *that* page's own trouble, not a prefetched neighbour's, and a plain local file
-    // offers no download-for-offline and no "share" to name.
-    val tracksNetwork = index == currentIndex && path.startsWith("smb://")
-    if (tracksNetwork) pageWaitStarted = System.currentTimeMillis()
-    val result = outcome(index, page, maxPixelSize)
-    if (tracksNetwork) pageWaitStarted = null
+    attempted += index
+    if (isShare && index == currentIndex) pageWaitStarted = System.currentTimeMillis()
+    reading += index
+    val result = try {
+        outcome(index, page, maxPixelSize)
+    } finally {
+        reading -= index
+    }
+    // Asked again now that the read has ended: a prefetch the reader turned to while it was
+    // reading is the page on screen, and its wait is the one the notice counts.
+    val isOnScreen = isShare && index == currentIndex
+    val waitedSince = pageWaitStarted.takeIf { isOnScreen }
+    if (isOnScreen) pageWaitStarted = null
 
     when (result) {
         is PageOutcome.Decoded -> {
@@ -97,14 +109,14 @@ private suspend fun ReaderViewModel.decode(index: Int, page: PageEntry) {
             // Wider than tall, with no tolerance to tune: a portrait page scanned with a
             // slight skew is still portrait, and a spread is half again as wide as a page.
             if (bitmap.width > bitmap.height) wide += index
-            if (tracksNetwork) pageFailingSince = null
+            if (isOnScreen) pageFailingSince = null
         }
 
         is PageOutcome.Refused -> {
             // Remembered as tried, which is what makes the placeholder appear: the bytes
             // are here and the decoder will say the same thing about them next time.
             result.codec?.let { refusedCodecs[index] = it }
-            if (tracksNetwork) pageFailingSince = null
+            if (isOnScreen) pageFailingSince = null
         }
 
         PageOutcome.Unread -> {
@@ -113,11 +125,11 @@ private suspend fun ReaderViewModel.decode(index: Int, page: PageEntry) {
             // the app to "resume streaming at the current page" after reconnecting, and a
             // page marked attempted for ever never gets a second chance.
             attempted.remove(index)
-            // The *first* failure only: `network-share`'s 60 s offer counts continuously
-            // from here, unaffected by a reader dismissing the notice or by the gaps
-            // between `watchForPageRecovery`'s own retries.
-            if (tracksNetwork && pageFailingSince == null) {
-                pageFailingSince = System.currentTimeMillis()
+            // The *first* failure only, and timed from when the page began to wait rather
+            // than from when the read gave up: the notice then keeps counting through the
+            // failure and through the gaps between `watchForPageRecovery`'s retries.
+            if (isOnScreen && pageFailingSince == null) {
+                pageFailingSince = waitedSince ?: System.currentTimeMillis()
             }
         }
     }
@@ -161,20 +173,23 @@ internal suspend fun ReaderViewModel.decodeBitmap(index: Int, page: PageEntry, s
 suspend fun ReaderViewModel.watchForPageRecovery() {
     while (true) {
         delay(RECOVERY_INTERVAL_MILLIS)
-        if (
-            !needsRecovery(
-                currentIndex = currentIndex,
-                pageCount = pages.value.size,
-                decoded = decoded.keys,
-                attempted = attempted,
-                refused = refusedCodecs.keys,
-            )
-        ) {
-            continue
-        }
-        val page = pages.value.getOrNull(currentIndex) ?: continue
-        decode(currentIndex, page)
+        recoverCurrentPage()
     }
+}
+
+/** One round of [watchForPageRecovery]: reads the page on screen again when it still needs a read. */
+internal suspend fun ReaderViewModel.recoverCurrentPage() {
+    val index = currentIndex
+    val needed = needsRecovery(
+        currentIndex = index,
+        pageCount = pages.value.size,
+        decoded = decoded.keys,
+        attempted = attempted,
+        refused = refusedCodecs.keys,
+    )
+    if (!needed) return
+    val page = pages.value.getOrNull(index) ?: return
+    decode(index, page)
 }
 
 private const val RECOVERY_INTERVAL_MILLIS = 3_000L
