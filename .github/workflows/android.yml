@@ -25,6 +25,11 @@ jobs:
           java-version: 21
 
       - uses: android-actions/setup-android@v3
+        # The action installs `tools platform-tools` by default, and command-line tools
+        # 16.0 has no `tools` package, so its sdkmanager exits 1 and the job stops
+        # before Gradle runs. Gradle fetches every other SDK part it needs itself.
+        with:
+          packages: platform-tools
 
       - uses: gradle/actions/setup-gradle@v4
 
@@ -89,6 +94,11 @@ jobs:
           java-version: 21
 
       - uses: android-actions/setup-android@v3
+        # The action installs `tools platform-tools` by default, and command-line tools
+        # 16.0 has no `tools` package, so its sdkmanager exits 1 and the job stops
+        # before Gradle runs. Gradle fetches every other SDK part it needs itself.
+        with:
+          packages: platform-tools
 
       - uses: gradle/actions/setup-gradle@v4
 
