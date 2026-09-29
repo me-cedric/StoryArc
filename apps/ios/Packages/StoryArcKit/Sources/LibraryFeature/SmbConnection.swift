@@ -190,8 +190,12 @@ public final class SmbConnection {
             String(localized: "smb.error.authentication", bundle: .module, locale: .storyArc)
         case .protocolUnsupported:
             String(localized: "smb.error.smb1", bundle: .module, locale: .storyArc)
+        case .protocolTooNew:
+            String(localized: "smb.error.smbNewer", bundle: .module, locale: .storyArc)
         case .encryptionRequired:
             String(localized: "smb.error.encryption", bundle: .module, locale: .storyArc)
+        case .localNetworkDenied:
+            String(localized: "smb.error.localNetworkDenied", bundle: .module, locale: .storyArc)
         case .unexpected:
             String(localized: "smb.error.unexpected", bundle: .module, locale: .storyArc)
         }

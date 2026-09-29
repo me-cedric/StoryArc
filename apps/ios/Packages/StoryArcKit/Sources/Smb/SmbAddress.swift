@@ -77,12 +77,21 @@ public enum SmbError: Error, Equatable, Sendable {
     case authenticationRejected
     /// An SMB 1 server. Refused rather than accommodated — see ``SmbClient``.
     case protocolUnsupported
+    /// The two ends agreed no dialect at all, and it was *this client* with none to offer —
+    /// the server requires SMB 3 or later. Distinct from ``protocolUnsupported``, an SMB 1
+    /// server: the fix for one is a setting on the server, and there is no such fix for the
+    /// other.
+    case protocolTooNew
     /// The server insists on SMB 3 transport encryption, which this app cannot do.
     ///
     /// Its own case because it is its own answer. A reader whose NAS requires encryption is
     /// not looking at a network fault or a typo — there is a setting on their server, and a
     /// sentence that says so is worth more than a fifth way of saying "could not connect".
     case encryptionRequired
+    /// The platform's Local Network permission is off, so the connection never reached the
+    /// network. Distinct from ``hostUnreachable``: a reader who turns the setting this error
+    /// names back on can fix it without touching the server at all.
+    case localNetworkDenied
     case unexpected(detail: String)
 }
 

@@ -15,13 +15,21 @@ import Testing
 @Suite("SMB 1 refusal")
 struct SmbProtocolRefusalTests {
 
-    @Test("a server that would not agree a dialect is named as SMB 1")
+    @Test("a genuine SMB 1 server is named as SMB 1")
     func namesSmb1() {
-        // STATUS_NOT_SUPPORTED, the answer MS-SMB2 tells a server with no dialect in common
-        // to give, then the CIFS error-class statuses an older server gives instead.
-        for status: UInt32 in [0xC000_00BB, 0x0001_0002, 0x0016_0002, 0x0005_0002, 0x005B_0002, 0x00FB_0002] {
+        // The CIFS error-class statuses. An SMB 2 server has no way to send any of these.
+        for status: UInt32 in [0x0001_0002, 0x0016_0002, 0x0005_0002, 0x005B_0002, 0x00FB_0002] {
             #expect(SmbClient.meaning(of: status, isHandshake: true) == .protocolUnsupported)
         }
+    }
+
+    @Test("no dialect in common is read as this client needing a newer server, not the reverse")
+    func namesTooNew() {
+        // STATUS_NOT_SUPPORTED is the answer MS-SMB2 has *any* server with nothing in common
+        // give -- including one that requires SMB 3 or later, which this client cannot
+        // offer. Reading it as "server offers only SMB 1" would tell that reader to look for
+        // a setting on their server that does not exist.
+        #expect(SmbClient.meaning(of: 0xC000_00BB, isHandshake: true) == .protocolTooNew)
     }
 
     @Test("a failure that is not about the dialect is not named as SMB 1")
@@ -45,9 +53,10 @@ struct SmbProtocolRefusalTests {
     /// the two ends are negotiating one, so its probe is scoped by what produces it. This
     /// client reads a status that means something far narrower once a share is open, so the
     /// scope has to be stated rather than inherited.
-    @Test("the same status after the handshake is not read as SMB 1")
+    @Test("the same status after the handshake is not read as SMB 1 or as too new")
     func scopedToTheHandshake() {
         #expect(SmbClient.meaning(of: 0xC000_00BB) != .protocolUnsupported)
+        #expect(SmbClient.meaning(of: 0xC000_00BB) != .protocolTooNew)
         #expect(SmbClient.meaning(of: 0x0001_0002) != .protocolUnsupported)
     }
 }

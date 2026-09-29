@@ -362,7 +362,12 @@ enum SmbSourceState {
         case .encryptionRequired:
             .unauthorized(reason: String(localized: "smb.error.encryption",
                                          bundle: .module, locale: .storyArc))
-        case .hostUnreachable, .shareNotFound, .protocolUnsupported, .unexpected:
+        case .localNetworkDenied:
+            // Actionable, the way a refused password is: a reader who turns the permission
+            // back on in Settings can fix this without touching the server at all.
+            .unauthorized(reason: String(localized: "smb.error.localNetworkDenied",
+                                         bundle: .module, locale: .storyArc))
+        case .hostUnreachable, .shareNotFound, .protocolUnsupported, .protocolTooNew, .unexpected:
             .unreachable(since: moment)
         }
     }

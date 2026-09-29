@@ -62,4 +62,20 @@ struct SmbSourceStateTests {
             SmbSourceState.of(.protocolUnsupported, at: Self.moment) == .unreachable(since: Self.moment)
         )
     }
+
+    @Test("A server that needs a newer SMB is offline too, for the same reason")
+    func tooNewStaysUnreachable() {
+        #expect(
+            SmbSourceState.of(.protocolTooNew, at: Self.moment) == .unreachable(since: Self.moment)
+        )
+    }
+
+    @Test("A refused Local Network permission is actionable, not called unreachable")
+    func localNetworkDeniedIsNamed() throws {
+        // The opposite of the two above: a reader who turns the permission back on can fix
+        // this without touching the server, so it belongs beside a refused password.
+        let state = SmbSourceState.of(.localNetworkDenied, at: Self.moment)
+        let reason = try #require(Self.unauthorized(state), "a refusal was reported as silence")
+        #expect(!reason.isEmpty)
+    }
 }
