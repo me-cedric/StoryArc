@@ -113,7 +113,11 @@ internal object ServerLibrary {
                 ?.let { OpdsContributor.publications(source.id, it) }
 
             SourceKind.NETWORK_SHARE -> SmbPage.of(source, credentials)?.let { page ->
-                SmbContributor.publications(source.id, SmbClient(page.address), page.address.path)
+                SmbContributor.publications(
+                    source.id,
+                    SmbClient(page.address),
+                    page.address,
+                )
             }
 
             // Already in the library: its files are what the scan walks.
