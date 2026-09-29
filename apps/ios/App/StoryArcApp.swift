@@ -114,6 +114,17 @@ struct StoryArcApp: App {
         // acquisition URL handed to `ComicArchiveOpener` would be opened as a local file.
         HttpSource.register()
 
+        // dl-core 1.3: the queue used to come to life only when a reader opened a catalogue
+        // page, so a background completion arriving before that had no queue to adopt it —
+        // `BackgroundTransfers` deleted an orphaned file with no handler registered for it —
+        // and a download the reader left held for Wi-Fi never resumed until some page was
+        // opened. Built here, before any screen, it is also the first caller of
+        // `BackgroundTransfers.shared(pins:)` on every launch, background relaunches
+        // included, so the background session's trust and its orphan and resumable handlers
+        // are set from this app-wide pin set rather than from whichever page happened to be
+        // the first one opened.
+        _ = DownloadQueue.shared()
+
         // How the reader reaches a share. Registered here because this is where the source
         // registry and the credential store both are; `Formats` stays unaware that SMB
         // exists, which is the only way that dependency can point.
