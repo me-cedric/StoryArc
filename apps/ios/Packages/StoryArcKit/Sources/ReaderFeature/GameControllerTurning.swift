@@ -36,25 +36,44 @@ struct GameControllerTurning: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .onAppear { bind(GCController.current) }
+            // Every controller already paired, not only `GCController.current`: that is the
+            // one used most recently, and a controller paired before the reader opened but
+            // not yet pressed is not current.
+            .onAppear { GCController.controllers().forEach { Self.bind($0, to: onTurn) } }
             .onReceive(NotificationCenter.default.publisher(for: .GCControllerDidConnect)) {
-                bind($0.object as? GCController)
+                Self.bind($0.object as? GCController, to: onTurn)
             }
+            // A handler left bound after the reader closes keeps turning a reader that is
+            // gone, and keeps it alive.
+            .onDisappear { GCController.controllers().forEach(Self.unbind) }
     }
 
-    private func bind(_ controller: GCController?) {
+    /// Each turning control on `gamepad`, and which of the four it is.
+    private static func turningButtons(
+        of gamepad: GCExtendedGamepad
+    ) -> [(GCControllerButtonInput, GameControllerButton)] {
+        [
+            (gamepad.dpad.left, .dpadLeft),
+            (gamepad.dpad.right, .dpadRight),
+            (gamepad.leftShoulder, .leftShoulder),
+            (gamepad.rightShoulder, .rightShoulder),
+        ]
+    }
+
+    /// Makes `controller`'s d-pad and shoulders call `onTurn`. Not `private`, so
+    /// `GameControllerTurningTests` can bind a virtual controller.
+    static func bind(_ controller: GCController?, to onTurn: @escaping (Int) -> Void) {
         guard let gamepad = controller?.extendedGamepad else { return }
-        gamepad.dpad.left.pressedChangedHandler = { _, _, pressed in
-            if pressed { onTurn(GameControllerTurn.step(for: .dpadLeft)) }
+        for (input, button) in turningButtons(of: gamepad) {
+            input.pressedChangedHandler = { _, _, pressed in
+                if pressed { onTurn(GameControllerTurn.step(for: button)) }
+            }
         }
-        gamepad.dpad.right.pressedChangedHandler = { _, _, pressed in
-            if pressed { onTurn(GameControllerTurn.step(for: .dpadRight)) }
-        }
-        gamepad.leftShoulder.pressedChangedHandler = { _, _, pressed in
-            if pressed { onTurn(GameControllerTurn.step(for: .leftShoulder)) }
-        }
-        gamepad.rightShoulder.pressedChangedHandler = { _, _, pressed in
-            if pressed { onTurn(GameControllerTurn.step(for: .rightShoulder)) }
-        }
+    }
+
+    /// Takes the reader's handlers off `controller` again.
+    static func unbind(_ controller: GCController) {
+        guard let gamepad = controller.extendedGamepad else { return }
+        for (input, _) in turningButtons(of: gamepad) { input.pressedChangedHandler = nil }
     }
 }

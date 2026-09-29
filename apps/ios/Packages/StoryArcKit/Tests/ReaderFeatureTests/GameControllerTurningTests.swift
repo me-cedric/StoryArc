@@ -1,3 +1,4 @@
+import GameController
 import Testing
 
 @testable import ReaderFeature
@@ -18,5 +19,26 @@ struct GameControllerTurningTests {
     func shouldersMatchTheirSide() {
         #expect(GameControllerTurn.step(for: .leftShoulder) == GameControllerTurn.step(for: .dpadLeft))
         #expect(GameControllerTurn.step(for: .rightShoulder) == GameControllerTurn.step(for: .dpadRight))
+    }
+
+    @Test("A bound controller's buttons turn; an unbound one's do not")
+    @MainActor
+    func bindAndUnbind() {
+        let controller = GCController.withExtendedGamepad()
+        var turns: [Int] = []
+        GameControllerTurning.bind(controller, to: { turns.append($0) })
+        let gamepad = controller.extendedGamepad
+        #expect(gamepad?.dpad.right.pressedChangedHandler != nil)
+        gamepad?.dpad.right.pressedChangedHandler?(gamepad!.dpad.right, 1, true)
+        gamepad?.leftShoulder.pressedChangedHandler?(gamepad!.leftShoulder, 1, true)
+        // A release is not a second press.
+        gamepad?.dpad.right.pressedChangedHandler?(gamepad!.dpad.right, 0, false)
+        #expect(turns == [1, -1])
+
+        GameControllerTurning.unbind(controller)
+        #expect(gamepad?.dpad.left.pressedChangedHandler == nil)
+        #expect(gamepad?.dpad.right.pressedChangedHandler == nil)
+        #expect(gamepad?.leftShoulder.pressedChangedHandler == nil)
+        #expect(gamepad?.rightShoulder.pressedChangedHandler == nil)
     }
 }
