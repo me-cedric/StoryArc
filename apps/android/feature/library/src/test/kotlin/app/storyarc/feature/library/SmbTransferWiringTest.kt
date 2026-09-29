@@ -121,6 +121,23 @@ class SmbTransferWiringTest {
     }
 
     @Test
+    fun `an agreed transfer copies in chunks rather than in one read`() {
+        // The regression 5.14 closed: a single `source.read(0, entry.length.toInt())` asks a
+        // share for the whole file in one message, and the count itself overflows above
+        // 2 GiB before the request is even sent -- `ChunkedCopyTest` pins the fixed-chunk
+        // copy from the other side, on `ChunkedCopy` itself. This is the wiring: that
+        // `fetchAndIndex` actually calls it.
+        assertTrue(
+            "fetchAndIndex should copy through ChunkedCopy rather than a single read.",
+            source.contains("ChunkedCopy.copy("),
+        )
+        assertTrue(
+            "fetchAndIndex still reads the whole file in one call.",
+            !source.contains("source.read(0, entry.length.toInt())"),
+        )
+    }
+
+    @Test
     fun `a share that stated no size has a sentence of its own`() {
         // `offline-downloads` asks for an absence rather than a zero, and the dialog formats
         // a non-optional Long — so without this branch a zero-length entry reads "0 B".

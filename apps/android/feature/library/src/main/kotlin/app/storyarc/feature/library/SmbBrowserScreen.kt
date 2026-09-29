@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.format.ChunkedCopy
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationIdentity
@@ -365,11 +366,14 @@ private suspend fun fetchAndIndex(
         // place -- see `SmbEntry`.
         val destination = entry.cacheLocation(directory)
             ?: throw SmbError.Unexpected("unusable entry name")
-        destination.apply {
-            if (length() != entry.length) {
-                writeBytes(source.read(0, entry.length.toInt()))
-            }
+        if (destination.length() != entry.length) {
+            // Chunked rather than one read of the whole length in a single call: that count
+            // overflows an Int above 2 GiB before the request is even sent, and jcifs's own
+            // reply is capped by its wire format before that anyway -- a solid archive worth
+            // downloading is exactly the file large enough to hit either limit.
+            ChunkedCopy.copy(source, destination)
         }
+        destination
     }
     return PublicationIndexer.index(
         source = source,
