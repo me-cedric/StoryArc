@@ -85,6 +85,7 @@
     <string name="privacy_clear_cache">Liberar espacio</string>
     <string name="privacy_clear_history">Borrar el historial de lectura</string>
     <string name="privacy_clear_history_body">Cada libro y cada cómic vuelve a su primera página. Tus archivos, tus bibliotecas y tus ajustes no se ven afectados.</string>
+    <string name="privacy_clear_history_server_note">El progreso guardado en un servidor del que lees no cambia.</string>
     <string name="privacy_downloads">Descargas · %1$s</string>
     <string name="privacy_downloads_note">Se guardan en este dispositivo para abrirse sin red. Borrar quita los archivos, no lo que has leído.</string>
     <string name="privacy_clear_downloads">Borrar descargas</string>

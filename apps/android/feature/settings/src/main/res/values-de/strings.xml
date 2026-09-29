@@ -85,6 +85,7 @@
     <string name="privacy_clear_cache">Speicher freigeben</string>
     <string name="privacy_clear_history">Leseverlauf löschen</string>
     <string name="privacy_clear_history_body">Jedes Buch und jeder Comic springt zurück auf die erste Seite. Ihre Dateien, Ihre Bibliotheken und Ihre Einstellungen bleiben unberührt.</string>
+    <string name="privacy_clear_history_server_note">Der Fortschritt auf einem Server, von dem Sie lesen, wird dadurch nicht geändert.</string>
     <string name="privacy_downloads">Downloads · %1$s</string>
     <string name="privacy_downloads_note">Auf diesem Gerät behalten, damit sie ohne Netz öffnen. Löschen entfernt die Dateien, nicht das Gelesene.</string>
     <string name="privacy_clear_downloads">Downloads löschen</string>

@@ -2091,6 +2091,35 @@
         }
       }
     },
+    "privacy.clear.history.serverNote": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Fortschritt auf einem Server, von dem Sie lesen, wird dadurch nicht geändert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Progress kept on a server you read from is not changed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El progreso guardado en un servidor del que lees no cambia."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La progression conservée sur un serveur que vous lisez n'est pas modifiée."
+          }
+        }
+      }
+    },
     "privacy.diagnostic": {
       "extractionState": "manual",
       "localizations": {

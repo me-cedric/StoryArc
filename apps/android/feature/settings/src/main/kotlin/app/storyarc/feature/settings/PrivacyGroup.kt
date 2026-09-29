@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.SourceKind
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.SourceStore
 import app.storyarc.core.persistence.StorageUsage
@@ -84,12 +85,21 @@ internal fun PrivacyGroup(
     var downloadBytes by remember { mutableLongStateOf(downloadedBytes) }
     var confirmingHistory by remember { mutableStateOf(false) }
     var confirmingDownloads by remember { mutableStateOf(false) }
+    val hasSynchronizingSource = remember {
+        SourceStore.open(context).registry().sources.any { it.kind == SourceKind.KAVITA_SERVER }
+    }
 
     if (confirmingHistory) {
         AlertDialog(
             onDismissRequest = { confirmingHistory = false },
             title = { Text(stringResource(R.string.privacy_clear_history)) },
-            text = { Text(stringResource(R.string.privacy_clear_history_body)) },
+            text = {
+                Column {
+                    clearHistoryMessageResIds(hasSynchronizingSource).forEach {
+                        Text(stringResource(it))
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(onClick = {
                     confirmingHistory = false
@@ -324,3 +334,16 @@ private fun formatBytes(bytes: Long): String = when {
     bytes < 1024 * 1024 * 1024 -> "%.1f MB".format(bytes / (1024.0 * 1024))
     else -> "%.1f GB".format(bytes / (1024.0 * 1024 * 1024))
 }
+
+/**
+ * The message strings the clear-history confirmation shows, in order.
+ *
+ * Lifted out of the composable so a test can reach the decision without a host to render
+ * an alert dialog in. iOS mirrors this in `PrivacySettings.clearHistoryMessageKeys`.
+ */
+internal fun clearHistoryMessageResIds(hasSynchronizingSource: Boolean): List<Int> =
+    if (hasSynchronizingSource) {
+        listOf(R.string.privacy_clear_history_body, R.string.privacy_clear_history_server_note)
+    } else {
+        listOf(R.string.privacy_clear_history_body)
+    }

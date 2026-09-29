@@ -90,6 +90,7 @@
     <string name="privacy_clear_cache">Free up space</string>
     <string name="privacy_clear_history">Clear reading history</string>
     <string name="privacy_clear_history_body">Every book and comic goes back to its first page. Your files, your libraries and your settings are not affected.</string>
+    <string name="privacy_clear_history_server_note">Progress kept on a server you read from is not changed.</string>
     <string name="privacy_downloads">Downloads · %1$s</string>
     <string name="privacy_downloads_note">Kept on this device so they open without a network. Clearing removes the files, not what you have read.</string>
     <string name="privacy_clear_downloads">Clear downloads</string>
