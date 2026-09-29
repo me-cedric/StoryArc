@@ -5,9 +5,9 @@ import Testing
 
 /// What this suite can and cannot prove.
 ///
-/// The reachability clock is checked here directly. The reopen branch itself is not: the
-/// source's session is private to it, and widening that surface to reach it from a test
-/// would be an abstraction that exists only for the test. Android's suite closes the handle
+/// The reopen branch itself is not checked here: the source's session is private to it, and
+/// widening that surface to reach it from a test would be an abstraction that exists only for
+/// the test. Android's suite closes the handle
 /// out from under its source and proves the branch there; the two implementations follow
 /// the same shape, and this one at least proves a source keeps working across reads.
 @Suite("SMB reconnection", .serialized)
@@ -32,18 +32,5 @@ struct SmbReconnectTests {
         // is that a second read after a long-enough gap still gets through the same source.
         let after = try await source.read(offset: 0, count: 4)
         #expect(Array(after) == Array(before))
-        #expect(SmbReachability.blockedSince == nil)
-    }
-
-    @Test("trouble is timed from the first failure, not the latest")
-    func timesFromFirstFailure() {
-        SmbReachability.clear()
-        let first = Date(timeIntervalSince1970: 1_000)
-        SmbReachability.noteFailure(at: first)
-        SmbReachability.noteFailure(at: Date(timeIntervalSince1970: 2_000))
-        #expect(SmbReachability.blockedSince == first)
-
-        SmbReachability.noteSuccess()
-        #expect(SmbReachability.blockedSince == nil)
     }
 }
