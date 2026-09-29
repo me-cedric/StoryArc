@@ -1,5 +1,8 @@
 package app.storyarc.feature.reader
 
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.pager.PagerState
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -57,7 +60,7 @@ class EndSlotTest {
     fun `the scroll lists get one slot past the last page`() {
         assertTrue(
             "The vertical scroll no longer has an extra slot past the last page.",
-            code.contains("items(slotCount + 1) { index ->"),
+            code.contains("items(slotCount + 1) { item ->"),
         )
     }
 
@@ -80,6 +83,34 @@ class EndSlotTest {
                 " the reader would find a blank page instead of the last one they read.",
             code.contains("if (paging.current == endSlot) {"),
         )
+    }
+
+    @Test
+    fun `left-to-right puts the end slot after the last page`() {
+        assertEquals(5, endSlotPosition(slotCount = 5, isRightToLeft = false))
+    }
+
+    @Test
+    fun `right-to-left puts the end slot before the last page, not after page one`() {
+        // Under right-to-left the last page is display position 0, so the slot past it
+        // is -1. At `slotCount` it sat past page one, and a swipe back opened the end.
+        assertEquals(-1, endSlotPosition(slotCount = 5, isRightToLeft = true))
+    }
+
+    @Test
+    fun `a pager with the end slot first reports it as the end slot's position`() {
+        val atEnd = Paging.Paged(PagerState(currentPage = 0) { 6 }, lead = 1)
+        assertEquals(endSlotPosition(slotCount = 5, isRightToLeft = true), atEnd.current)
+        val onLastPage = Paging.Paged(PagerState(currentPage = 1) { 6 }, lead = 1)
+        assertEquals(0, onLastPage.current)
+    }
+
+    @Test
+    fun `a scroll with the end slot first reports it as the end slot's position`() {
+        val atEnd = Paging.Scrolled(LazyListState(firstVisibleItemIndex = 0), lead = 1)
+        assertEquals(-1, atEnd.current)
+        val onPageOne = Paging.Scrolled(LazyListState(firstVisibleItemIndex = 5), lead = 1)
+        assertEquals(4, onPageOne.current)
     }
 
     private companion object {

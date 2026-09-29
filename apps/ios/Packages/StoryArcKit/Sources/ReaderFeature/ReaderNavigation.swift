@@ -20,9 +20,9 @@ extension ReaderView {
     /// `comic-reader` means by a pair being "never split across two turns".
     var displayOrder: [Int] { Array(layout.slots.indices) }
 
-    /// One slot past the last page, for Slide and Scroll to reach on a swipe or a scroll
-    /// with nothing left to turn to. See `pages(in:)`'s shared `onChange`.
-    var endSlot: Int { layout.count }
+    /// One slot past the last page in reading order, for Slide and Scroll to reach on a
+    /// swipe or a scroll with nothing left to turn to. See ``endSlotPosition``.
+    var endSlot: Int { endSlotPosition(slotCount: layout.count, isRightToLeft: isRightToLeft) }
 
     /// Moves back off `endSlot`, invisibly, once the end screen closes.
     ///
@@ -30,10 +30,10 @@ extension ReaderView {
     /// tap or a key did not, because `turn(by:)` refuses before advancing past the last
     /// page. Only the first two need this, and the guard is what tells them apart.
     func snapBackFromEndSlot() {
-        guard displayIndex == endSlot, endSlot > 0 else { return }
+        guard displayIndex == endSlot, !model.pages.isEmpty else { return }
         var instant = Transaction()
         instant.disablesAnimations = true
-        withTransaction(instant) { displayIndex = endSlot - 1 }
+        withTransaction(instant) { displayIndex = displayIndex(forModel: model.pages.count - 1) }
     }
 
     /// The slot a display position holds.
@@ -96,4 +96,15 @@ extension ReaderView {
             : .single(pageCount: model.pages.count)
         displayIndex = displayIndex(forModel: model.currentIndex)
     }
+}
+
+/// The display position of the slot past the last page.
+///
+/// `comic-reader`: "a swipe or a scroll past the last page reaches the end screen". Past
+/// the last page *in reading order*: after the run in left-to-right, and before it under
+/// right-to-left, where the display order is reversed and the last page is position 0. A
+/// slot after the run there sits beyond page one, and a swipe back from page one opened
+/// the end screen. Android's `endSlotPosition` is the same rule.
+func endSlotPosition(slotCount: Int, isRightToLeft: Bool) -> Int {
+    isRightToLeft ? -1 : slotCount
 }

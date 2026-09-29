@@ -6,6 +6,7 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableIntState
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import app.storyarc.core.model.PageTransition
@@ -30,11 +31,18 @@ internal sealed interface Paging {
     /** Moves there. Animated where the mode animates and instant where it does not. */
     suspend fun goTo(display: Int, animate: Boolean = true)
 
-    /** Slide: a pager, which brings its own gesture, fling and edge resistance. */
-    class Paged(val state: PagerState) : Paging {
-        override val current get() = state.currentPage
+    /**
+     * Slide: a pager, which brings its own gesture, fling and edge resistance.
+     *
+     * [lead] is how many pager pages come before display position 0: one under
+     * right-to-left, where the end slot sits before the last page (see
+     * [endSlotPosition]), and none otherwise.
+     */
+    class Paged(val state: PagerState, val lead: Int = 0) : Paging {
+        override val current get() = state.currentPage - lead
         override suspend fun goTo(display: Int, animate: Boolean) {
-            if (animate) state.animateScrollToPage(display) else state.scrollToPage(display)
+            val page = display + lead
+            if (animate) state.animateScrollToPage(page) else state.scrollToPage(page)
         }
     }
 
@@ -61,13 +69,27 @@ internal sealed interface Paging {
      * rounding to the nearest would make the counter jump forward before the page
      * does.
      */
-    class Scrolled(val state: LazyListState) : Paging {
-        override val current get() = state.firstVisibleItemIndex
+    class Scrolled(val state: LazyListState, val lead: Int = 0) : Paging {
+        override val current get() = state.firstVisibleItemIndex - lead
         override suspend fun goTo(display: Int, animate: Boolean) {
-            if (animate) state.animateScrollToItem(display) else state.scrollToItem(display)
+            val item = display + lead
+            if (animate) state.animateScrollToItem(item) else state.scrollToItem(item)
         }
     }
 }
+
+/**
+ * The display position of the slot past the last page, which Slide and Scroll reach on a
+ * swipe or a scroll with nothing left to turn to.
+ *
+ * `comic-reader`: "a swipe or a scroll past the last page reaches the end screen". Past
+ * the last page *in reading order*: after the run in left-to-right, and before it under
+ * right-to-left, where the display order is reversed and the last page is position 0. A
+ * slot after the run there sits beyond page one, and a swipe back from page one opened
+ * the end screen. iOS's `endSlotPosition` is the same rule.
+ */
+internal fun endSlotPosition(slotCount: Int, isRightToLeft: Boolean): Int =
+    if (isRightToLeft) -1 else slotCount
 
 /**
  * The coordinator for one mode, seeded from where the reader already is.
@@ -78,28 +100,39 @@ internal sealed interface Paging {
  * the reader back to page one for choosing a different animation.
  */
 @Composable
-internal fun rememberPaging(mode: PageTransition, count: Int, position: Int): Paging = when {
-    mode.isScroll -> {
-        val state = rememberLazyListState(initialFirstVisibleItemIndex = position)
-        // Remembered, not rebuilt. A fresh wrapper on every recomposition is a fresh
-        // `LaunchedEffect` key, and an effect that writes the position it just read
-        // then recomposes for ever — which looks exactly like a reader whose taps do
-        // nothing, because the frame never settles.
-        remember(state) { Paging.Scrolled(state) }
-    }
-    // Both container-less modes. Curl animates its own fold and Fast fade its own
-    // dissolve; neither has anything for a scroll state to describe.
-    mode == PageTransition.FAST_FADE || mode == PageTransition.PAGE_CURL -> {
-        val index = remember(mode) { mutableIntStateOf(position) }
-        remember(index) { Paging.Indexed(index) }
-    }
-    else -> {
-        // `count + 1`: one slot past the last page, for a swipe with nothing left to
-        // turn to. `comic-reader`: "a swipe past the last page reaches the end
-        // screen" — without it `HorizontalPager` simply resists at the last page, the
-        // way it resists at the first. `ReaderScreen`'s own composable turns reaching
-        // it into `hasReachedEnd`.
-        val state = rememberPagerState(initialPage = position, pageCount = { count + 1 })
-        remember(state) { Paging.Paged(state) }
+internal fun rememberPaging(
+    mode: PageTransition,
+    count: Int,
+    position: Int,
+    isRightToLeft: Boolean,
+): Paging = key(isRightToLeft) {
+    // Keyed on the direction, because the end slot moves to the other end of the run and
+    // every pager page shifts by one with it. A fresh state seeded from `position` keeps
+    // the page the reader is on, the way a mode change already does.
+    val lead = if (isRightToLeft) 1 else 0
+    when {
+        mode.isScroll -> {
+            val state = rememberLazyListState(initialFirstVisibleItemIndex = position + lead)
+            // Remembered, not rebuilt. A fresh wrapper on every recomposition is a fresh
+            // `LaunchedEffect` key, and an effect that writes the position it just read
+            // then recomposes for ever — which looks exactly like a reader whose taps do
+            // nothing, because the frame never settles.
+            remember(state) { Paging.Scrolled(state, lead) }
+        }
+        // Both container-less modes. Curl animates its own fold and Fast fade its own
+        // dissolve; neither has anything for a scroll state to describe.
+        mode == PageTransition.FAST_FADE || mode == PageTransition.PAGE_CURL -> {
+            val index = remember(mode) { mutableIntStateOf(position) }
+            remember(index) { Paging.Indexed(index) }
+        }
+        else -> {
+            // `count + 1`: one slot past the last page, for a swipe with nothing left to
+            // turn to. `comic-reader`: "a swipe past the last page reaches the end
+            // screen" — without it `HorizontalPager` simply resists at the last page, the
+            // way it resists at the first. `ReaderScreen`'s own composable turns reaching
+            // it into `hasReachedEnd`.
+            val state = rememberPagerState(initialPage = position + lead, pageCount = { count + 1 })
+            remember(state) { Paging.Paged(state, lead) }
+        }
     }
 }

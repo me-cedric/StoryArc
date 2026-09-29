@@ -53,16 +53,18 @@ extension ReaderView {
     /// Slide: the platform's own pager, which brings its gesture and edge resistance.
     var paged: some View {
         TabView(selection: $displayIndex) {
-            ForEach(displayOrder, id: \.self) { displayIndex in
-                page(at: displayIndex)
-                    .tag(displayIndex)
-            }
             // `comic-reader`: "a swipe past the last page reaches the end screen".
             // Without a tagged view past the last page, `TabView` has nowhere to swipe
             // to and the gesture simply stops at the last page. `hasReachedEnd` covers
             // this slot the instant it becomes current (`pages(in:)`), so nothing here
-            // is ever actually seen.
-            Color.clear.tag(endSlot)
+            // is ever actually seen. Before the run under right-to-left: see `endSlot`.
+            withEndSlot(
+                ForEach(displayOrder, id: \.self) { displayIndex in
+                    page(at: displayIndex)
+                        .tag(displayIndex)
+                },
+                Color.clear.tag(endSlot)
+            )
         }
         #if os(iOS)
         .tabViewStyle(.page(indexDisplayMode: .never))
@@ -136,9 +138,9 @@ extension ReaderView {
                     .containerRelativeFrame(axis == .vertical ? .vertical : .horizontal)
                     .id(endSlot)
                 if axis == .vertical {
-                    LazyVStack(spacing: 0) { content; end }
+                    LazyVStack(spacing: 0) { withEndSlot(content, end) }
                 } else {
-                    LazyHStack(spacing: 0) { content; end }
+                    LazyHStack(spacing: 0) { withEndSlot(content, end) }
                 }
             }
             .scrollTargetLayout()
@@ -164,6 +166,19 @@ extension ReaderView {
                     anchor: ScrollProgress.anchor(forFraction: fraction, axis: axis)
                 )
             }
+        }
+    }
+
+    /// The pages with the end slot on the side the reading order ends: after them in
+    /// left-to-right, before them under right-to-left. See `endSlot`.
+    @ViewBuilder
+    func withEndSlot(_ pages: some View, _ end: some View) -> some View {
+        if isRightToLeft {
+            end
+            pages
+        } else {
+            pages
+            end
         }
     }
 

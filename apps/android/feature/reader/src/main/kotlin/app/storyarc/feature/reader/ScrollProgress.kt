@@ -38,11 +38,12 @@ internal object ScrollProgress {
  */
 internal suspend fun restoreScrollFraction(paging: Paging, target: Int, fraction: Float) {
     if (paging !is Paging.Scrolled || fraction <= 0f) return
+    val item = target + paging.lead
     val size = paging.state.layoutInfo.visibleItemsInfo
-        .firstOrNull { it.index == target }
+        .firstOrNull { it.index == item }
         ?.size
         ?: return
-    paging.state.scrollToItem(target, ScrollProgress.offsetPixels(fraction, size))
+    paging.state.scrollToItem(item, ScrollProgress.offsetPixels(fraction, size))
 }
 
 /**
