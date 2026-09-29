@@ -129,10 +129,12 @@ class ThemeSheetSemanticsTest {
             preset.values.fontSize.position + 1,
             FontSizeStep.count,
         )
+        // The state description, not the content description: the name stays the name,
+        // and the position is the value TalkBack reads after it and speaks again on a step.
         compose.onNode(
-            SemanticsMatcher("content description contains \"$position\"") { node ->
-                node.config.getOrNull(SemanticsProperties.ContentDescription)
-                    ?.any { it.contains(position) } == true
+            SemanticsMatcher("state description contains \"$position\"") { node ->
+                node.config.getOrNull(SemanticsProperties.StateDescription)
+                    ?.contains(position) == true
             },
         ).assertExists()
     }
