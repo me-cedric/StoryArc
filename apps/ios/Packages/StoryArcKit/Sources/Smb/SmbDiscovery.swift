@@ -175,15 +175,36 @@ public final class SmbDiscovery {
     /// a real loopback listener, because `NWBrowser.Result` cannot be built by hand to go
     /// through ``handle(_:)``.
     func resolve(name: String, endpoint: NWEndpoint) {
-        let connection = NWConnection(to: endpoint, using: .tcp)
+        let connection = NWConnection(to: endpoint, using: Self.resolvingParameters)
         resolving[name] = connection
         connection.stateUpdateHandler = { [weak self] state in
-            guard case .ready = state else { return }
-            MainActor.assumeIsolated {
-                self?.resolved(name: name, connection: connection)
+            switch state {
+            case .ready:
+                MainActor.assumeIsolated { self?.resolved(name: name, connection: connection) }
+            case .failed:
+                // Dropped, so the next report of this service tries again.
+                MainActor.assumeIsolated { self?.abandon(name: name, connection: connection) }
+            default:
+                break
             }
         }
         connection.start(queue: .main)
+    }
+
+    /// TCP over IPv4 only. `SmbConnection` reads a `:` in the host field as the start of a
+    /// port, so an IPv6 address — which a Bonjour service on a LAN often resolves to first —
+    /// would reach it as `fe80` and nothing more.
+    static var resolvingParameters: NWParameters {
+        let parameters = NWParameters.tcp
+        if let internet = parameters.defaultProtocolStack.internetProtocol as? NWProtocolIP.Options {
+            internet.version = .v4
+        }
+        return parameters
+    }
+
+    private func abandon(name: String, connection: NWConnection) {
+        connection.cancel()
+        if resolving[name] === connection { resolving.removeValue(forKey: name) }
     }
 
     private func resolved(name: String, connection: NWConnection) {
