@@ -101,4 +101,23 @@ class ChunkedCopyTest {
         assertFalse(destination.exists())
         assertFalse(File(scratch.root, "copy.cbz.partial").exists())
     }
+
+    @Test
+    fun `a source that ends before its stated length fails rather than leaving a short file`() {
+        val short = object : RandomAccessSource {
+            override val length = 10_000L
+            override suspend fun read(offset: Long, count: Int): ByteArray =
+                if (offset < 4_000) ByteArray(minOf(count, (4_000 - offset).toInt())) else ByteArray(0)
+        }
+        val destination = File(scratch.root, "copy.cbz")
+
+        assertThrows(SourceUnreadableException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                ChunkedCopy.copy(short, destination, chunkSize = 1000)
+            }
+        }
+
+        assertFalse(destination.exists())
+        assertFalse(File(scratch.root, "copy.cbz.partial").exists())
+    }
 }
