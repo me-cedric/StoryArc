@@ -97,6 +97,15 @@ class SmbClientTest {
     }
 
     @Test
+    fun `a malformed host fails as a named error rather than crashing`() {
+        SmbClient(address.copy(host = "[fe80")).use { client ->
+            assertThrows(SmbError.AddressInvalid::class.java) {
+                runBlocking { client.connect() }
+            }
+        }
+    }
+
+    @Test
     fun `a share that is not there fails as a named error, not a raw jcifs one`() {
         assumeTrue(isServerRunning())
         SmbClient(address.copy(share = "NoSuchShare")).use { client ->

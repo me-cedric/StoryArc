@@ -114,6 +114,7 @@ object SmbSourceState {
         is SmbError.HostUnreachable,
         is SmbError.ShareNotFound,
         is SmbError.ProtocolUnsupported,
+        is SmbError.AddressInvalid,
         is SmbError.Unexpected,
         -> SourceConnectionState.Unreachable(now)
     }

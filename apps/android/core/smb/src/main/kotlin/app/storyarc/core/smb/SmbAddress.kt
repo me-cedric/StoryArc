@@ -97,6 +97,10 @@ sealed class SmbError(message: String) : Exception(message) {
         private fun readResolve(): Any = EncryptionRequired
     }
 
+    data object AddressInvalid : SmbError("that is not a network address") {
+        private fun readResolve(): Any = AddressInvalid
+    }
+
     data class Unexpected(val detail: String) : SmbError(detail)
 }
 
