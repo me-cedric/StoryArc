@@ -146,7 +146,10 @@ struct ImportedCopiesTests {
         #expect(fixture.store.finishedDownload(in: library) { _ in true }?.id == fetched.id)
     }
 
-    @Test("An imported copy is pinned to the download store's protection class", .enabled(if: HostProtection.isKept, "this host ignores a file protection class"))
+    @Test(
+        "An imported copy is pinned to the download store's protection class",
+        .enabled(if: HostProtection.isKept, "this host ignores a file protection class")
+    )
     func importedCopyIsProtected() throws {
         // security-review #18: a moved-or-copied-in file keeps the class it was created
         // with, not the directory's, unless something pins it directly after the copy.
