@@ -121,23 +121,29 @@ extension ReaderModel {
         // Only the page on screen, and only for a share: `network-share`'s notice is
         // about *that* page's own trouble, not a prefetched neighbour's, and a plain
         // local file offers no download-for-offline and no "share" to name.
-        let tracksNetwork = index == currentIndex && url.scheme == "smb"
-        if tracksNetwork { pageWaitStarted = Date() }
+        let isShare = url.scheme == "smb"
+        if isShare, index == currentIndex { pageWaitStarted = Date() }
+        reading.insert(index)
         let result = await outcome(at: index, maxPixelSize: maxPixelSize)
-        if tracksNetwork { pageWaitStarted = nil }
+        reading.remove(index)
+        // Asked again now that the read has ended: a prefetch the reader turned to while it
+        // was reading is the page on screen, and its wait is the one the notice counts.
+        let isOnScreen = isShare && index == currentIndex
+        let waitedSince = isOnScreen ? pageWaitStarted : nil
+        if isOnScreen { pageWaitStarted = nil }
 
         switch result {
         case .decoded(let image):
             decoded[index] = image
             refusedCodecs.removeValue(forKey: index)
             noteDecoded(image, at: index)
-            if tracksNetwork { pageFailingSince = nil }
+            if isOnScreen { pageFailingSince = nil }
 
         case .refused(let codec):
             // Remembered as tried, which is what makes the placeholder appear: the bytes
             // are here and the decoder will say the same thing about them next time.
             if let codec { refusedCodecs[index] = codec }
-            if tracksNetwork { pageFailingSince = nil }
+            if isOnScreen { pageFailingSince = nil }
 
         case .unread:
             // Forgotten rather than remembered as tried. A page that failed because the
@@ -145,10 +151,10 @@ extension ReaderModel {
             // app to "resume streaming at the current page" after reconnecting, and a page
             // marked attempted for ever never gets a second chance.
             attempted.remove(index)
-            // The *first* failure only: `network-share`'s 60 s offer counts continuously
-            // from here, unaffected by a reader dismissing the notice or by the gaps
-            // between ``watchForPageRecovery()``'s own retries.
-            if tracksNetwork, pageFailingSince == nil { pageFailingSince = Date() }
+            // The *first* failure only, and timed from when the page began to wait rather
+            // than from when the read gave up: the notice then keeps counting through the
+            // failure and through the gaps between ``watchForPageRecovery()``'s retries.
+            if isOnScreen, pageFailingSince == nil { pageFailingSince = waitedSince ?? Date() }
         }
     }
 
@@ -162,15 +168,21 @@ extension ReaderModel {
     public func watchForPageRecovery() async {
         while !Task.isCancelled {
             try? await Task.sleep(for: Self.recoveryInterval)
-            guard Self.needsRecovery(
-                currentIndex: currentIndex,
-                pageCount: pages.count,
-                decoded: Set(decoded.keys),
-                attempted: attempted,
-                refused: Set(refusedCodecs.keys)
-            ) else { continue }
-            await decode(currentIndex)
+            await recoverCurrentPage()
         }
+    }
+
+    /// One round of ``watchForPageRecovery()``: reads the page on screen again when it
+    /// still needs a read.
+    func recoverCurrentPage() async {
+        guard Self.needsRecovery(
+            currentIndex: currentIndex,
+            pageCount: pages.count,
+            decoded: Set(decoded.keys),
+            attempted: attempted,
+            refused: Set(refusedCodecs.keys)
+        ) else { return }
+        await decode(currentIndex)
     }
 
     private static let recoveryInterval: Duration = .seconds(3)
@@ -197,10 +209,11 @@ extension ReaderModel {
     public func go(to index: Int) async {
         guard pages.indices.contains(index) else { return }
         currentIndex = index
-        // Belongs to the page being left. `decode(_:)` sets both again for the page
-        // being turned to, if it still needs reading — see `tracksNetwork` above.
-        pageWaitStarted = nil
+        // The trouble belongs to the page being left. A page turned to while its prefetch
+        // is still reading has been waiting since this turn; `decode(_:)` sets the wait
+        // itself for a read it starts.
         pageFailingSince = nil
+        pageWaitStarted = url.scheme == "smb" && reading.contains(index) ? Date() : nil
         await warm(around: index)
         await record(index)
     }

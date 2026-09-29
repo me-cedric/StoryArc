@@ -350,6 +350,9 @@ public final class ReaderModel {
 
     var attempted: Set<Int> = []
 
+    /// The pages with a read under way. See `go(to:)`.
+    var reading: Set<Int> = []
+
     /// The codec of each page that was attempted and refused. See ``codecName(at:)``.
     var refusedCodecs: [Int: String] = [:]
 
@@ -368,14 +371,13 @@ public final class ReaderModel {
     var zoomed: ZoomedPage?
 
     /// When the page currently on screen started waiting for bytes it does not have —
-    /// set the moment a read for it begins and cleared the moment that read ends,
-    /// whichever way. `network-share`'s 2 s notice counts from here, not from after both
-    /// of `SmbClient`'s own attempts have already failed against a page nobody is looking
-    /// at. See `ReaderDecoding.swift`'s `decode(_:)`.
+    /// set when a read for it begins, or when the reader turns to a page whose read is
+    /// already under way, and cleared when that read ends. `network-share`'s 2 s notice
+    /// counts from here. See `ReaderDecoding.swift`'s `decode(_:)` and `go(to:)`.
     public internal(set) var pageWaitStarted: Date?
 
-    /// When the page currently on screen first failed to arrive, kept apart from
-    /// `pageWaitStarted` so dismissing the notice does not restart the 60 s clock.
+    /// When the page currently on screen began the wait that its first failed read ended,
+    /// kept apart from `pageWaitStarted` so a retry does not restart the 60 s clock.
     /// Cleared only once that page decodes or is permanently refused — either of which
     /// ends the wait this exists to time.
     public internal(set) var pageFailingSince: Date?
