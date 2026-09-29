@@ -102,6 +102,9 @@ extension EpubReaderModel {
     /// draw a bar without parsing anything.
     private func recordedLocator() async -> Locator? {
         guard let record = try? await progress?.progress(for: publication.identity),
+              // A finished book reopens at its beginning, not at the last page it was
+              // marked finished on -- the same as the comic and PDF readers.
+              !record.isFinished,
               case let .reflowable(_, json) = record.position,
               !json.isEmpty,
               let value = try? JSONValue(jsonString: json, warnings: nil)
@@ -236,10 +239,24 @@ extension EpubReaderModel {
                 position: .reflowable(progression: total, locator: json),
                 // A book is finished at its end, and "the end" of a reflowable
                 // book is the last of its content rather than a page number.
-                isFinished: total >= 0.999,
+                isFinished: Self.isAtEnd(total: total, viewportUpperBound: navigator?.viewport?.progression.upperBound),
                 updatedAt: Date()
             )
         )
+    }
+
+    /// Whether what is on screen right now reaches the end of the book.
+    ///
+    /// Readium's own locator reports the *lower* bound of what is visible —
+    /// `EPUBViewportAndLocationCalculator` sets both `progression` and `totalProgression`
+    /// to it — so on the last page of a short resource the locator's own number never
+    /// crosses a threshold: a page that starts at 96% of a book and is the last page ends
+    /// the book, and `total >= 0.999` never sees it. The viewport names what is actually
+    /// rendered, and its *upper* bound is the one number that means "and nothing after
+    /// this is on screen". `nil` when the navigator has not reported a viewport yet, and
+    /// the locator's own total is what there is.
+    nonisolated static func isAtEnd(total: Double, viewportUpperBound: Double?) -> Bool {
+        (viewportUpperBound ?? total) >= 0.999
     }
 }
 
