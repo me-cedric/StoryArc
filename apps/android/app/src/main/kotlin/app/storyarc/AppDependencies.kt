@@ -115,6 +115,7 @@ internal class AppDependencies private constructor(private val context: Context)
             pins,
             downloads,
             credential = ::credentialFor,
+            sourceOrigin = { id -> sources.registry()[id]?.locator?.let(OpdsOrigin::of) },
             // The reader's own choices, read from the store on every pump rather than
             // captured here. Without this the queue answers from `AppSettings.Defaults`,
             // where Wi-Fi-only is off and there is no storage limit -- so it is never

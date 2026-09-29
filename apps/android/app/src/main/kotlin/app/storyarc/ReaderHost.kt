@@ -136,7 +136,7 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
             ?.let { remote ->
                 {
                     activity.lifecycleScope.launch {
-                        keepForOffline(dependencies.downloads, publication, remote)
+                        keepForOffline(dependencies.queue, dependencies.downloads, publication, remote)
                             ?.let { local -> host.open(publication, local) }
                         SmbReachability.clear()
                     }

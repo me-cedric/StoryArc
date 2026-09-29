@@ -69,6 +69,7 @@ extension DownloadQueue {
             pins: pins,
             store: store,
             credential: Self.credentialResolver(store: store, sources: sources, credentials: credentials),
+            sourceOrigin: { id in Self.origin(of: sources().first { $0.id == id }) },
             settings: settings
         )
         instance = queue
@@ -99,14 +100,18 @@ extension DownloadQueue {
             guard let download = store.library()[id],
                   let sourceID = download.sourceID,
                   let source = sources().first(where: { $0.id == sourceID }),
-                  let locator = source.locator, let home = URL(string: locator),
-                  let sourceOrigin = OpdsOrigin(url: home),
+                  let sourceOrigin = origin(of: source),
                   sourceOrigin.admits(download.remote)
             else { return nil }
             return source.credentialReference
                 .flatMap { credentials?.secret(for: $0) }
                 .flatMap(OpdsCredential.init(stored:))
         }
+    }
+
+    /// Where a source's own address says it lives, or nil for a source with no address.
+    static func origin(of source: Source?) -> OpdsOrigin? {
+        source?.locator.flatMap { URL(string: $0) }.flatMap { OpdsOrigin(url: $0) }
     }
 
     /// Test-only: drops the shared instance, so each test builds its own rather than
@@ -158,12 +163,32 @@ extension DownloadQueue {
 
     /// Forgets every download a source contributed, deleting the files, for when the source
     /// itself is removed.
+    ///
+    /// A transfer still running for that source is stopped first, so it cannot land a file
+    /// in a directory the removal has just emptied.
     @discardableResult
     public func removingAll(from sourceID: UUID) -> [Download] {
         let (kept, removed) = library.removingAll(from: sourceID)
-        for download in removed { store?.remove(download) }
+        for download in removed {
+            running.removeValue(forKey: download.id)?.cancel()
+            finish(download.id, with: nil)
+            store?.remove(download)
+        }
         library = kept
         store?.save(library)
         return removed
+    }
+
+    /// Stops every transfer and forgets every download, deleting the files — the clear in
+    /// Settings.
+    ///
+    /// Through the queue for the reason the removals above are: a store cleared behind the
+    /// queue comes back at the queue's next save, and a transfer that is still running
+    /// lands its file in the cleared directory.
+    public func clearing() {
+        for task in running.values { task.cancel() }
+        running = [:]
+        for id in Array(waiting.keys) { finish(id, with: nil) }
+        library = store?.clearing() ?? DownloadLibrary()
     }
 }

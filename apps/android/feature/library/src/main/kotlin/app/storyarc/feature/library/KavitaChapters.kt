@@ -76,6 +76,8 @@ fun KavitaChapters(
     progress: ProgressStore? = null,
     /** This server's own reading lists, which its chapters may be added to. */
     lists: List<ServerList> = emptyList(),
+    /** The app-level queue, which records a kept chapter. See `KavitaKeep`. */
+    queue: DownloadQueue? = null,
     onOpen: (Publication, String) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -191,6 +193,7 @@ fun KavitaChapters(
                 origin = originOf(chapter),
                 sourceId = runCatching { java.util.UUID.fromString(sourceId) }.getOrNull(),
                 client = client,
+                queue = queue,
             )
             if (done != null) kept = kept + chapter.id
             fetching = null

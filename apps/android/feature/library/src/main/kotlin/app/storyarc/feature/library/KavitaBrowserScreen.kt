@@ -102,6 +102,8 @@ fun KavitaBrowserScreen(
      * field filters the local index, and this is the question carried across.
      */
     searching: String = "",
+    /** The app-level queue, which records a kept chapter. See `KavitaKeep`. */
+    queue: DownloadQueue? = null,
     onOpen: (Publication, String) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -341,6 +343,7 @@ fun KavitaBrowserScreen(
                 store = store,
                 progress = progress,
                 lists = lists,
+                queue = queue,
                 onOpen = onOpen,
                 modifier = body,
                 contentPadding = edges,

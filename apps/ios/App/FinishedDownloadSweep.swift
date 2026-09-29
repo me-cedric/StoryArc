@@ -1,5 +1,6 @@
 import Foundation
 
+import LibraryFeature
 import Persistence
 import ReaderFeature
 import StoryArcCore
@@ -20,10 +21,10 @@ extension StoryArcApp {
     /// then, with the sweep on, one finished download the reader did not keep.
     func sweepFinishedDownload() async {
         for id in cleanupChoices.takeRemovals() {
-            remove(id, from: downloadStore.library())
+            remove(id)
         }
         guard settings.removeDownloadsAfterFinishing else { return }
-        let library = downloadStore.library()
+        let library = DownloadQueue.shared().library
 
         // Asked of the store one path at a time, and awaited: `ProgressStore` is an actor,
         // and a predicate that could not await it would answer "not finished" to everything
@@ -42,7 +43,7 @@ extension StoryArcApp {
             isKept: cleanupChoices.isKept
         ) { done.contains($0) }
         guard let finished else { return }
-        remove(finished.id, from: library)
+        remove(finished.id)
     }
 
     /// What the end screen offers about `publication`'s download — `nil` when it was
@@ -59,14 +60,16 @@ extension StoryArcApp {
         )
     }
 
-    private func remove(_ id: Download.ID, from library: DownloadLibrary) {
-        guard let outcome = downloadStore.removeAfterFinishing(id, from: library) else { return }
+    /// Through the shared queue, which is the only writer of the download store. A removal
+    /// written to the store directly comes back at the queue's next save.
+    private func remove(_ id: Download.ID) {
+        let queue = DownloadQueue.shared()
+        guard let taken = queue.removeAfterFinishing(id) else { return }
 
-        downloads = outcome.library
+        downloads = queue.library
         removedDownload?.settle()
-        removedDownload = outcome.removed
+        removedDownload = taken
 
-        let taken = outcome.removed
         Task {
             try? await Task.sleep(for: .seconds(10))
             guard removedDownload?.download.id == taken.download.id else { return }

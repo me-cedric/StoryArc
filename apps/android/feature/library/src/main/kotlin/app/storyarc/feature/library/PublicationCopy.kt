@@ -166,8 +166,8 @@ internal fun rememberPublicationCopy(
 
     val start: (() -> Unit)? = if (found != null && acquisition != null) {
         {
-            if (queue.needsMeteredConfirmation(found)) {
-                meteredAsk = MeteredAsk(found, acquisition, queue.statedBytes(found))
+            if (queue.needsMeteredConfirmation(found, publication.sourceId)) {
+                meteredAsk = MeteredAsk(found, acquisition, queue.statedBytes(found, publication.sourceId))
             } else {
                 begin(overridingMeteredConnection = false)
             }
@@ -182,7 +182,8 @@ internal fun rememberPublicationCopy(
         // answer touches the filesystem: a copy the system reclaimed is not a copy, and
         // `downloaded` is the call that knows it.
         file = remember(found?.id, record?.state) {
-            found?.takeIf { record?.state?.isFinished == true }?.let(queue::downloaded)
+            found?.takeIf { record?.state?.isFinished == true }
+                ?.let { queue.downloaded(it, publication.sourceId) }
         },
         start = start,
     )

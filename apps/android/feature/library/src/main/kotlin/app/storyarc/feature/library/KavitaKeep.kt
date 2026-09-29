@@ -62,6 +62,12 @@ object KavitaKeep {
         downloads: DownloadStore = DownloadStore.open(context),
         cards: KavitaCardStore = KavitaCardStore.open(context),
         progress: KavitaProgressStore = KavitaProgressStore.open(context),
+        /**
+         * The app-level queue, which is the only writer of [downloads] -- dl-core 1.1. A record
+         * saved beside it comes back out at the queue's next save. Null only where no queue
+         * exists, a preview or a test, and then the record goes to [downloads] directly.
+         */
+        queue: DownloadQueue? = null,
     ): Kept? = runCatching {
         val title = KavitaNaming.title(series, chapter)
         val fetched = client.chapter(chapter.id)
@@ -107,23 +113,20 @@ object KavitaKeep {
         val publication = PublicationIndexer.index(destination, catalogueSeries = series.name)
             .copy(sourceId = sourceId)
 
-        downloads.save(
-            downloads.library().queueing(
-                Download(
-                    id = identifier,
-                    sourceId = sourceId,
-                    title = title,
-                    // No secret in it: Kavita takes the key as a bearer header on this route,
-                    // not in the query, so what is written down is a path and a chapter number.
-                    remote = client.address.chapterUrl(chapter.id),
-                    mediaType = mediaType,
-                    state = Download.State.Finished,
-                    expectedBytes = bytes,
-                    downloadedBytes = bytes,
-                    completedAt = Date(),
-                ),
-            ),
+        val record = Download(
+            id = identifier,
+            sourceId = sourceId,
+            title = title,
+            // No secret in it: Kavita takes the key as a bearer header on this route, not in
+            // the query, so what is written down is a path and a chapter number.
+            remote = client.address.chapterUrl(chapter.id),
+            mediaType = mediaType,
+            state = Download.State.Finished,
+            expectedBytes = bytes,
+            downloadedBytes = bytes,
+            completedAt = Date(),
         )
+        if (queue != null) queue.record(record) else downloads.save(downloads.library().queueing(record))
 
         cards.save(card(publication.id, identifier, chapter, series, metadata, origin))
         // The same note the open path leaves, and for the same reason: the reader opens a file

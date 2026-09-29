@@ -12,7 +12,6 @@ import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.Publication
-import app.storyarc.core.persistence.removeAfterFinishing
 import app.storyarc.core.playback.PlaybackHost
 import app.storyarc.core.playback.PlaybackPosition
 import app.storyarc.feature.library.AudiobookPart
@@ -37,6 +36,7 @@ import app.storyarc.feature.library.SmbBrowserScreen
 import app.storyarc.feature.library.UnauthorizedSourceScreen
 import app.storyarc.feature.library.promote
 import app.storyarc.feature.library.promotionOf
+import app.storyarc.feature.library.removeAfterFinishing
 import app.storyarc.feature.library.withdrawList
 import app.storyarc.navigation.Screen
 import kotlinx.coroutines.launch
@@ -104,6 +104,7 @@ internal fun HostedScreen(
             // libraries → out, rather than leaving the server from whatever depth.
             onLevel = { level -> host.navigate { push(screen.copy(level = level)) } },
             searching = screen.search,
+            queue = dependencies.queue,
             onOpen = host.open,
             onBack = back,
         )
@@ -414,8 +415,8 @@ private fun PublicationPage(
         onCopyFromLocation = if (isRemote && !isDownloaded) {
             {
                 scope.launch {
-                    keepForOffline(host.dependencies.downloads, publication, location)
-                    host.downloads.value = host.dependencies.downloads.library()
+                    keepForOffline(host.dependencies.queue, host.dependencies.downloads, publication, location)
+                    host.downloads.value = host.dependencies.queue.library.value
                 }
             }
         } else {
@@ -427,12 +428,10 @@ private fun PublicationPage(
         onRemoveDownload = if (isDownloaded) {
             {
                 scope.launch {
-                    removeAfterFinishing(
-                        host.dependencies.downloads,
-                        host.downloads.value,
-                        publication.id,
-                    )?.let { (library, removal) ->
-                        host.downloads.value = library
+                    // Through the app-level queue, the only writer of the download store.
+                    val queue = host.dependencies.queue
+                    queue.removeAfterFinishing(publication.id)?.let { removal ->
+                        host.downloads.value = queue.library.value
                         host.removed.value = removal
                     }
                 }

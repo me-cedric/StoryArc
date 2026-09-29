@@ -116,7 +116,7 @@ extension DownloadQueue {
             // origin is fetched without the credential, and one that steps down to
             // cleartext is not fetched at all.
             guard OpdsOrigin.isFetchable(download.remote) else { throw OpdsError.refusedAddress }
-            let home = origin ?? OpdsOrigin(url: download.remote)
+            let home = origin ?? download.sourceID.flatMap(sourceOrigin) ?? OpdsOrigin(url: download.remote)
             if home?.downgrades(download.remote) == true { throw OpdsError.refusedAddress }
 
             var request = URLRequest(url: download.remote)

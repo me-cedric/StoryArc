@@ -19,17 +19,9 @@ import StoryArcCore
 /// how a downloads screen turns back into the queue inspector this destination exists to
 /// stop being.
 ///
-/// **Stop, reorder, retry — and not yet pause.** Stop and reorder write the record, and the
-/// record is the download store's, so this screen can offer them honestly. Retry, on a row
-/// that has failed, writes the record too — `queued` is what `DownloadQueue.resume` writes,
-/// minus the pump — and then hands the pump to whichever running
-/// ``LibraryFeature/DownloadQueue`` is alive through ``LibraryFeature/DownloadQueue/retry(_:)``;
-/// when none is, the next queue built reads the record and starts it, exactly as it starts
-/// every transfer the app died during. Pause and resume are still not here: that object
-/// lives with the catalogue browser that started the transfer, and a pause written into the
-/// record from this screen would say "paused" while the bytes kept arriving. Lifting the
-/// queue to the app layer is its own change; a control that lies is worse than one that is
-/// missing.
+/// **Stop, reorder, retry — and not yet pause.** Each one goes to the one app-level
+/// ``LibraryFeature/DownloadQueue`` (dl-core 1.1): Stop cancels the transfer, reorder moves the
+/// record, and Retry resumes a failed row and starts it. This row has no pause control yet.
 struct DownloadQueueSection: View {
     @Environment(\.theme) private var theme
 

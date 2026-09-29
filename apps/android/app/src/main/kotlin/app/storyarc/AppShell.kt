@@ -133,6 +133,7 @@ internal fun AppShell(
                     // What lets the library ask a server for its publications rather than
                     // waiting to be browsed to. See LibraryViewModel.readServers.
                     dependencies.credentials,
+                    downloadQueue = dependencies.queue,
                 )
             }
         },
