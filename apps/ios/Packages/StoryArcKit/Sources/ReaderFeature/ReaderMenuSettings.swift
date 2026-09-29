@@ -72,6 +72,16 @@ extension ReaderView {
                     } else {
                         Text(mode.titleKey, bundle: .module)
                     }
+                    // A second, bare `Text` in a `Menu` row's label becomes that row's
+                    // subtitle — this is what draws it, not a `Label` or a `VStack`, and
+                    // Android's own `DropdownMenuItem` two-line text is the same row named
+                    // in Compose terms. `page-transitions` "A mode is unavailable for the
+                    // content" asks for a reason "shown unavailable", not silently
+                    // disabled, and this is the one place a reader browsing the open menu
+                    // sees a reason for a row they have not chosen yet.
+                    if let reason = choices.unavailable[mode] {
+                        Text(reason.titleKey, bundle: .module)
+                    }
                 }
                 .disabled(!choices.isAvailable(mode))
             }
