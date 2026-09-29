@@ -27,8 +27,18 @@ object SmbNetworkWatch {
         if (callback != null) return
         val manager = context.getSystemService(ConnectivityManager::class.java) ?: return
         val watcher = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) = SmbSourceRegistry.dropAll()
-            override fun onLost(network: Network) = SmbSourceRegistry.dropAll()
+            private var current: Network? = null
+
+            override fun onAvailable(network: Network) {
+                val previous = current
+                current = network
+                if (isChange(previous, network)) SmbSourceRegistry.dropAll()
+            }
+
+            override fun onLost(network: Network) {
+                if (current == network) current = null
+                SmbSourceRegistry.dropAll()
+            }
         }
         callback = watcher
         manager.registerDefaultNetworkCallback(watcher)
@@ -43,3 +53,12 @@ object SmbNetworkWatch {
         runCatching { manager.unregisterNetworkCallback(watcher) }
     }
 }
+
+/**
+ * Whether a default network reported as available is a move to another one.
+ *
+ * A default-network callback reports the network already in effect the moment it is
+ * registered. That report is not a change: reading it as one dropped every session the reader
+ * had just opened, and the first read paid for a fresh one.
+ */
+internal fun <T : Any> isChange(previous: T?, next: T): Boolean = previous != null && previous != next
