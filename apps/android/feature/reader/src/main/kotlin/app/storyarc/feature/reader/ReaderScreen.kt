@@ -548,7 +548,7 @@ private fun Pager(
     /** Set when the reader turns past the last page. */
     var hasReachedEnd by remember { mutableStateOf(false) }
 
-    /** D6: the pinched scale to carry into the next page, while `fit` is fit-to-width. */
+    /** D6: the pinch, as a multiple of the fit, to carry on while `fit` is fit-to-width. */
     var carriedZoomScale by remember { mutableStateOf<Float?>(null) }
 
     // `native-experience`: haptics, for the two events that have nothing else to
@@ -820,9 +820,9 @@ private fun Pager(
                 // background between every pair, which is the opposite of the
                 // "stitched with no gap" `comic-reader` asks for.
                 stitch = stitch,
-                onZoom = { scale ->
+                onZoom = { scale, overFit ->
                     viewModel.holdZoom(scale, index)
-                    if (fit == PageFit.WIDTH) carriedZoomScale = scale
+                    if (fit == PageFit.WIDTH) carriedZoomScale = overFit
                 },
                 decoration = pdfDecoration(index),
                 onSelect = pdfSelectionHandler(index),
@@ -1349,9 +1349,10 @@ private fun ZoomablePage(
      * the user zooms", and this composable is the only thing that knows how far. Sent
      * after the scale has held still rather than on every frame: a pinch produces dozens
      * of changes a second, and a full-page decode per frame would be the opposite of
-     * making the page feel sharp.
+     * making the page feel sharp. `overFit` is the same scale as a multiple of the
+     * chosen fit's own, which is what fit-to-width carries to the next page (D6).
      */
-    onZoom: suspend (Float) -> Unit,
+    onZoom: suspend (scale: Float, overFit: Float) -> Unit,
     modifier: Modifier = Modifier,
     /**
      * The axis this page is stitched along, or null when it is a page on its own.
@@ -1422,7 +1423,7 @@ private fun ZoomablePage(
     // reports `scrollViewDidEndZooming` once at the end of the gesture.
     LaunchedEffect(pageId, zoom.scale) {
         delay(ZOOM_SETTLE_MILLIS)
-        onZoom(zoom.scale)
+        onZoom(zoom.scale, zoom.scale / PageZoom.fitting(fit, page).scale)
     }
 
     if (stitch != null) {

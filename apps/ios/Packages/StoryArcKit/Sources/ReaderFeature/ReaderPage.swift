@@ -30,7 +30,7 @@ struct PageView: View {
     ///
     /// `publication-formats` asks for a page to be "re-decoded at higher resolution
     /// when the user zooms", and the scroll view is the only thing that knows how far.
-    let onZoom: (Double) -> Void
+    let onZoom: (_ scale: Double, _ overFit: Double) -> Void
 
     /// The marks and the live selection over a PDF page. Empty for everything else.
     var decoration: PdfPageDecoration = .none

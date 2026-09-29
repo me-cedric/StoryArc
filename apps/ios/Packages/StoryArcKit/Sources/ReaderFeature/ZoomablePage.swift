@@ -51,8 +51,9 @@ struct ZoomablePage: View {
     /// the user zooms", and the scroll view is the only thing that knows how far. Sent
     /// on the *end* of a zoom rather than on every frame: a pinch produces dozens of
     /// changes a second, and a full-page decode per frame would be the opposite of
-    /// making the page feel sharp.
-    let onZoom: (Double) -> Void
+    /// making the page feel sharp. `overFit` is the same scale as a multiple of the
+    /// chosen fit's own, which is what fit-to-width carries to the next page (D6).
+    let onZoom: (_ scale: Double, _ overFit: Double) -> Void
 
     /// The marks and the live selection to paint over the page, normalised to it.
     ///
@@ -110,7 +111,7 @@ struct ScrollingPage: UIViewRepresentable {
     let isRightToLeft: Bool
     let viewport: CGSize
     let onTap: (CGPoint, CGSize) -> Void
-    let onZoom: (Double) -> Void
+    let onZoom: (_ scale: Double, _ overFit: Double) -> Void
     let decoration: PdfPageDecoration
     let onSelect: ((CGPoint, CGPoint, Bool) -> Void)?
 
@@ -258,7 +259,7 @@ struct ScrollingPage: UIViewRepresentable {
         var pageID: String
         var zoomedScale: CGFloat = 2.5
         var onTap: (CGPoint, CGSize) -> Void = { _, _ in }
-        var onZoom: (Double) -> Void = { _ in }
+        var onZoom: (_ scale: Double, _ overFit: Double) -> Void = { _, _ in }
 
         init(pageID: String) {
             self.pageID = pageID
@@ -297,7 +298,8 @@ struct ScrollingPage: UIViewRepresentable {
         func scrollViewDidEndZooming(
             _ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat
         ) {
-            onZoom(Double(scale))
+            let fit = owed?.fitScale(upTo: scrollView.maximumZoomScale) ?? scrollView.minimumZoomScale
+            onZoom(Double(scale), Double(scale / max(fit, 0.01)))
         }
 
         /// Keeps the page centred while it is smaller than the screen.
@@ -347,8 +349,10 @@ struct ScrollingPage: UIViewRepresentable {
 
         @objc func handleDoubleTap(_ recogniser: UITapGestureRecognizer) {
             guard let scrollView = recogniser.view as? UIScrollView else { return }
-            // D5: "fit" is the chosen mode's own scale. See `isZoomedPastFit`.
-            let fit = owed?.scale(upTo: scrollView.maximumZoomScale) ?? scrollView.minimumZoomScale
+            // D5: "fit" is the chosen mode's own scale, with no carried pinch in it —
+            // a page opened at a carried zoom goes back to its own fit. See
+            // `isZoomedPastFit`.
+            let fit = owed?.fitScale(upTo: scrollView.maximumZoomScale) ?? scrollView.minimumZoomScale
             if isZoomedPastFit(currentScale: scrollView.zoomScale, fitScale: fit) {
                 scrollView.setZoomScale(fit, animated: true)
                 return
@@ -356,9 +360,12 @@ struct ScrollingPage: UIViewRepresentable {
             // Centred on what was tapped, not on the middle of the screen: the
             // point of a double-tap is to magnify *that* panel.
             let point = recogniser.location(in: imageView)
+            let target = doubleTapZoomInScale(
+                fitScale: fit, factor: zoomedScale, ceiling: scrollView.maximumZoomScale
+            )
             let size = CGSize(
-                width: scrollView.bounds.width / zoomedScale,
-                height: scrollView.bounds.height / zoomedScale
+                width: scrollView.bounds.width / target,
+                height: scrollView.bounds.height / target
             )
             scrollView.zoom(
                 to: CGRect(

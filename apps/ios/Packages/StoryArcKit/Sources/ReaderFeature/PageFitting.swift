@@ -55,8 +55,8 @@ struct OwedFit {
     let mode: PageFit
     let imageSize: CGSize
     let viewport: CGSize
-    /// What the reader pinched to on the last page, carried into this one. See
-    /// ``openingScale(fitScale:carried:mode:)``.
+    /// What the reader pinched to on the last page, as a multiple of that page's own
+    /// fit, carried into this one. See ``openingScale(fitScale:carried:mode:)``.
     let carried: CGFloat?
     /// Which side a page carried into horizontal slack opens against. See
     /// ``openingXOffset(contentWidth:boundsWidth:isRightToLeft:)``.
@@ -80,12 +80,18 @@ struct OwedFit {
 
     /// The zoom scale the page opens at, never past what the view will hold.
     func scale(upTo ceiling: CGFloat) -> CGFloat {
+        min(openingScale(fitScale: fitScale(upTo: .greatestFiniteMagnitude), carried: carried, mode: mode), ceiling)
+    }
+
+    /// The chosen fit's own scale, with nothing carried: what a double-tap goes back to
+    /// (D5), and what a carried zoom is a multiple of (D6).
+    func fitScale(upTo ceiling: CGFloat) -> CGFloat {
         let fit = mode.scale(
             fitted: fitted(imageSize, in: viewport),
             viewport: viewport,
             pixelWidth: imageSize.width
         )
-        return min(openingScale(fitScale: fit, carried: carried, mode: mode), ceiling)
+        return min(fit, ceiling)
     }
 
     /// Whether the page opens at its top rather than its middle.
@@ -119,17 +125,31 @@ func isZoomedPastFit(currentScale: CGFloat, fitScale: CGFloat) -> Bool {
     currentScale > fitScale * 1.01
 }
 
+/// Where a double-tap at the chosen fit zooms in to (D5): `factor` times that fit, about
+/// the tapped point, and never past what the view will hold.
+///
+/// A multiple of the fit rather than a fixed scale: a fit-to-width page in landscape
+/// can already sit above a fixed 2.5, and "zooming in" to 2.5 from there zoomed out.
+func doubleTapZoomInScale(fitScale: CGFloat, factor: CGFloat, ceiling: CGFloat) -> CGFloat {
+    min(fitScale * factor, ceiling)
+}
+
 /// The scale a page opens at: the chosen fit's own scale, or a carried pinch.
 ///
 /// Decision D6: "zoom level" means the pinched scale, and in fit-to-width it "carries
 /// to the next page" rather than resetting on every turn — every other mode still
 /// resets, which is what "a reader who pinches ... stays zoomed until they ... turn
-/// the page" already meant before this. A carried scale at or below the fit scale is
-/// not a pinch to carry at all — it is the page opening at its ordinary fit, or a
-/// stale value from a page the reader has since zoomed back out of.
+/// the page" already meant before this.
+///
+/// `carried` is the pinch as a multiple of the last page's own fit, not a raw scale: a
+/// raw scale is relative to each page's fit-to-screen, which moves with the page's shape,
+/// so a page opened at its plain fit carried that fit into a narrower page and opened it
+/// magnified. A multiple at the fit, within ``isZoomedPastFit``'s tolerance, carries
+/// nothing.
 func openingScale(fitScale: CGFloat, carried: CGFloat?, mode: PageFit) -> CGFloat {
-    guard mode == .width, let carried, carried > fitScale else { return fitScale }
-    return carried
+    guard mode == .width, let carried, isZoomedPastFit(currentScale: carried, fitScale: 1)
+    else { return fitScale }
+    return fitScale * carried
 }
 
 /// The horizontal offset a page opens at, when ``OwedFit/opensAtTheTop`` is true.
