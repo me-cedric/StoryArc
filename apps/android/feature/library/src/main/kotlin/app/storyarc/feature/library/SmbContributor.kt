@@ -5,6 +5,7 @@ import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.smb.SmbAddress
 import app.storyarc.core.smb.SmbClient
 import app.storyarc.core.smb.SmbEntry
 import java.util.UUID
@@ -42,9 +43,9 @@ internal object SmbContributor {
     const val MAX_FOLDERS = 40
 
     /** The publications a bounded walk of the share finds. */
-    suspend fun publications(sourceId: UUID, client: SmbClient, root: String): SourceSlice {
+    suspend fun publications(sourceId: UUID, client: SmbClient, address: SmbAddress): SourceSlice {
         val found = mutableListOf<Publication>()
-        val queue = ArrayDeque(listOf(root))
+        val queue = ArrayDeque(listOf(address.path))
         var listings = 0
 
         while (queue.isNotEmpty() && found.size < FIRST_SLICE && listings < MAX_FOLDERS) {
@@ -59,7 +60,7 @@ internal object SmbContributor {
                     continue
                 }
                 if (found.size >= FIRST_SLICE) break
-                publication(sourceId, entry, folder = path)?.let(found::add)
+                publication(sourceId, entry, address, folder = path)?.let(found::add)
             }
         }
         // Either budget running out is the walk stopping before the share did, and so is a
@@ -74,16 +75,36 @@ internal object SmbContributor {
     /**
      * One file as a row, or null for a file this app cannot open.
      *
-     * The path is the identity, as it is for a scanned file: a share is a filesystem, so
-     * two rows are the same publication when they are the same file. That also means a
-     * share's row and the same file downloaded fold together without a server identifier,
-     * which is `PublicationIdentity.matches` doing what ADR-0006 built it for.
+     * The identity is the share's own `smb://` address for this file, not the bare path
+     * `SmbClient.list` returns: `entry.path` is relative to the share's root, and a location
+     * that is not a real address reads as local — `PublicationAccess.isRemote` matches it
+     * against nothing, the shelf counts a row nobody has downloaded as already on the
+     * device, and opening it hands the reader a path that exists nowhere on the filesystem.
+     * `SmbLocator.of(address)` plus the entry's own path is the same address the share
+     * browser already opens a file by.
+     *
+     * Still one identity per file on the share: two rows are the same publication when
+     * they are the same file, and a share's row and the same file downloaded fold together
+     * without a server identifier, which is `PublicationIdentity.matches` doing what
+     * ADR-0006 built it for.
+     *
+     * `SmbLocator.of` on the share's own root, `address.copy(path = "")`, rather than on
+     * `address` itself: `entry.path` already carries the walk's own root — `SmbClient.list`
+     * seeds the recursion at `address.path` and every entry's path is joined against
+     * whichever folder produced it — so a locator built from `address` would state the
+     * configured root twice for any share whose reader picked one deeper than the top.
      */
-    internal fun publication(sourceId: UUID, entry: SmbEntry, folder: String): Publication? {
+    internal fun publication(
+        sourceId: UUID,
+        entry: SmbEntry,
+        address: SmbAddress,
+        folder: String,
+    ): Publication? {
         val format = format(entry.name) ?: return null
         val facts = FilenameMetadata.of(entry.name, seriesHint = folder.substringAfterLast('/'))
+        val shareRoot = SmbLocator.of(address.copy(path = ""))
         return Publication(
-            identity = PublicationIdentity(normalizedPath = entry.path),
+            identity = PublicationIdentity(normalizedPath = "$shareRoot/${entry.path}"),
             format = format,
             // The filename without its extension. `FilenameMetadata` answers series,
             // number, volume and year and deliberately not a title -- what is left of a
