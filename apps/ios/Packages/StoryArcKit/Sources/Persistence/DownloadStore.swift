@@ -76,6 +76,17 @@ public struct DownloadStore {
     /// `<id>/<title>.cbz`, and the two never met until a reader removed a download from
     /// Settings and the bytes stayed — so the storage total on that same screen never moved.
     public func location(for id: String, mediaType: String, title: String) -> URL {
+        Self.location(for: id, mediaType: mediaType, title: title, in: directory)
+    }
+
+    /// The same rule as ``location(for:mediaType:title:)``, taking the directory as a plain
+    /// `URL` rather than through `self`.
+    ///
+    /// `DownloadStore` itself cannot cross an isolation boundary — it holds a `UserDefaults`,
+    /// which is not `Sendable` — so a caller computing a destination from inside a
+    /// non-isolated task, such as `keptForOffline`'s copy, calls this directly with the
+    /// directory it already has rather than sending the whole store across to reach it.
+    public static func location(for id: String, mediaType: String, title: String, in directory: URL) -> URL {
         let folder = directory.appending(path: Self.safe(id), directoryHint: .isDirectory)
         // Blank, not merely empty. A space survives `safe` — it is a character a filesystem
         // takes — so a publication with a whitespace title would be written as `  .cbz`,

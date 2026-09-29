@@ -119,4 +119,31 @@ public struct Download: Sendable, Identifiable, Equatable {
         guard let expectedBytes, expectedBytes > 0 else { return nil }
         return min(1, Double(downloadedBytes) / Double(expectedBytes))
     }
+
+    /// The record for a copy that has already finished, such as one `keptForOffline` just
+    /// wrote in a single pass rather than through the download queue.
+    ///
+    /// Lifted here rather than built inline at the one call site that needs it today: the
+    /// fields that make a record *this publication's*, from *this remote*, at *this
+    /// size* — are a rule worth a name and a test of its own, not an app-layer literal
+    /// nothing else can check.
+    public static func finishedCopy(
+        of publication: Publication,
+        remote: URL,
+        mediaType: String,
+        bytes: Int64,
+        completedAt: Date = Date()
+    ) -> Download {
+        Download(
+            id: publication.id,
+            sourceID: publication.sourceID,
+            title: publication.displayTitle,
+            remote: remote,
+            mediaType: mediaType,
+            state: .finished,
+            expectedBytes: bytes,
+            downloadedBytes: bytes,
+            completedAt: completedAt
+        )
+    }
 }

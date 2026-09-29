@@ -2912,6 +2912,35 @@
           }
         }
       }
+    },
+    "reader.offline.download.failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Download konnte nicht gestartet werden. Die Freigabe ist weiterhin nicht erreichbar."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The download could not start. The share is still unreachable."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La descarga no pudo iniciarse. El recurso compartido sigue sin estar disponible."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le téléchargement n'a pas pu démarrer. Le partage reste inaccessible."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
