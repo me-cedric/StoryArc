@@ -921,23 +921,21 @@ private fun Pager(
             if (choices.effective == PageTransition.PAGE_CURL) {
                 CurledPages(
                     page = viewModel.image(modelIndex(paging.current)),
-                    // The page underneath is the next *display* position, not the next page
-                    // number: in right-to-left the two run opposite ways, and a curl that
-                    // revealed the wrong side would be worse than no curl.
-                    beneath = viewModel.image(modelIndex(paging.current + 1)),
-                    // And the page behind, for the same reason and the other direction. The
-                    // reader met a curl that "only seems to work in one direction": the
-                    // shader had nothing to turn backwards because nothing was handed to it.
-                    //
-                    // Guarded rather than left to `modelIndex`, which answers 0 for a
-                    // display position with no slot -- so a bare `current - 1` hands the
-                    // first page itself as its own previous, and it turns back onto itself.
-                    previous = viewModel.image(modelIndex(paging.current - 1))
-                        .takeIf { paging.current > 0 },
+                    // One reading-order step forward, not one *display* position forward:
+                    // right-to-left reverses the display order, so `paging.current + 1` is
+                    // the previous page in reading order there, not the next one.
+                    beneath = adjacentDisplayIndex(paging.current, 1, slotCount, isRightToLeft)
+                        ?.let { viewModel.image(modelIndex(it)) },
+                    // And the page behind, one reading-order step back, for the same reason
+                    // and the other direction. The reader met a curl that "only seems to
+                    // work in one direction": the shader had nothing to turn backwards
+                    // because nothing was handed to it.
+                    previous = adjacentDisplayIndex(paging.current, -1, slotCount, isRightToLeft)
+                        ?.let { viewModel.image(modelIndex(it)) },
                     isRightToLeft = isRightToLeft,
                     matte = matte,
-                    onTurned = { turn(paging.current + 1) },
-                    onTurnedBack = { turn(paging.current - 1) },
+                    onTurned = { turn(paging.current + readingOrderStep(1, isRightToLeft)) },
+                    onTurnedBack = { turn(paging.current + readingOrderStep(-1, isRightToLeft)) },
                     onTap = ::handleTap,
                     modifier = keyboard,
                 )
@@ -1849,18 +1847,6 @@ internal const val EDGE_ZONE_FRACTION = 1f / 3f
 internal fun spreadTap(half: Int, point: Offset, size: IntSize): Pair<Offset, IntSize> =
     Offset(if (half == 0) point.x else point.x + size.width, point.y) to
         IntSize(size.width * 2, size.height)
-
-/**
- * The display-order step that a reading-order turn of `step` performs.
- *
- * `comic-reader`: Space, Page Up/Down and the volume keys mean "the next page to read",
- * not "the next position on screen". Under right-to-left those differ, because the
- * display order is reversed (`slotIndex`) while the reading order is not, so the step
- * has to flip to keep meaning "next". Held outside the composable so `ReaderScreen`'s
- * own test can reach it.
- */
-internal fun readingOrderStep(step: Int, isRightToLeft: Boolean): Int =
-    if (isRightToLeft) -step else step
 
 /**
  * The cross-dissolve, short enough not to read as an animation.

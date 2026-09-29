@@ -92,6 +92,38 @@ internal fun endSlotPosition(slotCount: Int, isRightToLeft: Boolean): Int =
     if (isRightToLeft) -1 else slotCount
 
 /**
+ * The display-order step that a reading-order turn of `step` performs.
+ *
+ * `comic-reader`: Space, Page Up/Down and the volume keys mean "the next page to read",
+ * not "the next position on screen". Under right-to-left those differ, because the
+ * display order is reversed (`slotIndex`) while the reading order is not, so the step
+ * has to flip to keep meaning "next". Held outside the composable so `ReaderScreen`'s
+ * own test can reach it.
+ */
+internal fun readingOrderStep(step: Int, isRightToLeft: Boolean): Int =
+    if (isRightToLeft) -step else step
+
+/**
+ * The display position one reading-order step from [from], or null past either end of
+ * the publication.
+ *
+ * `readingOrderStep` already carries the right-to-left mirroring a tap or a key turns
+ * with; the curl's beneath and previous sheets need the same step, because "forward"
+ * and "backward" mean reading order to a reader whichever way the pages are laid out on
+ * screen — a raw `from + 1` is the *previous* page in reading order once right-to-left
+ * has reversed the display order.
+ */
+internal fun adjacentDisplayIndex(
+    from: Int,
+    steps: Int,
+    slotCount: Int,
+    isRightToLeft: Boolean,
+): Int? {
+    val candidate = from + readingOrderStep(steps, isRightToLeft)
+    return candidate.takeIf { it in 0 until slotCount }
+}
+
+/**
  * The coordinator for one mode, seeded from where the reader already is.
  *
  * Keyed on the mode, so switching rebuilds the state — and seeded from the position

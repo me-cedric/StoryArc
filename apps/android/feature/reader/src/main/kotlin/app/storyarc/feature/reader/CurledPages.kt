@@ -19,6 +19,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.input.pointer.util.addPointerInputChange
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.IntSize
 import kotlin.math.abs
@@ -66,6 +69,16 @@ internal fun CurledPages(
     val progress = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
     val view = LocalView.current
+    // What a flick is thresholded in: `VelocityTracker` answers px/s, and a px/s number
+    // means a different swipe on a phone and on a tablet at the same density-independent
+    // speed. Read once per composition, not once a frame.
+    val density = LocalDensity.current.density
+    // Parsed once for the life of this composable, not once a frame: `RuntimeShader(source)`
+    // parses the whole AGSL program, and the draw block used to pay that on every frame of
+    // every turn. `null` below the API floor, where the draw block never reaches it either.
+    val runtimeShader = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) PageCurl.newShader() else null
+    }
     // Off unless `adb` armed it. See `FrameProbe`.
     val frames = remember(view) { FrameTicker(view) }
     // A turn the reader walked out of never reaches `ended`, and a ticker nobody stopped
@@ -79,8 +92,11 @@ internal fun CurledPages(
                 awaitEachGesture {
                     val down = awaitFirstDown()
 
+                    // Frame-rate independent, unlike a raw per-event pixel delta: at 120 Hz
+                    // each event carries half the travel it carries at 60 Hz, so a threshold
+                    // on the last event's delta missed the same flick on a faster panel.
+                    val velocityTracker = VelocityTracker()
                     var travelled = 0f
-                    var lastStep = 0f
                     var isDrag = false
                     // Where the page stood when this drag took it over, and where it
                     // stands now. Kept here rather than read back from the `Animatable`
@@ -96,8 +112,8 @@ internal fun CurledPages(
                         val change = event.changes.firstOrNull { it.id == down.id } ?: break
                         if (!change.pressed) break
 
-                        lastStep = change.positionChange().x
-                        travelled += lastStep
+                        velocityTracker.addPointerInputChange(change)
+                        travelled += change.positionChange().x
                         if (!isDrag) {
                             if (abs(travelled) <= viewConfiguration.touchSlop) continue
                             isDrag = true
@@ -134,8 +150,14 @@ internal fun CurledPages(
 
                     // Directional, unlike the distance: a fast finger dragging the page
                     // back has said it does not want the turn, and an unsigned flick
-                    // completed it anyway.
-                    val flick = CurlTurn.flicks(lastStep, reached, isRightToLeft)
+                    // completed it anyway. Turn-space carries the sign the same way a
+                    // drag's travel does, and dp/s is what makes the threshold mean the
+                    // same swipe on every density and every refresh rate.
+                    val velocityDp = CurlTurn.forward(
+                        travel = velocityTracker.calculateVelocity().x,
+                        isRightToLeft = isRightToLeft,
+                    ) / density
+                    val flick = CurlTurn.flicks(velocity = velocityDp, progress = reached)
                     val settled = CurlTurn.settles(progress = reached, isFlick = flick)
                     val backwards = reached < 0f
                     scope.launch {
@@ -157,37 +179,36 @@ internal fun CurledPages(
                 }
             },
     ) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return@Canvas
+        val shader = runtimeShader ?: return@Canvas
         val sheets = CurlTurn.sheets(progress.value, page, beneath, previous)
         val turning = sheets.turning ?: return@Canvas
         // The matte first, because the shader leaves the letterbox transparent rather than
         // smearing the page's edge pixel across it.
         drawRect(color = matte, size = size)
-        drawRect(
-            brush = ShaderBrush(
-                PageCurl.shader(
-                    area = Size(size.width, size.height),
-                    progress = sheets.progress,
-                    isRightToLeft = isRightToLeft,
-                    page = turning,
-                    beneath = sheets.under,
-                ),
-            ),
-            size = size,
+        PageCurl.update(
+            shader,
+            area = Size(size.width, size.height),
+            progress = sheets.progress,
+            isRightToLeft = isRightToLeft,
+            page = turning,
+            beneath = sheets.under,
         )
+        drawRect(brush = ShaderBrush(shader), size = size)
     }
 }
 
 /**
  * How fast a finger has to be leaving the screen, forwards, for the turn to complete
- * anyway.
+ * anyway — in density-independent points per second, in turn-space.
  *
- * Pixels of travel in the last event, which is a crude velocity and an adequate one:
- * the question is only "was this a flick", and a flick is unmistakable. Measured in
- * turn-space rather than as a distance, so a flick that is dragging the page *back*
- * is not read as one asking it to turn.
+ * Not a raw pixel delta from the last event: that depends on both the display's refresh
+ * rate and its density, so the same real flick was missed on a 120 Hz panel (half the
+ * travel per event of a 60 Hz one) and read differently on every density. A judgement
+ * call rather than a measured one — not measured on a device — but a velocity in
+ * physical units is at least the same swipe wherever it runs, which a per-event pixel
+ * count is not.
  */
-private const val FLICK_PIXELS = 12f
+private const val FLICK_DP_PER_SECOND = 800f
 
 /**
  * Where a page stands mid-turn, and what a finger does to it from there.
@@ -243,11 +264,12 @@ internal object CurlTurn {
      * Signed, and it has to be: a fast finger dragging a half-turned page *back* has said
      * it does not want the turn, and a fast finger dragging the page behind into view has
      * asked for that one. An unsigned flick answered both with "complete the forward turn".
+     *
+     * @param velocity dp/s in turn-space — already mirrored for right-to-left by the
+     *   caller, through [forward], the same way [progress]'s `travel` is.
      */
-    fun flicks(lastStep: Float, progress: Float, isRightToLeft: Boolean): Boolean {
-        val speed = forward(lastStep, isRightToLeft)
-        return if (progress < 0f) speed < -FLICK_PIXELS else speed > FLICK_PIXELS
-    }
+    fun flicks(velocity: Float, progress: Float): Boolean =
+        if (progress < 0f) velocity < -FLICK_DP_PER_SECOND else velocity > FLICK_DP_PER_SECOND
 
     /**
      * Which sheet the shader turns, which page lies under it, and at what forward progress.

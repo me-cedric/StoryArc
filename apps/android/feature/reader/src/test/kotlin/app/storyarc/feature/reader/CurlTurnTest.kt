@@ -114,7 +114,7 @@ class CurlTurnTest {
 
     @Test
     fun `a backwards flick completes a backwards turn`() {
-        assertTrue(CurlTurn.flicks(lastStep = 40f, progress = -0.1f, isRightToLeft = false))
+        assertTrue(CurlTurn.flicks(velocity = -1000f, progress = -0.1f))
         assertTrue(CurlTurn.settles(-0.06f, isFlick = true))
     }
 
@@ -122,9 +122,18 @@ class CurlTurnTest {
     fun `a flick has to agree with where the page is already going`() {
         // A fast finger dragging the page back at a forward progress has said it does not
         // want the turn. An unsigned flick completed it anyway.
-        assertFalse(CurlTurn.flicks(lastStep = 40f, progress = 0.3f, isRightToLeft = false))
-        assertFalse(CurlTurn.flicks(lastStep = -40f, progress = -0.3f, isRightToLeft = false))
-        assertTrue(CurlTurn.flicks(lastStep = -40f, progress = 0.3f, isRightToLeft = false))
+        assertFalse(CurlTurn.flicks(velocity = -1000f, progress = 0.3f))
+        assertFalse(CurlTurn.flicks(velocity = 1000f, progress = -0.3f))
+        assertTrue(CurlTurn.flicks(velocity = 1000f, progress = 0.3f))
+    }
+
+    @Test
+    fun `a velocity below the dp-per-second threshold is not a flick`() {
+        // `page-transitions` 8.6: the threshold is on velocity in physical units, not on a
+        // raw per-event pixel delta — the mutation this guards is the threshold silently
+        // going back to comparing pixels, which a fast but sub-threshold swipe would pass.
+        assertFalse(CurlTurn.flicks(velocity = 200f, progress = 0.3f))
+        assertFalse(CurlTurn.flicks(velocity = -200f, progress = -0.3f))
     }
 
     @Test

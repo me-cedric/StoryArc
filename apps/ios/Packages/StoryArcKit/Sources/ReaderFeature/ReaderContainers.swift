@@ -33,29 +33,48 @@ extension ReaderView {
     /// `comic-reader` is explicit that a curl over a comic "uses the already-decoded
     /// page directly rather than a re-raster", which is why this takes `CGImage`s and
     /// not a snapshot of the view.
+    ///
+    /// **`beneath` and `previous` are one reading-order step apart, not one *display*
+    /// index apart.** Right-to-left reverses the display order (`ReaderNavigation`), so
+    /// display position `displayIndex + 1` is the *previous* page in reading order there,
+    /// not the next one. `CurlTurn.forward` already mirrors the gesture and the shader
+    /// already mirrors the crease for right-to-left; handing it `displayIndex + 1` as the
+    /// forward reveal on top of that mirrored the gesture twice, so a drag that lifted the
+    /// page the reader expects opened the page behind them instead.
     var curled: some View {
         CurledPages(
-            page: model.image(at: modelIndex(forDisplay: displayIndex)),
-            // The page underneath is the next *display* position, not the next page
-            // number: in right-to-left the two run opposite ways, and a curl that
-            // revealed the wrong side would be worse than no curl.
-            beneath: model.image(at: modelIndex(forDisplay: displayIndex + 1)),
-            // And the page behind, for the same reason and the other direction. The reader
-            // met a curl that "only seems to work in one direction": the shader had nothing
-            // to turn backwards because nothing was handed to it.
-            //
-            // Guarded rather than left to `modelIndex`, which answers 0 for a display
-            // position that has no slot -- so a bare `displayIndex - 1` hands the first
-            // page itself as its own previous, and the first page turns back onto itself.
-            previous: displayIndex > 0
-                ? model.image(at: modelIndex(forDisplay: displayIndex - 1))
-                : nil,
-            isRightToLeft: model.readingDirection == .rightToLeft,
+            page: adjustedImage(forDisplay: displayIndex),
+            beneath: adjacentDisplayIndex(
+                from: displayIndex, steps: 1, slotCount: layout.count, isRightToLeft: isRightToLeft
+            ).flatMap { adjustedImage(forDisplay: $0) },
+            // The page behind, for the other direction. The reader met a curl that "only
+            // seems to work in one direction": the shader had nothing to turn backwards
+            // because nothing was handed to it.
+            previous: adjacentDisplayIndex(
+                from: displayIndex, steps: -1, slotCount: layout.count, isRightToLeft: isRightToLeft
+            ).flatMap { adjustedImage(forDisplay: $0) },
+            isRightToLeft: isRightToLeft,
             matte: model.matte,
-            onTurned: { turn(by: 1) },
-            onTurnedBack: { turn(by: -1) },
+            adjustments: adjustments,
+            onTurned: { turnInReadingOrder(by: 1) },
+            onTurnedBack: { turnInReadingOrder(by: -1) },
             onTap: tapHandler()
         )
+    }
+
+    /// The decoded page with the series' trim and sharpness baked in, the way every
+    /// other container draws it.
+    ///
+    /// `comic-reader` "Persisting adjustments": the curl drew the raw decode while every
+    /// other container applied both halves of the reader's adjustments — this is the
+    /// pixel half (border trim and sharpness); the colour half (brightness, contrast,
+    /// inversion, greyscale) is a compositing operation applied once to the whole curl
+    /// in ``CurledPages``, not per sheet.
+    private func adjustedImage(forDisplay display: Int) -> CGImage? {
+        let index = modelIndex(forDisplay: display)
+        guard let image = model.image(at: index) else { return nil }
+        let trim = trimming(at: index)
+        return sharpened(cropped(image, when: trim.cropsBorders), by: trim.sharpness)
     }
 
     /// Slide: the platform's own pager, which brings its gesture and edge resistance.
