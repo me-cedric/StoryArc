@@ -18,11 +18,15 @@ struct NetworkNotice: View {
     /// in another module, and `ReaderFeature` depending on it would point the arrow wrong.
     let blockedSince: () -> Date?
     let onDismiss: () -> Void
-    let onDownload: (() -> Void)?
+    /// Answers whether the copy started. `network-share`'s offer does not disappear on a
+    /// `false`: the share is still down, which is the very reason the offer exists, so the
+    /// reader is told the attempt failed rather than left to wonder why nothing happened.
+    let onDownload: (() async -> Bool)?
     let onLeave: () -> Void
 
     @State private var blocked: TimeInterval = 0
     @State private var isDismissed = false
+    @State private var downloadFailed = false
 
     /// `network-share`: "more than 2 seconds".
     private let noticeAfter: TimeInterval = 2
@@ -45,6 +49,7 @@ struct NetworkNotice: View {
                 } else {
                     blocked = 0
                     isDismissed = false
+                    downloadFailed = false
                 }
                 try? await Task.sleep(for: .seconds(1))
             }
@@ -64,9 +69,23 @@ struct NetworkNotice: View {
                 .textRole(.body)
                 .foregroundStyle(theme.palette.textPrimary)
 
+            // Answers "why did nothing happen" for the one action here that can fail
+            // without a page turn or a dismissal to say so on its own.
+            if downloadFailed {
+                Text("reader.offline.download.failed", bundle: .module)
+                    .textRole(.footnote)
+                    .foregroundStyle(theme.palette.textPrimary)
+            }
+
             HStack(spacing: StoryArcSpace.md) {
                 if isLong, let onDownload {
-                    Button(action: onDownload) {
+                    Button {
+                        Task {
+                            downloadFailed = false
+                            let started = await onDownload()
+                            downloadFailed = !started
+                        }
+                    } label: {
                         Text("reader.offline.download", bundle: .module)
                     }
                 }

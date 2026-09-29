@@ -69,7 +69,7 @@ public struct ReaderView: View {
     /// that it needs.
     private let blockedSince: () -> Date?
     private let onDismissTrouble: () -> Void
-    private let onDownloadForOffline: (() -> Void)?
+    private let onDownloadForOffline: (() async -> Bool)?
 
     /// Where highlights and notes are kept, or `nil` in a preview.
     ///
@@ -90,7 +90,7 @@ public struct ReaderView: View {
         downloadCleanup: DownloadCleanupOffer? = nil,
         blockedSince: @escaping () -> Date? = { nil },
         onDismissTrouble: @escaping () -> Void = {},
-        onDownloadForOffline: (() -> Void)? = nil
+        onDownloadForOffline: (() async -> Bool)? = nil
     ) {
         _model = State(
             initialValue: ReaderModel(

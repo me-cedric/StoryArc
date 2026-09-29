@@ -364,7 +364,7 @@ struct StoryArcApp: App {
                         // already on the device, and offering to download it would be
                         // offering nothing.
                         onDownloadForOffline: selection.url.scheme == "smb"
-                            ? { Task { await keepForOffline(selection) } }
+                            ? { await keepForOffline(selection) }
                             : nil
                     )
                     // `page-transitions` makes the turn zones a setting, and the reader is a
