@@ -22,6 +22,9 @@ struct ReaderKeyboardFocus: ViewModifier {
     func body(content: Content) -> some View {
         content
             .focused($isFocused)
+            // Focused now, so iPadOS would draw its focus halo round the whole page.
+            // `comic-reader`: nothing is on screen while reading.
+            .focusEffectDisabled()
             .onAppear { isFocused = true }
             .onChange(of: isCoveredBySheet) { _, isCovered in if !isCovered { isFocused = true } }
     }

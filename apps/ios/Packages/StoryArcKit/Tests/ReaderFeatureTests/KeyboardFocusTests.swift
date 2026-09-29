@@ -49,6 +49,10 @@ struct KeyboardFocusTests {
         let modifier = try code(of: "ReaderKeyboardFocus.swift")
         #expect(modifier.contains("@FocusState private var isFocused: Bool"))
         #expect(modifier.contains(".focused($isFocused)"))
+        #expect(
+            modifier.contains(".focusEffectDisabled()"),
+            "A focused reader draws the system focus halo round the page."
+        )
     }
 
     @Test("Focus is claimed on appear, and given back when the last sheet closes")
