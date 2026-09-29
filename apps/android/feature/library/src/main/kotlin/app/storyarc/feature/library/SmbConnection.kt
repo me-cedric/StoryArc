@@ -219,6 +219,28 @@ object SmbLocator {
         return "smb://$user${address.host}$port/${address.share}$path"
     }
 
+    /**
+     * Where one entry of this share is read from: the address, then the entry's own path.
+     *
+     * The entry's path is relative to the share, so it repeats a root the reader configured.
+     * That is the convention, not an accident: [inside] strips the address off again and
+     * hands the share the rest, which is exactly the path `SmbClient` takes. The share
+     * browser and a share row on the shelf both build their address here, so one file has
+     * one address wherever it was found.
+     */
+    fun entry(path: String, address: SmbAddress): String = "${of(address)}/$path"
+
+    /**
+     * The path inside the share that an [entry] address names, or null when the address is
+     * not one of this share's. A name that only begins like the address, such as `ComicsX`
+     * beside `Comics`, is not inside it.
+     */
+    fun inside(path: String, address: SmbAddress): String? {
+        val rest = path.removePrefix(of(address)).takeIf { it != path } ?: return null
+        if (rest.isNotEmpty() && !rest.startsWith('/')) return null
+        return rest.trim('/')
+    }
+
     fun parse(locator: String, password: String?): SmbAddress? {
         val body = locator.removePrefix("smb://")
         val user = body.substringBefore('@', "").takeIf { body.contains('@') }

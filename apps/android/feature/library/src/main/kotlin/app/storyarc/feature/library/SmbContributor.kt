@@ -80,19 +80,13 @@ internal object SmbContributor {
      * that is not a real address reads as local — `PublicationAccess.isRemote` matches it
      * against nothing, the shelf counts a row nobody has downloaded as already on the
      * device, and opening it hands the reader a path that exists nowhere on the filesystem.
-     * `SmbLocator.of(address)` plus the entry's own path is the same address the share
-     * browser already opens a file by.
+     * [SmbLocator.entry] is the same address the share browser opens a file by, and the one
+     * the reader's opener reads back with [SmbLocator.inside].
      *
      * Still one identity per file on the share: two rows are the same publication when
      * they are the same file, and a share's row and the same file downloaded fold together
      * without a server identifier, which is `PublicationIdentity.matches` doing what
      * ADR-0006 built it for.
-     *
-     * `SmbLocator.of` on the share's own root, `address.copy(path = "")`, rather than on
-     * `address` itself: `entry.path` already carries the walk's own root — `SmbClient.list`
-     * seeds the recursion at `address.path` and every entry's path is joined against
-     * whichever folder produced it — so a locator built from `address` would state the
-     * configured root twice for any share whose reader picked one deeper than the top.
      */
     internal fun publication(
         sourceId: UUID,
@@ -102,9 +96,8 @@ internal object SmbContributor {
     ): Publication? {
         val format = format(entry.name) ?: return null
         val facts = FilenameMetadata.of(entry.name, seriesHint = folder.substringAfterLast('/'))
-        val shareRoot = SmbLocator.of(address.copy(path = ""))
         return Publication(
-            identity = PublicationIdentity(normalizedPath = "$shareRoot/${entry.path}"),
+            identity = PublicationIdentity(normalizedPath = SmbLocator.entry(entry.path, address)),
             format = format,
             // The filename without its extension. `FilenameMetadata` answers series,
             // number, volume and year and deliberately not a title -- what is left of a

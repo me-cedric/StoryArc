@@ -187,17 +187,16 @@ internal class AppDependencies private constructor(private val context: Context)
         HttpSource.register { SourceRangeTransport(pins, credentials) { sources.registry().sources } }
 
         PublicationAccess.register("smb") { path ->
-            val source = sources.registry().sources
+            val (source, inside) = sources.registry().sources
                 .firstNotNullOfOrNull { candidate ->
-                    SmbPage.of(candidate, credentials)?.takeIf {
-                        path.startsWith(SmbLocator.of(it.address))
+                    SmbPage.of(candidate, credentials)?.let { page ->
+                        SmbLocator.inside(path, page.address)?.let { page to it }
                     }
                 }
                 // The path is deliberately not interpolated: a share path names a
                 // reader's machine and their folders, and this string can reach a crash
                 // report. Carried over from the call site this moved out of.
                 ?: error("no share holds ${'$'}path")
-            val inside = path.removePrefix(SmbLocator.of(source.address)).trim('/')
             SmbClient(source.address).open(inside)
         }
     }
