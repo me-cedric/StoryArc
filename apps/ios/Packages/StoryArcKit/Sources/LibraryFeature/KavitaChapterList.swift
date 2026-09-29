@@ -31,7 +31,7 @@ struct KavitaChapterList: View {
 
     @State private var volumes: [KavitaVolume] = []
     @State private var metadata: KavitaMetadata?
-    @State private var conflicts: [ProgressPull.Conflict] = []
+    @State private var conflicts: [KavitaConflict] = []
     @State private var resume: KavitaChapter?
     @State private var fetching: Int?
 
@@ -72,34 +72,7 @@ struct KavitaChapterList: View {
         // both — with the option to take the other". Once, not per chapter: a server that
         // has moved on in six places is one thing that happened, and six alerts about it
         // would be the app making a reader dismiss its own synchronisation.
-        .alert(
-            Text("sync.conflict.title", bundle: .module),
-            isPresented: Binding(
-                get: { !conflicts.isEmpty },
-                set: { if !$0 { conflicts = [] } }
-            )
-        ) {
-            Button(role: .cancel) { conflicts = [] } label: {
-                Text("sync.conflict.keep", bundle: .module)
-            }
-            Button {
-                // Taking the other means writing back what was set aside — the reader
-                // saying the further position was not theirs.
-                let discarded = conflicts
-                conflicts = []
-                Task {
-                    for conflict in discarded {
-                        var restored = conflict.resolved
-                        restored.position = conflict.discarded
-                        try? await progress?.save(restored)
-                    }
-                }
-            } label: {
-                Text("sync.conflict.take", bundle: .module)
-            }
-        } message: {
-            Text("sync.conflict.body \(conflicts.count)", bundle: .module)
-        }
+        .syncConflictAlert(conflicts: $conflicts, progress: progress)
         .task {
             guard volumes.isEmpty else { return }
             kept = Set(KavitaCardStore().all(from: sourceId).map(\.chapterId))

@@ -179,6 +179,37 @@ class KavitaPullIdentityTest {
     }
 
     @Test
+    fun `a genuine conflict is named for the reader, by the chapter's own title`() = runTest {
+        // D3: the notice must name what changed, and only the chapter a pull is still
+        // holding carries a title -- `ProgressPull.Conflict` alone does not.
+        val progress = progress()
+        val kavita = kavita()
+        progress.save(
+            ReadingProgress(
+                PublicationIdentity(
+                    serverIdentifier = PublicationIdentity.ServerIdentifier(source, "chapter:42"),
+                    normalizedPath = "/downloads/Bone 01.cbz",
+                ),
+                ReadingPosition.Page(3, 10),
+                false,
+                updatedAtEpochMillis = 1_000,
+                syncedPosition = ReadingPosition.Page(1, 10),
+            ),
+        )
+        kavita.remember("path:/caches/Kavita/42/Bone 1.cbz", origin())
+
+        val conflicts = KavitaSync.pull(
+            listOf(KavitaChapter(id = 42, number = "1", title = "Bone", pages = 10, pagesRead = 9)),
+            kavita,
+            progress,
+        )
+
+        assertEquals(1, conflicts.size)
+        assertEquals("Bone", conflicts.first().title)
+        assertEquals(ReadingPosition.Page(3, 10), conflicts.first().discarded)
+    }
+
+    @Test
     fun `a record written before server identifiers existed is still found by its id`() = runTest {
         // Every position in the shipped app was written against a path alone, and the
         // browser remembered that same path. The fallback is the only route to those.

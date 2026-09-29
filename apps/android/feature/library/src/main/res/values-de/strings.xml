@@ -342,6 +342,11 @@
     <string name="sync_conflict_keep">Weiteste behalten</string>
     <string name="sync_conflict_take">Die andere nehmen</string>
     <string name="sync_conflict_body">%1$d Titel wurden sowohl auf diesem Gerät als auch in der Herkunftsbibliothek weitergelesen. Die weiteste Position wurde behalten.</string>
+    <string name="sync_conflict_body_one">„%1$s“ wurde sowohl auf diesem Gerät als auch in der Herkunftsbibliothek weitergelesen — %2$s wurde behalten, nicht %3$s.</string>
+    <string name="sync_conflict_show">Anzeigen</string>
+    <string name="sync_conflict_item">%1$s: %2$s behalten, nicht %3$s.</string>
+    <string name="sync_position_page">Seite %1$d von %2$d</string>
+    <string name="sync_position_percent">%1$d %%</string>
     <string name="library_scope_all">Überall</string>
     <string name="library_more">Mehr</string>
     <string name="library_filter_library">Welche Bibliothek</string>

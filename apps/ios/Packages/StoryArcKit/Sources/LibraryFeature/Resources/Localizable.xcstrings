@@ -11856,6 +11856,156 @@
         }
       },
       "extractionState": "manual"
+    },
+    "sync.conflict.body.one %@ %@ %@": {
+      "extractionState": "manual",
+      "comment": "One title moved on both this device and its library. D3: name the kept and the discarded position.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%1$@“ wurde sowohl auf diesem Gerät als auch in der Herkunftsbibliothek weitergelesen — %2$@ wurde behalten, nicht %3$@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” moved on both this device and the library it came from — %2$@ was kept, not %3$@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%1$@» avanzó tanto en este dispositivo como en la biblioteca de origen — se conservó %2$@, no %3$@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %1$@ » a avancé à la fois sur cet appareil et dans la bibliothèque d’origine — %2$@ a été conservé, pas %3$@."
+          }
+        }
+      }
+    },
+    "sync.conflict.show": {
+      "extractionState": "manual",
+      "comment": "Opens the list naming both positions for every title in conflict. D3.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anzeigen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher"
+          }
+        }
+      }
+    },
+    "sync.conflict.item %@ %@ %@": {
+      "extractionState": "manual",
+      "comment": "One row of the conflict list: the title, the position kept, the position set aside. D3.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: %2$@ behalten, nicht %3$@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: kept at %2$@, not %3$@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: se conservó %2$@, no %3$@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ : conservé à %2$@, pas %3$@."
+          }
+        }
+      }
+    },
+    "sync.position.page": {
+      "extractionState": "manual",
+      "comment": "A paged position, named for the conflict notice: page %1$lld of %2$lld.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seite %1$lld von %2$lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "page %1$lld of %2$lld"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "página %1$lld de %2$lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "page %1$lld sur %2$lld"
+          }
+        }
+      }
+    },
+    "sync.position.percent": {
+      "extractionState": "manual",
+      "comment": "A reflowable or listening position, named for the conflict notice as a percentage.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld %%"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld%%"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld %%"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld %%"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

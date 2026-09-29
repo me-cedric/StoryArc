@@ -344,6 +344,11 @@
     <string name="sync_conflict_keep">Garder le plus avancé</string>
     <string name="sync_conflict_take">Prendre l’autre</string>
     <string name="sync_conflict_body">%1$d titres ont avancé à la fois sur cet appareil et dans la bibliothèque d’origine. La position la plus avancée a été conservée.</string>
+    <string name="sync_conflict_body_one">« %1$s » a avancé à la fois sur cet appareil et dans la bibliothèque d’origine — %2$s a été conservé, pas %3$s.</string>
+    <string name="sync_conflict_show">Afficher</string>
+    <string name="sync_conflict_item">%1$s : conservé à %2$s, pas %3$s.</string>
+    <string name="sync_position_page">page %1$d sur %2$d</string>
+    <string name="sync_position_percent">%1$d %%</string>
     <string name="library_scope_all">Partout</string>
     <string name="library_more">Plus</string>
     <string name="library_filter_library">Quelle bibliothèque</string>

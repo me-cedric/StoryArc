@@ -52,9 +52,6 @@ import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.persistence.KavitaCardStore
 import app.storyarc.core.persistence.KavitaOrigin
 import app.storyarc.core.persistence.serverIdentifier
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
-import app.storyarc.core.model.ProgressPull
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.KavitaProgressStore
 import java.io.File
@@ -93,7 +90,7 @@ fun KavitaChapters(
     var metadata by remember(series.id) { mutableStateOf<KavitaMetadata?>(null) }
     var resume by remember(series.id) { mutableStateOf<KavitaChapter?>(null) }
     var fetching by remember(series.id) { mutableStateOf<Int?>(null) }
-    var conflicts by remember(series.id) { mutableStateOf<List<ProgressPull.Conflict>>(emptyList()) }
+    var conflicts by remember(series.id) { mutableStateOf<List<KavitaConflict>>(emptyList()) }
 
     // Which chapters this device already has a download of. Seeded from the cards rather than
     // from the download library: a card names the chapter a download came from, and the
@@ -129,37 +126,20 @@ fun KavitaChapters(
     // -- with the option to take the other". Once, not per chapter: a server that has moved
     // on in six places is one thing that happened, and six dialogs about it would be the app
     // making a reader dismiss its own synchronisation.
-    if (conflicts.isNotEmpty()) {
-        val discarded = conflicts
-        AlertDialog(
-            onDismissRequest = { conflicts = emptyList() },
-            title = { Text(stringResource(R.string.sync_conflict_title)) },
-            text = { Text(stringResource(R.string.sync_conflict_body, discarded.size)) },
-            confirmButton = {
-                TextButton(onClick = { conflicts = emptyList() }) {
-                    Text(stringResource(R.string.sync_conflict_keep))
+    SyncConflictNotice(
+        conflicts = conflicts,
+        onKeep = { conflicts = emptyList() },
+        onTake = { discarded ->
+            conflicts = emptyList()
+            // Taking the other means writing back what was set aside -- the reader saying
+            // the further position was not theirs.
+            scope.launch {
+                discarded.forEach { conflict ->
+                    progress?.save(conflict.resolved.copy(position = conflict.discarded))
                 }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        conflicts = emptyList()
-                        // Taking the other means writing back what was set aside -- the
-                        // reader saying the further position was not theirs.
-                        scope.launch {
-                            discarded.forEach { conflict ->
-                                progress?.save(
-                                    conflict.resolved.copy(position = conflict.discarded),
-                                )
-                            }
-                        }
-                    },
-                ) {
-                    Text(stringResource(R.string.sync_conflict_take))
-                }
-            },
-        )
-    }
+            }
+        },
+    )
 
     // `kavita-server`: marking read must reach the server so its own UI agrees. A long
     // press is where Android puts "what else can I do with this".
