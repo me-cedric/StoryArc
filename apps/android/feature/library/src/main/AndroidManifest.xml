@@ -11,6 +11,10 @@
          "on a metered connection" and treats Data Saver as metered, and this is the only
          way to know which kind of connection a reader is on. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- `network-share` "Local network permission denied", decision D25. This is the module
+         that calls `NsdManager` and connects `SmbClient`, so it is where the permission is
+         declared, per the same rule as the two permissions above it. -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
 
     <!-- `offline-downloads`: a download continues while the app is off the screen. On
          Android that means the process must survive, and a foreground service is the only

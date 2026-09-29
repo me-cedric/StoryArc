@@ -53,6 +53,13 @@ class SmbSourceStateTest {
         assertEquals(SourceConnectionState.Unreachable(MOMENT), state(SmbError.ProtocolUnsupported))
     }
 
+    @Test
+    fun `a host jcifs could not even parse is offline, not a password refusal`() {
+        // Android only: a typed host that does not parse as a URL authority throws before
+        // jcifs ever reaches the network, and it is exactly as offline as one that did.
+        assertEquals(SourceConnectionState.Unreachable(MOMENT), state(SmbError.AddressInvalid))
+    }
+
     private companion object {
         const val MOMENT = 1_000L
         const val PASSWORD = "the password was refused"
