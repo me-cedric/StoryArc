@@ -148,15 +148,22 @@ public extension KavitaExchange {
     /// The position to write for a chapter the browser is about to open, or nil when there
     /// is nothing to seed.
     ///
-    /// Continue and a chapter row both open a chapter through one path, and neither used to
-    /// write anything until the reader turned a page — so a chapter Kavita reports as half
-    /// read opened at page one, and closing it reported that page one back, moving the
-    /// server's own position behind silently. Nil when a local record already exists: a
-    /// chapter already opened here keeps whatever the reader left, and only a first open is
-    /// seeded. Nil too when the server has nothing to report, or the chapter has no pages to
-    /// place a position within.
-    static func openSeed(for chapter: KavitaChapter, existing: ReadingProgress?) -> ReadingPosition? {
-        guard existing == nil, chapter.pagesRead > 0, chapter.pages > 0 else { return nil }
-        return position(readingTo: chapter.pagesRead, of: chapter.pages)
+    /// Continue, a chapter row and a reading-list entry all open a chapter without writing
+    /// anything until the reader turned a page — so a chapter Kavita reports as half read
+    /// opened at page one, and closing it reported that page one back, moving the server's
+    /// own position behind silently. Nil when a local record already exists: a chapter
+    /// already opened here keeps whatever the reader left, and only a first open is seeded.
+    /// Nil too when the server has nothing to report, or the chapter has no pages to place a
+    /// position within. A reflowable chapter is seeded as a fraction with no locator, the
+    /// form ``position(readingTo:of:like:)`` gives and an EPUB reader opens at.
+    static func openSeed(
+        pagesRead: Int,
+        of pages: Int,
+        existing: ReadingProgress?,
+        reflowable: Bool = false
+    ) -> ReadingPosition? {
+        guard existing == nil, pagesRead > 0, pages > 0 else { return nil }
+        let paged = position(readingTo: pagesRead, of: pages)
+        return reflowable ? .reflowable(progression: paged.fraction, locator: "") : paged
     }
 }

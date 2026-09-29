@@ -330,20 +330,7 @@ struct KavitaChapterList: View {
         // The note the reader cannot leave for itself: it opens a file and knows nothing
         // about servers, so this is what lets the position get home.
         store.remember(origin, for: publication.id)
-        await seed(publication.identity, from: chapter)
+        await seedKavitaOpen(publication, pagesRead: chapter.pagesRead, of: chapter.pages, into: progress)
         onOpen(publication, file)
-    }
-
-    /// Writes down what the server already reports, for a chapter this device has never
-    /// opened before. The rule itself is ``KavitaExchange/openSeed(for:existing:)``, beside
-    /// the view rather than inside it, so a test can call it without a store.
-    private func seed(_ identity: PublicationIdentity, from chapter: KavitaChapter) async {
-        guard let progress else { return }
-        let existing = try? await progress.progress(for: identity)
-        guard let position = KavitaExchange.openSeed(for: chapter, existing: existing)
-        else { return }
-        try? await progress.save(
-            ReadingProgress(identity: identity, position: position, updatedAt: Date())
-        )
     }
 }

@@ -234,30 +234,35 @@ struct KavitaExchangeTests {
     @Test("A chapter Kavita reports as half read is seeded at that page")
     func aReadChapterIsSeeded() {
         #expect(
-            KavitaExchange.openSeed(for: chapter(41, pages: 10, pagesRead: 4), existing: nil)
+            KavitaExchange.openSeed(pagesRead: 4, of: 10, existing: nil)
                 == .page(index: 3, of: 10)
         )
     }
 
     @Test("A chapter with no local record and nothing read yet is not seeded")
     func anUnreadChapterIsNotSeeded() {
-        #expect(KavitaExchange.openSeed(for: chapter(41, pagesRead: 0), existing: nil) == nil)
+        #expect(KavitaExchange.openSeed(pagesRead: 0, of: 10, existing: nil) == nil)
     }
 
     @Test("A chapter that already has a local record is left alone")
     func anExistingRecordIsNotOverwritten() {
         #expect(
-            KavitaExchange.openSeed(
-                for: chapter(41, pages: 10, pagesRead: 4),
-                existing: progress("one", page: 7)
-            ) == nil
+            KavitaExchange.openSeed(pagesRead: 4, of: 10, existing: progress("one", page: 7)) == nil
+        )
+    }
+
+    @Test("A reflowable chapter is seeded at the same fraction, with no locator")
+    func aReflowableChapterIsSeededAsAFraction() {
+        #expect(
+            KavitaExchange.openSeed(pagesRead: 6, of: 11, existing: nil, reflowable: true)
+                == .reflowable(progression: ReadingPosition.page(index: 5, of: 11).fraction, locator: "")
         )
     }
 
     @Test("A chapter the server reports no pages for is not seeded")
     func aPagelessChapterIsNotSeeded() {
         #expect(
-            KavitaExchange.openSeed(for: chapter(41, pages: 0, pagesRead: 4), existing: nil) == nil
+            KavitaExchange.openSeed(pagesRead: 4, of: 0, existing: nil) == nil
         )
     }
 }

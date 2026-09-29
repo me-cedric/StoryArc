@@ -111,7 +111,13 @@ struct HomeShelvesRow: View {
         case let .onServer(shelf):
             if let page = pages[shelf.sourceID] {
                 if shelf.kind == .readingList {
-                    KavitaListView(server: page, listID: shelf.serverID, title: shelf.title, onOpen: onOpen)
+                    KavitaListView(
+                        server: page,
+                        listID: shelf.serverID,
+                        title: shelf.title,
+                        progress: model.progressStore,
+                        onOpen: onOpen
+                    )
                 } else {
                     KavitaCollectionView(
                         server: page,

@@ -39,7 +39,6 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.kavita.KavitaChapter
 import app.storyarc.core.kavita.KavitaClient
-import app.storyarc.core.kavita.KavitaExchange
 import app.storyarc.core.kavita.KavitaMetadata
 import app.storyarc.core.kavita.KavitaSeries
 import app.storyarc.core.kavita.KavitaVolume
@@ -47,8 +46,6 @@ import app.storyarc.core.kavita.rating
 import app.storyarc.core.kavita.status
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
-import app.storyarc.core.model.PublicationIdentity
-import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.persistence.KavitaCardStore
 import app.storyarc.core.persistence.KavitaOrigin
 import app.storyarc.core.persistence.serverIdentifier
@@ -204,7 +201,7 @@ fun KavitaChapters(
                 // The note the reader cannot leave for itself: it opens a file and knows
                 // nothing about servers, so this is what lets the position get home.
                 store.remember(publication.id, origin)
-                progress?.let { seed(it, publication.identity, chapter) }
+                seedKavitaOpen(publication, chapter.pagesRead, chapter.pages, progress)
                 onOpen(publication, path)
             }
             fetching = null
@@ -411,26 +408,6 @@ private fun ChapterRow(
             }
         }
     }
-}
-
-/**
- * Writes down what the server already reports, for a chapter this device has never opened
- * before. The rule itself is [KavitaExchange.openSeed], beside the composable rather than
- * inside it, so a test can call it without a store.
- */
-private suspend fun seed(
-    progress: ProgressStore,
-    identity: PublicationIdentity,
-    chapter: KavitaChapter,
-) {
-    val position = KavitaExchange.openSeed(chapter, progress.progress(identity)) ?: return
-    progress.save(
-        ReadingProgress(
-            identity = identity,
-            position = position,
-            updatedAtEpochMillis = System.currentTimeMillis(),
-        ),
-    )
 }
 
 /**
