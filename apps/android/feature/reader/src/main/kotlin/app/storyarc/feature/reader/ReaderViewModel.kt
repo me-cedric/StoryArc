@@ -74,8 +74,8 @@ class ReaderViewModel(
      * Where the publication lives, as its identity records it: a filesystem path,
      * or a document `Uri` from a folder the user picked.
      */
-    private val path: String,
-    private val progress: ProgressStore? = null,
+    internal val path: String,
+    internal val progress: ProgressStore? = null,
     /**
      * Where the reading mode is remembered between sessions. Null in a preview.
      *
@@ -174,7 +174,9 @@ class ReaderViewModel(
             declaresHorizontal = true,
         )
 
-    private val earlyTallness = EarlyPageTallness()
+    // Internal, not private: `ReaderDecoding.kt` needs it, and that file is at the line
+    // cap `warm`/`decode`/`outcome` moved out to make room in.
+    internal val earlyTallness = EarlyPageTallness()
 
     /**
      * The colour behind the page, and only behind it.
@@ -291,7 +293,7 @@ class ReaderViewModel(
      * is a floor for normal conditions, not for the moment the system is choosing a
      * process to end.
      */
-    private var prefetch = PrefetchWindow.FULL
+    internal var prefetch = PrefetchWindow.FULL
 
     /**
      * Decoded pages, in a state map rather than a plain one.
@@ -310,7 +312,9 @@ class ReaderViewModel(
      * is wanted for as long as the strip is open.
      */
     private val thumbnails = mutableStateMapOf<Int, Bitmap>()
-    private val attempted = mutableStateSetOf<Int>()
+    // Internal, not private: `ReaderDecoding.kt` needs both, for the reason `earlyTallness`
+    // does above.
+    internal val attempted = mutableStateSetOf<Int>()
 
     /**
      * The codec of each page that was attempted and refused. See [codecName].
@@ -318,7 +322,7 @@ class ReaderViewModel(
      * A snapshot map for the reason [decoded] is one: the placeholder is drawn from it,
      * and Compose does not observe a `mutableMapOf`.
      */
-    private val refusedCodecs = mutableStateMapOf<Int, String>()
+    internal val refusedCodecs = mutableStateMapOf<Int, String>()
 
     /**
      * A page held at the resolution a zoom asked for.
@@ -330,9 +334,9 @@ class ReaderViewModel(
      * @property pixelSize what it was decoded at, so an unchanged pinch does not decode
      *   it again.
      */
-    private data class ZoomedPage(val index: Int, val pixelSize: Int, val bitmap: Bitmap)
+    internal data class ZoomedPage(val index: Int, val pixelSize: Int, val bitmap: Bitmap)
 
-    private var zoomed by mutableStateOf<ZoomedPage?>(null)
+    internal var zoomed by mutableStateOf<ZoomedPage?>(null)
 
     /**
      * Pages that take the width of two.
@@ -346,7 +350,7 @@ class ReaderViewModel(
      * A snapshot set rather than a plain one, for the reason [decoded] is: the screen
      * regroups its pages when this grows, and Compose does not observe a `mutableSetOf`.
      */
-    private val wide = mutableStateSetOf<Int>()
+    internal val wide = mutableStateSetOf<Int>()
 
     /**
      * Pages that take the width of two, for the screen to lay out around.
@@ -363,7 +367,7 @@ class ReaderViewModel(
      * stored. `ebook-reader` requires a several-hundred-megabyte PDF to render
      * pages as they are needed, so nothing is rasterised until it is asked for.
      */
-    private var pdf: PdfDocumentReader? = null
+    internal var pdf: PdfDocumentReader? = null
 
     private val _pdfText = MutableStateFlow<PdfTextState?>(null)
 
@@ -389,9 +393,9 @@ class ReaderViewModel(
      * `PdfRenderer` permits one open page at a time and says so. Warming a window
      * of three pages would otherwise render them concurrently and throw.
      */
-    private val pdfLock = Mutex()
+    internal val pdfLock = Mutex()
 
-    private var maxPixelSize = 2048
+    internal var maxPixelSize = 2048
 
     /**
      * The direction the reader turns pages in.
@@ -625,7 +629,9 @@ class ReaderViewModel(
      * The last page marks the publication finished. Finished is sticky, so turning
      * back afterwards does not unmark it.
      */
-    private suspend fun record(index: Int) {
+    // Internal, not private: called from `ReaderDecoding.kt`'s `warm`, which is at this
+    // file's line cap.
+    internal suspend fun record(index: Int) {
         val store = progress ?: return
         val total = _pages.value.size
         if (total == 0) return
@@ -669,112 +675,40 @@ class ReaderViewModel(
         warm(at)
     }
 
-    /** Decodes the page at [index] and its neighbours, and drops the rest. */
-    suspend fun warm(index: Int) {
-        record(index)
-        val pages = _pages.value
-        val wanted = prefetch.pages(around = index, of = pages.size)
-        // Dropped before decoding, so peak memory is the window and not the window
-        // plus whatever was there before.
-        (decoded.keys - wanted).forEach {
-            decoded.remove(it)
-            attempted.remove(it)
-            refusedCodecs.remove(it)
-        }
-        // A zoom held on a page the reader has moved away from is the same waste as a
-        // decoded page outside the window, only three times the size.
-        zoomed?.let { if (it.index !in wanted) zoomed = null }
-        // The current page first: a turn should not wait on its neighbours.
-        for (target in listOf(index) + wanted.sortedBy { kotlin.math.abs(it - index) }) {
-            if (target !in pages.indices || target in attempted) continue
-            attempted += target
-            decode(target, pages[target])
-        }
-    }
+    // `warm`, `decode`, `outcome`, `decodeBitmap` and the trouble a share's own page
+    // tracks are in `ReaderDecoding.kt` now — this file is at its line cap.
 
     /**
-     * One decode of one page, and what it settled.
-     *
-     * The distinction between the last two cases is the reason this exists. Both used to
-     * be "no bitmap", and treating a refusal as a missing read left the reader spinning
-     * for ever on a page nothing was ever going to produce.
+     * The index `warm` last decoded around, so a genuine page turn can be told apart from
+     * `noteMemoryPressure` re-warming the same one. `private set`: only `warm` moves it,
+     * from `ReaderDecoding.kt`.
      */
-    private sealed interface PageOutcome {
-        data class Decoded(val bitmap: Bitmap) : PageOutcome
+    internal var currentIndex: Int = 0
 
-        /**
-         * The bytes arrived and the decoder would not have them. Permanent for this
-         * file, and [codec] is what `publication-formats` wants named in the placeholder
-         * — null when the bytes say nothing recognisable at all.
-         */
-        data class Refused(val codec: String?) : PageOutcome
+    /**
+     * When the page currently on screen started waiting for bytes it does not have — set
+     * the moment a read for it begins and cleared the moment that read ends, whichever
+     * way. `network-share`'s 2 s notice counts from here, not from after a read has
+     * already failed against a page nobody is looking at. See `ReaderDecoding.kt`'s
+     * `decode`.
+     */
+    var pageWaitStarted: Long? by mutableStateOf(null)
+        internal set
 
-        /**
-         * The bytes could not be read. Usually the source is away, so it is worth asking
-         * again.
-         */
-        data object Unread : PageOutcome
-    }
+    /**
+     * When the page currently on screen first failed to arrive, kept apart from
+     * [pageWaitStarted] so dismissing the notice does not restart the 60 s clock. Cleared
+     * only once that page decodes or is permanently refused — either of which ends the
+     * wait this exists to time.
+     */
+    var pageFailingSince: Long? by mutableStateOf(null)
+        internal set
 
-    private suspend fun decode(index: Int, page: PageEntry) {
-        when (val result = outcome(index, page, maxPixelSize)) {
-            is PageOutcome.Decoded -> {
-                val bitmap = result.bitmap
-                decoded[index] = bitmap
-                refusedCodecs.remove(index)
-                // The first few pages that decode settle the implied scroll axis. Early
-                // rather than every page: waiting for the tallest of the whole run would
-                // mean waiting for the whole publication.
-                if (bitmap.width > 0) {
-                    earlyTallness.note(bitmap.height.toDouble() / bitmap.width, index)
-                }
-                // Wider than tall, with no tolerance to tune: a portrait page scanned
-                // with a slight skew is still portrait, and a spread is half again as
-                // wide as a page.
-                if (bitmap.width > bitmap.height) wide += index
-            }
-
-            is PageOutcome.Refused ->
-                // Remembered as tried, which is what makes the placeholder appear: the
-                // bytes are here and the decoder will say the same thing about them next
-                // time.
-                result.codec?.let { refusedCodecs[index] = it }
-
-            PageOutcome.Unread ->
-                // Forgotten rather than remembered as tried. A page that failed because
-                // the share was away must be readable once it comes back --
-                // `network-share` asks the app to "resume streaming at the current page"
-                // after reconnecting, and a page marked attempted for ever never gets a
-                // second chance.
-                attempted.remove(index)
-        }
-    }
-
-    private suspend fun outcome(index: Int, page: PageEntry, size: Int): PageOutcome {
-        val reader = pdf
-        if (reader != null) {
-            val rendered = withContext(Dispatchers.IO) {
-                pdfLock.withLock { runCatching { reader.render(index, size) }.getOrNull() }
-            }
-            // A PDF page is drawn rather than stored, so there are no codec bytes to
-            // sniff. The format is still what was refused, and naming it is the point:
-            // `publication-formats` asks for "the codec or format".
-            return rendered?.let { PageOutcome.Decoded(it) }
-                ?: PageOutcome.Refused(PublicationFormat.PDF.displayName)
-        }
-        val opened = archive ?: return PageOutcome.Unread
-        return withContext(Dispatchers.IO) {
-            val data = runCatching { opened.data(page) }.getOrNull()
-                ?: return@withContext PageOutcome.Unread
-            runCatching { PageDecoder.decode(data, size) }.getOrNull()
-                ?.let { PageOutcome.Decoded(it) }
-                ?: PageOutcome.Refused(PageCodec.nameOf(data, page.path))
-        }
-    }
-
-    /** The same decode, without the bookkeeping, for a zoom that wants one page larger. */
-    private suspend fun decodeBitmap(index: Int, page: PageEntry, size: Int): Bitmap? =
-        (outcome(index, page, size) as? PageOutcome.Decoded)?.bitmap
+    /**
+     * What `NetworkNotice` counts from: the current page's own trouble, whichever began
+     * first. `null` while the page on screen has none.
+     */
+    val pageBlockedSince: Long? get() = pageFailingSince ?: pageWaitStarted
 
     private companion object {
         /** Enough to recognise a page by its composition, not to read it. */
