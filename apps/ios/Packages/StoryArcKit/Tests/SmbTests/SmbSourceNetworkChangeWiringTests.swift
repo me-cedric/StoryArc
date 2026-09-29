@@ -11,7 +11,7 @@ import Testing
 /// **So this test reads the source text, and that is a deliberate second choice**, for
 /// `SmbTransferWiringTests`' reason. The honest test drives a real `NWPathMonitor` through an
 /// actual network change, which nothing on this machine can trigger on demand; `SmbSource`
-/// itself is also `private` to `SmbClient.swift`; and the case a live check would still miss —
+/// reads through a library `FileReader` that no test can build; and the case a live check would still miss —
 /// a genuine handover from Wi-Fi to cellular — is not one CI can reach either. A guard that
 /// runs beats a better one that does not.
 @Suite("A share session drops itself on a network-path change")
@@ -22,9 +22,9 @@ struct SmbSourceNetworkChangeWiringTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-        let file = package.appending(path: "Sources/Smb/SmbClient.swift")
+        let file = package.appending(path: "Sources/Smb/SmbSource.swift")
         guard let text = try? String(contentsOf: file, encoding: .utf8) else {
-            fatalError("SmbClient.swift is not at \(file.path) — has it moved?")
+            fatalError("SmbSource.swift is not at \(file.path) — has it moved?")
         }
         return text
     }()
@@ -49,5 +49,16 @@ struct SmbSourceNetworkChangeWiringTests {
         // Without this guard, opening any share would drop its own brand-new session before
         // the first read ever used it.
         #expect(Self.source.contains("guard hasSeenFirstPath else"))
+    }
+
+    @Test("A change drops the session by cancelling its connection, not by asking it to close")
+    func changeDisconnects() {
+        // An SMB `CLOSE` on a connection that went silent waits for a reply that never comes,
+        // and the session stayed in place under it until it did.
+        let change = Self.source.components(separatedBy: "private func noteNetworkChange()").last ?? ""
+        let body = change.components(separatedBy: "func read(offset:").first ?? ""
+        #expect(body.contains("drop()"), "noteNetworkChange no longer drops the session")
+        #expect(Self.source.contains("session?.client.session.disconnect()"))
+        #expect(!Self.source.contains("reader?.close()"), "a network change asks a silent connection to close")
     }
 }
