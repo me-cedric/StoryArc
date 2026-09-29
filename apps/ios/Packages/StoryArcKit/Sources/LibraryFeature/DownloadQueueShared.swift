@@ -24,6 +24,16 @@ public import StoryArcCore
 /// the credential closure below resolves a transfer's source from the record itself rather
 /// than from the queue that is running it — the same source-keyed lookup
 /// `LibraryFeature/SourceRangeTransport` uses for a streamed read.
+extension CertificatePins {
+    /// The app's one pin set: every certificate a reader has accepted, loaded from the store
+    /// once and shared by every connection that can reach a source.
+    ///
+    /// One instance, because a pin accepted while adding a server must be trusted at once by
+    /// the download queue, the background session and a streamed read. A separate copy of
+    /// the store keeps the set it loaded, so a new pin reaches it only after a relaunch.
+    public static let app = CertificatePins(CertificatePinStore().pins())
+}
+
 extension DownloadQueue {
     private static var instance: DownloadQueue?
 
@@ -45,7 +55,7 @@ extension DownloadQueue {
     ///   with ``resetShared()`` between tests.
     @MainActor
     public static func shared(
-        pins: CertificatePins = CertificatePins(CertificatePinStore().pins()),
+        pins: CertificatePins = .app,
         store: DownloadStore = DownloadStore(),
         sources: @escaping @Sendable () -> [Source] = { SourceStore().registry().sources },
         credentials: CredentialStore? = CredentialStore(),

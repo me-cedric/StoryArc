@@ -178,7 +178,7 @@ public struct LibraryView: View {
         self.isReading = isReading
         self.openShelvesRequest = openShelvesRequest
 
-        _pins = State(initialValue: CertificatePins(CertificatePinStore().pins()))
+        _pins = State(initialValue: CertificatePins.app)
     }
 
     /// The search text, written straight through to the query.

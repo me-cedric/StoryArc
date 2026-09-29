@@ -41,7 +41,7 @@ struct SourceReconnectSheet: View {
         let store = CertificatePinStore()
         let kavita = KavitaConnection(credentials: CredentialStore())
         let catalogue = CatalogueConnection(
-            pins: CertificatePins(store.pins()),
+            pins: .app,
             credentials: CredentialStore(),
             pinStore: store
         )

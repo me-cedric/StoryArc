@@ -221,7 +221,7 @@ extension LibraryModel {
         let state = await reach(
             source,
             credentials: CredentialStore(),
-            pins: CertificatePins(CertificatePinStore().pins())
+            pins: .app
         )
         registry = registry.marking(source.id, as: state)
     }
