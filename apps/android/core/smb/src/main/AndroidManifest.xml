@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A library module declares the permissions its own code requires, and they merge into the
+  app. Declared here rather than only in the app because this is the module that calls
+  `ConnectivityManager`, per the same rule `feature/library`'s manifest states for itself.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- `SmbNetworkWatch` registers a default-network callback so a stale SMB session is
+         dropped the moment the path underneath it moves, rather than waiting for a read
+         against it to time out first. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+</manifest>

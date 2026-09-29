@@ -153,7 +153,9 @@ class SmbClient(private val address: SmbAddress) : AutoCloseable {
         // The opener rather than the handle, so the source can make a new one. A session
         // does not survive the device sleeping, the Wi-Fi changing, or the server
         // restarting, and `network-share` asks for all three to be invisible.
-        translating { SmbSource { SmbRandomAccessFile(file(path), "r") } }
+        translating {
+            SmbSource { SmbRandomAccessFile(file(path), "r") }.also(SmbSourceRegistry::register)
+        }
     }
 
     /** Closes only what was opened: an unused client never built a context to close. */
@@ -250,13 +252,36 @@ internal fun fromMessage(
  * The third implementation ADR-0008 planned for. SMB2's `READ` takes an offset and a length
  * as a first-class operation, so this is the interface it was already shaped like.
  */
-private class SmbSource(private val opener: () -> SmbRandomAccessFile) : RandomAccessSource {
+internal class SmbSource(private val opener: () -> SmbRandomAccessFile) : RandomAccessSource {
     private var handle: SmbRandomAccessFile = opener()
+
+    /**
+     * How many times [opener] has produced a handle for this source: once at construction,
+     * once more per [reopen]. Internal, for a test to tell "read from the session that was
+     * already open" apart from "read from a fresh one" — the two are indistinguishable from
+     * the bytes alone when the file has not changed underneath, which is every case a unit
+     * test can set up.
+     */
+    internal var opens = 1
+        private set
+
+    /**
+     * Set by a network-path change ([dropHandle]), and acted on at the top of the next
+     * [read]. Closing [handle] and waiting for `readFully` to throw is not enough on its own:
+     * jcifs's own file handle can reopen its transport quietly on the very same object, so a
+     * read that merely follows a `close()` can carry on over whatever the path change already
+     * left behind instead of the fresh session [opener] builds. This flag makes the reopen
+     * unconditional rather than hoping the old handle fails loudly enough to be noticed —
+     * measured against the fixture server, where it does not.
+     */
+    @Volatile
+    private var invalidated = false
 
     override val length: Long = handle.length()
 
     /**
-     * Reads, and opens a new session once if the old one has gone.
+     * Reads, opening a new session first if a network change invalidated the old one, and
+     * once more if the old one has otherwise gone.
      *
      * `network-share` requires the app to "re-establish the session transparently on the
      * next read" after the device sleeps, and to reconnect in the background when the
@@ -269,6 +294,15 @@ private class SmbSource(private val opener: () -> SmbRandomAccessFile) : RandomA
             val available = (length - offset).coerceAtLeast(0L)
             val toRead = minOf(count.toLong(), available).toInt()
             if (toRead <= 0) return@withContext ByteArray(0)
+
+            if (invalidated) {
+                synchronized(this@SmbSource) {
+                    if (invalidated) {
+                        reopen()
+                        invalidated = false
+                    }
+                }
+            }
 
             try {
                 val bytes = readOnce(offset, toRead)
@@ -300,10 +334,55 @@ private class SmbSource(private val opener: () -> SmbRandomAccessFile) : RandomA
         synchronized(this) {
             runCatching { handle.close() }
             handle = opener()
+            opens++
         }
+    }
+
+    /**
+     * Marks the handle invalid, so the next [read] reopens unconditionally rather than
+     * risking jcifs's own quiet reconnect on the object a dead path already left behind. Does
+     * not reopen here itself: [dropHandle] is called from a network callback, off no
+     * particular dispatcher, and opening a session is I/O nothing should pay for a source
+     * that may never be read from again.
+     */
+    internal fun dropHandle() {
+        invalidated = true
     }
 
     override fun close() {
         runCatching { handle.close() }
+    }
+}
+
+/**
+ * Every [SmbSource] currently open, so a network-path change can drop them at once rather
+ * than each one waiting to find out from a read that times out against it.
+ *
+ * `network-share`'s *Network changes*: nothing used to watch for one at all — a stale session
+ * was dropped only after a read against it failed, which on Android waits out
+ * `responseTimeout` (20 s) and then `connTimeout` (10 s) before the retry even starts.
+ * [SmbNetworkWatch] is the platform half that decides when a change happened; this is the
+ * held-weakly half that acts on it, kept apart for the reason [SourceReachability] keeps
+ * deciding apart from observing: a device and a real network are what the watching needs, and
+ * a test needs neither for this.
+ *
+ * A [java.util.WeakHashMap]-backed set, not a plain list: a source this app has stopped
+ * reading closes on its own path and drops out of the app's memory, and should not stay
+ * reachable from here only because nobody remembered to unregister it.
+ */
+object SmbSourceRegistry {
+    private val sources = java.util.Collections.newSetFromMap(
+        java.util.WeakHashMap<SmbSource, Boolean>(),
+    )
+
+    @Synchronized
+    internal fun register(source: SmbSource) {
+        sources.add(source)
+    }
+
+    /** Drops every open session's handle. See [SmbSource.dropHandle]. */
+    @Synchronized
+    fun dropAll() {
+        sources.forEach { it.dropHandle() }
     }
 }
