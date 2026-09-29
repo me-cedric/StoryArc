@@ -52,12 +52,16 @@ fun NetworkNotice(
     onLeave: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
+    // Above the return below, so a copy the reader started keeps going when a page turn or a
+    // page that arrives ends the trouble this notice is about.
+    val scope = rememberCoroutineScope()
     if (blockedSince == null) return
 
     val palette = LocalStoryArcPalette.current
-    val scope = rememberCoroutineScope()
     var now by remember(blockedSince) { mutableLongStateOf(System.currentTimeMillis()) }
     var downloadFailed by remember(blockedSince) { mutableStateOf(false) }
+    var isCopying by remember(blockedSince) { mutableStateOf(false) }
+    var dismissed by remember(blockedSince) { mutableStateOf<NoticeStage?>(null) }
 
     // A ticking clock, because the notice's whole content is a function of elapsed time and
     // nothing else changes to trigger a recomposition.
@@ -68,10 +72,8 @@ fun NetworkNotice(
         }
     }
 
-    val blocked = now - blockedSince
-    if (blocked < NOTICE_AFTER_MILLIS) return
-
-    val isLong = blocked >= OFFER_AFTER_MILLIS
+    val stage = NoticeStage.of(blockedMillis = now - blockedSince, dismissed = dismissed) ?: return
+    val isLong = stage == NoticeStage.LONG
     val message = stringResource(
         if (isLong) R.string.reader_offline_long else R.string.reader_offline_brief,
     )
@@ -107,10 +109,20 @@ fun NetworkNotice(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
                 if (isLong && onDownload != null) {
-                    TextButton(onClick = {
-                        downloadFailed = false
-                        scope.launch { downloadFailed = !onDownload() }
-                    }) {
+                    TextButton(
+                        enabled = !isCopying,
+                        onClick = {
+                            downloadFailed = false
+                            isCopying = true
+                            scope.launch {
+                                try {
+                                    downloadFailed = !onDownload()
+                                } finally {
+                                    isCopying = false
+                                }
+                            }
+                        },
+                    ) {
                         Text(stringResource(R.string.reader_offline_download))
                     }
                 }
@@ -119,10 +131,38 @@ fun NetworkNotice(
                         Text(stringResource(R.string.reader_offline_leave))
                     }
                 }
-                TextButton(onClick = onDismiss) {
+                TextButton(onClick = {
+                    dismissed = stage
+                    onDismiss()
+                }) {
                     Text(stringResource(R.string.reader_offline_dismiss))
                 }
             }
+        }
+    }
+}
+
+/**
+ * Which of the two notices the reader is owed, if either.
+ *
+ * Lifted beside [NetworkNotice] so a test can hold the rule. A dismissal hides the stage it
+ * was made on and nothing later: the reader who dismisses the 2 s notice is still offered the
+ * download at 60 s, and the reader who dismisses the offer hears nothing more until the
+ * trouble ends. iOS's `NoticeStage` is the same rule.
+ */
+internal enum class NoticeStage {
+    BRIEF,
+    LONG,
+    ;
+
+    companion object {
+        fun of(blockedMillis: Long, dismissed: NoticeStage?): NoticeStage? {
+            val stage = when {
+                blockedMillis >= OFFER_AFTER_MILLIS -> LONG
+                blockedMillis >= NOTICE_AFTER_MILLIS -> BRIEF
+                else -> return null
+            }
+            return stage.takeUnless { dismissed == LONG || dismissed == stage }
         }
     }
 }
