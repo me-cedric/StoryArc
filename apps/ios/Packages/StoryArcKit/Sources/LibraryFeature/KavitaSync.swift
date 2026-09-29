@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 public import Kavita
 public import StoryArcCore
@@ -21,16 +21,23 @@ public enum KavitaSync {
     }
 
     /// Sends one position, keeping it for later if the server is not there.
+    ///
+    /// A success drops any position held earlier for the same chapter: this report is the
+    /// truth for it now, and an older held page left in the queue would be the next flush's
+    /// to send, moving the server back to where the reader was before this session.
     public static func report(
         _ page: Int,
         for origin: KavitaOrigin,
         to address: KavitaAddress?,
-        in store: KavitaProgressStore
+        in store: KavitaProgressStore,
+        configuration: URLSessionConfiguration? = nil
     ) async {
         let unsent = KavitaUnsent(origin: origin, page: page)
         guard let address else { return store.hold(unsent) }
         do {
-            try await KavitaClient(address: address).report(position(origin, page))
+            try await KavitaClient(address: address, configuration: configuration)
+                .report(position(origin, page))
+            store.drop(unsent.key)
         } catch {
             store.hold(unsent)
         }

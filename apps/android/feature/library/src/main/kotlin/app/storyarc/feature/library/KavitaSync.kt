@@ -32,7 +32,13 @@ object KavitaSync {
      */
     private class Server(val id: String, val address: KavitaAddress)
 
-    /** Sends one position, keeping it for later if the server is not there. */
+    /**
+     * Sends one position, keeping it for later if the server is not there.
+     *
+     * A success drops any position held earlier for the same chapter: this report is the
+     * truth for it now, and an older held page left in the queue would be the next flush's
+     * to send, moving the server back to where the reader was before this session.
+     */
     suspend fun report(
         store: KavitaProgressStore,
         address: KavitaAddress?,
@@ -42,7 +48,7 @@ object KavitaSync {
         val unsent = KavitaUnsent(origin, page)
         if (address == null) return store.hold(unsent)
         val sent = runCatching { KavitaClient(address).report(position(origin, page)) }
-        if (sent.isFailure) store.hold(unsent)
+        if (sent.isSuccess) store.drop(unsent.key) else store.hold(unsent)
     }
 
     /**
