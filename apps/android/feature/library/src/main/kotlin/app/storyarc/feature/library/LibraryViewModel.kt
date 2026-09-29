@@ -4,7 +4,10 @@ import android.app.Application
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.storyarc.core.format.LibraryScanner
@@ -948,7 +951,7 @@ class LibraryViewModel(
     fun itemCount(sourceId: UUID): Int = _publications.value.count { it.sourceId == sourceId }
 
     /** Sources whose last read stopped at its own limit. [SourceSlice] explains what that is. */
-    internal var partialSources: Map<UUID, SourceReadProgress> = emptyMap()
+    internal var partialSources: Map<UUID, SourceReadProgress> by mutableStateOf(emptyMap())
 
     /** Whether [itemCount] is a slice of what this source holds rather than the whole of it. */
     fun isPartial(sourceId: UUID): Boolean = sourceId in partialSources
