@@ -26,4 +26,14 @@ struct ClearHistoryMessageTests {
                 == ["privacy.clear.history.body", "privacy.clear.history.serverNote"]
         )
     }
+
+    @Test("The dialog's one message carries both sentences, the server one last")
+    func theMessageCarriesBoth() {
+        let body = PrivacySettings.clearHistoryMessage(hasSynchronizingSource: false)
+        let both = PrivacySettings.clearHistoryMessage(hasSynchronizingSource: true)
+
+        #expect(!body.isEmpty && body != "privacy.clear.history.body")
+        #expect(both.hasPrefix(body))
+        #expect(both.count > body.count + 1, "the server sentence is missing from the message")
+    }
 }

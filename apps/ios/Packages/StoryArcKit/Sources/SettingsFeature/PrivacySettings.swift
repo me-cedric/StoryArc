@@ -57,10 +57,18 @@ struct PrivacySettings: View {
     ///
     /// Lifted out of the view so a test can reach the decision without a host to render
     /// a confirmation dialog in.
-    static func clearHistoryMessageKeys(hasSynchronizingSource: Bool) -> [String] {
+    nonisolated static func clearHistoryMessageKeys(hasSynchronizingSource: Bool) -> [String] {
         hasSynchronizingSource
             ? ["privacy.clear.history.body", "privacy.clear.history.serverNote"]
             : ["privacy.clear.history.body"]
+    }
+
+    /// The confirmation's message as one string. One, because a confirmation dialog shows
+    /// only the first view of its message, and a second `Text` there is never drawn.
+    nonisolated static func clearHistoryMessage(hasSynchronizingSource: Bool) -> String {
+        clearHistoryMessageKeys(hasSynchronizingSource: hasSynchronizingSource)
+            .map { String(localized: String.LocalizationValue($0), bundle: .module, locale: .storyArc) }
+            .joined(separator: " ")
     }
 
     var body: some View {
@@ -140,9 +148,7 @@ struct PrivacySettings: View {
                 Text("privacy.clear", bundle: .module)
             }
         } message: {
-            ForEach(Self.clearHistoryMessageKeys(hasSynchronizingSource: hasSynchronizingSource), id: \.self) {
-                Text(LocalizedStringKey($0), bundle: .module)
-            }
+            Text(verbatim: Self.clearHistoryMessage(hasSynchronizingSource: hasSynchronizingSource))
         }
         // Confirmed, unlike the cache: these are files a reader chose to fetch, and some
         // of them came over a connection they pay for. The body names what survives, for
