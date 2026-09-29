@@ -9,6 +9,8 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import app.storyarc.core.model.BorderCrop
 import app.storyarc.core.model.ImageAdjustments
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlin.math.roundToInt
 
 /**
@@ -173,7 +175,7 @@ private val SHARPEN_SHADER = """
  * belongs off the main thread (the caller's job) rather than optimised further until a
  * profile says so.
  */
-internal fun Bitmap.sharpened(amount: Float): Bitmap {
+internal suspend fun Bitmap.sharpened(amount: Float): Bitmap {
     if (amount <= 0f) return this
     val w = width
     val h = height
@@ -181,6 +183,10 @@ internal fun Bitmap.sharpened(amount: Float): Bitmap {
     getPixels(pixels, 0, w, 0, 0, w, h)
     val out = IntArray(w * h)
     for (y in 0 until h) {
+        // Once a row: a slider drag cancels the pass for each value it leaves behind,
+        // and a pass that ignored that would keep a full page's convolution running
+        // for every one of them at once.
+        currentCoroutineContext().ensureActive()
         for (x in 0 until w) {
             val here = pixels[y * w + x]
             val left = pixels[y * w + maxOf(x - 1, 0)]
