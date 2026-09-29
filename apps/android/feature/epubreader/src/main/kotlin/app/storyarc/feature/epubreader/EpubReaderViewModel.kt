@@ -70,7 +70,7 @@ import java.io.File
 class EpubReaderViewModel(
     private val application: Application,
     private val location: String,
-    private val identity: PublicationIdentity,
+    internal val identity: PublicationIdentity, // [EpubReaderActivity.onStop] reports by it too
     private val progress: ProgressStore?,
     /**
      * Where the reader's theme choices live between sessions. Null in a test. Named

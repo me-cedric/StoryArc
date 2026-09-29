@@ -448,6 +448,7 @@ private suspend fun fetchEntry(
             seriesId = entry.seriesId,
             volumeId = entry.volumeId,
             chapterId = entry.chapterId,
+            pages = entry.pagesTotal,
         )
         val publication = indexed.copy(
             identity = indexed.identity.recordingServer(origin.serverIdentifier),

@@ -59,17 +59,22 @@ extension StoryArcApp {
     }
 
     /// Tells the server where the reader got to, when the publication came from one.
+    ///
+    /// A reflowable position -- an EPUB's -- used to have no case here at all, only
+    /// `.page`, so an EPUB read from Kavita never reported anywhere. `KavitaOrigin.pageToReport`
+    /// is what turns either kind of position into the page number Kavita's `progress`
+    /// route wants; nil there means nothing to send, the same as before this fix.
     func reportToKavita(_ publication: Publication?) async {
         guard let publication,
               let origin = kavitaProgress.origin(of: publication.id),
               let recorded = try? await progress?.progress(for: publication.identity),
-              case let .page(index, _) = recorded.position
+              let pageNum = origin.pageToReport(recorded.position)
         else { return }
 
         let address = library.registry.sources
             .first { $0.id.uuidString == origin.sourceId }
             .flatMap { KavitaPage(source: $0, credentials: credentials)?.address }
-        await KavitaSync.report(index, for: origin, to: address, in: kavitaProgress)
+        await KavitaSync.report(pageNum, for: origin, to: address, in: kavitaProgress)
     }
 
     /// Opens a publication: a reader for a comic or a book, the player for an audiobook.

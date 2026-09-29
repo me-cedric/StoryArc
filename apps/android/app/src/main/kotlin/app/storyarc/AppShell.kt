@@ -199,6 +199,10 @@ internal fun AppShell(
                         path,
                         publication.displayTitle,
                         publication.series,
+                        // Carries a Kavita server identifier when the browser recorded
+                        // one, so a position this activity writes on leaving still
+                        // finds the origin `kavita-server` remembers the chapter under.
+                        publication.identity,
                     ),
                 )
             } else {

@@ -171,6 +171,7 @@ fun KavitaChapters(
             volume.chapters.any { it.id == chapter.id }
         }?.id ?: 0,
         chapterId = chapter.id,
+        pages = chapter.pages,
     )
 
     val mark: (KavitaChapter, Boolean) -> Unit = { chapter, isRead ->

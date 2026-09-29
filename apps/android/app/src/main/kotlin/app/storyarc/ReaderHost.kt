@@ -9,9 +9,11 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import app.storyarc.core.kavita.KavitaExchange
 import app.storyarc.core.model.ReadingAddress
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.persistence.AnnotationStore
+import app.storyarc.core.persistence.KavitaOrigin
 import app.storyarc.core.smb.SmbReachability
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.KavitaSync
@@ -86,15 +88,16 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
     // reading lost.
     val report: suspend () -> Unit = {
         val origin = dependencies.kavitaProgress.origin(publication.id)
-        val page = dependencies.progress.progress(publication.identity)?.position
-        if (origin != null && page is ReadingPosition.Page) {
+        val position = dependencies.progress.progress(publication.identity)?.position
+        val page = origin?.let { position?.let { p -> pageToReport(p, it) } }
+        if (origin != null && page != null) {
             KavitaSync.report(
                 dependencies.kavitaProgress,
                 host.library.registry.value.sources
                     .firstOrNull { it.id.toString() == origin.sourceId }
                     ?.let { KavitaPage.of(it, dependencies.credentials)?.address },
                 origin,
-                page.index,
+                page,
             )
         }
     }
@@ -150,4 +153,21 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
         nextInSeries = host.library.next(publication),
         onOpen = { next -> host.library.location(next)?.let { host.open(next, it) } },
     )
+}
+
+/**
+ * The page number a recorded position reports to Kavita, or null when there is nothing to
+ * convert it with.
+ *
+ * A reflowable position -- an EPUB's -- carries no page number of its own, only a
+ * fraction. [KavitaExchange.pageNumber] is the one place that turns a fraction into a
+ * page, and it needs the chapter's own length to do it, which is why [KavitaOrigin] now
+ * carries it. `origin.pages == 0` means an origin remembered before that field existed, or
+ * a chapter the server never reported a length for -- nothing to convert against, so
+ * nothing is sent, the same as before this fix.
+ */
+internal fun pageToReport(position: ReadingPosition, origin: KavitaOrigin): Int? = when (position) {
+    is ReadingPosition.Page -> position.index
+    is ReadingPosition.Reflowable, is ReadingPosition.Listening ->
+        if (origin.pages > 0) KavitaExchange.pageNumber(position, origin.pages) else null
 }

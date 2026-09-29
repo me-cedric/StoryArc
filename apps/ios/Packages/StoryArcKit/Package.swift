@@ -134,9 +134,12 @@ let package = Package(
         ),
         // ADR-0006 names SwiftData here and Room on Android. The schema semantics
         // are shared; the implementations are not.
-        .target(name: "Persistence", dependencies: ["StoryArcCore"]),
         .target(name: "Catalogue", dependencies: ["StoryArcCore"]),
         .target(name: "Kavita", dependencies: ["StoryArcCore", "Catalogue"]),
+        // Depends on `Kavita` for one reason: `KavitaOrigin` lives here, and turning a
+        // reflowable position into the page number Kavita's `progress` route wants is
+        // `KavitaExchange.pageNumber`'s job, not a second copy of its arithmetic.
+        .target(name: "Persistence", dependencies: ["StoryArcCore", "Kavita"]),
         .target(
             name: "SettingsFeature",
             dependencies: [
