@@ -45,17 +45,21 @@ struct SmbDeadlineTests {
         // SMBClient's `Connection.send` waits in a continuation with no cancellation handler.
         // A deadline that waits for its losing operation to finish waits exactly as long as
         // the silent connection does, which is the hang this type exists to end.
-        let clock = ContinuousClock()
-        let started = clock.now
+        //
+        // Asserted as an order, not a duration: a busy runner delays every task by seconds, so
+        // "within one second" measured the runner. What the caller needs is that the deadline
+        // answered while the operation was still waiting.
+        let finished = Flag()
         await #expect(throws: SmbError.hostUnreachable) {
             try await SmbDeadline.run(within: .milliseconds(50)) {
                 await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                     DispatchQueue.global().asyncAfter(deadline: .now() + 3) { continuation.resume() }
                 }
+                await finished.set()
                 return 0
             }
         }
-        #expect(clock.now - started < .seconds(1), "the deadline waited for the operation")
+        #expect(await !finished.value, "the deadline waited for the operation")
     }
 
     @Test("Losing the race actually stops the slow task rather than leaking it")
