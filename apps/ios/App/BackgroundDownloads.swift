@@ -1,5 +1,5 @@
 import Catalogue
-import Persistence
+import LibraryFeature
 import StoryArcCore
 import SwiftUI
 
@@ -16,14 +16,14 @@ extension Scene {
     /// `BackgroundTransfers.shared(pins:)` keeps whichever pins its first caller gave it for
     /// the life of the process, and this background-event handler can be that first caller:
     /// the system may relaunch the app straight into this closure, with no catalogue page —
-    /// and no other call to `DownloadQueue.shared()` — having run yet. Reading the store
-    /// directly here, the same way `StoryArcApp.init` does, is what makes the session trust
-    /// every host a reader has ever pinned whichever of the two builds it first.
+    /// and no other call to `DownloadQueue.shared()` — having run yet. `CertificatePins.app`
+    /// is the one set `StoryArcApp.init` and every screen use too, so the session trusts every
+    /// host a reader has pinned, whichever caller builds it first, and a pin accepted later in
+    /// this process as well.
     func continuingDownloadsInBackground() -> some Scene {
         backgroundTask(.urlSession(BackgroundTransfers.identifier)) {
             await withCheckedContinuation { continuation in
-                BackgroundTransfers.shared(pins: CertificatePins(CertificatePinStore().pins()))
-                    .onFinishedEvents { continuation.resume() }
+                BackgroundTransfers.shared(pins: .app).onFinishedEvents { continuation.resume() }
             }
         }
     }

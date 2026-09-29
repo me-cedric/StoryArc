@@ -120,7 +120,7 @@ struct StoryArcApp: App {
         // fails TLS the moment a reader opens a book while it is still arriving — dl-core 1.6.
         HttpSource.register(
             transport: SourceRangeTransport(
-                pins: CertificatePins(CertificatePinStore().pins()),
+                pins: .app,
                 credentials: CredentialStore(),
                 sources: { SourceStore().registry().sources }
             )

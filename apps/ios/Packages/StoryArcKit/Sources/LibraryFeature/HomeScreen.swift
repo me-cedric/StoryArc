@@ -60,7 +60,7 @@ public struct HomeScreen: View {
 
     /// Loaded the way the shelf loads it: a certificate a reader accepts while adding a
     /// catalogue from here has to still be accepted when that catalogue's covers load.
-    @State private var pins = CertificatePins(CertificatePinStore().pins())
+    @State private var pins = CertificatePins.app
 
     /// Which shelves the reader asked to see here. Written by ``ShelvesView``, read here —
     /// one scalar in the same `UserDefaults` as the library's other choices, and deliberately
