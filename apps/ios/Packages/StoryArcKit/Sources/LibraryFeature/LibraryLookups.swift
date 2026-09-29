@@ -5,6 +5,8 @@ public import Formats
 internal import Persistence
 public import StoryArcCore
 
+internal import ImageIO
+
 // What a cell needs to know about one publication.
 //
 // Split out of `LibraryModel.swift`, which had reached the 400-line cap this project
@@ -87,5 +89,46 @@ extension LibraryModel {
         guard let image else { return nil }
         covers[publication.id] = image
         return image
+    }
+
+    /// A server's own artwork, cached the same way a local publication's cover is.
+    ///
+    /// Task 22.2's own correction: `ServerShelfCover` and `HomeServerShelfCover` decode a
+    /// Kavita cover's bytes every time either draws, because until now neither wrote what
+    /// it decoded anywhere — a card scrolled out of view and back, a visit to Home, a
+    /// relaunch, each asked the server again for bytes already decoded once. `id` is the
+    /// caller's to scope: a Kavita series id and a chapter id are both small integers, two
+    /// different servers answer the same one, and ``CoverCache`` hashes whatever string it
+    /// is handed — so a caller that does not prefix its own kind and server folds two
+    /// covers from two servers onto the one cache entry.
+    public func serverCover(
+        for id: String,
+        maxPixelSize: Int,
+        fetch: () async throws -> Data
+    ) async -> CGImage? {
+        let cache = CoverCache()
+        if let stored = await Task.detached(priority: .utility, operation: {
+            cache.image(for: id, maxPixelSize: maxPixelSize)
+        }).value {
+            return stored
+        }
+
+        guard let data = try? await fetch(), !data.isEmpty, let image = Self.decode(data) else {
+            return nil
+        }
+
+        await Task.detached(priority: .utility, operation: {
+            cache.store(image, for: id, maxPixelSize: maxPixelSize)
+        }).value
+        return image
+    }
+
+    /// Through `ImageIO` rather than `UIImage`, unlike ``ShelfCover``'s own decode: this
+    /// method is exercised on the host, where `StoryArcKit`'s macOS target has no UIKit, and
+    /// `CGImageSourceCreateWithData` decodes the same JPEG and PNG bytes Kavita answers with
+    /// on both platforms.
+    private static func decode(_ data: Data) -> CGImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        return CGImageSourceCreateImageAtIndex(source, 0, nil)
     }
 }
