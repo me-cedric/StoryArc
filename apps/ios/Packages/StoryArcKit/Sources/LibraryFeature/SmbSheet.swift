@@ -65,7 +65,9 @@ public struct SmbSheet: View {
             Section {
                 ForEach(discovery.hosts) { host in
                     Button {
-                        connection.host = host.name
+                        // The instance name is what the reader sees, not what resolves as a
+                        // host -- `host.address` is what `SmbDiscovery` resolved it to.
+                        connection.host = host.address
                     } label: {
                         Label(host.name, systemImage: "externaldrive.badge.wifi")
                     }
