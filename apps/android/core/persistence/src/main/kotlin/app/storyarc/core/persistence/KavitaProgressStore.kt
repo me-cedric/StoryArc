@@ -75,10 +75,14 @@ data class KavitaUnsent(
      * An order names its server as well as its list. Every Kavita numbers its first reading
      * list 1, so two servers holding a list of the same number is the ordinary case, and a
      * key without the server would file both orders as one and lose the first.
+     *
+     * A position or a mark names its server too, for the same reason: two servers can each
+     * hold a chapter numbered 12, and a key without the server would let one overwrite the
+     * other's held entry.
      */
     val key: String get() =
         if (order != null) "order:${origin.sourceId}:$listId"
-        else listOf(origin.chapterId, listId, mark).joinToString(":")
+        else listOf(origin.sourceId, origin.chapterId, listId, mark).joinToString(":")
 }
 
 /**
@@ -147,6 +151,18 @@ class KavitaProgressStore internal constructor(
      */
     fun sent(delivered: List<KavitaUnsent>) {
         val kept = unsent().filterNot { it in delivered }
+        preferences.edit().putString(UNSENT, encodeUnsent(kept)).apply()
+    }
+
+    /**
+     * Drops the held entry for one key, if there is one.
+     *
+     * Called after a report reaches the server outright, on the same connection the reader
+     * is reading over. Without this, a page held earlier while offline stays queued under
+     * the same key, and the next flush sends that older page and moves the server back.
+     */
+    fun drop(key: String) {
+        val kept = unsent().filterNot { it.key == key }
         preferences.edit().putString(UNSENT, encodeUnsent(kept)).apply()
     }
 

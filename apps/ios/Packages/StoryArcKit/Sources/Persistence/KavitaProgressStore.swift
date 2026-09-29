@@ -71,11 +71,15 @@ public struct KavitaUnsent: Sendable, Equatable, Codable {
     /// An order names its server as well as its list. Every Kavita numbers its first reading
     /// list 1, so two servers holding a list of the same number is the ordinary case, and a
     /// key without the server would file both orders as one and lose the first.
+    ///
+    /// A position or a mark names its server too, for the same reason: two servers can each
+    /// hold a chapter numbered 12, and a key without the server would let one overwrite the
+    /// other's held entry.
     public var key: String {
         guard order == nil else {
             return "order:\(origin.sourceId):\(listID.map(String.init) ?? "-")"
         }
-        return "\(origin.chapterId):\(listID.map(String.init) ?? "-"):\(mark.map(String.init) ?? "-")"
+        return "\(origin.sourceId):\(origin.chapterId):\(listID.map(String.init) ?? "-"):\(mark.map(String.init) ?? "-")"
     }
 
     public init(
@@ -170,6 +174,15 @@ public struct KavitaProgressStore: @unchecked Sendable {
     /// different promise, so dropping by key would throw away an edit nothing had sent.
     public func sent(_ delivered: [KavitaUnsent]) {
         write(unsent().filter { !delivered.contains($0) })
+    }
+
+    /// Drops the held entry for one key, if there is one.
+    ///
+    /// Called after a report reaches the server outright, on the same connection the reader
+    /// is reading over. Without this, a page held earlier while offline stays queued under
+    /// the same key, and the next flush sends that older page and moves the server back.
+    public func drop(_ key: String) {
+        write(unsent().filter { $0.key != key })
     }
 
     private func links() -> [String: KavitaOrigin] {
