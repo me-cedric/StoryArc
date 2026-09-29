@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -105,6 +107,9 @@ internal fun CurledPages(
     DisposableEffect(frames) { onDispose { frames.cancel() } }
     val colours = remember(adjustments) { adjustments.colourFilter() }
     val sharpen = remember(adjustments) { adjustments.sharpeningEffect() }
+    val hasNoSheet by remember(page, beneath, previous) {
+        derivedStateOf { CurlTurn.sheets(progress.value, page, beneath, previous).turning == null }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Canvas(
@@ -225,10 +230,10 @@ internal fun CurledPages(
             drawRect(brush = ShaderBrush(shader), size = size, colorFilter = colours)
         }
         // `publication-formats`: a page still loading or that could not be decoded is named
-        // rather than left as a bare matte, in Curl as in every other mode. Only reachable
-        // at rest — a drag never starts on a page that has not decoded, because
-        // `sheets.turning` is flat `page` there.
-        if (CurlTurn.sheets(progress.value, page, beneath, previous).turning == null) {
+        // rather than left as a bare matte, in Curl as in every other mode. Derived, so the
+        // composition reads a boolean and not `progress.value`: reading the value here
+        // recomposed this whole composable on every frame of every turn.
+        if (hasNoSheet) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 if (isUnavailable) {
                     Message(
