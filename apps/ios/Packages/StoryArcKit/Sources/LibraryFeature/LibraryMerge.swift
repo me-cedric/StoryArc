@@ -46,6 +46,21 @@ enum LibraryMerge {
     static func replaces(_ found: UUID?, over existing: UUID?, in sources: [Source]) -> Bool {
         found == existing || SourcePrecedence.prefers(found, over: existing, in: sources)
     }
+
+    /// A publication's ``Publication/identity``'s `normalizedPath`, read as the URL it
+    /// names.
+    ///
+    /// `URL(fileURLWithPath:)` takes every string literally, including one that already
+    /// names a scheme: a share's `smb://host/share/x.cbz` came back as a *file* URL whose
+    /// path was the literal text `smb:/host/share/x.cbz` — `PublicationAccess.isRemote`
+    /// matched it against nothing, so the shelf counted a share's own row as already on the
+    /// device, and opening it asked the filesystem for a path that was never a path at all.
+    /// A plain filesystem path is read the plain way, exactly as before: this is scoped to
+    /// the one scheme this app writes into an identity, so nothing already relying on
+    /// `URL(fileURLWithPath:)` for a local or a `content://`-style path changes.
+    static func location(forNormalizedPath path: String) -> URL? {
+        path.hasPrefix("smb://") ? URL(string: path) : URL(fileURLWithPath: path)
+    }
 }
 
 extension LibraryModel {
@@ -94,14 +109,14 @@ extension LibraryModel {
             // The file goes with the attribution. A row that says one source and opens the
             // other source's copy is the same bug wearing a different hat.
             if let path = publication.identity.normalizedPath {
-                locations[publications[seen].id] = URL(fileURLWithPath: path)
+                locations[publications[seen].id] = LibraryMerge.location(forNormalizedPath: path)
             }
             return false
         }
 
         publications.append(attributed)
         if let path = publication.identity.normalizedPath {
-            locations[publication.id] = URL(fileURLWithPath: path)
+            locations[publication.id] = LibraryMerge.location(forNormalizedPath: path)
         }
         return true
     }

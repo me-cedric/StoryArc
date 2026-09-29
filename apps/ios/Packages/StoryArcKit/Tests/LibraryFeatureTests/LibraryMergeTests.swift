@@ -167,4 +167,42 @@ struct LibraryMergeTests {
         let row = try? #require(model.publications.first)
         #expect(model.locations[row?.id ?? ""]?.path == "/downloads/bone.cbz")
     }
+
+    // `LibraryMerge.location(forNormalizedPath:)` — what `URL(fileURLWithPath:)` alone got
+    // wrong for a share. That call takes every string literally, including one that already
+    // names a scheme, so a share's own `smb://host/share/x.cbz` came back as a *file* URL
+    // whose path was the literal text `smb:/host/share/x.cbz` — `PublicationAccess.isRemote`
+    // matched it against nothing, the shelf counted the row as already on the device, and
+    // opening it asked the filesystem for a path that was never a path at all.
+
+    @Test("A share's address is read as the address it is, not as a file path")
+    func shareAddressIsReadAsAnAddress() {
+        let url = LibraryMerge.location(forNormalizedPath: "smb://nas.local/Comics/Bone/01.cbz")
+
+        #expect(url?.absoluteString == "smb://nas.local/Comics/Bone/01.cbz")
+        #expect(url?.scheme == "smb")
+        #expect(url?.isFileURL == false)
+    }
+
+    @Test("A plain filesystem path is still read the plain way")
+    func localPathIsUnaffected() {
+        let url = LibraryMerge.location(forNormalizedPath: "/downloads/bone.cbz")
+
+        #expect(url?.isFileURL == true)
+        #expect(url?.path == "/downloads/bone.cbz")
+    }
+
+    @Test("Adopting a share row files a real address, not a mangled file path")
+    func adoptedShareRowKeepsARealAddress() {
+        let model = LibraryModel()
+        let onShare = publication(
+            "Bone", origin: .inferred, path: "smb://nas.local/Comics/Bone/01.cbz"
+        )
+
+        model.adopt(onShare, from: Self.server)
+
+        let location = model.locations[onShare.id]
+        #expect(location?.absoluteString == "smb://nas.local/Comics/Bone/01.cbz")
+        #expect(location?.isFileURL == false)
+    }
 }

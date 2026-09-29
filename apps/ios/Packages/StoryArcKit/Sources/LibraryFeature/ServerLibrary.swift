@@ -89,7 +89,7 @@ enum ServerLibrary {
             return await SmbContributor.publications(
                 source: source.id,
                 client: SmbClient(address: page.address),
-                root: page.address.path
+                address: page.address
             )
 
         // Already in the library: its files are what the scan walks.
