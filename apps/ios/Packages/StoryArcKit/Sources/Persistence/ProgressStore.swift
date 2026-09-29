@@ -102,6 +102,7 @@ public actor ProgressStore {
         }
         self.container = try Self.opening(configuration)
         self.context = ModelContext(container)
+        Self.rekeyLegacyServerKeys(in: context)
     }
 
     /// An in-memory store, for tests and previews.
@@ -112,6 +113,7 @@ public actor ProgressStore {
     private init(configuration: ModelConfiguration) throws {
         self.container = try Self.opening(configuration)
         self.context = ModelContext(container)
+        Self.rekeyLegacyServerKeys(in: context)
     }
 
     /// The progress recorded for a publication, if any.
@@ -330,27 +332,6 @@ public actor ProgressStore {
             if let first = found.first { return first }
         }
         return nil
-    }
-
-    /// A server identifier flattened to one string, so it can be one column.
-    private static func serverKey(_ identity: PublicationIdentity) -> String? {
-        identity.serverIdentifier.map { "\($0.sourceID.uuidString):\($0.remoteID)" }
-    }
-
-    /// The inverse of ``serverKey(_:)``.
-    ///
-    /// A malformed key yields `nil` rather than throwing: the other two identity
-    /// components are still usable, and refusing to read the row would lose a reading
-    /// position over a field the store can do without.
-    private static func serverIdentifier(
-        from key: String?
-    ) -> PublicationIdentity.ServerIdentifier? {
-        guard let key, let separator = key.firstIndex(of: ":"), separator != key.startIndex,
-              let sourceID = UUID(uuidString: String(key[key.startIndex..<separator]))
-        else { return nil }
-        let remote = String(key[key.index(after: separator)...])
-        guard !remote.isEmpty else { return nil }
-        return PublicationIdentity.ServerIdentifier(sourceID: sourceID, remoteID: remote)
     }
 
     private static func domain(_ record: StoredProgress) -> ReadingProgress {

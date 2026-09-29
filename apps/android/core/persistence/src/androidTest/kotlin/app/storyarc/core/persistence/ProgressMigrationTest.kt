@@ -62,6 +62,12 @@ class ProgressMigrationTest {
             statement.getInt(0)
         }
 
+    private fun SQLiteConnection.readString(sql: String): String? =
+        prepare(sql).use { statement ->
+            assertTrue("the row is there", statement.step())
+            if (statement.isNull(0)) null else statement.getText(0)
+        }
+
     @Test
     fun aPagePositionWrittenBeforeAudiobooksExistedIsStillNotOne() {
         val (connection, file) = openV2()
@@ -190,6 +196,110 @@ class ProgressMigrationTest {
 
             assertEquals(4, connection.readInt("SELECT page_index FROM progress"))
             assertEquals(-1, connection.readInt("SELECT part_index FROM progress"))
+        } finally {
+            connection.close()
+            file.delete()
+        }
+    }
+
+    /**
+     * The rename `MIGRATION_4_5` exists for.
+     *
+     * `KavitaOrigin.serverIdentifier` used to record a chapter's remote id as its bare
+     * number, and every other route to the same chapter already read `"chapter:<n>"`. A
+     * device with a position stored under the bare form gets it rewritten once, in place.
+     */
+    @Test
+    fun aBareChapterNumberIsRewrittenToTheChapterForm() {
+        val (connection, file) = openV2()
+        try {
+            connection.execSQL(
+                "INSERT INTO progress " +
+                    "(server_key, content_digest, normalized_path, page_index, page_count, " +
+                    "progression, locator, is_finished, finished_at, updated_at, " +
+                    "synced_progression) " +
+                    "VALUES ('3E7F6C1C-0000-0000-0000-00000000AAAA:42', NULL, NULL, 4, 20, " +
+                    "0.2, NULL, 0, NULL, 1000, NULL)",
+            )
+
+            MIGRATION_4_5.migrate(connection)
+
+            assertEquals(
+                "3E7F6C1C-0000-0000-0000-00000000AAAA:chapter:42",
+                connection.readString("SELECT server_key FROM progress"),
+            )
+        } finally {
+            connection.close()
+            file.delete()
+        }
+    }
+
+    @Test
+    fun aServerKeyAlreadyInTheChapterFormIsLeftAlone() {
+        val (connection, file) = openV2()
+        try {
+            connection.execSQL(
+                "INSERT INTO progress " +
+                    "(server_key, content_digest, normalized_path, page_index, page_count, " +
+                    "progression, locator, is_finished, finished_at, updated_at, " +
+                    "synced_progression) " +
+                    "VALUES ('3E7F6C1C-0000-0000-0000-00000000AAAA:chapter:42', NULL, NULL, " +
+                    "4, 20, 0.2, NULL, 0, NULL, 1000, NULL)",
+            )
+
+            MIGRATION_4_5.migrate(connection)
+
+            assertEquals(
+                "3E7F6C1C-0000-0000-0000-00000000AAAA:chapter:42",
+                connection.readString("SELECT server_key FROM progress"),
+            )
+        } finally {
+            connection.close()
+            file.delete()
+        }
+    }
+
+    @Test
+    fun anOpdsServerKeyIsLeftAlone() {
+        val (connection, file) = openV2()
+        try {
+            connection.execSQL(
+                "INSERT INTO progress " +
+                    "(server_key, content_digest, normalized_path, page_index, page_count, " +
+                    "progression, locator, is_finished, finished_at, updated_at, " +
+                    "synced_progression) " +
+                    "VALUES ('3E7F6C1C-0000-0000-0000-00000000AAAA:opds:99', NULL, NULL, 4, " +
+                    "20, 0.2, NULL, 0, NULL, 1000, NULL)",
+            )
+
+            MIGRATION_4_5.migrate(connection)
+
+            assertEquals(
+                "3E7F6C1C-0000-0000-0000-00000000AAAA:opds:99",
+                connection.readString("SELECT server_key FROM progress"),
+            )
+        } finally {
+            connection.close()
+            file.delete()
+        }
+    }
+
+    @Test
+    fun aRowWithNoServerKeyIsLeftAlone() {
+        val (connection, file) = openV2()
+        try {
+            connection.execSQL(
+                "INSERT INTO progress " +
+                    "(server_key, content_digest, normalized_path, page_index, page_count, " +
+                    "progression, locator, is_finished, finished_at, updated_at, " +
+                    "synced_progression) " +
+                    "VALUES (NULL, NULL, '/books/one.cbz', 4, 20, 0.2, NULL, 0, NULL, 1000, " +
+                    "NULL)",
+            )
+
+            MIGRATION_4_5.migrate(connection)
+
+            assertEquals(null, connection.readString("SELECT server_key FROM progress"))
         } finally {
             connection.close()
             file.delete()

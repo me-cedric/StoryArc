@@ -44,7 +44,9 @@ struct KavitaPullIdentityTests {
         try await progress.save(
             ReadingProgress(
                 identity: PublicationIdentity(
-                    serverIdentifier: .init(sourceID: source, remoteID: "42"),
+                    // The form `KavitaOrigin.serverIdentifier` builds, and the one the
+                    // library row and the kept card already used.
+                    serverIdentifier: .init(sourceID: source, remoteID: "chapter:42"),
                     normalizedPath: "/downloads/Bone 01.cbz"
                 ),
                 position: .page(index: 4, of: 10),
@@ -60,7 +62,7 @@ struct KavitaPullIdentityTests {
         )
 
         let read = try await progress.progress(
-            for: PublicationIdentity(serverIdentifier: .init(sourceID: source, remoteID: "42"))
+            for: PublicationIdentity(serverIdentifier: .init(sourceID: source, remoteID: "chapter:42"))
         )
         #expect(read?.position == .page(index: 7, of: 10), "the server was further ahead")
         #expect(try await progress.recent().count == 1, "one chapter, one record")

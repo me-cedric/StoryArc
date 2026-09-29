@@ -34,9 +34,15 @@ extension KavitaOrigin {
     /// the source's own id, and inventing one would file two servers' chapter 42 as one
     /// publication — data loss in the one store this app promises never to lose, and
     /// strictly worse than leaving them as two records.
+    ///
+    /// `"chapter:\(chapterId)"`, not the bare number — the same form
+    /// ``KavitaContributor`` and ``KavitaFind`` build a chapter's identity with. A second
+    /// spelling of one chapter's remote id used to be two rows: the library row and the
+    /// kept card filed under `"chapter:42"`, a pull's progress under `"42"`, and
+    /// `PublicationIdentity.matches` never saw the two as one publication.
     public var serverIdentifier: PublicationIdentity.ServerIdentifier? {
         UUID(uuidString: sourceId).map {
-            PublicationIdentity.ServerIdentifier(sourceID: $0, remoteID: String(chapterId))
+            PublicationIdentity.ServerIdentifier(sourceID: $0, remoteID: "chapter:\(chapterId)")
         }
     }
 }
@@ -79,7 +85,8 @@ public struct KavitaUnsent: Sendable, Equatable, Codable {
         guard order == nil else {
             return "order:\(origin.sourceId):\(listID.map(String.init) ?? "-")"
         }
-        return "\(origin.sourceId):\(origin.chapterId):\(listID.map(String.init) ?? "-"):\(mark.map(String.init) ?? "-")"
+        return "\(origin.sourceId):\(origin.chapterId):" +
+            "\(listID.map(String.init) ?? "-"):\(mark.map(String.init) ?? "-")"
     }
 
     public init(

@@ -43,13 +43,13 @@ struct KavitaQueueKeyTests {
     @Test("Dropping one server's key leaves the other server's held entry alone")
     func dropIsScopedToItsKey() {
         let store = store()
-        let a = KavitaUnsent(origin: origin(sourceId: "server-a"), page: 4)
-        let b = KavitaUnsent(origin: origin(sourceId: "server-b"), page: 9)
-        store.hold(a)
-        store.hold(b)
+        let onA = KavitaUnsent(origin: origin(sourceId: "server-a"), page: 4)
+        let onB = KavitaUnsent(origin: origin(sourceId: "server-b"), page: 9)
+        store.hold(onA)
+        store.hold(onB)
 
-        store.drop(a.key)
+        store.drop(onA.key)
 
-        #expect(store.unsent() == [b])
+        #expect(store.unsent() == [onB])
     }
 }
