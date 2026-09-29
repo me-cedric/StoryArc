@@ -377,9 +377,8 @@ public struct ReaderView: View {
         .focusable()
         .modifier(
             ReaderKeyboardFocus(
-                isShowingMenu: isShowingMenu,
-                isBrowsingThumbnails: isBrowsingThumbnails,
-                isAdjusting: isAdjusting
+                isCoveredBySheet: isShowingMenu || isBrowsingThumbnails || isAdjusting
+                    || isFindingText || noting != nil
             )
         )
         .onKeyPress(.leftArrow) { turn(by: -1); return .handled }
