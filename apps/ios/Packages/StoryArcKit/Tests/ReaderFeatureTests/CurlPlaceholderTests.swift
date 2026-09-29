@@ -14,7 +14,7 @@ struct CurlPlaceholderTests {
     private let decoded = [2: "page two"]
 
     private func sheet(at display: Int?) -> String? {
-        CurlPlaceholder.sheet(at: display, decoded: { decoded[$0] }) { "placeholder for \($0)" }
+        CurlPlaceholder.sheet(at: display, decoded: { decoded[$0] }, placeholder: { "placeholder for \($0)" })
     }
 
     @Test("A decoded neighbour is the page itself")
