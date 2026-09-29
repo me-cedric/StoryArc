@@ -335,7 +335,7 @@ private suspend fun indexOnShare(
     address: SmbAddress,
     entry: SmbEntry,
 ): Pair<Publication, String> {
-    val remotePath = "${SmbLocator.of(address)}/${entry.path}"
+    val remotePath = SmbLocator.entry(entry.path, address)
     val publication = PublicationIndexer.index(
         source = client.open(entry.path),
         name = entry.name,
@@ -357,7 +357,7 @@ private suspend fun fetchAndIndex(
     address: SmbAddress,
     entry: SmbEntry,
 ): Pair<Publication, String> {
-    val remotePath = "${SmbLocator.of(address)}/${entry.path}"
+    val remotePath = SmbLocator.entry(entry.path, address)
     val source = client.open(entry.path)
 
     val local = withContext(Dispatchers.IO) {

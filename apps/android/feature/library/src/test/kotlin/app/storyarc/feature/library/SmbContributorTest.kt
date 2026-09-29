@@ -51,11 +51,11 @@ class SmbContributorTest {
     }
 
     @Test
-    fun `the address names the share's own root, not the configured browse root twice`() {
-        // `entry.path` already carries the walk's own root -- `SmbClient.list` seeds the
-        // recursion at the configured root and joins every entry against whichever folder
-        // produced it -- so a share configured to browse from a subfolder must not repeat
-        // that subfolder in the address this builds.
+    fun `a row under a configured root opens through the reader's own reading of its address`() {
+        // `entry.path` is relative to the share and so repeats the root the reader picked.
+        // The opener strips the source's address, root and all, and hands the share the
+        // rest -- so the row's address has to state the root in both places, the way the
+        // share browser always has, or the share is asked for `Comics/x.cbz` at its top.
         val entry = SmbEntry(
             name = "x.cbz",
             path = "Books/Comics/x.cbz",
@@ -64,9 +64,22 @@ class SmbContributorTest {
         )
         val configured = address.copy(path = "Books")
 
-        val publication = SmbContributor.publication(source, entry, configured, folder = "Books/Comics")
+        val publication = SmbContributor.publication(source, entry, configured, folder = "Books/Comics")!!
 
-        assertEquals("smb://nas.local/Comics/Books/Comics/x.cbz", publication?.identity?.normalizedPath)
+        assertEquals(
+            entry.path,
+            SmbLocator.inside(publication.identity.normalizedPath!!, configured),
+        )
+        assertEquals(SmbLocator.entry(entry.path, configured), publication.identity.normalizedPath)
+    }
+
+    @Test
+    fun `an address is inside a share only past its own name`() {
+        val configured = address.copy(path = "Books")
+        assertEquals("Books/x.cbz", SmbLocator.inside("smb://nas.local/Comics/Books/Books/x.cbz", configured))
+        assertEquals("", SmbLocator.inside("smb://nas.local/Comics/Books", configured))
+        assertNull(SmbLocator.inside("smb://nas.local/Comics/BooksExtra/x.cbz", configured))
+        assertNull(SmbLocator.inside("smb://other.local/Comics/Books/x.cbz", configured))
     }
 
     @Test
