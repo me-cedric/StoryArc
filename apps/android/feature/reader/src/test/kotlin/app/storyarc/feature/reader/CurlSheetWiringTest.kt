@@ -40,6 +40,7 @@ class CurlSheetWiringTest {
 
     private val readerScreen: String by lazy { sourceOf("ReaderScreen.kt") }
     private val paging: String by lazy { sourceOf("Paging.kt") }
+    private val curledPages: String by lazy { sourceOf("CurledPages.kt") }
 
     /**
      * Just the arguments of the one call that builds the curl.
@@ -154,6 +155,39 @@ class CurlSheetWiringTest {
         assertTrue(
             "The curl no longer reads the current page's codec name.",
             builder.contains("codecName = viewModel.codecName(modelIndex(paging.current)),"),
+        )
+    }
+
+    @Test
+    fun `the curl draws the series' colour and sharpness over its own sheet`() {
+        // Task 8.1: handing the curl `adjustments` does nothing unless its draw uses them.
+        assertTrue(
+            "The curl's shader rect no longer draws through the series' colour filter.",
+            curledPages.contains("drawRect(brush = ShaderBrush(shader), size = size, colorFilter = colours)"),
+        )
+        assertTrue(
+            "The curl's layer no longer carries the series' sharpening effect.",
+            curledPages.contains(".graphicsLayer { renderEffect = sharpen }"),
+        )
+    }
+
+    @Test
+    fun `the curl parses its shader once, not once a frame`() {
+        // Task 8.7: `RuntimeShader(source)` parses the AGSL program. The draw block runs
+        // once a frame, so the one construction has to sit behind a `remember`.
+        val constructions = sourceOf("PageCurl.kt").lines()
+            .filter { it.contains("RuntimeShader(") && !it.trimStart().startsWith("*") }
+        assertTrue(
+            "PageCurl.kt constructs a RuntimeShader somewhere other than `newShader`: $constructions",
+            constructions.map(String::trim) == listOf("fun newShader(): RuntimeShader = RuntimeShader(source)"),
+        )
+        assertTrue(
+            "CurledPages no longer keeps its shader in a `remember` block.",
+            Regex("""remember \{\s*if \([^)]*\) PageCurl\.newShader\(\)""").containsMatchIn(curledPages),
+        )
+        assertTrue(
+            "CurledPages calls `PageCurl.newShader()` more than once.",
+            curledPages.split("PageCurl.newShader()").size == 2,
         )
     }
 
