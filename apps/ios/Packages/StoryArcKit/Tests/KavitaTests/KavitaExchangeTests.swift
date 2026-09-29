@@ -29,8 +29,8 @@ struct KavitaExchangeTests {
         )
     }
 
-    private func chapter(_ id: Int, pages: Int = 10) -> KavitaChapter {
-        KavitaChapter(id: id, number: "1", title: "Chapter \(id)", pages: pages)
+    private func chapter(_ id: Int, pages: Int = 10, pagesRead: Int = 0) -> KavitaChapter {
+        KavitaChapter(id: id, number: "1", title: "Chapter \(id)", pages: pages, pagesRead: pagesRead)
     }
 
     private func key(_ id: String) -> String {
@@ -193,5 +193,37 @@ struct KavitaExchangeTests {
         let exchange = KavitaExchange.of(ProgressPull(), against: [:])
 
         #expect(exchange.toSave.isEmpty && exchange.owed.isEmpty)
+    }
+
+    // MARK: - What Continue and a chapter row seed on a first open
+
+    @Test("A chapter Kavita reports as half read is seeded at that page")
+    func aReadChapterIsSeeded() {
+        #expect(
+            KavitaExchange.openSeed(for: chapter(41, pages: 10, pagesRead: 4), existing: nil)
+                == .page(index: 3, of: 10)
+        )
+    }
+
+    @Test("A chapter with no local record and nothing read yet is not seeded")
+    func anUnreadChapterIsNotSeeded() {
+        #expect(KavitaExchange.openSeed(for: chapter(41, pagesRead: 0), existing: nil) == nil)
+    }
+
+    @Test("A chapter that already has a local record is left alone")
+    func anExistingRecordIsNotOverwritten() {
+        #expect(
+            KavitaExchange.openSeed(
+                for: chapter(41, pages: 10, pagesRead: 4),
+                existing: progress("one", page: 7)
+            ) == nil
+        )
+    }
+
+    @Test("A chapter the server reports no pages for is not seeded")
+    func aPagelessChapterIsNotSeeded() {
+        #expect(
+            KavitaExchange.openSeed(for: chapter(41, pages: 0, pagesRead: 4), existing: nil) == nil
+        )
     }
 }
