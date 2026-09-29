@@ -19,16 +19,24 @@ internal class EarlyPageTallness {
     var tallestRatio: Double = 0.0
         private set
 
-    /** Notes one decoded page's height-over-width ratio, if it is early enough to count. */
+    private val sampled = mutableSetOf<Int>()
+
+    /**
+     * Notes one decoded page's height-over-width ratio, if it is among the first pages to
+     * decode. The first to *decode*, not the first in the file: a reader who resumes on
+     * page fifty never decodes page one, and a rule that counted only pages 0 to 2 left
+     * that webtoon reading as not tall. A page decoded again counts once.
+     */
     fun note(ratio: Double, index: Int) {
-        if (index >= SAMPLE_COUNT) return
+        if (index !in sampled && sampled.size >= SAMPLE_COUNT) return
+        sampled += index
         tallestRatio = maxOf(tallestRatio, ratio)
     }
 
     companion object {
         /**
-         * How many of the earliest pages count. Three catches a one-page title card
-         * without waiting long enough to matter for anything longer.
+         * How many of the earliest decoded pages count. Three catches a one-page title
+         * card without waiting long enough to matter for anything longer.
          */
         const val SAMPLE_COUNT = 3
     }
