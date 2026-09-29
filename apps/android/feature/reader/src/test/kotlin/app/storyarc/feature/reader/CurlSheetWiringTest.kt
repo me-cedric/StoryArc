@@ -32,52 +32,112 @@ class CurlSheetWiringTest {
             )
     }
 
-    private val readerScreen: String by lazy {
-        val file = File(module, "src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt")
-        if (!file.isFile) error("ReaderScreen.kt is not under ${module.absolutePath} — has it moved?")
-        file.readText()
+    private fun sourceOf(name: String): String {
+        val file = File(module, "src/main/kotlin/app/storyarc/feature/reader/$name")
+        if (!file.isFile) error("$name is not under ${module.absolutePath} — has it moved?")
+        return file.readText()
+    }
+
+    private val readerScreen: String by lazy { sourceOf("ReaderScreen.kt") }
+    private val paging: String by lazy { sourceOf("Paging.kt") }
+
+    /**
+     * Just the arguments of the one call that builds the curl.
+     *
+     * Bracket-matched rather than a fixed line count, so a comment added above the call
+     * cannot shift the window off the arguments it exists to check. The file holds other
+     * calls that repeat some of the same argument text — `matte = matte,` and
+     * `adjustments = adjustments,` both appear on an ordinary page too — so a check
+     * against the whole file would pass with the curl's own copy missing.
+     */
+    private fun curlBuilder(): String {
+        val open = readerScreen.indexOf("CurledPages(").let {
+            check(it >= 0) { "ReaderScreen.kt no longer builds a CurledPages(...) — has it moved?" }
+            readerScreen.indexOf('(', it)
+        }
+        var depth = 1
+        var i = open + 1
+        while (depth > 0) {
+            when (readerScreen[i]) {
+                '(' -> depth++
+                ')' -> depth--
+            }
+            i++
+        }
+        return readerScreen.substring(open, i)
     }
 
     @Test
-    fun `the page behind is null at the first page, not the first page itself`() {
+    fun `the page behind is null past either end of the publication, not that end's own page`() {
         // `modelIndex` answers 0 for a display position that has no slot, so a bare
         // `current - 1` hands the shader page 0 as page 0's own previous -- and the first
-        // page turns backwards onto itself, which is worse than not turning.
+        // page turns backwards onto itself, which is worse than not turning. Task 8.14
+        // moved the guard from a raw `paging.current > 0` check into `adjacentDisplayIndex`,
+        // because that same guard has to run in reading-order space for right-to-left.
         assertTrue(
-            "The guard on the first page is gone: `modelIndex(-1)` is 0, so `previous` is" +
-                " the page in view and the first page turns back onto itself.",
-            readerScreen.contains("takeIf { paging.current > 0 }"),
+            "adjacentDisplayIndex no longer bounds its candidate to the publication's slots" +
+                " — the guard that stops the first page turning back onto itself.",
+            paging.contains("candidate.takeIf { it in 0 until slotCount }"),
         )
     }
 
     @Test
-    fun `each of the three sheets is a cache read at a display position`() {
+    fun `each of the three sheets is a cache read at a display position, trimmed`() {
+        val builder = curlBuilder()
         val reads = listOf(
-            "page = viewModel.image(modelIndex(paging.current))",
-            "beneath = viewModel.image(modelIndex(paging.current + 1))",
-            "previous = viewModel.image(modelIndex(paging.current - 1))\n" +
-                "                        .takeIf { paging.current > 0 }",
+            "page = curlPage(paging.current)",
+            "beneath = curlPage(adjacentDisplayIndex(paging.current, 1, slotCount, isRightToLeft))",
+            "previous = curlPage(adjacentDisplayIndex(paging.current, -1, slotCount, isRightToLeft))",
         )
 
         for (read in reads) {
             assertTrue(
                 "The curl no longer reads `$read`. If the sheet is fetched some other way," +
                     " the curl decodes a page mid-drag.",
-                readerScreen.contains(read),
+                builder.contains(read),
             )
         }
+
+        // `curlPage` is the accessor `viewModel.image` moved into: still a cache read, now
+        // with the series' border trim baked in (task 8.1, `comic-reader` "Persisting
+        // adjustments").
+        assertTrue(
+            "curlPage no longer reads the reader's decoded-page cache.",
+            readerScreen.contains("val raw = viewModel.image(index) ?: return null"),
+        )
+        assertTrue(
+            "curlPage no longer bakes the series' border trim into the sheet it hands the curl.",
+            readerScreen.contains("raw.cropped(trims)"),
+        )
     }
 
     @Test
-    fun `a completed turn moves to a display position in each direction`() {
+    fun `a completed turn moves to a reading-order position in each direction`() {
+        val builder = curlBuilder()
+        // Not a raw `paging.current + 1`: right-to-left reverses the display order, so a
+        // completed *forward* turn (task 8.14) has to move by a reading-order step, which
+        // is -1 there.
         assertTrue(
-            "A completed forward turn no longer turns the page.",
-            readerScreen.contains("onTurned = { turn(paging.current + 1) }"),
+            "A completed forward turn no longer turns the page by a reading-order step.",
+            builder.contains("onTurned = { turn(paging.current + readingOrderStep(1, isRightToLeft)) }"),
         )
         assertTrue(
-            "A completed backwards turn no longer turns the page back — which is the whole" +
-                " of what a reader reported as a curl that works in one direction.",
-            readerScreen.contains("onTurnedBack = { turn(paging.current - 1) }"),
+            "A completed backwards turn no longer turns the page back by a reading-order" +
+                " step — which is the whole of what a reader reported as a curl that works" +
+                " in one direction.",
+            builder.contains(
+                "onTurnedBack = { turn(paging.current + readingOrderStep(-1, isRightToLeft)) }",
+            ),
+        )
+    }
+
+    @Test
+    fun `the curl is handed the series' colour and sharpness adjustments`() {
+        assertTrue(
+            "The curl no longer draws the series' brightness, contrast, inversion, " +
+                "greyscale and sharpness. `comic-reader` \"Persisting adjustments\" applies " +
+                "to every container.",
+            curlBuilder().contains("adjustments = adjustments,"),
         )
     }
 

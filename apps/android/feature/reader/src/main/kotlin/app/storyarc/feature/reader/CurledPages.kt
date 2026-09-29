@@ -17,6 +17,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
@@ -24,6 +25,7 @@ import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.IntSize
+import app.storyarc.core.model.ImageAdjustments
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
@@ -58,6 +60,15 @@ internal fun CurledPages(
     isRightToLeft: Boolean,
     /** What shows behind and beside the page. See `matteColour`. */
     matte: Color,
+    /**
+     * The series' brightness, contrast, inversion, greyscale and sharpness.
+     *
+     * `comic-reader` "Persisting adjustments": drawn live over the whole turn, the same
+     * way [ZoomablePage] draws them — the border trim is baked into `page`, `beneath`
+     * and `previous` before this composable ever sees them, by the caller, the same way
+     * every other container bakes it.
+     */
+    adjustments: ImageAdjustments = ImageAdjustments(),
     /** Called once a forward turn has completed. */
     onTurned: () -> Unit,
     /** Called once a backwards turn has completed. */
@@ -84,10 +95,13 @@ internal fun CurledPages(
     // A turn the reader walked out of never reaches `ended`, and a ticker nobody stopped
     // posts a frame callback for the life of the process. This is where it is stopped.
     DisposableEffect(frames) { onDispose { frames.cancel() } }
+    val colours = remember(adjustments) { adjustments.colourFilter() }
+    val sharpen = remember(adjustments) { adjustments.sharpeningEffect() }
 
     Canvas(
         modifier = modifier
             .fillMaxSize()
+            .graphicsLayer { renderEffect = sharpen }
             .pointerInput(page, beneath, previous, isRightToLeft) {
                 awaitEachGesture {
                     val down = awaitFirstDown()
@@ -179,6 +193,11 @@ internal fun CurledPages(
                 }
             },
     ) {
+        // Lint's `NewApi` check reads a version guard, not a null check, however true the
+        // two are together: `runtimeShader` is null on exactly this condition, but only
+        // this line is what tells the checker `PageCurl.update` below is reachable only
+        // at API 33 and above.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return@Canvas
         val shader = runtimeShader ?: return@Canvas
         val sheets = CurlTurn.sheets(progress.value, page, beneath, previous)
         val turning = sheets.turning ?: return@Canvas
@@ -193,7 +212,7 @@ internal fun CurledPages(
             page = turning,
             beneath = sheets.under,
         )
-        drawRect(brush = ShaderBrush(shader), size = size)
+        drawRect(brush = ShaderBrush(shader), size = size, colorFilter = colours)
     }
 }
 
