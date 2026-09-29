@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ComponentCallbacks2
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -905,6 +906,21 @@ private fun Pager(
     }
 
     /**
+     * The decoded page at a display position, with the series' border trim baked in —
+     * the same trim [SinglePage] applies. `comic-reader` "Persisting adjustments": the
+     * curl drew the raw decode while every other container applied it. Sharpness and
+     * colour are not baked here: [CurledPages] draws them live, the way [ZoomablePage]
+     * already does on this API floor.
+     */
+    @Composable
+    fun curlPage(display: Int?): Bitmap? {
+        val index = display?.let(::modelIndex) ?: return null
+        val raw = viewModel.image(index) ?: return null
+        val trims = adjustments.trimmingBorders(index !in uncropped).cropsBorders
+        return remember(raw, trims) { raw.cropped(trims) }
+    }
+
+    /**
      * The page itself, and whatever container the transition asks for.
      *
      * A composable of its own so that it can be handed to a pane scaffold as a slot on a
@@ -920,20 +936,19 @@ private fun Pager(
             // is a lazy list, and the curl is a shader over two decoded pages.
             if (choices.effective == PageTransition.PAGE_CURL) {
                 CurledPages(
-                    page = viewModel.image(modelIndex(paging.current)),
+                    page = curlPage(paging.current),
                     // One reading-order step forward, not one *display* position forward:
                     // right-to-left reverses the display order, so `paging.current + 1` is
                     // the previous page in reading order there, not the next one.
-                    beneath = adjacentDisplayIndex(paging.current, 1, slotCount, isRightToLeft)
-                        ?.let { viewModel.image(modelIndex(it)) },
+                    beneath = curlPage(adjacentDisplayIndex(paging.current, 1, slotCount, isRightToLeft)),
                     // And the page behind, one reading-order step back, for the same reason
                     // and the other direction. The reader met a curl that "only seems to
                     // work in one direction": the shader had nothing to turn backwards
                     // because nothing was handed to it.
-                    previous = adjacentDisplayIndex(paging.current, -1, slotCount, isRightToLeft)
-                        ?.let { viewModel.image(modelIndex(it)) },
+                    previous = curlPage(adjacentDisplayIndex(paging.current, -1, slotCount, isRightToLeft)),
                     isRightToLeft = isRightToLeft,
                     matte = matte,
+                    adjustments = adjustments,
                     onTurned = { turn(paging.current + readingOrderStep(1, isRightToLeft)) },
                     onTurnedBack = { turn(paging.current + readingOrderStep(-1, isRightToLeft)) },
                     onTap = ::handleTap,
