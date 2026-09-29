@@ -14,7 +14,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -26,6 +28,7 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * What the reader says when the network has gone quiet.
@@ -42,14 +45,19 @@ import kotlinx.coroutines.delay
 fun NetworkNotice(
     blockedSince: Long?,
     onDismiss: () -> Unit,
-    onDownload: (() -> Unit)?,
+    // Answers whether the copy started. `network-share`'s offer does not disappear on a
+    // `false`: the share is still down, which is the very reason the offer exists, so the
+    // reader is told the attempt failed rather than left to wonder why nothing happened.
+    onDownload: (suspend () -> Boolean)?,
     onLeave: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     if (blockedSince == null) return
 
     val palette = LocalStoryArcPalette.current
+    val scope = rememberCoroutineScope()
     var now by remember(blockedSince) { mutableLongStateOf(System.currentTimeMillis()) }
+    var downloadFailed by remember(blockedSince) { mutableStateOf(false) }
 
     // A ticking clock, because the notice's whole content is a function of elapsed time and
     // nothing else changes to trigger a recomposition.
@@ -88,9 +96,21 @@ fun NetworkNotice(
                 style = MaterialTheme.typography.bodyMedium,
                 color = palette.textPrimary,
             )
+            // Answers "why did nothing happen" for the one action here that can fail
+            // without a page turn or a dismissal to say so on its own.
+            if (downloadFailed) {
+                Text(
+                    text = stringResource(R.string.reader_offline_download_failed),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.textPrimary,
+                )
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
                 if (isLong && onDownload != null) {
-                    TextButton(onClick = onDownload) {
+                    TextButton(onClick = {
+                        downloadFailed = false
+                        scope.launch { downloadFailed = !onDownload() }
+                    }) {
                         Text(stringResource(R.string.reader_offline_download))
                     }
                 }

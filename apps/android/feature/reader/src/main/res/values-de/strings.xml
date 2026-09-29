@@ -62,6 +62,7 @@
     <string name="reader_offline_download">Herunterladen</string>
     <string name="reader_offline_leave">Zurück zur Bibliothek</string>
     <string name="reader_offline_dismiss">Ausblenden</string>
+    <string name="reader_offline_download_failed">Der Download konnte nicht gestartet werden. Die Freigabe ist weiterhin nicht erreichbar.</string>
     <string name="reader_adjust">Bildanpassungen</string>
     <string name="reader_adjust_brightness">Helligkeit</string>
     <string name="reader_adjust_contrast">Kontrast</string>

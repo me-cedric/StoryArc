@@ -62,6 +62,7 @@
     <string name="reader_offline_download">La télécharger</string>
     <string name="reader_offline_leave">Retour à la bibliothèque</string>
     <string name="reader_offline_dismiss">Masquer</string>
+    <string name="reader_offline_download_failed">Le téléchargement n\'a pas pu démarrer. Le partage reste inaccessible.</string>
     <string name="reader_adjust">Réglages de l’image</string>
     <string name="reader_adjust_brightness">Luminosité</string>
     <string name="reader_adjust_contrast">Contraste</string>

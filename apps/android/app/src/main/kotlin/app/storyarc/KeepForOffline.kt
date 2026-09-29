@@ -1,5 +1,6 @@
 package app.storyarc
 
+import app.storyarc.core.format.ChunkedCopy
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.PublicationFormat
@@ -20,6 +21,11 @@ import kotlinx.coroutines.withContext
  *
  * Returns where the copy landed, or null when the share is still unreachable, which is the
  * likeliest outcome and not a surprise: the offer exists because the network is down.
+ *
+ * Copied through [ChunkedCopy] rather than `file.writeBytes(source.read(0, source.length.toInt()))`:
+ * `source.length.toInt()` overflows above 2 GiB, which used to write nothing and index an
+ * empty file, and the single read is the same one-message-for-the-whole-file request the
+ * share browser's own download made.
  */
 suspend fun keepForOffline(
     queue: DownloadQueue,
@@ -40,8 +46,7 @@ suspend fun keepForOffline(
                 ?.mediaType
                 ?: "application/octet-stream"
             val file = downloads.location(publication.id, mediaType, publication.displayTitle)
-            file.parentFile?.mkdirs()
-            file.writeBytes(source.read(0, source.length.toInt()))
+            ChunkedCopy.copy(source, file)
             Download(
                 id = publication.id,
                 title = publication.displayTitle,

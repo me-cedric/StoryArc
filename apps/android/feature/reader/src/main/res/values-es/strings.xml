@@ -62,6 +62,7 @@
     <string name="reader_offline_download">Descargarla</string>
     <string name="reader_offline_leave">Volver a la biblioteca</string>
     <string name="reader_offline_dismiss">Descartar</string>
+    <string name="reader_offline_download_failed">La descarga no pudo iniciarse. El recurso compartido sigue sin estar disponible.</string>
     <string name="reader_adjust">Ajustes de imagen</string>
     <string name="reader_adjust_brightness">Brillo</string>
     <string name="reader_adjust_contrast">Contraste</string>
