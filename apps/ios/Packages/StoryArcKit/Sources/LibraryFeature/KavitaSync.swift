@@ -4,6 +4,16 @@ public import Kavita
 public import StoryArcCore
 public import Persistence
 
+/// A conflict a pull found, named for the reader rather than left as bare positions.
+///
+/// `reading-progress` asks the notice to name what changed. `ProgressPull.Conflict` alone
+/// has no title -- only the chapter a pull is still holding when it builds this does.
+public struct KavitaConflict: Sendable, Equatable {
+    public let title: String
+    public let resolved: ReadingProgress
+    public let discarded: ReadingPosition
+}
+
 /// Telling a Kavita server where the reader got to.
 ///
 /// `kavita-server` asks for the position to be sent when the reader leaves, and "retried on
@@ -87,7 +97,7 @@ public enum KavitaSync {
         into progress: ProgressStore,
         of sourceId: String? = nil,
         to address: KavitaAddress? = nil
-    ) async -> [ProgressPull.Conflict] {
+    ) async -> [KavitaConflict] {
         var remote: [ReadingProgress] = []
         var local: [String: ReadingProgress] = [:]
         var reported: [String: KavitaChapter] = [:]
@@ -146,7 +156,13 @@ public enum KavitaSync {
         for record in exchange.toSave { try? await progress.save(record) }
         let server = sourceId.flatMap { id in address.map { Server(id: id, address: $0) } }
         await settle(exchange.owed, from: origins, to: server, in: kavita, into: progress)
-        return pull.conflicts
+        return pull.conflicts.map { conflict in
+            KavitaConflict(
+                title: reported[conflict.resolved.identity.stableID]?.displayName ?? "",
+                resolved: conflict.resolved,
+                discarded: conflict.discarded
+            )
+        }
     }
 
     /// Tells the server what the merge says it is behind on, and writes down what it took.

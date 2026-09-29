@@ -9,6 +9,7 @@ import app.storyarc.core.kavita.KavitaExchange
 import app.storyarc.core.kavita.KavitaOwed
 import app.storyarc.core.model.ProgressPull
 import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.KavitaProgressStore
@@ -23,6 +24,18 @@ import java.util.UUID
  * the next successful connection if it fails". Two operations, because those are the two
  * moments: one when a chapter is closed, one when a server is reachable again.
  */
+/**
+ * A conflict a pull found, named for the reader rather than left as bare positions.
+ *
+ * `reading-progress` asks the notice to name what changed. [ProgressPull.Conflict] alone has
+ * no title -- only the chapter a pull is still holding when it builds this does.
+ */
+data class KavitaConflict(
+    val title: String,
+    val resolved: ReadingProgress,
+    val discarded: ReadingPosition,
+)
+
 object KavitaSync {
 
     /**
@@ -97,7 +110,7 @@ object KavitaSync {
         progress: ProgressStore,
         sourceId: String? = null,
         address: KavitaAddress? = null,
-    ): List<ProgressPull.Conflict> {
+    ): List<KavitaConflict> {
         val remote = mutableListOf<ReadingProgress>()
         val local = mutableMapOf<String, ReadingProgress>()
         val reported = mutableMapOf<String, KavitaChapter>()
@@ -155,7 +168,13 @@ object KavitaSync {
         exchange.toSave.forEach { progress.save(it) }
         val server = if (sourceId != null && address != null) Server(sourceId, address) else null
         settle(exchange.owed, origins, server, kavita, progress)
-        return pull.conflicts
+        return pull.conflicts.map { conflict ->
+            KavitaConflict(
+                title = reported[conflict.resolved.identity.stableId]?.displayName.orEmpty(),
+                resolved = conflict.resolved,
+                discarded = conflict.discarded,
+            )
+        }
     }
 
     /**

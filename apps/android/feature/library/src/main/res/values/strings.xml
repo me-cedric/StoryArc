@@ -365,6 +365,11 @@
     <string name="sync_conflict_keep">Keep the furthest</string>
     <string name="sync_conflict_take">Take the other</string>
     <string name="sync_conflict_body">%1$d titles moved on both this device and the library they came from. The furthest position was kept.</string>
+    <string name="sync_conflict_body_one">“%1$s” moved on both this device and the library it came from — %2$s was kept, not %3$s.</string>
+    <string name="sync_conflict_show">Show</string>
+    <string name="sync_conflict_item">%1$s: kept at %2$s, not %3$s.</string>
+    <string name="sync_position_page">page %1$d of %2$d</string>
+    <string name="sync_position_percent">%1$d%%</string>
     <string name="library_scope_all">Everywhere</string>
     <string name="library_more">More</string>
     <string name="library_filter_library">Which library</string>

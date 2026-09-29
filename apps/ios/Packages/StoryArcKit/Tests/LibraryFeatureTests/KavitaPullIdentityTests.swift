@@ -181,6 +181,36 @@ struct KavitaPullIdentityTests {
         #expect(locator.isEmpty)
     }
 
+    @Test("A genuine conflict is named for the reader, by the chapter's own title")
+    func aGenuineConflictIsNamedForTheReader() async throws {
+        // D3: the notice must name what changed, and only the chapter a pull is still
+        // holding carries a title -- `ProgressPull.Conflict` alone does not.
+        let progress = try ProgressStore.inMemory()
+        let kavita = try kavita()
+        try await progress.save(
+            ReadingProgress(
+                identity: PublicationIdentity(
+                    serverIdentifier: .init(sourceID: source, remoteID: "chapter:42"),
+                    normalizedPath: "/downloads/Bone 01.cbz"
+                ),
+                position: .page(index: 3, of: 10),
+                updatedAt: Date(timeIntervalSince1970: 1_000),
+                syncedPosition: .page(index: 1, of: 10)
+            )
+        )
+        kavita.remember(origin(), for: "path:/caches/Kavita/42/Bone 1.cbz")
+
+        let conflicts = await KavitaSync.pull(
+            [KavitaChapter(id: 42, number: "1", title: "Bone", pages: 10, pagesRead: 9)],
+            in: kavita,
+            into: progress
+        )
+
+        #expect(conflicts.count == 1)
+        #expect(conflicts.first?.title == "Bone")
+        #expect(conflicts.first?.discarded == .page(index: 3, of: 10))
+    }
+
     @Test("A record written before server identifiers existed is still found by its id")
     func theStableIdRemainsTheFallback() async throws {
         // Every position in the shipped app was written against a path alone, and the
