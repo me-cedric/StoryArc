@@ -16,6 +16,7 @@ import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.persistence.CredentialStore
 import java.io.IOException
+import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -271,6 +272,12 @@ data class CataloguePage(
     val credential: OpdsCredential?,
     /** The origin the credential belongs to: this address, and nowhere the feed names. */
     val origin: OpdsOrigin? = OpdsOrigin.of(url),
+    /**
+     * The registered source this page belongs to, so a download from it is keyed against the
+     * catalogue rather than its raw entry id alone. See [DownloadQueue]. Null only where
+     * nothing states one, which keeps every existing caller valid.
+     */
+    val sourceId: UUID? = null,
 ) {
     companion object {
         /**
@@ -283,7 +290,7 @@ data class CataloguePage(
             val credential = source.credentialReference
                 ?.let { credentials?.secret(it) }
                 ?.let(OpdsCredential::of)
-            return CataloguePage(source.displayName, url, credential)
+            return CataloguePage(source.displayName, url, credential, sourceId = source.id)
         }
     }
 }

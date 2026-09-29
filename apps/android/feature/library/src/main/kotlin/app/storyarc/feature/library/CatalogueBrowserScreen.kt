@@ -77,7 +77,7 @@ fun CatalogueBrowserScreen(
     val feed by browser.feed.collectAsStateWithLifecycle()
     val entries by browser.entries.collectAsStateWithLifecycle()
     val downloads by queue.library.collectAsStateWithLifecycle()
-    val onDevice = downloads.finished.map { it.id }.toSet()
+    val onDevice = downloads.finished.map { queue.rawEntryId(it.id) }.toSet()
     val active = downloads.pending
 
     // The term as typed, and the result of the last search that was not the server's.
@@ -219,7 +219,7 @@ fun CatalogueBrowserScreen(
                         // packing for a flight wants the download without the reading, and
                         // without a walk through the detail screen either.
                         onDownload = { download(entry) },
-                        onRemove = { queue.remove(entry.id) },
+                        onRemove = { queue.remove(queue.downloadId(entry.id)) },
                     )
                     // The next page arrives because the reader scrolled, not because they
                     // pressed anything. Skipped while a local filter is showing: the filter
@@ -249,7 +249,7 @@ fun CatalogueBrowserScreen(
                             onEnter = onEnter,
                             onSelect = onSelect,
                             onDownload = download,
-                            onRemove = { entry -> queue.remove(entry.id) },
+                            onRemove = { entry -> queue.remove(queue.downloadId(entry.id)) },
                         )
                     }
                 }

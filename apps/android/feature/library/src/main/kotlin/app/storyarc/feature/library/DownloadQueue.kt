@@ -63,6 +63,16 @@ class DownloadQueue(
      */
     origin: OpdsOrigin? = null,
     /**
+     * The source this catalogue belongs to, so an enqueued download is keyed against the
+     * catalogue it came from rather than its raw entry id alone.
+     *
+     * `offline-downloads`' *OPDS downloads are keyed by the raw entry id* (dl-core 1.2): two
+     * catalogues that number their entries the same way shared one record and one file. Null
+     * only where there is no catalogue behind the queue (a host test, mostly), which keeps
+     * the old, unscoped id.
+     */
+    val sourceId: UUID? = null,
+    /**
      * What the reader has asked of the queue.
      *
      * A function rather than a value: `offline-downloads` requires a paused queue to
@@ -85,12 +95,56 @@ class DownloadQueue(
      */
     private val onWifi: Flow<Boolean> = NetworkCost.onWifi(context),
 ) : RememberObserver {
-    private val _library = MutableStateFlow(
-        // Nothing outside this process carries a transfer on Android, so a download the
-        // store calls running is one whose process died mid-flight. It goes back in the
-        // queue rather than waiting for a coroutine that no longer exists.
-        (store?.library() ?: DownloadLibrary()).reclaiming(emptySet()),
-    )
+    /** Kept for [loadMigratedLibrary], which the [client] property below does not need. */
+    private val origin: OpdsOrigin? = origin
+
+    /**
+     * The id a download of this entry is recorded under.
+     *
+     * Namespaced by source when one is known, as Kavita already keys a chapter. Without a
+     * source the raw entry id stands, which keeps a queue built with none (a host test,
+     * mostly) working exactly as it did.
+     */
+    fun downloadId(entryId: String): String = sourceId?.let { "opds:$it:$entryId" } ?: entryId
+
+    /**
+     * The entry id [downloadId] was built from, for a screen comparing a live feed's ids
+     * against what is on disk.
+     *
+     * A download this queue did not key -- a Kavita chapter, a local keep, a stray this
+     * origin does not own -- has no such prefix and is returned unchanged, which simply
+     * never matches an OPDS entry id and is exactly what the pre-1.2 behaviour was.
+     */
+    fun rawEntryId(downloadId: String): String {
+        val prefix = sourceId?.let { "opds:$it:" } ?: return downloadId
+        return downloadId.removePrefix(prefix)
+    }
+
+    /**
+     * What the store holds, with any pre-1.2 stray this catalogue's origin owns re-keyed --
+     * see [DownloadMigration]. Reclaimed after, because nothing outside this process carries
+     * a transfer on Android, so a download the store calls running is one whose process died
+     * mid-flight; it goes back in the queue rather than waiting for a coroutine that no
+     * longer exists.
+     */
+    private fun loadMigratedLibrary(): DownloadLibrary {
+        val loaded = store?.library() ?: DownloadLibrary()
+        val fixed = if (store != null && sourceId != null && origin != null) {
+            val migration = DownloadMigration.migrating(loaded, sourceId, origin)
+            if (migration.renamed.isNotEmpty()) {
+                migration.renamed.forEach { (from, to) -> store.rename(from, to) }
+                store.save(migration.library)
+                migration.library
+            } else {
+                loaded
+            }
+        } else {
+            loaded
+        }
+        return fixed.reclaiming(emptySet())
+    }
+
+    private val _library = MutableStateFlow(loadMigratedLibrary())
 
     /** What has been downloaded and what is on its way. */
     val library: StateFlow<DownloadLibrary> = _library.asStateFlow()
@@ -135,7 +189,7 @@ class DownloadQueue(
      */
     fun needsMeteredConfirmation(entry: OpdsEntry): Boolean = MeteredDownload.needsConfirmation(
         isMetered = NetworkCost.isCareful(context),
-        isOverridden = entry.id in overridden,
+        isOverridden = downloadId(entry.id) in overridden,
     )
 
     /**
@@ -147,7 +201,7 @@ class DownloadQueue(
      * a first download is usually nothing, and the dialog says so in words rather than
      * showing a number nobody supplied.
      */
-    fun statedBytes(entry: OpdsEntry): Long? = _library.value[entry.id]?.expectedBytes
+    fun statedBytes(entry: OpdsEntry): Long? = _library.value[downloadId(entry.id)]?.expectedBytes
 
     /** Whether this one may start over the connection the device is on. */
     private fun mayStart(download: Download): Boolean = MeteredDownload.mayStart(
@@ -176,19 +230,20 @@ class DownloadQueue(
         entry: OpdsEntry,
         acquisition: OpdsAcquisition,
         overridingMeteredConnection: Boolean = false,
-        sourceId: UUID? = null,
+        sourceId: UUID? = this@DownloadQueue.sourceId,
     ) {
-        if (overridingMeteredConnection) overridden += entry.id
+        val id = downloadId(entry.id)
+        if (overridingMeteredConnection) overridden += id
         _library.value = _library.value.queueing(
             Download(
-                id = entry.id,
+                id = id,
                 sourceId = sourceId,
                 title = entry.title,
                 remote = acquisition.href,
                 mediaType = acquisition.mediaType,
             ),
         )
-        entries[entry.id] = entry
+        entries[id] = entry
         store?.save(_library.value)
         pump()
     }
@@ -207,9 +262,10 @@ class DownloadQueue(
         overridingMeteredConnection: Boolean = false,
     ): File? {
         downloaded(entry)?.let { return it }
+        val id = downloadId(entry.id)
         val waiter = CompletableDeferred<File?>()
-        waiting.getOrPut(entry.id) { mutableListOf() }.add(waiter)
-        val existing = _library.value[entry.id]?.state
+        waiting.getOrPut(id) { mutableListOf() }.add(waiter)
+        val existing = _library.value[id]?.state
         val stuck = existing is Download.State.Failed ||
             existing == Download.State.Paused(Download.Pause.BY_READER)
         if (stuck) {
@@ -218,9 +274,9 @@ class DownloadQueue(
             // reader paused stays paused until asked. A reader pressing Read on either is
             // that ask -- without this, [waiter] awaits a transfer nothing is ever going to
             // start.
-            if (overridingMeteredConnection) overridden += entry.id
-            entries[entry.id] = entry
-            resume(entry.id)
+            if (overridingMeteredConnection) overridden += id
+            entries[id] = entry
+            resume(id)
         } else {
             enqueue(entry, acquisition, overridingMeteredConnection)
         }
@@ -228,7 +284,7 @@ class DownloadQueue(
         // one, so it goes to the head of the queue rather than behind whatever they lined up
         // earlier and are not reading -- on a metered link, where the bound is one, that was
         // the difference between a five-megabyte comic and a four-hundred-megabyte wait.
-        promote(entry.id)
+        promote(id)
         return waiter.await()
     }
 
@@ -288,7 +344,8 @@ class DownloadQueue(
      * offered again rather than shown a missing file.
      */
     fun downloaded(entry: OpdsEntry): File? {
-        val download = _library.value[entry.id]?.takeIf { it.state.isFinished } ?: return null
+        val download = _library.value[downloadId(entry.id)]?.takeIf { it.state.isFinished }
+            ?: return null
         val file = store?.location(download) ?: return null
         return file.takeIf { it.exists() }
     }
