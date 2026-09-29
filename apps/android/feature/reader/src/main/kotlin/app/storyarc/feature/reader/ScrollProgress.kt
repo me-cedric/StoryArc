@@ -1,7 +1,9 @@
 package app.storyarc.feature.reader
 
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlin.math.roundToInt
 
 /**
@@ -29,15 +31,20 @@ internal object ScrollProgress {
 }
 
 /**
- * Restores [fraction] through the page at [target], once the container has laid it out
- * enough to know its size. Does nothing outside Scroll, or with nothing stored.
+ * Restores the last session's fraction through [page], shown at display position
+ * [target], once. Does nothing outside Scroll, with nothing stored for that page, or
+ * once the reader has already moved on.
  *
- * Reads the size back from the state's own layout info right after the plain jump
- * `paging.goTo` already did — `LazyListState.scrollToItem` returns only once that scroll
- * has actually applied, so the size is the real one and not a guess.
+ * Waits for the page to decode first: until then its item is a placeholder whose length
+ * is a guess, and a fraction of the guess is not where the reader was. Then two frames,
+ * so the item has been laid out at the decoded page's own length before it is read back.
  */
-internal suspend fun restoreScrollFraction(paging: Paging, target: Int, fraction: Float) {
-    if (paging !is Paging.Scrolled || fraction <= 0f) return
+internal suspend fun restoreScrollFraction(paging: Paging, target: Int, page: Int, viewModel: ReaderViewModel) {
+    if (paging !is Paging.Scrolled) return
+    snapshotFlow { viewModel.decoded.containsKey(page) }.first { it }
+    repeat(2) { withFrameNanos { } }
+    val fraction = viewModel.takeScrollRestore(page)
+    if (fraction == null || fraction <= 0f || paging.current != target) return
     val item = target + paging.lead
     val size = paging.state.layoutInfo.visibleItemsInfo
         .firstOrNull { it.index == item }
@@ -47,10 +54,11 @@ internal suspend fun restoreScrollFraction(paging: Paging, target: Int, fraction
 }
 
 /**
- * Remembers where a continuous scroll sits within its current page, as it moves. Does
- * nothing outside Scroll — the other containers have no sub-page position to lose.
+ * Reports where a continuous scroll sits within its first visible item, as it moves, with
+ * that item's display position. Does nothing outside Scroll — the other containers have
+ * no sub-page position to lose.
  */
-internal suspend fun observeScrollFraction(paging: Paging, onFraction: (Float) -> Unit) {
+internal suspend fun observeScrollFraction(paging: Paging, onFraction: (display: Int, fraction: Float) -> Unit) {
     if (paging !is Paging.Scrolled) return
     snapshotFlow {
         val index = paging.state.firstVisibleItemIndex
@@ -58,8 +66,8 @@ internal suspend fun observeScrollFraction(paging: Paging, onFraction: (Float) -
             .firstOrNull { it.index == index }
             ?.size
             ?: 0
-        ScrollProgress.fraction(paging.state.firstVisibleItemScrollOffset, size)
+        paging.current to ScrollProgress.fraction(paging.state.firstVisibleItemScrollOffset, size)
     }
         .distinctUntilChanged()
-        .collect(onFraction)
+        .collect { (display, fraction) -> onFraction(display, fraction) }
 }

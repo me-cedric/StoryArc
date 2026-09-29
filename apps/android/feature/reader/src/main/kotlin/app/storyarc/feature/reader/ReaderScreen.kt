@@ -483,12 +483,14 @@ private fun Pager(
         hasOpened = true
         val target = displayIndex(viewModel.initialIndex)
         paging.goTo(target, animate = false)
-        restoreScrollFraction(paging, target, viewModel.restoredScrollFraction())
+        restoreScrollFraction(paging, target, viewModel.initialIndex, viewModel)
     }
     // `comic-reader`: the scroll position is "preserved exactly" across a reopen. See
     // `ScrollProgress` for why only Scroll has a sub-page position to lose or restore.
     LaunchedEffect(paging) {
-        observeScrollFraction(paging, viewModel::saveScrollFraction)
+        observeScrollFraction(paging) { display, fraction ->
+            if (display in 0 until slotCount) viewModel.saveScrollFraction(fraction, modelIndex(display))
+        }
     }
 
     // `comic-reader`: a direction change "applies immediately without losing the current

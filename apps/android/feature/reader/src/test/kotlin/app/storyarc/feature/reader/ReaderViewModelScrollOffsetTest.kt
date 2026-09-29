@@ -6,6 +6,7 @@ import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.persistence.ReaderPreferences
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -34,23 +35,46 @@ class ReaderViewModelScrollOffsetTest {
     )
 
     @Test
-    fun `a saved scroll fraction comes back to a fresh model for the same publication`() {
+    fun `a saved scroll fraction comes back to a fresh model, for the page it was on`() {
         val preferences = ReaderPreferences.open(RuntimeEnvironment.getApplication())
         val first = model(preferences)
-        assertEquals(0f, first.restoredScrollFraction(), 0f)
+        assertNull(first.takeScrollRestore(page = 0))
 
-        first.saveScrollFraction(0.6f)
+        first.saveScrollFraction(0.6f, page = 2)
 
         val second = model(preferences)
-        assertEquals(0.6f, second.restoredScrollFraction(), 0f)
+        assertEquals(0.6f, second.takeScrollRestore(page = 2)!!, 0f)
+        assertNull("A restore is handed over once.", second.takeScrollRestore(page = 2))
+    }
+
+    @Test
+    fun `a fraction saved on one page is not restored onto another`() {
+        // A position synced from another device, or a page turned to in another mode,
+        // opens on a page the stored fraction was never through.
+        val preferences = ReaderPreferences.open(RuntimeEnvironment.getApplication())
+        model(preferences).saveScrollFraction(0.6f, page = 2)
+
+        assertNull(model(preferences).takeScrollRestore(page = 5))
+    }
+
+    @Test
+    fun `this session's first save does not erase what the last session left`() {
+        // The scroll saves on its first layout, at the top of the page, before its
+        // restore has run. That save used to overwrite the fraction it was about to read.
+        val preferences = ReaderPreferences.open(RuntimeEnvironment.getApplication())
+        model(preferences).saveScrollFraction(0.6f, page = 2)
+
+        val reopened = model(preferences)
+        reopened.saveScrollFraction(0f, page = 2)
+        assertEquals(0.6f, reopened.takeScrollRestore(page = 2)!!, 0f)
     }
 
     @Test
     fun `with no preferences store, nothing is remembered and nothing throws`() {
         val model = model(preferences = null)
 
-        model.saveScrollFraction(0.5f)
+        model.saveScrollFraction(0.5f, page = 0)
 
-        assertEquals(0f, model.restoredScrollFraction(), 0f)
+        assertNull(model.takeScrollRestore(page = 0))
     }
 }

@@ -115,6 +115,7 @@ public final class ReaderModel {
     public private(set) var settings: ShelfSettings
 
     @ObservationIgnored let preferences: ReaderPreferences?
+    @ObservationIgnored lazy var pendingScrollRestore = preferences?.scrollOffsets().entry(for: publication.identity)
     @ObservationIgnored private let canCurl: Bool
     @ObservationIgnored private let shelf: String
 

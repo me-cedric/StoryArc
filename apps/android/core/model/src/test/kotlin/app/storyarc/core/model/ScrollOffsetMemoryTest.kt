@@ -13,28 +13,28 @@ class ScrollOffsetMemoryTest {
     private val novel = PublicationIdentity(normalizedPath = "/books/two.epub")
 
     @Test
-    fun `nothing stored reads as no fraction, not zero`() {
-        assertNull(ScrollOffsetMemory().fraction(comic))
+    fun `nothing stored reads as no entry, not zero`() {
+        assertNull(ScrollOffsetMemory().entry(comic))
     }
 
     @Test
-    fun `a remembered fraction comes back for that publication and no other`() {
-        val memory = ScrollOffsetMemory().remembering(comic, 0.42f)
-        assertEquals(0.42f, memory.fraction(comic)!!, 0.001f)
-        assertNull(memory.fraction(novel))
+    fun `a remembered place comes back for that publication and no other`() {
+        val memory = ScrollOffsetMemory().remembering(comic, 0.42f, page = 3)
+        assertEquals(ScrollOffsetMemory.Entry(3, 0.42f), memory.entry(comic))
+        assertNull(memory.entry(novel))
     }
 
     @Test
-    fun `remembering again for the same publication replaces it`() {
+    fun `remembering again for the same publication replaces the page and the fraction`() {
         val memory = ScrollOffsetMemory()
-            .remembering(comic, 0.2f)
-            .remembering(comic, 0.9f)
-        assertEquals(0.9f, memory.fraction(comic)!!, 0.001f)
+            .remembering(comic, 0.2f, page = 1)
+            .remembering(comic, 0.9f, page = 4)
+        assertEquals(ScrollOffsetMemory.Entry(4, 0.9f), memory.entry(comic))
     }
 
     @Test
     fun `a fraction outside 0 to 1 is clamped before it is kept`() {
-        val memory = ScrollOffsetMemory().remembering(comic, 4f)
-        assertEquals(1f, memory.fraction(comic)!!, 0.001f)
+        val memory = ScrollOffsetMemory().remembering(comic, 4f, page = 0)
+        assertEquals(1f, memory.entry(comic)!!.fraction, 0.001f)
     }
 }
