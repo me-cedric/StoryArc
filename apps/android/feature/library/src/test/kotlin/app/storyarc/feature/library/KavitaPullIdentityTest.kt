@@ -60,7 +60,9 @@ class KavitaPullIdentityTest {
         progress.save(
             ReadingProgress(
                 PublicationIdentity(
-                    serverIdentifier = PublicationIdentity.ServerIdentifier(source, "42"),
+                    // The form `KavitaOrigin.serverIdentifier` builds, and the one the
+                    // library row and the kept card already used.
+                    serverIdentifier = PublicationIdentity.ServerIdentifier(source, "chapter:42"),
                     normalizedPath = "/downloads/Bone 01.cbz",
                 ),
                 ReadingPosition.Page(4, 10),
@@ -74,7 +76,7 @@ class KavitaPullIdentityTest {
 
         val read = progress.progress(
             PublicationIdentity(
-                serverIdentifier = PublicationIdentity.ServerIdentifier(source, "42"),
+                serverIdentifier = PublicationIdentity.ServerIdentifier(source, "chapter:42"),
             ),
         )
         assertEquals("the server was further ahead", ReadingPosition.Page(7, 10), read?.position)

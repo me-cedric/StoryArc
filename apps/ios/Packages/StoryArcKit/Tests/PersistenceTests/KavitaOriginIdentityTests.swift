@@ -26,9 +26,11 @@ struct KavitaOriginIdentityTests {
     func aKnownSourceYieldsAnIdentifier() {
         let source = UUID()
 
+        // "chapter:42", not the bare number: the same form `KavitaContributor` and
+        // `KavitaFind` build a chapter's identity with.
         #expect(
             origin(sourceId: source.uuidString).serverIdentifier
-                == PublicationIdentity.ServerIdentifier(sourceID: source, remoteID: "42")
+                == PublicationIdentity.ServerIdentifier(sourceID: source, remoteID: "chapter:42")
         )
     }
 

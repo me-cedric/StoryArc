@@ -112,7 +112,7 @@ internal interface ProgressDao {
     suspend fun clear()
 }
 
-@Database(entities = [ProgressRow::class], version = 4, exportSchema = false)
+@Database(entities = [ProgressRow::class], version = 5, exportSchema = false)
 internal abstract class ProgressDatabase : RoomDatabase() {
     abstract fun progress(): ProgressDao
 }
@@ -191,6 +191,37 @@ internal val MIGRATION_3_4 = object : Migration(3, 4) {
     }
 }
 
+/**
+ * Two chapter identifiers, two rows.
+ *
+ * `KavitaOrigin.serverIdentifier` used to record a chapter's remote id as its bare number,
+ * `"42"`, while the library row, the kept card and a pull's own remote record all built one
+ * that reads `"chapter:42"` -- `KavitaContributor`, `KavitaFind`. The two never matched, so
+ * a pulled position could never attach to the row a reader had opened. Every `server_key`
+ * still carrying the bare form is rewritten once, so no reading position is lost to the
+ * rename.
+ *
+ * The `WHERE` clause is the whole of "still carrying the bare form": the new form is never
+ * all digits (a chapter's remote id is `"chapter:<n>"`, an OPDS entry's is `"opds:<id>"`),
+ * so round-tripping the remainder through `INTEGER` and back to `TEXT` and comparing it to
+ * itself is SQLite's way of asking "is this whole string a number".
+ */
+internal val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            """
+            UPDATE progress
+            SET server_key = substr(server_key, 1, instr(server_key, ':')) || 'chapter:' ||
+                substr(server_key, instr(server_key, ':') + 1)
+            WHERE server_key IS NOT NULL
+              AND instr(server_key, ':') > 0
+              AND CAST(CAST(substr(server_key, instr(server_key, ':') + 1) AS INTEGER) AS TEXT)
+                  = substr(server_key, instr(server_key, ':') + 1)
+            """.trimIndent(),
+        )
+    }
+}
+
 class ProgressStore internal constructor(private val database: ProgressDatabase) {
 
     companion object {
@@ -201,14 +232,15 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
                     context.applicationContext,
                     ProgressDatabase::class.java,
                     name,
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build(),
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build(),
             )
 
         /** An in-memory store, for tests. */
         fun inMemory(context: Context): ProgressStore =
             ProgressStore(
                 Room.inMemoryDatabaseBuilder(context, ProgressDatabase::class.java)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build(),
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .build(),
             )
     }
 

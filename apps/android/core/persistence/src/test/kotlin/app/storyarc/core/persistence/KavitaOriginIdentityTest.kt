@@ -28,8 +28,10 @@ class KavitaOriginIdentityTest {
     fun `a chapter on a source the app knows becomes a server identifier`() {
         val source = UUID.randomUUID()
 
+        // "chapter:42", not the bare number: the same form `KavitaContributor` and
+        // `KavitaFind` build a chapter's identity with.
         assertEquals(
-            PublicationIdentity.ServerIdentifier(source, "42"),
+            PublicationIdentity.ServerIdentifier(source, "chapter:42"),
             origin(source.toString()).serverIdentifier,
         )
     }

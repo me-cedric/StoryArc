@@ -34,10 +34,16 @@ data class KavitaOrigin(
  * identity to the source's own id, and inventing one would file two servers' chapter 42 as
  * one publication -- data loss in the one store this app promises never to lose, and
  * strictly worse than leaving them as two records.
+ *
+ * `"chapter:$chapterId"`, not the bare number -- the same form `KavitaContributor` and
+ * `KavitaFind` build a chapter's identity with. A second spelling of one chapter's remote
+ * id used to be two rows: the library row and the kept card filed under `"chapter:42"`, a
+ * pull's progress under `"42"`, and `PublicationIdentity.matches` never saw the two as one
+ * publication.
  */
 val KavitaOrigin.serverIdentifier: PublicationIdentity.ServerIdentifier?
     get() = runCatching { UUID.fromString(sourceId) }.getOrNull()
-        ?.let { PublicationIdentity.ServerIdentifier(it, chapterId.toString()) }
+        ?.let { PublicationIdentity.ServerIdentifier(it, "chapter:$chapterId") }
 
 /**
  * One thing waiting to reach a server that was not there when it happened.
