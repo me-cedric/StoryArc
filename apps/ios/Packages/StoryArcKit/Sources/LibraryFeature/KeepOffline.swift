@@ -40,8 +40,13 @@ extension LibraryModel {
     }
 
     /// Copies a whole selection into the download store, and reports what it copied.
+    ///
+    /// The record goes through the shared queue rather than a plain `store.save` —
+    /// `offline-downloads` 1.1: written straight to the store, this copy used to be undone
+    /// the next time any catalogue's own queue saved, because that queue's in-memory copy
+    /// knew nothing of the write.
     @discardableResult
-    func keepOffline(_ selection: Set<String>) async -> Set<String> {
+    func keepOffline(_ selection: Set<String>, queue: DownloadQueue = .shared()) async -> Set<String> {
         let wanted = BulkSelection.downloading(selection, onDevice: keptOffline)
         let store = DownloadStore()
         try? store.prepare()
@@ -55,17 +60,18 @@ extension LibraryModel {
                   let url = location(of: publication),
                   let bytes = await copy(publication, at: url, into: store)
             else { continue }
-            record(publication, from: url, bytes: bytes, in: store)
+            record(publication, from: url, bytes: bytes, in: queue)
             kept.insert(id)
         }
         return kept
     }
 
     /// Forgets copies this made, deleting the files with them.
-    func forgetKept(_ ids: Set<String>) {
-        let store = DownloadStore()
-        var library = store.library()
-        for id in ids { library = store.removing(id, from: library) }
+    ///
+    /// Through the shared queue, for the same reason the keep above is: a removal ``store``
+    /// wrote directly would be undone the next time any catalogue's own queue saved.
+    func forgetKept(_ ids: Set<String>, queue: DownloadQueue = .shared()) {
+        for id in ids { queue.remove(id) }
     }
 
     /// Puts one publication's bytes beside the other downloads, off the main actor.
@@ -107,24 +113,22 @@ extension LibraryModel {
         _ publication: Publication,
         from url: URL,
         bytes: Int64,
-        in store: DownloadStore
+        in queue: DownloadQueue
     ) {
         // The copy would not exist without one; `copy` refuses before reaching here.
         guard let mediaType = publication.format.mediaType else { return }
-        store.save(
-            store.library().queueing(
-                Download(
-                    id: publication.id,
-                    sourceID: publication.sourceID,
-                    title: publication.displayTitle,
-                    // Where it came from, which for this one is the reader's own folder.
-                    remote: url,
-                    mediaType: mediaType,
-                    state: .finished,
-                    expectedBytes: bytes,
-                    downloadedBytes: bytes,
-                    completedAt: Date()
-                )
+        queue.record(
+            Download(
+                id: publication.id,
+                sourceID: publication.sourceID,
+                title: publication.displayTitle,
+                // Where it came from, which for this one is the reader's own folder.
+                remote: url,
+                mediaType: mediaType,
+                state: .finished,
+                expectedBytes: bytes,
+                downloadedBytes: bytes,
+                completedAt: Date()
             )
         )
     }

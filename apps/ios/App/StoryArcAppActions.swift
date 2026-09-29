@@ -362,12 +362,14 @@ extension StoryArcApp {
     ///
     /// The source itself stays. `sources` lists this as its own action beside removal, and a
     /// reader freeing space before a flight has not asked to disconnect their server.
+    ///
+    /// Through the shared queue rather than a plain `downloadStore.save` — `offline-downloads`
+    /// 1.1: that write used to compete with whichever catalogue queue saved next, which is
+    /// exactly what "a source removal is undone by the next queue save" describes.
     func removeDownloads(of source: Source) {
-        let (kept, removed) = downloads.removingAll(from: source.id)
+        let removed = DownloadQueue.shared().removingAll(from: source.id)
         guard !removed.isEmpty else { return }
-        for download in removed { downloadStore.remove(download) }
-        downloads = kept
-        downloadStore.save(kept)
+        downloads = DownloadQueue.shared().library
         // What a Kavita server said about those downloads goes with them. A card left behind
         // describes bytes nobody has: it corrupts nothing, and it would put a row in an
         // offline search that opens nothing.

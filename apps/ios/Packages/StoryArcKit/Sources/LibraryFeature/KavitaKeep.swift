@@ -55,12 +55,20 @@ enum KavitaKeep {
     /// Nil when any step fails, and deliberately without a half-kept result: a record whose
     /// bytes are not there reads to a reader as a library that lost their book, which is the
     /// failure ``DownloadStore`` exists to make impossible.
+    ///
+    /// `@MainActor`, and the record is written through ``DownloadQueue/record(_:)`` rather
+    /// than straight to `downloads` — `offline-downloads` 1.1: a Kavita keep written
+    /// straight to the store used to be undone the next time any catalogue's own queue
+    /// saved, because that queue's in-memory copy knew nothing of this write. The one app
+    /// -level queue is the only writer now, so this goes through it too.
+    @MainActor
     static func keep(
         _ subject: Subject,
         client: KavitaClient,
         downloads: DownloadStore = DownloadStore(),
         cards: KavitaCardStore = KavitaCardStore(),
-        progress: KavitaProgressStore
+        progress: KavitaProgressStore,
+        queue: DownloadQueue = .shared()
     ) async -> Kept? {
         let (chapter, series, origin, sourceID) =
             (subject.chapter, subject.series, subject.origin, subject.sourceID)
@@ -110,19 +118,17 @@ enum KavitaKeep {
         // No secret in it: Kavita takes the key as a bearer header on this route, not in the
         // query, so what is written down is a path and a chapter number.
         let remote = await client.address.chapterURL(chapter.id) ?? destination
-        downloads.save(
-            downloads.library().queueing(
-                Download(
-                    id: identifier,
-                    sourceID: sourceID,
-                    title: title,
-                    remote: remote,
-                    mediaType: mediaType,
-                    state: .finished,
-                    expectedBytes: bytes,
-                    downloadedBytes: bytes,
-                    completedAt: Date()
-                )
+        queue.record(
+            Download(
+                id: identifier,
+                sourceID: sourceID,
+                title: title,
+                remote: remote,
+                mediaType: mediaType,
+                state: .finished,
+                expectedBytes: bytes,
+                downloadedBytes: bytes,
+                completedAt: Date()
             )
         )
 

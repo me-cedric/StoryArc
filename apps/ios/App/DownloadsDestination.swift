@@ -46,8 +46,14 @@ struct DownloadsDestination: View {
 
     private let store = DownloadStore()
 
+    /// The one app-level queue. `offline-downloads` 1.1: this screen used to read and write
+    /// `DownloadStore` directly, holding no queue of its own — which is exactly what let a
+    /// catalogue page's queue overwrite a reorder, a stop or a retry the moment it next
+    /// saved, and what left *Stop* unable to cancel a transfer that page's queue was running.
+    @State private var queue = DownloadQueue.shared()
+
     /// The record: what is queued, running, failed and finished.
-    @State private var downloads = DownloadStore().library()
+    private var downloads: DownloadLibrary { queue.library }
 
     /// What the files actually weigh, asked of the filesystem rather than summed from the
     /// record. The system can reclaim a download, and a total that counts bytes nobody has
@@ -244,7 +250,7 @@ struct DownloadsDestination: View {
                 Spacer(minLength: 0)
 
                 Button {
-                    downloads = removed.undo(downloads, in: store)
+                    queue.restore(removed)
                     self.removed = nil
                     reload()
                 } label: {
@@ -268,8 +274,7 @@ struct DownloadsDestination: View {
     /// Moves a queued download one place. One place at a time rather than a drag, because
     /// the queue is short and a drag on a strip this size is a gesture nobody lands.
     private func reorder(_ download: Download, later: Bool) {
-        downloads = downloads.moving(download.id, later: later)
-        store.save(downloads)
+        queue.reorder(download.id, later: later)
     }
 
     /// Takes a download off the device, reversibly.
@@ -284,22 +289,23 @@ struct DownloadsDestination: View {
         // system owns, and a failed one's were removed when it failed. The undo bar's
         // sentence — "removed from this device. Your place is kept." — would be as untrue
         // here as the confirmation used to be. Forgetting the record is the whole of it.
-        guard confirmation.hasLanded,
-              let outcome = store.removeAfterFinishing(download.id, from: downloads)
-        else {
-            // Nothing on disk to move aside — a record whose file the system reclaimed.
-            // Forgetting it is the whole removal, and there is nothing to undo.
-            downloads = store.removing(download.id, from: downloads)
+        //
+        // `queue.cancel` rather than a plain removal: `offline-downloads` 1.1's *Stop does
+        // not cancel the live transfer* was exactly this branch reaching for
+        // `store.removing` and leaving whatever task the queue was running for it to finish
+        // unwatched. `cancel` stops that task, when this queue is the one running it, and
+        // forgets the record either way.
+        guard confirmation.hasLanded, let outcome = queue.removeAfterFinishing(download.id) else {
+            queue.cancel(download.id)
             reload()
             return
         }
 
-        downloads = outcome.library
         removed?.settle()
-        removed = outcome.removed
+        removed = outcome
         reload()
 
-        let taken = outcome.removed
+        let taken = outcome
         Task {
             try? await Task.sleep(for: .seconds(10))
             guard removed?.download.id == taken.download.id else { return }
@@ -309,21 +315,13 @@ struct DownloadsDestination: View {
         }
     }
 
-    /// Puts a failed transfer back in the queue, and hands the pump to whoever has one.
+    /// Puts a failed transfer back in the queue.
     ///
-    /// The record is this destination's to write, as the reorder above is: `queued` is what
-    /// `DownloadQueue.resume` writes, minus the pump — and `Download.remote` carries the
-    /// address, the media type and the name, so no catalogue entry is needed to fetch one
-    /// again. The pump belongs to the running ``LibraryFeature/DownloadQueue``, which lives
-    /// with the catalogue page that started the transfer, so
-    /// ``LibraryFeature/DownloadQueue/retry(_:)`` asks whichever queue is alive to resume this
-    /// one; when none is, the next queue built reads the record and starts it in its `init`.
-    /// `DownloadQueueRetryTests` pins both ends. Either way the row now says *queued* and
-    /// means it: the record is in the queue, and the queue runs it.
+    /// `queue` is the one app-level queue every screen shares — `offline-downloads` 1.1 —
+    /// so there is no longer a question of whether *a* queue is alive to take the retry:
+    /// this is it, and it resumes the record and pumps in the same call.
     private func retry(_ download: Download) {
-        downloads = downloads.marking(download.id, as: .queued)
-        store.save(downloads)
-        DownloadQueue.retry(download.id)
+        queue.resume(download.id)
     }
 
     /// Re-reads what is true after a change: the total on disk, and the shelf.

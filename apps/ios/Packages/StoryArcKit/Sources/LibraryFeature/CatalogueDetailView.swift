@@ -30,6 +30,7 @@ struct CatalogueDetailView: View {
     let client: OpdsClient
 
     let queue: DownloadQueue
+    let sourceID: UUID
     let onOpen: (Publication, URL) -> Void
 
     @State private var cover: Image?
@@ -38,7 +39,7 @@ struct CatalogueDetailView: View {
     @State private var meteredAsk: MeteredAsk?
 
     var body: some View {
-        let onDevice = queue.onDevice.contains(queue.downloadID(for: entry.id))
+        let onDevice = queue.onDevice.contains(queue.downloadID(for: entry.id, sourceID: sourceID))
         let active = queue.library.pending
 
         return ScrollView {
@@ -52,7 +53,7 @@ struct CatalogueDetailView: View {
                     isDownloaded: onDevice,
                     onTake: { link in Task { await take(using: link) } },
                     onRead: { Task { await read() } },
-                    onRemove: { queue.remove(queue.downloadID(for: entry.id)) }
+                    onRemove: { queue.remove(queue.downloadID(for: entry.id, sourceID: sourceID)) }
                 )
 
                 if let summary = entry.summary, !summary.isEmpty {
@@ -151,7 +152,7 @@ struct CatalogueDetailView: View {
         using link: OpdsAcquisition,
         overridingMeteredConnection: Bool = false
     ) async {
-        if let file = queue.downloaded(entry) {
+        if let file = queue.downloaded(entry, sourceID: sourceID) {
             await open(from: file)
             return
         }
@@ -170,6 +171,7 @@ struct CatalogueDetailView: View {
         guard let file = await queue.fetch(
             entry,
             using: link,
+            sourceID: sourceID,
             overridingMeteredConnection: overridingMeteredConnection
         ) else { return }
         await open(from: file)

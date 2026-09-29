@@ -93,7 +93,8 @@ struct CatalogueGroupSection: View {
                         entry: entry,
                         browser: browser,
                         queue: queue,
-                        isDownloaded: onDevice.contains(queue.downloadID(for: entry.id)),
+                        sourceID: sourceID,
+                        isDownloaded: onDevice.contains(queue.downloadID(for: entry.id, sourceID: sourceID)),
                         onOpen: onOpen
                     )
                     .frame(width: StoryArcSpace.huge * 2)
@@ -178,6 +179,7 @@ struct CatalogueEntryLink: View {
     let entry: OpdsEntry
     let browser: CatalogueBrowser
     let queue: DownloadQueue
+    let sourceID: UUID
     let isDownloaded: Bool
     let onOpen: (Publication, URL) -> Void
 
@@ -191,6 +193,7 @@ struct CatalogueEntryLink: View {
                 credential: browser.credential,
                 client: browser.client,
                 queue: queue,
+                sourceID: sourceID,
                 onOpen: onOpen
             )
         } label: {
@@ -213,7 +216,7 @@ struct CatalogueEntryLink: View {
         .contextMenu {
             if isDownloaded {
                 Button(role: .destructive) {
-                    queue.remove(queue.downloadID(for: entry.id))
+                    queue.remove(queue.downloadID(for: entry.id, sourceID: sourceID))
                 } label: {
                     Text("downloads.remove", bundle: .module)
                 }
@@ -229,7 +232,7 @@ struct CatalogueEntryLink: View {
                             bytes: queue.statedBytes(of: entry)
                         )
                     } else {
-                        queue.enqueue(entry, using: best)
+                        queue.enqueue(entry, using: best, sourceID: sourceID)
                     }
                 } label: {
                     Text("catalogue.acquire.download", bundle: .module)
@@ -242,6 +245,7 @@ struct CatalogueEntryLink: View {
             queue.enqueue(
                 asked.entry,
                 using: asked.acquisition,
+                sourceID: sourceID,
                 overridingMeteredConnection: true
             )
         }

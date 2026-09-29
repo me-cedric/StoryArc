@@ -26,6 +26,11 @@ public struct CatalogueBrowserView: View {
     private let onOpen: (Publication, URL) -> Void
 
     /// What is downloading, and what is already here.
+    ///
+    /// The one app-level queue — see ``DownloadQueue/shared(pins:sources:credentials:settings:)``
+    /// — not a queue this page owns. `offline-downloads` 1.1: a queue built per page held
+    /// its own stale copy of the download store, so a *Stop* here did not reach the
+    /// transfer a different page's queue was running.
     @State private var queue: DownloadQueue
 
     /// The registered source this page belongs to, carried to every page below so a
@@ -59,20 +64,7 @@ public struct CatalogueBrowserView: View {
                 origin: home
             )
         )
-        _queue = State(
-            initialValue: DownloadQueue(
-                pins: pins,
-                store: DownloadStore(),
-                credential: { _ in credential },
-                origin: home,
-                sourceID: sourceID,
-                // The reader's own choices, read from the store on every pump rather than
-                // captured here. Without this the queue answers from `AppSettings.defaults`,
-                // where Wi-Fi-only is off and there is no storage limit — so it is never
-                // held, and a queue that is never held has nothing to resume.
-                settings: SettingsStore().settings
-            )
-        )
+        _queue = State(initialValue: DownloadQueue.shared())
         self.onOpen = onOpen
     }
 
@@ -236,7 +228,8 @@ public struct CatalogueBrowserView: View {
                     entry: entry,
                     browser: browser,
                     queue: queue,
-                    isDownloaded: onDevice.contains(queue.downloadID(for: entry.id)),
+                    sourceID: sourceID,
+                    isDownloaded: onDevice.contains(queue.downloadID(for: entry.id, sourceID: sourceID)),
                     onOpen: onOpen
                 )
                 .task {
