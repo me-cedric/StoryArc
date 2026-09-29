@@ -200,6 +200,7 @@ fun ReaderScreen(
     // without leaving this composable, so an effect that runs once would open the
     // first publication and then show a spinner for ever on the second.
     LaunchedEffect(viewModel) { viewModel.open(maxPixelSize) }
+    SmbNetworkWatchEffect()
 
     // `comic-reader`: "the screen does not auto-lock while a page is visible, and
     // normal locking resumes on leaving". A long look at one page is reading, not

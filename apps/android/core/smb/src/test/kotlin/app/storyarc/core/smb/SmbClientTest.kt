@@ -139,6 +139,36 @@ class SmbClientTest {
         }
     }
 
+    /**
+     * `network-share`'s *Network changes*: a session `open` handed out is dropped the moment
+     * [SmbSourceRegistry.dropAll] runs, which is what [SmbNetworkWatch]'s callback calls on
+     * every network-path change. Proved through [SmbSourceRegistry] itself rather than through
+     * a fake [android.net.ConnectivityManager] callback, which a JVM unit test has no way to
+     * drive — `open` registering every source it hands out is the one thing this test can
+     * reach, and it is also the one thing between a network change and any source noticing it.
+     *
+     * Asserted on [SmbSource.opens] rather than only on the bytes read: a mutation that made
+     * [SmbSourceRegistry.dropAll] do nothing would still read the same four bytes off the
+     * session that was never closed, which is exactly the false pass a bytes-only assertion
+     * would produce here.
+     */
+    @Test
+    fun `a network change drops every open session, not only the one read from`() = runBlocking {
+        assumeTrue(isServerRunning())
+        SmbClient(address).use { client ->
+            val source = client.open("Quiet Machines.cbz") as SmbSource
+            val before = source.read(0, 4)
+            assertEquals(1, source.opens)
+
+            SmbSourceRegistry.dropAll()
+
+            val after = source.read(0, 4)
+            assertEquals(before.toList(), after.toList())
+            assertEquals(2, source.opens)
+            assertNull(SmbReachability.blockedSince.value)
+        }
+    }
+
     private companion object {
         const val PORT = 4445
         const val SHARE = "Comics"

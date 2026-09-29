@@ -51,6 +51,7 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:persistence"))
     implementation(project(":core:format"))
+    implementation(project(":core:smb"))
 
     // `LocalActivity`, to hold the screen at one orientation. `comic-reader`'s lock is
     // an activity-level request and there is nowhere else in Compose to make it.
