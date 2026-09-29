@@ -8,7 +8,7 @@ internal import StoryArcCore
 // The module and its main class share a name, so the class is imported by itself: written
 // as `SMBClient.SMBClient` the compiler reads the module and finds no member.
 internal import class SMBClient.SMBClient
-internal import class SMBClient.FileReader
+internal import class SMBClient.Session
 internal import struct SMBClient.NTStatus
 internal import struct SMBClient.ErrorResponse
 
@@ -108,13 +108,20 @@ public actor SmbClient {
             // server restarting, and `network-share` asks for all three to be invisible.
             let address = self.address
             return SmbSource(length: Int64(stat.size)) {
-                let fresh = SMBClient(host: address.host, port: address.port)
-                try await fresh.login(
-                    username: address.isGuest ? nil : address.username,
-                    password: address.isGuest ? nil : address.password
-                )
-                try await fresh.connectShare(address.share)
-                return Held(try await fresh.fileReader(path: path))
+                let fresh = Held(SMBClient(host: address.host, port: address.port))
+                // A reopen that loses its deadline is cancelled. Ending its connection is
+                // what makes an abandoned login return, rather than wait for a reply that a
+                // silent network never sends.
+                return try await withTaskCancellationHandler {
+                    try await fresh.value.login(
+                        username: address.isGuest ? nil : address.username,
+                        password: address.isGuest ? nil : address.password
+                    )
+                    try await fresh.value.connectShare(address.share)
+                    return Held(SmbSession(client: fresh.value, reader: fresh.value.fileReader(path: path)))
+                } onCancel: {
+                    fresh.value.session.disconnect()
+                }
             }
         }
     }
@@ -262,138 +269,5 @@ public actor SmbClient {
     public static func check(_ address: SmbAddress) async throws -> SmbIdentity {
         let client = SmbClient(address: address)
         return try await client.connect()
-    }
-}
-
-/// A file on a share, read at an offset.
-///
-/// The third implementation ADR-0008 planned for. SMB2's `READ` takes an offset and a length
-/// as a first-class operation, so this is the interface it was already shaped like.
-private actor SmbSource: RandomAccessSource {
-    /// `nonisolated(unsafe)` for the reason the client's own is: the library's reader is a
-    /// plain class, and this actor is what serialises every use of it.
-    nonisolated(unsafe) private var reader: FileReader?
-    private let opener: @Sendable () async throws -> Held<FileReader>
-    nonisolated let length: Int64
-
-    /// Watches the path underneath this session, so a change drops it before the next read
-    /// finds out the hard way.
-    ///
-    /// `network-share`'s *Network changes*: nothing used to watch for one at all — a stale
-    /// session was dropped only after a read against it failed, which after this file's own
-    /// deadlines still means up to 20 s (or 10 s, for a reopen) of a wait this source already
-    /// knows is doomed the moment the path moves.
-    private let pathMonitor = NWPathMonitor()
-
-    /// `NWPathMonitor` calls its handler once immediately with the path already in effect,
-    /// which is not a change — only a report after this one drops the session.
-    private var hasSeenFirstPath = false
-
-    init(length: Int64, opener: @escaping @Sendable () async throws -> Held<FileReader>) {
-        self.length = length
-        self.opener = opener
-        pathMonitor.pathUpdateHandler = { [weak self] _ in
-            guard let self else { return }
-            Task { await self.noteNetworkChange() }
-        }
-        pathMonitor.start(queue: .global(qos: .utility))
-    }
-
-    deinit {
-        pathMonitor.cancel()
-    }
-
-    private func noteNetworkChange() async {
-        guard hasSeenFirstPath else {
-            hasSeenFirstPath = true
-            return
-        }
-        await close()
-    }
-
-    /// Reads, and opens a new session once if the old one has gone.
-    ///
-    /// `network-share` requires the app to "re-establish the session transparently on the
-    /// next read" after the device sleeps, and to reconnect in the background when the
-    /// connection drops. Both are the same act from here: the reader is stale, so make
-    /// another and ask again. Once, not in a loop — a share that is genuinely gone should
-    /// say so rather than hang.
-    func read(offset: Int64, count: Int) async throws -> Data {
-        let available = max(0, length - offset)
-        let toRead = Int(min(Int64(count), available))
-        guard toRead > 0 else { return Data() }
-
-        do {
-            let bytes = try await readOnce(offset: offset, count: toRead)
-            SmbReachability.noteSuccess()
-            return bytes
-        } catch {
-            do {
-                reader = nil
-                let bytes = try await readOnce(offset: offset, count: toRead)
-                SmbReachability.noteSuccess()
-                return bytes
-            } catch {
-                SmbReachability.noteFailure()
-                throw SmbError.hostUnreachable
-            }
-        }
-    }
-
-    /// A read or a reopen past this either got an answer or never will. `network-share`'s
-    /// *Connection drops while reading*: a silent drop used to wait forever, because
-    /// `NWConnection.receive` has no timeout of its own and nothing here set one — the 2 s
-    /// notice and the 60 s offer both depend on ``SmbReachability/noteFailure()`` running,
-    /// and it never ran. Chosen to match Android's own bound (`SmbClient.kt`'s
-    /// `responseTimeout` and `connTimeout`) rather than a value invented for this platform.
-    private static let readDeadline: Duration = .seconds(20)
-    private static let reopenDeadline: Duration = .seconds(10)
-
-    private func readOnce(offset: Int64, count: Int) async throws -> Data {
-        if reader == nil {
-            // The task group backing `SmbDeadline.run` requires its result `Sendable`, and
-            // `FileReader` on its own is not — `Held` is what carries it across, same as
-            // everywhere else in this file. Unwrapped only once the race is over.
-            let opener = self.opener
-            let held = try await SmbDeadline.run(within: Self.reopenDeadline) {
-                try await opener()
-            }
-            reader = held.value
-        }
-        return try await SmbDeadline.run(within: Self.readDeadline) {
-            try await self.readFromReader(offset: offset, count: count)
-        }
-    }
-
-    /// The actual read, isolated to this actor so a task racing it under
-    /// ``SmbDeadline/run(within:operation:)`` can call it without sending `reader` — a plain
-    /// class — across the boundary. An actor's own async method is safe to invoke from
-    /// anywhere, which is the same reason `read(offset:count:)` and `close()` need no such
-    /// wrapper.
-    private func readFromReader(offset: Int64, count: Int) async throws -> Data {
-        guard let bytes = try await reader?.read(offset: UInt64(offset), length: UInt32(count))
-        else { throw SmbError.hostUnreachable }
-        return bytes
-    }
-
-    func close() async {
-        try? await reader?.close()
-        reader = nil
-    }
-}
-
-/// A non-Sendable value carried across an actor boundary.
-///
-/// `FileReader` is a plain class, and the actor above is what serialises every use of it —
-/// which is the reason that actor exists. Swift cannot see that from the type, so this says
-/// it out loud in one place rather than scattering `nonisolated(unsafe)` through the file.
-///
-/// Internal rather than private to this file: ``SmbDeadline`` is in its own file, at the
-/// 400-line cap's own insistence, and needs this to describe what it races.
-struct Held<Value>: @unchecked Sendable {
-    let value: Value
-
-    init(_ value: Value) {
-        self.value = value
     }
 }
