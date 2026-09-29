@@ -96,13 +96,11 @@ struct HomeServerShelfCover: View {
         plan = .decide(hasLockedCover: false, memberIDs: memberIDs, covered: Set(covers.keys))
     }
 
-    /// Cached the same way a local shelf's cover is -- task 22.2's own correction. The id
-    /// is scoped by the server and by "lock" versus "series"/"chapter": a locked cover and
-    /// a member share none of a shelf's own numbering, so the two cannot collide, but two
-    /// different Kavita servers answering the same small integer can.
+    /// Cached the same way a local shelf's cover is -- task 22.2's own correction. See
+    /// ``lockedCoverID(server:shelf:)`` for how the cache id is scoped.
     private func lockedCover(_ client: KavitaClient) async -> CGImage? {
         await model.serverCover(
-            for: "srv:\(page.id):lock:\(shelf.serverID)",
+            for: Self.lockedCoverID(server: page.id, shelf: shelf),
             maxPixelSize: Self.coverPixelSize
         ) {
             shelf.kind == .readingList
@@ -138,6 +136,15 @@ struct HomeServerShelfCover: View {
     /// off the view hierarchy that would give it one. A cache key one shelf's own scale off
     /// from the pixels it draws costs a re-fetch, not a wrong image.
     private static let coverPixelSize = 360
+
+    /// The disk cache id of a shelf's locked cover.
+    ///
+    /// Two servers can use the same number, so the id names the server. A reading list and
+    /// a collection on one server also number separately, so the id names the kind too.
+    /// Android's `homeShelfArtwork` scopes its id the same way.
+    static func lockedCoverID(server: String, shelf: RememberedShelf) -> String {
+        "srv:\(server):lock-\(shelf.kind.rawValue):\(shelf.serverID)"
+    }
 }
 
 /// The blank a Kavita shelf draws when nothing answered: no locked cover, and no member's
