@@ -12,8 +12,9 @@ enum HostProtection {
         let file = URL.temporaryDirectory.appending(path: "protection-probe-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: file) }
         guard (try? Data("probe".utf8).write(to: file)) != nil else { return false }
-        try? FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUnlessOpen], ofItemAtPath: file.path)
-        let kept = (try? FileManager.default.attributesOfItem(atPath: file.path))?[.protectionKey] as? FileProtectionType
+        let files = FileManager.default
+        try? files.setAttributes([.protectionKey: FileProtectionType.completeUnlessOpen], ofItemAtPath: file.path)
+        let kept = (try? files.attributesOfItem(atPath: file.path))?[.protectionKey] as? FileProtectionType
         return kept == .completeUnlessOpen
     }()
 }

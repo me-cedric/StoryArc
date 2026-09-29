@@ -247,7 +247,10 @@ struct DownloadStoreTests {
 
     // MARK: - Backup exclusion (security-review #18)
 
-    @Test("A file is pinned to the download store's protection class", .enabled(if: HostProtection.isKept, "this host ignores a file protection class"))
+    @Test(
+        "A file is pinned to the download store's protection class",
+        .enabled(if: HostProtection.isKept, "this host ignores a file protection class")
+    )
     func fileIsProtected() throws {
         // A class set on the directory only governs a file *created* inside it. A file
         // moved or copied in — which is how every landing writer puts bytes there —
