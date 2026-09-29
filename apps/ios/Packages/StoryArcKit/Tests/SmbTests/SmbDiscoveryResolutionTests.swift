@@ -43,6 +43,15 @@ struct SmbDiscoveryResolutionTests {
         #expect(SmbDiscovery.address(of: .ipv4(.loopback)) == "127.0.0.1")
     }
 
+    @Test("A service is resolved over IPv4, the one address form the host field reads")
+    func resolvesOverIPv4() throws {
+        // `SmbConnection` splits the host field at `:` for a port, so a link-local IPv6
+        // address such as `fe80::1%en0` would reach the share as `fe80`.
+        let stack = SmbDiscovery.resolvingParameters.defaultProtocolStack
+        let internet = try #require(stack.internetProtocol as? NWProtocolIP.Options)
+        #expect(internet.version == .v4)
+    }
+
     /// Whether ``listening()``'s continuation has already resumed, held outside the closure
     /// so the closure itself captures no mutable state -- `NWListener.stateUpdateHandler` can
     /// report `.ready` and a later state on different turns, and only the first may resume.
