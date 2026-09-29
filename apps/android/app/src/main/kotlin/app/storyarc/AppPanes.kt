@@ -1,6 +1,8 @@
 package app.storyarc
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.movableContentOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import app.storyarc.core.designsystem.navigation.StoryArcListDetailPanes
 import app.storyarc.core.designsystem.theme.StoryArcWindowClass
@@ -69,6 +71,29 @@ internal data class PaneSplit(
 }
 
 /**
+ * Draws [content] so that a structural branch elsewhere in the tree — an `if` that takes a
+ * different path — reparents it instead of tearing it down and building it again.
+ *
+ * [AppContent] used to reach the shelf through two different call sites: one for the single
+ * column, one for [StoryArcListDetailPanes]'s list pane. Compose does not know those two
+ * calls are "the same shelf, wider now" — a structural branch disposes its whole subtree the
+ * moment the branch taken changes, however equal the leaf composable's own arguments are. A
+ * rotation that crosses 840 dp took exactly that branch, on every rotation, which is
+ * `finishDrawing of orientation change` at 3305 ms on the field report task 21.1 fixes: the
+ * whole shelf — every cover, every grid cell — decoded and laid out again from nothing,
+ * every time the window crossed the threshold.
+ *
+ * [movableContentOf] is the platform's own answer to that: remembered once, the returned
+ * function moves its content between call sites rather than recreating it, so a rotation
+ * becomes a relayout instead of a rebuild. It must be called from at most one place in the
+ * composition at a time — the two call sites here are an `if`/`else` (through
+ * [StoryArcListDetailPanes]), never both branches of one.
+ */
+@Composable
+internal fun rememberMovablePane(content: @Composable () -> Unit): @Composable () -> Unit =
+    remember { movableContentOf(content) }
+
+/**
  * Everything under the navigation control.
  *
  * One column, or two where the window and the path both allow it. The split is derived, not
@@ -91,9 +116,26 @@ internal fun AppContent(
     // forgets what only that screen knew.
     val remembered = rememberSaveableStateHolder()
     val split = PaneSplit.of(navigation, rememberWindowClass())
+
+    // The shelf, named once. Both the single-column branch below and the list pane inside
+    // `StoryArcListDetailPanes` call this same value — never a fresh `Destination(...)` of
+    // their own — so rotating past 840 dp moves it instead of rebuilding it.
+    val shelf = rememberMovablePane {
+        remembered.SaveableStateProvider(PaneSplit.listPaneKey) {
+            Destination(host = host, destination = AppDestination.LIBRARY)
+        }
+    }
+
     if (split == null) {
-        remembered.SaveableStateProvider(navigation.stateKey) {
-            SingleColumn(host, navigation, settings, onSettingsChange, onResetSettings)
+        if (navigation.destination == AppDestination.LIBRARY && navigation.current == null) {
+            // The single column, sitting on the shelf itself — the one destination that can
+            // also be the list pane of a split. Route it through `shelf` rather than through
+            // `SingleColumn`'s own generic path, so this is the same call as the one below.
+            shelf()
+        } else {
+            remembered.SaveableStateProvider(navigation.stateKey) {
+                SingleColumn(host, navigation, settings, onSettingsChange, onResetSettings)
+            }
         }
         return
     }
@@ -104,11 +146,7 @@ internal fun AppContent(
         // visit, instead of reflowing its columns on the first tap and again on the last
         // press of Back.
         showsDetail = true,
-        listPane = {
-            remembered.SaveableStateProvider(PaneSplit.listPaneKey) {
-                Destination(host = host, destination = AppDestination.LIBRARY)
-            }
-        },
+        listPane = { shelf() },
         detailPane = {
             val page = split.detail
             if (page == null) {
