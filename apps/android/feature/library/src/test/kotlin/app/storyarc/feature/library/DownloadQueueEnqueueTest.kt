@@ -66,7 +66,7 @@ class DownloadQueueEnqueueTest {
         assertEquals(
             "The finished copy has no source to fold onto the library row it came from.",
             source,
-            queue.library.value[entry.id]?.sourceId,
+            queue.library.value[queue.downloadId(entry.id, source)]?.sourceId,
         )
     }
 
@@ -84,12 +84,16 @@ class DownloadQueueEnqueueTest {
             onWifi = MutableStateFlow(true),
         )
 
-        queue.enqueue(entry, acquisition, sourceId = UUID.randomUUID())
+        val source = UUID.randomUUID()
+        queue.enqueue(entry, acquisition, sourceId = source)
 
         // Asserted without idling the looper: the pump marks the record running and asks the
         // platform to follow it before it returns, and a transfer that has already reached the
         // network could have finished or failed by the time an idled looper hands back control.
-        assertEquals(Download.State.Running, queue.library.value[entry.id]?.state)
+        assertEquals(
+            Download.State.Running,
+            queue.library.value[queue.downloadId(entry.id, source)]?.state,
+        )
         val followed = shadowOf(application).allStartedServices.mapNotNull { it.component?.className }
         assertTrue(
             "Nothing asked the platform to keep the process alive, so the transfer ends with " +

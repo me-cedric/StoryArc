@@ -35,8 +35,10 @@ import app.storyarc.core.designsystem.grid.rememberCoverColumns
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Download
-import app.storyarc.core.persistence.removeAfterFinishing
 import app.storyarc.feature.library.isOnDevice
+import app.storyarc.feature.library.reorder
+import app.storyarc.feature.library.removeAfterFinishing
+import app.storyarc.feature.library.restore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -151,24 +153,18 @@ internal fun DownloadsDestination(host: AppHost) {
                         // started, and the list is short enough that its ends are obvious.
                         canReorder = one.state == Download.State.Queued,
                         onReorder = { later ->
-                            host.downloads.value = host.downloads.value.moving(one.id, later)
-                            host.dependencies.downloads.save(host.downloads.value)
+                            host.dependencies.queue.reorder(one.id, later)
+                            host.downloads.value = host.dependencies.queue.library.value
                         },
                         onStop = { removing = one },
-                        // The record goes back in the queue, which is `DownloadQueue.resume`
-                        // minus the pump — and the pump is the one part this screen cannot
-                        // reach. `Download.remote` carries the address, the media type and
-                        // the name, so no catalogue entry is needed to fetch one again; what
-                        // is needed is a queue, and the only one the app builds belongs to a
-                        // catalogue page. So a retry from here rejoins the queue and is
-                        // carried out when that queue next runs, exactly as every other
-                        // queued row on this screen is. Written the same way as the reorder
-                        // above, and for the same reason: this destination edits the record,
-                        // and the record is the download store's.
+                        // `offline-downloads` 1.1 made `host.dependencies.queue` the one
+                        // app-level queue every screen shares, so a retry from here reaches
+                        // the queue that is actually running -- or would run -- this
+                        // download's transfer directly, rather than writing `queued` and
+                        // hoping some catalogue page's own queue notices.
                         onRetry = {
-                            host.downloads.value = host.downloads.value
-                                .marking(one.id, Download.State.Queued)
-                            host.dependencies.downloads.save(host.downloads.value)
+                            host.dependencies.queue.resume(one.id)
+                            host.downloads.value = host.dependencies.queue.library.value
                         },
                     )
                 }
@@ -245,7 +241,8 @@ private fun UndoBar(host: AppHost, snackbars: SnackbarHostState) {
         // the state now, and settling on its behalf would delete bytes it is still offering.
         if (host.removed.value !== removed) return@LaunchedEffect
         if (outcome == SnackbarResult.ActionPerformed) {
-            host.downloads.value = removed.undo(host.downloads.value)
+            host.dependencies.queue.restore(removed)
+            host.downloads.value = host.dependencies.queue.library.value
         } else {
             removed.settle()
         }
@@ -261,21 +258,23 @@ private fun UndoBar(host: AppHost, snackbars: SnackbarHostState) {
  * and only deleted when the undo window closes. [removeAfterFinishing] is named for the
  * sweep that first needed it and is the general act: a file already deleted can only be put
  * back by downloading it again, which is not an undo.
+ *
+ * `queue.cancel` for a download that has not landed, rather than a plain removal --
+ * `offline-downloads` 1.1's *Stop does not cancel the live transfer* was exactly this branch
+ * writing the store directly and leaving whatever the queue was running for it unwatched.
  */
 private suspend fun remove(host: AppHost, download: Download) {
-    val store = host.dependencies.downloads
-    val outcome = removeAfterFinishing(store, host.downloads.value, download.id)
+    val queue = host.dependencies.queue
+    val outcome = queue.removeAfterFinishing(download.id)
     if (outcome == null) {
-        // Nothing on disk to move aside — a record whose file the system reclaimed.
-        // Forgetting it is the whole removal, and there is nothing to undo.
-        host.downloads.value = host.downloads.value.removing(download.id)
-        store.save(host.downloads.value)
+        queue.cancel(download.id)
+        host.downloads.value = queue.library.value
         host.library.refreshImports()
         return
     }
     host.removed.value?.settle()
-    host.downloads.value = outcome.first
-    host.removed.value = outcome.second
+    host.downloads.value = queue.library.value
+    host.removed.value = outcome
     // The library holds a row for every imported copy, and a row whose file has just been
     // moved aside is a book that opens onto nothing.
     host.library.refreshImports()

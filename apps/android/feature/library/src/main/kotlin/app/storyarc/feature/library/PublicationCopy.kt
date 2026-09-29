@@ -126,7 +126,7 @@ internal fun rememberPublicationCopy(
     val found = entry
     val acquisition = found?.let { acquisitionFor(publication, it) }
 
-    val record = found?.let { downloads[queue.downloadId(it.id)] }
+    val record = found?.let { downloads[queue.downloadId(it.id, publication.sourceId)] }
 
     /**
      * Queues the copy, and moves a record the store already holds back into the queue.
@@ -149,7 +149,7 @@ internal fun rememberPublicationCopy(
             sourceId = publication.sourceId,
         )
         val held = record?.state?.let { !it.isActive && !it.isFinished } == true
-        if (held) queue.resume(queue.downloadId(found.id))
+        if (held) queue.resume(queue.downloadId(found.id, publication.sourceId))
     }
 
     MeteredConfirmation(

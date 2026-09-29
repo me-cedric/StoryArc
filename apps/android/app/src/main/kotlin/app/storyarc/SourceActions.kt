@@ -2,8 +2,9 @@ package app.storyarc
 
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.Source
-import app.storyarc.core.persistence.DownloadStore
 import app.storyarc.core.persistence.KavitaCardStore
+import app.storyarc.feature.library.DownloadQueue
+import app.storyarc.feature.library.removingAll
 
 /**
  * Deletes the files one source produced, and the records of them.
@@ -18,14 +19,17 @@ import app.storyarc.core.persistence.KavitaCardStore
  * download directory would own two things that can disagree. iOS's `StoryArcAppActions`
  * makes the same split.
  *
+ * Through the shared queue rather than a plain `store.save` -- `offline-downloads` 1.1: that
+ * write used to compete with whichever catalogue's queue saved next, which is exactly what
+ * "a source removal is undone by the next queue save" describes.
+ *
  * Returns the library without them, for the caller to hold. Nothing is written when the
  * source produced no downloads: a save that changes nothing still costs a write, and this
  * runs on the way out of every source removal.
  */
 internal fun removeDownloads(
     source: Source,
-    downloads: DownloadLibrary,
-    store: DownloadStore,
+    queue: DownloadQueue,
     /**
      * What a Kavita server said about those downloads, which goes with them.
      *
@@ -35,10 +39,8 @@ internal fun removeDownloads(
      */
     cards: KavitaCardStore? = null,
 ): DownloadLibrary {
-    val (kept, removed) = downloads.removingAll(source.id)
-    if (removed.isEmpty()) return downloads
-    removed.forEach { store.remove(it) }
-    store.save(kept)
+    val removed = queue.removingAll(source.id)
+    if (removed.isEmpty()) return queue.library.value
     cards?.removeAll(source.id.toString())
-    return kept
+    return queue.library.value
 }

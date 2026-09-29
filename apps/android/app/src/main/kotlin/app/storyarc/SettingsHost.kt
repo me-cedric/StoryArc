@@ -56,7 +56,7 @@ internal fun SettingsHost(
             // source, so deleting the source before its files leaves bytes on disk that
             // nothing in the app can name, let alone offer to remove.
             host.downloads.value =
-                removeDownloads(source, host.downloads.value, store, dependencies.kavitaCards)
+                removeDownloads(source, dependencies.queue, dependencies.kavitaCards)
             host.library.removeSource(source, dependencies.credentials)
         },
         onRenameSource = { source, name -> host.library.renameSource(source, name) },
@@ -72,10 +72,10 @@ internal fun SettingsHost(
                     host.library.refreshSource(source, dependencies.credentials, dependencies.pins)
                 SourceAction.CLEAR_CACHE -> host.library.clearSourceCache(source)
                 SourceAction.REMOVE_DOWNLOADS -> host.downloads.value =
-                    removeDownloads(source, host.downloads.value, store, dependencies.kavitaCards)
+                    removeDownloads(source, dependencies.queue, dependencies.kavitaCards)
                 SourceAction.REMOVE -> {
                     host.downloads.value =
-                        removeDownloads(source, host.downloads.value, store, dependencies.kavitaCards)
+                        removeDownloads(source, dependencies.queue, dependencies.kavitaCards)
                     host.library.removeSource(source, dependencies.credentials)
                 }
             }
