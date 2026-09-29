@@ -27,9 +27,7 @@ struct SyncConflictNotice: ViewModifier {
                 alertMessage
             }
             // A swipe down is the reader keeping what was kept, not a reason to ask again.
-            .sheet(isPresented: $showingList, onDismiss: { conflicts = [] }) {
-                list
-            }
+            .sheet(isPresented: $showingList, onDismiss: { conflicts = [] }, content: { list })
     }
 
     @ViewBuilder
