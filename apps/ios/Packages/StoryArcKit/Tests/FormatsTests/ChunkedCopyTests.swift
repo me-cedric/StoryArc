@@ -97,4 +97,23 @@ struct ChunkedCopyTests {
         #expect(!FileManager.default.fileExists(atPath: destination.path))
         #expect(!FileManager.default.fileExists(atPath: destination.appendingPathExtension("partial").path))
     }
+
+    @Test("A source that ends before its stated length fails rather than leaving a short file")
+    func aShortSourceFails() async {
+        struct ShortSource: RandomAccessSource {
+            let length: Int64 = 10_000
+            func read(offset: Int64, count: Int) async throws -> Data {
+                offset < 4_000 ? Data(repeating: 1, count: min(count, 4_000 - Int(offset))) : Data()
+            }
+        }
+        let destination = Self.temporaryFile()
+        defer { try? FileManager.default.removeItem(at: destination) }
+
+        await #expect(throws: SourceError.unreadable) {
+            try await ChunkedCopy.copy(ShortSource(), to: destination, chunkSize: 1000)
+        }
+
+        #expect(!FileManager.default.fileExists(atPath: destination.path))
+        #expect(!FileManager.default.fileExists(atPath: destination.appendingPathExtension("partial").path))
+    }
 }
