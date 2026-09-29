@@ -40,7 +40,9 @@ public enum ChunkedCopy {
             while offset < source.length {
                 let count = Int(min(Int64(chunkSize), source.length - offset))
                 let bytes = try await source.read(offset: offset, count: count)
-                guard !bytes.isEmpty else { break }
+                // A source that stops short of the length it stated would otherwise land as
+                // a truncated file under the finished name, recorded as a whole download.
+                guard !bytes.isEmpty else { throw SourceError.unreadable }
                 try handle.write(contentsOf: bytes)
                 offset += Int64(bytes.count)
             }
