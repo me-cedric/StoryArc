@@ -84,7 +84,7 @@ class KavitaPullIdentityTest {
     }
 
     @Test
-    fun `a chapter this device has never opened is left alone`() = runTest {
+    fun `a chapter this device has never opened, and has no local record, is left alone`() = runTest {
         // The position is real and the publication is not. Inventing an identity for it
         // would be inventing a reading.
         val progress = progress()
@@ -92,6 +92,31 @@ class KavitaPullIdentityTest {
         KavitaSync.pull(listOf(chapter(id = 99)), kavita(), progress)
 
         assertTrue(progress.recent(10).isEmpty())
+    }
+
+    @Test
+    fun `a chapter the browser never opened still merges, by the identity its own library row carries`() = runTest {
+        // The library grid opened this row directly and read some of it -- a path that
+        // never calls `KavitaProgressStore.remember`, unlike the browser's own. The
+        // defect: with no remembered origin, the pull used to skip the chapter outright,
+        // even though the row's own identity -- `chapter:<id>`, the same form the browser
+        // builds -- already names a local record.
+        val progress = progress()
+        progress.save(
+            ReadingProgress(
+                PublicationIdentity(serverIdentifier = PublicationIdentity.ServerIdentifier(source, "chapter:42")),
+                ReadingPosition.Page(3, 10),
+                false,
+                updatedAtEpochMillis = 1_000,
+            ),
+        )
+
+        KavitaSync.pull(listOf(chapter()), kavita(), progress, source.toString())
+
+        val read = progress.progress(
+            PublicationIdentity(serverIdentifier = PublicationIdentity.ServerIdentifier(source, "chapter:42")),
+        )
+        assertEquals("the server was further ahead", ReadingPosition.Page(7, 10), read?.position)
     }
 
     @Test

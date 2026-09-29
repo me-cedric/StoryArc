@@ -70,13 +70,23 @@ internal object KavitaContributor {
          * reader who thinks of a library in series.
          */
         val seriesRead: Int,
+        /**
+         * The chapters this page read, each still carrying the server's own `pagesRead`.
+         *
+         * What [KavitaSync.pull] needs, and what building [slice] already asked every one
+         * of these series for -- the library's own refresh of a source is a pull's other
+         * caller, and it has no reason to ask the server the same question twice.
+         */
+        val chapters: List<KavitaChapter>,
     )
 
     suspend fun page(sourceId: UUID, client: KavitaClient, page: Int): Page {
         val series = client.recentSeries(page = page, size = FIRST_SLICE)
+        val chapters = mutableListOf<KavitaChapter>()
         val publications = series.flatMap { each ->
-            val chapters = retriedOnce { chapters(client, each) }
-            chapters.map { chapter -> publication(sourceId, each, chapter) }
+            val read = retriedOnce { chapters(client, each) }
+            chapters += read
+            read.map { chapter -> publication(sourceId, each, chapter) }
         }
         // A full page is the only evidence a server has more, and it is evidence rather
         // than proof: a library of exactly sixty series reads as partial once, and says so
@@ -85,6 +95,7 @@ internal object KavitaContributor {
         return Page(
             slice = SourceSlice(publications, holdsMore = series.size >= FIRST_SLICE),
             seriesRead = series.size,
+            chapters = chapters,
         )
     }
 

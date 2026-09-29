@@ -14,6 +14,7 @@ import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.persistence.KavitaUnsent
 import app.storyarc.core.persistence.serverIdentifier
+import java.util.UUID
 
 /**
  * Telling a Kavita server where the reader got to.
@@ -104,17 +105,31 @@ object KavitaSync {
 
         for (chapter in chapters) {
             if (chapter.pages <= 0) continue
-            val publicationId = kavita.publicationForChapter(chapter.id) ?: continue
-            val origin = kavita.origin(publicationId)
+            val publicationId = kavita.publicationForChapter(chapter.id)
+            val origin = publicationId?.let { kavita.origin(it) }
             // The server's own identifier first, because it finds the record wherever the
             // chapter's bytes ended up. The stable id is the fallback, and the only route
             // for a record written before any server identifier was built.
-            val held = origin?.serverIdentifier
+            var held = origin?.serverIdentifier
                 ?.let { progress.progress(PublicationIdentity(serverIdentifier = it)) }
-                ?: progress.progressForStableId(publicationId)
-                ?: continue
-            val key = held.identity.stableId
-            local[key] = held
+            if (held == null && publicationId != null) {
+                held = progress.progressForStableId(publicationId)
+            }
+            // A chapter the browser never opened has no remembered origin to build a
+            // server identifier from -- but the library row the source's own refresh
+            // already contributed carries one, built the very same way, straight from
+            // this source and this chapter. Filing under it here is what lets that row's
+            // own reading merge in without the reader ever opening the browser.
+            if (held == null && sourceId != null) {
+                val sourceUuid = runCatching { UUID.fromString(sourceId) }.getOrNull()
+                if (sourceUuid != null) {
+                    val server = PublicationIdentity.ServerIdentifier(sourceUuid, "chapter:${chapter.id}")
+                    held = progress.progress(PublicationIdentity(serverIdentifier = server))
+                }
+            }
+            val settledHeld = held ?: continue
+            val key = settledHeld.identity.stableId
+            local[key] = settledHeld
             reported[key] = chapter
             origin?.let { origins[key] = it }
             // The server's position, wearing the local record's identity -- which is the
@@ -123,13 +138,13 @@ object KavitaSync {
             // the defect the merge's finished rule (either side finished wins) never saw a
             // server that had finished a chapter this device had not, because the flag
             // never actually changed.
-            remote += held.copy(
+            remote += settledHeld.copy(
                 position = KavitaExchange.position(chapter.pagesRead, chapter.pages),
                 isFinished = chapter.isFinished,
-                finishedAtEpochMillis = if (chapter.isFinished && !held.isFinished) {
+                finishedAtEpochMillis = if (chapter.isFinished && !settledHeld.isFinished) {
                     System.currentTimeMillis()
                 } else {
-                    held.finishedAtEpochMillis
+                    settledHeld.finishedAtEpochMillis
                 },
                 updatedAtEpochMillis = System.currentTimeMillis(),
             )

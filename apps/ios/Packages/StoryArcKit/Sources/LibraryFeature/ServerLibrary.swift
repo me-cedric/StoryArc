@@ -31,11 +31,12 @@ enum ServerLibrary {
 
     static func read(
         sources: [Source],
-        credentials: CredentialStore?
+        credentials: CredentialStore?,
+        progress: ProgressStore? = nil
     ) async -> Reading {
         var reading = Reading()
         for source in sources {
-            let slice = await publications(of: source, credentials: credentials)
+            let slice = await publications(of: source, credentials: credentials, progress: progress)
             reading.rows.append(contentsOf: slice.publications.map { ($0, source.id) })
             if slice.holdsMore { reading.partial.insert(source.id) }
         }
@@ -44,14 +45,30 @@ enum ServerLibrary {
 
     private static func publications(
         of source: Source,
-        credentials: CredentialStore?
+        credentials: CredentialStore?,
+        progress: ProgressStore?
     ) async -> SourceSlice {
         switch source.kind {
         case .kavitaServer:
             guard let page = KavitaPage(source: source, credentials: credentials) else { return .none }
             let client = KavitaClient(address: page.address)
-            return (try? await KavitaContributor.publications(source: source.id, client: client))
-                ?? .none
+            guard let fetched = try? await KavitaContributor.publications(source: source.id, client: client)
+            else { return .none }
+            // `reading-progress`: "when a synchronising source refreshes, progress
+            // recorded on other devices is merged into the local store". This refresh
+            // is that moment for every Kavita source, not only the one whose browser
+            // the reader happens to have open — and it also flushes what an earlier,
+            // offline session could not send.
+            if let progress {
+                await KavitaSync.pull(
+                    fetched.chapters,
+                    in: KavitaProgressStore(),
+                    into: progress,
+                    of: source.id.uuidString,
+                    to: page.address
+                )
+            }
+            return fetched.slice
 
         case .opdsCatalog:
             guard let page = CataloguePage(source: source, credentials: credentials) else {
@@ -92,7 +109,8 @@ extension LibraryModel {
     public func readServers() async {
         let reading = await ServerLibrary.read(
             sources: registry.sources,
-            credentials: CredentialStore()
+            credentials: CredentialStore(),
+            progress: progressStore
         )
         // A source already mid-continuation keeps its progress: a pull-to-refresh reads
         // page one again, and page one alone knows nothing past its own first slice —
