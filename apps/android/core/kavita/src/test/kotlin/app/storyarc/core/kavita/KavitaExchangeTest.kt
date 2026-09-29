@@ -5,6 +5,7 @@ import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -93,6 +94,17 @@ class KavitaExchangeTest {
         assertEquals(1, exchange.owed.size)
         assertEquals(41, exchange.owed.first().chapterId)
         assertEquals(8, exchange.owed.first().pageNum)
+        assertFalse(exchange.owed.first().isMarkRead)
+    }
+
+    @Test
+    fun `a finished local record is owed a mark, not a page`() {
+        val held = progress("one", page = 8, finished = true, synced = 2)
+        val pull = ProgressPull.merging(listOf(progress("one", page = 2))) { held }
+
+        val exchange = KavitaExchange.of(pull, mapOf(key("one") to chapter(41)))
+
+        assertTrue(exchange.owed.first().isMarkRead)
     }
 
     @Test

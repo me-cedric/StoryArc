@@ -68,6 +68,34 @@ struct KavitaSyncQueueTests {
         #expect(found?.syncedPosition == .page(index: 19, of: 20))
     }
 
+    @Test("A finished local record that wins a conflict is queued as a mark, not a page")
+    func finishedLocalRecordQueuesAMark() async throws {
+        let store = store()
+        let chapterOrigin = origin()
+        let progress = try ProgressStore.inMemory()
+        let identity = PublicationIdentity(normalizedPath: "/books/\(UUID().uuidString).cbz")
+        store.remember(chapterOrigin, for: identity.stableID)
+        try await progress.save(
+            ReadingProgress(
+                identity: identity,
+                position: .page(index: 9, of: 10),
+                isFinished: true,
+                updatedAt: .now
+            )
+        )
+
+        // No address: the queue is the whole assertion here, not a network round trip.
+        await KavitaSync.pull(
+            [KavitaChapter(id: chapterOrigin.chapterId, number: "1", pages: 10, pagesRead: 2)],
+            in: store,
+            into: progress
+        )
+
+        let held = try #require(store.unsent().first)
+        #expect(held.mark == true)
+        #expect(held.origin.chapterId == chapterOrigin.chapterId)
+    }
+
     @Test("A held position stamps its local record too, once flush delivers it")
     func flushStampsSyncedPosition() async throws {
         let store = store()

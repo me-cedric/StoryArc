@@ -95,6 +95,34 @@ class KavitaPullIdentityTest {
     }
 
     @Test
+    fun `a chapter the server has finished is adopted, even though the local record was not`() = runTest {
+        val progress = progress()
+        val kavita = kavita()
+        progress.save(
+            ReadingProgress(
+                PublicationIdentity(
+                    serverIdentifier = PublicationIdentity.ServerIdentifier(source, "chapter:42"),
+                    normalizedPath = "/downloads/Bone 01.cbz",
+                ),
+                ReadingPosition.Page(4, 10),
+                false,
+                updatedAtEpochMillis = 1_000,
+            ),
+        )
+        kavita.remember("path:/caches/Kavita/42/Bone 1.cbz", origin())
+
+        // The defect: this used to carry the local record's own `isFinished` forward
+        // unchanged, so the merge's finished rule never saw a server that had finished a
+        // chapter this device had not.
+        KavitaSync.pull(listOf(chapter(pagesRead = 10)), kavita, progress)
+
+        val read = progress.progress(
+            PublicationIdentity(serverIdentifier = PublicationIdentity.ServerIdentifier(source, "chapter:42")),
+        )
+        assertTrue(read?.isFinished == true)
+    }
+
+    @Test
     fun `a record written before server identifiers existed is still found by its id`() = runTest {
         // Every position in the shipped app was written against a path alone, and the
         // browser remembered that same path. The fallback is the only route to those.
