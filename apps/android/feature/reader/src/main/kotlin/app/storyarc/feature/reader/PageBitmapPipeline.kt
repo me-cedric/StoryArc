@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 /**
@@ -29,6 +30,10 @@ internal fun pageDisplayBitmap(bitmap: Bitmap, trims: Boolean, sharpness: Float)
     val needsCpuSharpen = sharpness > 0f && !canSharpenWithShader
     LaunchedEffect(cropped, sharpness, needsCpuSharpen) {
         sharpened = if (needsCpuSharpen) {
+            // A drag moves the value dozens of times a second, and each one restarts
+            // this effect. Waiting for it to hold still first runs the full-page pass
+            // once for the value the reader stopped at, not once per step.
+            delay(SHARPEN_SETTLE_MILLIS)
             withContext(Dispatchers.Default) { cropped.sharpened(sharpness) }
         } else {
             null
@@ -36,3 +41,6 @@ internal fun pageDisplayBitmap(bitmap: Bitmap, trims: Boolean, sharpness: Float)
     }
     return remember(cropped, sharpened) { (sharpened ?: cropped).asImageBitmap() }
 }
+
+/** How long the sharpness value has to hold still before the CPU pass runs. */
+internal const val SHARPEN_SETTLE_MILLIS = 150L

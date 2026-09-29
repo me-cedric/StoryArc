@@ -2,8 +2,13 @@ package app.storyarc.feature.reader
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -56,7 +61,7 @@ class PageAdjustmentsTest {
     @Test
     fun `sharpening at zero amount returns the very same bitmap`() {
         val bitmap = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888)
-        assertSame(bitmap, bitmap.sharpened(0f))
+        assertSame(bitmap, runBlocking { bitmap.sharpened(0f) })
     }
 
     @Test
@@ -69,7 +74,7 @@ class PageAdjustmentsTest {
             }
         }
 
-        val sharpened = bitmap.sharpened(1f)
+        val sharpened = runBlocking { bitmap.sharpened(1f) }
 
         // The centre pixel's four neighbours are all the dark value, so it sharpens
         // brighter still — the whole point of the mask.
@@ -77,5 +82,20 @@ class PageAdjustmentsTest {
         // A corner has no orthogonal neighbour past the edge, so it repeats its own —
         // `maxOf`/`minOf` clamping means a uniform corner is unchanged.
         assertEquals(gray(50), sharpened.getPixel(0, 0))
+    }
+
+    @Test
+    fun `a pass whose value the slider has already left stops rather than finishing`() {
+        // A drag restarts the pass for every value it moves through. A pass that ran to
+        // the end regardless kept a full page's convolution going for each of them.
+        val bitmap = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888)
+        var outcome: Result<Bitmap>? = null
+        runBlocking {
+            launch {
+                coroutineContext.job.cancel()
+                outcome = runCatching { bitmap.sharpened(1f) }
+            }.join()
+        }
+        assertTrue(outcome?.exceptionOrNull() is CancellationException)
     }
 }
