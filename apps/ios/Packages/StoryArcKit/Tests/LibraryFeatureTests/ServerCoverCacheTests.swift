@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import ImageIO
+import StoryArcCore
 import Testing
 import UniformTypeIdentifiers
 
@@ -98,6 +99,31 @@ struct ServerCoverCacheTests {
             "server B's own request for the same series id was answered from server A's cache entry"
         )
         #expect(serverAFetches == 1)
+    }
+
+    @Test("A reading list's locked cover is never drawn for a collection with the same number")
+    func lockedCoverScopedByKind() async throws {
+        let server = UUID().uuidString
+        let list = RememberedShelf(kind: .readingList, sourceID: UUID(), serverID: 3, title: "Weekly")
+        let collection = RememberedShelf(
+            kind: .collection, sourceID: list.sourceID, serverID: 3, title: "Staff picks"
+        )
+        let library = LibraryModel()
+
+        _ = await library.serverCover(
+            for: HomeServerShelfCover.lockedCoverID(server: server, shelf: list),
+            maxPixelSize: 360
+        ) { try onePixelPNG() }
+        var collectionFetched = false
+        _ = await library.serverCover(
+            for: HomeServerShelfCover.lockedCoverID(server: server, shelf: collection),
+            maxPixelSize: 360
+        ) {
+            collectionFetched = true
+            return try onePixelPNG()
+        }
+
+        #expect(collectionFetched, "the collection's card drew the reading list's cached cover")
     }
 
     @Test("A fetch that fails caches nothing, so the next appearance tries again")
