@@ -154,7 +154,7 @@ fun KavitaBrowserScreen(
                 libraries = it
                 failure = null
                 // Reaching the server is the "next successful connection" the spec retries on.
-                KavitaSync.flush(store, sourceId, address)
+                KavitaSync.flush(store, sourceId, address, progress)
             }
             // Said rather than swallowed. This used to fall back to an empty list, so a reader
             // whose key had been revoked saw a server with no libraries in it and nothing at

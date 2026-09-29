@@ -98,6 +98,7 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
                     ?.let { KavitaPage.of(it, dependencies.credentials)?.address },
                 origin,
                 page,
+                dependencies.progress,
             )
         }
     }

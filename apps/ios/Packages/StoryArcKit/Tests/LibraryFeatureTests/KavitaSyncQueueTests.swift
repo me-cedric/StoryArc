@@ -4,6 +4,7 @@ import Testing
 import Kavita
 @testable import LibraryFeature
 import Persistence
+import StoryArcCore
 
 /// A report that reaches the server drops what an earlier, offline read had held.
 ///
@@ -45,6 +46,47 @@ struct KavitaSyncQueueTests {
         await KavitaSync.report(20, for: origin, to: address, in: store, configuration: configuration)
 
         #expect(store.unsent().isEmpty, "the stale held page must not survive a successful report")
+    }
+
+    @Test("A successful report stamps the local record as synchronised")
+    func successStampsSyncedPosition() async throws {
+        let store = store()
+        let origin = origin()
+        let progress = try ProgressStore.inMemory()
+        let identity = PublicationIdentity(normalizedPath: "/books/\(UUID().uuidString).cbz")
+        store.remember(origin, for: identity.stableID)
+        try await progress.save(
+            ReadingProgress(identity: identity, position: .page(index: 19, of: 20), updatedAt: .now)
+        )
+
+        let (address, configuration) = try acceptingAddress(host: "\(UUID().uuidString).sync-stamp.test")
+        await KavitaSync.report(
+            19, for: origin, to: address, in: store, progress: progress, configuration: configuration
+        )
+
+        let found = try await progress.progress(for: identity)
+        #expect(found?.syncedPosition == .page(index: 19, of: 20))
+    }
+
+    @Test("A held position stamps its local record too, once flush delivers it")
+    func flushStampsSyncedPosition() async throws {
+        let store = store()
+        let origin = origin()
+        let progress = try ProgressStore.inMemory()
+        let identity = PublicationIdentity(normalizedPath: "/books/\(UUID().uuidString).cbz")
+        store.remember(origin, for: identity.stableID)
+        try await progress.save(
+            ReadingProgress(identity: identity, position: .page(index: 9, of: 10), updatedAt: .now)
+        )
+        store.hold(KavitaUnsent(origin: origin, page: 9))
+
+        let (address, configuration) = try acceptingAddress(host: "\(UUID().uuidString).sync-flush.test")
+        _ = await KavitaSync.flush(
+            origin.sourceId, to: address, in: store, progress: progress, configuration: configuration
+        )
+
+        let found = try await progress.progress(for: identity)
+        #expect(found?.syncedPosition == .page(index: 9, of: 10))
     }
 
     @Test("A report that fails still holds its own page, alongside another server's")

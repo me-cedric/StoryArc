@@ -96,7 +96,7 @@ public struct KavitaBrowserView: View {
             do {
                 libraries = try await client.libraries()
                 // Reaching the server is the "next successful connection" the spec retries on.
-                await KavitaSync.flush(sourceId, to: address, in: store)
+                await KavitaSync.flush(sourceId, to: address, in: store, progress: progress)
             } catch {
                 failure = KavitaMessage.of(error, source: title)
             }

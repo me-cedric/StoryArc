@@ -32,7 +32,8 @@ import app.storyarc.core.persistence.SourceStore
 internal suspend fun reportToKavita(context: Context, identity: PublicationIdentity) {
     val kavitaProgress = KavitaProgressStore.open(context)
     val origin = kavitaProgress.origin(identity.stableId) ?: return
-    val recorded = ProgressStore.open(context).progress(identity) ?: return
+    val progress = ProgressStore.open(context)
+    val recorded = progress.progress(identity) ?: return
     val page = pageToReport(recorded.position, origin) ?: return
     val source = SourceStore.open(context).registry().sources
         .firstOrNull { it.id.toString() == origin.sourceId } ?: return
@@ -49,7 +50,14 @@ internal suspend fun reportToKavita(context: Context, identity: PublicationIdent
             ),
         )
     }
-    if (sent.isSuccess) kavitaProgress.drop(unsent.key) else kavitaProgress.hold(unsent)
+    if (sent.isSuccess) {
+        kavitaProgress.drop(unsent.key)
+        // So the next pull's merge sees this record as untouched rather than as "changed
+        // since last sync".
+        progress.save(KavitaExchange.settled(recorded))
+    } else {
+        kavitaProgress.hold(unsent)
+    }
 }
 
 /**
