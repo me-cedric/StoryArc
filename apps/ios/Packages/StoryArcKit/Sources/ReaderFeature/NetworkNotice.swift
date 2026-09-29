@@ -25,19 +25,14 @@ struct NetworkNotice: View {
     let onLeave: () -> Void
 
     @State private var blocked: TimeInterval = 0
-    @State private var isDismissed = false
+    @State private var dismissed: NoticeStage?
     @State private var downloadFailed = false
-
-    /// `network-share`: "more than 2 seconds".
-    private let noticeAfter: TimeInterval = 2
-
-    /// `network-share`: "longer than 60 seconds".
-    private let offerAfter: TimeInterval = 60
+    @State private var isCopying = false
 
     var body: some View {
         Group {
-            if blocked >= noticeAfter, !isDismissed {
-                notice
+            if let stage = NoticeStage.of(blocked: blocked, dismissed: dismissed) {
+                notice(stage)
             }
         }
         .task {
@@ -48,7 +43,7 @@ struct NetworkNotice: View {
                     blocked = Date().timeIntervalSince(since)
                 } else {
                     blocked = 0
-                    isDismissed = false
+                    dismissed = nil
                     downloadFailed = false
                 }
                 try? await Task.sleep(for: .seconds(1))
@@ -56,10 +51,9 @@ struct NetworkNotice: View {
         }
     }
 
-    private var isLong: Bool { blocked >= offerAfter }
-
     @ViewBuilder
-    private var notice: some View {
+    private func notice(_ stage: NoticeStage) -> some View {
+        let isLong = stage == .long
         let message = isLong
             ? String(localized: "reader.offline.long", bundle: .module, locale: .storyArc)
             : String(localized: "reader.offline.brief", bundle: .module, locale: .storyArc)
@@ -80,21 +74,23 @@ struct NetworkNotice: View {
             HStack(spacing: StoryArcSpace.md) {
                 if isLong, let onDownload {
                     Button {
+                        downloadFailed = false
+                        isCopying = true
                         Task {
-                            downloadFailed = false
-                            let started = await onDownload()
-                            downloadFailed = !started
+                            downloadFailed = !(await onDownload())
+                            isCopying = false
                         }
                     } label: {
                         Text("reader.offline.download", bundle: .module)
                     }
+                    .disabled(isCopying)
                 }
                 if isLong {
                     Button(action: onLeave) {
                         Text("reader.offline.leave", bundle: .module)
                     }
                 }
-                Button { isDismissed = true; onDismiss() } label: {
+                Button { dismissed = stage; onDismiss() } label: {
                     Text("reader.offline.dismiss", bundle: .module)
                 }
             }
@@ -105,5 +101,34 @@ struct NetworkNotice: View {
         .padding(StoryArcSpace.gutter)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(message)
+    }
+}
+
+/// Which of the two notices the reader is owed, if either.
+///
+/// Lifted beside ``NetworkNotice`` so a test can hold the rule. A dismissal hides the stage it
+/// was made on and nothing later: the reader who dismisses the 2 s notice is still offered the
+/// download at 60 s, and the reader who dismisses the offer hears nothing more until the
+/// trouble ends. Android's `NoticeStage` is the same rule.
+enum NoticeStage: Equatable {
+    case brief
+    case long
+
+    /// `network-share`: "more than 2 seconds".
+    static let noticeAfter: TimeInterval = 2
+
+    /// `network-share`: "longer than 60 seconds".
+    static let offerAfter: TimeInterval = 60
+
+    static func of(blocked: TimeInterval, dismissed: NoticeStage?) -> NoticeStage? {
+        let stage: NoticeStage
+        if blocked >= offerAfter {
+            stage = .long
+        } else if blocked >= noticeAfter {
+            stage = .brief
+        } else {
+            return nil
+        }
+        return dismissed == .long || dismissed == stage ? nil : stage
     }
 }
