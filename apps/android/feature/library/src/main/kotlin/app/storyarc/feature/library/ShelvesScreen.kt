@@ -526,19 +526,38 @@ private fun ServerShelfCard(
             ServerShelfCover(
                 name = shelf.title,
                 tiles = if (shelf.chosenCover) listOf(SERVER_COVER) else tiles,
+                // Cached the same way a local shelf's cover is -- task 22.2's own
+                // correction, "through the authenticated client and the cover cache".
+                // `route`'s own name scopes the disk entry: a series id and a chapter id
+                // are both small integers, and two servers can answer the same one.
                 load = { id ->
-                    when (val route = ServerShelfArtwork.of(id, shelf.isList, shelf.id)) {
-                        is ServerShelfArtwork.ShelfCoverOfList -> client.readingListCover(route.id)
-                        is ServerShelfArtwork.ShelfCoverOfCollection -> client.collectionCover(route.id)
-                        is ServerShelfArtwork.Chapter -> client.chapterCover(route.id)
-                        is ServerShelfArtwork.Series -> client.seriesCover(route.id)
-                        ServerShelfArtwork.Nothing -> ByteArray(0)
+                    val route = ServerShelfArtwork.of(id, shelf.isList, shelf.id)
+                    if (route == ServerShelfArtwork.Nothing) {
+                        null
+                    } else {
+                        viewModel.serverCover(
+                            id = "srv:${shelf.server.id}:$route",
+                            maxPixelSize = SHELF_CARD_COVER_PIXELS,
+                        ) { fetchServerShelfArtwork(client, route) }
                     }
                 },
             )
         },
     )
 }
+
+/** The bytes one [ServerShelfArtwork] route answers, wherever it points. */
+private suspend fun fetchServerShelfArtwork(client: KavitaClient, route: ServerShelfArtwork): ByteArray =
+    when (route) {
+        is ServerShelfArtwork.ShelfCoverOfList -> client.readingListCover(route.id)
+        is ServerShelfArtwork.ShelfCoverOfCollection -> client.collectionCover(route.id)
+        is ServerShelfArtwork.Chapter -> client.chapterCover(route.id)
+        is ServerShelfArtwork.Series -> client.seriesCover(route.id)
+        ServerShelfArtwork.Nothing -> ByteArray(0)
+    }
+
+/** [ShelfCover]'s own default width, in the pixels a server shelf's cache key is kept at. */
+private const val SHELF_CARD_COVER_PIXELS = 180
 
 /** The one tile a shelf has when the reader chose its cover on the server. */
 internal const val SERVER_COVER = "server-cover"

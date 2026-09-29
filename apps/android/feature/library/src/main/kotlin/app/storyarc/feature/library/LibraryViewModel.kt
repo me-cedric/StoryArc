@@ -1461,7 +1461,7 @@ class LibraryViewModel(
      * reason is what it skips: without it every launch reopened an archive, inflated an
      * entry and decoded an image, per cover, to draw a grid the reader had already seen.
      */
-    private val coverCache by lazy { CoverCache(File(getApplication<Application>().cacheDir, "covers")) }
+    internal val coverCache by lazy { CoverCache(File(getApplication<Application>().cacheDir, "covers")) }
 
     /**
      * Last session's shelf, so opening the app does not mean walking every folder before

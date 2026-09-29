@@ -1,7 +1,6 @@
 package app.storyarc.feature.library
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -182,11 +181,16 @@ internal fun ShelfComposite(
  *
  * A cover that never arrives leaves its quadrant blank rather than collapsing the composite,
  * so a shelf whose server is away still lines up with the ones beside it.
+ *
+ * [load] answers a decoded, cached [Bitmap] rather than raw bytes -- task 22.2's own
+ * correction. `ServerShelfCard` builds it from [LibraryViewModel.serverCover], so a cover this
+ * card already decoded once is read off disk instead of asked of the server and decoded again
+ * every time this composable re-enters composition.
  */
 @Composable
 internal fun ServerShelfCover(
     tiles: List<String>,
-    load: suspend (String) -> ByteArray,
+    load: suspend (String) -> Bitmap?,
     /** The shelf's name, for the placeholder [ShelfComposite] draws when it has no artwork. */
     name: String,
     modifier: Modifier = Modifier,
@@ -195,10 +199,7 @@ internal fun ServerShelfCover(
     LaunchedEffect(tiles) {
         for (id in tiles) {
             if (covers.containsKey(id)) continue
-            val bytes = runCatching { load(id) }.getOrNull() ?: continue
-            runCatching { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }
-                .getOrNull()
-                ?.let { covers[id] = it }
+            runCatching { load(id) }.getOrNull()?.let { covers[id] = it }
         }
     }
     ShelfComposite(tiles = tiles, covers = covers, name = name, modifier = modifier)
