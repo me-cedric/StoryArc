@@ -38,7 +38,7 @@ struct CatalogueDetailView: View {
     @State private var meteredAsk: MeteredAsk?
 
     var body: some View {
-        let onDevice = queue.onDevice.contains(entry.id)
+        let onDevice = queue.onDevice.contains(queue.downloadID(for: entry.id))
         let active = queue.library.pending
 
         return ScrollView {
@@ -52,7 +52,7 @@ struct CatalogueDetailView: View {
                     isDownloaded: onDevice,
                     onTake: { link in Task { await take(using: link) } },
                     onRead: { Task { await read() } },
-                    onRemove: { queue.remove(entry.id) }
+                    onRemove: { queue.remove(queue.downloadID(for: entry.id)) }
                 )
 
                 if let summary = entry.summary, !summary.isEmpty {

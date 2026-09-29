@@ -106,6 +106,22 @@ public struct DownloadStore {
         try? FileManager.default.removeItem(at: target)
     }
 
+    /// Moves one download's directory to a new id, keeping its file.
+    ///
+    /// `DownloadMigration`'s other half: re-keying the record is pure, and this is the one
+    /// place that has to touch disk to make the new key find what the old one wrote.
+    /// Silent on failure — a rename that does not happen leaves the old directory in place,
+    /// which is a stray record again rather than a lost file.
+    public func renaming(_ id: String, to newID: String) {
+        let source = directory.appending(path: Self.safe(id), directoryHint: .isDirectory)
+        let destination = directory.appending(path: Self.safe(newID), directoryHint: .isDirectory)
+        let root = directory.standardizedFileURL.path + "/"
+        guard source.standardizedFileURL.path.hasPrefix(root),
+              destination.standardizedFileURL.path.hasPrefix(root)
+        else { return }
+        try? FileManager.default.moveItem(at: source, to: destination)
+    }
+
     /// The download a file inside ``directory`` belongs to.
     ///
     /// Matched on the directory the file sits in, not on the file's own name. The name is

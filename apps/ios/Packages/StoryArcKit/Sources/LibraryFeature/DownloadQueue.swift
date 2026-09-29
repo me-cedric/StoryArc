@@ -35,6 +35,15 @@ public final class DownloadQueue {
     /// with nobody watching.
     let origin: OpdsOrigin?
 
+    /// The source this catalogue belongs to, so an enqueued download can be keyed against
+    /// the catalogue it came from rather than its raw entry id alone.
+    ///
+    /// `offline-downloads`' *OPDS downloads are keyed by the raw entry id* (dl-core 1.2):
+    /// two catalogues that number their entries the same way shared one record and one
+    /// file. Optional, and defaulted to `nil`, so a queue built without a source — a host
+    /// test, mostly — keeps the old, unscoped id rather than refusing to run.
+    public let sourceID: UUID?
+
     /// The transfer for each running download, so it can be cancelled.
     var running: [Download.ID: Task<Void, Never>] = [:]
 
@@ -49,6 +58,7 @@ public final class DownloadQueue {
         store: DownloadStore? = nil,
         credential: @escaping (Download.ID) -> OpdsCredential? = { _ in nil },
         origin: OpdsOrigin? = nil,
+        sourceID: UUID? = nil,
         /// What the reader has asked of the queue, re-asked rather than captured.
         ///
         /// `offline-downloads` resumes a held queue "automatically when [Wi-Fi] returns", so
@@ -58,11 +68,24 @@ public final class DownloadQueue {
     ) {
         self.settings = settings
         self.origin = origin
+        self.sourceID = sourceID
         client = OpdsClient(pins: pins, origin: origin)
         transfers = BackgroundTransfers.shared(pins: pins)
         self.store = store
         self.credential = credential
-        library = store?.library() ?? DownloadLibrary()
+        var loaded = store?.library() ?? DownloadLibrary()
+        // A stray pre-1.2 record this catalogue's own origin owns is re-keyed the moment
+        // this queue is built, so it stops sharing a record with whatever else on this
+        // device numbers its entries the same way. See `DownloadMigration`.
+        if let store, let sourceID, let origin {
+            let migration = DownloadMigration.migrating(loaded, sourceID: sourceID, origin: origin)
+            if !migration.renamed.isEmpty {
+                for pair in migration.renamed { store.renaming(pair.from, to: pair.to) }
+                loaded = migration.library
+                store.save(loaded)
+            }
+        }
+        library = loaded
         // So a retry pressed on a screen that owns no queue can reach this one while it is
         // alive — see `DownloadQueueRetry.swift`.
         remember()
@@ -137,6 +160,21 @@ public final class DownloadQueue {
     /// Which publications are recorded as being on the device.
     public var onDevice: Set<String> { Set(library.finished.map(\.id)) }
 
+    /// The id a download of this entry is recorded under.
+    ///
+    /// Namespaced by source when one is known, as Kavita already keys a chapter — see
+    /// `KavitaKeep`. Without a source the raw entry id stands, which keeps a queue built
+    /// with none (a host test, mostly) working exactly as it did.
+    public func downloadID(for entryID: String) -> Download.ID {
+        guard let sourceID else { return entryID }
+        return "opds:\(sourceID.uuidString):\(entryID)"
+    }
+
+    /// Whether this entry already has a finished download.
+    public func isOnDevice(_ entryID: String) -> Bool {
+        onDevice.contains(downloadID(for: entryID))
+    }
+
     /// Adds a download and starts it when there is room.
     ///
     /// - Parameter overridingMeteredConnection: the reader was asked whether to spend
@@ -148,16 +186,18 @@ public final class DownloadQueue {
         using acquisition: OpdsAcquisition,
         overridingMeteredConnection: Bool = false
     ) {
-        if overridingMeteredConnection { overridden.insert(entry.id) }
+        let id = downloadID(for: entry.id)
+        if overridingMeteredConnection { overridden.insert(id) }
         library = library.queueing(
             Download(
-                id: entry.id,
+                id: id,
+                sourceID: sourceID,
                 title: entry.title,
                 remote: acquisition.href,
                 mediaType: acquisition.mediaType
             )
         )
-        titles[entry.id] = entry
+        titles[id] = entry
         store?.save(library)
         pump()
     }
@@ -181,16 +221,17 @@ public final class DownloadQueue {
         overridingMeteredConnection: Bool = false
     ) async -> URL? {
         if let file = downloaded(entry) { return file }
-        switch library[entry.id]?.state {
+        let id = downloadID(for: entry.id)
+        switch library[id]?.state {
         case .failed, .paused(.byReader):
             // `enqueue` is a no-op once a publication is already known, and neither state
             // resolves itself: a failed download has no attempts left, and a download the
             // reader paused stays paused until asked. A reader pressing Read on either is
             // that ask — without this, the continuation below waits on a transfer nothing
             // is ever going to start.
-            if overridingMeteredConnection { overridden.insert(entry.id) }
-            titles[entry.id] = entry
-            resume(entry.id)
+            if overridingMeteredConnection { overridden.insert(id) }
+            titles[id] = entry
+            resume(id)
         default:
             enqueue(
                 entry,
@@ -202,9 +243,9 @@ public final class DownloadQueue {
         // one, so it goes to the head of the queue rather than behind whatever they lined
         // up earlier and are not reading — on a metered link, where the bound is one, that
         // was the difference between a five-megabyte comic and a four-hundred-megabyte wait.
-        promote(entry.id)
+        promote(id)
         return await withCheckedContinuation { continuation in
-            waiting[entry.id, default: []].append(continuation)
+            waiting[id, default: []].append(continuation)
         }
     }
 
@@ -260,7 +301,9 @@ public final class DownloadQueue {
     /// Asked of the filesystem: a download the system reclaimed is one the reader should be
     /// offered again rather than shown a missing file.
     public func downloaded(_ entry: OpdsEntry) -> URL? {
-        guard let download = library[entry.id], download.state.isFinished, let store else {
+        guard let download = library[downloadID(for: entry.id)], download.state.isFinished,
+              let store
+        else {
             return nil
         }
         let file = store.location(of: download)
