@@ -66,6 +66,7 @@
     <string name="reader_offline_download">Download it</string>
     <string name="reader_offline_leave">Back to library</string>
     <string name="reader_offline_dismiss">Dismiss</string>
+    <string name="reader_offline_download_failed">The download could not start. The share is still unreachable.</string>
     <string name="reader_adjust">Image adjustments</string>
     <string name="reader_adjust_brightness">Brightness</string>
     <string name="reader_adjust_contrast">Contrast</string>

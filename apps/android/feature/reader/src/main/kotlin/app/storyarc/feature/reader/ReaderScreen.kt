@@ -183,7 +183,7 @@ fun ReaderScreen(
      */
     blockedSince: Long? = null,
     onDismissTrouble: () -> Unit = {},
-    onDownloadForOffline: (() -> Unit)? = null,
+    onDownloadForOffline: (suspend () -> Boolean)? = null,
     modifier: Modifier = Modifier,
 ) {
     val pages by viewModel.pages.collectAsStateWithLifecycle()

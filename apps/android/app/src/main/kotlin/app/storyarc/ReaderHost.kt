@@ -135,15 +135,20 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
         onDismissTrouble = { SmbReachability.clear() },
         // Only for a publication that lives on a share. Everything else is already on the
         // device, and offering to download it would be offering nothing.
+        //
+        // Answers whether the copy started, so `NetworkNotice` can say so when it did not.
+        // `SmbReachability` is cleared only on success -- the share is still unreachable
+        // otherwise, which is the entire reason the offer exists.
         onDownloadForOffline = screen.path
             .takeIf { it.startsWith("smb://") }
             ?.let { remote ->
-                {
-                    activity.lifecycleScope.launch {
-                        keepForOffline(dependencies.queue, dependencies.downloads, publication, remote)
-                            ?.let { local -> host.open(publication, local) }
+                suspend {
+                    val local = keepForOffline(dependencies.queue, dependencies.downloads, publication, remote)
+                    if (local != null) {
+                        host.open(publication, local)
                         SmbReachability.clear()
                     }
+                    local != null
                 }
             },
         // `comic-reader`: the end of one volume offers the next. The app layer answers this
