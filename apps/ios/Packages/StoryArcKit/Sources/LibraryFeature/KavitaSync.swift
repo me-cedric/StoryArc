@@ -30,6 +30,7 @@ public enum KavitaSync {
         for origin: KavitaOrigin,
         to address: KavitaAddress?,
         in store: KavitaProgressStore,
+        progress: ProgressStore? = nil,
         configuration: URLSessionConfiguration? = nil
     ) async {
         let unsent = KavitaUnsent(origin: origin, page: page)
@@ -38,9 +39,27 @@ public enum KavitaSync {
             try await KavitaClient(address: address, configuration: configuration)
                 .report(position(origin, page))
             store.drop(unsent.key)
+            await stampSynced(chapterId: origin.chapterId, in: store, into: progress)
         } catch {
             store.hold(unsent)
         }
+    }
+
+    /// Marks the local record for a reported chapter as synchronised, so the next pull's
+    /// merge sees it as untouched rather than as "changed since last sync".
+    ///
+    /// Silent when there is no local record — a position can be reported for a chapter
+    /// this device opened once and no longer holds, and there is nothing to stamp.
+    private static func stampSynced(
+        chapterId: Int,
+        in store: KavitaProgressStore,
+        into progress: ProgressStore?
+    ) async {
+        guard let progress,
+              let publicationId = store.publication(forChapter: chapterId),
+              let existing = try? await progress.progress(forStableID: publicationId)
+        else { return }
+        try? await progress.save(KavitaExchange.settled(existing))
     }
 
     /// Takes what the server says other devices have read, and merges it in.
@@ -242,18 +261,25 @@ public enum KavitaSync {
     public static func flush(
         _ sourceId: String,
         to address: KavitaAddress,
-        in store: KavitaProgressStore
+        in store: KavitaProgressStore,
+        progress: ProgressStore? = nil,
+        configuration: URLSessionConfiguration? = nil
     ) async -> [KavitaUnsent] {
         let held = store.unsent().filter { $0.origin.sourceId == sourceId }
         guard !held.isEmpty else { return [] }
 
-        let client = KavitaClient(address: address)
+        let client = KavitaClient(address: address, configuration: configuration)
         var delivered: [KavitaUnsent] = []
         for each in held {
             guard (try? await send(client, each)) != nil else { continue }
             delivered.append(each)
         }
         store.sent(delivered)
+        // A plain position, not a mark or a list write — the only kind of held item a
+        // local record has anything to say about.
+        for each in delivered where each.mark == nil && each.listID == nil {
+            await stampSynced(chapterId: each.origin.chapterId, in: store, into: progress)
+        }
         return delivered
     }
 

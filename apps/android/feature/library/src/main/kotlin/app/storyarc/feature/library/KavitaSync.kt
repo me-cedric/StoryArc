@@ -44,11 +44,30 @@ object KavitaSync {
         address: KavitaAddress?,
         origin: KavitaOrigin,
         page: Int,
+        progress: ProgressStore? = null,
     ) {
         val unsent = KavitaUnsent(origin, page)
         if (address == null) return store.hold(unsent)
         val sent = runCatching { KavitaClient(address).report(position(origin, page)) }
-        if (sent.isSuccess) store.drop(unsent.key) else store.hold(unsent)
+        if (sent.isSuccess) {
+            store.drop(unsent.key)
+            stampSynced(origin.chapterId, store, progress)
+        } else {
+            store.hold(unsent)
+        }
+    }
+
+    /**
+     * Marks the local record for a reported chapter as synchronised, so the next pull's
+     * merge sees it as untouched rather than as "changed since last sync".
+     *
+     * Silent when there is no local record -- a position can be reported for a chapter
+     * this device opened once and no longer holds, and there is nothing to stamp.
+     */
+    private suspend fun stampSynced(chapterId: Int, store: KavitaProgressStore, progress: ProgressStore?) {
+        val publicationId = progress?.let { store.publicationForChapter(chapterId) } ?: return
+        val existing = progress.progressForStableId(publicationId) ?: return
+        progress.save(KavitaExchange.settled(existing))
     }
 
     /**
@@ -233,6 +252,7 @@ object KavitaSync {
         store: KavitaProgressStore,
         sourceId: String,
         address: KavitaAddress,
+        progress: ProgressStore? = null,
     ): List<KavitaUnsent> {
         val waiting = store.unsent().filter { it.origin.sourceId == sourceId }
         if (waiting.isEmpty()) return emptyList()
@@ -240,6 +260,10 @@ object KavitaSync {
         val client = KavitaClient(address)
         val delivered = waiting.filter { held -> runCatching { send(client, held) }.isSuccess }
         store.sent(delivered)
+        // A plain position, not a mark or a list write -- the only kind of held item a
+        // local record has anything to say about.
+        delivered.filter { it.mark == null && it.listId == null }
+            .forEach { stampSynced(it.origin.chapterId, store, progress) }
         return delivered
     }
 

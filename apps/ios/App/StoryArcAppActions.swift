@@ -74,7 +74,7 @@ extension StoryArcApp {
         let address = library.registry.sources
             .first { $0.id.uuidString == origin.sourceId }
             .flatMap { KavitaPage(source: $0, credentials: credentials)?.address }
-        await KavitaSync.report(pageNum, for: origin, to: address, in: kavitaProgress)
+        await KavitaSync.report(pageNum, for: origin, to: address, in: kavitaProgress, progress: progress)
     }
 
     /// Opens a publication: a reader for a comic or a book, the player for an audiobook.

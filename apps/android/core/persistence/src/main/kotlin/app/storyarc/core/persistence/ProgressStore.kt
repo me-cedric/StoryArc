@@ -308,7 +308,12 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
                 ?: progress.finishedAtEpochMillis.takeIf { progress.isFinished }
                 ?: progress.updatedAtEpochMillis.takeIf { progress.isFinished },
             updatedAt = progress.updatedAtEpochMillis,
-            syncedProgression = progress.syncedPosition?.fraction,
+            // Kept rather than overwritten when the incoming record carries none. Every
+            // reader save sends null here -- only a successful exchange with the server
+            // knows a synced position -- so overwriting unconditionally erased it on the
+            // very next page turn, and the next pull's merge then saw a moved-on-both-
+            // sides conflict where there was none.
+            syncedProgression = progress.syncedPosition?.fraction ?: existing?.syncedProgression,
         )
         if (existing == null) dao.insert(row) else dao.update(row)
     }

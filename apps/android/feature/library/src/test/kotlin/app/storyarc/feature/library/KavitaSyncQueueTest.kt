@@ -3,9 +3,13 @@ package app.storyarc.feature.library
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.kavita.KavitaAddress
+import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.model.ReadingPosition
+import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.persistence.KavitaOrigin
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.persistence.KavitaUnsent
+import app.storyarc.core.persistence.ProgressStore
 import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
 import kotlinx.coroutines.runBlocking
@@ -85,6 +89,45 @@ class KavitaSyncQueueTest {
                 store.unsent().isEmpty(),
             )
         }
+
+    private fun progressStore() = ProgressStore.inMemory(ApplicationProvider.getApplicationContext())
+
+    @Test
+    fun `a successful report stamps the local record as synchronised`() = runBlocking {
+        val store = store()
+        val origin = origin("stamp-server")
+        val progress = progressStore()
+        val identity = PublicationIdentity(normalizedPath = "/books/one.cbz")
+        store.remember(identity.stableId, origin)
+        progress.save(
+            ReadingProgress(identity = identity, position = ReadingPosition.Page(19, 20), updatedAtEpochMillis = 0),
+        )
+
+        val address = KavitaAddress("http://localhost:${server.address.port}", "key")
+        KavitaSync.report(store, address, origin, page = 19, progress = progress)
+
+        val found = progress.progress(identity)
+        assertEquals(ReadingPosition.Page(19, 20).fraction, found?.syncedPosition?.fraction)
+    }
+
+    @Test
+    fun `a held position stamps its local record too, once flush delivers it`() = runBlocking {
+        val store = store()
+        val origin = origin("flush-stamp-server")
+        val progress = progressStore()
+        val identity = PublicationIdentity(normalizedPath = "/books/two.cbz")
+        store.remember(identity.stableId, origin)
+        progress.save(
+            ReadingProgress(identity = identity, position = ReadingPosition.Page(9, 10), updatedAtEpochMillis = 0),
+        )
+        store.hold(KavitaUnsent(origin, page = 9))
+
+        val address = KavitaAddress("http://localhost:${server.address.port}", "key")
+        KavitaSync.flush(store, origin.sourceId, address, progress)
+
+        val found = progress.progress(identity)
+        assertEquals(ReadingPosition.Page(9, 10).fraction, found?.syncedPosition?.fraction)
+    }
 
     @Test
     fun `a report that fails still holds its own page alongside another server's`() = runBlocking {

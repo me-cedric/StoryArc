@@ -160,7 +160,12 @@ public actor ProgressStore {
                 record.finishedAt = progress.finishedAt ?? progress.updatedAt
             }
             record.updatedAt = progress.updatedAt
-            record.syncedPositionData = synced
+            // Kept rather than overwritten when the incoming record carries none. Every
+            // reader save sends nil here -- only a successful exchange with the server
+            // knows a synced position -- so overwriting unconditionally erased it on the
+            // very next page turn, and the next pull's merge then saw a moved-on-both-
+            // sides conflict where there was none.
+            record.syncedPositionData = synced ?? record.syncedPositionData
             // Identity components fill in as they become known, so a record
             // written against a path can later be found by its digest.
             record.serverKey = record.serverKey ?? Self.serverKey(progress.identity)
