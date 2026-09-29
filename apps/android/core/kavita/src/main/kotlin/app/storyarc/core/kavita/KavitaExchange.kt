@@ -118,5 +118,22 @@ data class KavitaExchange(
 
             return KavitaExchange(toSave = toSave, owed = owed)
         }
+
+        /**
+         * The position to write for a chapter the browser is about to open, or null when
+         * there is nothing to seed.
+         *
+         * Continue and a chapter row both open a chapter through one path, and neither used
+         * to write anything until the reader turned a page -- so a chapter Kavita reports as
+         * half read opened at page one, and closing it reported that page one back, moving
+         * the server's own position behind silently. Null when a local record already
+         * exists: a chapter already opened here keeps whatever the reader left, and only a
+         * first open is seeded. Null too when the server has nothing to report, or the
+         * chapter has no pages to place a position within.
+         */
+        fun openSeed(chapter: KavitaChapter, existing: ReadingProgress?): ReadingPosition? {
+            if (existing != null || chapter.pagesRead <= 0 || chapter.pages <= 0) return null
+            return position(chapter.pagesRead, chapter.pages)
+        }
     }
 }

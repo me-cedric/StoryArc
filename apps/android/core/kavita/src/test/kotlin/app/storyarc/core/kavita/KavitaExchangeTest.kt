@@ -30,8 +30,8 @@ class KavitaExchangeTest {
         syncedPosition = synced?.let { ReadingPosition.Page(it, total) },
     )
 
-    private fun chapter(id: Int, pages: Int = 10) =
-        KavitaChapter(id = id, number = "1", title = "Chapter $id", pages = pages)
+    private fun chapter(id: Int, pages: Int = 10, pagesRead: Int = 0) =
+        KavitaChapter(id = id, number = "1", title = "Chapter $id", pages = pages, pagesRead = pagesRead)
 
     private fun key(id: String) = PublicationIdentity(contentDigest = id).stableId
 
@@ -190,5 +190,35 @@ class KavitaExchangeTest {
 
         assertTrue(exchange.toSave.isEmpty() && exchange.owed.isEmpty())
         assertNull(exchange.owed.firstOrNull())
+    }
+
+    // What Continue and a chapter row seed on a first open
+
+    @Test
+    fun `a chapter kavita reports as half read is seeded at that page`() {
+        assertEquals(
+            ReadingPosition.Page(3, 10),
+            KavitaExchange.openSeed(chapter(41, pages = 10, pagesRead = 4), existing = null),
+        )
+    }
+
+    @Test
+    fun `a chapter with no local record and nothing read yet is not seeded`() {
+        assertNull(KavitaExchange.openSeed(chapter(41, pagesRead = 0), existing = null))
+    }
+
+    @Test
+    fun `a chapter that already has a local record is left alone`() {
+        assertNull(
+            KavitaExchange.openSeed(
+                chapter(41, pages = 10, pagesRead = 4),
+                existing = progress("one", page = 7),
+            ),
+        )
+    }
+
+    @Test
+    fun `a chapter the server reports no pages for is not seeded`() {
+        assertNull(KavitaExchange.openSeed(chapter(41, pages = 0, pagesRead = 4), existing = null))
     }
 }
