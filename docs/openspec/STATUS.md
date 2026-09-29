@@ -57,8 +57,18 @@ navigation lands on Library on both platforms (21.2); a Kavita reading-list entr
 cannot be fetched says so instead of spinning (21.4); the finished badge (22.3); 14 comic
 reader fixes; 13 reading-theme fixes; and three download fixes. The rotation freeze
 (21.1) has one fix, an index rail that scrolls in landscape, and its cause is not yet
-confirmed on a device. The single app-wide download queue (1.1) is not built yet and
-moves to wave 2.
+confirmed on a device. The single app-wide download queue (1.1) moved to wave 2.
+
+**Wave 2 landed on 2026-09-29** with 39 more tasks (81 of 239 in all). Each platform now
+has one app-level download queue, the only writer of the download store, built at launch,
+with OPDS records keyed by their source and a streamed read that carries its source's
+credential and the app-wide certificate pins. Kavita progress sync (13 tasks) and the share
+work (11 tasks, among them the Android local network permission) landed, and so did nine
+curl fixes. The live Kavita 0.9.1.4 server accepted the app's progress request shape on
+2026-09-29, and the position did not change. Wave 2 also found that an empty iOS collection
+draws a blank card (task 7.11, wave 3), and it left the curl shape work (D10 to D14, D33), the
+full read of SMB and OPDS sources, and the long press on search and the server browsers for
+later waves. The goal is paused after this wave, at the owner's request.
 
 **What this pass changes in the records below.**
 
