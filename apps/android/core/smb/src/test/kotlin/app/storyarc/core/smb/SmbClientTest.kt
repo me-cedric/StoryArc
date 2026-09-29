@@ -4,7 +4,6 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -135,7 +134,6 @@ class SmbClientTest {
 
             val after = source.read(0, 4)
             assertEquals(before.toList(), after.toList())
-            assertNull(SmbReachability.blockedSince.value)
         }
     }
 
@@ -165,7 +163,6 @@ class SmbClientTest {
             val after = source.read(0, 4)
             assertEquals(before.toList(), after.toList())
             assertEquals(2, source.opens)
-            assertNull(SmbReachability.blockedSince.value)
         }
     }
 

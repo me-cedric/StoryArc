@@ -13,7 +13,6 @@ import app.storyarc.core.model.ReadingAddress
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.persistence.AnnotationStore
 import app.storyarc.core.persistence.KavitaOrigin
-import app.storyarc.core.smb.SmbReachability
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.KavitaSync
 import app.storyarc.feature.reader.DownloadCleanupOffer
@@ -132,18 +131,14 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
         // Only for a publication that lives on a share. Everything else is already on the
         // device, and offering to download it would be offering nothing.
         //
-        // Answers whether the copy started, so `NetworkNotice` can say so when it did not.
-        // `SmbReachability` is cleared only on success -- the share is still unreachable
-        // otherwise, which is the entire reason the offer exists.
+        // Answers whether the copy landed, so `NetworkNotice` can say so when it did not --
+        // the share is still unreachable then, which is the entire reason the offer exists.
         onDownloadForOffline = screen.path
             .takeIf { it.startsWith("smb://") }
             ?.let { remote ->
                 suspend {
                     val local = keepForOffline(dependencies.queue, dependencies.downloads, publication, remote)
-                    if (local != null) {
-                        host.open(publication, local)
-                        SmbReachability.clear()
-                    }
+                    if (local != null) host.open(publication, local)
                     local != null
                 }
             },

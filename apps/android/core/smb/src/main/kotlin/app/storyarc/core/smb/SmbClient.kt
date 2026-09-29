@@ -305,17 +305,12 @@ internal class SmbSource(private val opener: () -> SmbRandomAccessFile) : Random
             }
 
             try {
-                val bytes = readOnce(offset, toRead)
-                SmbReachability.noteSuccess()
-                bytes
+                readOnce(offset, toRead)
             } catch (first: java.io.IOException) {
                 try {
                     reopen()
-                    val bytes = readOnce(offset, toRead)
-                    SmbReachability.noteSuccess()
-                    bytes
+                    readOnce(offset, toRead)
                 } catch (second: java.io.IOException) {
-                    SmbReachability.noteFailure(System.currentTimeMillis())
                     throw SmbError.HostUnreachable
                 }
             }
