@@ -7,11 +7,13 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -24,6 +26,7 @@ import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
 import app.storyarc.core.model.ImageAdjustments
 import kotlin.math.abs
@@ -69,6 +72,11 @@ internal fun CurledPages(
      * every other container bakes it.
      */
     adjustments: ImageAdjustments = ImageAdjustments(),
+    /** Whether the current page turned out to be undecodable, rather than merely not
+     * decoded yet. See `Message`. */
+    isUnavailable: Boolean = false,
+    /** What the current page turned out to be, when it could not be decoded. */
+    codecName: String? = null,
     /** Called once a forward turn has completed. */
     onTurned: () -> Unit,
     /** Called once a backwards turn has completed. */
@@ -98,121 +106,143 @@ internal fun CurledPages(
     val colours = remember(adjustments) { adjustments.colourFilter() }
     val sharpen = remember(adjustments) { adjustments.sharpeningEffect() }
 
-    Canvas(
-        modifier = modifier
-            .fillMaxSize()
-            .graphicsLayer { renderEffect = sharpen }
-            .pointerInput(page, beneath, previous, isRightToLeft) {
-                awaitEachGesture {
-                    val down = awaitFirstDown()
+    Box(modifier = modifier.fillMaxSize()) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { renderEffect = sharpen }
+                .pointerInput(page, beneath, previous, isRightToLeft) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown()
 
-                    // Frame-rate independent, unlike a raw per-event pixel delta: at 120 Hz
-                    // each event carries half the travel it carries at 60 Hz, so a threshold
-                    // on the last event's delta missed the same flick on a faster panel.
-                    val velocityTracker = VelocityTracker()
-                    var travelled = 0f
-                    var isDrag = false
-                    // Where the page stood when this drag took it over, and where it
-                    // stands now. Kept here rather than read back from the `Animatable`
-                    // per move: driving it means launching a coroutine per move event,
-                    // and those had not run by the time the finger lifted — so the
-                    // release decision read a progress of zero and sprang every turn
-                    // back.
-                    var base = 0f
-                    var reached = 0f
+                        // Frame-rate independent, unlike a raw per-event pixel delta: at 120 Hz
+                        // each event carries half the travel it carries at 60 Hz, so a threshold
+                        // on the last event's delta missed the same flick on a faster panel.
+                        val velocityTracker = VelocityTracker()
+                        var travelled = 0f
+                        var isDrag = false
+                        // Where the page stood when this drag took it over, and where it
+                        // stands now. Kept here rather than read back from the `Animatable`
+                        // per move: driving it means launching a coroutine per move event,
+                        // and those had not run by the time the finger lifted — so the
+                        // release decision read a progress of zero and sprang every turn
+                        // back.
+                        var base = 0f
+                        var reached = 0f
 
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                        if (!change.pressed) break
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                            if (!change.pressed) break
 
-                        velocityTracker.addPointerInputChange(change)
-                        travelled += change.positionChange().x
+                            velocityTracker.addPointerInputChange(change)
+                            travelled += change.positionChange().x
+                            if (!isDrag) {
+                                if (abs(travelled) <= viewConfiguration.touchSlop) continue
+                                isDrag = true
+                                // The turn is taken over here rather than at the press: a
+                                // settle still running is stopped where it stands, that
+                                // value becomes the base the drag is measured from, and the
+                                // slop that only proved intent is not also spent turning the
+                                // page. A press that never becomes a drag never reaches this,
+                                // so a tap during a settle leaves the settle alone.
+                                base = progress.value
+                                reached = base
+                                travelled = 0f
+                                scope.launch { progress.stop() }
+                                // The turn starts here and ends when its settle completes, so a
+                                // count covers the drag and the spring and nothing else.
+                                frames.began()
+                            }
+
+                            change.consume()
+                            reached = CurlTurn.progress(
+                                base = base,
+                                travel = travelled,
+                                width = size.width.toFloat(),
+                                isRightToLeft = isRightToLeft,
+                                canTurnBack = previous != null,
+                            )
+                            scope.launch { progress.snapTo(reached) }
+                        }
+
                         if (!isDrag) {
-                            if (abs(travelled) <= viewConfiguration.touchSlop) continue
-                            isDrag = true
-                            // The turn is taken over here rather than at the press: a
-                            // settle still running is stopped where it stands, that
-                            // value becomes the base the drag is measured from, and the
-                            // slop that only proved intent is not also spent turning the
-                            // page. A press that never becomes a drag never reaches this,
-                            // so a tap during a settle leaves the settle alone.
-                            base = progress.value
-                            reached = base
-                            travelled = 0f
-                            scope.launch { progress.stop() }
-                            // The turn starts here and ends when its settle completes, so a
-                            // count covers the drag and the spring and nothing else.
-                            frames.began()
+                            onTap(down.position, IntSize(size.width, size.height))
+                            return@awaitEachGesture
                         }
 
-                        change.consume()
-                        reached = CurlTurn.progress(
-                            base = base,
-                            travel = travelled,
-                            width = size.width.toFloat(),
+                        // Directional, unlike the distance: a fast finger dragging the page
+                        // back has said it does not want the turn, and an unsigned flick
+                        // completed it anyway. Turn-space carries the sign the same way a
+                        // drag's travel does, and dp/s is what makes the threshold mean the
+                        // same swipe on every density and every refresh rate.
+                        val velocityDp = CurlTurn.forward(
+                            travel = velocityTracker.calculateVelocity().x,
                             isRightToLeft = isRightToLeft,
-                            canTurnBack = previous != null,
-                        )
-                        scope.launch { progress.snapTo(reached) }
-                    }
-
-                    if (!isDrag) {
-                        onTap(down.position, IntSize(size.width, size.height))
-                        return@awaitEachGesture
-                    }
-
-                    // Directional, unlike the distance: a fast finger dragging the page
-                    // back has said it does not want the turn, and an unsigned flick
-                    // completed it anyway. Turn-space carries the sign the same way a
-                    // drag's travel does, and dp/s is what makes the threshold mean the
-                    // same swipe on every density and every refresh rate.
-                    val velocityDp = CurlTurn.forward(
-                        travel = velocityTracker.calculateVelocity().x,
-                        isRightToLeft = isRightToLeft,
-                    ) / density
-                    val flick = CurlTurn.flicks(velocity = velocityDp, progress = reached)
-                    val settled = CurlTurn.settles(progress = reached, isFlick = flick)
-                    val backwards = reached < 0f
-                    scope.launch {
-                        progress.animateTo(
-                            targetValue = if (!settled) 0f else if (backwards) -1f else 1f,
-                            animationSpec = spring(),
-                        )
-                        // The turn is over either way — a page that sprang back still spent
-                        // frames. A settle a later drag took over never reaches this, and
-                        // that drag's own settle closes the count.
-                        frames.ended()
-                        if (settled) {
-                            // The page swap first, then the reset: the other order shows
-                            // the outgoing page flat for a frame before it goes.
-                            if (backwards) onTurnedBack() else onTurned()
-                            progress.snapTo(0f)
+                        ) / density
+                        val flick = CurlTurn.flicks(velocity = velocityDp, progress = reached)
+                        val settled = CurlTurn.settles(progress = reached, isFlick = flick)
+                        val backwards = reached < 0f
+                        scope.launch {
+                            progress.animateTo(
+                                targetValue = if (!settled) 0f else if (backwards) -1f else 1f,
+                                animationSpec = spring(),
+                            )
+                            // The turn is over either way — a page that sprang back still spent
+                            // frames. A settle a later drag took over never reaches this, and
+                            // that drag's own settle closes the count.
+                            frames.ended()
+                            if (settled) {
+                                // The page swap first, then the reset: the other order shows
+                                // the outgoing page flat for a frame before it goes.
+                                if (backwards) onTurnedBack() else onTurned()
+                                progress.snapTo(0f)
+                            }
                         }
                     }
+                },
+        ) {
+            // The matte first, because the shader leaves the letterbox transparent rather
+            // than smearing the page's edge pixel across it — and drawn even when the rest
+            // returns early below, so a page still loading is a matte, never a blank hole.
+            drawRect(color = matte, size = size)
+            // Lint's `NewApi` check reads a version guard, not a null check, however true the
+            // two are together: `runtimeShader` is null on exactly this condition, but only
+            // this line is what tells the checker `PageCurl.update` below is reachable only
+            // at API 33 and above.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return@Canvas
+            val shader = runtimeShader ?: return@Canvas
+            val sheets = CurlTurn.sheets(progress.value, page, beneath, previous)
+            val turning = sheets.turning ?: return@Canvas
+            PageCurl.update(
+                shader,
+                area = Size(size.width, size.height),
+                progress = sheets.progress,
+                isRightToLeft = isRightToLeft,
+                page = turning,
+                beneath = sheets.under,
+            )
+            drawRect(brush = ShaderBrush(shader), size = size, colorFilter = colours)
+        }
+        // `publication-formats`: a page still loading or that could not be decoded is named
+        // rather than left as a bare matte, in Curl as in every other mode. Only reachable
+        // at rest — a drag never starts on a page that has not decoded, because
+        // `sheets.turning` is flat `page` there.
+        if (CurlTurn.sheets(progress.value, page, beneath, previous).turning == null) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                if (isUnavailable) {
+                    Message(
+                        if (codecName != null) {
+                            stringResource(R.string.reader_page_unavailable_codec, codecName)
+                        } else {
+                            stringResource(R.string.reader_page_unavailable)
+                        },
+                    )
+                } else {
+                    DelayedProgressIndicator()
                 }
-            },
-    ) {
-        // Lint's `NewApi` check reads a version guard, not a null check, however true the
-        // two are together: `runtimeShader` is null on exactly this condition, but only
-        // this line is what tells the checker `PageCurl.update` below is reachable only
-        // at API 33 and above.
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return@Canvas
-        val shader = runtimeShader ?: return@Canvas
-        val sheets = CurlTurn.sheets(progress.value, page, beneath, previous)
-        val turning = sheets.turning ?: return@Canvas
-        // The matte first, because the shader leaves the letterbox transparent rather than
-        // smearing the page's edge pixel across it.
-        drawRect(color = matte, size = size)
-        PageCurl.update(
-            shader,
-            area = Size(size.width, size.height),
-            progress = sheets.progress,
-            isRightToLeft = isRightToLeft,
-            page = turning,
-            beneath = sheets.under,
-        )
-        drawRect(brush = ShaderBrush(shader), size = size, colorFilter = colours)
+            }
+        }
     }
 }
 

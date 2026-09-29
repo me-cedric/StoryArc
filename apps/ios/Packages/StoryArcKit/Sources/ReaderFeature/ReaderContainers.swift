@@ -56,6 +56,8 @@ extension ReaderView {
             isRightToLeft: isRightToLeft,
             matte: model.matte,
             adjustments: adjustments,
+            isUnavailable: model.isUnavailable(at: modelIndex(forDisplay: displayIndex)),
+            codecName: model.codecName(at: modelIndex(forDisplay: displayIndex)),
             onTurned: { turnInReadingOrder(by: 1) },
             onTurnedBack: { turnInReadingOrder(by: -1) },
             onTap: tapHandler()

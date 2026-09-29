@@ -949,6 +949,8 @@ private fun Pager(
                     isRightToLeft = isRightToLeft,
                     matte = matte,
                     adjustments = adjustments,
+                    isUnavailable = viewModel.isUnavailable(modelIndex(paging.current)),
+                    codecName = viewModel.codecName(modelIndex(paging.current)),
                     onTurned = { turn(paging.current + readingOrderStep(1, isRightToLeft)) },
                     onTurnedBack = { turn(paging.current + readingOrderStep(-1, isRightToLeft)) },
                     onTap = ::handleTap,
@@ -1767,7 +1769,7 @@ private fun EndOfPublication(
  * stutter, which is the opposite of what the indicator is for.
  */
 @Composable
-private fun DelayedProgressIndicator() {
+internal fun DelayedProgressIndicator() {
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         delay(SPINNER_DELAY_MILLIS)
@@ -1777,7 +1779,7 @@ private fun DelayedProgressIndicator() {
 }
 
 @Composable
-private fun Message(text: String) {
+internal fun Message(text: String) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
