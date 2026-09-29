@@ -163,7 +163,7 @@ public struct ReaderView: View {
     /// already lives, and `ReaderModel.choose(_ fit:)` is what writes it there.
     var fit: PageFit { model.settings.fit }
 
-    /// D6: the pinched scale to carry into the next page, while `fit` is `.width`.
+    /// D6: the pinch, as a multiple of the fit, to carry on while `fit` is `.width`.
     @State var carriedZoomScale: Double?
 
     /// Whether the thumbnail strip is open.

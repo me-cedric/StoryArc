@@ -117,12 +117,12 @@ struct PageFittingTests {
     // next page rather than resetting on every turn. Android's `PageZoomTest`'s
     // fit-to-width cases assert the same table.
 
-    @Test("fit-to-width carries a pinch past its own scale into the next page")
+    @Test("fit-to-width carries a pinch, as a multiple of the next page's own fit")
     func fitToWidthCarriesAPinchForward() {
-        #expect(openingScale(fitScale: 2, carried: 4, mode: .width) == 4)
+        #expect(openingScale(fitScale: 2, carried: 1.5, mode: .width) == 3)
     }
 
-    @Test("every other mode still resets, even with a carried scale in hand")
+    @Test("every other mode still resets, even with a carried pinch in hand")
     func everyOtherModeIgnoresTheCarriedScale() {
         #expect(openingScale(fitScale: 1, carried: 4, mode: .screen) == 1)
         #expect(openingScale(fitScale: 2, carried: 4, mode: .original) == 2)
@@ -133,25 +133,42 @@ struct PageFittingTests {
         #expect(openingScale(fitScale: 2, carried: nil, mode: .width) == 2)
     }
 
-    @Test("a carried scale at or below the fit is not a pinch to carry")
-    func aStaleOrIdenticalCarriedScaleDoesNothing() {
-        // A page opened at its ordinary fit-to-width reports that very scale through
-        // `onZoom` on some builds; carrying it forward is a no-op either way, but the
-        // comparison has to allow for it rather than always trusting `carried`.
-        #expect(openingScale(fitScale: 2, carried: 2, mode: .width) == 2)
-        #expect(openingScale(fitScale: 2, carried: 1, mode: .width) == 2)
+    @Test("a page left at its fit carries nothing into a page of another shape")
+    func aPageAtItsFitCarriesNothing() {
+        // A raw scale carried page A's fit-to-width (2) into page B, whose own fit is
+        // 1.5, and opened B magnified although nobody pinched. A multiple of 1 is no
+        // pinch at all, whatever the next page's shape.
+        #expect(openingScale(fitScale: 1.5, carried: 1, mode: .width) == 1.5)
+        #expect(openingScale(fitScale: 1.5, carried: 1.005, mode: .width) == 1.5)
+        #expect(openingScale(fitScale: 1.5, carried: 0.8, mode: .width) == 1.5)
     }
 
-    @Test("an OwedFit given a carried scale opens the page at it, not at its own fit")
+    @Test("an OwedFit given a carried pinch opens the page past its own fit by that much")
     func owedFitTakesACarriedScale() {
         let owed = OwedFit(
             pageID: "1",
             mode: .width,
             imageSize: CGSize(width: 500, height: 2000),
             viewport: viewport,
-            carried: 5
+            carried: 2
         )
-        #expect(owed.scale(upTo: 6) == 5)
+        #expect(owed.fitScale(upTo: 6) > 1)
+        #expect(owed.scale(upTo: 6) == min(owed.fitScale(upTo: 6) * 2, 6))
+        #expect(owed.scale(upTo: 6) > owed.fitScale(upTo: 6))
+    }
+
+    @Test("a double-tap goes back to the page's own fit, not to the pinch it carried")
+    func doubleTapFitIgnoresTheCarry() {
+        let carried = OwedFit(
+            pageID: "1", mode: .width, imageSize: CGSize(width: 500, height: 2000),
+            viewport: viewport, carried: 2
+        )
+        let plain = OwedFit(
+            pageID: "1", mode: .width, imageSize: CGSize(width: 500, height: 2000),
+            viewport: viewport
+        )
+        #expect(carried.fitScale(upTo: 6) == plain.scale(upTo: 6))
+        #expect(isZoomedPastFit(currentScale: carried.scale(upTo: 6), fitScale: carried.fitScale(upTo: 6)))
     }
 
     @Test("a carried scale opens top-left in left-to-right, top-right in right-to-left")

@@ -258,9 +258,9 @@ extension ReaderView {
                 isRightToLeft: isRightToLeft,
                 adjustments: trimming(at: index),
                 onTap: onTap,
-                onZoom: { scale in
+                onZoom: { scale, overFit in
                     Task { await model.holdZoom(scale, at: index) }
-                    if fit == .width { carriedZoomScale = scale }
+                    if fit == .width { carriedZoomScale = overFit }
                 },
                 decoration: decoration(at: index),
                 onSelect: selectionHandler(at: index)

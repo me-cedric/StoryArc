@@ -89,7 +89,6 @@ internal data class PageZoom(
     fun unprojected(point: Offset, page: PageBounds): Offset =
         page.centre + (point - page.centre - offset) / scale
 
-    /** A double tap: in to [DOUBLE_TAP] centred on the point, or back out to fit. */
     /**
      * Toggles between the chosen fit and a zoom about the tapped point.
      *
@@ -98,11 +97,18 @@ internal data class PageZoom(
      * zoomed a page that was already at its chosen fit further in on the first
      * double-tap instead of the second. [fitting] is what both the comparison and the
      * reset target need: the mode's own scale, and the offset that opens it correctly.
+     *
+     * The zoom in is [DOUBLE_TAP] times that fit, not a fixed scale: fit-to-width in
+     * landscape can already sit above 2.5, and a fixed 2.5 zoomed out. It centres the
+     * *content* under the finger, read back through the current zoom with [unprojected]:
+     * at fit-to-width the screen point and the page point differ by the fit's own scale
+     * and offset.
      */
     fun doubleTapped(at: Offset, page: PageBounds, fit: PageFit): PageZoom {
         val fitted = fitting(fit, page)
         if (isZoomedPastFit(scale, fitted.scale)) return fitted
-        return PageZoom(DOUBLE_TAP, (page.centre - at) * DOUBLE_TAP).bounded(page)
+        val target = (fitted.scale * DOUBLE_TAP).coerceAtMost(MAXIMUM)
+        return PageZoom(target, (page.centre - unprojected(at, page)) * target).bounded(page)
     }
 
     /**
@@ -167,12 +173,19 @@ internal data class PageZoom(
          *
          * Decision D6: "zoom level" means the pinched scale, and in fit-to-width it
          * "carries to the next page" rather than resetting on every turn — every
-         * other mode still resets, which is [fitting] alone. A carried scale at or
-         * below the fit scale is not a pinch to carry at all.
+         * other mode still resets, which is [fitting] alone.
+         *
+         * [carried] is the pinch as a multiple of the last page's own fit, not a raw
+         * scale: a raw scale is relative to each page's fit-to-screen, which moves with
+         * the page's shape, and every page reports the scale it opened at — so a page at
+         * its plain fit carried that fit into a narrower page and opened it magnified. A
+         * multiple at the fit, within [isZoomedPastFit]'s tolerance, carries nothing.
          */
         fun openingScale(fitScale: Float, carried: Float?, mode: PageFit): Float {
-            if (mode != PageFit.WIDTH || carried == null || carried <= fitScale) return fitScale
-            return carried
+            if (mode != PageFit.WIDTH || carried == null || !isZoomedPastFit(carried, FIT)) {
+                return fitScale
+            }
+            return (fitScale * carried).coerceAtMost(MAXIMUM)
         }
 
         /**

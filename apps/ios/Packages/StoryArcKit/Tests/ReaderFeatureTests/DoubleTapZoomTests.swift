@@ -28,6 +28,18 @@ struct DoubleTapZoomTests {
         #expect(isZoomedPastFit(currentScale: 1.8, fitScale: 1.8) == false)
     }
 
+    @Test("From fit-to-screen, a double-tap zooms in by the usual factor")
+    func zoomInFromFitToScreen() {
+        #expect(doubleTapZoomInScale(fitScale: 1, factor: 2.5, ceiling: 6) == 2.5)
+    }
+
+    @Test("From a fit above the usual zoom, a double-tap still zooms in, not out")
+    func zoomInFromAHighFit() {
+        // Fit-to-width in landscape can sit at 3.25. A fixed 2.5 target zoomed out.
+        #expect(doubleTapZoomInScale(fitScale: 2, factor: 2.5, ceiling: 6) == 5)
+        #expect(doubleTapZoomInScale(fitScale: 3.25, factor: 2.5, ceiling: 6) == 6)
+    }
+
     @Test("A hairline of rounding at the fit scale is not read as zoomed past it")
     func roundingAtFitIsTolerated() {
         #expect(isZoomedPastFit(currentScale: 1.8003, fitScale: 1.8) == false)
