@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -73,7 +76,10 @@ internal fun ComicBookmarkSheet(
  */
 @Composable
 internal fun BookmarkThisPageRow(onClick: () -> Unit) {
+    // A leading icon like every other row in the menu. Outlined, so it reads apart from
+    // the Bookmarks row's filled one just above it.
     ListItem(
+        leadingContent = { Icon(imageVector = Icons.Outlined.BookmarkBorder, contentDescription = null) },
         modifier = Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick),
     ) { Text(stringResource(R.string.reader_bookmark_add)) }
 }
