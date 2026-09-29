@@ -11,7 +11,7 @@ public import StoryArcCore
 /// the last page has still finished it.
 ///
 /// Deleting the download is offered by the same scenario, and is here now (D7): an
-/// action to remove it, or — when the automatic sweep would already do that — a
+/// action to remove it when the reader closes, or — when that is already due — a
 /// sentence saying so and an action to keep this one instead.
 ///
 /// Split out of `ReaderPage.swift`, which had reached the 400-line cap this project
@@ -34,6 +34,10 @@ struct EndOfPublication: View {
     let onClose: () -> Void
     /// `nil` for a publication that was never a download. See ``DownloadCleanupOffer``.
     var downloadCleanup: DownloadCleanupOffer?
+
+    /// The reader's tap on this screen about the download — true for "Remove download",
+    /// false for "Keep" — so the row answers the tap at once.
+    @State private var cleanupChoice: Bool?
 
     /// The cover's accent, or the brand's. Never the raw extracted colour — what
     /// ``CoverColours`` carries has already been adjusted to clear the floor.
@@ -107,11 +111,14 @@ struct EndOfPublication: View {
     @ViewBuilder
     private var downloadCleanupRow: some View {
         if let offer = downloadCleanup {
-            switch DownloadCleanupPresentation.resolved(for: offer) {
+            switch DownloadCleanupPresentation.resolved(for: offer, choice: cleanupChoice) {
             case .none:
                 EmptyView()
             case .offerRemoval:
-                Button(role: .destructive, action: offer.onRemove) {
+                Button(role: .destructive) {
+                    offer.onRemove()
+                    cleanupChoice = true
+                } label: {
                     Text("reader.end.removeDownload", bundle: .module)
                 }
                 .buttonStyle(.bordered)
@@ -121,7 +128,10 @@ struct EndOfPublication: View {
                     Text("reader.end.downloadWillBeRemoved", bundle: .module)
                         .textRole(.caption)
                         .foregroundStyle(.white.opacity(0.7))
-                    Button(action: offer.onKeep) {
+                    Button {
+                        offer.onKeep()
+                        cleanupChoice = false
+                    } label: {
                         Text("reader.end.keepDownload", bundle: .module)
                     }
                     .buttonStyle(.bordered)

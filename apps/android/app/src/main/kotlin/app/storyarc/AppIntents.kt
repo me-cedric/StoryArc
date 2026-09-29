@@ -142,12 +142,16 @@ internal fun AppIntents(
 private fun ForgetFinishedDownloads(host: AppHost, settings: AppSettings, isReading: Boolean) {
     val publications by host.library.publications.collectAsStateWithLifecycle()
     LaunchedEffect(settings.removeDownloadsAfterFinishing, publications, isReading) {
-        if (isReading || !settings.removeDownloadsAfterFinishing) return@LaunchedEffect
+        if (isReading) return@LaunchedEffect
+        // D7: what the reader asked for on an end screen goes first, sweep or no sweep.
+        val choices = host.dependencies.cleanupChoices
+        choices.takeRemovals().forEach { removeDownloadNow(host, it) }
+        if (!settings.removeDownloadsAfterFinishing) return@LaunchedEffect
         val store = host.dependencies.downloads
         val target = finishedDownload(
             store,
             host.downloads.value,
-            isKept = host.dependencies.keptFromCleanup::contains,
+            isKept = choices::isKept,
         ) { path ->
             host.dependencies.progress
                 .progress(PublicationIdentity(normalizedPath = path))
@@ -157,11 +161,8 @@ private fun ForgetFinishedDownloads(host: AppHost, settings: AppSettings, isRead
     }
 }
 
-/**
- * D7: the end screen's "Remove download" action, when automatic cleanup is off. The same
- * removal the sweep does, done now rather than waited for.
- */
-internal suspend fun CoroutineScope.removeDownloadNow(host: AppHost, id: String) {
+/** Takes one download off the device, with the ten-second undo in the library. */
+private suspend fun CoroutineScope.removeDownloadNow(host: AppHost, id: String) {
     val store = host.dependencies.downloads
     removeAfterFinishing(store, host.downloads.value, id)?.let { (without, taken) ->
         host.downloads.value = without
@@ -175,12 +176,4 @@ internal suspend fun CoroutineScope.removeDownloadNow(host: AppHost, id: String)
             }
         }
     }
-}
-
-/**
- * D7: the end screen's "Keep" action, when automatic cleanup is on. The sweep skips this
- * download from here on.
- */
-internal fun keepDownloadFromCleanup(host: AppHost, id: String) {
-    host.dependencies.keptFromCleanup.keep(id)
 }

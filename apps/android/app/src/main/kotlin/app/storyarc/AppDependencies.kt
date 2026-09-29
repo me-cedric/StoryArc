@@ -7,11 +7,11 @@ import app.storyarc.core.catalogue.OpdsOrigin
 import app.storyarc.core.format.HttpSource
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.persistence.CertificatePinStore
+import app.storyarc.core.persistence.CleanupChoices
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.DownloadStore
 import app.storyarc.core.persistence.KavitaCardStore
 import app.storyarc.core.persistence.KavitaProgressStore
-import app.storyarc.core.persistence.KeptFromCleanup
 import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.persistence.PlaybackPreferences
 import app.storyarc.core.persistence.ProgressStore
@@ -65,7 +65,7 @@ internal class AppDependencies private constructor(private val context: Context)
 
     val downloads: DownloadStore = DownloadStore.open(context)
     /** D7's "Keep" action on the end screen. */
-    val keptFromCleanup: KeptFromCleanup = KeptFromCleanup.open(context)
+    val cleanupChoices: CleanupChoices = CleanupChoices.open(context)
     val kavitaProgress: KavitaProgressStore = KavitaProgressStore.open(context)
 
     /**

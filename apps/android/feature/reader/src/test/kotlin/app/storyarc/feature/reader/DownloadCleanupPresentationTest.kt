@@ -15,17 +15,37 @@ class DownloadCleanupPresentationTest {
     }
 
     @Test
-    fun `with the sweep off, the end screen offers to remove the download`() {
-        val offer = DownloadCleanupOffer(automaticCleanupIsOn = false, onRemove = {}, onKeep = {})
+    fun `a download that stays gets the offer to remove it`() {
+        val offer = DownloadCleanupOffer(isRemovedOnClose = { false }, onRemove = {}, onKeep = {})
         assertEquals(DownloadCleanupPresentation.OFFER_REMOVAL, DownloadCleanupPresentation.resolved(offer))
     }
 
     @Test
-    fun `with the sweep on, the end screen states it and offers to keep this one`() {
-        val offer = DownloadCleanupOffer(automaticCleanupIsOn = true, onRemove = {}, onKeep = {})
+    fun `a download that goes on close says so, and offers to keep it`() {
+        val offer = DownloadCleanupOffer(isRemovedOnClose = { true }, onRemove = {}, onKeep = {})
         assertEquals(
             DownloadCleanupPresentation.STATE_AND_OFFER_KEEP,
             DownloadCleanupPresentation.resolved(offer),
+        )
+    }
+
+    @Test
+    fun `after Keep, the screen stops saying the download goes`() {
+        // Before, the sentence and the Keep button stayed up after the tap, and the
+        // sentence was then false.
+        val offer = DownloadCleanupOffer(isRemovedOnClose = { true }, onRemove = {}, onKeep = {})
+        assertEquals(
+            DownloadCleanupPresentation.OFFER_REMOVAL,
+            DownloadCleanupPresentation.resolved(offer, choice = false),
+        )
+    }
+
+    @Test
+    fun `after Remove download, the screen says it goes on close, and offers Keep`() {
+        val offer = DownloadCleanupOffer(isRemovedOnClose = { false }, onRemove = {}, onKeep = {})
+        assertEquals(
+            DownloadCleanupPresentation.STATE_AND_OFFER_KEEP,
+            DownloadCleanupPresentation.resolved(offer, choice = true),
         )
     }
 }

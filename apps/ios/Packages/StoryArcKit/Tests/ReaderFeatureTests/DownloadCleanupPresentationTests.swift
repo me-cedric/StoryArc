@@ -12,15 +12,29 @@ struct DownloadCleanupPresentationTests {
         #expect(DownloadCleanupPresentation.resolved(for: nil) == .none)
     }
 
-    @Test("With the sweep off, the end screen offers to remove the download")
-    func sweepOffOffersRemoval() {
-        let offer = DownloadCleanupOffer(automaticCleanupIsOn: false, onRemove: {}, onKeep: {})
+    @Test("A download that stays gets the offer to remove it")
+    func staysOffersRemoval() {
+        let offer = DownloadCleanupOffer(isRemovedOnClose: { false }, onRemove: {}, onKeep: {})
         #expect(DownloadCleanupPresentation.resolved(for: offer) == .offerRemoval)
     }
 
-    @Test("With the sweep on, the end screen states it and offers to keep this one")
-    func sweepOnStatesAndOffersKeep() {
-        let offer = DownloadCleanupOffer(automaticCleanupIsOn: true, onRemove: {}, onKeep: {})
+    @Test("A download that goes on close says so, and offers to keep it")
+    func goesStatesAndOffersKeep() {
+        let offer = DownloadCleanupOffer(isRemovedOnClose: { true }, onRemove: {}, onKeep: {})
         #expect(DownloadCleanupPresentation.resolved(for: offer) == .stateAndOfferKeep)
+    }
+
+    @Test("After Keep, the screen stops saying the download goes")
+    func keepChangesTheScreen() {
+        // Before, the sentence and the Keep button stayed up after the tap, and the
+        // sentence was then false.
+        let offer = DownloadCleanupOffer(isRemovedOnClose: { true }, onRemove: {}, onKeep: {})
+        #expect(DownloadCleanupPresentation.resolved(for: offer, choice: false) == .offerRemoval)
+    }
+
+    @Test("After Remove download, the screen says it goes on close, and offers Keep")
+    func removeChangesTheScreen() {
+        let offer = DownloadCleanupOffer(isRemovedOnClose: { false }, onRemove: {}, onKeep: {})
+        #expect(DownloadCleanupPresentation.resolved(for: offer, choice: true) == .stateAndOfferKeep)
     }
 }
