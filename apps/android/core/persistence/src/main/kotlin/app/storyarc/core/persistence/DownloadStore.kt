@@ -142,6 +142,23 @@ class DownloadStore internal constructor(
     }
 
     /**
+     * Moves one download's directory to a new id, keeping its file.
+     *
+     * `DownloadMigration`'s other half: re-keying the record is pure, and this is the one
+     * place that has to touch disk to make the new key find what the old one wrote. Silent
+     * on failure -- a rename that does not happen leaves the old directory in place, which
+     * is a stray record again rather than a lost file.
+     */
+    fun rename(id: String, newId: String): Boolean {
+        val source = File(directory, safe(id))
+        val destination = File(directory, safe(newId))
+        val root = directory.canonicalPath
+        if (!source.canonicalPath.startsWith(root + File.separator)) return false
+        if (!destination.canonicalPath.startsWith(root + File.separator)) return false
+        return source.renameTo(destination)
+    }
+
+    /**
      * The download a file inside [directory] belongs to.
      *
      * Matched on the directory the file sits in, not on the file's own name. The name is the

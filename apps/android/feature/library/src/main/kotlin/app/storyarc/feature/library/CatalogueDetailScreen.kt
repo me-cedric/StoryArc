@@ -84,7 +84,7 @@ fun CatalogueDetailScreen(
 ) {
     val palette = LocalStoryArcPalette.current
     val downloads by queue.library.collectAsStateWithLifecycle()
-    val isDownloaded = downloads.finished.any { it.id == entry.id }
+    val isDownloaded = downloads.finished.any { it.id == queue.downloadId(entry.id) }
     val active = downloads.pending
     val scope = rememberCoroutineScope()
     var cover by remember(entry.id) { mutableStateOf<Bitmap?>(null) }
@@ -165,7 +165,7 @@ fun CatalogueDetailScreen(
                     isDownloaded = isDownloaded,
                     onTake = take,
                     onRead = { CatalogueAcquisition.best(entry)?.let(take) },
-                    onRemove = { queue.remove(entry.id) },
+                    onRemove = { queue.remove(queue.downloadId(entry.id)) },
                 )
 
                 entry.summary?.takeIf { it.isNotBlank() }?.let { summary ->

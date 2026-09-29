@@ -112,6 +112,7 @@ internal class AppDependencies private constructor(private val context: Context)
                 downloads,
                 credential = { page.credential },
                 origin = page.origin,
+                sourceId = page.sourceId,
                 // The reader's own choices, read from the store on every pump rather than
                 // captured here. Without this the queue answers from `AppSettings.Defaults`,
                 // where Wi-Fi-only is off and there is no storage limit -- so it is never

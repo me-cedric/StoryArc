@@ -521,7 +521,11 @@ private fun CatalogueScreen(host: AppHost, screen: Screen.Catalogue) {
                 // The origin travels down, not the section's own address: a section URL is
                 // one the server chose.
                 host.navigate {
-                    push(Screen.Catalogue(CataloguePage(title, url, page.credential, page.origin)))
+                    push(
+                        Screen.Catalogue(
+                            CataloguePage(title, url, page.credential, page.origin, page.sourceId),
+                        ),
+                    )
                 }
             },
             // Replaced rather than pushed: the chosen publication is a state of this page,
