@@ -10,6 +10,8 @@ import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
 import app.storyarc.core.persistence.CredentialStore
+import app.storyarc.core.persistence.KavitaProgressStore
+import app.storyarc.core.persistence.ProgressStore
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,9 +57,11 @@ internal object ServerLibrary {
     suspend fun read(
         registry: MutableStateFlow<SourceRegistry>,
         credentials: CredentialStore?,
+        progress: ProgressStore? = null,
+        kavita: KavitaProgressStore? = null,
     ): Reading = withContext(Dispatchers.IO) {
         val slices = registry.value.sources.map { source ->
-            val read = runCatching { slice(source, credentials) }.getOrNull()
+            val read = runCatching { slice(source, credentials, progress, kavita) }.getOrNull()
             // **A source that just answered is answering, and the registry says so.**
             //
             // The registry rather than a list, because this read is where the answer is
@@ -85,10 +89,25 @@ internal object ServerLibrary {
     }
 
     /** What one source gives, by the kind of thing it is. */
-    private suspend fun slice(source: Source, credentials: CredentialStore?): SourceSlice? =
+    private suspend fun slice(
+        source: Source,
+        credentials: CredentialStore?,
+        progress: ProgressStore?,
+        kavita: KavitaProgressStore?,
+    ): SourceSlice? =
         when (source.kind) {
-            SourceKind.KAVITA_SERVER -> KavitaPage.of(source, credentials)?.address
-                ?.let { KavitaContributor.publications(source.id, KavitaClient(it)) }
+            SourceKind.KAVITA_SERVER -> KavitaPage.of(source, credentials)?.address?.let { address ->
+                val fetched = KavitaContributor.page(source.id, KavitaClient(address), 1)
+                // `reading-progress`: "when a synchronising source refreshes, progress
+                // recorded on other devices is merged into the local store". This refresh
+                // is that moment for every Kavita source, not only the one whose browser
+                // the reader happens to have open -- and it also flushes what an earlier,
+                // offline session could not send.
+                if (progress != null && kavita != null) {
+                    KavitaSync.pull(fetched.chapters, kavita, progress, source.id.toString(), address)
+                }
+                fetched.slice
+            }
 
             SourceKind.OPDS_CATALOG -> CataloguePage.of(source, credentials)
                 ?.let { OpdsContributor.publications(source.id, it) }

@@ -15,7 +15,8 @@ struct KavitaContinuedReadTests {
     private func page(_ series: Int, holdsMore: Bool) -> KavitaContributor.Page {
         KavitaContributor.Page(
             slice: SourceSlice(publications: [], holdsMore: holdsMore),
-            seriesRead: series
+            seriesRead: series,
+            chapters: []
         )
     }
 

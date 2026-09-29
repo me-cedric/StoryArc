@@ -68,7 +68,7 @@ struct KavitaPullIdentityTests {
         #expect(try await progress.recent().count == 1, "one chapter, one record")
     }
 
-    @Test("A chapter this device has never opened is left alone")
+    @Test("A chapter this device has never opened, and has no local record, is left alone")
     func anUnknownChapterIsSkipped() async throws {
         // The position is real and the publication is not. Inventing an identity for it
         // would be inventing a reading.
@@ -81,6 +81,35 @@ struct KavitaPullIdentityTests {
         )
 
         #expect(try await progress.recent().isEmpty)
+    }
+
+    @Test("A chapter the browser never opened still merges, by the identity its own library row carries")
+    func aChapterNeverOpenedThroughTheBrowserStillMerges() async throws {
+        // The library grid opened this row directly and read some of it -- a path that
+        // never calls `KavitaProgressStore.remember`, unlike the browser's own. The
+        // defect: with no remembered origin, the pull used to skip the chapter outright,
+        // even though the row's own identity -- `chapter:<id>`, the same form the browser
+        // builds -- already names a local record.
+        let progress = try ProgressStore.inMemory()
+        try await progress.save(
+            ReadingProgress(
+                identity: PublicationIdentity(serverIdentifier: .init(sourceID: source, remoteID: "chapter:42")),
+                position: .page(index: 3, of: 10),
+                updatedAt: Date(timeIntervalSince1970: 1_000)
+            )
+        )
+
+        await KavitaSync.pull(
+            [KavitaChapter(id: 42, number: "1", pages: 10, pagesRead: 8)],
+            in: try kavita(),
+            into: progress,
+            of: source.uuidString
+        )
+
+        let read = try await progress.progress(
+            for: PublicationIdentity(serverIdentifier: .init(sourceID: source, remoteID: "chapter:42"))
+        )
+        #expect(read?.position == .page(index: 7, of: 10), "the server was further ahead")
     }
 
     @Test("A chapter the server has finished is adopted, even though the local record was not")

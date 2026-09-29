@@ -17,7 +17,7 @@ import org.junit.Test
 class KavitaContinuedReadTest {
 
     private fun page(series: Int, holdsMore: Boolean) =
-        KavitaContributor.Page(SourceSlice(emptyList(), holdsMore), seriesRead = series)
+        KavitaContributor.Page(SourceSlice(emptyList(), holdsMore), seriesRead = series, chapters = emptyList())
 
     /** One source's progress, and a record of every page the loop folded in. */
     private class Reader(var progress: SourceReadProgress?) {

@@ -94,8 +94,8 @@ public enum KavitaSync {
         var origins: [String: KavitaOrigin] = [:]
 
         for chapter in chapters where chapter.pages > 0 {
-            guard let publicationId = kavita.publication(forChapter: chapter.id) else { continue }
-            let origin = kavita.origin(of: publicationId)
+            let publicationId = kavita.publication(forChapter: chapter.id)
+            let origin = publicationId.flatMap { kavita.origin(of: $0) }
             // The server's own identifier first, because it finds the record wherever the
             // chapter's bytes ended up. The stable id is the fallback, and the only route
             // for a record written before any server identifier was built.
@@ -105,14 +105,25 @@ public enum KavitaSync {
                     for: PublicationIdentity(serverIdentifier: server)
                 )
             }
-            if found == nil {
+            if found == nil, let publicationId {
                 found = try? await progress.progress(forStableID: publicationId)
+            }
+            // A chapter the browser never opened has no remembered origin to build a
+            // server identifier from — but the library row the source's own refresh
+            // already contributed carries one, built the very same way, straight from
+            // this source and this chapter. Filing under it here is what lets that row's
+            // own reading merge in without the reader ever opening the browser.
+            if found == nil, let sourceId, let sourceUUID = UUID(uuidString: sourceId) {
+                let server = PublicationIdentity.ServerIdentifier(
+                    sourceID: sourceUUID, remoteID: "chapter:\(chapter.id)"
+                )
+                found = try? await progress.progress(for: PublicationIdentity(serverIdentifier: server))
             }
             guard let held = found else { continue }
             let key = held.identity.stableID
             local[key] = held
             reported[key] = chapter
-            origins[key] = origin
+            if let origin { origins[key] = origin }
             // The server's position, wearing the local record's identity — which is the
             // only thing that lets the two be compared at all.
             var said = held

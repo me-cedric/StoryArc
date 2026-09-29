@@ -42,15 +42,24 @@ enum KavitaContributor {
         /// distinct from `slice.publications.count`, a chapter total that means nothing to
         /// a reader who thinks of a library in series.
         let seriesRead: Int
+        /// The chapters this page read, each still carrying the server's own `pagesRead`.
+        ///
+        /// What ``KavitaSync/pull(_:in:into:of:to:)`` needs, and what building
+        /// ``slice`` already asked every one of these series for — the library's own
+        /// refresh of a source is a pull's other caller, and it has no reason to ask
+        /// the server the same question twice.
+        let chapters: [KavitaChapter]
     }
 
     static func page(source: UUID, client: KavitaClient, page: Int) async throws -> Page {
         let series = try await client.recentSeries(page: page, size: firstSlice)
         var found: [Publication] = []
+        var chapters: [KavitaChapter] = []
         for each in series {
             let volumes = (try? await client.volumes(ofSeries: each.id)) ?? []
             for chapter in volumes.flatMap(\.chapters) {
                 found.append(publication(source: source, series: each, chapter: chapter))
+                chapters.append(chapter)
             }
         }
         // A full page is the only evidence a server has more, and it is evidence rather
@@ -59,13 +68,14 @@ enum KavitaContributor {
         // round — the other way tells a reader their five-thousand-title server has 137.
         return Page(
             slice: SourceSlice(publications: found, holdsMore: series.count >= firstSlice),
-            seriesRead: series.count
+            seriesRead: series.count,
+            chapters: chapters
         )
     }
 
     /// The chapters of a server's most recently added series, as publications.
-    static func publications(source: UUID, client: KavitaClient) async throws -> SourceSlice {
-        try await page(source: source, client: client, page: 1).slice
+    static func publications(source: UUID, client: KavitaClient) async throws -> Page {
+        try await page(source: source, client: client, page: 1)
     }
 
     /// One chapter as a row in the library.
