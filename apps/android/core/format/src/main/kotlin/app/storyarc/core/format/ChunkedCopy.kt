@@ -42,7 +42,9 @@ object ChunkedCopy {
                 while (offset < source.length) {
                     val count = minOf(chunkSize.toLong(), source.length - offset).toInt()
                     val bytes = source.read(offset, count)
-                    if (bytes.isEmpty()) break
+                    // A source that stops short of the length it stated would otherwise land
+                    // as a truncated file under the finished name, recorded as a whole download.
+                    if (bytes.isEmpty()) throw SourceUnreadableException("short read at $offset")
                     handle.write(bytes)
                     offset += bytes.size
                 }
