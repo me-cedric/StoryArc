@@ -63,6 +63,29 @@ class NetworkNoticeFailureWiringTest {
         )
     }
 
+    @Test
+    fun `a dismissal records the stage it was made on`() {
+        // The Dismiss button called an empty lambda once the notice stopped reading
+        // `SmbReachability`, and did nothing at all.
+        assertTrue(
+            "The Dismiss button no longer records the stage it dismissed.",
+            source.contains("dismissed = stage"),
+        )
+        assertTrue(source.contains("NoticeStage.of(blockedMillis = now - blockedSince, dismissed = dismissed)"))
+    }
+
+    @Test
+    fun `a second tap does not start a second copy, and a page turn does not cancel one`() {
+        assertTrue(source.contains("enabled = !isCopying"))
+        val scope = source.indexOf("val scope = rememberCoroutineScope()")
+        val early = source.indexOf("if (blockedSince == null) return")
+        assertTrue(
+            "The copy's scope is remembered after the early return, so the copy is cancelled" +
+                " the moment the trouble ends.",
+            scope in 0..<early,
+        )
+    }
+
     private companion object {
         /** Set by this module's `build.gradle.kts`, from its own `projectDir`. */
         const val MODULE_DIRECTORY = "storyarc.reader.projectDir"
