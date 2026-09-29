@@ -10,13 +10,21 @@ import kotlinx.serialization.Serializable
  * neither shares typography with. `comic-reader` only asks for this to survive "leaving
  * and returning" the reader, which a per-device blob already does, and the stored page
  * index is untouched by it either way. iOS's `ScrollOffsetMemory` is the same shape.
+ *
+ * **Kept with the page it belongs to.** A fraction on its own was restored onto whichever
+ * page the reader opened on: a position synced from another device, or a page turned to
+ * in another mode, took the fraction of a page it had never been on.
  */
 @Serializable
-data class ScrollOffsetMemory(private val byIdentity: Map<String, Float> = emptyMap()) {
-    /** The fraction stored for a publication, or `null` when none has been. */
-    fun fraction(identity: PublicationIdentity): Float? = byIdentity[identity.stableId]
+data class ScrollOffsetMemory(private val byIdentity: Map<String, Entry> = emptyMap()) {
+    /** Where a scroll stopped: the page, and how far through it. */
+    @Serializable
+    data class Entry(val page: Int, val fraction: Float)
 
-    /** This memory, with a publication's fraction set or replaced. */
-    fun remembering(identity: PublicationIdentity, fraction: Float): ScrollOffsetMemory =
-        copy(byIdentity = byIdentity + (identity.stableId to fraction.coerceIn(0f, 1f)))
+    /** Where a publication's scroll last stopped, or `null` when it never did. */
+    fun entry(identity: PublicationIdentity): Entry? = byIdentity[identity.stableId]
+
+    /** This memory, with a publication's stopping place set or replaced. */
+    fun remembering(identity: PublicationIdentity, fraction: Float, page: Int): ScrollOffsetMemory =
+        copy(byIdentity = byIdentity + (identity.stableId to Entry(page, fraction.coerceIn(0f, 1f))))
 }

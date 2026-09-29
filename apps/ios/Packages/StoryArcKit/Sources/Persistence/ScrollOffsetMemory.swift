@@ -7,20 +7,32 @@ public import StoryArcCore
 /// neither shares typography with. `comic-reader` only asks for this to survive
 /// "leaving and returning" the reader, which a per-device blob already does, and the
 /// stored page index is untouched by it either way.
+///
+/// **Kept with the page it belongs to.** A fraction on its own was restored onto
+/// whichever page the reader opened on: a position synced from another device, or a
+/// page turned to in another mode, took the fraction of a page it had never been on.
 public struct ScrollOffsetMemory: Sendable, Equatable, Codable {
-    private var byIdentity: [String: Double] = [:]
+    /// Where a scroll stopped: the page, and how far through it.
+    public struct Entry: Sendable, Equatable, Codable {
+        public let page: Int
+        public let fraction: Double
+    }
+
+    private var byIdentity: [String: Entry] = [:]
 
     public init() {}
 
-    /// The fraction stored for a publication, or `nil` when none has been.
-    public func fraction(for identity: PublicationIdentity) -> Double? {
+    /// Where a publication's scroll last stopped, or `nil` when it never did.
+    public func entry(for identity: PublicationIdentity) -> Entry? {
         byIdentity[identity.stableID]
     }
 
-    /// This memory, with a publication's fraction set or replaced.
-    public func remembering(_ fraction: Double, for identity: PublicationIdentity) -> ScrollOffsetMemory {
+    /// This memory, with a publication's stopping place set or replaced.
+    public func remembering(
+        _ fraction: Double, onPage page: Int, for identity: PublicationIdentity
+    ) -> ScrollOffsetMemory {
         var copy = self
-        copy.byIdentity[identity.stableID] = min(1, max(0, fraction))
+        copy.byIdentity[identity.stableID] = Entry(page: page, fraction: min(1, max(0, fraction)))
         return copy
     }
 }

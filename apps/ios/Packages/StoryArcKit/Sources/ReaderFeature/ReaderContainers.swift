@@ -3,11 +3,19 @@ internal import SwiftUI
 internal import DesignSystem
 internal import StoryArcCore
 
-/// Each visible page's own frame in `ReaderContainers.scrollSpace`, for ``ScrollProgress``.
+/// Each visible page's own frame in `ReaderContainers.scrollSpace`, and the viewport
+/// they are in, for ``ScrollProgress``.
+private struct ScrollFrames: Equatable {
+    var pages: [Int: CGRect] = [:]
+    var viewport: CGSize = .zero
+}
+
 private struct PageFramePreferenceKey: PreferenceKey {
-    static var defaultValue: [Int: CGRect] { [:] }
-    static func reduce(value: inout [Int: CGRect], nextValue: () -> [Int: CGRect]) {
-        value.merge(nextValue()) { _, new in new }
+    static var defaultValue: ScrollFrames { ScrollFrames() }
+    static func reduce(value: inout ScrollFrames, nextValue: () -> ScrollFrames) {
+        let next = nextValue()
+        value.pages.merge(next.pages) { _, new in new }
+        if next.viewport != .zero { value.viewport = next.viewport }
     }
 }
 
@@ -120,14 +128,7 @@ extension ReaderView {
                         // reports each page's own frame in the scroll's coordinate space, so
                         // ``ScrollProgress`` can turn it into a fraction through whichever
                         // page is current. See `saveScrollProgress` below.
-                        .background(
-                            GeometryReader { geometry in
-                                Color.clear.preference(
-                                    key: PageFramePreferenceKey.self,
-                                    value: [displayIndex: geometry.frame(in: .named(Self.scrollSpace))]
-                                )
-                            }
-                        )
+                        .background(frameReport(of: displayIndex))
                 }
                 // `comic-reader`: "a scroll past the last page reaches the end screen". A
                 // continuous scroll has no natural end the way a discrete turn does — the
@@ -147,6 +148,13 @@ extension ReaderView {
             .scrollPosition(id: scrollPosition)
             .ignoresSafeArea()
             .coordinateSpace(name: Self.scrollSpace)
+            .background(
+                GeometryReader { geometry in
+                    Color.clear.preference(
+                        key: PageFramePreferenceKey.self, value: ScrollFrames(viewport: geometry.size)
+                    )
+                }
+            )
             // ponytail: unthrottled — every geometry change writes. `UserDefaults` coalesces
             // its own writeback, and a debounce would need stored state this function, on
             // `ReaderView`, cannot add without crossing the line cap; raise this ceiling if a
@@ -158,15 +166,35 @@ extension ReaderView {
             // through the current page that the last session left off at. Reads
             // `model.currentIndex` rather than `displayIndex`, so it does not race
             // `pages(in:)`'s own `.onAppear` for which sets first.
-            .task {
-                let fraction = model.restoredScrollFraction
-                guard fraction > 0 else { return }
-                proxy.scrollTo(
-                    displayIndex(forModel: model.currentIndex),
-                    anchor: ScrollProgress.anchor(forFraction: fraction, axis: axis)
-                )
+            //
+            // Keyed on the page having decoded: until then it is a placeholder whose
+            // length is a guess, and a fraction of the guess is not where the reader was.
+            .task(id: model.image(at: model.currentIndex) != nil) {
+                restoreScrollProgress(with: proxy, axis: axis)
             }
         }
+    }
+
+    /// One page's frame in the scroll's coordinate space, reported for ``ScrollProgress``.
+    private func frameReport(of displayIndex: Int) -> some View {
+        GeometryReader { geometry in
+            Color.clear.preference(
+                key: PageFramePreferenceKey.self,
+                value: ScrollFrames(pages: [displayIndex: geometry.frame(in: .named(Self.scrollSpace))])
+            )
+        }
+    }
+
+    /// Scrolls back to where the last session left the current page, once it has decoded.
+    private func restoreScrollProgress(with proxy: ScrollViewProxy, axis: ScrollAxis) {
+        let page = model.currentIndex
+        guard model.image(at: page) != nil,
+              let fraction = model.takeScrollRestore(forPage: page), fraction > 0
+        else { return }
+        proxy.scrollTo(
+            displayIndex(forModel: page),
+            anchor: ScrollProgress.anchor(forFraction: fraction, axis: axis)
+        )
     }
 
     /// The pages with the end slot on the side the reading order ends: after them in
@@ -186,9 +214,12 @@ extension ReaderView {
     static var scrollSpace: String { "ReaderContainers.scroll" }
 
     /// Remembers where a continuous scroll sits within its current page.
-    private func saveScrollProgress(_ frames: [Int: CGRect], axis: ScrollAxis) {
-        guard let frame = frames[displayIndex] else { return }
-        model.saveScrollFraction(ScrollProgress.fraction(pageFrame: frame, axis: axis))
+    private func saveScrollProgress(_ frames: ScrollFrames, axis: ScrollAxis) {
+        guard let frame = frames.pages[displayIndex], frames.viewport != .zero else { return }
+        model.saveScrollFraction(
+            ScrollProgress.fraction(pageFrame: frame, viewport: frames.viewport, axis: axis),
+            onPage: modelIndex(forDisplay: displayIndex)
+        )
     }
 
     /// The scroll's position, as the same `displayIndex` every other mode uses.

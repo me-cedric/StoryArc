@@ -127,6 +127,9 @@ class ReaderViewModel(
     /** What this shelf is read with. */
     val settings: StateFlow<ShelfSettings> = _settings.asStateFlow()
 
+    /** Where the last session's scroll stopped, read before this one saves. See `takeScrollRestore`. */
+    internal var pendingScrollRestore = shelfStore?.scrollOffsets()?.entry(publication.identity)
+
     /**
      * Whether the reader has asked the system to remove animations.
      *

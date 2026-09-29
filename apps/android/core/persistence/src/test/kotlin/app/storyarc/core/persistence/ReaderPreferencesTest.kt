@@ -93,14 +93,14 @@ class ReaderPreferencesTest {
     @Test
     fun `a scroll fraction survives the round trip through preferences`() {
         val comic = PublicationIdentity(normalizedPath = "/comics/one.cbz")
-        store.save(ScrollOffsetMemory().remembering(comic, 0.65f))
+        store.save(ScrollOffsetMemory().remembering(comic, 0.65f, page = 7))
 
-        assertEquals(0.65f, store.scrollOffsets().fraction(comic)!!, 0.001f)
+        assertEquals(ScrollOffsetMemory.Entry(7, 0.65f), store.scrollOffsets().entry(comic))
     }
 
     @Test
     fun `a fresh store has never stored a scroll fraction`() {
         val comic = PublicationIdentity(normalizedPath = "/comics/one.cbz")
-        assertNull(store.scrollOffsets().fraction(comic))
+        assertNull(store.scrollOffsets().entry(comic))
     }
 }

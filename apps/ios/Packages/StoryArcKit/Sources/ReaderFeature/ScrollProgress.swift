@@ -11,18 +11,26 @@ internal import StoryArcCore
 /// `ReaderModel`, so `ScrollProgressTests` can drive it with a plain `CGRect` — the
 /// same reason `EarlyPageTallness` is split out.
 enum ScrollProgress {
-    /// How far into a page's own frame the viewport's leading edge sits, from that
-    /// frame in the scroll's coordinate space.
+    /// How far a scroll has moved through a page, in the terms
+    /// `ScrollViewProxy.scrollTo(_:anchor:)` takes back.
     ///
-    /// The frame's origin is the page's distance from the viewport's own leading
-    /// edge, which is 0 in a coordinate space named at the `ScrollView` itself — so a
-    /// page scrolled halfway past report a negative origin of minus half its length,
-    /// and this turns that back into a plain 0…1 fraction.
-    static func fraction(pageFrame: CGRect, axis: ScrollAxis) -> Double {
+    /// Not the plain distance over the page's length. An anchor of `a` aligns the point
+    /// `a` of the way down the page with the point `a` of the way down the viewport, so
+    /// the viewport's leading edge lands `a × (page − viewport)` into the page. A plain
+    /// distance restored that way came back short by up to a screen. So this is the
+    /// distance over `page − viewport`: 0 with the page's leading edge at the viewport's,
+    /// 1 with its trailing edge at the viewport's.
+    ///
+    /// The frame is in a coordinate space named at the `ScrollView` itself, so its
+    /// origin is the page's distance from the viewport's leading edge: negative once the
+    /// page has scrolled past it. A page no longer than the viewport has no room to be
+    /// part-way through, and reads as 0.
+    static func fraction(pageFrame: CGRect, viewport: CGSize, axis: ScrollAxis) -> Double {
         let origin = axis == .vertical ? pageFrame.minY : pageFrame.minX
         let length = axis == .vertical ? pageFrame.height : pageFrame.width
-        guard length > 0 else { return 0 }
-        return min(1, max(0, Double(-origin / length)))
+        let room = length - (axis == .vertical ? viewport.height : viewport.width)
+        guard room > 0 else { return 0 }
+        return min(1, max(0, Double(-origin / room)))
     }
 
     /// Where `ScrollViewProxy.scrollTo(_:anchor:)` should aim, to reopen at a stored

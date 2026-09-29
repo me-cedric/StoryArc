@@ -266,7 +266,7 @@ struct ReaderModelTests {
     // for the fraction math. This is the storage half: a model remembers one, and a
     // fresh model for the same publication reads it back.
 
-    @Test("A saved scroll fraction comes back to a fresh model for the same publication")
+    @Test("A saved scroll fraction comes back to a fresh model, for the page it was on")
     func scrollFractionRoundTrips() async throws {
         let location = url("comics/natural-sort.cbz")
         let defaults = try #require(UserDefaults(suiteName: "test-\(UUID().uuidString)"))
@@ -275,31 +275,47 @@ struct ReaderModelTests {
 
         let first = ReaderModel(publication: publication, url: location, preferences: preferences)
         await first.open(maxPixelSize: 256)
-        #expect(first.restoredScrollFraction == 0, "Nothing was ever stored for this publication.")
+        #expect(first.takeScrollRestore(forPage: 0) == nil, "Nothing was ever stored for this publication.")
 
-        first.saveScrollFraction(0.6)
+        first.saveScrollFraction(0.6, onPage: 2)
 
         let second = ReaderModel(publication: publication, url: location, preferences: preferences)
         await second.open(maxPixelSize: 256)
-        #expect(second.restoredScrollFraction == 0.6)
+        #expect(second.takeScrollRestore(forPage: 2) == 0.6)
+        #expect(second.takeScrollRestore(forPage: 2) == nil, "A restore is handed over once.")
     }
 
-    // `page-transitions`: a placeholder for a page that has not decoded holds "the
-    // nearest decoded page's ratio" — see `PagePlaceholder`. This is the model's half:
-    // a plain ratio for every page it has actually decoded, and nothing for the rest.
-
-    @Test("Every decoded page reports its own width-over-height ratio")
-    func decodedRatiosMatchTheDecodedPages() async {
+    @Test("A fraction saved on one page is not restored onto another")
+    func scrollFractionStaysWithItsPage() async throws {
+        // A position synced from another device, or a page turned to in another mode,
+        // opens on a page the stored fraction was never through.
         let location = url("comics/natural-sort.cbz")
-        let model = ReaderModel(publication: publication(.cbz, at: location), url: location)
-        await model.open(maxPixelSize: 256)
+        let defaults = try #require(UserDefaults(suiteName: "test-\(UUID().uuidString)"))
+        let preferences = ReaderPreferences(defaults: defaults)
+        let publication = publication(.cbz, at: location)
 
-        let image = model.image(at: 0)
-        #expect(image != nil)
-        #expect(model.decodedRatios[0] == Double(image?.width ?? 0) / Double(image?.height ?? 1))
-        // Page 4 is outside the prefetch window (see `windowFollowsThePage`), so it has
-        // never decoded and reports no ratio at all.
-        #expect(model.decodedRatios[4] == nil)
+        ReaderModel(publication: publication, url: location, preferences: preferences)
+            .saveScrollFraction(0.6, onPage: 2)
+
+        let reopened = ReaderModel(publication: publication, url: location, preferences: preferences)
+        #expect(reopened.takeScrollRestore(forPage: 5) == nil)
+    }
+
+    @Test("This session's first save does not erase what the last session left")
+    func firstSaveKeepsTheLastSessionsPlace() async throws {
+        // The scroll saves on its first layout, at the top of the page, before its
+        // restore has run. That save used to overwrite the fraction it was about to read.
+        let location = url("comics/natural-sort.cbz")
+        let defaults = try #require(UserDefaults(suiteName: "test-\(UUID().uuidString)"))
+        let preferences = ReaderPreferences(defaults: defaults)
+        let publication = publication(.cbz, at: location)
+
+        ReaderModel(publication: publication, url: location, preferences: preferences)
+            .saveScrollFraction(0.6, onPage: 2)
+
+        let reopened = ReaderModel(publication: publication, url: location, preferences: preferences)
+        reopened.saveScrollFraction(0, onPage: 2)
+        #expect(reopened.takeScrollRestore(forPage: 2) == 0.6)
     }
 
     @Test("With no preferences store, nothing is remembered and nothing throws")
@@ -308,8 +324,8 @@ struct ReaderModelTests {
         let model = ReaderModel(publication: publication(.cbz, at: location), url: location)
         await model.open(maxPixelSize: 256)
 
-        model.saveScrollFraction(0.5)
+        model.saveScrollFraction(0.5, onPage: 0)
 
-        #expect(model.restoredScrollFraction == 0)
+        #expect(model.takeScrollRestore(forPage: 0) == nil)
     }
 }
