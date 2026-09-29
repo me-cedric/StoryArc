@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.graphics.createBitmap
 import kotlin.math.roundToInt
 
 /**
@@ -38,7 +39,7 @@ internal object CurlPlaceholder {
     /** A sheet of [matte] at [ratio]. */
     fun bitmap(ratio: Float, matte: Color): Bitmap {
         val (width, height) = size(ratio)
-        return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply { eraseColor(matte.toArgb()) }
+        return createBitmap(width, height).apply { eraseColor(matte.toArgb()) }
     }
 }
 

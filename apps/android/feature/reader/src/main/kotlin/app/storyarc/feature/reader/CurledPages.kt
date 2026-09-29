@@ -73,12 +73,12 @@ internal fun CurledPages(
      * and `previous` before this composable ever sees them, by the caller, the same way
      * every other container bakes it.
      */
-    adjustments: ImageAdjustments = ImageAdjustments(),
+    adjustments: ImageAdjustments,
     /** Whether the current page turned out to be undecodable, rather than merely not
      * decoded yet. See `Message`. */
-    isUnavailable: Boolean = false,
+    isUnavailable: Boolean,
     /** What the current page turned out to be, when it could not be decoded. */
-    codecName: String? = null,
+    codecName: String?,
     /** Called once a forward turn has completed. */
     onTurned: () -> Unit,
     /** Called once a backwards turn has completed. */
