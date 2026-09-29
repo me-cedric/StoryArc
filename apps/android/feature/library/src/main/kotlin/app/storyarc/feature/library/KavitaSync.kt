@@ -118,9 +118,19 @@ object KavitaSync {
             reported[key] = chapter
             origin?.let { origins[key] = it }
             // The server's position, wearing the local record's identity -- which is the
-            // only thing that lets the two be compared at all.
+            // only thing that lets the two be compared at all. The finished flag is the
+            // server's own, not the local record's copied forward: copying it forward is
+            // the defect the merge's finished rule (either side finished wins) never saw a
+            // server that had finished a chapter this device had not, because the flag
+            // never actually changed.
             remote += held.copy(
                 position = KavitaExchange.position(chapter.pagesRead, chapter.pages),
+                isFinished = chapter.isFinished,
+                finishedAtEpochMillis = if (chapter.isFinished && !held.isFinished) {
+                    System.currentTimeMillis()
+                } else {
+                    held.finishedAtEpochMillis
+                },
                 updatedAtEpochMillis = System.currentTimeMillis(),
             )
         }
@@ -154,19 +164,26 @@ object KavitaSync {
     ) {
         if (owed.isEmpty()) return
 
+        // A finished record is owed a mark, not a page -- see `KavitaOwed.isMarkRead`.
+        fun unsent(each: KavitaOwed, origin: KavitaOrigin) = if (each.isMarkRead) {
+            KavitaUnsent(origin, page = 0, mark = true)
+        } else {
+            KavitaUnsent(origin, each.pageNum)
+        }
+
         for (each in owed) {
             val origin = origins[each.settled.identity.stableId] ?: continue
-            kavita.hold(KavitaUnsent(origin, each.pageNum))
+            kavita.hold(unsent(each, origin))
         }
 
         // No server named means there is nowhere to send and nothing more to do -- the queue
         // above is the whole promise until one turns up.
         if (server == null) return
-        val delivered = flush(kavita, server.id, server.address)
-            .filter { it.mark == null && it.listId == null }
-            .map { it.origin.chapterId }
-            .toSet()
-        owed.filter { it.chapterId in delivered }.forEach { progress.save(it.settled) }
+        val deliveredKeys = flush(kavita, server.id, server.address).map { it.key }.toSet()
+        owed.forEach { each ->
+            val origin = origins[each.settled.identity.stableId] ?: return@forEach
+            if (unsent(each, origin).key in deliveredKeys) progress.save(each.settled)
+        }
     }
 
     /** Sends one deliberate mark, keeping it for later if the server is not there. */

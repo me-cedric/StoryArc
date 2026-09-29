@@ -97,6 +97,17 @@ struct KavitaExchangeTests {
         #expect(exchange.owed.count == 1)
         #expect(exchange.owed.first?.chapterId == 41)
         #expect(exchange.owed.first?.pageNum == 8)
+        #expect(exchange.owed.first?.isMarkRead == false)
+    }
+
+    @Test("A finished local record is owed a mark, not a page")
+    func aFinishedLocalRecordIsOwedAMark() {
+        let held = progress("one", page: 8, finished: true, synced: 2)
+        let pull = ProgressPull.merging(remote: [progress("one", page: 2)]) { _ in held }
+
+        let exchange = KavitaExchange.of(pull, against: [key("one"): chapter(41)])
+
+        #expect(exchange.owed.first?.isMarkRead == true)
     }
 
     @Test("A position the server has not taken yet is not called synchronised")

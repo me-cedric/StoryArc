@@ -83,6 +83,38 @@ struct KavitaPullIdentityTests {
         #expect(try await progress.recent().isEmpty)
     }
 
+    @Test("A chapter the server has finished is adopted, even though the local record was not")
+    func serverFinishedIsAdopted() async throws {
+        let progress = try ProgressStore.inMemory()
+        let kavita = try kavita()
+        try await progress.save(
+            ReadingProgress(
+                identity: PublicationIdentity(
+                    serverIdentifier: .init(sourceID: source, remoteID: "chapter:42"),
+                    normalizedPath: "/downloads/Bone 01.cbz"
+                ),
+                position: .page(index: 4, of: 10),
+                isFinished: false,
+                updatedAt: Date(timeIntervalSince1970: 1_000)
+            )
+        )
+        kavita.remember(origin(), for: "path:/caches/Kavita/42/Bone 1.cbz")
+
+        // The defect: this used to carry `held.isFinished` (false) forward unchanged, so
+        // the merge's finished rule never saw a server that had finished a chapter this
+        // device had not.
+        await KavitaSync.pull(
+            [KavitaChapter(id: 42, number: "1", pages: 10, pagesRead: 10)],
+            in: kavita,
+            into: progress
+        )
+
+        let read = try await progress.progress(
+            for: PublicationIdentity(serverIdentifier: .init(sourceID: source, remoteID: "chapter:42"))
+        )
+        #expect(read?.isFinished == true)
+    }
+
     @Test("A record written before server identifiers existed is still found by its id")
     func theStableIdRemainsTheFallback() async throws {
         // Every position in the shipped app was written against a path alone, and the

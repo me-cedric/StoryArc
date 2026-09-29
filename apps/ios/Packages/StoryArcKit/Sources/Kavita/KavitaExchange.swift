@@ -6,8 +6,16 @@ public struct KavitaOwed: Sendable, Equatable {
     /// The chapter Kavita keys its progress row on.
     public let chapterId: Int
 
-    /// Kavita's `pageNum` — the page the reader is on, counted from zero.
+    /// Kavita's `pageNum` — the page the reader is on, counted from zero. Meaningless
+    /// when ``isMarkRead`` is true, which sends a mark instead of a page.
     public let pageNum: Int
+
+    /// A finished local record is owed a mark, not a page. Kavita's own progress
+    /// route stores a page, not a completion, so a finished chapter pushed as a page
+    /// (which cannot itself say "finished") is one a `finishedAt` before its last page
+    /// starts confuses on the next pull -- pushing it as a mark is the write Kavita
+    /// actually has for "read".
+    public let isMarkRead: Bool
 
     /// What to write locally once the server has taken the position, carrying the stamp
     /// that says it is no longer only this device's opinion.
@@ -17,9 +25,10 @@ public struct KavitaOwed: Sendable, Equatable {
     /// local record as agreed with a server that has never heard of it.
     public let settled: ReadingProgress
 
-    public init(chapterId: Int, pageNum: Int, settled: ReadingProgress) {
+    public init(chapterId: Int, pageNum: Int, isMarkRead: Bool = false, settled: ReadingProgress) {
         self.chapterId = chapterId
         self.pageNum = pageNum
+        self.isMarkRead = isMarkRead
         self.settled = settled
     }
 }
@@ -106,6 +115,7 @@ public extension KavitaExchange {
             return KavitaOwed(
                 chapterId: chapter.id,
                 pageNum: pageNumber(of: record.position, in: chapter.pages),
+                isMarkRead: record.isFinished,
                 settled: settled(record)
             )
         }

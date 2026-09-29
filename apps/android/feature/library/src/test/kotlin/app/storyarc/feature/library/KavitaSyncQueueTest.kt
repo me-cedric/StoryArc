@@ -3,6 +3,7 @@ package app.storyarc.feature.library
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.kavita.KavitaAddress
+import app.storyarc.core.kavita.KavitaChapter
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
@@ -108,6 +109,34 @@ class KavitaSyncQueueTest {
 
         val found = progress.progress(identity)
         assertEquals(ReadingPosition.Page(19, 20).fraction, found?.syncedPosition?.fraction)
+    }
+
+    @Test
+    fun `a finished local record that wins a conflict is queued as a mark, not a page`() = runBlocking {
+        val store = store()
+        val chapterOrigin = origin("mark-queue-server")
+        val progress = progressStore()
+        val identity = PublicationIdentity(normalizedPath = "/books/three.cbz")
+        store.remember(identity.stableId, chapterOrigin)
+        progress.save(
+            ReadingProgress(
+                identity = identity,
+                position = ReadingPosition.Page(9, 10),
+                isFinished = true,
+                updatedAtEpochMillis = 0,
+            ),
+        )
+
+        // No address: the queue is the whole assertion here, not a network round trip.
+        KavitaSync.pull(
+            listOf(KavitaChapter(id = chapterOrigin.chapterId, number = "1", pages = 10, pagesRead = 2)),
+            store,
+            progress,
+        )
+
+        val held = store.unsent().first()
+        assertEquals(true, held.mark)
+        assertEquals(chapterOrigin.chapterId, held.origin.chapterId)
     }
 
     @Test

@@ -117,6 +117,13 @@ public enum KavitaSync {
             // only thing that lets the two be compared at all.
             var said = held
             said.position = KavitaExchange.position(readingTo: chapter.pagesRead, of: chapter.pages)
+            // The server's own finished state, not the local record's copied forward.
+            // Copying it forward is the defect: the merge's finished rule (either side
+            // finished wins) never saw a server that had finished a chapter this device
+            // had not, because `said` carried `held.isFinished` unchanged.
+            let wasFinished = said.isFinished
+            said.isFinished = chapter.isFinished
+            if chapter.isFinished, !wasFinished { said.finishedAt = Date() }
             said.updatedAt = Date()
             remote.append(said)
         }
@@ -149,20 +156,28 @@ public enum KavitaSync {
     ) async {
         guard !owed.isEmpty else { return }
 
+        // A finished record is owed a mark, not a page — see `KavitaOwed.isMarkRead`.
+        func unsent(for each: KavitaOwed, origin: KavitaOrigin) -> KavitaUnsent {
+            each.isMarkRead
+                ? KavitaUnsent(origin: origin, page: 0, mark: true)
+                : KavitaUnsent(origin: origin, page: each.pageNum)
+        }
+
         for each in owed {
             guard let origin = origins[each.settled.identity.stableID] else { continue }
-            kavita.hold(KavitaUnsent(origin: origin, page: each.pageNum))
+            kavita.hold(unsent(for: each, origin: origin))
         }
 
         // No server named means there is nowhere to send and nothing more to do — the queue
         // above is the whole promise until one turns up.
         guard let server else { return }
-        let delivered = Set(
-            await flush(server.id, to: server.address, in: kavita)
-                .filter { $0.mark == nil && $0.listID == nil }
-                .map(\.origin.chapterId)
+        let deliveredKeys = Set(
+            await flush(server.id, to: server.address, in: kavita).map(\.key)
         )
-        for each in owed where delivered.contains(each.chapterId) {
+        for each in owed {
+            guard let origin = origins[each.settled.identity.stableID],
+                  deliveredKeys.contains(unsent(for: each, origin: origin).key)
+            else { continue }
             try? await progress.save(each.settled)
         }
     }

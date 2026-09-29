@@ -12,7 +12,10 @@ import kotlin.math.roundToInt
 data class KavitaOwed(
     /** The chapter Kavita keys its progress row on. */
     val chapterId: Int,
-    /** Kavita's `pageNum` -- the page the reader is on, counted from zero. */
+    /**
+     * Kavita's `pageNum` -- the page the reader is on, counted from zero. Meaningless
+     * when [isMarkRead] is true, which sends a mark instead of a page.
+     */
     val pageNum: Int,
     /**
      * What to write locally once the server has taken the position, carrying the stamp that
@@ -23,6 +26,12 @@ data class KavitaOwed(
      * record as agreed with a server that has never heard of it.
      */
     val settled: ReadingProgress,
+    /**
+     * A finished local record is owed a mark, not a page. Kavita's own progress route
+     * stores a page, not a completion, so pushing a finished chapter as a page is the write
+     * Kavita does not have for "read" -- pushing it as a mark is.
+     */
+    val isMarkRead: Boolean = false,
 )
 
 /**
@@ -105,6 +114,7 @@ data class KavitaExchange(
                     chapterId = chapter.id,
                     pageNum = pageNumber(record.position, chapter.pages),
                     settled = settled(record),
+                    isMarkRead = record.isFinished,
                 )
             }
 
