@@ -54,6 +54,13 @@ internal object KavitaContributor {
      *
      * A series whose chapters cannot be read is skipped rather than failing the round: one
      * unreadable series must not cost a reader the rest of the page.
+     *
+     * **One retry, immediately, before it is skipped.** The page still counts the series as
+     * read either way -- the server's own page cursor moved past it, and asking for the
+     * same page again is not this page's job. Without the retry, a request that fails once
+     * for a reason that clears itself (a socket hiccup, a server briefly busy) drops that
+     * series until it happens to fall inside a future page's own slice again, which a large,
+     * steadily growing server may never do.
      */
     data class Page(
         val slice: SourceSlice,
@@ -68,7 +75,7 @@ internal object KavitaContributor {
     suspend fun page(sourceId: UUID, client: KavitaClient, page: Int): Page {
         val series = client.recentSeries(page = page, size = FIRST_SLICE)
         val publications = series.flatMap { each ->
-            val chapters = runCatching { chapters(client, each) }.getOrDefault(emptyList())
+            val chapters = retriedOnce { chapters(client, each) }
             chapters.map { chapter -> publication(sourceId, each, chapter) }
         }
         // A full page is the only evidence a server has more, and it is evidence rather
@@ -86,6 +93,16 @@ internal object KavitaContributor {
 
     private suspend fun chapters(client: KavitaClient, series: KavitaSeries): List<KavitaChapter> =
         client.volumes(series.id).flatMap { it.chapters }
+
+    /**
+     * [fetch], retried once on failure before it is treated as empty.
+     *
+     * A free function so a test can prove the retry without a server: `KavitaContributorTest`
+     * counts calls through a fake [fetch] that fails once, and mutating this back to a single
+     * attempt makes that test fail by name.
+     */
+    internal suspend fun <T> retriedOnce(fetch: suspend () -> List<T>): List<T> =
+        runCatching { fetch() }.recoverCatching { fetch() }.getOrDefault(emptyList())
 
     /**
      * One chapter as a row in the library.

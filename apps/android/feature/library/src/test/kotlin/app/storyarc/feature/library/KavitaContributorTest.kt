@@ -5,6 +5,7 @@ import app.storyarc.core.kavita.KavitaSeries
 import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.PublicationFormat
 import java.util.UUID
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -105,6 +106,30 @@ class KavitaContributorTest {
         val second = row()
 
         assertTrue(first.identity.matches(second.identity))
+    }
+
+    @Test
+    fun `a series whose chapters call fails once is not lost, only retried`() = runTest {
+        var calls = 0
+        val chapters = KavitaContributor.retriedOnce {
+            calls += 1
+            if (calls == 1) throw RuntimeException("socket hiccup") else listOf(1)
+        }
+
+        assertEquals(2, calls)
+        assertEquals(listOf(1), chapters)
+    }
+
+    @Test
+    fun `a series whose chapters call fails twice is skipped, not thrown`() = runTest {
+        var calls = 0
+        val chapters = KavitaContributor.retriedOnce<Int> {
+            calls += 1
+            throw RuntimeException("still down")
+        }
+
+        assertEquals(2, calls)
+        assertTrue(chapters.isEmpty())
     }
 
     private fun seriesOf(format: Int) = KavitaSeries(id = 1, name = "Lantern Green", format = format)
