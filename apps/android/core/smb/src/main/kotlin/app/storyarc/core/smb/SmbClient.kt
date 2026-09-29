@@ -187,13 +187,47 @@ class SmbClient(private val address: SmbAddress) : AutoCloseable {
             NtStatus.NT_STATUS_BAD_NETWORK_NAME,
             NtStatus.NT_STATUS_OBJECT_PATH_NOT_FOUND,
             -> SmbError.ShareNotFound
-            NtStatus.NT_STATUS_UNSUCCESSFUL -> fromMessage(error.message.orEmpty())
-            else -> SmbError.HostUnreachable
+            NtStatus.NT_STATUS_UNSUCCESSFUL ->
+                fromCauseChain(error) ?: fromMessage(error.message.orEmpty())
+            else -> fromCauseChain(error) ?: SmbError.HostUnreachable
         }
     } catch (error: java.io.IOException) {
-        throw fromMessage(error.message.orEmpty(), fallback = SmbError.HostUnreachable)
+        throw fromCauseChain(error)
+            ?: fromMessage(error.message.orEmpty(), fallback = SmbError.HostUnreachable)
     }
 }
+
+/**
+ * jcifs wraps every connect failure in `SmbException`, so the useful answer -- a host that
+ * never answered, or a server with no dialect in common -- is buried in the cause chain
+ * rather than on the exception the app catches. `error.message` alone cannot tell "the host
+ * refused the connection" from "the host does not speak SMB2", because both surface as the
+ * same generic wrapper text; only a cause further down says which.
+ */
+internal fun fromCauseChain(error: Throwable): SmbError? {
+    var current: Throwable? = error
+    var steps = 0
+    while (current != null && steps < CAUSE_CHAIN_LIMIT) {
+        when (current) {
+            is java.net.UnknownHostException,
+            is java.net.ConnectException,
+            is java.net.NoRouteToHostException,
+            is java.net.SocketTimeoutException,
+            -> return SmbError.HostUnreachable
+        }
+        val message = current.message.orEmpty()
+        if (PROTOCOL_REFUSAL_PHRASES.any { message.contains(it, ignoreCase = true) }) {
+            return SmbError.ProtocolUnsupported
+        }
+        val next = current.cause
+        current = next.takeUnless { it === current }
+        steps++
+    }
+    return null
+}
+
+private const val CAUSE_CHAIN_LIMIT = 20
+private val PROTOCOL_REFUSAL_PHRASES = listOf("does not support SMB2", "not compatible", "dialect")
 
 /**
  * What jcifs said, read for the two refusals it only expresses in prose.
