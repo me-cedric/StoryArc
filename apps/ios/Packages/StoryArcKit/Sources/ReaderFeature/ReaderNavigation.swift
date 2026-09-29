@@ -108,3 +108,22 @@ extension ReaderView {
 func endSlotPosition(slotCount: Int, isRightToLeft: Bool) -> Int {
     isRightToLeft ? -1 : slotCount
 }
+
+/// The display position one reading-order step from `displayIndex`, or `nil` past
+/// either end of the publication.
+///
+/// `readingOrderStep` already carries the right-to-left mirroring a tap or a key turns
+/// with; the curl's beneath and previous sheets need the same step, because "forward"
+/// and "backward" mean reading order to a reader whichever way the pages are laid out
+/// on screen — a raw `displayIndex + 1` is the *previous* page in reading order once
+/// right-to-left has reversed the display order. Android's `adjacentDisplayIndex` in
+/// `Paging.kt` is the same rule.
+func adjacentDisplayIndex(
+    from displayIndex: Int,
+    steps: Int,
+    slotCount: Int,
+    isRightToLeft: Bool
+) -> Int? {
+    let candidate = displayIndex + readingOrderStep(steps, isRightToLeft: isRightToLeft)
+    return (0..<slotCount).contains(candidate) ? candidate : nil
+}

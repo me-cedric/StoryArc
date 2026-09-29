@@ -31,6 +31,15 @@ struct CurledPages: View {
     let isRightToLeft: Bool
     /// What shows behind and beside the page. See ``ReaderModel/matte``.
     let matte: Color
+    /// The series' brightness, contrast, inversion and greyscale.
+    ///
+    /// `comic-reader` "Persisting adjustments": applied to the turning sheet only, not to
+    /// ``matte`` — the matte is what shows *around* the page, and inverting a black matte
+    /// to white along with the page would be a second bug in the middle of fixing this one.
+    /// The border trim and the sharpening are baked into `page`, `beneath` and `previous`
+    /// themselves before this view ever sees them, the same way every other container
+    /// applies them.
+    var adjustments = ImageAdjustments()
     /// Called once a forward turn has completed.
     let onTurned: () -> Void
     /// Called once a backwards turn has completed.
@@ -88,6 +97,7 @@ struct CurledPages: View {
                                     at: sheets.progress
                                 )
                             )
+                            .adjusted(adjustments)
                     }
                 }
             }

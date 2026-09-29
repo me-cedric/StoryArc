@@ -134,7 +134,17 @@ internal object PageCurl {
     """.trimIndent()
 
     /**
-     * One frame of a turn, as a brush over the whole page area.
+     * A fresh instance of the shader, with the AGSL program parsed once.
+     *
+     * `RuntimeShader(source)` parses the whole program, which is cheap once and wasteful
+     * every frame. The caller `remember`s the result for the life of the composable that
+     * draws with it, and calls [update] on it thereafter — this is called once, not per
+     * frame.
+     */
+    fun newShader(): RuntimeShader = RuntimeShader(source)
+
+    /**
+     * Sets this frame's uniforms and input shaders on an existing [shader].
      *
      * @param progress 0 while the page is flat, 1 when it has fully turned.
      * @param isRightToLeft mirrors the crease's origin, and the gesture with it.
@@ -142,24 +152,25 @@ internal object PageCurl {
      *   is none, so the last page still turns rather than tearing to nothing — the
      *   boundary is the caller's business, not the shader's.
      */
-    fun shader(
+    fun update(
+        shader: RuntimeShader,
         area: Size,
         progress: Float,
         isRightToLeft: Boolean,
         page: Bitmap,
         beneath: Bitmap?,
-    ): Shader = RuntimeShader(source).apply {
-        setFloatUniform("size", area.width, area.height)
-        setFloatUniform("progress", progress.coerceIn(0f, 1f))
-        setFloatUniform("crease", CREASE)
-        setFloatUniform("shadow", SHADOW)
-        setFloatUniform("direction", if (isRightToLeft) -1f else 1f)
-        setFloatUniform("back", BACK)
-        setFloatUniform("radiusMax", PageRoll.R_MAX)
-        setFloatUniform("lean", PageRoll.LEAN)
-        setFloatUniform("rim", PageRoll.RIM)
-        setInputShader("page", page.fitted(area))
-        setInputShader("beneath", (beneath ?: page).fitted(area))
+    ) {
+        shader.setFloatUniform("size", area.width, area.height)
+        shader.setFloatUniform("progress", progress.coerceIn(0f, 1f))
+        shader.setFloatUniform("crease", CREASE)
+        shader.setFloatUniform("shadow", SHADOW)
+        shader.setFloatUniform("direction", if (isRightToLeft) -1f else 1f)
+        shader.setFloatUniform("back", BACK)
+        shader.setFloatUniform("radiusMax", PageRoll.R_MAX)
+        shader.setFloatUniform("lean", PageRoll.LEAN)
+        shader.setFloatUniform("rim", PageRoll.RIM)
+        shader.setInputShader("page", page.fitted(area))
+        shader.setInputShader("beneath", (beneath ?: page).fitted(area))
     }
 
     /**

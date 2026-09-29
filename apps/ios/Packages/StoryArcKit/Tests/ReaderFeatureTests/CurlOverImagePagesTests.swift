@@ -61,22 +61,38 @@ struct CurlOverImagePagesTests {
     /// Each sheet the curl can draw, in the order the container hands them over.
     private static let sheets = ["page:", "beneath:", "previous:"]
 
-    /// Just the property that builds the curl.
+    /// Just one brace-delimited body, found by its opening line.
     ///
-    /// The file holds the other three containers too, and each of them reads a decoded page
-    /// as well. Counting over the whole file would pass while the curl read none.
-    private func curlBuilder() throws -> String {
-        let container = try code(of: Self.curlPath[0].url)
-        let opening = try #require(
-            container.range(of: "var curled: some View {"),
-            "`ReaderContainers.swift` no longer declares `var curled` — has the curl moved?"
-        )
+    /// The file holds several bodies, and each of the other containers reads a decoded
+    /// page too. Counting over the whole file would pass while one of these read none.
+    private func body(opening line: String, in container: String, missing: Comment) throws -> String {
+        let opening = try #require(container.range(of: line), missing)
         let rest = container[opening.upperBound...]
         let closing = try #require(
             rest.range(of: "\n    }"),
-            "`var curled` is not closed where this guard expects it."
+            "`\(line)` is not closed where this guard expects it."
         )
         return String(rest[..<closing.lowerBound])
+    }
+
+    private func curlBuilder() throws -> String {
+        try body(
+            opening: "var curled: some View {",
+            in: try code(of: Self.curlPath[0].url),
+            missing: "`ReaderContainers.swift` no longer declares `var curled` — has the curl moved?"
+        )
+    }
+
+    /// The function each sheet is decoded and adjusted through. `comic-reader`
+    /// "Persisting adjustments" (task 8.1) is what put this between the curl and
+    /// `model.image(at:)`: the trim and the sharpening apply to a curled page exactly as
+    /// they apply to every other container's.
+    private func adjustedImageBuilder() throws -> String {
+        try body(
+            opening: "private func adjustedImage(forDisplay display: Int) -> CGImage? {",
+            in: try code(of: Self.curlPath[0].url),
+            missing: "`ReaderContainers.swift` no longer declares `adjustedImage(forDisplay:)`."
+        )
     }
 
     @Test("Every sheet the curl draws is the page the decoder already produced")
@@ -93,17 +109,54 @@ struct CurlOverImagePagesTests {
             )
         }
 
-        let decodes = builder.ranges(of: "model.image(at:").count
+        let decodes = builder.ranges(of: "adjustedImage(forDisplay:").count
         #expect(
             decodes == Self.sheets.count,
             """
             The curl builds \(Self.sheets.count) sheets from \(decodes) call(s) to \
-            `model.image(at:)`. `comic-reader` requires a curl over a comic to use "the \
-            already-decoded page directly rather than a re-raster, because the page is an \
-            image before the turn begins". A sheet fed from anywhere else is either a second \
-            decode of a page the reader is already holding or a picture of the view, and \
-            both cost a frame the finger is on.
+            `adjustedImage(forDisplay:)`. `comic-reader` requires a curl over a comic to use \
+            "the already-decoded page directly rather than a re-raster, because the page is \
+            an image before the turn begins". A sheet fed from anywhere else is either a \
+            second decode of a page the reader is already holding or a picture of the view, \
+            and both cost a frame the finger is on.
             """
+        )
+
+        let adjusted = try adjustedImageBuilder()
+        #expect(
+            adjusted.ranges(of: "model.image(at:").count == 1,
+            "`adjustedImage(forDisplay:)` no longer reads exactly one decoded page from the model."
+        )
+    }
+
+    @Test("A curled sheet carries the series' border trim and sharpness")
+    func sheetsCarryTrimAndSharpness() throws {
+        let adjusted = try adjustedImageBuilder()
+        #expect(
+            adjusted.contains("cropped(image, when: trim.cropsBorders)"),
+            "A curled sheet no longer crops the border trim every other container applies."
+        )
+        #expect(
+            adjusted.contains("sharpened(") && adjusted.contains("trim.sharpness"),
+            "A curled sheet no longer applies the sharpness every other container applies."
+        )
+    }
+
+    @Test("The curl's own draw layer carries the series' colour adjustments")
+    func curlCarriesColourAdjustments() throws {
+        let curled = try curlBuilder()
+        #expect(
+            curled.contains("adjustments: adjustments"),
+            """
+            The curl is no longer handed the series' brightness, contrast, inversion and \
+            greyscale. `comic-reader` "Persisting adjustments" applies to every container, \
+            and the curl drew the raw decode while every other container applied this.
+            """
+        )
+        let drawing = try code(of: Self.curlPath[1].url)
+        #expect(
+            drawing.contains(".adjusted(adjustments)"),
+            "CurledPages no longer applies the colour adjustments to its own draw layer."
         )
     }
 
