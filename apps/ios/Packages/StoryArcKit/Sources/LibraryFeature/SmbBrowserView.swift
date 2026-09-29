@@ -260,8 +260,12 @@ public struct SmbBrowserView: View {
                 }
                 let existing = try? local.resourceValues(forKeys: [.fileSizeKey]).fileSize
                 if existing.map({ Int64($0) }) != entry.length {
-                    try await source.read(offset: 0, count: Int(entry.length))
-                        .write(to: local, options: .atomic)
+                    // Chunked rather than one `read(offset: 0, count: Int(entry.length))`:
+                    // a single request for the whole file is capped by SMB's own reply
+                    // length before this file's size ever enters into it, and a solid
+                    // archive worth downloading is exactly the file large enough to hit
+                    // that cap.
+                    try await ChunkedCopy.copy(source, to: local)
                 }
                 return (try await PublicationIndexer.index(fileAt: local), local)
             },

@@ -58,6 +58,16 @@ struct SmbTransferWiringTests {
         return source[start.lowerBound..<end.lowerBound]
     }()
 
+    /// Everything from `transfer(_:)` to the end of the file: the reader's own answer to
+    /// `smb.downloadFirst.title`, carried out.
+    private static let transferBody: Substring = {
+        guard let start = source.range(of: "private func transfer(_ entry: SmbEntry) async")
+        else {
+            fatalError("SmbBrowserView no longer has transfer(_:)")
+        }
+        return source[start.lowerBound...]
+    }()
+
     @Test("A tap on a share does not read the whole file")
     func tappingTransfersNothing() {
         // The regression, exactly: a whole-file read reachable from the tap. `network-share`
@@ -116,6 +126,23 @@ struct SmbTransferWiringTests {
             `publication-formats` asks for; the platform's own byte formatter is what the \
             Downloads destination and the metered confirmation already use.
             """
+        )
+    }
+
+    @Test("An agreed transfer copies in chunks rather than in one read")
+    func theTransferIsChunked() {
+        // The regression 5.14 closed: a single `read(offset: 0, count: Int(entry.length))`
+        // asks a share for the whole file in one message, which SMB's own reply length
+        // refuses above some size — the same defect `ChunkedCopyTests` pins from the other
+        // side, on `ChunkedCopy` itself. This is the wiring: that `transfer(_:)` actually
+        // calls it, rather than keeping its own one-shot read.
+        #expect(
+            Self.transferBody.contains("ChunkedCopy.copy("),
+            "transfer(_:) should copy through ChunkedCopy rather than a single read."
+        )
+        #expect(
+            !Self.transferBody.contains("source.read(offset: 0, count: Int(entry.length))"),
+            "transfer(_:) still reads the whole file in one call."
         )
     }
 
