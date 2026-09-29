@@ -23,22 +23,23 @@ struct GameControllerTurningTests {
 
     @Test("A bound controller's buttons turn; an unbound one's do not")
     @MainActor
-    func bindAndUnbind() {
+    func bindAndUnbind() throws {
         let controller = GCController.withExtendedGamepad()
         var turns: [Int] = []
         GameControllerTurning.bind(controller, to: { turns.append($0) })
-        let gamepad = controller.extendedGamepad
-        #expect(gamepad?.dpad.right.pressedChangedHandler != nil)
-        gamepad?.dpad.right.pressedChangedHandler?(gamepad!.dpad.right, 1, true)
-        gamepad?.leftShoulder.pressedChangedHandler?(gamepad!.leftShoulder, 1, true)
+        let gamepad = try #require(controller.extendedGamepad)
+        let right = try #require(gamepad.dpad.right.pressedChangedHandler)
+        let leftShoulder = try #require(gamepad.leftShoulder.pressedChangedHandler)
+        right(gamepad.dpad.right, 1, true)
+        leftShoulder(gamepad.leftShoulder, 1, true)
         // A release is not a second press.
-        gamepad?.dpad.right.pressedChangedHandler?(gamepad!.dpad.right, 0, false)
+        right(gamepad.dpad.right, 0, false)
         #expect(turns == [1, -1])
 
         GameControllerTurning.unbind(controller)
-        #expect(gamepad?.dpad.left.pressedChangedHandler == nil)
-        #expect(gamepad?.dpad.right.pressedChangedHandler == nil)
-        #expect(gamepad?.leftShoulder.pressedChangedHandler == nil)
-        #expect(gamepad?.rightShoulder.pressedChangedHandler == nil)
+        #expect(gamepad.dpad.left.pressedChangedHandler == nil)
+        #expect(gamepad.dpad.right.pressedChangedHandler == nil)
+        #expect(gamepad.leftShoulder.pressedChangedHandler == nil)
+        #expect(gamepad.rightShoulder.pressedChangedHandler == nil)
     }
 }
