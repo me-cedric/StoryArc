@@ -63,16 +63,12 @@ enum SmbContributor {
     /// One file as a row, or nil for a file this app cannot open.
     ///
     /// The identity is the share's own `smb://` address for this file, not the bare path
-    /// `SmbClient.list` returns: `entry.path` is relative to the share's root, and a
-    /// location that is not a real address reads as local — `PublicationAccess.isRemote`
-    /// matches it against nothing, the shelf counts a row nobody has downloaded as already
-    /// on the device, and opening it hands the reader a path that exists nowhere on the
-    /// filesystem. `SmbLocator.write` on the share's own root, not on `address` itself:
-    /// `entry.path` already carries the walk's own root — `publications(source:client:
-    /// address:)` seeds the recursion at `address.path` and every entry's path is joined
-    /// against whichever folder produced it — so a locator built from `address` would
-    /// state a configured root twice for a share whose reader picked one deeper than the
-    /// top.
+    /// `SmbClient.list` returns: `entry.path` is relative to the share's root, and a location
+    /// that is not a real address reads as a file — the shelf counted a row nobody had
+    /// downloaded as already on the device, and opening it handed the reader a path that
+    /// exists nowhere on the filesystem. ``SmbLocator/entry(_:of:)`` is the same address the
+    /// share browser opens a file by, and the one the reader's opener reads back with
+    /// ``SmbLocator/inside(_:of:)``.
     ///
     /// Still one identity per file on the share: two rows are the same publication when
     /// they are the same file, and a share's row and the same file downloaded fold together
@@ -88,19 +84,9 @@ enum SmbContributor {
             filename: entry.name,
             seriesHint: folder.split(separator: "/").last.map(String.init)
         )
-        let shareRoot = SmbLocator.write(
-            SmbAddress(host: address.host, share: address.share, username: address.username, port: address.port)
-        )
-        // Encoded component by component: `entry.path` is `/`-joined already, and `entry.path`
-        // encoded whole would turn every `/` a folder contributed into `%2F` along with the
-        // spaces a filename actually needs escaped — `URL(string:)` would then read the whole
-        // remainder as one path component instead of the folders and the file it names.
-        let encodedPath = entry.path
-            .split(separator: "/", omittingEmptySubsequences: true)
-            .map { $0.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? String($0) }
-            .joined(separator: "/")
+        guard let location = SmbLocator.entry(entry.path, of: address) else { return nil }
         return Publication(
-            identity: PublicationIdentity(normalizedPath: "\(shareRoot)/\(encodedPath)"),
+            identity: PublicationIdentity(normalizedPath: location.absoluteString),
             format: format,
             // The filename without its extension. ``FilenameMetadata`` answers series,
             // number, volume and year and deliberately not a title.

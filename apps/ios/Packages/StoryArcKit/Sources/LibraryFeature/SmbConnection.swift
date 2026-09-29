@@ -215,6 +215,37 @@ public enum SmbLocator {
         return "smb://\(user)\(address.host)\(port)/\(address.share)\(path)"
     }
 
+    /// Where one entry of this share is read from: the address, then the entry's own path.
+    ///
+    /// The entry's path is relative to the share, so it repeats a root the reader configured.
+    /// That is the convention, not an accident: ``inside(_:of:)`` strips the address off again
+    /// and hands the share the rest, which is exactly the path `SmbClient` takes. The share
+    /// browser and a share row on the shelf both build their address here, so one file has one
+    /// address wherever it was found. Encoded one component at a time, so a folder's `/` stays
+    /// a separator while a space or a `#` in a name is escaped.
+    public static func entry(_ path: String, of address: SmbAddress) -> URL? {
+        let encoded = path
+            .split(separator: "/", omittingEmptySubsequences: true)
+            .map { $0.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? String($0) }
+            .joined(separator: "/")
+        return URL(string: "\(write(address))/\(encoded)")
+    }
+
+    /// The path inside the share that an ``entry(_:of:)`` address names, or `nil` when the
+    /// address is not one of this share's. A name that only begins like the address, such as
+    /// `ComicsX` beside `Comics`, is not inside it.
+    public static func inside(_ url: URL, of address: SmbAddress) -> String? {
+        let locator = write(address)
+        let text = url.absoluteString
+        guard text.hasPrefix(locator) else { return nil }
+        let rest = text.dropFirst(locator.count)
+        guard rest.isEmpty || rest.hasPrefix("/") else { return nil }
+        let encoded = rest.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        // Decoded, not as it appears in the URL: a filename with a space arrives as `%20`, and
+        // the server has no such file.
+        return encoded.removingPercentEncoding ?? encoded
+    }
+
     public static func read(_ locator: String, password: String?) -> SmbAddress? {
         let body = locator.replacingOccurrences(of: "smb://", with: "")
         let user = body.contains("@") ? String(body.split(separator: "@")[0]) : nil

@@ -216,7 +216,7 @@ public struct SmbBrowserView: View {
         await ShareOpening.offerOrOpen(
             index: {
                 let client = SmbClient(address: address)
-                let remote = URL(string: "\(SmbLocator.write(address))/\(entry.path)")
+                let remote = SmbLocator.entry(entry.path, of: address)
                     ?? URL(fileURLWithPath: entry.path)
                 let source = try await client.open(entry.path)
                 let catalogued = try await PublicationIndexer.index(

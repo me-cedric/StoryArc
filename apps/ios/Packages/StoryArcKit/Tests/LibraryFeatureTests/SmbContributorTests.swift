@@ -49,20 +49,34 @@ struct SmbContributorTests {
         #expect(publication?.sourceID == source)
     }
 
-    @Test("The address names the share's own root, not the configured browse root twice")
-    func rootIsNotRepeated() {
-        // `entry.path` already carries the walk's own root — `SmbClient.list` seeds the
-        // recursion at the configured root and joins every entry against whichever folder
-        // produced it — so a share configured to browse from a subfolder must not repeat
-        // that subfolder in the address this builds.
+    @Test("A row under a configured root opens through the reader's own reading of its address")
+    func rootRoundTrips() throws {
+        // `entry.path` is relative to the share and so repeats the root the reader picked. The
+        // opener strips the source's address, root and all, and hands the share the rest — so
+        // the row's address has to state the root in both places, the way the share browser
+        // always has, or the share is asked for `Comics/x y.cbz` at its top.
         let configured = SmbAddress(host: "nas.local", share: "Comics", path: "Books")
-        let entry = SmbEntry(name: "x.cbz", path: "Books/Comics/x.cbz", isDirectory: false, length: 1)
+        let entry = SmbEntry(name: "x y.cbz", path: "Books/Comics/x y.cbz", isDirectory: false, length: 1)
 
-        let publication = SmbContributor.publication(
-            source: source, entry: entry, address: configured, folder: "Books/Comics"
+        let publication = try #require(
+            SmbContributor.publication(source: source, entry: entry, address: configured, folder: "Books/Comics")
         )
+        let identity = try #require(publication.identity.normalizedPath.flatMap(URL.init(string:)))
 
-        #expect(publication?.identity.normalizedPath == "smb://nas.local/Comics/Books/Comics/x.cbz")
+        #expect(SmbLocator.inside(identity, of: configured) == entry.path)
+        #expect(identity == SmbLocator.entry(entry.path, of: configured))
+    }
+
+    @Test("An address is inside a share only past its own name")
+    func insideNeedsTheWholeName() throws {
+        let configured = SmbAddress(host: "nas.local", share: "Comics", path: "Books")
+        let nested = try #require(URL(string: "smb://nas.local/Comics/Books/Books/a%23b.cbz"))
+        let beside = try #require(URL(string: "smb://nas.local/Comics/BooksExtra/x.cbz"))
+        let elsewhere = try #require(URL(string: "smb://other.local/Comics/Books/x.cbz"))
+
+        #expect(SmbLocator.inside(nested, of: configured) == "Books/a#b.cbz")
+        #expect(SmbLocator.inside(beside, of: configured) == nil)
+        #expect(SmbLocator.inside(elsewhere, of: configured) == nil)
     }
 
     @Test("The filename is what the row knows, and the row says so")
