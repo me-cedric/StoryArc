@@ -51,12 +51,21 @@ struct KeyboardFocusTests {
         #expect(modifier.contains(".focused($isFocused)"))
     }
 
-    @Test("Focus is claimed on appear, and given back when a sheet closes")
+    @Test("Focus is claimed on appear, and given back when the last sheet closes")
     func claimed() throws {
         let modifier = try code(of: "ReaderKeyboardFocus.swift")
         #expect(modifier.contains(".onAppear { isFocused = true }"))
-        #expect(modifier.contains("isShowingMenu"))
-        #expect(modifier.contains("isBrowsingThumbnails"))
-        #expect(modifier.contains("isAdjusting"))
+        #expect(modifier.contains(".onChange(of: isCoveredBySheet)"))
+    }
+
+    @Test("Every sheet over the reader counts, the find and bookmarks sheet included")
+    func everySheetCounts() throws {
+        let view = try code(of: "ReaderView.swift")
+        for sheet in ["isShowingMenu", "isBrowsingThumbnails", "isAdjusting", "isFindingText", "noting != nil"] {
+            #expect(
+                view.contains("|| \(sheet)") || view.contains("isCoveredBySheet: \(sheet)"),
+                "\(sheet) no longer hands focus back when it closes."
+            )
+        }
     }
 }
