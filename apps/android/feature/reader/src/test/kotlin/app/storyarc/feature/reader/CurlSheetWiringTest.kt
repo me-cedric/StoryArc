@@ -87,8 +87,8 @@ class CurlSheetWiringTest {
         val builder = curlBuilder()
         val reads = listOf(
             "page = curlPage(paging.current)",
-            "beneath = curlPage(adjacentDisplayIndex(paging.current, 1, slotCount, isRightToLeft))",
-            "previous = curlPage(adjacentDisplayIndex(paging.current, -1, slotCount, isRightToLeft))",
+            "beneath = curlSheet(adjacentDisplayIndex(paging.current, 1, slotCount, isRightToLeft))",
+            "previous = curlSheet(adjacentDisplayIndex(paging.current, -1, slotCount, isRightToLeft))",
         )
 
         for (read in reads) {
@@ -109,6 +109,12 @@ class CurlSheetWiringTest {
         assertTrue(
             "curlPage no longer bakes the series' border trim into the sheet it hands the curl.",
             readerScreen.contains("raw.cropped(trims)"),
+        )
+        // Task 8.4: a neighbour that has not decoded is a placeholder, not the outgoing page.
+        assertTrue(
+            "curlSheet no longer falls back to a placeholder for a neighbour still decoding.",
+            readerScreen.contains("CurlPlaceholder.sheet(display, { curlPage(it) }) {") &&
+                readerScreen.contains("rememberCurlPlaceholder(PagePlaceholder.ratio(modelIndex(it),"),
         )
     }
 

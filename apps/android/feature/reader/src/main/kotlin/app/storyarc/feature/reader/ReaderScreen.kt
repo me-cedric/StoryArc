@@ -906,11 +906,8 @@ private fun Pager(
     }
 
     /**
-     * The decoded page at a display position, with the series' border trim baked in —
-     * the same trim [SinglePage] applies. `comic-reader` "Persisting adjustments": the
-     * curl drew the raw decode while every other container applied it. Sharpness and
-     * colour are not baked here: [CurledPages] draws them live, the way [ZoomablePage]
-     * already does on this API floor.
+     * The decoded page at a display position, with the border trim [SinglePage] applies
+     * baked in. Sharpness and colour are not baked: [CurledPages] draws them live.
      */
     @Composable
     fun curlPage(display: Int?): Bitmap? {
@@ -918,6 +915,12 @@ private fun Pager(
         val raw = viewModel.image(index) ?: return null
         val trims = adjustments.trimmingBorders(index !in uncropped).cropsBorders
         return remember(raw, trims) { raw.cropped(trims) }
+    }
+
+    /** A neighbouring sheet, or a matte placeholder at its expected ratio while it decodes. */
+    @Composable
+    fun curlSheet(display: Int?): Bitmap? = CurlPlaceholder.sheet(display, { curlPage(it) }) {
+        rememberCurlPlaceholder(PagePlaceholder.ratio(modelIndex(it), viewModel.decodedRatios()), matte)
     }
 
     /**
@@ -937,15 +940,10 @@ private fun Pager(
             if (choices.effective == PageTransition.PAGE_CURL) {
                 CurledPages(
                     page = curlPage(paging.current),
-                    // One reading-order step forward, not one *display* position forward:
-                    // right-to-left reverses the display order, so `paging.current + 1` is
-                    // the previous page in reading order there, not the next one.
-                    beneath = curlPage(adjacentDisplayIndex(paging.current, 1, slotCount, isRightToLeft)),
-                    // And the page behind, one reading-order step back, for the same reason
-                    // and the other direction. The reader met a curl that "only seems to
-                    // work in one direction": the shader had nothing to turn backwards
-                    // because nothing was handed to it.
-                    previous = curlPage(adjacentDisplayIndex(paging.current, -1, slotCount, isRightToLeft)),
+                    // One reading-order step each way, not one display position: right-to-left
+                    // reverses the display order, so `paging.current + 1` is the previous page.
+                    beneath = curlSheet(adjacentDisplayIndex(paging.current, 1, slotCount, isRightToLeft)),
+                    previous = curlSheet(adjacentDisplayIndex(paging.current, -1, slotCount, isRightToLeft)),
                     isRightToLeft = isRightToLeft,
                     matte = matte,
                     adjustments = adjustments,
