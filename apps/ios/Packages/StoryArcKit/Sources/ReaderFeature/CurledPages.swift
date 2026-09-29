@@ -40,6 +40,11 @@ struct CurledPages: View {
     /// themselves before this view ever sees them, the same way every other container
     /// applies them.
     var adjustments = ImageAdjustments()
+    /// Whether the current page turned out to be undecodable, rather than merely not
+    /// decoded yet. See ``PageProblem``.
+    var isUnavailable = false
+    /// What the current page turned out to be, when it could not be decoded.
+    var codecName: String?
     /// Called once a forward turn has completed.
     let onTurned: () -> Void
     /// Called once a backwards turn has completed.
@@ -98,6 +103,15 @@ struct CurledPages: View {
                                 )
                             )
                             .adjusted(adjustments)
+                    } else if isUnavailable {
+                        // `publication-formats`: a page that could not be decoded is named
+                        // rather than left as a bare matte, in Curl as in every other mode.
+                        PageProblem(codecName: codecName)
+                    } else {
+                        // `comic-reader`: "a progress indicator appears only after 400 ms".
+                        // Only reachable at rest — a drag never starts on a page that has
+                        // not decoded, because `sheets.turning` is flat `page` there.
+                        DelayedProgressView()
                     }
                 }
             }

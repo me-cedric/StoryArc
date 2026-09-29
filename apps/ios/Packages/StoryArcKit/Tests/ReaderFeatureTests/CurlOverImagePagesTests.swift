@@ -160,6 +160,34 @@ struct CurlOverImagePagesTests {
         )
     }
 
+    @Test("The curl is handed whether the current page could not be decoded, and its codec")
+    func curlCarriesUnavailability() throws {
+        // task 8.15: a curl over a page that has not decoded showed a bare matte. The
+        // reason and the codec are the same two facts `singlePage` already reads.
+        let builder = try curlBuilder()
+        #expect(
+            builder.contains("isUnavailable: model.isUnavailable(at: modelIndex(forDisplay: displayIndex))"),
+            "The curl no longer reads whether the current page is unavailable."
+        )
+        #expect(
+            builder.contains("codecName: model.codecName(at: modelIndex(forDisplay: displayIndex))"),
+            "The curl no longer reads the current page's codec name."
+        )
+    }
+
+    @Test("A page still loading or that could not be decoded is named over the matte")
+    func undecodedPageIsNamed() throws {
+        let drawing = try code(of: Self.curlPath[1].url)
+        #expect(
+            drawing.contains("} else if isUnavailable {") && drawing.contains("PageProblem(codecName: codecName)"),
+            "An undecodable page in Curl mode no longer shows the codec-naming PageProblem."
+        )
+        #expect(
+            drawing.contains("DelayedProgressView()"),
+            "A page still loading in Curl mode no longer shows the delayed progress indicator."
+        )
+    }
+
     /// The absence that the positive claim above cannot cover.
     ///
     /// Nothing here re-renders a view. `ImageRenderer` and a UIKit snapshot each produce a

@@ -141,6 +141,22 @@ class CurlSheetWiringTest {
         )
     }
 
+    @Test
+    fun `the curl is handed whether the current page could not be decoded, and its codec`() {
+        // task 8.15: a curl over a page that has not decoded showed a bare matte. The
+        // reason and the codec are the same two facts `SinglePage` already reads for the
+        // stitched and paged bodies.
+        val builder = curlBuilder()
+        assertTrue(
+            "The curl no longer reads whether the current page is unavailable.",
+            builder.contains("isUnavailable = viewModel.isUnavailable(modelIndex(paging.current)),"),
+        )
+        assertTrue(
+            "The curl no longer reads the current page's codec name.",
+            builder.contains("codecName = viewModel.codecName(modelIndex(paging.current)),"),
+        )
+    }
+
     private companion object {
         const val MODULE_DIRECTORY = "storyarc.reader.projectDir"
     }
