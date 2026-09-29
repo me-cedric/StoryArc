@@ -1,6 +1,13 @@
 package app.storyarc.core.smb
 
+import java.net.ConnectException
+import java.net.NoRouteToHostException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import jcifs.CIFSException
+import jcifs.smb.SmbException
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -48,5 +55,40 @@ class SmbProtocolRefusalTest {
     @Test
     fun `a refusal with nothing to say still reads as a refusal`() {
         assertTrue(fromMessage("", fallback = SmbError.HostUnreachable) is SmbError.HostUnreachable)
+    }
+
+    @Test
+    fun `an unreachable host is read from a cause the outer wrapper does not name`() {
+        val refusedConnect = SmbException(
+            "Failed to connect: 192.168.1.50/445",
+            ConnectException("Connection refused"),
+        )
+        assertEquals(SmbError.HostUnreachable, fromCauseChain(refusedConnect))
+
+        val unknownHost = SmbException("Failed to connect to server", UnknownHostException("nas.invalid"))
+        assertEquals(SmbError.HostUnreachable, fromCauseChain(unknownHost))
+
+        val noRoute = SmbException("Failed to connect: 10.0.0.9/445", NoRouteToHostException("No route to host"))
+        assertEquals(SmbError.HostUnreachable, fromCauseChain(noRoute))
+
+        val timedOut = SmbException("Failed to connect: 10.0.0.9/445", SocketTimeoutException("connect timed out"))
+        assertEquals(SmbError.HostUnreachable, fromCauseChain(timedOut))
+    }
+
+    @Test
+    fun `an SMB1-only server is read from a cause, not only from the outer message`() {
+        val noSmb2 = SmbException(
+            "Failed to connect: 10.0.0.9/445",
+            CIFSException("Server does not support SMB2"),
+        )
+        assertEquals(SmbError.ProtocolUnsupported, fromCauseChain(noSmb2))
+
+        val noDialect = SmbException("Failed to connect.", SmbException("This client is not compatible with the server."))
+        assertEquals(SmbError.ProtocolUnsupported, fromCauseChain(noDialect))
+    }
+
+    @Test
+    fun `a cause chain with nothing recognisable answers nothing, rather than guessing`() {
+        assertNull(fromCauseChain(SmbException("Failed to connect: 10.0.0.9/445", RuntimeException("weird"))))
     }
 }
