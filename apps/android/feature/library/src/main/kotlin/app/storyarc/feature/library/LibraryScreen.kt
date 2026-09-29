@@ -523,7 +523,10 @@ fun LibraryScreen(
                 onRefresh = {
                     val plan = ShelfRefresh.of(query.scope, registry)
                     if (plan.walksFolders) viewModel?.rescan()
-                    if (plan.asksNetwork) onProbeSources(SourceRefreshOrigin.PULLED)
+                    if (plan.asksNetwork) {
+                        onProbeSources(SourceRefreshOrigin.PULLED)
+                        viewModel?.readServers()
+                    }
                 },
                 modifier = Modifier.fillMaxSize(),
             ) {
