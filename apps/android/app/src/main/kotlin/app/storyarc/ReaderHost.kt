@@ -7,7 +7,6 @@ import androidx.compose.runtime.remember
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import app.storyarc.core.kavita.KavitaExchange
 import app.storyarc.core.model.ReadingAddress
@@ -36,7 +35,6 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
     val activity = host.activity
     val dependencies = host.dependencies
     val publication = screen.publication
-    val blockedSince by SmbReachability.blockedSince.collectAsStateWithLifecycle()
 
     // Keyed on the publication so opening a different one builds a fresh model rather than
     // showing the previous book's pages.
@@ -131,8 +129,6 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
                 onKeep = { choices.keep(publication.id) },
             )
         },
-        blockedSince = blockedSince,
-        onDismissTrouble = { SmbReachability.clear() },
         // Only for a publication that lives on a share. Everything else is already on the
         // device, and offering to download it would be offering nothing.
         //

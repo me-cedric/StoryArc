@@ -174,14 +174,6 @@ fun ReaderScreen(
     onOpen: (Publication) -> Unit = {},
     /** `null` for a publication that was never a download. See [DownloadCleanupOffer]. */
     downloadCleanup: DownloadCleanupOffer? = null,
-    /**
-     * When reads from the source started failing, if they have.
-     *
-     * Supplied by the app layer for the same reason as the above: the reader does not know
-     * what a network share is, and `network-share`'s two thresholds are the only part of
-     * that it needs.
-     */
-    blockedSince: Long? = null,
     onDismissTrouble: () -> Unit = {},
     onDownloadForOffline: (suspend () -> Boolean)? = null,
     modifier: Modifier = Modifier,
@@ -201,6 +193,7 @@ fun ReaderScreen(
     // first publication and then show a spinner for ever on the second.
     LaunchedEffect(viewModel) { viewModel.open(maxPixelSize) }
     SmbNetworkWatchEffect()
+    PageRecoveryEffect(viewModel)
 
     // `comic-reader`: "the screen does not auto-lock while a page is visible, and
     // normal locking resumes on leaving". A long look at one page is reading, not
@@ -257,7 +250,7 @@ fun ReaderScreen(
         // Over the page rather than in place of it: `network-share` requires pages already
         // read to stay readable while the network is away.
         NetworkNotice(
-            blockedSince = blockedSince,
+            blockedSince = viewModel.pageBlockedSince,
             onDismiss = onDismissTrouble,
             onDownload = onDownloadForOffline,
             onLeave = onClose,
