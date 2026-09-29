@@ -66,4 +66,22 @@ struct ComicPageBookmarkTests {
     func emptyListIsNeverBookmarked() {
         #expect(!ComicPageBookmark.isBookmarked(0, among: []))
     }
+
+    /// A tripwire over the view's source, the way `ReaderGestureTests` reads it: a live
+    /// sheet cannot be dismissed on this host.
+    @Test("Going to a bookmark closes the list, so the page it jumped to is in view")
+    func goingToABookmarkClosesTheList() throws {
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appending(path: "Sources/ReaderFeature/ComicBookmarkList.swift")
+        let code = try String(contentsOf: url, encoding: .utf8)
+        let go = try #require(code.range(of: ".map(onGo)"))
+        #expect(
+            code[go.upperBound...].prefix(80).contains("dismiss()"),
+            "A tap on a bookmark jumps behind a sheet that stays up."
+        )
+        #expect(code.contains("ToolbarItem(placement: .confirmationAction)"))
+    }
 }
