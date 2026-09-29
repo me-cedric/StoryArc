@@ -165,18 +165,27 @@ public final class DownloadQueue {
     /// Namespaced by source when one is known, as Kavita already keys a chapter — see
     /// `KavitaKeep`. Without a source the raw entry id stands, which keeps a queue built
     /// with none (a host test, mostly) working exactly as it did.
-    public func downloadID(for entryID: String) -> Download.ID {
-        guard let sourceID else { return entryID }
-        return "opds:\(sourceID.uuidString):\(entryID)"
+    ///
+    /// - Parameter sourceID: the catalogue page's own source, when this queue is the one
+    ///   ``DownloadQueue/shared(pins:sources:credentials:settings:)`` hands out to every
+    ///   page at once. `nil` — the default — falls back to the queue's own ``sourceID``,
+    ///   which is what a queue built for a single catalogue (a host test, mostly) still
+    ///   carries.
+    public func downloadID(for entryID: String, sourceID: UUID? = nil) -> Download.ID {
+        guard let effective = sourceID ?? self.sourceID else { return entryID }
+        return "opds:\(effective.uuidString):\(entryID)"
     }
 
     /// Whether this entry already has a finished download.
-    public func isOnDevice(_ entryID: String) -> Bool {
-        onDevice.contains(downloadID(for: entryID))
+    public func isOnDevice(_ entryID: String, sourceID: UUID? = nil) -> Bool {
+        onDevice.contains(downloadID(for: entryID, sourceID: sourceID))
     }
 
     /// Adds a download and starts it when there is room.
     ///
+    /// - Parameter sourceID: the catalogue page's own source. `nil` falls back to the
+    ///   queue's own ``sourceID``, exactly as ``downloadID(for:sourceID:)`` does — see it
+    ///   for why.
     /// - Parameter overridingMeteredConnection: the reader was asked whether to spend
     ///   mobile data on this one, and said yes. `offline-downloads` grants that "for that
     ///   item only", which is why it is recorded against the id rather than flipping a
@@ -184,14 +193,16 @@ public final class DownloadQueue {
     public func enqueue(
         _ entry: OpdsEntry,
         using acquisition: OpdsAcquisition,
+        sourceID: UUID? = nil,
         overridingMeteredConnection: Bool = false
     ) {
-        let id = downloadID(for: entry.id)
+        let effective = sourceID ?? self.sourceID
+        let id = downloadID(for: entry.id, sourceID: effective)
         if overridingMeteredConnection { overridden.insert(id) }
         library = library.queueing(
             Download(
                 id: id,
-                sourceID: sourceID,
+                sourceID: effective,
                 title: entry.title,
                 remote: acquisition.href,
                 mediaType: acquisition.mediaType
@@ -218,10 +229,11 @@ public final class DownloadQueue {
     public func fetch(
         _ entry: OpdsEntry,
         using acquisition: OpdsAcquisition,
+        sourceID: UUID? = nil,
         overridingMeteredConnection: Bool = false
     ) async -> URL? {
-        if let file = downloaded(entry) { return file }
-        let id = downloadID(for: entry.id)
+        if let file = downloaded(entry, sourceID: sourceID) { return file }
+        let id = downloadID(for: entry.id, sourceID: sourceID)
         switch library[id]?.state {
         case .failed, .paused(.byReader):
             // `enqueue` is a no-op once a publication is already known, and neither state
@@ -236,6 +248,7 @@ public final class DownloadQueue {
             enqueue(
                 entry,
                 using: acquisition,
+                sourceID: sourceID,
                 overridingMeteredConnection: overridingMeteredConnection
             )
         }
@@ -300,8 +313,9 @@ public final class DownloadQueue {
     ///
     /// Asked of the filesystem: a download the system reclaimed is one the reader should be
     /// offered again rather than shown a missing file.
-    public func downloaded(_ entry: OpdsEntry) -> URL? {
-        guard let download = library[downloadID(for: entry.id)], download.state.isFinished,
+    public func downloaded(_ entry: OpdsEntry, sourceID: UUID? = nil) -> URL? {
+        guard let download = library[downloadID(for: entry.id, sourceID: sourceID)],
+              download.state.isFinished,
               let store
         else {
             return nil
