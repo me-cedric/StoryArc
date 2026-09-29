@@ -54,6 +54,29 @@ struct KavitaExchangeTests {
         #expect(KavitaExchange.position(readingTo: 99, of: 8) == .page(index: 7, of: 8))
     }
 
+    @Test("Against a page position, the server's count stays a page")
+    func likeAPageStaysAPage() {
+        #expect(
+            KavitaExchange.position(readingTo: 3, of: 8, like: .page(index: 0, of: 8))
+                == .page(index: 2, of: 8)
+        )
+    }
+
+    @Test("Against a reflowable position, the server's count becomes a fraction with no locator")
+    func likeAReflowableBecomesAFraction() {
+        // The defect: a page number written over an EPUB's own position sent every
+        // synced book back to its first page, because a page is not a locator Readium
+        // can open. Expressed as the fraction a page position already computes -- the
+        // same number `KavitaExchange.pageNumber(of:in:)` converts back from.
+        let position = KavitaExchange.position(readingTo: 3, of: 8, like: .reflowable(progression: 0, locator: "x"))
+        guard case let .reflowable(progression, locator) = position else {
+            Issue.record("expected a reflowable position")
+            return
+        }
+        #expect(progression == ReadingPosition.page(index: 2, of: 8).fraction)
+        #expect(locator.isEmpty)
+    }
+
     @Test("A page position is told to the server as its own index")
     func pageIsItsOwnPageNumber() {
         #expect(KavitaExchange.pageNumber(of: .page(index: 4, of: 10), in: 10) == 4)

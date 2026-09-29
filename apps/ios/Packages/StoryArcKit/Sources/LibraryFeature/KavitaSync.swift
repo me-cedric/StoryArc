@@ -127,7 +127,9 @@ public enum KavitaSync {
             // The server's position, wearing the local record's identity — which is the
             // only thing that lets the two be compared at all.
             var said = held
-            said.position = KavitaExchange.position(readingTo: chapter.pagesRead, of: chapter.pages)
+            said.position = KavitaExchange.position(
+                readingTo: chapter.pagesRead, of: chapter.pages, like: held.position
+            )
             // The server's own finished state, not the local record's copied forward.
             // Copying it forward is the defect: the merge's finished rule (either side
             // finished wins) never saw a server that had finished a chapter this device

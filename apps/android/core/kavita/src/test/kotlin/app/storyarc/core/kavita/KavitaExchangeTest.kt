@@ -54,6 +54,26 @@ class KavitaExchangeTest {
     }
 
     @Test
+    fun `against a page position, the server's count stays a page`() {
+        assertEquals(
+            ReadingPosition.Page(2, 8),
+            KavitaExchange.position(3, 8, like = ReadingPosition.Page(0, 8)),
+        )
+    }
+
+    @Test
+    fun `against a reflowable position, the server's count becomes a fraction with no locator`() {
+        // The defect: a page number written over an EPUB's own position sent every
+        // synced book back to its first page, because a page is not a locator Readium
+        // can open. Expressed as the fraction a page position already computes -- the
+        // same number `KavitaExchange.pageNumber` converts back from.
+        val position = KavitaExchange.position(3, 8, like = ReadingPosition.Reflowable(0.0, "x"))
+        val reflowable = position as? ReadingPosition.Reflowable
+        assertEquals(ReadingPosition.Page(2, 8).fraction, reflowable?.progression)
+        assertEquals("", reflowable?.locator)
+    }
+
+    @Test
     fun `a page position is told to the server as its own index`() {
         assertEquals(4, KavitaExchange.pageNumber(ReadingPosition.Page(4, 10), 10))
     }

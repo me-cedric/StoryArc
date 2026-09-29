@@ -124,4 +124,29 @@ struct EpubReaderModelTests {
         #expect(reader.failure == nil)
         #expect(reader.progression == 0.87)
     }
+
+    @Test("A position with no locator -- a pull's own kind -- still opens at its fraction")
+    func aPositionWithNoLocatorOpensAtItsFraction() async throws {
+        // The defect: `KavitaSync.pull` used to write a page number over an EPUB's own
+        // position, and a page is not a locator this reader can open -- so the book
+        // opened at its very first page regardless of how far a server said the reader
+        // had gone. `KavitaExchange.position(readingTo:of:like:)` now writes a fraction
+        // with an empty locator instead, which is exactly this shape.
+        let base = model("fixture.epub")
+        let progress = try ProgressStore.inMemory()
+        try await progress.save(
+            ReadingProgress(
+                identity: base.publication.identity,
+                position: .reflowable(progression: 0.6, locator: ""),
+                isFinished: false,
+                updatedAt: Date()
+            )
+        )
+
+        let reader = EpubReaderModel(publication: base.publication, url: base.url, progress: progress)
+        await reader.open()
+
+        #expect(reader.failure == nil)
+        #expect(reader.progression > 0, "opened at the first page despite the recorded fraction")
+    }
 }

@@ -69,6 +69,23 @@ data class KavitaExchange(
             }
 
         /**
+         * The position a chapter's `pagesRead` describes, expressed the way the local
+         * record already is.
+         *
+         * A server counts pages; a reflowable position does not use them at all -- an
+         * EPUB's own place in the book is a fraction of the whole, and writing a page
+         * number over it is what sent every synced EPUB back to its first page, because
+         * a page is not a locator the reader can open. `locator` is empty: the server has
+         * no locator to give, and the reader opens at the fraction alone. See
+         * `EpubReaderViewModel.initialLocator`.
+         */
+        fun position(pagesRead: Int, pages: Int, like: ReadingPosition): ReadingPosition {
+            val paged = position(pagesRead, pages)
+            if (like !is ReadingPosition.Reflowable) return paged
+            return ReadingPosition.Reflowable(paged.fraction, locator = "")
+        }
+
+        /**
          * The `pageNum` a server is told, from a stored position and the chapter's length.
          *
          * A reflowable position is carried across by its fraction, because that is the only

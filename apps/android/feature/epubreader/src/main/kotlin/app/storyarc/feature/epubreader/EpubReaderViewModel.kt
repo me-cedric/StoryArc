@@ -49,6 +49,7 @@ import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
+import org.readium.r2.shared.publication.services.locateProgression
 import org.readium.r2.shared.publication.services.search.search
 import org.readium.r2.shared.util.AbsoluteUrl
 import org.readium.r2.shared.util.Url
@@ -449,19 +450,15 @@ class EpubReaderViewModel(
         resourceCount = readingOrder.size,
     )
 
-    /**
-     * The stored position, turned back into a Readium `Locator`.
-     *
-     * Stored as the locator's own JSON rather than as a page number: `ebook-reader`
-     * requires the position to survive a type-size change, and a page number
-     * cannot. The progression is stored beside it so the library can draw a bar
-     * without parsing anything.
-     */
+    /** The stored position, turned back into a Readium `Locator`; JSON survives a type-size change, a page number does not. */
     suspend fun initialLocator(): Locator? {
         val record = progress?.progress(identity) ?: return null
         if (record.isFinished) return null // reopens at the start, like the other readers
         val position = record.position as? ReadingPosition.Reflowable ?: return null
-        if (position.locator.isEmpty()) return null
+        if (position.locator.isEmpty()) {
+            // No locator to open at -- a pull-adopted position has only the fraction; still a real place Readium can open.
+            return opened?.locateProgression(position.progression)
+        }
         return runCatching { Locator.fromJSON(JSONObject(position.locator)) }.getOrNull()
     }
 
