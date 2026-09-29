@@ -25,6 +25,14 @@ struct PrivacySettings: View {
     /// saying nothing downloads yet. Something does now.
     var onClearDownloads: () -> Void = {}
 
+    /// Whether a configured source synchronises progress with a server of its own.
+    ///
+    /// Clearing history only ever touched the local store — a source's own server was
+    /// never told, and never asked to be — so the confirmation said nothing about it and
+    /// a reader could read that silence as "everywhere". Shown only when it is true: a
+    /// reader with nothing but local files has nothing this sentence would be about.
+    var hasSynchronizingSource: Bool = false
+
     /// The row a search result pointed at, if the reader arrived through one.
     var highlight: SettingsAnchor?
 
@@ -44,6 +52,16 @@ struct PrivacySettings: View {
     /// because the caller measured before this screen opened and the row has to go to zero
     /// under the reader's finger rather than on the next visit.
     @State private var downloadBytes: Int64 = 0
+
+    /// The message keys the clear-history confirmation shows, in order.
+    ///
+    /// Lifted out of the view so a test can reach the decision without a host to render
+    /// a confirmation dialog in.
+    static func clearHistoryMessageKeys(hasSynchronizingSource: Bool) -> [String] {
+        hasSynchronizingSource
+            ? ["privacy.clear.history.body", "privacy.clear.history.serverNote"]
+            : ["privacy.clear.history.body"]
+    }
 
     var body: some View {
         HighlightingList(highlight: highlight) {
@@ -122,7 +140,9 @@ struct PrivacySettings: View {
                 Text("privacy.clear", bundle: .module)
             }
         } message: {
-            Text("privacy.clear.history.body", bundle: .module)
+            ForEach(Self.clearHistoryMessageKeys(hasSynchronizingSource: hasSynchronizingSource), id: \.self) {
+                Text(LocalizedStringKey($0), bundle: .module)
+            }
         }
         // Confirmed, unlike the cache: these are files a reader chose to fetch, and some
         // of them came over a connection they pay for. The body names what survives, for

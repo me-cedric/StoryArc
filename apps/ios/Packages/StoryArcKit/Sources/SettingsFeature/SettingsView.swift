@@ -222,6 +222,7 @@ public struct SettingsView: View {
                 readerStore: readerStore,
                 downloadedBytes: bytesOnDisk,
                 onClearDownloads: onClearDownloads,
+                hasSynchronizingSource: sources.contains { $0.kind == .kavitaServer },
                 highlight: highlight
             )
         case .about: AboutSettings()
