@@ -105,6 +105,18 @@ class SmbClientTest {
     }
 
     @Test
+    fun `a host that refuses the connection is named as unreachable`() {
+        // Port 4999 is kept free on purpose (AGENTS.md, the fixture port table): a refused
+        // connect is what a host that does not answer looks like. jcifs wraps it in an
+        // `SmbException` whose own message names nothing, so only the cause says which.
+        SmbClient(address.copy(host = "127.0.0.1", port = REFUSED_PORT)).use { client ->
+            assertThrows(SmbError.HostUnreachable::class.java) {
+                runBlocking { client.connect() }
+            }
+        }
+    }
+
+    @Test
     fun `a share that is not there fails as a named error, not a raw jcifs one`() {
         assumeTrue(isServerRunning())
         SmbClient(address.copy(share = "NoSuchShare")).use { client ->
@@ -167,6 +179,7 @@ class SmbClientTest {
     }
 
     private companion object {
+        const val REFUSED_PORT = 4999
         const val PORT = 4445
         const val SHARE = "Comics"
 
