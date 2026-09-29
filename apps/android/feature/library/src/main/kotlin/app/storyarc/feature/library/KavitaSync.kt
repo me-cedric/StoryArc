@@ -188,6 +188,9 @@ object KavitaSync {
      * Only a position the server actually took is stamped as synchronised. One it did not
      * stays exactly as it was and waits for the next flush, so an evening's reading offline
      * is a queue entry rather than a lost place and never an error the reader has to read.
+     *
+     * The flush runs when nothing is owed too: a pull that reached its server is the "next
+     * successful connection" `kavita-server` retries a held write on.
      */
     private suspend fun settle(
         owed: List<KavitaOwed>,
@@ -196,8 +199,6 @@ object KavitaSync {
         kavita: KavitaProgressStore,
         progress: ProgressStore,
     ) {
-        if (owed.isEmpty()) return
-
         // A finished record is owed a mark, not a page -- see `KavitaOwed.isMarkRead`.
         fun unsent(each: KavitaOwed, origin: KavitaOrigin) = if (each.isMarkRead) {
             KavitaUnsent(origin, page = 0, mark = true)
