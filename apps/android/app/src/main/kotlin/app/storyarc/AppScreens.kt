@@ -199,6 +199,7 @@ internal fun HostedScreen(
                 title = screen.shelf.title,
                 onOpen = host.open,
                 onBack = back,
+                progress = dependencies.progress,
             )
         } else {
             KavitaCollectionScreen(

@@ -77,6 +77,8 @@ struct KavitaListView: View {
     /// list". Passed in rather than read here, so the rows and the badge on the shelf above
     /// them come from one reading of the queue.
     var pending: [ShelfEdit] = []
+    /// Where an opened entry's first position is written. See `seedKavitaOpen`.
+    var progress: ProgressStore?
     let onOpen: (Publication, URL) -> Void
 
     @State private var items: [KavitaReadingListItem] = []
@@ -309,7 +311,10 @@ struct KavitaListView: View {
             store: KavitaProgressStore(),
             from: KavitaClient(address: server.address)
         )
-        if case let .opened(publication, file) = opening { onOpen(publication, file) }
+        if case let .opened(publication, file) = opening {
+            await seedKavitaOpen(publication, pagesRead: entry.pagesRead, of: entry.pagesTotal, into: progress)
+            onOpen(publication, file)
+        }
         openFailure = opening.reason(server: server.title).map { (entry.displayName, $0) }
     }
 }

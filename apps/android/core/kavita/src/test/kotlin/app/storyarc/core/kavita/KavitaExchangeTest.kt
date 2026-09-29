@@ -230,27 +230,32 @@ class KavitaExchangeTest {
     fun `a chapter kavita reports as half read is seeded at that page`() {
         assertEquals(
             ReadingPosition.Page(3, 10),
-            KavitaExchange.openSeed(chapter(41, pages = 10, pagesRead = 4), existing = null),
+            KavitaExchange.openSeed(pagesRead = 4, pages = 10, existing = null),
         )
     }
 
     @Test
     fun `a chapter with no local record and nothing read yet is not seeded`() {
-        assertNull(KavitaExchange.openSeed(chapter(41, pagesRead = 0), existing = null))
+        assertNull(KavitaExchange.openSeed(pagesRead = 0, pages = 10, existing = null))
     }
 
     @Test
     fun `a chapter that already has a local record is left alone`() {
         assertNull(
-            KavitaExchange.openSeed(
-                chapter(41, pages = 10, pagesRead = 4),
-                existing = progress("one", page = 7),
-            ),
+            KavitaExchange.openSeed(pagesRead = 4, pages = 10, existing = progress("one", page = 7)),
+        )
+    }
+
+    @Test
+    fun `a reflowable chapter is seeded at the same fraction, with no locator`() {
+        assertEquals(
+            ReadingPosition.Reflowable(ReadingPosition.Page(5, 11).fraction, locator = ""),
+            KavitaExchange.openSeed(pagesRead = 6, pages = 11, existing = null, reflowable = true),
         )
     }
 
     @Test
     fun `a chapter the server reports no pages for is not seeded`() {
-        assertNull(KavitaExchange.openSeed(chapter(41, pages = 0, pagesRead = 4), existing = null))
+        assertNull(KavitaExchange.openSeed(pagesRead = 4, pages = 0, existing = null))
     }
 }

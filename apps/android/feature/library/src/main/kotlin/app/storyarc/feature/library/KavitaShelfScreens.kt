@@ -67,6 +67,7 @@ import app.storyarc.core.model.ShelfKey
 import app.storyarc.core.model.ShelfMerge
 import app.storyarc.core.persistence.KavitaOrigin
 import app.storyarc.core.persistence.KavitaProgressStore
+import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.ShelfEditStore
 import app.storyarc.core.persistence.serverIdentifier
 import java.io.File
@@ -129,6 +130,8 @@ fun KavitaListScreen(
     title: String,
     onOpen: (Publication, String) -> Unit,
     onBack: () -> Unit,
+    /** Where an opened entry's first position is written. See [seedKavitaOpen]. */
+    progress: ProgressStore? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     val context = LocalContext.current
@@ -257,7 +260,10 @@ fun KavitaListScreen(
                             KavitaProgressStore.open(context),
                         )
                         fetching = null
-                        if (opening is EntryOpening.Opened) onOpen(opening.publication, opening.path)
+                        if (opening is EntryOpening.Opened) {
+                            seedKavitaOpen(opening.publication, entry.pagesRead, entry.pagesTotal, progress)
+                            onOpen(opening.publication, opening.path)
+                        }
                         opening.failure(context, entry.displayName, server.title)?.let {
                             snackbar.showSnackbar(it, withDismissAction = true, duration = SnackbarDuration.Long)
                         }
