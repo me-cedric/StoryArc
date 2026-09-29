@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import android.content.Context
+import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.storyarc.core.model.Source
@@ -117,6 +118,10 @@ class SmbConnection(
         }
         if (target.host.isBlank() || target.share.isBlank()) {
             _step.value = Step.Failed(context.getString(R.string.smb_error_not_an_address))
+            return
+        }
+        if (LocalNetworkPermission.blocks(Build.VERSION.SDK_INT, LocalNetworkPermission.isGranted(context))) {
+            _step.value = Step.Failed(context.getString(R.string.smb_error_local_network_denied))
             return
         }
 

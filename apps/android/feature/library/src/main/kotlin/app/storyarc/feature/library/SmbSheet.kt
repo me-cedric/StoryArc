@@ -1,5 +1,8 @@
 package app.storyarc.feature.library
 
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,8 +28,11 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -35,6 +41,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.emptyFlow
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.smb.SmbDiscovery
@@ -85,13 +92,36 @@ fun SmbSheet(
 private fun ColumnScope.Details(connection: SmbConnection, step: SmbConnection.Step) {
     val palette = LocalStoryArcPalette.current
     val context = LocalContext.current
+
+    // D25 / `network-share` "Local network permission denied": SDK 37 gates discovery, and
+    // the first connection to a share, behind a runtime permission. Requested here because
+    // opening this sheet is the first moment either is needed.
+    var localNetworkGranted by remember { mutableStateOf(LocalNetworkPermission.isGranted(context)) }
+    val requestLocalNetwork = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> localNetworkGranted = granted }
+    LaunchedEffect(Unit) {
+        if (LocalNetworkPermission.blocks(Build.VERSION.SDK_INT, localNetworkGranted)) {
+            requestLocalNetwork.launch(LocalNetworkPermission.PERMISSION)
+        }
+    }
+    val discoveryBlocked = LocalNetworkPermission.blocks(Build.VERSION.SDK_INT, localNetworkGranted)
+
     // `network-share` marks discovery a SHOULD and is firm that "manual entry is always
     // available and never gated behind discovery". So the list sits above the form and an
     // empty one shows nothing at all -- no spinner, no "searching", no reason to wait.
-    val discovery = remember(context) { SmbDiscovery.hosts(context) }
+    val discovery = remember(context, discoveryBlocked) {
+        if (discoveryBlocked) emptyFlow() else SmbDiscovery.hosts(context)
+    }
     val hosts by discovery.collectAsStateWithLifecycle(initialValue = emptyList())
 
-    if (hosts.isNotEmpty()) {
+    if (discoveryBlocked) {
+        Text(
+            text = stringResource(R.string.smb_discovery_local_network_denied),
+            style = MaterialTheme.typography.bodySmall,
+            color = palette.textSecondary,
+        )
+    } else if (hosts.isNotEmpty()) {
         Text(
             text = stringResource(R.string.smb_found),
             style = MaterialTheme.typography.labelLarge,

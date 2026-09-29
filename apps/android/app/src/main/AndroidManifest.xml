@@ -8,6 +8,12 @@
          "on a metered connection" and treats Data Saver as metered, and this is the only
          way to know which kind of connection a reader is on. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- `network-share` "Local network permission denied", decision D25. A runtime
+         permission from SDK 37: without it a TCP connect to a LAN address, mDNS resolution
+         and `NsdManager` discovery are all blocked, a blocked connect typically timing out
+         rather than failing at once. Requested at first need in `SmbSheet` and
+         `SmbConnection`, not at launch. -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
 
     <application
         android:name=".StoryArcApplication"
