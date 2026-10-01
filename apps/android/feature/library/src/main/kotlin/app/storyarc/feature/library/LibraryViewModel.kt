@@ -434,12 +434,13 @@ class LibraryViewModel(
      * Adds a picked folder.
      *
      * The caller takes the persistable permission before calling — it belongs to
-     * the `Intent` result and cannot be recovered afterwards.
+     * the `Intent` result and cannot be recovered afterwards. 10.2: only this folder's own
+     * name leaves `unavailableFolders`, not the whole list.
      */
     fun addFolder(tree: Uri) {
         if (tree in _folders.value) return
         _folders.update { it + tree }
-        _unavailableFolders.value = emptyList()
+        _unavailableFolders.update { it - nameOf(tree) }
         register(tree)
         rescan()
         startWatching()

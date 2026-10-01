@@ -147,6 +147,37 @@ struct LibraryRestoreTests {
         #expect(model.unavailableFolders.isEmpty)
     }
 
+    @Test("Re-picking one folder clears only its own name from the unavailable list")
+    func rePickClearsOnlyItsOwnName() async throws {
+        // 10.2: `unavailableFolders` has one writer, `restoreFolders` — `addFolder` never
+        // touched it, so the notice for a folder the reader had *not* just re-picked stayed
+        // on screen until the next launch read the bookmark store fresh.
+        let store = try store()
+        defer { store.discard() }
+        let first = try folder(holding: "single-page.cbz")
+        let second = try folder(holding: "natural-sort.cbz")
+        try store.bookmarks.add(first)
+        try store.bookmarks.add(second)
+        // Both go stale: the bookmark remembers the path, the path is now empty.
+        try FileManager.default.removeItem(at: first)
+        try FileManager.default.removeItem(at: second)
+        defer { try? FileManager.default.removeItem(at: second) }
+
+        let stand = try documents()
+        defer { try? FileManager.default.removeItem(at: stand) }
+        let model = self.model(bookmarks: store.bookmarks, documents: stand)
+        model.restoreFolders()
+
+        #expect(Set(model.unavailableFolders) == [first.lastPathComponent, second.lastPathComponent])
+
+        // Re-picked at the same place, under the same name.
+        try FileManager.default.createDirectory(at: first, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: first) }
+        model.addFolder(first)
+
+        #expect(model.unavailableFolders == [second.lastPathComponent])
+    }
+
     @Test("A remembered file inside a picked folder survives that folder's scan")
     func rememberedFileInsideAPickedFolder() async throws {
         // A reader can perfectly well open a comic from another app that also lives in a

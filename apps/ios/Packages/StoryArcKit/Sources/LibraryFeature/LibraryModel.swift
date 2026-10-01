@@ -307,18 +307,18 @@ public final class LibraryModel {
 
     /// Adds a folder and scans it.
     ///
-    /// The security-scoped access is started here and deliberately not stopped:
-    /// the library keeps reading pages out of these files for as long as it is on
-    /// screen, and balancing the call on return would revoke access before the
-    /// first cover loads.
+    /// The security-scoped access is started here and deliberately not stopped: the
+    /// library keeps reading pages out of these files for as long as it is on screen,
+    /// and balancing the call on return would revoke access before the first cover loads.
     public func addFolder(_ url: URL) {
         guard !folders.contains(url) else { return }
         folders.append(url)
         _ = url.startAccessingSecurityScopedResource()
-        // Remembered before the scan, so a folder added and then immediately
-        // backgrounded is still there next launch.
+        // Remembered before the scan, so a folder added and then backgrounded is still there.
         try? bookmarks?.add(url)
         register(url)
+        // 10.2: only this folder's own name leaves the list, not the whole thing.
+        unavailableFolders.removeAll { $0 == url.lastPathComponent }
         scan(url)
         startWatching()
     }
