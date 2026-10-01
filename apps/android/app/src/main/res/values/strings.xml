@@ -138,4 +138,15 @@
          with little space free is actually asking. iOS carries the same pair of keys. -->
     <string name="downloads_progress">%1$d%% \u00b7 %2$s of %3$s</string>
     <string name="downloads_progress_unsized">%1$s so far</string>
+
+    <!-- `offline-downloads`' second requirement asks for "per-item and global pause, resume,
+         cancel" together; only the per-item stop and the global cancel existed. iOS carries
+         the same keys. -->
+    <string name="downloads_pause">Pause</string>
+    <string name="downloads_resume">Resume</string>
+    <string name="downloads_pause_all">Pause all</string>
+    <string name="downloads_resume_all">Resume all</string>
+    <string name="downloads_cancel_all">Cancel all</string>
+    <string name="downloads_cancel_all_title">Stop every download?</string>
+    <string name="downloads_cancel_all_body">This stops every transfer in progress. Nothing of them is kept on this device, and each can be downloaded again.</string>
 </resources>

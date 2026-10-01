@@ -109,13 +109,29 @@ class DownloadsSayWhatIsTrueTest {
         compose.onNodeWithText(string(R.string.downloads_stop)).assertDoesNotExist()
     }
 
-    /** And a transfer that is moving keeps the verb that fits it. */
+    /** And a transfer that is moving keeps the verb that fits it, plus a pause. */
     @Test
-    fun `a running row offers a stop and no retry`() {
+    fun `a running row offers a pause and a stop, and no retry or resume`() {
         showRow(download(Download.State.Running))
 
+        compose.onNodeWithText(string(R.string.downloads_pause)).assertIsDisplayed()
         compose.onNodeWithText(string(R.string.downloads_stop)).assertIsDisplayed()
         compose.onNodeWithText(string(R.string.downloads_retry)).assertDoesNotExist()
+        compose.onNodeWithText(string(R.string.downloads_resume)).assertDoesNotExist()
+    }
+
+    /**
+     * `offline-downloads`' second requirement asks for per-item pause and resume; a held row
+     * offers resume and a removal, the same pair a failed row offers under different verbs.
+     */
+    @Test
+    fun `a paused row offers a resume and a removal, and never a pause or stop`() {
+        showRow(download(Download.State.Paused(Download.Pause.BY_READER)))
+
+        compose.onNodeWithText(string(R.string.downloads_resume)).assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.downloads_remove)).assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.downloads_pause)).assertDoesNotExist()
+        compose.onNodeWithText(string(R.string.downloads_stop)).assertDoesNotExist()
     }
 
     private fun showDialog(download: Download) = compose.setContent {
@@ -128,6 +144,8 @@ class DownloadsSayWhatIsTrueTest {
                 download = download,
                 canReorder = false,
                 onReorder = {},
+                onPause = {},
+                onResume = {},
                 onStop = {},
                 onRetry = {},
             )

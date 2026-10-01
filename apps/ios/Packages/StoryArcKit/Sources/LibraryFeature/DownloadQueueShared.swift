@@ -179,6 +179,35 @@ extension DownloadQueue {
         return removed
     }
 
+    /// Pauses every download currently queued or running — the Downloads destination's
+    /// global pause, beside the per-row one ``pause(_:)`` already gives.
+    ///
+    /// `offline-downloads`' second requirement asks for "per-item and global pause, resume,
+    /// cancel" together; only the per-item half had a caller from this screen.
+    public func pauseAll() {
+        for download in library.downloads where download.state == .queued || download.state == .running {
+            pause(download.id)
+        }
+    }
+
+    /// Puts every paused or failed download back in the queue — the global resume.
+    public func resumeAll() {
+        for download in library.downloads {
+            switch download.state {
+            case .paused, .failed: resume(download.id)
+            case .queued, .running, .finished: continue
+            }
+        }
+    }
+
+    /// Stops every transfer still in flight and forgets its record — the global cancel. A
+    /// finished download is untouched: this clears the queue, not the library.
+    public func cancelAll() {
+        for download in library.pending {
+            cancel(download.id)
+        }
+    }
+
     /// Stops every transfer and forgets every download, deleting the files — the clear in
     /// Settings.
     ///

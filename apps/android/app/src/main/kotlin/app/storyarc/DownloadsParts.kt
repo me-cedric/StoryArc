@@ -181,17 +181,18 @@ internal fun OnDeviceCover(
 }
 
 /**
- * One transfer: what it is, where it has got to, and the two things a reader can do to it.
+ * One transfer: what it is, where it has got to, and what a reader can do to it.
  *
  * Deliberately not a cover. A transfer is not a book yet — it has no artwork on this device
  * to draw — and giving it a cell the size of a finished publication is how a downloads
  * screen turns back into the queue inspector this destination exists to stop being.
  *
- * **Stop and reorder, and not yet pause.** Those two are what the app can honestly offer
- * from here: the order and the record are the download store's, and this writes them. Pause
- * and resume belong to the running `DownloadQueue`, which lives with the browser that
- * started the transfer — a button here would write "paused" into the record while the bytes
- * kept arriving. A control that lies is worse than one that is missing.
+ * **Stop, reorder, pause and resume, all through the one app-level queue.**
+ * `offline-downloads`' second requirement asks for "per-item and global pause, resume,
+ * cancel" together. `host.dependencies.queue` -- dl-core 1.1's one instance every screen
+ * shares -- is reachable from here, which is what makes pause and resume honest controls
+ * now rather than ones that would write "paused" into a record a different queue kept
+ * fetching.
  *
  * **Except on a failure, where the verb was wrong.** A transfer that has already stopped
  * cannot be stopped, and this row's only control was *Stop* — under a line reading "Failed
@@ -200,33 +201,38 @@ internal fun OnDeviceCover(
  * *Retry* first and *Remove download* beside it, which is the rule
  * `:feature:library`'s `DownloadBanner` already followed one screen away.
  *
- * **Failed only, not paused.** The banner folds the two together because it sits beside a
- * live `DownloadQueue` and can call `resume`. This screen cannot: a row paused for Wi-Fi or
- * for space would be re-queued and would pause again on the next pump, which is a control
- * that lies about what it did.
+ * **A paused row offers Resume rather than Pause**, whatever paused it — the reader, a
+ * metered connection or low space — the same as `DownloadBanner` already offers a retry for
+ * any of the three. Asking to resume a row still held for Wi-Fi or space re-queues it and
+ * lets `pump()` pause it again on its own, which is the same honest round trip a reader's
+ * own retry on a failed row makes.
  */
 @Composable
 internal fun DownloadQueueRow(
     download: Download,
     canReorder: Boolean,
     onReorder: (Boolean) -> Unit,
+    /** Holds this row where it is. Shown only for a queued or running download. */
+    onPause: () -> Unit,
+    /** Puts this row back in the queue. Shown only for a paused download. */
+    onResume: () -> Unit,
     onStop: () -> Unit,
     /** Puts a failed transfer back in the queue. Never called for any other state. */
     onRetry: () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
     val hasFailed = download.state is Download.State.Failed
+    val isHeld = download.state is Download.State.Paused
     // At the accessibility font scales the title and its three controls cannot share a
     // line: the title is squeezed to a couple of characters while *Stop* takes half the
     // row. Above the threshold the row becomes two. iOS makes the same split at
     // `dynamicTypeSize.isAccessibilitySize`.
     //
-    // A failed row splits at every scale, because it carries two word-length buttons rather
-    // than one and *Remove download* is four times the width of *Stop* in every language
-    // this app speaks. It is the tallest row on the screen anyway — the reason and the
-    // attempt count sit under it — so the second line costs nothing it was not already
-    // spending.
-    val isStacked = hasFailed || LocalDensity.current.fontScale >= 1.5f
+    // A failed or held row splits at every scale, because it carries two word-length
+    // buttons rather than one and the wider of the two is four times the width of *Stop* in
+    // every language this app speaks. It is the tallest row on the screen anyway — a reason
+    // sits under it — so the second line costs nothing it was not already spending.
+    val isStacked = hasFailed || isHeld || LocalDensity.current.fontScale >= 1.5f
 
     Column(
         modifier = Modifier
@@ -273,7 +279,11 @@ internal fun DownloadQueueRow(
                 // Retry first, because it is the thing a reader opened this screen to do.
                 TextButton(onClick = onRetry) { Text(stringResource(R.string.downloads_retry)) }
                 TextButton(onClick = onStop) { Text(stringResource(R.string.downloads_remove)) }
+            } else if (isHeld) {
+                TextButton(onClick = onResume) { Text(stringResource(R.string.downloads_resume)) }
+                TextButton(onClick = onStop) { Text(stringResource(R.string.downloads_remove)) }
             } else {
+                TextButton(onClick = onPause) { Text(stringResource(R.string.downloads_pause)) }
                 TextButton(onClick = onStop) { Text(stringResource(R.string.downloads_stop)) }
             }
         }

@@ -60,6 +60,94 @@
         }
       }
     },
+    "downloads.cancelAll": {
+      "comment": "The global control beside pause and resume, in the Downloads destination's own header. offline-downloads' second requirement: per-item and global pause, resume, cancel together.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle abbrechen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel all"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar todo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tout annuler"
+          }
+        }
+      }
+    },
+    "downloads.cancelAll.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dies stoppt jede laufende Übertragung. Nichts davon bleibt auf diesem Gerät, und jede kann erneut heruntergeladen werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This stops every transfer in progress. Nothing of them is kept on this device, and each can be downloaded again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esto detiene cada transferencia en curso. No se conserva nada de ellas en este dispositivo, y cada una se puede descargar otra vez."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cela arrête chaque transfert en cours. Rien n’en est conservé sur cet appareil, et chacun peut être téléchargé à nouveau."
+          }
+        }
+      }
+    },
+    "downloads.cancelAll.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Downloads stoppen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop every download?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Detener todas las descargas?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêter tous les téléchargements ?"
+          }
+        }
+      }
+    },
     "downloads.empty": {
       "extractionState": "manual",
       "comment": "Nothing is readable offline yet. Android says the same sentence.",
@@ -363,6 +451,66 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aller à votre bibliothèque"
+          }
+        }
+      }
+    },
+    "downloads.pause": {
+      "comment": "The per-row control beside Stop, for a queued or running transfer.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mettre en pause"
+          }
+        }
+      }
+    },
+    "downloads.pauseAll": {
+      "comment": "The global control in the Downloads destination's own header. offline-downloads' second requirement: per-item and global pause, resume, cancel together.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle pausieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause all"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausar todo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tout mettre en pause"
           }
         }
       }
@@ -714,6 +862,66 @@
           "stringUnit": {
             "state": "translated",
             "value": "« %@ » supprimé de cet appareil. Votre place est conservée."
+          }
+        }
+      }
+    },
+    "downloads.resume": {
+      "comment": "The per-row control on a paused transfer, where Stop still removes it rather than merely pausing it.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortsetzen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reanudar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprendre"
+          }
+        }
+      }
+    },
+    "downloads.resumeAll": {
+      "comment": "The global control in the Downloads destination's own header. offline-downloads' second requirement: per-item and global pause, resume, cancel together.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle fortsetzen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume all"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reanudar todo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tout reprendre"
           }
         }
       }
