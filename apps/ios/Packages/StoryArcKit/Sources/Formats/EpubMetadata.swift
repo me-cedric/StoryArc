@@ -77,4 +77,15 @@ extension EpubReader {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return (name, index?.isEmpty == false ? index : nil)
     }
+
+    /// The five predefined XML entities. An EPUB title with an ampersand in it is
+    /// ordinary, and showing `&amp;` in a library is not.
+    static func unescape(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&apos;", with: "'")
+            .replacingOccurrences(of: "&amp;", with: "&")
+    }
 }

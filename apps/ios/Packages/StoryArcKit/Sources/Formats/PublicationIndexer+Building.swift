@@ -208,7 +208,8 @@ extension PublicationIndexer {
             // the spine is rendered as the cover".
             coverPath: await epub.coverOrSpineHref(),
             readingDirection: ReadingDirection.inferred(
-                declared: nil, languageCode: metadata.language
+                declared: Self.direction(declaring: epub.pageProgressionDirection),
+                languageCode: metadata.language
             ),
             isFixedLayout: epub.isFixedLayout
         )
@@ -249,6 +250,18 @@ extension PublicationIndexer {
         // its headers alone, with a compressed page and no file yet, is just as
         // download-only even though it is not solid.
         return (rar.isStreamable && !rar.isDownloadOnly) ? .streams : .downloadOnly
+    }
+
+    /// A spine's own `page-progression-direction`, as `ReadingDirection.inferred` wants it.
+    ///
+    /// `"default"` and an absent attribute both mean no declaration — the EPUB spec gives
+    /// `default` that meaning explicitly, and leaving it out is the common case in the wild.
+    static func direction(declaring value: String?) -> ReadingDirection? {
+        switch value {
+        case "rtl": .rightToLeft
+        case "ltr": .leftToRight
+        default: nil
+        }
     }
 
     /// What to show in a list.

@@ -522,7 +522,10 @@ object PublicationIndexer {
         // `publication-formats`: the declared cover, "otherwise the first page of the
         // spine is rendered as the cover".
         coverPath = epub.coverOrSpineHref(),
-        readingDirection = ReadingDirection.inferred(null, epub.metadata.language),
+        readingDirection = ReadingDirection.inferred(
+            direction(declared = epub.pageProgressionDirection),
+            epub.metadata.language,
+        ),
         isFixedLayout = epub.isFixedLayout,
     )
 
@@ -572,6 +575,18 @@ object PublicationIndexer {
         } else {
             StreamingCapability.DOWNLOAD_ONLY
         }
+    }
+
+    /**
+     * A spine's own `page-progression-direction`, as [ReadingDirection.inferred] wants it.
+     *
+     * `"default"` and an absent attribute both mean no declaration -- the EPUB spec gives
+     * `default` that meaning explicitly, and leaving it out is the common case in the wild.
+     */
+    private fun direction(declared: String?): ReadingDirection? = when (declared) {
+        "rtl" -> ReadingDirection.RIGHT_TO_LEFT
+        "ltr" -> ReadingDirection.LEFT_TO_RIGHT
+        else -> null
     }
 
     /**

@@ -112,6 +112,19 @@ class EpubReaderTest {
         }
     }
 
+    // Reading direction.
+
+    @Test
+    fun `the spine's own page-progression-direction is read`() = runTest {
+        for (name in listOf("fixture.epub", "declared-rtl.epub")) {
+            assertEquals(
+                name,
+                FixtureCorpus.ebook(name).expectedPageProgressionDirection,
+                reader(name).pageProgressionDirection,
+            )
+        }
+    }
+
     // Reading content.
 
     @Test

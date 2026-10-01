@@ -711,6 +711,37 @@ epub(
     ],
 )
 
+# A spine that declares its own page-progression-direction. `publication-formats`
+# requires an explicit declaration to win over the language guess — and this is
+# deliberately English, not Japanese, because the language guess for English is
+# already left-to-right: a parser that silently ignored the attribute and fell
+# through to the language guess would still pass a Japanese fixture by accident.
+DECLARED_RTL_PACKAGE = b"""<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="pub-id">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="pub-id">urn:uuid:storyarc-fixture-rtl</dc:identifier>
+    <dc:title>Declared Right To Left</dc:title>
+    <dc:language>en</dc:language>
+    <dc:creator>StoryArc Fixtures</dc:creator>
+  </metadata>
+  <manifest>
+    <item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine page-progression-direction="rtl">
+    <itemref idref="ch1"/>
+  </spine>
+</package>
+"""
+
+epub(
+    "declared-rtl.epub",
+    [
+        ("META-INF/container.xml", EPUB_CONTAINER),
+        ("OEBPS/package.opf", DECLARED_RTL_PACKAGE),
+        ("OEBPS/ch1.xhtml", chapter(1, "Chapter One", 12)),
+    ],
+)
+
 # An EPUB that names no cover at all. `publication-formats` says the first page of
 # the spine is rendered as the cover when a publication declares none, and the
 # overwhelmingly common shape of that first page — the one a converter emits and the
@@ -1063,6 +1094,25 @@ ebooks: list[dict] = [
         "hasCoverImage": False,
         "isFixedLayout": False,
         "note": "The declared cover is what a well-made EPUB carries and what most files do not. A shelf of converted books whose covers are all placeholders is the failure this pins against.",
+    },
+    {
+        "file": "ebooks/declared-rtl.epub",
+        "pins": "a spine's own page-progression-direction wins over the language guess, in a language other than Japanese",
+        "epubVersion": 3,
+        "expectedSpineCount": 1,
+        "expectedTitle": "Declared Right To Left",
+        "expectedAuthor": "StoryArc Fixtures",
+        "expectedLanguage": "en",
+        "expectedIdentifier": "urn:uuid:storyarc-fixture-rtl",
+        "expectedSpineHrefs": ["OEBPS/ch1.xhtml"],
+        "expectedTocTitles": [],
+        "expectedCoverHref": None,
+        "expectedSpineCoverHref": None,
+        "hasNavDocument": False,
+        "hasCoverImage": False,
+        "isFixedLayout": False,
+        "expectedPageProgressionDirection": "rtl",
+        "note": "English, not Japanese, on purpose: the language guess for English is already left-to-right, so a parser that silently ignored the declared attribute and fell through to the language guess would still pass a Japanese fixture by accident.",
     },
     {
         "file": "ebooks/no-package.epub",

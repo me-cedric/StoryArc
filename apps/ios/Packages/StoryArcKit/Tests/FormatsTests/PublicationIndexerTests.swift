@@ -76,6 +76,15 @@ struct PublicationIndexerTests {
         #expect(try await index("comics/natural-sort.cbz").readingDirection == .leftToRight)
     }
 
+    @Test("An EPUB's declared page-progression-direction wins over the language guess")
+    func epubDeclaredDirection() async throws {
+        // English, not Japanese: the language guess for English is already
+        // left-to-right, so ignoring the declared attribute and falling through to
+        // the guess would still pass a Japanese fixture by accident.
+        #expect(try await index("ebooks/declared-rtl.epub").readingDirection == .rightToLeft)
+        #expect(try await index("ebooks/fixture.epub").readingDirection == .leftToRight)
+    }
+
     @Test("A designated cover reaches the library")
     func cover() async throws {
         #expect(try await index("comics/manga-metadata.cbz").coverPath == "p2.png")

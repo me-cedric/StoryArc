@@ -94,6 +94,21 @@ class PublicationIndexerTest {
     }
 
     @Test
+    fun `an epub's declared page-progression-direction wins over the language guess`() = runTest {
+        // English, not Japanese: the language guess for English is already
+        // left-to-right, so ignoring the declared attribute and falling through to
+        // the guess would still pass a Japanese fixture by accident.
+        assertEquals(
+            ReadingDirection.RIGHT_TO_LEFT,
+            index("ebooks/declared-rtl.epub").readingDirection,
+        )
+        assertEquals(
+            ReadingDirection.LEFT_TO_RIGHT,
+            index("ebooks/fixture.epub").readingDirection,
+        )
+    }
+
+    @Test
     fun `a designated cover reaches the library`() = runTest {
         assertEquals("p2.png", index("comics/manga-metadata.cbz").coverPath)
         assertEquals("page1.png", index("comics/natural-sort.cbz").coverPath)

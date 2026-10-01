@@ -123,6 +123,20 @@ struct EpubReaderTests {
         #expect(try await reader(name).isFixedLayout == fixture.isFixedLayout, "\(name)")
     }
 
+    // MARK: - Reading direction
+
+    @Test("The spine's own page-progression-direction is read", arguments: [
+        "fixture.epub", "declared-rtl.epub",
+    ])
+    func pageProgressionDirection(name: String) async throws {
+        let fixture = try #require(FixtureCorpus.ebook(name))
+        #expect(
+            try await reader(name).pageProgressionDirection
+                == fixture.expectedPageProgressionDirection,
+            "\(name)"
+        )
+    }
+
     // MARK: - Reading content
 
     @Test("A spine item's bytes come back")
