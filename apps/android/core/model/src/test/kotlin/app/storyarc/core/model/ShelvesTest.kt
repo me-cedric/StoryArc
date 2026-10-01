@@ -93,6 +93,28 @@ class ShelvesTest {
     }
 
     @Test
+    fun aListsOwnChosenCoverRoundTripsTheSameWayACollectionsDoes() {
+        val shelves = shelves().appending(listOf("a", "b"), listId)
+        assertNull(shelves.lists.first().coverMemberId)
+        assertEquals("a", shelves.settingListCover("a", listId).lists.first().coverMemberId)
+    }
+
+    @Test
+    fun choosingAnEntryTheListDoesNotHoldIsRefused() {
+        val shelves = shelves().appending(listOf("a"), listId).settingListCover("gone", listId)
+        assertNull(shelves.lists.first().coverMemberId)
+    }
+
+    @Test
+    fun removingTheChosenCoversEntryClearsTheListsCover() {
+        val shelves = shelves()
+            .appending(listOf("a", "b"), listId)
+            .settingListCover("a", listId)
+            .removing("a", listId)
+        assertNull(shelves.lists.first().coverMemberId)
+    }
+
+    @Test
     fun aBlankNameIsRefusedRatherThanStored() {
         val shelves = shelves()
             .renamingCollection(collectionId, "   ")

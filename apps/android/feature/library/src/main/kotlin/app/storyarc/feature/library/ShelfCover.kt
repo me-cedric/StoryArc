@@ -214,12 +214,17 @@ internal fun ServerShelfCover(
  * itself. Everything else is [CompositeCover]'s rule kept word for word: four tiles or one,
  * never a quadrant with a hole in it.
  */
-internal fun shelfTiles(list: ReadingList): List<String> =
-    if (list.entries.size >= CompositeCover.TILE_COUNT) {
+internal fun shelfTiles(list: ReadingList): List<String> {
+    // The reader's own choice wins outright, the same first clause [CompositeCover.tiles]
+    // reads for a collection -- task 7.13.
+    val chosen = list.coverMemberId
+    if (chosen != null && chosen in list.entries) return listOf(chosen)
+    return if (list.entries.size >= CompositeCover.TILE_COUNT) {
         list.entries.take(CompositeCover.TILE_COUNT)
     } else {
         list.entries.take(1)
     }
+}
 
 /** The tiles a collection stands behind. Named to sit beside its reading-list twin. */
 internal fun shelfTiles(collection: PublicationCollection): List<String> =

@@ -55,6 +55,14 @@ data class ReadingList(
      * the whole difference from a collection.
      */
     val entries: List<String> = emptyList(),
+    /**
+     * The cover the reader chose, when they chose one.
+     *
+     * Null means the composite: the delta widens "unless the user sets a specific one" from
+     * a collection to a reading list. [PublicationCollection.coverMemberId] is the same
+     * field for the other kind of shelf.
+     */
+    val coverMemberId: String? = null,
     val origin: ShelfOrigin = ShelfOrigin.Local,
 ) {
     /**
@@ -186,8 +194,29 @@ data class Shelves(
     )
 
     fun removing(entry: String, fromList: UUID): Shelves = copy(
-        lists = lists.map {
-            if (it.id == fromList) it.copy(entries = it.entries - entry) else it
+        lists = lists.map { list ->
+            if (list.id != fromList) return@map list
+            val kept = list.entries - entry
+            list.copy(
+                entries = kept,
+                // A cover that is no longer an entry is no cover, the same correction
+                // `removing(members:from:)` makes for a collection.
+                coverMemberId = list.coverMemberId?.takeIf { it in kept },
+            )
+        },
+    )
+
+    /**
+     * The reading-list twin of [settingCover]. Task 7.13.
+     *
+     * Named rather than overloaded: Kotlin resolves overloads by type, not by parameter
+     * name, and `settingCover(member: String?, on: UUID)` already has that shape.
+     */
+    fun settingListCover(member: String?, onList: UUID): Shelves = copy(
+        lists = lists.map { list ->
+            if (list.id != onList) return@map list
+            if (member != null && member !in list.entries) return@map list
+            list.copy(coverMemberId = member)
         },
     )
 
