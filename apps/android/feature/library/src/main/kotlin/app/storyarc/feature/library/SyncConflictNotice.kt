@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import app.storyarc.core.model.ReadingPosition
 import java.util.Locale
@@ -76,7 +77,7 @@ fun SyncConflictNotice(conflicts: List<KavitaConflict>, onKeep: () -> Unit, onTa
 }
 
 @Composable
-private fun count(count: Int) = stringResource(R.string.sync_conflict_body, count)
+private fun count(count: Int) = pluralStringResource(R.plurals.sync_conflict_body, count, count)
 
 @Composable
 private fun bodyOne(conflict: KavitaConflict) = stringResource(

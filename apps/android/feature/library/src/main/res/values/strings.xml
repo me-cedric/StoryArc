@@ -28,7 +28,10 @@
     <string name="library_cell_finished">Finished</string>
     <string name="library_cell_unavailable">Needs its library to be reachable</string>
     <string name="library_section_other">Other</string>
-    <string name="library_scanning">Adding your comics — %1$d found</string>
+    <plurals name="library_scanning">
+        <item quantity="one">Adding your comics — %1$d found</item>
+        <item quantity="other">Adding your comics — %1$d found</item>
+    </plurals>
     <string name="library_scan_cancel">Cancel</string>
     <string name="library_add_folder">Add a folder</string>
     <string name="library_folder_unavailable">%1$s can no longer be read.</string>
@@ -234,7 +237,10 @@
     <string name="shelves_promote_choose">Choose an online library</string>
     <string name="shelves_promote_plan">What will happen</string>
     <string name="shelves_promote_copy">Copy</string>
-    <string name="shelves_promote_entries">%1$d of %2$d entries</string>
+    <plurals name="shelves_promote_entries">
+        <item quantity="one">%1$d of %2$d entry</item>
+        <item quantity="other">%1$d of %2$d entries</item>
+    </plurals>
     <string name="shelves_promote_why">%1$s does not hold them, and StoryArc never uploads a file. They stay in the list on this device.</string>
     <string name="shelves_promote_none">%1$s holds none of these entries, so there is nothing to copy.</string>
     <string name="shelves_promote_failed">Nothing was copied. The online library did not take the list.</string>
@@ -384,7 +390,10 @@
     <string name="sync_conflict_title">Read in two places</string>
     <string name="sync_conflict_keep">Keep the furthest</string>
     <string name="sync_conflict_take">Take the other</string>
-    <string name="sync_conflict_body">%1$d titles moved on both this device and the library they came from. The furthest position was kept.</string>
+    <plurals name="sync_conflict_body">
+        <item quantity="one">%1$d title moved on both this device and the library it came from. The furthest position was kept.</item>
+        <item quantity="other">%1$d titles moved on both this device and the library they came from. The furthest position was kept.</item>
+    </plurals>
     <string name="sync_conflict_body_one">“%1$s” moved on both this device and the library it came from — %2$s was kept, not %3$s.</string>
     <string name="sync_conflict_show">Show</string>
     <string name="sync_conflict_item">%1$s: kept at %2$s, not %3$s.</string>
