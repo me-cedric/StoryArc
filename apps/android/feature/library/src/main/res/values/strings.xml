@@ -133,7 +133,7 @@
     <string name="catalogue_error_html">That address returned a web page, not a catalogue. A sign-in page or a wrong path usually does this.</string>
     <string name="catalogue_error_not_a_feed">That address returned %1$s, which is not a catalogue.</string>
     <string name="catalogue_error_unknown_type">something of an unknown type</string>
-    <string name="catalogue_error_malformed">The catalogue could not be read: %1$s</string>
+    <string name="catalogue_error_malformed">The catalogue could not be read.</string>
     <!-- iOS adds the status phrase, which `HTTPURLResponse.localizedString(forStatusCode:)`
          gives it. Android provides no localised status phrase, so this value states the code
          alone. The difference is deliberate, and `localization` / One state, one name calls a

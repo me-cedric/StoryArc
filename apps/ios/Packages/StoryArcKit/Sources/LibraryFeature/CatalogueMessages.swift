@@ -1,5 +1,20 @@
 internal import Foundation
+import OSLog
 internal import Catalogue
+
+private let catalogueMessagesLog = Logger(subsystem: "app.storyarc.catalogue", category: "messages")
+
+/// The malformed-feed sentence, with the parser's own reason sent to the log only.
+private func catalogueMalformedSentence(loggingReason reason: String) -> String {
+    catalogueMessagesLog.error("malformed feed: \(reason, privacy: .public)")
+    return String(localized: "catalogue.error.malformed", bundle: .module, locale: .storyArc)
+}
+
+/// The fixed unreachable sentence, with the underlying transport error sent to the log only.
+private func catalogueUnreachableSentence(loggingUnderlying error: any Error) -> String {
+    catalogueMessagesLog.error("catalogue unreachable: \(error, privacy: .public)")
+    return String(localized: "catalogue.error.unreachable", bundle: .module, locale: .storyArc)
+}
 
 /// What a reader is told when a catalogue does not answer the way it should.
 ///
@@ -28,10 +43,7 @@ enum CatalogueMessages {
                 contentType ?? String(localized: "catalogue.error.unknownType", bundle: .module, locale: .storyArc)
             )
         case let .malformed(reason):
-            String(
-                format: String(localized: "catalogue.error.malformed", bundle: .module, locale: .storyArc),
-                reason
-            )
+            catalogueMalformedSentence(loggingReason: reason)
         case let .http(status):
             String(
                 format: String(localized: "catalogue.error.http", bundle: .module, locale: .storyArc),
@@ -51,7 +63,7 @@ enum CatalogueMessages {
         case .some(.notConnectedToInternet):
             String(localized: "catalogue.error.offline", bundle: .module, locale: .storyArc)
         default:
-            error.localizedDescription
+            catalogueUnreachableSentence(loggingUnderlying: error)
         }
     }
 }
