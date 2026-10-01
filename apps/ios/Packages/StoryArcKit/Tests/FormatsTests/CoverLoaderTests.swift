@@ -80,4 +80,23 @@ struct CoverLoaderTests {
         let (publication, _) = try await publication("comics/large-page.cbz")
         #expect(publication.coverPath == "p1.png")
     }
+
+    @Test("A share's own row draws a cover through its registered scheme, not the filesystem")
+    func remoteCoverReadsThroughTheRegisteredScheme() async throws {
+        // `ComicArchiveOpener.open(fileAt:)` already checks a registered remote scheme
+        // before falling to a local file -- this is the shelf's own path to a cover
+        // asking the same question `anyCover` already answers for the reader's opener.
+        // A gap here would mean a share's row on the shelf never draws a cover, the way
+        // Android's `PublicationAccess.anyCover` did until it gained the same branch.
+        let (publication, localURL) = try await publication("comics/natural-sort.cbz")
+        let scheme = "storyarc-test-cover"
+        ComicArchiveOpener.register(scheme: scheme) { _ in try FileSource(url: localURL) }
+        let remoteURL = try #require(URL(string: "\(scheme)://nas.local/Comics/natural-sort.cbz"))
+
+        let fromFile = try await CoverLoader.anyCover(for: publication, at: localURL, maxPixelSize: 200)
+        let fromShare = try await CoverLoader.anyCover(for: publication, at: remoteURL, maxPixelSize: 200)
+
+        #expect(fromShare.width == fromFile.width)
+        #expect(fromShare.height == fromFile.height)
+    }
 }
