@@ -155,15 +155,21 @@ class OpdsClient(
      *   no `Range`, which is a first attempt and is checked as one. A 416 says the same
      *   thing in its own words and takes the same path.
      *
-     * Returns which of the two just happened, so the caller can record it on the download
-     * for `offline-downloads`' own ask: a resumed or restarted download used to look the
-     * same on the row. Null for a first attempt -- one that never asked the server to carry
-     * anything on is neither.
+     * Returns which of the two happened, for `offline-downloads`' own ask: a resumed or
+     * restarted download used to look the same on the row. [onAttempt] tells the same answer
+     * earlier, while the transfer runs. Null for a first attempt -- one that never asked the
+     * server to carry anything on is neither.
      */
     suspend fun download(
         url: String,
         credential: OpdsCredential? = null,
         into: File,
+        /**
+         * Which of the two is happening, told once the server has answered and before the
+         * body is written. The row is drawn only while the transfer is in flight, so the
+         * return value alone arrives after the row has gone.
+         */
+        onAttempt: ((Download.LastAttempt?) -> Unit)? = null,
         /**
          * How many bytes have landed, every [PROGRESS_INTERVAL_MILLIS] at most.
          *
@@ -177,12 +183,22 @@ class OpdsClient(
         // Read once: the file this answers from does not change between the two attempts
         // below, and the second one asks for nothing to resume regardless of what is here.
         val hadSomethingToResume = resumable(into) != null
+        val resumed = Download.LastAttempt.of(hadSomethingToResume, resumed = true)
         val attempt = try {
-            fetch(url, credential, into, resuming = resumable(into), onProgress = onProgress)
-            Download.LastAttempt.of(hadSomethingToResume, resumed = true)
+            fetch(
+                url,
+                credential,
+                into,
+                resuming = resumable(into),
+                onProgress = onProgress,
+                onBody = onAttempt?.let { tell -> { tell(resumed) } },
+            )
+            resumed
         } catch (restart: Restart) {
+            val restarted = Download.LastAttempt.of(hadSomethingToResume, resumed = false)
+            onAttempt?.invoke(restarted)
             fetch(url, credential, into, resuming = null, onProgress = onProgress)
-            Download.LastAttempt.of(hadSomethingToResume, resumed = false)
+            restarted
         }
         // A cancelled copy stops mid-body and leaves the bytes it wrote, which is the point:
         // the next attempt asks for the rest of them. It is not a completed download, so the
@@ -243,6 +259,7 @@ class OpdsClient(
         into: File? = null,
         resuming: String? = null,
         onProgress: ((Long) -> Unit)? = null,
+        onBody: (() -> Unit)? = null,
     ): Fetched =
         withContext(Dispatchers.IO) {
             // Read once, outside the blocking read loop. A copy that runs after the caller
@@ -258,7 +275,7 @@ class OpdsClient(
             var hops = 0
             while (true) {
                 val sink = into?.let {
-                    Sink(it, from, resuming, onProgress) { job?.isActive != false }
+                    Sink(it, from, resuming, onProgress, onBody) { job?.isActive != false }
                 }
                 when (val hop = one(target, credential, home, sink)) {
                     is Hop.Done -> return@withContext hop.fetched
@@ -278,6 +295,8 @@ class OpdsClient(
         val from: Long,
         val validator: String?,
         val onProgress: ((Long) -> Unit)? = null,
+        /** Told once the server's answer is a body this client will write. */
+        val onBody: (() -> Unit)? = null,
         val keepGoing: () -> Boolean,
     ) {
         /** Beside the partial, and so inside the directory a removal deletes. */
@@ -381,6 +400,7 @@ class OpdsClient(
                 // body is left unread and the file asked for again with no range, which is
                 // the one request whose length describes the whole publication.
                 if (sink.from > 0 && status != HttpURLConnection.HTTP_PARTIAL) throw Restart()
+                sink.onBody?.invoke()
                 connection.inputStream.use { stream -> write(stream, connection, status, sink) }
                 return Hop.Done(Fetched(ByteArray(0), connection.contentType, url))
             }

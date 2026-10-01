@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -603,12 +604,19 @@ class DownloadQueue(
         val file = store.location(download)
         withContext(Dispatchers.IO) {
             store.prepare(file)
-            val attempt = client.download(download.remote, credential, store.partial(download)) { written ->
+            // Both callbacks run on this IO thread while the main thread writes the same
+            // flow, so they go through `update`. A plain read-then-set here put back a record
+            // the main thread had just cancelled, or dropped one it had just queued.
+            client.download(
+                download.remote,
+                credential,
+                store.partial(download),
                 // `offline-downloads` wants a reader to see a transfer move, not every
                 // packet relayed to them -- [OpdsClient] already throttles this call.
-                _library.value = _library.value.advancing(download.id, written)
-            }
-            _library.value = _library.value.recordingAttempt(download.id, attempt)
+                onProgress = { written -> _library.update { it.advancing(download.id, written) } },
+                // Told when the server answers, so the row states it while it is drawn.
+                onAttempt = { attempt -> _library.update { it.recordingAttempt(download.id, attempt) } },
+            )
             Files.move(
                 store.partial(download).toPath(),
                 file.toPath(),

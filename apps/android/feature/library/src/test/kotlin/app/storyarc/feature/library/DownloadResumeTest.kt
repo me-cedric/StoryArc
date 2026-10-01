@@ -142,6 +142,30 @@ class DownloadResumeTest {
     }
 
     @Test
+    fun `a resume is told before the rest of the file lands`() = runBlocking {
+        val file = interrupted()
+        val told = mutableListOf<Pair<Download.LastAttempt?, Long>>()
+
+        OpdsClient().download(base, into = file, onAttempt = { told += it to file.length() })
+
+        // Told once, while only the interrupted attempt's bytes are on disk. The queue row is
+        // drawn only while a transfer is in flight, so a statement made once the file is
+        // whole is a statement no reader sees.
+        assertEquals(listOf(Download.LastAttempt.RESUMED to CUT_AT.toLong()), told)
+    }
+
+    @Test
+    fun `a restart is told before the file is fetched again`() = runBlocking {
+        val file = interrupted()
+        answer = Answer.IGNORE
+        val told = mutableListOf<Pair<Download.LastAttempt?, Long>>()
+
+        OpdsClient().download(base, into = file, onAttempt = { told += it to file.length() })
+
+        assertEquals(listOf(Download.LastAttempt.RESTARTED to CUT_AT.toLong()), told)
+    }
+
+    @Test
     fun `a first attempt, never interrupted, is neither a resume nor a restart`() = runBlocking {
         // The other half of the claim above: a download that has nothing to carry on from
         // is not a restart either, and saying so would be noise on every ordinary download.
