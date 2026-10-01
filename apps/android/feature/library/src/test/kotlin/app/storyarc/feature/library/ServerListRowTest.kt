@@ -4,8 +4,10 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.model.ShelfEntry
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,7 +34,7 @@ class ServerListRowTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private fun row(read: Int, total: Int) {
+    private fun row(read: Int, total: Int, onRemove: (() -> Unit)? = null) {
         compose.setContent {
             StoryArcTheme {
                 EntryRow(
@@ -46,10 +48,29 @@ class ServerListRowTest {
                     canMoveDown = false,
                     onUp = {},
                     onDown = {},
+                    onRemove = onRemove,
                     onOpen = {},
                 )
             }
         }
+    }
+
+    /** Task 12.6: a server list entry offers the remove control a local list entry offers. */
+    @Test
+    fun `an entry the server holds offers to remove it, and the tap removes it`() {
+        var removed = false
+        row(read = 0, total = 22, onRemove = { removed = true })
+
+        compose.onNodeWithContentDescription("Remove Issue #43 from this list").performClick()
+
+        assertTrue(removed)
+    }
+
+    @Test
+    fun `an entry with nothing to remove draws no remove control`() {
+        row(read = 0, total = 22)
+
+        compose.onNodeWithContentDescription("Remove Issue #43 from this list").assertDoesNotExist()
     }
 
     @Test

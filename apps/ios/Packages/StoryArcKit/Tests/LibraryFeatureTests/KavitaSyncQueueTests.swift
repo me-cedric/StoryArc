@@ -155,6 +155,12 @@ struct KavitaSyncQueueTests {
         #expect(Set(store.unsent().map(\.page)) == [3, 7])
     }
 
+    /// Entry 3 of a server reading list, at position 1.
+    private func entry() throws -> KavitaReadingListItem {
+        let json = #"{"id": 3, "order": 1, "chapterId": 12}"#
+        return try JSONDecoder().decode(KavitaReadingListItem.self, from: Data(json.utf8))
+    }
+
     /// A server old enough to lack `mark-multiple-*`.
     private func routeMissingAddress(host: String) throws -> (KavitaAddress, URLSessionConfiguration) {
         let address = KavitaAddress(base: try #require(URL(string: "http://\(host)")), apiKey: "key")
@@ -221,9 +227,9 @@ struct KavitaSyncQueueTests {
     }
 
     @Test("Task 12.6: removing a list entry holds the removal when the server is away")
-    func removeEntryHoldsWhenUnreachable() async {
+    func removeEntryHoldsWhenUnreachable() async throws {
         let store = store()
-        await KavitaSync.removeEntry(3, at: 1, from: 9, on: "a-server", to: nil, in: store)
+        await KavitaSync.removeEntry(try entry(), from: 9, on: "a-server", to: nil, in: store)
 
         let held = store.unsent().first
         #expect(held?.listID == 9)
@@ -237,17 +243,17 @@ struct KavitaSyncQueueTests {
         let (address, configuration) = try acceptingAddress(host: "\(UUID().uuidString).remove-entry.test")
 
         await KavitaSync.removeEntry(
-            3, at: 1, from: 9, on: "a-server", to: address, in: store, configuration: configuration
+            try entry(), from: 9, on: "a-server", to: address, in: store, configuration: configuration
         )
 
         #expect(store.unsent().isEmpty)
     }
 
     @Test("Task 12.6: a held shelf deletion and a held entry removal are two different promises")
-    func deleteShelfAndRemoveEntryCoexist() async {
+    func deleteShelfAndRemoveEntryCoexist() async throws {
         let store = store()
         await KavitaSync.deleteShelf(9, isCollection: true, on: "a-server", to: nil, in: store)
-        await KavitaSync.removeEntry(3, at: 1, from: 9, on: "a-server", to: nil, in: store)
+        await KavitaSync.removeEntry(try entry(), from: 9, on: "a-server", to: nil, in: store)
 
         #expect(store.unsent().count == 2)
     }
