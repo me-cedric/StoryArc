@@ -144,10 +144,8 @@ private struct DownloadQueueRow: View {
     /// already paused or failed has nothing left to pause.
     let onPause: () -> Void
 
-    /// Puts this row back in the queue. Shown only for a row this reader paused: a row held
-    /// for Wi-Fi or for space is put back by the connection or the space returning, and a
-    /// control here would re-queue it only for the next `pump()` to pause it again for the
-    /// same reason — a control that lies about what it did.
+    /// Puts this row back in the queue. Shown for every paused row, whatever paused it —
+    /// see the type's own note on why a hold for Wi-Fi or space offers it too.
     let onResume: () -> Void
 
     let onStop: () -> Void

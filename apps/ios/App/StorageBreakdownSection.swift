@@ -41,7 +41,7 @@ struct StorageBreakdownSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
             statRow(Text("downloads.total"), totalBytes)
-            ForEach(bySource, id: \.name) { entry in
+            ForEach(bySource, id: \.id) { entry in
                 statRow(Text(verbatim: entry.name), entry.bytes)
             }
             statRow(Text("downloads.cache"), coverCacheBytes)
@@ -86,12 +86,13 @@ struct StorageBreakdownSection: View {
     /// The total broken down by source, named and ordered largest first.
     ///
     /// A download with no source of its own, or one whose source has since been removed,
-    /// is left out rather than named "nil" — the total above already counts it.
-    private var bySource: [(name: String, bytes: Int64)] {
+    /// is left out rather than named "nil" — the total above already counts it. Keyed by the
+    /// source's id, because two sources can carry the same name.
+    private var bySource: [(id: UUID, name: String, bytes: Int64)] {
         downloads.bytesBySource
-            .compactMap { sourceID, bytes -> (name: String, bytes: Int64)? in
+            .compactMap { sourceID, bytes -> (id: UUID, name: String, bytes: Int64)? in
                 guard let sourceID, let source = registry[sourceID] else { return nil }
-                return (source.displayName, bytes)
+                return (sourceID, source.displayName, bytes)
             }
             .sorted { $0.bytes > $1.bytes }
     }
