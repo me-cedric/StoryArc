@@ -19,6 +19,7 @@ public struct ReaderView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.displayScale) private var displayScale
     @Environment(\.accessibilityReduceMotion) var reduceMotion
+    @Environment(\.scenePhase) var scenePhase
     /// `page-transitions` makes the turn zones a setting. See `handleTap(at:in:)`.
     @Environment(\.turnPagesByTappingTheEdges) var tapTurnsPages
     /// Read here rather than in `ReaderChrome.swift`: an extension cannot hold state.
@@ -121,7 +122,10 @@ public struct ReaderView: View {
     let preferences: ReaderPreferences?
 
     /// Whether the page in front of the reader is being trimmed, and a way to say no.
-    private var cropsThisPage: Binding<Bool> {
+    ///
+    /// Internal rather than private: `adjustmentsSheet` lives in `ReaderMatte.swift` now,
+    /// beside the matte and brightness it adds beside these controls.
+    var cropsThisPage: Binding<Bool> {
         Binding(
             get: { !uncropped.contains(model.currentIndex) },
             set: { wanted in
@@ -205,6 +209,9 @@ public struct ReaderView: View {
 
     /// Whether the adjustment controls are open.
     @State var isAdjusting = false
+
+    /// What the device's own brightness was before the reader touched it.
+    @State var deviceBrightness: Double?
 
     /// Pages the reader has told the trimmer to leave alone.
     ///
@@ -304,18 +311,13 @@ public struct ReaderView: View {
             // chrome is up restarts the countdown rather than hiding mid-swipe.
             // Held open while the controls are: `comic-reader` calls for a live preview,
             // and a preview whose chrome times out mid-drag hides the button that opened it.
-            .sheet(isPresented: $isAdjusting) {
-                AdjustmentsSheet(
-                    adjustments: $adjustments,
-                    shelf: shelf,
-                    cropsThisPage: cropsThisPage
-                )
-            }
+            .sheet(isPresented: $isAdjusting) { adjustmentsSheet }
             // Written when the drag stops, not on every value: a slider produces dozens of
             // changes a second and each one would be a `UserDefaults` write.
             .onChange(of: adjustments) { _, now in
                 rememberAdjustments(now)
             }
+            .readerBrightness(model: model, scenePhase: scenePhase, captured: $deviceBrightness)
             // The geometry answers this rather than an orientation notification, and it
             // answers it for a split-screen window too.
             .onChange(of: geometry.size, initial: true) { _, size in

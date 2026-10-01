@@ -3,11 +3,19 @@ internal import SwiftUI
 internal import DesignSystem
 internal import StoryArcCore
 
-/// The controls for a badly scanned page.
+/// The controls for a badly scanned page, and — since D34 — the two axes
+/// `ebook-reader`'s *Fixed-layout EPUB* scenario asks the container itself for.
 ///
 /// `comic-reader`: "brightness, contrast, sharpness, colour inversion, and greyscale ... with
 /// a live preview". The preview is the page behind the sheet, which is why this is a sheet
 /// with a detent rather than a screen: a control that hides what it changes cannot be judged.
+///
+/// **Two different brightnesses, on purpose.** The slider above is an image filter: it
+/// brightens the pixels this series' pages decode to, kept in `adjustments` and applied
+/// before a page is ever drawn. ``brightnessSection`` is the *screen's* backlight, reader-local
+/// and reverted on leaving — the same axis `reading-themes` gives the reflowable reader,
+/// read from ``ReaderModel/brightness`` rather than from this sheet's own state, because
+/// `ReaderBrightness` is what keeps it live across the lifecycle a static binding cannot see.
 struct AdjustmentsSheet: View {
     @Environment(\.theme) private var theme
     @Environment(\.dismiss) private var dismiss
@@ -19,6 +27,11 @@ struct AdjustmentsSheet: View {
 
     /// Whether the page in front of the reader is being trimmed.
     @Binding var cropsThisPage: Bool
+
+    /// Where the matte and the reader-local brightness live. Read directly rather than
+    /// through more bindings: both already belong to the model, and `@Observable` tracks
+    /// each read on its own.
+    let model: ReaderModel
 
     var body: some View {
         NavigationStack {
@@ -43,6 +56,9 @@ struct AdjustmentsSheet: View {
                         icon: "wand.and.rays"
                     )
                 }
+
+                matteSection
+                brightnessSection
 
                 Section {
                     Toggle(isOn: $adjustments.isGreyscale) {
@@ -144,6 +160,85 @@ struct AdjustmentsSheet: View {
             .accessibilityValue(
                 Text(value.wrappedValue.formatted(.percent.precision(.fractionLength(0)).locale(.storyArc)))
             )
+        }
+    }
+
+    /// The colour behind the page. `ReadingDefaults`' own swatches, read live rather than
+    /// read as a default: `ReaderMatte.matting(_:over:)` is the same rule either one applies.
+    private var matteSection: some View {
+        let current = model.settings.theme.custom?.background
+        return Section {
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 44), spacing: StoryArcSpace.sm)],
+                spacing: StoryArcSpace.sm
+            ) {
+                matteSwatch(nil, isActive: current == nil)
+                ForEach(ReaderPalette.suggestedBackgrounds, id: \.self) { hex in
+                    matteSwatch(hex, isActive: current?.caseInsensitiveCompare(hex) == .orderedSame)
+                }
+            }
+        } header: {
+            Text("reader.matte", bundle: .module)
+        } footer: {
+            Text("reader.matte.note", bundle: .module)
+        }
+    }
+
+    private func matteSwatch(_ hex: String?, isActive: Bool) -> some View {
+        Button { model.chooseMatte(hex) } label: {
+            Circle()
+                .fill(hex.flatMap { Color(readerHex: $0) } ?? .black)
+                .frame(height: 30)
+                .overlay { Circle().strokeBorder(theme.palette.borderSubtle, lineWidth: 1) }
+                .overlay {
+                    if isActive {
+                        Circle().strokeBorder(theme.accent, lineWidth: 3).padding(-4)
+                    }
+                }
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
+        .accessibilityLabel(
+            hex.map { Text(matteName(for: $0), bundle: .module) }
+                ?? Text("reader.matte.none", bundle: .module)
+        )
+    }
+
+    private func matteName(for hex: String) -> LocalizedStringKey {
+        guard let key = ReaderPalette.suggestedBackgroundNames[hex.uppercased()] else {
+            return "reader.matte.swatch \(hex)"
+        }
+        return LocalizedStringKey("reader.matte.\(key)")
+    }
+
+    /// `reading-themes`: reader-local, reverted on leaving by `ReaderBrightness` — the same
+    /// axis `ThemeAxisSliders.brightness` offers the reflowable reader.
+    private var brightnessSection: some View {
+        let inForce = model.brightness ?? ReaderBrightness.deviceBrightness
+        return Section {
+            VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
+                Slider(
+                    value: Binding(
+                        get: { model.brightness ?? ReaderBrightness.deviceBrightness },
+                        set: { model.brightness = $0 }
+                    ),
+                    in: 0.1 ... 1
+                ) {
+                    Text("reader.brightness", bundle: .module)
+                } minimumValueLabel: {
+                    Image(systemName: "sun.min")
+                } maximumValueLabel: {
+                    Image(systemName: "sun.max")
+                }
+                .tint(theme.accent)
+                .accessibilityValue(
+                    Text("reader.brightness.percent \(Int((inForce * 100).rounded()))", bundle: .module)
+                )
+            }
+        } header: {
+            Text("reader.brightness", bundle: .module)
         }
     }
 }

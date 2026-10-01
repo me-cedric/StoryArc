@@ -66,6 +66,10 @@ struct AdjustmentsSheetTests {
         Control(what: "greyscale", binding: "$adjustments.isGreyscale"),
         Control(what: "border cropping", binding: "$adjustments.cropsBorders"),
         Control(what: "excusing this page from the crop", binding: "$cropsThisPage"),
+        // D34: `ebook-reader`'s *Fixed-layout EPUB* asks for these two from the container,
+        // not from a filter over the artwork — see `ReaderMatte.swift`'s doc comment.
+        Control(what: "the matte", binding: "model.chooseMatte(hex)"),
+        Control(what: "reader-local screen brightness", binding: "set: { model.brightness = $0 }"),
     ]
 
     /// The sheet's code, with its prose removed.
