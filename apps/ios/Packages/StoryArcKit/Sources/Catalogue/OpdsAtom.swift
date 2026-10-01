@@ -49,6 +49,12 @@ enum OpdsAtom {
         /// carrying a template. Fetched by the client, which is the part that can.
         private var searchDescription: URL?
 
+        /// An entry-level link not yet resolved to an acquisition, because OPDS lets a
+        /// `<link>` carry an `<opds:indirectAcquisition>` child that only its end tag has
+        /// finished naming — see 11.4's `finalizePendingAcquisition()`.
+        private var pendingAcquisition: (href: URL, relation: String, type: String, length: Int64?)?
+        private var pendingAcquisitionIsIndirect = false
+
         init(baseURL: URL) {
             self.baseURL = baseURL
         }
@@ -80,6 +86,12 @@ enum OpdsAtom {
                 entry = PartialEntry()
             case "link":
                 link(attributes)
+            case "indirectAcquisition":
+                // 11.4: its mere presence means another step stands between this link and
+                // an openable file — OPDS-LCP chief among them — whatever format the step
+                // ends in. The type it carries is not read: the outer link's own type is
+                // what `publication-formats` already shows the reader as "offered as".
+                if pendingAcquisition != nil { pendingAcquisitionIsIndirect = true }
             default:
                 break
             }
@@ -97,8 +109,22 @@ enum OpdsAtom {
         ) {
             let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
             if element == "entry" {
-                if let finished = entry?.finished() { publications.append(finished) }
+                if let current = entry, let finished = current.finished() {
+                    // OPDS 1.2 puts each section of a navigation feed in its own `entry`,
+                    // carrying one `application/atom+xml` link rather than an acquisition.
+                    // An entry with nothing to acquire and such a link is that section, not
+                    // a publication with no download — 11.1.
+                    if finished.acquisitions.isEmpty, let section = current.asSection() {
+                        navigation.append(section)
+                    } else {
+                        publications.append(finished)
+                    }
+                }
                 entry = nil
+                return
+            }
+            if element == "link", entry != nil {
+                finalizePendingAcquisition()
                 return
             }
             if entry != nil {
@@ -157,6 +183,11 @@ enum OpdsAtom {
             let count = Self.attribute("count", in: attributes).flatMap(Int.init)
 
             if entry != nil {
+                // 11.1: the one link an OPDS 1.2 section entry carries, not an acquisition
+                // and not the entry's own permalink.
+                if type.contains("application/atom+xml"), !["self", "up", "start"].contains(relation) {
+                    entry?.sectionLink = (href, count)
+                }
                 // RFC 4287's own attribute, unprefixed, and advisory by its own definition.
                 entryLink(
                     href: href,
@@ -208,19 +239,49 @@ enum OpdsAtom {
             case "http://opds-spec.org/image/thumbnail", "http://opds-spec.org/thumbnail":
                 entry?.thumbnail = href
             default:
-                if let kind = OpdsAcquisition.Kind.named(relation) {
-                    entry?.acquisitions.append(
-                        OpdsAcquisition(href: href, mediaType: type, kind: kind, length: length)
-                    )
-                } else if relation.hasPrefix("http://opds-spec.org/acquisition") {
-                    // A relation the standard added after this code was written. Listed as
-                    // indirect rather than dropped: the spec requires an unsupported
-                    // acquisition to be named, and a dropped link cannot be named.
-                    entry?.acquisitions.append(
-                        OpdsAcquisition(href: href, mediaType: type, kind: .indirect, length: length)
-                    )
-                }
+                // Not appended yet: `didEndElement("link")` finishes this once it knows
+                // whether an `indirectAcquisition` child followed — see
+                // `finalizePendingAcquisition()`.
+                pendingAcquisition = (href, relation, type, length)
+                pendingAcquisitionIsIndirect = Self.isProtectedType(type)
             }
+        }
+
+        /// Turns the link `entryLink` deferred into an acquisition, now that its end tag
+        /// has been seen and an `indirectAcquisition` child — if any — has already set
+        /// ``pendingAcquisitionIsIndirect``. 11.4.
+        private func finalizePendingAcquisition() {
+            guard let pending = pendingAcquisition else { return }
+            defer {
+                pendingAcquisition = nil
+                pendingAcquisitionIsIndirect = false
+            }
+            if pendingAcquisitionIsIndirect {
+                entry?.acquisitions.append(
+                    OpdsAcquisition(href: pending.href, mediaType: pending.type, kind: .indirect, length: pending.length)
+                )
+            } else if let kind = OpdsAcquisition.Kind.named(pending.relation) {
+                entry?.acquisitions.append(
+                    OpdsAcquisition(href: pending.href, mediaType: pending.type, kind: kind, length: pending.length)
+                )
+            } else if pending.relation.hasPrefix("http://opds-spec.org/acquisition") {
+                // A relation the standard added after this code was written. Listed as
+                // indirect rather than dropped: the spec requires an unsupported
+                // acquisition to be named, and a dropped link cannot be named.
+                entry?.acquisitions.append(
+                    OpdsAcquisition(href: pending.href, mediaType: pending.type, kind: .indirect, length: pending.length)
+                )
+            }
+        }
+
+        /// A media type that names a protection step rather than an openable file —
+        /// OPDS-LCP's license, or Adobe's ADEPT activation. 11.4: without this, a link
+        /// typed to one of these parsed as `direct` and the refusal named the wrapper's
+        /// media type instead of saying the acquisition itself is unsupported.
+        private static func isProtectedType(_ type: String) -> Bool {
+            type == "application/vnd.adobe.adept+xml"
+                || type.contains("vnd.readium.lcp.license")
+                || type.hasSuffix("+lcp")
         }
     }
 
@@ -236,6 +297,10 @@ enum OpdsAtom {
         var thumbnail: URL?
         var acquisitions: [OpdsAcquisition] = []
 
+        /// The entry's `application/atom+xml` link, when it has exactly the shape an OPDS
+        /// 1.2 section entry does. See ``asSection()``.
+        var sectionLink: (href: URL, count: Int?)?
+
         /// `nil` for an entry with no title, which is not something a reader can be shown.
         func finished() -> OpdsEntry? {
             guard !title.isEmpty else { return nil }
@@ -250,6 +315,16 @@ enum OpdsAtom {
                 thumbnail: thumbnail,
                 acquisitions: acquisitions
             )
+        }
+
+        /// This entry, read as an OPDS 1.2 navigation section instead of a publication.
+        ///
+        /// `nil` unless the entry carried no acquisition and did carry the one link that
+        /// makes it a section — never both, because a publication already answers
+        /// ``finished()`` and a plain entry answers neither.
+        func asSection() -> OpdsSection? {
+            guard !title.isEmpty, let link = sectionLink else { return nil }
+            return OpdsSection(title: title, href: link.href, count: link.count)
         }
     }
 }

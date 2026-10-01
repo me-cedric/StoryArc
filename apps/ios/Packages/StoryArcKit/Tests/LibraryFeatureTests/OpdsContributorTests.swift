@@ -19,7 +19,8 @@ struct OpdsContributorTests {
         title: String = "Tidal Reach",
         series: String? = nil,
         index: Double? = nil,
-        type: String? = "application/vnd.comicbook+zip"
+        type: String? = "application/vnd.comicbook+zip",
+        kind: OpdsAcquisition.Kind = .open
     ) -> OpdsEntry {
         OpdsEntry(
             id: id,
@@ -31,7 +32,7 @@ struct OpdsContributorTests {
                     OpdsAcquisition(
                         href: URL(string: "https://example/get?key=secret")!,
                         mediaType: $0,
-                        kind: .open
+                        kind: kind
                     ),
                 ]
             } ?? []
@@ -85,6 +86,19 @@ struct OpdsContributorTests {
         // on every catalogue as a comic.
         #expect(format("application/epub+zip") == .epub)
         #expect(format("application/pdf") == .pdf)
+    }
+
+    @Test("A loan-only entry is not listed, even though the format itself is readable")
+    func loanOnly() {
+        // 11.5: before, the row was filed by a substring match on the media type alone, so
+        // a borrow-only EPUB was filed as a readable row and its download failed the moment
+        // the reader tapped it.
+        let row = OpdsContributor.publication(
+            source: source,
+            entry: entry(type: "application/epub+zip", kind: .borrow)
+        )
+
+        #expect(row == nil)
     }
 
     @Test("A series index reads as an issue number")

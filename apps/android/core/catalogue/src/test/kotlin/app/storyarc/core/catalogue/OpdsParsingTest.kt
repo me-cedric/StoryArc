@@ -158,6 +158,106 @@ class OpdsParsingTest {
         )
     }
 
+    // 11.1 -- a navigation entry, not a publication with no download
+
+    private val atomEntrySections = """
+    <feed xmlns="http://www.w3.org/2005/Atom" xmlns:thr="http://purl.org/syndication/thread/1.0">
+      <title>Calibre-Web</title>
+      <entry>
+        <title>Unread</title>
+        <id>urn:uuid:unread</id>
+        <link rel="subsection" href="unread" thr:count="12"
+              type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+      </entry>
+      <entry>
+        <title>The Long Field</title>
+        <id>urn:uuid:1</id>
+        <link rel="http://opds-spec.org/acquisition" href="download/1.epub"
+              type="application/epub+zip"/>
+      </entry>
+    </feed>
+    """.trimIndent()
+
+    @Test
+    fun anEntryWithOneAtomLinkAndNoAcquisitionIsASection() {
+        val feed = OpdsDocument.parse(atomEntrySections.toByteArray(), baseUrl = base)
+        assertEquals(listOf("Unread"), feed.navigation.map { it.title })
+        assertTrue(feed.navigation.first().href.endsWith("unread"))
+        assertEquals(12, feed.navigation.first().count)
+        assertEquals(listOf("The Long Field"), feed.publications.map { it.title })
+    }
+
+    @Test
+    fun anEntryWithAnAcquisitionIsNeverReadAsASectionEvenIfItAlsoCarriesAnAtomLink() {
+        val xml = """
+        <feed xmlns="http://www.w3.org/2005/Atom"><title>t</title>
+        <entry><title>Both</title><id>urn:uuid:2</id>
+        <link rel="related" href="series" type="application/atom+xml" title="Series"/>
+        <link rel="http://opds-spec.org/acquisition" href="x.epub" type="application/epub+zip"/>
+        </entry></feed>
+        """.trimIndent()
+        val feed = OpdsDocument.parse(xml.toByteArray(), baseUrl = base)
+        assertTrue(feed.navigation.isEmpty())
+        assertEquals(listOf("Both"), feed.publications.map { it.title })
+    }
+
+    // 11.4 -- indirect acquisition and protected types
+
+    @Test
+    fun anIndirectAcquisitionChildMarksTheLinkIndirect() {
+        val xml = """
+        <feed xmlns="http://www.w3.org/2005/Atom" xmlns:opds="http://opds-spec.org/2010/catalog">
+        <title>t</title><entry><title>e</title>
+        <link rel="http://opds-spec.org/acquisition" href="x.epub" type="application/epub+zip">
+          <opds:indirectAcquisition type="application/vnd.readium.lcp.license.v1.0+json"/>
+        </link></entry></feed>
+        """.trimIndent()
+        val feed = OpdsDocument.parse(xml.toByteArray(), baseUrl = base)
+        val acquisition = feed.publications.first().acquisitions.first()
+        assertEquals(OpdsAcquisition.Kind.INDIRECT, acquisition.kind)
+        // The refusal names the wrapper's own media type, not the license's.
+        assertEquals("application/epub+zip", acquisition.mediaType)
+    }
+
+    @Test
+    fun anLcpLicenseTypeIsIndirectWithNoChildElement() {
+        val xml = """
+        <feed xmlns="http://www.w3.org/2005/Atom"><title>t</title><entry><title>e</title>
+        <link rel="http://opds-spec.org/acquisition" href="x.lcpl"
+              type="application/vnd.readium.lcp.license.v1.0+json"/></entry></feed>
+        """.trimIndent()
+        val feed = OpdsDocument.parse(xml.toByteArray(), baseUrl = base)
+        assertEquals(
+            OpdsAcquisition.Kind.INDIRECT,
+            feed.publications.first().acquisitions.first().kind,
+        )
+    }
+
+    @Test
+    fun anAdobeAdeptTypeIsIndirect() {
+        val xml = """
+        <feed xmlns="http://www.w3.org/2005/Atom"><title>t</title><entry><title>e</title>
+        <link rel="http://opds-spec.org/acquisition" href="x.acsm"
+              type="application/vnd.adobe.adept+xml"/></entry></feed>
+        """.trimIndent()
+        val feed = OpdsDocument.parse(xml.toByteArray(), baseUrl = base)
+        assertEquals(
+            OpdsAcquisition.Kind.INDIRECT,
+            feed.publications.first().acquisitions.first().kind,
+        )
+    }
+
+    @Test
+    fun aSelfClosingAcquisitionLinkWithNoChildIsUnaffected() {
+        // The common case. Most acquisition links have no children at all, and the
+        // deferred-until-end-tag read must not change what they parse as.
+        val feed = OpdsDocument.parse(atomAcquisition.toByteArray(), baseUrl = base)
+        assertEquals(
+            listOf(OpdsAcquisition.Kind.DIRECT, OpdsAcquisition.Kind.DIRECT),
+            feed.publications.first().acquisitions.map { it.kind },
+        )
+    }
+
     // What an acquisition costs
 
     /**

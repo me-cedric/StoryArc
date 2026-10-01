@@ -31,6 +31,7 @@ class OpdsContributorTest {
         series: String? = null,
         index: Double? = null,
         type: String? = "application/vnd.comicbook+zip",
+        kind: OpdsAcquisition.Kind = OpdsAcquisition.Kind.OPEN,
     ) = OpdsEntry(
         id = id,
         title = title,
@@ -41,7 +42,7 @@ class OpdsContributorTest {
                 OpdsAcquisition(
                     href = "https://example/get?key=secret",
                     mediaType = it,
-                    kind = OpdsAcquisition.Kind.OPEN,
+                    kind = kind,
                 ),
             )
         }.orEmpty(),
@@ -93,6 +94,19 @@ class OpdsContributorTest {
         assertEquals(PublicationFormat.CBR, format("application/vnd.comicbook-rar"))
         assertEquals(PublicationFormat.EPUB, format("application/epub+zip"))
         assertEquals(PublicationFormat.PDF, format("application/pdf"))
+    }
+
+    @Test
+    fun `a loan-only entry is not listed, even though the format itself is readable`() {
+        // 11.5: before, the row was filed by a substring match on the media type alone, so
+        // a borrow-only EPUB was filed as a readable row and its download failed the moment
+        // the reader tapped it.
+        val row = OpdsContributor.publication(
+            source,
+            entry(type = "application/epub+zip", kind = OpdsAcquisition.Kind.BORROW),
+        )
+
+        assertNull(row)
     }
 
     @Test
