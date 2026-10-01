@@ -264,8 +264,17 @@ public enum KavitaSync {
         to order: [Int],
         on sourceId: String,
         to address: KavitaAddress?,
-        in store: KavitaProgressStore
+        in store: KavitaProgressStore,
+        /// The server order this device had seen, read by the caller before this move was
+        /// applied locally. Nil skips task 7.4's check. Ignored when an order is already
+        /// held for this list — the earlier hold's own baseline is what a later send is
+        /// still checked against, so a second drag before the first reaches the server does
+        /// not quietly widen what counts as unchanged.
+        baseline: [Int]? = nil,
+        onOrderConflict: (@Sendable () -> Void)? = nil
     ) async {
+        let key = "order:\(sourceId):\(listID)"
+        let held = store.unsent().first { $0.key == key }
         store.hold(
             KavitaUnsent(
                 origin: KavitaOrigin(
@@ -277,11 +286,12 @@ public enum KavitaSync {
                 ),
                 page: 0,
                 listID: listID,
-                order: order
+                order: order,
+                orderBaseline: held?.orderBaseline ?? baseline
             )
         )
         guard let address else { return }
-        await flush(sourceId, to: address, in: store)
+        await flush(sourceId, to: address, in: store, onOrderConflict: onOrderConflict)
     }
 
     /// The order this device is still waiting to give one of a server's reading lists.
@@ -312,7 +322,9 @@ public enum KavitaSync {
         to address: KavitaAddress,
         in store: KavitaProgressStore,
         progress: ProgressStore? = nil,
-        configuration: URLSessionConfiguration? = nil
+        configuration: URLSessionConfiguration? = nil,
+        /// Task 7.4: told when a held order was dropped as stale rather than sent.
+        onOrderConflict: (@Sendable () -> Void)? = nil
     ) async -> [KavitaUnsent] {
         let held = store.unsent().filter { $0.origin.sourceId == sourceId }
         guard !held.isEmpty else { return [] }
@@ -320,7 +332,7 @@ public enum KavitaSync {
         let client = KavitaClient(address: address, configuration: configuration)
         var delivered: [KavitaUnsent] = []
         for each in held {
-            guard (try? await send(client, each)) != nil else { continue }
+            guard (try? await send(client, each, onOrderConflict: onOrderConflict)) != nil else { continue }
             delivered.append(each)
         }
         store.sent(delivered)
@@ -332,9 +344,19 @@ public enum KavitaSync {
         return delivered
     }
 
-    private static func send(_ client: KavitaClient, _ held: KavitaUnsent) async throws {
+    private static func send(
+        _ client: KavitaClient,
+        _ held: KavitaUnsent,
+        onOrderConflict: (@Sendable () -> Void)? = nil
+    ) async throws {
         if let listID = held.listID, let order = held.order {
-            return try await reorder(listID, to: order, through: client)
+            return try await reorderCheckingBaseline(
+                listID,
+                to: order,
+                baseline: held.orderBaseline,
+                onConflict: onOrderConflict,
+                through: client
+            )
         }
         if let listID = held.listID {
             return try await client.append(
@@ -351,23 +373,6 @@ public enum KavitaSync {
             chapterId: held.origin.chapterId,
             isRead: mark
         )
-    }
-
-    /// Asks the server for the moves that turn its own order into the reader's.
-    ///
-    /// The list is read first because Kavita moves an entry by position, and the positions
-    /// only mean anything against the order the server is actually in. ``ShelfSync/moves``
-    /// plans the run; anything that throws leaves the whole order held for the next flush.
-    private static func reorder(
-        _ listID: Int,
-        to order: [Int],
-        through client: KavitaClient
-    ) async throws {
-        let items = try await client.readingListItems(listID).sorted { $0.order < $1.order }
-        let places = items.map { ShelfSync.Place(item: $0.id, chapter: $0.chapterId) }
-        for move in ShelfSync.moves(from: places, to: order) {
-            try await client.moveInList(listID, item: move.item, from: move.from, to: move.to)
-        }
     }
 
     private static func position(_ origin: KavitaOrigin, _ page: Int) -> KavitaPosition {

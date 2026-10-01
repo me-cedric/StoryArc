@@ -117,6 +117,15 @@ public struct KavitaUnsent: Sendable, Equatable, Codable {
     /// send that fails must cost them nothing.
     public let order: [Int]?
 
+    /// The server order this device had seen when ``order`` was made.
+    ///
+    /// `collections-and-reading-lists` task 7.4: before a held order is sent, the server's
+    /// current order is compared against this one. A mismatch means the server moved since
+    /// the reader dragged a row, and the held order is dropped rather than sent over it —
+    /// sending it would silently discard whatever changed it there. Nil for an order held
+    /// before this existed, which sends exactly as it always did.
+    public let orderBaseline: [Int]?
+
     /// What makes two held items the same thing.
     ///
     /// The chapter alone is not enough: a position, a mark and a list append can all be
@@ -144,13 +153,15 @@ public struct KavitaUnsent: Sendable, Equatable, Codable {
         page: Int,
         mark: Bool? = nil,
         listID: Int? = nil,
-        order: [Int]? = nil
+        order: [Int]? = nil,
+        orderBaseline: [Int]? = nil
     ) {
         self.origin = origin
         self.page = page
         self.mark = mark
         self.listID = listID
         self.order = order
+        self.orderBaseline = orderBaseline
     }
 
     /// A queue written before marks existed has no `mark` field, and it means "a position".
@@ -161,10 +172,11 @@ public struct KavitaUnsent: Sendable, Equatable, Codable {
         mark = try container.decodeIfPresent(Bool.self, forKey: .mark)
         listID = try container.decodeIfPresent(Int.self, forKey: .listID)
         order = try container.decodeIfPresent([Int].self, forKey: .order)
+        orderBaseline = try container.decodeIfPresent([Int].self, forKey: .orderBaseline)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case origin, page, mark, listID, order
+        case origin, page, mark, listID, order, orderBaseline
     }
 }
 

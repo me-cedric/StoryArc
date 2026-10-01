@@ -4406,6 +4406,66 @@
         }
       }
     },
+    "library.action.removeFromShelf": {
+      "comment": "One of the six actions, offered only when the menu was opened on a shelf, a collection or a reading list the reader owns.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Von diesem Regal entfernen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove from this shelf"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar de esta estantería"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer de cette étagère"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "library.action.showDetails": {
+      "comment": "One of the six actions library-browsing's \"A publication's actions wherever it is drawn\" requires on every menu: opens the publication's own page, the same route its cover already takes on a tap.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Details anzeigen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show details"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar detalles"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher les détails"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "library.addSource": {
       "extractionState": "manual",
       "localizations": {
@@ -8581,6 +8641,35 @@
         }
       }
     },
+    "shelves.conflict.body.order %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%1$@“ hat sich in der Online-Bibliothek geändert, deshalb wurde die von Ihnen festgelegte Reihenfolge nicht übernommen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” changed in the online library, so the order you set was not applied."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%1$@» cambió en la biblioteca en línea, así que el orden que estableciste no se aplicó."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %1$@ » a changé dans la bibliothèque en ligne, l’ordre que vous avez défini n’a donc pas été appliqué."
+          }
+        }
+      }
+    },
     "shelves.conflict.title": {
       "extractionState": "manual",
       "localizations": {
@@ -10609,6 +10698,35 @@
         }
       }
     },
+    "smb.error.localNetworkDenied": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc kann das lokale Netzwerk nicht erreichen. Schalten Sie es in Einstellungen unter Datenschutz & Sicherheit, dann Lokales Netzwerk, wieder ein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc cannot reach the local network. Turn it on again in Settings, under Privacy & Security, then Local Network."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc no puede acceder a la red local. Actívala de nuevo en Ajustes, en Privacidad y seguridad, luego Red local."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc ne peut pas accéder au réseau local. Réactivez-le dans Réglages, sous Confidentialité et sécurité, puis Réseau local."
+          }
+        }
+      }
+    },
     "smb.error.notAnAddress": {
       "extractionState": "manual",
       "localizations": {
@@ -10692,6 +10810,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ce serveur ne propose que SMB 1, désactivé pour des raisons de sécurité. Activez SMB 2 ou une version ultérieure sur le serveur — sur la plupart des NAS, dans Services de fichiers, SMB."
+          }
+        }
+      }
+    },
+    "smb.error.smbNewer": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Server benötigt eine neuere SMB-Version, als StoryArc bisher verwenden kann."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This server needs a newer version of SMB than StoryArc can use yet."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este servidor necesita una versión de SMB más reciente de la que StoryArc puede usar por ahora."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce serveur a besoin d’une version de SMB plus récente que celle que StoryArc sait utiliser."
           }
         }
       }
@@ -11800,6 +11947,66 @@
         }
       }
     },
+    "sync.conflict.body.one %@ %@ %@": {
+      "extractionState": "manual",
+      "comment": "One title moved on both this device and its library. D3: name the kept and the discarded position.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%1$@“ wurde sowohl auf diesem Gerät als auch in der Herkunftsbibliothek weitergelesen — %2$@ wurde behalten, nicht %3$@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” moved on both this device and the library it came from — %2$@ was kept, not %3$@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%1$@» avanzó tanto en este dispositivo como en la biblioteca de origen — se conservó %2$@, no %3$@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %1$@ » a avancé à la fois sur cet appareil et dans la bibliothèque d’origine — %2$@ a été conservé, pas %3$@."
+          }
+        }
+      }
+    },
+    "sync.conflict.item %@ %@ %@": {
+      "extractionState": "manual",
+      "comment": "One row of the conflict list: the title, the position kept, the position set aside. D3.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: %2$@ behalten, nicht %3$@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: kept at %2$@, not %3$@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: se conservó %2$@, no %3$@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ : conservé à %2$@, pas %3$@."
+          }
+        }
+      }
+    },
     "sync.conflict.keep": {
       "extractionState": "manual",
       "localizations": {
@@ -11825,6 +12032,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Garder le plus avancé"
+          }
+        }
+      }
+    },
+    "sync.conflict.show": {
+      "extractionState": "manual",
+      "comment": "Opens the list naming both positions for every title in conflict. D3.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anzeigen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher"
           }
         }
       }
@@ -11887,156 +12124,6 @@
         }
       }
     },
-    "library.action.showDetails": {
-      "comment": "One of the six actions library-browsing's \"A publication's actions wherever it is drawn\" requires on every menu: opens the publication's own page, the same route its cover already takes on a tap.",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Details anzeigen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show details"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostrar detalles"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Afficher les détails"
-          }
-        }
-      },
-      "extractionState": "manual"
-    },
-    "library.action.removeFromShelf": {
-      "comment": "One of the six actions, offered only when the menu was opened on a shelf, a collection or a reading list the reader owns.",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Von diesem Regal entfernen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remove from this shelf"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quitar de esta estantería"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Retirer de cette étagère"
-          }
-        }
-      },
-      "extractionState": "manual"
-    },
-    "sync.conflict.body.one %@ %@ %@": {
-      "extractionState": "manual",
-      "comment": "One title moved on both this device and its library. D3: name the kept and the discarded position.",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "„%1$@“ wurde sowohl auf diesem Gerät als auch in der Herkunftsbibliothek weitergelesen — %2$@ wurde behalten, nicht %3$@."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%1$@” moved on both this device and the library it came from — %2$@ was kept, not %3$@."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "«%1$@» avanzó tanto en este dispositivo como en la biblioteca de origen — se conservó %2$@, no %3$@."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "« %1$@ » a avancé à la fois sur cet appareil et dans la bibliothèque d’origine — %2$@ a été conservé, pas %3$@."
-          }
-        }
-      }
-    },
-    "sync.conflict.show": {
-      "extractionState": "manual",
-      "comment": "Opens the list naming both positions for every title in conflict. D3.",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Anzeigen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostrar"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Afficher"
-          }
-        }
-      }
-    },
-    "sync.conflict.item %@ %@ %@": {
-      "extractionState": "manual",
-      "comment": "One row of the conflict list: the title, the position kept, the position set aside. D3.",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@: %2$@ behalten, nicht %3$@."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@: kept at %2$@, not %3$@."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@: se conservó %2$@, no %3$@."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ : conservé à %2$@, pas %3$@."
-          }
-        }
-      }
-    },
     "sync.position.page": {
       "extractionState": "manual",
       "comment": "A paged position, named for the conflict notice: page %1$lld of %2$lld.",
@@ -12093,64 +12180,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$lld %%"
-          }
-        }
-      }
-    },
-    "smb.error.smbNewer": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dieser Server benötigt eine neuere SMB-Version, als StoryArc bisher verwenden kann."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This server needs a newer version of SMB than StoryArc can use yet."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Este servidor necesita una versión de SMB más reciente de la que StoryArc puede usar por ahora."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ce serveur a besoin d’une version de SMB plus récente que celle que StoryArc sait utiliser."
-          }
-        }
-      }
-    },
-    "smb.error.localNetworkDenied": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "StoryArc kann das lokale Netzwerk nicht erreichen. Schalten Sie es in Einstellungen unter Datenschutz & Sicherheit, dann Lokales Netzwerk, wieder ein."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "StoryArc cannot reach the local network. Turn it on again in Settings, under Privacy & Security, then Local Network."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "StoryArc no puede acceder a la red local. Actívala de nuevo en Ajustes, en Privacidad y seguridad, luego Red local."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "StoryArc ne peut pas accéder au réseau local. Réactivez-le dans Réglages, sous Confidentialité et sécurité, puis Réseau local."
           }
         }
       }
