@@ -29,6 +29,16 @@ public struct CertificatePinStore {
         defaults.set(pins.mapValues { $0.sorted() }, forKey: key)
     }
 
+    /// Adds one accepted fingerprint and keeps every pin already on disk.
+    ///
+    /// A merge, not an overwrite. A caller that saved its own whole set would erase each
+    /// pin that set did not hold, such as a pin accepted from another screen.
+    public func pin(_ fingerprint: String, for host: String) {
+        var current = pins()
+        current[host, default: []].insert(fingerprint)
+        save(current)
+    }
+
     /// Forgets one host's pins. Called when its source is removed, so re-adding the same
     /// server asks the question again rather than trusting a decision the reader
     /// deliberately undid.
