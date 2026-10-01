@@ -1,5 +1,5 @@
 internal import Foundation
-public import StoryArcCore
+internal import StoryArcCore
 
 /// A date, abbreviated, with no time -- in the reader's chosen language.
 ///

@@ -1,5 +1,5 @@
 internal import Foundation
-public import StoryArcCore
+internal import StoryArcCore
 
 /// A reader-facing list, joined in the reader's chosen language.
 ///
