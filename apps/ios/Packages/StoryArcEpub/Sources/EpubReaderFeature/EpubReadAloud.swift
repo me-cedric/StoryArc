@@ -95,7 +95,7 @@ extension EpubReaderModel {
     /// extract no content from is left with no control at all: `ebook-reader` says a control
     /// a platform cannot honour is absent rather than empty, and this app does not ship a
     /// play button that refuses.
-    func prepareReadAloud(_ opened: ReadiumShared.Publication) {
+    func prepareReadAloud(_ opened: ReadiumShared.Publication) async {
         let centre = ReadAloudCentre.shared
         let handover = PlayerCentre.shared.handover(opening: publication.id)
 
@@ -129,16 +129,44 @@ extension EpubReaderModel {
             engineFactory: voice.makeEngine
         )
         self.voice = speech == nil ? nil : voice
-        canReadAloud = speech != nil
+        // `self.opened`, not the parameter: the same `nonisolated(unsafe)` escape
+        // `recordedLocator()` uses to hand Readium's publication to an async call
+        // without carrying this method's actor isolation into it.
+        canReadAloud = speech != nil ? await Self.isSpeakable(self.opened) : false
 
         // Adopting is only ever adopting a *voice*: a narrated audiobook never reaches this
         // reader, and if one somehow did there would be no sentence for this screen to draw.
         guard handover == .adopt, centre.speaking == publication.id else { return }
+        // Already speaking, so already known to have a word -- no second walk needed.
         // The book on screen is the book being spoken. No restart: the reader takes over
         // drawing the sentence the voice is already on, and the voice never notices.
         canReadAloud = true
         centre.adopt(self)
         Task { await centre.redrawSpokenSentence() }
+    }
+
+    /// How many elements the walk below will cross looking for the first word, so an
+    /// image-only publication with a long reading order does not walk it in full.
+    private nonisolated static let resourceBound = 50
+
+    /// Whether this publication has a word it can speak.
+    ///
+    /// `speech != nil` answered too early: Readium installs a content service on every
+    /// reflowable EPUB, so an image-only one answered yes and the control played nothing
+    /// when pressed. This walks the content iterator instead, bounded, for the first
+    /// element with a non-blank segment. Android's `SpokenSentences.isSpeakable` is the
+    /// same walk.
+    nonisolated static func isSpeakable(_ publication: ReadiumShared.Publication?) async -> Bool {
+        guard let content = publication?.content() else { return false }
+        let iterator = content.iterator()
+        for _ in 0..<resourceBound {
+            guard let element = try? await iterator.next() else { return false }
+            if let text = element as? TextContentElement,
+               text.segments.contains(where: { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) {
+                return true
+            }
+        }
+        return false
     }
 
     /// Draws the sentence being spoken and brings the page to it.

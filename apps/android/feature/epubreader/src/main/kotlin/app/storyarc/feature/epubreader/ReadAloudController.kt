@@ -110,7 +110,9 @@ internal class ReadAloudController(
      * paragraph would make them listen back to what they have already read.
      */
     override fun start(from: Locator?) {
-        if (!sentences.isSpeakable) return
+        // Not re-checked here: `EpubReaderActivity` only offers this control once
+        // `SpokenSentences.isSpeakable` has already walked the publication and found a
+        // word, so a `start()` with nothing to say would mean that gate was bypassed.
         if (audio?.requestAudioFocus(focusRequest) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
             return
         }

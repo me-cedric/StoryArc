@@ -95,7 +95,7 @@ extension EpubReaderModel {
             await drawAnnotations()
             // Built here rather than on the first press, because whether this book can be
             // read aloud at all decides whether the control appears.
-            prepareReadAloud(opened)
+            await prepareReadAloud(opened)
         } catch {
             failure = String(localized: "epub.failure.unreadable", bundle: .module, locale: .storyArc)
         }
