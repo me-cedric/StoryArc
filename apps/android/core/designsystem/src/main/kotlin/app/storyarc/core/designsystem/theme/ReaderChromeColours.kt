@@ -1,10 +1,14 @@
 package app.storyarc.core.designsystem.theme
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingToolbarColors
 import androidx.compose.material3.FloatingToolbarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 /**
  * The colours of the capsule that floats over a page, said once for both readers.
@@ -32,13 +36,45 @@ import androidx.compose.ui.graphics.Color
  * Pinned by `ReaderChromeColoursTest`, which asserts the pair against the real
  * `FloatingToolbarDefaults` rather than restating it.
  */
+/**
+ * The container and content colour, as a plain rule over a palette and a flag -- no
+ * `Context`, so `ReaderChromeContrastTest` can assert it with no composition at all.
+ *
+ * `native-experience`: "translucent materials are replaced with the opaque fallback
+ * declared in the design tokens" -- this capsule never read the setting at all, so
+ * Increase Contrast left it exactly as translucent as it always was.
+ */
+internal fun readerChromeColourPair(isHighContrast: Boolean, palette: StoryArcPalette): Pair<Color, Color> =
+    if (isHighContrast) {
+        palette.surfaceOverlay to palette.textPrimary
+    } else {
+        palette.scrim.copy(alpha = SCRIM_ALPHA) to Color.White
+    }
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun readerChromeColours(): FloatingToolbarColors =
-    FloatingToolbarDefaults.standardFloatingToolbarColors(
-        toolbarContainerColor = LocalStoryArcPalette.current.scrim.copy(alpha = SCRIM_ALPHA),
-        toolbarContentColor = Color.White,
+fun readerChromeColours(): FloatingToolbarColors {
+    val (container, content) = readerChromeColourPair(rememberHighContrast(), LocalStoryArcPalette.current)
+    return FloatingToolbarDefaults.standardFloatingToolbarColors(
+        toolbarContainerColor = container,
+        toolbarContentColor = content,
     )
+}
+
+/**
+ * The capsule's own border, strong only under Increase Contrast -- empty otherwise, since
+ * the ordinary pair already clears its own contrast floor without one.
+ */
+@Composable
+fun readerChromeBorder(): Modifier =
+    if (rememberHighContrast()) {
+        Modifier.border(
+            BorderStroke(1.dp, LocalStoryArcPalette.current.borderStrong),
+            FloatingToolbarDefaults.ContainerShape,
+        )
+    } else {
+        Modifier
+    }
 
 /**
  * How much of the page shows through the capsule.
