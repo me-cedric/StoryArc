@@ -131,6 +131,23 @@ extension DownloadQueue {
         try? resumeData.write(to: file)
     }
 
+    /// The request for one attempt.
+    ///
+    /// The same rule ``OpdsClient`` applies, because this is the same kind of address: one
+    /// the catalogue chose. An acquisition href off the source's own origin is fetched
+    /// without the credential, and one that steps down to cleartext is not fetched at all.
+    private func attemptRequest(for download: Download) throws -> URLRequest {
+        guard OpdsOrigin.isFetchable(download.remote) else { throw OpdsError.refusedAddress }
+        let home = origin ?? download.sourceID.flatMap(sourceOrigin) ?? OpdsOrigin(url: download.remote)
+        if home?.downgrades(download.remote) == true { throw OpdsError.refusedAddress }
+
+        var request = URLRequest(url: download.remote)
+        if let credential = credential(download.id), home?.admits(download.remote) == true {
+            request.setValue(credential.header, forHTTPHeaderField: "Authorization")
+        }
+        return request
+    }
+
     /// One attempt, with no opinion about whether there will be another.
     func one(
         _ download: Download,
@@ -140,18 +157,7 @@ extension DownloadQueue {
             // Through the background session rather than an ordinary request:
             // `offline-downloads` wants a backgrounded transfer to continue "as far as the
             // platform allows", and on iOS that is what allows it.
-            // The same rule ``OpdsClient`` applies, because this is the same kind of
-            // address: one the catalogue chose. An acquisition href off the source's own
-            // origin is fetched without the credential, and one that steps down to
-            // cleartext is not fetched at all.
-            guard OpdsOrigin.isFetchable(download.remote) else { throw OpdsError.refusedAddress }
-            let home = origin ?? download.sourceID.flatMap(sourceOrigin) ?? OpdsOrigin(url: download.remote)
-            if home?.downgrades(download.remote) == true { throw OpdsError.refusedAddress }
-
-            var request = URLRequest(url: download.remote)
-            if let credential = credential(download.id), home?.admits(download.remote) == true {
-                request.setValue(credential.header, forHTTPHeaderField: "Authorization")
-            }
+            let request = try attemptRequest(for: download)
             let resumeData = resumption(for: download)
             // With nothing to carry on from, the line a previous attempt left is no longer
             // true of this one. With resume data, ``noteAttempt(_:resumed:)`` says it.
