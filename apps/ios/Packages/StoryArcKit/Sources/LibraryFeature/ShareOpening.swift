@@ -101,11 +101,11 @@ enum ShareOpening {
     /// Nothing is transferred here: `index` reads headers over the share, which is what lets
     /// the caller state a size while it asks whether the transfer may happen at all.
     ///
-    /// The ``cannotOpen`` branch is unreachable while the bytes are remote and is wired
-    /// anyway — see ``StreamingOffer/of(streaming:isLocal:readsWhereItLies:bytes:)``, which
-    /// only believes `refused` once a file exists to judge. A solid RAR4 on a share therefore
-    /// costs a whole transfer before the app can say it cannot be opened, because libarchive
-    /// reads `FHD_SOLID` through a path and nothing over the share can.
+    /// The ``cannotOpen`` branch is reachable here now: `RarComicArchive` detects a solid
+    /// RAR4 from its headers alone, so
+    /// ``StreamingOffer/of(streaming:isLocal:readsWhereItLies:bytes:)`` believes `refused`
+    /// whether or not the bytes are local, and a solid RAR4 on a share is refused before the
+    /// whole file is transferred.
     static func offerOrOpen(
         index: () async throws -> (Publication, URL),
         length: Int64,

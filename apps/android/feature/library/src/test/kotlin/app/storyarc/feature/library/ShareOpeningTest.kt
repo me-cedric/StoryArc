@@ -140,6 +140,30 @@ class ShareOpeningTest {
     }
 
     @Test
+    fun `a reflowable EPUB on a share is offered rather than opened by its address`() = runTest {
+        // `offerOrOpen` used to compute `readsWhereItLies` from `needsLocalFile(format)`
+        // alone, which does not know about EPUB at all on this platform. The reader opens
+        // a reflowable EPUB from a `File`, not from an `smb://` address, so this used to
+        // call `onOpen` with a path `EpubReaderActivity` then failed to read.
+        val answers = openingFromShare(
+            publication(format = PublicationFormat.EPUB, isFixedLayout = false),
+            length = 2_000L,
+        )
+
+        assertTrue("A reflowable EPUB on a share was opened by its smb:// address.", answers.offerMade)
+        assertEquals(2_000L, answers.offered)
+        assertNull(answers.opened)
+    }
+
+    @Test
+    fun `a fixed-layout EPUB on a share is read where it lies, like a comic`() = runTest {
+        val answers = openingFromShare(publication(format = PublicationFormat.EPUB, isFixedLayout = true))
+
+        assertEquals(REMOTE_PATH, answers.opened?.second)
+        assertTrue("A fixed-layout EPUB was offered as a download.", !answers.offerMade)
+    }
+
+    @Test
     fun `a share that states no length offers an absence rather than a zero`() = runTest {
         // `offline-downloads` requires an unknown size to be stated as an absence "rather
         // than as a zero", and a directory entry's length is a non-null Long -- so a zero is
@@ -167,19 +191,20 @@ class ShareOpeningTest {
     }
 
     @Test
-    fun `a remote record marked refused is offered rather than declined`() = runTest {
-        // `PublicationIndexer` marks a publication it met over a share REFUSED before any
-        // file exists to judge. Believing that here would decline to fetch the very
-        // publication the offer is for.
+    fun `a solid RAR4 on a share is refused before the whole file is transferred`() = runTest {
+        // `RarComicArchive` detects a solid RAR4 from its headers alone, so this is no
+        // longer a placeholder meaning "not checked yet" -- it is the real answer, and
+        // believing it here is what stops the reader paying for a transfer that changes
+        // nothing.
         val answers = openingFromShare(
             publication(format = PublicationFormat.CBR, streaming = StreamingCapability.REFUSED),
         )
 
         assertTrue(
-            "A remote record marked REFUSED was declined before any file existed.",
-            answers.offerMade,
+            "A solid RAR4 on a share was offered a transfer instead of being refused.",
+            !answers.offerMade,
         )
-        assertNull(answers.said)
+        assertEquals(CANNOT_OPEN, answers.said)
     }
 
     // --- The fact the rule is fed ---------------------------------------------------------
@@ -227,12 +252,14 @@ class ShareOpeningTest {
     private fun publication(
         format: PublicationFormat = PublicationFormat.CBR,
         streaming: StreamingCapability = StreamingCapability.STREAMS,
+        isFixedLayout: Boolean = false,
     ) = Publication(
         identity = PublicationIdentity(normalizedPath = REMOTE_PATH),
         format = format,
         displayTitle = "Solid",
         origin = MetadataOrigin.INFERRED,
         streaming = streaming,
+        isFixedLayout = isFixedLayout,
     )
 
     private companion object {

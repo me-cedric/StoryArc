@@ -83,10 +83,14 @@ internal fun statedLength(length: Long): Long? = length.takeIf { it > 0L }
  * Nothing is transferred here: [index] reads headers over the share, which is what lets the
  * caller state a size while it asks whether the transfer may happen at all.
  *
- * The [CANNOT_OPEN] branch is unreachable while the bytes are remote and is wired anyway --
- * see [StreamingOffer.of], which only believes `REFUSED` once a file exists to judge. A solid
- * RAR4 on a share therefore costs a whole transfer before the app can say it cannot be opened,
- * because libarchive reads `FHD_SOLID` through a path and nothing over the share can.
+ * `readsWhereItLies` comes from [readsFromAnAddress], not from [needsLocalFile] alone: a
+ * reflowable EPUB cannot be read from an address either, and [needsLocalFile] does not know
+ * that -- it answers "does this *format*'s decoder want a file", and a fixed-layout EPUB is
+ * read through the comic path regardless of format.
+ *
+ * The [CANNOT_OPEN] branch is reachable here now: `RarComicArchive` detects a solid RAR4 from
+ * its headers alone, so [StreamingOffer.of] believes `REFUSED` whether or not the bytes are
+ * local, and a solid RAR4 on a share is refused before the whole file is transferred.
  */
 internal suspend fun offerOrOpen(
     index: suspend () -> Pair<Publication, String>,
@@ -100,7 +104,7 @@ internal suspend fun offerOrOpen(
             val offer = StreamingOffer.of(
                 streaming = publication.streaming,
                 isLocal = false,
-                readsWhereItLies = !needsLocalFile(publication.format),
+                readsWhereItLies = readsFromAnAddress(publication),
                 bytes = statedLength(length),
             )
             when (offer) {

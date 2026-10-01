@@ -78,12 +78,13 @@ class StreamingOfferTest {
     }
 
     @Test
-    fun `a remote record marked refused is fetched rather than declined`() {
-        // `PublicationIndexer.index(source, ...)` marks a solid archive met over a share
-        // REFUSED before any file exists to judge. Believing that as a refusal would decline
-        // to fetch the very publication the first scenario is about.
+    fun `a solid rar4 is refused over a share too, without a download first`() {
+        // The spec table: a solid RAR4 is "refused, local or remote", and the index decides
+        // it "without transferring it" -- `RarComicArchive` reads the solid flag from the
+        // headers alone. Offering the download here would transfer a whole archive only to
+        // refuse it afterwards.
         assertEquals(
-            StreamingOffer.Download(9_000L),
+            StreamingOffer.Refuse,
             StreamingOffer.of(
                 streaming = StreamingCapability.REFUSED,
                 isLocal = false,

@@ -51,20 +51,22 @@ public enum StreamingOffer: Sendable, Equatable {
     ///     `isLocal`, where every decoder has what it wants.
     ///   - bytes: what the source states the file weighs.
     ///
-    /// **Why ``StreamingCapability/refused`` is only believed when the bytes are local.**
-    /// `PublicationIndexer.index(source:name:identity:decoderPath:)` returns a *record* with
-    /// `refused` for a remote PDF, EPUB or CBR — meaning "its pages cannot be reached from
-    /// here", not "no decoder will open it". Read as a refusal that would turn every remote
-    /// comic in a RAR into a book the app declines to fetch. Once the file is local the
-    /// value means what ``StreamingCapability/refused`` documents, and that is where it is
-    /// acted on.
+    /// **``StreamingCapability/refused`` is believed whether or not the bytes are local.**
+    /// A solid RAR4 is refused "local or remote" — `RarComicArchive` detects it from the
+    /// headers alone, with no file to hand a decoder, so the value is never a placeholder
+    /// for "not checked yet". The bare record `PublicationIndexer.index(source:…)` returns
+    /// for a remote PDF, EPUB or audio file with no local copy carries ``downloadOnly``
+    /// rather than this, precisely so it never reaches this branch and gets read as a
+    /// refusal that would decline to fetch the very publication the first scenario above
+    /// is about.
     public static func of(
         streaming: StreamingCapability,
         isLocal: Bool,
         readsWhereItLies: Bool,
         bytes: Int64?
     ) -> StreamingOffer {
-        if isLocal { return streaming == .refused ? .refuse : .open }
+        if streaming == .refused { return .refuse }
+        if isLocal { return .open }
         if streaming == .downloadOnly || !readsWhereItLies { return .download(bytes: bytes) }
         return .open
     }

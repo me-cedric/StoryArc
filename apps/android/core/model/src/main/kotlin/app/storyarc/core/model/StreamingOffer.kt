@@ -61,12 +61,14 @@ sealed interface StreamingOffer {
          *   where every decoder has what it wants.
          * @param bytes what the source states the file weighs.
          *
-         * **Why [StreamingCapability.REFUSED] is only believed when the bytes are local.**
-         * `PublicationIndexer.index(source, ...)` returns a record carrying `REFUSED` for a
-         * solid archive it met over a share, and both apps reach that branch before any file
-         * exists to judge. Read as a refusal it would decline to fetch the very publication
-         * the first scenario is about. Once the file is local the value means what
-         * [StreamingCapability.REFUSED] documents, and that is where it is acted on.
+         * **[StreamingCapability.REFUSED] is believed whether or not the bytes are local.**
+         * A solid RAR4 is refused "local or remote" -- `RarComicArchive` detects it from the
+         * headers alone, with no file to hand a decoder, so the value is never a placeholder
+         * for "not checked yet". `PublicationIndexer` never hands back `REFUSED` for anything
+         * else over a share: a remote PDF, EPUB or audio file with no local copy keeps the
+         * default [StreamingCapability.STREAMS] or is marked [StreamingCapability.DOWNLOAD_ONLY],
+         * precisely so neither reaches this branch and gets read as a refusal that would
+         * decline to fetch the very publication the first scenario above is about.
          */
         fun of(
             streaming: StreamingCapability,
@@ -74,7 +76,8 @@ sealed interface StreamingOffer {
             readsWhereItLies: Boolean,
             bytes: Long?,
         ): StreamingOffer = when {
-            isLocal -> if (streaming == StreamingCapability.REFUSED) Refuse else Open
+            streaming == StreamingCapability.REFUSED -> Refuse
+            isLocal -> Open
             streaming == StreamingCapability.DOWNLOAD_ONLY || !readsWhereItLies -> Download(bytes)
             else -> Open
         }
