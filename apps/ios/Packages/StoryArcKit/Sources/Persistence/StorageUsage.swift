@@ -98,33 +98,11 @@ public struct StorageUsage: Sendable {
 
 /// A size a person can read, in their own locale.
 ///
-/// Powers of 1024 with the SI names, which is what every file manager on both platforms
-/// shows — matching the convention a reader already has beats being right about kibibytes.
-///
-/// The number is formatted through a locale, not by `String(format:)`. That composes a
-/// fixed decimal point, so a French reader saw "1.4 MB" where every other app on their
-/// phone says "1,4 Mo". `localization` requires "numbers, dates and file sizes" to follow
-/// the locale, and a hand-composed float does not. Which locale is `scaled(_:by:unit:)`'s
-/// answer below, and it is the reader's choice rather than the process's.
+/// The platform's own formatter, ``DownloadStore/formatted(_:)``: a hand-composed "kB"/"MB"
+/// switch with `String(format:)` for the decimal point put an English decimal point and a
+/// fixed unit in front of a French reader. `localization` requires "numbers, dates and file
+/// sizes" to follow the locale, and only the platform formatter, asked for
+/// ``StoryArcCore/Locale/storyArc``, does.
 public func formattedBytes(_ bytes: Int64) -> String {
-    switch bytes {
-    case ..<1: "0 kB"
-    case ..<1024: "1 kB"
-    case ..<(1024 * 1024): "\(bytes / 1024) kB"
-    case ..<(1024 * 1024 * 1024): scaled(bytes, by: 1024 * 1024, unit: "MB")
-    default: scaled(bytes, by: 1024 * 1024 * 1024, unit: "GB")
-    }
-}
-
-/// One decimal place, in the reader's own number format.
-///
-/// ``StoryArcCore/Locale/storyArc`` rather than `.current`: `.current` is the process
-/// locale, which the interface-language override does not move. A reader who chose French
-/// read French sentences with an English decimal point until this line asked the right
-/// locale.
-private func scaled(_ bytes: Int64, by divisor: Double, unit: String) -> String {
-    let value = (Double(bytes) / divisor).formatted(
-        .number.precision(.fractionLength(1)).locale(.storyArc)
-    )
-    return "\(value) \(unit)"
+    DownloadStore.formatted(bytes)
 }

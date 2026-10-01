@@ -180,7 +180,7 @@ extension DownloadsSettings {
             Picker(selection: $settings.maximumDownloadBytes) {
                 Text("downloads.limit.none", bundle: .module).tag(Int64?.none)
                 ForEach(Self.limits, id: \.self) { limit in
-                    Text(limit.formatted(.byteCount(style: .file))).tag(Int64?.some(limit))
+                    Text(limit.formatted(.byteCount(style: .file).locale(.storyArc))).tag(Int64?.some(limit))
                 }
             } label: {
                 Text("downloads.limit", bundle: .module)

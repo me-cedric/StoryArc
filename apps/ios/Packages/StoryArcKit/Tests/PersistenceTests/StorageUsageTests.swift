@@ -28,10 +28,14 @@ struct StorageUsageTests {
         #expect(formatted.contains(separator), "\(formatted) has no \(separator)")
     }
 
-    @Test("Small sizes stay whole, because a fraction of a kilobyte tells nobody anything")
-    func smallSizesAreWhole() {
-        #expect(formattedBytes(0) == "0 kB")
-        #expect(formattedBytes(400) == "1 kB")
-        #expect(formattedBytes(4096) == "4 kB")
+    @Test("A size is the platform's own formatter, not a hand-written kB/MB/GB switch")
+    func sizeIsThePlatformFormatter() {
+        // `formattedBytes` used to hand-compose "kB"/"MB"/"GB" with a fixed decimal point.
+        // Task 15.3 replaces it with `DownloadStore.formatted`, the one place that formatter
+        // is already asked for `.storyArc`. Asserting equality with that call, rather than a
+        // literal, is what catches the switch coming back.
+        #expect(formattedBytes(0) == DownloadStore.formatted(0))
+        #expect(formattedBytes(400) == DownloadStore.formatted(400))
+        #expect(formattedBytes(4096) == DownloadStore.formatted(4096))
     }
 }
