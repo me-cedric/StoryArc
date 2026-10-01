@@ -1,6 +1,7 @@
 internal import Foundation
 
 internal import Catalogue
+internal import Kavita
 internal import Persistence
 internal import StoryArcCore
 
@@ -109,9 +110,74 @@ extension LibraryModel {
             // fetched from. `collections-and-reading-lists`' bulk download "queues them
             // per offline-downloads" — this is that queueing, for the member kind the
             // copy above cannot reach at all.
-            if let queued = await enqueueRemote(publication, queue: queue) { kept.insert(queued) }
+            let isKavitaChapter = publication.identity.serverIdentifier?.remoteID.hasPrefix("chapter:") == true
+            let queued = isKavitaChapter
+                ? await enqueueKavita(publication, queue: queue)
+                : await enqueueRemote(publication, queue: queue)
+            if let queued { kept.insert(queued) }
         }
         return kept
+    }
+
+    /// Where a Kavita chapter's own keep would send it, when the library can say now.
+    ///
+    /// Synchronous and route-only: the device holds the origin ``KavitaContributor``, an
+    /// earlier open, or an earlier keep recorded, and the registry holds a reachable
+    /// address for the server that origin names. Nothing here asks the server anything —
+    /// that is ``enqueueKavita(_:queue:)``'s to do, once a reader has actually asked.
+    /// `origin`'s default reads the real store; a test gives one of its own so proving this
+    /// needs neither `UserDefaults.standard` nor a network — the resolver store itself is
+    /// `KavitaContributorCatalogOriginTests`' claim, and what this asks is only "given an
+    /// origin, is there still a reachable server for it".
+    private func kavitaKeepRoute(
+        for publication: Publication,
+        origin resolvedOrigin: (String) -> KavitaOrigin? = { KavitaProgressStore().resolvedOrigin(of: $0) },
+        credentials: CredentialStore? = CredentialStore()
+    ) -> (origin: KavitaOrigin, sourceID: UUID, address: KavitaAddress)? {
+        guard let server = publication.identity.serverIdentifier,
+              server.remoteID.hasPrefix("chapter:"),
+              let origin = resolvedOrigin(publication.id),
+              let source = registry[server.sourceID],
+              let page = KavitaPage(source: source, credentials: credentials)
+        else { return nil }
+        return (origin, server.sourceID, page.address)
+    }
+
+    /// Whether a Kavita row the library has only ever listed — never opened, never kept —
+    /// can still be downloaded.
+    ///
+    /// `kavita-server`'s *Keeping a chapter on the device* drew a Download control for
+    /// exactly this row that did nothing: see ``enqueueRemote(_:queue:)``'s own doc for the
+    /// gap it names. `DetailActions`' header makes the rule this answers: an action a tap
+    /// cannot carry out is worse shown than left out.
+    func canKeepKavitaChapter(
+        _ publication: Publication,
+        origin resolvedOrigin: (String) -> KavitaOrigin? = { KavitaProgressStore().resolvedOrigin(of: $0) },
+        credentials: CredentialStore? = CredentialStore()
+    ) -> Bool {
+        kavitaKeepRoute(for: publication, origin: resolvedOrigin, credentials: credentials) != nil
+    }
+
+    /// Fetches a chapter the library has only ever listed, and keeps it — `KavitaKeep`'s own
+    /// four steps, with the chapter and series it wants rebuilt from what the row and its
+    /// origin already carry, because nothing here asks the server for a second copy of
+    /// either. Returns the kept publication's own id, which is what the caller inserts into
+    /// what this round downloaded.
+    private func enqueueKavita(_ publication: Publication, queue: DownloadQueue) async -> Download.ID? {
+        guard let (origin, sourceID, address) = kavitaKeepRoute(for: publication) else { return nil }
+        let chapter = KavitaChapter(id: origin.chapterId, number: publication.number ?? "", pages: origin.pages)
+        let series = KavitaSeries(
+            id: origin.seriesId,
+            name: publication.series ?? publication.displayTitle,
+            libraryId: origin.libraryId
+        )
+        let kept = await KavitaKeep.keep(
+            KavitaKeep.Subject(chapter: chapter, series: series, metadata: nil, origin: origin, sourceID: sourceID),
+            client: KavitaClient(address: address),
+            progress: KavitaProgressStore(),
+            queue: queue
+        )
+        return kept.map(\.publication.id)
     }
 
     /// Queues a catalogue-only member for download, resolving its OPDS acquisition fresh.
@@ -122,11 +188,10 @@ extension LibraryModel {
     /// entry this row names. A member whose source is unreachable, or whose entry a later
     /// feed no longer lists, is left out rather than failing the rest of the selection.
     ///
-    /// Kavita's chapters are not reached here: a chapter's own remote identifier carries
-    /// nothing past its id, and resolving it back to the series it belongs to has no
-    /// single request to ask for — see `KavitaKeep`'s `Subject`, which this would have to
-    /// build. `docs/delivery` tracks that as the remaining half. Returns the queue's id for
-    /// what it queued, which is what the undo takes back.
+    /// Kavita's chapters are not reached here — ``enqueueKavita(_:queue:)`` is the sibling
+    /// that is, built the same round the Kavita origin store gained enough to answer this
+    /// without a server. Returns the queue's id for what it queued, which is what the undo
+    /// takes back.
     private func enqueueRemote(_ publication: Publication, queue: DownloadQueue) async -> Download.ID? {
         guard let server = publication.identity.serverIdentifier,
               let source = registry[server.sourceID],
