@@ -1,10 +1,13 @@
 package app.storyarc.feature.library
 
 import android.content.Context
+import android.util.Log
 import app.storyarc.core.catalogue.OpdsError
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+
+private const val TAG = "StoryArcCatalogue"
 
 /**
  * What a reader is told when a catalogue does not answer the way it should.
@@ -30,7 +33,10 @@ internal object CatalogueMessages {
                 received.contentType ?: context.getString(R.string.catalogue_error_unknown_type),
             )
         }
-        is OpdsError.Malformed -> context.getString(R.string.catalogue_error_malformed, error.reason)
+        is OpdsError.Malformed -> {
+            Log.w(TAG, "malformed feed: ${error.reason}")
+            context.getString(R.string.catalogue_error_malformed)
+        }
         is OpdsError.Http -> context.getString(R.string.catalogue_error_http, error.status)
     }
 
@@ -38,6 +44,9 @@ internal object CatalogueMessages {
     fun reachability(context: Context, error: IOException): String = when (error) {
         is UnknownHostException -> context.getString(R.string.catalogue_error_no_host)
         is SocketTimeoutException -> context.getString(R.string.catalogue_error_timed_out)
-        else -> error.message ?: context.getString(R.string.catalogue_error_unreachable)
+        else -> {
+            Log.w(TAG, "catalogue unreachable", error)
+            context.getString(R.string.catalogue_error_unreachable)
+        }
     }
 }

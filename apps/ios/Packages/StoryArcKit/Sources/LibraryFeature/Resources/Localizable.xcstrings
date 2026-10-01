@@ -994,25 +994,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Der Katalog konnte nicht gelesen werden: %@"
+            "value": "Der Katalog konnte nicht gelesen werden."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The catalogue could not be read: %@"
+            "value": "The catalogue could not be read."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo leer el catálogo: %@"
+            "value": "No se pudo leer el catálogo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Le catalogue n’a pas pu être lu : %@"
+            "value": "Le catalogue n’a pas pu être lu."
           }
         }
       }
@@ -1274,6 +1274,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "un contenu de type inconnu"
+          }
+        }
+      }
+    },
+    "catalogue.error.unreachable": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Server war nicht erreichbar."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This server could not be reached."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo contactar con este servidor."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce serveur est injoignable."
           }
         }
       }

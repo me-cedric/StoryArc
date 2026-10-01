@@ -121,7 +121,7 @@
     <string name="catalogue_error_html">Diese Adresse hat eine Webseite zurückgegeben, keinen Katalog. Meist liegt das an einer Anmeldeseite oder einem falschen Pfad.</string>
     <string name="catalogue_error_not_a_feed">Diese Adresse hat %1$s zurückgegeben, was kein Katalog ist.</string>
     <string name="catalogue_error_unknown_type">etwas mit unbekanntem Typ</string>
-    <string name="catalogue_error_malformed">Der Katalog konnte nicht gelesen werden: %1$s</string>
+    <string name="catalogue_error_malformed">Der Katalog konnte nicht gelesen werden.</string>
     <string name="catalogue_error_http">Der Server hat abgelehnt: %1$d.</string>
     <string name="catalogue_error_no_host">Dieser Host wurde nicht gefunden. Prüfen Sie die Adresse und ob Sie im selben Netzwerk sind.</string>
     <string name="catalogue_error_timed_out">Der Server hat nicht rechtzeitig geantwortet.</string>

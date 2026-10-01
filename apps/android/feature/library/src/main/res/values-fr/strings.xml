@@ -123,7 +123,7 @@
     <string name="catalogue_error_html">Cette adresse a renvoyé une page web, pas un catalogue. Une page d’identification ou un mauvais chemin en est souvent la cause.</string>
     <string name="catalogue_error_not_a_feed">Cette adresse a renvoyé %1$s, qui n’est pas un catalogue.</string>
     <string name="catalogue_error_unknown_type">un contenu de type inconnu</string>
-    <string name="catalogue_error_malformed">Le catalogue n’a pas pu être lu : %1$s</string>
+    <string name="catalogue_error_malformed">Le catalogue n’a pas pu être lu.</string>
     <string name="catalogue_error_http">Le serveur a refusé : %1$d.</string>
     <string name="catalogue_error_no_host">Cet hôte est introuvable. Vérifiez l’adresse et que vous êtes sur le même réseau.</string>
     <string name="catalogue_error_timed_out">Le serveur n’a pas répondu à temps.</string>
