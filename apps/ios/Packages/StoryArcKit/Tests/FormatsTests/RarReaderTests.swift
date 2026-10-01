@@ -135,6 +135,35 @@ struct RarReaderTests {
         }
     }
 
+    @Test("A compressed entry with no decoder is listed from its header, and marks the archive download-only")
+    func compressedEntryIndexesWithoutADecoder() async throws {
+        // Same flip as above, read through `RarComicArchive` with no file — the
+        // remote-share shape. `publication-formats` requires this to list every
+        // page from the headers rather than throwing `unsupportedContainer`, with
+        // the archive itself saying it needs a download before the compressed
+        // page can be read.
+        var bytes = [UInt8](try Data(contentsOf: FixtureCorpus.url("comics/rar4-store.cbr")))
+        let methodOffset = RarReader.rar4Signature.count + 13 + 25
+        #expect(bytes[methodOffset] == 0x30, "expected the store method byte here")
+        bytes[methodOffset] = 0x33
+
+        let archive = try await RarComicArchive(source: DataSource(Data(bytes)))
+
+        #expect(archive.pages.map(\.path) == ["page1.png", "page2.png", "page3.png"])
+        #expect(archive.skippedPageCount == 0)
+        #expect(archive.isDownloadOnly)
+
+        // The flipped entry cannot be read without a decoder yet…
+        let compressedPage = try #require(archive.pages.first { $0.path == "page1.png" })
+        await #expect(throws: ComicArchiveError.unsupportedContainer(.rar)) {
+            _ = try await archive.data(for: compressedPage)
+        }
+        // …but the other two are still stored, and still read.
+        let storedPage = try #require(archive.pages.first { $0.path == "page2.png" })
+        let data = try await archive.data(for: storedPage)
+        #expect(!data.isEmpty)
+    }
+
     // MARK: - Untrusted input
 
     @Test("A signature with nothing behind it yields no entries, not a crash")

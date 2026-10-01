@@ -223,9 +223,13 @@ public enum PublicationIndexer {
             )
 
         case .rar:
-            guard let decoderPath else { return record(.cbr, found, name, fallback) }
-            return try await comicArchive(
-                url: decoderPath, identity: found, format: .cbr, filename: name,
+            // `RarComicArchive` reads headers alone, so a remote CBR is
+            // catalogued — pages, cover, streaming capability — without
+            // transferring it. With no `decoderPath` a compressed page cannot be
+            // read yet, and the archive says so through `isDownloadOnly` rather
+            // than this needing a bare record.
+            return try await rarArchive(
+                source: source, fileURL: decoderPath, identity: found, name: name,
                 fallback: fallback
             )
 
