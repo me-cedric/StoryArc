@@ -31,6 +31,66 @@
         }
       }
     },
+    "downloads.attempt.resumed": {
+      "comment": "On a download row: the last attempt carried a transfer on from where an earlier one stopped.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortgesetzt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resumed"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reanudado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprise"
+          }
+        }
+      }
+    },
+    "downloads.attempt.restarted": {
+      "comment": "On a download row: the last attempt started the transfer over from the beginning.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neu gestartet"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restarted"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reiniciado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redémarrée"
+          }
+        }
+      }
+    },
     "downloads.cache": {
       "comment": "The cover cache's own size, in the storage view -- distinct from Privacy's general Cache row, which also counts the web view's own data.",
       "extractionState": "manual",

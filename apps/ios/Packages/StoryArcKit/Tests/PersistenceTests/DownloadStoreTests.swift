@@ -83,6 +83,32 @@ struct DownloadStoreTests {
         #expect(read.hold(limit: nil) == .outOfSpace)
     }
 
+    @Test("What the last attempt did is durable")
+    func lastAttemptIsDurable() throws {
+        // `offline-downloads`' *Resuming after interruption*: a row reads this to say which
+        // of the two happened, and the settings and downloads screens read the record
+        // rather than a live queue -- a round trip that lost it would have nothing to show
+        // until the next attempt.
+        let store = try fixture().store
+        let library = DownloadLibrary()
+            .queueing(download("a"))
+            .queueing(download("b"))
+            .recordingAttempt("a", as: .resumed)
+            .recordingAttempt("b", as: .restarted)
+        store.save(library)
+
+        let read = store.library()
+        #expect(read["a"]?.lastAttempt == .resumed)
+        #expect(read["b"]?.lastAttempt == .restarted)
+    }
+
+    @Test("A record written before the last attempt was kept comes back with none")
+    func recordWithoutALastAttemptHasNone() throws {
+        let store = try fixture().store
+        store.save(DownloadLibrary().queueing(download("a")))
+        #expect(store.library()["a"]?.lastAttempt == nil)
+    }
+
     @Test("A record written before the reason was kept comes back queued")
     func recordWithoutAPauseIsQueued() throws {
         // Written by a build that had no pause field. Decoding has to tolerate its absence,

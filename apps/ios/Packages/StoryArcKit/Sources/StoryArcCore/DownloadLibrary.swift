@@ -61,6 +61,19 @@ public struct DownloadLibrary: Sendable, Equatable {
         })
     }
 
+    /// Records whether the attempt that just ended carried a transfer on or started it
+    /// over. `offline-downloads`' *Resuming after interruption*: a resumed or restarted
+    /// download used to look the same on the row, and this is what a row reads to tell
+    /// them apart.
+    public func recordingAttempt(_ id: Download.ID, as attempt: Download.LastAttempt?) -> DownloadLibrary {
+        DownloadLibrary(downloads: downloads.map { each in
+            guard each.id == id else { return each }
+            var changed = each
+            changed.lastAttempt = attempt
+            return changed
+        })
+    }
+
     /// Moves a download in the queue.
     ///
     /// Takes the destination a drag reports, which is an index in the list *before* the

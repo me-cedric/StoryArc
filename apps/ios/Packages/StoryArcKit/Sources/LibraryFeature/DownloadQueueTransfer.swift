@@ -140,10 +140,15 @@ extension DownloadQueue {
             if let credential = credential(download.id), home?.admits(download.remote) == true {
                 request.setValue(credential.header, forHTTPHeaderField: "Authorization")
             }
-            let temporary = try await transfers.download(
+            let resumeData = resumption(for: download)
+            let (temporary, resumed) = try await transfers.download(
                 request,
                 named: download.id,
-                resumingWith: resumption(for: download)
+                resumingWith: resumeData
+            )
+            library = library.recordingAttempt(
+                download.id,
+                as: .of(hadSomethingToResume: resumeData != nil, resumed: resumed)
             )
             return try await land(download, from: temporary, seriesHint: seriesHint)
         } catch let error as PublicationIndexer.IndexError {
