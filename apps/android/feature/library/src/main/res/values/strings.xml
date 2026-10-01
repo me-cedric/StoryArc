@@ -211,6 +211,10 @@
     <string name="shelves_list_empty">Nothing in this list yet. Add books and comics from your library.</string>
     <string name="shelves_list_unavailable">No longer where it used to be</string>
     <string name="shelves_list_progress">%1$d of %2$d read</string>
+    <!-- collections-and-reading-lists' bulk download wants the item count and total size
+         stated before starting; the collection, list and series headers state the same
+         question the other way, up front. iOS carries the same key. -->
+    <string name="shelves_on_device">%1$d of %2$d on this device</string>
     <string name="shelves_list_order">The list’s order</string>
     <string name="shelves_add_to">Add to…</string>
     <string name="shelves_move_up">Move %1$s up</string>

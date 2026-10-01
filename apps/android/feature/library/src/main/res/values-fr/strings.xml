@@ -197,6 +197,7 @@
     <string name="shelves_list_empty">Rien dans cette liste pour l’instant. Ajoutez des livres et des bandes dessinées depuis votre bibliothèque.</string>
     <string name="shelves_list_unavailable">N’est plus là où il était</string>
     <string name="shelves_list_progress">%1$d sur %2$d lus</string>
+    <string name="shelves_on_device">%1$d sur %2$d sur cet appareil</string>
     <string name="shelves_list_order">L’ordre de la liste</string>
     <string name="shelves_add_to">Ajouter à…</string>
     <string name="shelves_move_up">Déplacer %1$s vers le haut</string>

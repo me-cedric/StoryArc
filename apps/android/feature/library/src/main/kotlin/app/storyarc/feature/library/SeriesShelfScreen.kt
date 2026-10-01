@@ -1,5 +1,8 @@
 package app.storyarc.feature.library
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -75,11 +78,19 @@ fun SeriesShelfScreen(
             )
             return@Scaffold
         }
-        CoverGrid(
-            publications = members,
-            viewModel = viewModel,
-            onOpen = onOpen,
+        Column(
+            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
             modifier = Modifier.fillMaxSize().padding(insets),
-        )
+        ) {
+            Box(modifier = Modifier.padding(horizontal = StoryArcSpace.gutter)) {
+                ShelfOnDeviceLine(members, location = viewModel::location)
+            }
+            CoverGrid(
+                publications = members,
+                viewModel = viewModel,
+                onOpen = onOpen,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }

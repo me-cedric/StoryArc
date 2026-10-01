@@ -27,11 +27,16 @@ struct CollectionDetail: View {
                     .foregroundStyle(theme.palette.textSecondary)
                     .padding(StoryArcSpace.xl)
             } else {
-                CoverGrid(
-                    publications: members,
-                    model: model,
-                    onRemoveFromShelf: { model.remove(Set([$0.id]), fromCollection: self.id) }
-                )
+                VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
+                    ShelfOnDeviceLine(members, model: model)
+                        .padding(.horizontal, StoryArcSpace.gutter)
+
+                    CoverGrid(
+                        publications: members,
+                        model: model,
+                        onRemoveFromShelf: { model.remove(Set([$0.id]), fromCollection: self.id) }
+                    )
+                }
             }
         }
         .background(theme.palette.surfaceCanvas)
@@ -145,6 +150,13 @@ struct ReadingListDetail: View {
                         // `collections-and-reading-lists`: a list "shows how many entries are
                         // finished and where the user's position is".
                         Text("shelves.list.progress \(position) \(entries.count)", bundle: .module)
+                        ShelfOnDeviceLine(
+                            entries: entries,
+                            members: entries.compactMap { entry in
+                                model.publications.first { $0.id == entry }
+                            },
+                            model: model
+                        )
                         // `library-browsing`: the curated order is "labelled as such — not
                         // alphabetical". A toolbar menu on iOS draws its glyph and not its
                         // title, so the name of the order goes where the reader is already
