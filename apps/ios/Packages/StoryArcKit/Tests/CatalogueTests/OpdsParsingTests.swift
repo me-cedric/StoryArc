@@ -136,6 +136,91 @@ struct OpdsParsingTests {
         #expect(feed.publications.first?.acquisitions.first?.kind == .indirect)
     }
 
+    // MARK: 11.1 — a navigation entry, not a publication with no download
+
+    private let atomEntrySections = """
+    <feed xmlns="http://www.w3.org/2005/Atom" xmlns:thr="http://purl.org/syndication/thread/1.0">
+      <title>Calibre-Web</title>
+      <entry>
+        <title>Unread</title>
+        <id>urn:uuid:unread</id>
+        <link rel="subsection" href="unread" thr:count="12"
+              type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+      </entry>
+      <entry>
+        <title>The Long Field</title>
+        <id>urn:uuid:1</id>
+        <link rel="http://opds-spec.org/acquisition" href="download/1.epub"
+              type="application/epub+zip"/>
+      </entry>
+    </feed>
+    """
+
+    @Test func anEntryWithOneAtomLinkAndNoAcquisitionIsASection() throws {
+        let feed = try OpdsDocument.parse(Data(atomEntrySections.utf8), baseURL: base)
+        #expect(feed.navigation.map(\.title) == ["Unread"])
+        #expect(feed.navigation.first?.href.lastPathComponent == "unread")
+        #expect(feed.navigation.first?.count == 12)
+        #expect(feed.publications.map(\.title) == ["The Long Field"])
+    }
+
+    @Test func anEntryWithAnAcquisitionIsNeverReadAsASectionEvenIfItAlsoCarriesAnAtomLink() throws {
+        let xml = """
+        <feed xmlns="http://www.w3.org/2005/Atom"><title>t</title>
+        <entry><title>Both</title><id>urn:uuid:2</id>
+        <link rel="related" href="series" type="application/atom+xml" title="Series"/>
+        <link rel="http://opds-spec.org/acquisition" href="x.epub" type="application/epub+zip"/>
+        </entry></feed>
+        """
+        let feed = try OpdsDocument.parse(Data(xml.utf8), baseURL: base)
+        #expect(feed.navigation.isEmpty)
+        #expect(feed.publications.map(\.title) == ["Both"])
+    }
+
+    // MARK: 11.4 — indirect acquisition and protected types
+
+    @Test func anIndirectAcquisitionChildMarksTheLinkIndirect() throws {
+        let xml = """
+        <feed xmlns="http://www.w3.org/2005/Atom" xmlns:opds="http://opds-spec.org/2010/catalog">
+        <title>t</title><entry><title>e</title>
+        <link rel="http://opds-spec.org/acquisition" href="x.epub" type="application/epub+zip">
+          <opds:indirectAcquisition type="application/vnd.readium.lcp.license.v1.0+json"/>
+        </link></entry></feed>
+        """
+        let feed = try OpdsDocument.parse(Data(xml.utf8), baseURL: base)
+        let acquisition = try #require(feed.publications.first?.acquisitions.first)
+        #expect(acquisition.kind == .indirect)
+        // The refusal names the wrapper's own media type, not the license's.
+        #expect(acquisition.mediaType == "application/epub+zip")
+    }
+
+    @Test func anLcpLicenseTypeIsIndirectWithNoChildElement() throws {
+        let xml = """
+        <feed xmlns="http://www.w3.org/2005/Atom"><title>t</title><entry><title>e</title>
+        <link rel="http://opds-spec.org/acquisition" href="x.lcpl"
+              type="application/vnd.readium.lcp.license.v1.0+json"/></entry></feed>
+        """
+        let feed = try OpdsDocument.parse(Data(xml.utf8), baseURL: base)
+        #expect(feed.publications.first?.acquisitions.first?.kind == .indirect)
+    }
+
+    @Test func anAdobeAdeptTypeIsIndirect() throws {
+        let xml = """
+        <feed xmlns="http://www.w3.org/2005/Atom"><title>t</title><entry><title>e</title>
+        <link rel="http://opds-spec.org/acquisition" href="x.acsm"
+              type="application/vnd.adobe.adept+xml"/></entry></feed>
+        """
+        let feed = try OpdsDocument.parse(Data(xml.utf8), baseURL: base)
+        #expect(feed.publications.first?.acquisitions.first?.kind == .indirect)
+    }
+
+    @Test func aSelfClosingAcquisitionLinkWithNoChildIsUnaffected() throws {
+        // The common case. Most acquisition links have no children at all, and the
+        // deferred-until-end-tag read must not change what they parse as.
+        let feed = try OpdsDocument.parse(Data(atomAcquisition.utf8), baseURL: base)
+        #expect(feed.publications.first?.acquisitions.map(\.kind) == [.direct, .direct])
+    }
+
     @Test func aSearchLinkWithoutATemplateIsADescriptionDocument() throws {
         let xml = """
         <feed xmlns="http://www.w3.org/2005/Atom"><title>t</title>

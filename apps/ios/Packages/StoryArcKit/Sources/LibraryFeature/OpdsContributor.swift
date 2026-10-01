@@ -21,8 +21,15 @@ enum OpdsContributor {
     ///
     /// A feed's entries are not all books: a navigation entry is a way further in and has
     /// no acquisition at all. Those belong to the browser, not to the library.
+    ///
+    /// **The acquisition kind decides, not a substring match on the media type.** An entry
+    /// whose only link is a loan or a subscription has nothing this app can fetch, and
+    /// filing it as a row anyway — 11.5 — offered a download that failed the moment it was
+    /// tapped. ``CatalogueAcquisition/readable(in:)`` already answers "what can the app
+    /// act on", best format first; this asks it rather than re-deriving the answer here.
     static func publication(source: UUID, entry: OpdsEntry) -> Publication? {
-        guard let format = entry.acquisitions.lazy.compactMap({ format($0.mediaType) }).first
+        guard let acquisition = CatalogueAcquisition.readable(in: entry).first,
+              let format = PublicationFormat(mediaType: acquisition.mediaType)
         else { return nil }
         return Publication(
             identity: PublicationIdentity(
@@ -41,21 +48,5 @@ enum OpdsContributor {
             origin: .authoritative,
             sourceID: source
         )
-    }
-
-    /// The media type a feed declares, as a format this app can file under.
-    ///
-    /// Named formats before container suffixes: an EPUB *is* a zip and says so, and the
-    /// comic-archive branch matching first filed every book on every catalogue as a comic.
-    private static func format(_ mediaType: String) -> PublicationFormat? {
-        switch true {
-        case mediaType.contains("epub"): .epub
-        case mediaType.contains("pdf"): .pdf
-        case mediaType.contains("cbz"), mediaType.contains("zip"): .cbz
-        case mediaType.contains("cbr"), mediaType.contains("rar"): .cbr
-        case mediaType.contains("cb7"), mediaType.contains("7z"): .cb7
-        case mediaType.contains("cbt"), mediaType.contains("tar"): .cbt
-        default: nil
-        }
     }
 }

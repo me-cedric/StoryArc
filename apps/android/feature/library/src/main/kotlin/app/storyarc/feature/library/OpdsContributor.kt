@@ -1,5 +1,6 @@
 package app.storyarc.feature.library
 
+import app.storyarc.core.catalogue.CatalogueAcquisition
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.catalogue.OpdsClient
 import app.storyarc.core.catalogue.OpdsEntry
@@ -55,10 +56,16 @@ internal object OpdsContributor {
      *
      * A feed's entries are not all books: a navigation entry is a way further in and has no
      * acquisition at all. Those belong to the browser, not to the library.
+     *
+     * **The acquisition kind decides, not a substring match on the media type.** An entry
+     * whose only link is a loan or a subscription has nothing this app can fetch, and filing
+     * it as a row anyway -- 11.5 -- offered a download that failed the moment it was tapped.
+     * [CatalogueAcquisition.readable] already answers "what can the app act on", best format
+     * first; this asks it rather than re-deriving the answer here.
      */
     internal fun publication(sourceId: UUID, entry: OpdsEntry): Publication? {
-        val format = entry.acquisitions.firstNotNullOfOrNull { format(it.mediaType) }
-            ?: return null
+        val acquisition = CatalogueAcquisition.readable(entry).firstOrNull() ?: return null
+        val format = PublicationFormat.ofMediaType(acquisition.mediaType) ?: return null
         return Publication(
             identity = PublicationIdentity(
                 serverIdentifier = PublicationIdentity.ServerIdentifier(
@@ -79,27 +86,5 @@ internal object OpdsContributor {
             origin = MetadataOrigin.AUTHORITATIVE,
             sourceId = sourceId,
         )
-    }
-
-    /**
-     * The media type a feed declares, as a format this app can file under.
-     *
-     * Null for a type the app cannot open, which drops the entry rather than listing
-     * something that refuses when tapped. `publication-formats` asks for a named refusal
-     * where a reader meets one, and a library row is not that place -- the browser is,
-     * where the reader chose the thing.
-     */
-    private fun format(mediaType: String?): PublicationFormat? = when {
-        mediaType == null -> null
-        // Named formats before container suffixes, because an EPUB *is* a zip and says so:
-        // `application/epub+zip` matched the comic-archive branch and filed every book on
-        // every catalogue as a comic. The test that caught it is the one worth keeping.
-        mediaType.contains("epub") -> PublicationFormat.EPUB
-        mediaType.contains("pdf") -> PublicationFormat.PDF
-        mediaType.contains("cbz") || mediaType.contains("zip") -> PublicationFormat.CBZ
-        mediaType.contains("cbr") || mediaType.contains("rar") -> PublicationFormat.CBR
-        mediaType.contains("cb7") || mediaType.contains("7z") -> PublicationFormat.CB7
-        mediaType.contains("cbt") || mediaType.contains("tar") -> PublicationFormat.CBT
-        else -> null
     }
 }

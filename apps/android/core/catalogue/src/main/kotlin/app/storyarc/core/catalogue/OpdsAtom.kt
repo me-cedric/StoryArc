@@ -41,6 +41,12 @@ internal object OpdsAtom {
         var entry: PartialEntry? = null
         var text = StringBuilder()
 
+        // An entry-level link not yet resolved to an acquisition, because OPDS lets a
+        // `<link>` carry an `<opds:indirectAcquisition>` child that only its end tag has
+        // finished naming -- see 11.4.
+        var pendingLink: Link? = null
+        var pendingLinkIsIndirect = false
+
         try {
             var event = parser.eventType
             while (event != XmlPullParser.END_DOCUMENT) {
@@ -55,7 +61,20 @@ internal object OpdsAtom {
                                 if (link != null) {
                                     val current = entry
                                     if (current != null) {
-                                        entryLink(current, link)
+                                        // 11.1: the one link an OPDS 1.2 section entry
+                                        // carries, not an acquisition and not the entry's
+                                        // own permalink.
+                                        if (link.type.contains("application/atom+xml") &&
+                                            link.rel !in setOf("self", "up", "start")
+                                        ) {
+                                            current.sectionLink =
+                                                SectionLink(href = link.href, count = link.count)
+                                        }
+                                        // Not resolved yet: the `link` end tag finishes
+                                        // this once it knows whether an
+                                        // `indirectAcquisition` child followed -- 11.4.
+                                        pendingLink = link
+                                        pendingLinkIsIndirect = isProtectedType(link.type)
                                     } else {
                                         when {
                                             link.rel == "next" -> next = link.href
@@ -87,6 +106,14 @@ internal object OpdsAtom {
                                     }
                                 }
                             }
+                            "indirectAcquisition" ->
+                                // 11.4: its mere presence means another step stands
+                                // between this link and an openable file -- OPDS-LCP
+                                // chief among them -- whatever format the step ends in.
+                                // The type it carries is not read: the outer link's own
+                                // type is what `publication-formats` already shows the
+                                // reader as "offered as".
+                                if (pendingLink != null) pendingLinkIsIndirect = true
                         }
                     }
 
@@ -96,8 +123,32 @@ internal object OpdsAtom {
                         val value = text.toString().trim()
                         val current = entry
                         when (parser.name) {
+                            "link" -> {
+                                val link = pendingLink
+                                if (current != null && link != null) {
+                                    entryLink(current, link, pendingLinkIsIndirect)
+                                }
+                                pendingLink = null
+                                pendingLinkIsIndirect = false
+                            }
                             "entry" -> {
-                                current?.finished()?.let { publications += it }
+                                current?.finished()?.let { finished ->
+                                    // OPDS 1.2 puts each section of a navigation feed in
+                                    // its own `entry`, carrying one `application/atom+xml`
+                                    // link rather than an acquisition. An entry with
+                                    // nothing to acquire and such a link is that section,
+                                    // not a publication with no download -- 11.1.
+                                    val section = current.sectionLink
+                                    if (finished.acquisitions.isEmpty() && section != null) {
+                                        navigation += OpdsSection(
+                                            title = finished.title,
+                                            href = section.href,
+                                            count = section.count,
+                                        )
+                                    } else {
+                                        publications += finished
+                                    }
+                                }
                                 entry = null
                             }
                             "title" ->
@@ -147,21 +198,26 @@ internal object OpdsAtom {
     private const val FACET = "http://opds-spec.org/facet"
     private const val ACQUISITION = "http://opds-spec.org/acquisition"
 
-    private fun entryLink(entry: PartialEntry, link: Link) {
+    private fun entryLink(entry: PartialEntry, link: Link, isIndirect: Boolean) {
         when (link.rel) {
             "http://opds-spec.org/image", "http://opds-spec.org/cover" -> entry.cover = link.href
             "http://opds-spec.org/image/thumbnail", "http://opds-spec.org/thumbnail" ->
                 entry.thumbnail = link.href
             else -> {
-                val kind = OpdsAcquisition.Kind.named(link.rel)
-                    // A relation the standard added after this code was written. Listed as
-                    // indirect rather than dropped: the spec requires an unsupported
-                    // acquisition to be named, and a dropped link cannot be named.
-                    ?: if (link.rel.startsWith(ACQUISITION)) {
-                        OpdsAcquisition.Kind.INDIRECT
-                    } else {
-                        null
-                    }
+                val kind = if (isIndirect) {
+                    OpdsAcquisition.Kind.INDIRECT
+                } else {
+                    OpdsAcquisition.Kind.named(link.rel)
+                        // A relation the standard added after this code was written.
+                        // Listed as indirect rather than dropped: the spec requires an
+                        // unsupported acquisition to be named, and a dropped link cannot
+                        // be named.
+                        ?: if (link.rel.startsWith(ACQUISITION)) {
+                            OpdsAcquisition.Kind.INDIRECT
+                        } else {
+                            null
+                        }
+                }
                 if (kind != null) {
                     entry.acquisitions +=
                         OpdsAcquisition.of(link.href, link.type, kind, link.length)
@@ -169,6 +225,17 @@ internal object OpdsAtom {
             }
         }
     }
+
+    /**
+     * A media type that names a protection step rather than an openable file -- OPDS-LCP's
+     * license, or Adobe's ADEPT activation. 11.4: without this, a link typed to one of these
+     * parsed as `direct` and the refusal named the wrapper's media type instead of saying the
+     * acquisition itself is unsupported.
+     */
+    private fun isProtectedType(type: String): Boolean =
+        type == "application/vnd.adobe.adept+xml" ||
+            type.contains("vnd.readium.lcp.license") ||
+            type.endsWith("+lcp")
 
     /** One `link` element, which in OPDS carries almost everything. */
     private class Link(
@@ -229,6 +296,9 @@ internal object OpdsAtom {
         }
     }
 
+    /** The entry-level `application/atom+xml` link, when it has the shape a section does. */
+    private data class SectionLink(val href: String, val count: Int?)
+
     /** An entry under construction. */
     private class PartialEntry {
         var id = ""
@@ -240,6 +310,14 @@ internal object OpdsAtom {
         var cover: String? = null
         var thumbnail: String? = null
         var acquisitions = mutableListOf<OpdsAcquisition>()
+
+        /**
+         * This entry's `application/atom+xml` link, when it has exactly the shape an OPDS
+         * 1.2 section entry does. `null` unless the entry carried no acquisition and did
+         * carry this link -- never both, because a publication already answers [finished]
+         * and a plain entry answers neither.
+         */
+        var sectionLink: SectionLink? = null
 
         /** Null for an entry with no title, which is not something a reader can be shown. */
         fun finished(): OpdsEntry? {
