@@ -68,12 +68,12 @@ internal class ChapterSeekingPlayer(player: Player) : ForwardingPlayer(player) {
     }
 
     override fun seekToNext() {
-        val target = chapterSeekTarget(offsets, currentPosition, forward = true)
+        val target = chapterSeekTarget(offsets, currentPosition, true, maxSeekToPreviousPosition)
         if (target == null) super.seekToNext() else seekTo(target)
     }
 
     override fun seekToPrevious() {
-        val target = chapterSeekTarget(offsets, currentPosition, forward = false)
+        val target = chapterSeekTarget(offsets, currentPosition, false, maxSeekToPreviousPosition)
         if (target == null) super.seekToPrevious() else seekTo(target)
     }
 
@@ -95,18 +95,29 @@ internal class ChapterSeekingPlayer(player: Player) : ForwardingPlayer(player) {
 
 /**
  * Where a chapter move inside one file lands, or null to fall back to the player's own
- * next/previous — which for more than one chapter mark never happens.
+ * next/previous: a folder, a file with at most one mark, or a press past either end.
  *
  * Pure, so the mark a press lands on is a plain JVM test rather than code only a real
  * `ExoPlayer` and a decoded container can exercise. [ChapterSeekingPlayer] is the one caller.
  *
+ * **Back restarts the chapter first.** A press more than [maxSeekToPreviousMillis] into a
+ * chapter goes to the start of that chapter, and only a press nearer its start goes to the
+ * chapter before. `BasePlayer.seekToPrevious` does the same with the files of a folder, so a
+ * car's back button means one thing for both layouts.
+ *
  * @param offsets where each chapter starts, index-aligned with [AudiobookChapters.offsets].
- *   A folder, or a file with no marks at all, passes an empty or single-entry list and gets
- *   null back for both directions.
+ * @param maxSeekToPreviousMillis the player's own `maxSeekToPreviousPosition`.
  */
-internal fun chapterSeekTarget(offsets: List<Long>, positionMillis: Long, forward: Boolean): Long? {
+internal fun chapterSeekTarget(
+    offsets: List<Long>,
+    positionMillis: Long,
+    forward: Boolean,
+    maxSeekToPreviousMillis: Long,
+): Long? {
     if (offsets.size <= 1) return null
     val current = AudiobookChapters.partAt(offsets, positionMillis)
+    val intoChapter = positionMillis - offsets[current]
+    if (!forward && intoChapter > maxSeekToPreviousMillis) return offsets[current]
     val target = if (forward) current + 1 else current - 1
     return offsets.getOrNull(target)
 }
