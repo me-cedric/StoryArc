@@ -964,14 +964,14 @@ private fun Pager(
                 // one, and `turnWindowMillis` is where that decision is stated and tested.
                 ProbeTurns(choices.effective) { paging.current }
                 when (paging) {
-                    is Paging.Paged -> HorizontalPager(state = paging.state, modifier = keyboard) { page ->
+                    is Paging.Paged -> Ltr { HorizontalPager(state = paging.state, modifier = keyboard) { page ->
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             // `endSlot`: the extra slot past the last page (`Paging.kt`'s
                             // `count + 1`). Nothing to draw — reaching it opens
                             // `hasReachedEnd`, which covers this the same frame.
                             if (page - paging.lead != endSlot) Page(page - paging.lead)
                         }
-                    }
+                    } }
 
                     is Paging.Indexed -> AnimatedContent(
                     targetState = paging.index.intValue,
@@ -1010,7 +1010,7 @@ private fun Pager(
                                 Page(index, stitch = ScrollAxis.VERTICAL)
                             }
                         }
-                    } else {
+                    } else Ltr {
                         LazyRow(state = paging.state, modifier = keyboard) {
                             items(slotCount + 1) { item ->
                                 val index = item - paging.lead

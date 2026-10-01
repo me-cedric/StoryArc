@@ -70,23 +70,25 @@ internal fun ThumbnailStrip(
     // position a reader forty pages in would have to scroll away from.
     LaunchedEffect(currentIndex) { state.animateScrollToItem(currentIndex.coerceAtLeast(0)) }
 
-    LazyRow(
-        state = state,
-        modifier = modifier
-            .fillMaxWidth()
-            .background(Color.Black.copy(alpha = 0.85f)),
-        contentPadding = PaddingValues(StoryArcSpace.md),
-        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        items(pageCount) { index ->
-            ThumbnailCell(
-                viewModel = viewModel,
-                index = index,
-                isCurrent = index == currentIndex,
-                width = cellWidth,
-                onSelect = onSelect,
-            )
+    Ltr {
+        LazyRow(
+            state = state,
+            modifier = modifier
+                .fillMaxWidth()
+                .background(Color.Black.copy(alpha = 0.85f)),
+            contentPadding = PaddingValues(StoryArcSpace.md),
+            horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            items(pageCount) { index ->
+                ThumbnailCell(
+                    viewModel = viewModel,
+                    index = index,
+                    isCurrent = index == currentIndex,
+                    width = cellWidth,
+                    onSelect = onSelect,
+                )
+            }
         }
     }
 }
