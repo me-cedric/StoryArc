@@ -55,6 +55,19 @@ struct ReaderModelFailureTests {
         #expect(model.failure?.contains("CBZ") == true, "\(model.failure ?? "nil") names no format.")
     }
 
+    @Test("An open failure outside the archive errors shows the fixed sentence, never the raw Swift error")
+    func openFailureHidesTheRawError() async {
+        InterfaceLanguage.choose("en")
+        defer { InterfaceLanguage.choose(nil) }
+        // Not a PDF, so PdfPageRenderer throws an error that is not a ComicArchiveError.
+        let location = url("comics/refused.cb7")
+        let model = ReaderModel(publication: publication(.pdf, at: location), url: location)
+
+        await model.open(maxPixelSize: 256)
+
+        #expect(model.failure == "This title could not be opened.")
+    }
+
     @Test("A typed archive error is named, not shown as a raw case")
     func typedArchiveErrorsAreNamed() async {
         // The reader used to show `String(describing: error)` — a raw Swift case name such

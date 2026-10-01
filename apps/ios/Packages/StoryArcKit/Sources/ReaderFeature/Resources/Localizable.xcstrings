@@ -465,6 +465,36 @@
         }
       }
     },
+    "reader.cannotOpen": {
+      "comment": "Shown when a publication fails to open. The reader never sees the underlying error.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Titel lässt sich nicht öffnen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This title could not be opened."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo abrir este título."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce titre n’a pas pu être ouvert."
+          }
+        }
+      }
+    },
     "reader.chapter.next": {
       "comment": "Moves to the publication after this one in the series, from inside the reader.",
       "extractionState": "manual",
