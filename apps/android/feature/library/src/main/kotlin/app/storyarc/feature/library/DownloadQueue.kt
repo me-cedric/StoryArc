@@ -657,7 +657,7 @@ class DownloadQueue(
         when (error) {
             is IndexException.Unsupported -> fail(
                 download.id,
-                context.getString(R.string.catalogue_acquire_unsupported, error.format),
+                context.speakingReaderLanguage().getString(R.string.catalogue_acquire_unsupported, error.format),
                 retryable = false,
             )
             // The four cases that replaced one `Unreadable(reason)`, answered the way that
@@ -669,7 +669,7 @@ class DownloadQueue(
             is IndexException.ArchiveUnreadable,
             -> failVerification(
                 download.id,
-                context.getString(R.string.catalogue_acquire_unreadable),
+                context.speakingReaderLanguage().getString(R.string.catalogue_acquire_unreadable),
             )
             // **Content protection is not a failed verification either**, and it is not an
             // unsupported format: the bytes are exactly what the server holds, the format
@@ -678,16 +678,16 @@ class DownloadQueue(
             // for a converter, and a re-fetch would download the same locked file again.
             is IndexException.ContentProtected -> fail(
                 download.id,
-                context.getString(R.string.catalogue_acquire_protected),
+                context.speakingReaderLanguage().getString(R.string.catalogue_acquire_protected),
                 retryable = false,
             )
         }
         null
     } catch (error: OpdsError) {
-        fail(download.id, CatalogueMessages.describe(context, error), error.isTransient)
+        fail(download.id, CatalogueMessages.describe(context.speakingReaderLanguage(), error), error.isTransient)
         null
     } catch (error: IOException) {
-        fail(download.id, CatalogueMessages.reachability(context, error))
+        fail(download.id, CatalogueMessages.reachability(context.speakingReaderLanguage(), error))
         null
     }
 

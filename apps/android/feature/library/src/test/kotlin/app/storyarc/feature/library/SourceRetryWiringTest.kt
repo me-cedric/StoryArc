@@ -224,8 +224,8 @@ class SourceRetryWiringTest {
             probeEverySource.contains("getApplication<Application>().speakingReaderLanguage()"),
         )
         assertTrue(
-            "speakingReaderLanguage no longer wraps the application context with `speaking`.",
-            retry.contains("fun Application.speakingReaderLanguage(): Context = speaking(chosenLanguage())"),
+            "speakingReaderLanguage no longer wraps its context with `speaking`.",
+            retry.contains("fun Context.speakingReaderLanguage(): Context = speaking(chosenLanguage())"),
         )
         assertTrue(
             "LibraryViewModel.testSource no longer wraps its application context with" +
