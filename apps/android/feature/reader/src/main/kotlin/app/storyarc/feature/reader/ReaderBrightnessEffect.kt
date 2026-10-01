@@ -1,5 +1,7 @@
 package app.storyarc.feature.reader
 
+import android.content.ContentResolver
+import android.provider.Settings
 import android.view.WindowManager
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
@@ -39,3 +41,19 @@ internal fun ReaderBrightnessEffect(brightness: Float?) {
         }
     }
 }
+
+/**
+ * The brightness the slider shows: the reader's own, or the device's level until they move it.
+ *
+ * `BRIGHTNESS_OVERRIDE_NONE` carries no number a slider could show, so the device's own
+ * value, 0…255 and readable without a permission, stands in. A device that refuses the read
+ * states the middle of the range. A mirror of `systemBrightnessFraction` in
+ * `feature:epubreader`, which is a peer module.
+ */
+internal fun brightnessInForce(chosen: Float?, resolver: ContentResolver): Float =
+    chosen ?: try {
+        (Settings.System.getInt(resolver, Settings.System.SCREEN_BRIGHTNESS) / 255f)
+            .coerceIn(0f, 1f)
+    } catch (e: Settings.SettingNotFoundException) {
+        0.5f
+    }
