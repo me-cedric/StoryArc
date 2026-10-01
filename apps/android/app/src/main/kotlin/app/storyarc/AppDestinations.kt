@@ -95,6 +95,7 @@ private fun LibraryDestination(host: AppHost) {
 
     LibraryScreen(
         viewModel = host.library,
+        pins = dependencies.pins,
         // The same store the view model reads its query and layout from. The availability
         // axis and the download group are not on the query, so the shelf writes them down
         // itself — see `LibraryPreferences.availability`.

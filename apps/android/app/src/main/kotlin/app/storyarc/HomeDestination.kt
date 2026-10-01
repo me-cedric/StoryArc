@@ -73,7 +73,7 @@ internal fun HomeDestination(host: AppHost) {
     // immediately". Guarded on the library being empty so that coming back to Home does not
     // restart a walk that has already happened.
     LaunchedEffect(Unit) {
-        if (host.library.publications.value.isEmpty()) host.library.restoreFolders()
+        if (host.library.publications.value.isEmpty()) host.library.restoreFolders(host.dependencies.pins)
         // 10.12: the 30-day retention `sources` promises, finally asked about. Once per
         // launch is enough -- nothing expires between here and the next one.
         host.library.purgeExpiredTombstones()

@@ -144,7 +144,7 @@ class ShelfRefreshTest {
         )
         // Task 22.1. The probe only says whether a server answers. The read brings what the
         // server holds into the shelf, and restarts a continued read that stopped offline.
-        val read = body.indexOf("readServers()")
+        val read = body.indexOf("readServers(pins)")
         assertTrue(
             "The pull asks whether a server answers and never reads it, so a server added" +
                 " this session, or a continued read that stopped, waits for the next launch.",

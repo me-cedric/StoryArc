@@ -38,6 +38,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.designsystem.theme.rememberWindowClass
@@ -71,6 +72,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 @Composable
 fun LibraryScreen(
     viewModel: LibraryViewModel? = null,
+    /** The app's one pin set, so a pinned catalogue reads and re-reads like any other. */
+    pins: CertificatePins = CertificatePins(),
     /**
      * Where the two shelf choices that are not on the query are written down.
      *
@@ -289,7 +292,7 @@ fun LibraryScreen(
     ) { file -> if (file != null) viewModel?.importFile(file) }
 
     LaunchedEffect(viewModel) {
-        viewModel?.restoreFolders()
+        viewModel?.restoreFolders(pins)
         // So a publication downloaded from a server joins the one library, rather than being
         // reachable only by browsing back to the server it came from.
         viewModel?.adoptDownloads()
@@ -536,7 +539,7 @@ fun LibraryScreen(
                     if (plan.walksFolders) viewModel?.rescan()
                     if (plan.asksNetwork) {
                         onProbeSources(SourceRefreshOrigin.PULLED)
-                        viewModel?.readServers()
+                        viewModel?.readServers(pins)
                     }
                 },
                 modifier = Modifier.fillMaxSize(),

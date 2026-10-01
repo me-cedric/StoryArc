@@ -74,7 +74,7 @@ enum ServerLibrary {
             guard let page = CataloguePage(source: source, credentials: credentials) else {
                 return .none
             }
-            let feed = try? await OpdsClient(origin: page.origin).feed(at: page.url, credential: page.credential)
+            let feed = try? await client(for: page).feed(at: page.url, credential: page.credential)
             guard let feed else { return .none }
             // The feed says so itself. A `next` link is the catalogue's own statement that
             // this page is not the whole of it.
@@ -95,6 +95,18 @@ enum ServerLibrary {
         // Already in the library: its files are what the scan walks.
         case .localFolder: return .none
         }
+    }
+
+    /// The client the OPDS branch of [publications] reads a catalogue with.
+    ///
+    /// 11.3: pulled out so a test can assert which pins reach it without a live catalogue.
+    /// Built with no pins before, which silently failed every catalogue behind a certificate
+    /// the reader had already pinned — `try?` turned the handshake refusal into `.none`, the
+    /// same empty-slice answer a server that is merely offline gives, so nothing here ever
+    /// said so. `CatalogueBrowser` and `DownloadQueue` did not have this bug because they
+    /// already carry `pins`.
+    static func client(for page: CataloguePage) -> OpdsClient {
+        OpdsClient(pins: .app, origin: page.origin)
     }
 }
 

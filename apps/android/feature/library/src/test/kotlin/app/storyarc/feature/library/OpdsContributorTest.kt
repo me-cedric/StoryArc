@@ -1,5 +1,6 @@
 package app.storyarc.feature.library
 
+import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.catalogue.OpdsAcquisition
 import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.model.MetadataOrigin
@@ -7,6 +8,7 @@ import app.storyarc.core.model.PublicationFormat
 import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Test
 
 /**
@@ -105,5 +107,15 @@ class OpdsContributorTest {
             MetadataOrigin.AUTHORITATIVE,
             OpdsContributor.publication(source, entry())?.origin,
         )
+    }
+
+    // -- 11.3: the library read carries the app's pins -----------------------------------
+
+    @Test
+    fun `the client the library read fetches with carries the pins it was given`() {
+        val page = CataloguePage(title = "Library", url = "https://books.example/feed", credential = null)
+        val pins = CertificatePins()
+
+        assertSame(pins, OpdsContributor.client(page, pins).pins)
     }
 }

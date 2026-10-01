@@ -375,10 +375,10 @@ class LibraryViewModel(
     }
 
     /** Every server's publications, adopted as a scanned file is. See [ServerLibrary]. */
-    internal fun readServers() = viewModelScope.launch {
+    internal fun readServers(pins: CertificatePins) = viewModelScope.launch {
         val reading = ServerLibrary.read(
             _registry,
-            credentials,
+            credentials, pins,
             progressStore,
             progressStore?.let { KavitaProgressStore.open(getApplication()) },
         )
@@ -403,13 +403,13 @@ class LibraryViewModel(
      * back from the system, so this only has to decide which of them still point at
      * something readable.
      */
-    fun restoreFolders() {
+    fun restoreFolders(pins: CertificatePins) {
         if (_folders.value.isNotEmpty()) return
         // Before anything is walked, and before any early return below. `sources` asks for
         // the cached catalogue "within 500 ms of the library view appearing", and the walk
         // that follows corrects it in place.
         restoreCachedLibrary()
-        readServers()
+        readServers(pins)
         restoreRememberedFiles() // 10.10
 
         val restored = SafTree.persistedTrees(resolver)

@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.catalogue.CatalogueAcquisition
+import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.catalogue.OpdsAcquisition
 import app.storyarc.core.catalogue.OpdsClient
 import app.storyarc.core.catalogue.OpdsEntry
@@ -108,6 +109,7 @@ internal fun rememberPublicationCopy(
     publication: Publication,
     page: CataloguePage?,
     queue: DownloadQueue?,
+    pins: CertificatePins,
 ): PublicationCopy {
     if (page == null || queue == null) return PublicationCopy()
     val remoteId = publication.identity.serverIdentifier?.remoteId ?: return PublicationCopy()
@@ -120,7 +122,7 @@ internal fun rememberPublicationCopy(
         // A catalogue that has gone away is not an error the page reports: the row is still
         // in the library, `PublicationProvenance` already says the source is unreachable, and
         // this only decides whether a copy can be offered.
-        entry = runCatching { catalogueEntry(page, remoteId) }.getOrNull()
+        entry = runCatching { catalogueEntry(page, remoteId, pins) }.getOrNull()
     }
 
     val found = entry
@@ -192,13 +194,17 @@ internal fun rememberPublicationCopy(
 /**
  * The catalogue entry behind one library row, or null when the feed no longer lists it.
  *
- * Built the same way the contributor builds it -- `OpdsClient(origin = page.origin)`, no pins
- * -- so the page and the library read the same catalogue the same way. A catalogue behind
- * a pinned certificate already fails the library read, and pinning it here alone would make
- * the page succeed where the row it is showing could not exist.
+ * 11.3: built with the app's pins, the same way [OpdsContributor.client] now does, so a
+ * catalogue behind a certificate the reader already pinned offers a copy like any other --
+ * it used to build its own unpinned client, which failed the library read for such a
+ * catalogue and then failed the page showing one of its rows the same way, twice over.
  */
-private suspend fun catalogueEntry(page: CataloguePage, remoteId: String): OpdsEntry? =
-    OpdsClient(origin = page.origin)
+private suspend fun catalogueEntry(page: CataloguePage, remoteId: String, pins: CertificatePins): OpdsEntry? =
+    opdsClient(page, pins)
         .feed(page.url, page.credential)
         .publications
         .firstOrNull { "opds:${it.id}" == remoteId }
+
+/** The client [catalogueEntry] reads with. Pulled out so a test can assert which pins reach it. */
+internal fun opdsClient(page: CataloguePage, pins: CertificatePins): OpdsClient =
+    OpdsClient(pins = pins, origin = page.origin)

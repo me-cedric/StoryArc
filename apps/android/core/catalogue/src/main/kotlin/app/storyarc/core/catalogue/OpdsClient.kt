@@ -91,7 +91,11 @@ sealed class OpdsCredential {
  * `URLSession` for the same reason.
  */
 class OpdsClient(
-    private val pins: CertificatePins = CertificatePins(),
+    // Public, not private: 11.3's regression tests, in `:feature:library`, assert which
+    // `CertificatePins` instance a caller handed this client by reference, so a wiring
+    // mistake -- a fresh empty set built where the app's shared one belongs -- fails a test
+    // rather than only a live catalogue. `internal` would not reach past this module.
+    val pins: CertificatePins = CertificatePins(),
     /**
      * The origin of the source this client was made for, or null when the caller is asking
      * about an address the reader typed and there is nothing else to compare it against.
