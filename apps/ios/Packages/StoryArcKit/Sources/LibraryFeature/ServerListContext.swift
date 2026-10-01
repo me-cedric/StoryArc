@@ -1,7 +1,7 @@
 public import Foundation
 
 public import Kavita
-internal import Persistence
+public import Persistence
 public import StoryArcCore
 
 /// Where an entry opened from, when it opened from a server reading list.
@@ -85,7 +85,8 @@ public enum ServerListContext {
     /// What fetching the next or the previous entry found.
     public enum Fetch: Equatable {
         case opened(Publication, URL)
-        case failed
+        /// The sentence the failure owes the reader. It names the entry.
+        case failed(String)
     }
 
     /// Fetches `item` the way ``KavitaListView``'s own row does, and advances `current` to
@@ -105,12 +106,57 @@ public enum ServerListContext {
             store: KavitaProgressStore(),
             from: client ?? KavitaClient(address: place.serverAddress)
         )
-        guard case let .opened(publication, url) = opening else { return .failed }
+        guard case let .opened(publication, url) = opening else {
+            let reason = String(localized: "kavita.open.failed \(item.displayName)", bundle: .module, locale: .storyArc)
+            return .failed(reason)
+        }
         if let index = place.entries.firstIndex(where: { $0.chapterId == item.chapterId }) {
             var moved = place
             moved.position = index
             current = moved
         }
         return .opened(publication, url)
+    }
+
+    /// Opens the entry an end screen offered, when `offered` is one that ``next(after:)`` or
+    /// ``previous(before:)`` answered. The fetch is the list view's own, and so is the seed of
+    /// the server's position. `nil` when `offered` names no entry of `current`.
+    ///
+    /// Tasks 7.3 and 7.14: the offer names a server list's entry before this device has a file
+    /// for it, so taking the offer fetches one rather than looking for a file that is not there.
+    public static func open(
+        _ offered: Publication,
+        seeding progress: ProgressStore?,
+        through client: KavitaClient? = nil
+    ) async -> Fetch? {
+        guard let place = current, let remote = offered.identity.serverIdentifier,
+              remote.sourceID.uuidString == place.serverId,
+              let item = place.entries.first(where: { remote.remoteID == "chapter:\($0.chapterId)" })
+        else { return nil }
+        let fetched = await fetch(place, item, through: client)
+        if case let .opened(publication, _) = fetched {
+            await seedKavitaOpen(publication, pagesRead: item.pagesRead, of: item.pagesTotal, into: progress)
+        }
+        return fetched
+    }
+}
+
+extension LibraryModel {
+    /// What an end-of-publication screen offers after `publication`: the next entry of the
+    /// server list the reader is inside, or else the library's own next.
+    ///
+    /// Task 7.14: the library's next can be a Kavita or OPDS row with no file on this device.
+    /// An end screen cannot open that row, so the offer leaves it out.
+    public func offeredNext(after publication: Publication) -> Publication? {
+        ServerListContext.next(after: publication) ?? next(after: publication).flatMap(openable)
+    }
+
+    /// The mirror of ``offeredNext(after:)``, for the chapter actions' "previous" control.
+    public func offeredPrevious(before publication: Publication) -> Publication? {
+        ServerListContext.previous(before: publication) ?? previous(before: publication).flatMap(openable)
+    }
+
+    private func openable(_ publication: Publication) -> Publication? {
+        location(of: publication) == nil ? nil : publication
     }
 }

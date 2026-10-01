@@ -260,12 +260,13 @@ extension StoryArcApp {
         }
     }
 
-    /// Swaps the reader's contents for the next publication.
-    ///
-    /// The selection is replaced rather than a second cover presented: stacking
-    /// readers would leave a pile of them behind a long series.
+    /// Swaps the reader's contents for the next publication. The selection is replaced rather
+    /// than a second cover presented: stacking readers would leave a pile of them behind.
     func openNext(_ publication: Publication) {
-        guard let url = library.location(of: publication) else { return }
+        guard let url = library.location(of: publication) else {
+            Task { await openFetched(publication) } // Tasks 7.3 and 7.14: see `NextEntryOpening.swift`.
+            return
+        }
         open(publication, at: url)
     }
 
