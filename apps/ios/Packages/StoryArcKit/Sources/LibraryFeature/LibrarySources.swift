@@ -1,6 +1,6 @@
 public import Foundation
 
-internal import Catalogue
+public import Catalogue
 internal import Kavita
 internal import Smb
 public import Persistence
@@ -200,7 +200,12 @@ extension LibraryModel {
     /// `credentials` is a parameter rather than something the model holds, matching
     /// ``probeNetworkSources(credentials:pins:)``: the store is a handle to the Keychain and
     /// the model has no other use for one.
-    public func remove(_ source: Source, credentials: CredentialStore?) {
+    public func remove(
+        _ source: Source,
+        credentials: CredentialStore?,
+        pins: CertificatePins = CertificatePins(),
+        pinStore: CertificatePinStore = CertificatePinStore()
+    ) {
         // The secret first, and unconditionally. `sources` requires removal to take "its
         // stored credentials" with it, and until this line nothing in the app had ever
         // called `CredentialStore.remove`: a reader who disconnected a Kavita server or an
@@ -233,6 +238,7 @@ extension LibraryModel {
         let identities = publications.filter { $0.sourceID == source.id }.map(\.identity)
         registry = registry.removing(source.id, at: Date(), holding: identities)
         sourceStore?.save(registry)
+        forgetPinIfUnshared(source, pins: pins, pinStore: pinStore)
 
         // The publications it contributed go with it, and the rest of the shelf stays.
         publications.removeAll { $0.sourceID == source.id }
@@ -244,6 +250,24 @@ extension LibraryModel {
         if publications.isEmpty { libraryCache.clear() } else { cacheLibrary() }
         cachedAt = nil
         rebuild()
+    }
+
+    /// Forgets a removed source's certificate pin, unless another saved source still answers
+    /// at the same host.
+    ///
+    /// 11.9: `CertificatePins.forget` and `CertificatePinStore.forget` are documented as
+    /// "Called when its source is removed", and nothing called either — removing a pinned
+    /// catalogue or Kavita server left its pin live for whatever next answered at that host.
+    func forgetPinIfUnshared(_ source: Source, pins: CertificatePins, pinStore: CertificatePinStore) {
+        guard let host = Self.pinHost(of: source) else { return }
+        let stillShared = registry.sources.contains { $0.id != source.id && Self.pinHost(of: $0) == host }
+        guard !stillShared else { return }
+        pins.forget(host)
+        pinStore.forget(host)
+    }
+
+    private static func pinHost(of source: Source) -> String? {
+        source.locator.flatMap(URL.init(string:)).flatMap(OpdsOrigin.init(url:))?.host
     }
 }
 

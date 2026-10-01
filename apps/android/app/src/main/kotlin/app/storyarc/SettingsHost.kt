@@ -10,6 +10,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.SourceAction
 import app.storyarc.feature.library.clearing
+import app.storyarc.feature.library.forgetPinIfUnshared
 import app.storyarc.feature.library.readProgress
 import app.storyarc.feature.library.removeAfterFinishing
 import app.storyarc.feature.library.restore
@@ -61,6 +62,7 @@ internal fun SettingsHost(
             host.downloads.value =
                 removeDownloads(source, dependencies.queue, dependencies.kavitaCards)
             host.library.removeSource(source, dependencies.credentials)
+            host.library.forgetPinIfUnshared(source, dependencies.pins, dependencies.pinStore)
         },
         onRenameSource = { source, name -> host.library.renameSource(source, name) },
         onReorderSource = { source, later -> host.library.reorderSource(source, later) },
@@ -80,6 +82,7 @@ internal fun SettingsHost(
                     host.downloads.value =
                         removeDownloads(source, dependencies.queue, dependencies.kavitaCards)
                     host.library.removeSource(source, dependencies.credentials)
+                    host.library.forgetPinIfUnshared(source, dependencies.pins, dependencies.pinStore)
                 }
             }
         },

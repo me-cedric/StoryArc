@@ -376,7 +376,7 @@ extension StoryArcApp {
     /// name, let alone offer to remove.
     func removeSource(_ source: Source) {
         removeDownloads(of: source)
-        library.remove(source, credentials: credentials)
+        library.remove(source, credentials: credentials, pins: .app)
     }
 
     /// Deletes the files one source produced, and the records of them.
