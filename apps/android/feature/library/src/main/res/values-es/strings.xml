@@ -25,6 +25,7 @@
     <string name="library_cell_unavailable">Necesita que su biblioteca esté disponible</string>
     <string name="library_section_other">Otros</string>
     <string name="library_scanning">Añadiendo tus cómics: %1$d encontrados</string>
+    <string name="library_scan_cancel">Cancelar</string>
     <string name="library_add_folder">Añadir una carpeta</string>
     <string name="library_folder_unavailable">Ya no se puede leer %1$s.</string>
     <string name="library_repick_folder">Elegir de nuevo</string>

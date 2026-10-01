@@ -113,7 +113,7 @@ internal fun UnavailableFolders(
  * ever seen before the first publication arrives.
  */
 @Composable
-internal fun Scanning(found: Int, modifier: Modifier = Modifier) {
+internal fun Scanning(found: Int, onCancel: () -> Unit = {}, modifier: Modifier = Modifier) {
     val palette = LocalStoryArcPalette.current
     Column(
         modifier = modifier,
@@ -126,5 +126,7 @@ internal fun Scanning(found: Int, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodySmall,
             color = palette.textSecondary,
         )
+        // 10.6: nothing called `cancelScan` on a reader's behalf, on either platform.
+        TextButton(onClick = onCancel) { Text(stringResource(R.string.library_scan_cancel)) }
     }
 }

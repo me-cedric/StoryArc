@@ -6812,6 +6812,36 @@
         }
       }
     },
+    "library.scan.cancel": {
+      "comment": "Stops a running folder scan. 10.6, 10.7.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abbrechen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annuler"
+          }
+        }
+      }
+    },
     "library.scanning %lld": {
       "comment": "Scan progress. `local-library` requires progress reported as a count of items found.",
       "extractionState": "manual",
