@@ -53,4 +53,10 @@ struct ReadingListRowStateTests {
         let unavailable = ReadingListRowState.of(isAvailable: false, isFinished: false, fraction: nil)
         #expect(unread.spoken != unavailable.spoken)
     }
+
+    @Test("The spoken row keeps its place in the list, its title and its read state")
+    func spokenRowKeepsThePlace() {
+        let state = ReadingListRowState.of(isAvailable: true, isFinished: false, fraction: nil)
+        #expect(state.spokenRow(number: 3, title: "Saga") == "3. Saga \(state.spoken)")
+    }
 }

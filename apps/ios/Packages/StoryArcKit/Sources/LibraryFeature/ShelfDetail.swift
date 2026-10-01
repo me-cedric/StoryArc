@@ -286,29 +286,7 @@ struct ReadingListDetail: View {
                     .frame(width: Self.thumbnailWidth, height: Self.thumbnailWidth * 1.5)
                     .clipShape(.rect(cornerRadius: StoryArcRadius.sm))
 
-                VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                    Text(publication?.displayTitle ?? entry)
-                        .foregroundStyle(
-                            publication == nil ? theme.palette.textSecondary : theme.palette.textPrimary
-                        )
-
-                    if publication == nil {
-                        // `collections-and-reading-lists`: an entry whose source no longer
-                        // has the publication "remains in the list, marked unavailable, and
-                        // does not break the ordering or the next flow". Removing it would
-                        // renumber everything after it.
-                        Text("shelves.list.unavailable", bundle: .module)
-                            .textRole(.footnote)
-                            .foregroundStyle(StoryArcColor.Status.offline)
-                    } else if let drawn = state.drawn {
-                        // An unread entry draws nothing here, as an unread publication draws
-                        // nothing in the library's own grid — ``state.spoken`` still names
-                        // it, to a reader who cannot see the absence of a badge.
-                        Text(drawn)
-                            .textRole(.footnote)
-                            .foregroundStyle(theme.palette.textSecondary)
-                    }
-                }
+                rowTitle(entry, publication: publication, state: state)
 
                 Spacer(minLength: 0)
             }
@@ -316,9 +294,7 @@ struct ReadingListDetail: View {
         .buttonStyle(.plain)
         .disabled(publication == nil)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            [publication?.displayTitle ?? entry, state.spoken].joined(separator: ", ")
-        )
+        .accessibilityLabel(state.spokenRow(number: number, title: publication?.displayTitle ?? entry))
         .task(id: entry) {
             guard covers[entry] == nil, let publication else { return }
             let side = Int(Self.thumbnailWidth * displayScale)
@@ -343,6 +319,31 @@ struct ReadingListDetail: View {
         .refusedByServer($refusedServer, model: model, publication: publication)
     }
 
+    /// The row's title, and beneath it what its state draws.
+    @ViewBuilder
+    private func rowTitle(_ entry: String, publication: Publication?, state: ReadingListRowState) -> some View {
+        VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
+            Text(publication?.displayTitle ?? entry)
+                .foregroundStyle(publication == nil ? theme.palette.textSecondary : theme.palette.textPrimary)
+
+            if publication == nil {
+                // `collections-and-reading-lists`: an entry whose source no longer has the
+                // publication "remains in the list, marked unavailable, and does not break
+                // the ordering or the next flow". Removing it would renumber everything after.
+                Text("shelves.list.unavailable", bundle: .module)
+                    .textRole(.footnote)
+                    .foregroundStyle(StoryArcColor.Status.offline)
+            } else if let drawn = state.drawn {
+                // An unread entry draws nothing here, as an unread publication draws nothing
+                // in the library's own grid — ``ReadingListRowState/spoken`` still names it,
+                // to a reader who cannot see the absence of a badge.
+                Text(drawn)
+                    .textRole(.footnote)
+                    .foregroundStyle(theme.palette.textSecondary)
+            }
+        }
+    }
+
     /// The row's own cover, or a plain well while one has not arrived.
     ///
     /// Decorative: the row's merged accessibility label already states the title and the
@@ -356,50 +357,5 @@ struct ReadingListDetail: View {
         } else {
             theme.palette.surfaceRaised
         }
-    }
-}
-
-/// What a reading list's row draws beneath its title, and what it says to a screen reader.
-///
-/// `collections-and-reading-lists`' delta: "each entry states its own read state — finished,
-/// part-read with the position reached, or unread — in the same terms the library uses for a
-/// publication". Free of the view so a test can call it directly, and shared in shape with
-/// Android's `entryReadState` even though each platform reaches its own strings for it.
-///
-/// An unread entry draws nothing, the rule the library's own grid cell and
-/// ``KavitaShelfViews``' server row both already keep — nothing on a shelf says "unread" out
-/// loud through a badge. ``spoken`` still names it, since a screen reader is told what a
-/// sighted reader would see by its absence.
-struct ReadingListRowState: Equatable {
-    /// What is drawn beneath the title, or nil to draw nothing.
-    let drawn: String?
-    /// What a screen reader is told, which never withholds "unread" the way `drawn` does.
-    let spoken: String
-
-    static func of(isAvailable: Bool, isFinished: Bool, fraction: Double?) -> ReadingListRowState {
-        guard isAvailable else {
-            return ReadingListRowState(
-                drawn: nil,
-                spoken: String(localized: "shelves.list.unavailable", bundle: .module, locale: .storyArc)
-            )
-        }
-        let drawn: String? =
-            if isFinished {
-                String(localized: "library.cell.finished", bundle: .module, locale: .storyArc)
-            } else if let fraction {
-                String(
-                    localized: "library.cell.progress \(Int(fraction * 100))",
-                    bundle: .module,
-                    locale: .storyArc
-                )
-            } else {
-                nil
-            }
-        let spoken = drawn ?? String(
-            localized: "library.readState.unread",
-            bundle: .module,
-            locale: .storyArc
-        )
-        return ReadingListRowState(drawn: drawn, spoken: spoken)
     }
 }
