@@ -265,8 +265,12 @@ extension LibraryModel {
     }
 
     /// The folder behind a source, when the source is one.
+    ///
+    /// 10.3: matched on the bookmark's own key first. A name match is still tried after,
+    /// for a source whose locator has not been through ``register(_:)`` this session yet.
     func folder(of source: Source) -> URL? {
-        folders.first { $0.lastPathComponent == source.locator }
+        folders.first { bookmarks?.key(for: $0) == source.locator }
+            ?? folders.first { $0.lastPathComponent == source.locator }
     }
 
     /// Whether a folder source can still be read.
