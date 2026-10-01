@@ -338,6 +338,11 @@ private fun PublicationPage(
         publication.sourceId?.let { registry[it] }
             ?.let { CataloguePage.of(it, dependencies.credentials) }
     }
+    // Remembered as `catalogue` is: the route reads the keystore, and the page redraws on
+    // every download tick.
+    val canKeepKavita = remember(publication.id, registry) {
+        kavitaKeepRoute(publication, registry, dependencies.kavitaProgress, dependencies.credentials) != null
+    }
 
     // The audio half of the page, and the four scenarios nothing could reach while this was
     // left at its defaults: the list, the marks on it, the chapter the action names, and the
@@ -439,9 +444,7 @@ private fun PublicationPage(
                     host.downloads.value = host.dependencies.queue.library.value
                 }
             }
-        } else if (!isDownloaded &&
-            kavitaKeepRoute(publication, registry, dependencies.kavitaProgress, dependencies.credentials) != null
-        ) {
+        } else if (!isDownloaded && canKeepKavita) {
             {
                 scope.launch {
                     enqueueKavitaChapter(
