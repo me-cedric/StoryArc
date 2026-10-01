@@ -44,8 +44,12 @@ extension LibraryModel {
     /// Nothing happens at all when the folder is unchanged, which is the common case: the
     /// listing is compared, it matches, and not one archive is opened.
     func reconcile(_ folder: URL) async {
+        // 10.4: no snapshot yet means the running scan owns this folder -- its first walk
+        // has not finished and written one. Falling back to an empty snapshot compared
+        // every real file to nothing, reported each one "added", and re-indexed the whole
+        // folder a second time, in parallel with the scan already doing it.
+        guard let snapshot = snapshots[folder.path] else { return }
         let walked = LibraryScanner.entries(in: folder)
-        let snapshot = snapshots[folder.path] ?? FolderSnapshot()
         // Nil means the walk found nothing where something used to be — an unreadable
         // folder far more often than a reader who deleted every book. Nothing is removed
         // and the snapshot is left alone; see `FolderSnapshot.change(to:)`.
