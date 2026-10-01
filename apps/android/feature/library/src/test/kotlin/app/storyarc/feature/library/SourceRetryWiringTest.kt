@@ -44,6 +44,59 @@ class SourceRetryWiringTest {
     private val retry: String by lazy { read(RETRY_SOURCE) }
     private val triggers: String by lazy { read(TRIGGERS_SOURCE) }
 
+    /**
+     * The body of `probeEverySource`, not the whole file. Task 7.5: "pushed on
+     * reconnection" used to mean only the screen that happened to be open when a server
+     * came back; this is the probe loop's own half of that, and `SourceHealth.probe`'s
+     * reason is why this reads source rather than driving a real reconnection.
+     */
+    private val probeEverySource: String by lazy {
+        val start = retry.indexOf("private suspend fun LibraryViewModel.probeEverySource")
+        if (start < 0) error("SourceRetry.kt no longer has probeEverySource")
+        retry.substring(start)
+    }
+
+    @Test
+    fun `a source that just answered reconciles its own remembered lists`() {
+        assertTrue(
+            "probeEverySource no longer calls ShelfSync.reconcile for a source that just" +
+                " answered, so an edit queued while it was away waits for a screen to open" +
+                " rather than reaching the server on reconnection.",
+            probeEverySource.contains("ShelfSync.reconcile("),
+        )
+    }
+
+    @Test
+    fun `a held reorder is flushed even when reconcile owes no append`() {
+        assertTrue(
+            "probeEverySource no longer flushes KavitaProgressStore on its own. " +
+                "ShelfSync.reconcile's own push skips a source with no owed append, so a" +
+                " held reorder with nothing else queued would wait for a screen to open.",
+            probeEverySource.contains("KavitaSync.flush("),
+        )
+        val reconcile = probeEverySource.indexOf("ShelfSync.reconcile(")
+        val flush = probeEverySource.indexOf("KavitaSync.flush(")
+        assertTrue(
+            "the flush and the reconcile are not both in probeEverySource, so one of the" +
+                " two reconnection paths task 7.5 asks for is missing",
+            reconcile in 0..<flush,
+        )
+    }
+
+    @Test
+    fun `a stale order found on reconnection still writes the conflict notice`() {
+        assertTrue(
+            "the flush on reconnection no longer passes onOrderConflict, so task 7.4's" +
+                " guard against overwriting a server that moved is silently skipped the one" +
+                " time it matters most — a queue that waited through being offline.",
+            probeEverySource.contains("onOrderConflict = { listId ->"),
+        )
+        assertTrue(
+            "a stale order found on reconnection no longer notes a ShelfConflictNotice.",
+            probeEverySource.contains("ShelfConflictNotice("),
+        )
+    }
+
     /** The body of the backoff loop, from its `while` to the end of the function. */
     private val loop: String by lazy {
         val start = retry.indexOf("while (isActive)")
