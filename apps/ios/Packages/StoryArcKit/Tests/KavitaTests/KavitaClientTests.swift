@@ -116,7 +116,7 @@ struct KavitaClientTests {
         ))
     }
 
-    @Test("Marking a chapter read names the series as well as the chapter")
+    @Test("Marking a chapter names the series, the volume and the chapter")
     func marksAChapter() async throws {
         let sent = KavitaSent()
         let client = try client { request in
@@ -127,13 +127,32 @@ struct KavitaClientTests {
             return self.json("{}")
         }
 
-        try await client.mark(seriesId: 11, chapterId: 12, isRead: false)
+        try await client.mark(seriesId: 11, volumeId: 1100, chapterId: 12, isRead: false)
 
         let request = try #require(sent.request)
-        #expect(request.url?.path() == "/api/Reader/mark-chapter-unread")
+        // D2: `mark-multiple-unread`, not `mark-chapter-unread` — the single-chapter unread
+        // route does not exist on any published Kavita.
+        #expect(request.url?.path() == "/api/Reader/mark-multiple-unread")
         let body = try #require(sent.body)
         let text = try #require(String(bytes: body, encoding: .utf8))
-        #expect(text.contains("\"seriesId\":11") && text.contains("\"chapterId\":12"))
+        #expect(
+            text.contains("\"seriesId\":11")
+                && text.contains("\"volumeIds\":[1100]")
+                && text.contains("\"chapterIds\":[12]")
+        )
+    }
+
+    @Test("A 404 on the mark route is read as the server being too old for it")
+    func marksRouteMissingOn404() async throws {
+        let client = try client { request in
+            request.url?.path().contains("authenticate") == true
+                ? self.json(#"{"username":"ada","token":"t","apiKey":"key"}"#)
+                : .response(status: 404, body: Data())
+        }
+
+        await #expect(throws: KavitaError.routeMissing(path: "Reader/mark-multiple-read")) {
+            try await client.mark(seriesId: 11, volumeId: 1100, chapterId: 12, isRead: true)
+        }
     }
 
     /// A box, because the stub runs on the session's queue.
