@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import android.app.Application
+import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.Publication
@@ -11,6 +12,7 @@ import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -66,5 +68,23 @@ class ShelfWriteThroughTest {
         second.restoreCachedLibrary()
 
         assertEquals(listOf("Kept"), second.publications.value.map { it.displayTitle })
+    }
+
+    @Test
+    fun `removing the only folder writes the emptied shelf through, so its row does not come back`() {
+        val first = library()
+        val tree = Uri.parse("content://com.example.documents/tree/Comics")
+        val folder = Source(displayName = "Comics", kind = SourceKind.LOCAL_FOLDER, locator = tree.toString())
+        first._registry.value = SourceRegistry(sources = listOf(folder))
+        first._publications.value = listOf(publication("Gone", folder.id))
+        first._folders.value = listOf(tree)
+        first.cacheLibrary()
+
+        first.removeFolder(tree)
+
+        val second = library()
+        second.restoreCachedLibrary()
+
+        assertTrue(second.publications.value.none { it.displayTitle == "Gone" })
     }
 }
