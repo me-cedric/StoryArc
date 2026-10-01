@@ -304,6 +304,9 @@
     <string name="smb_error_authentication">Benutzername oder Passwort wurde abgelehnt.</string>
     <string name="smb_error_smb1">Dieser Server bietet nur SMB 1 an, das aus Sicherheitsgründen deaktiviert ist. Aktivieren Sie SMB 2 oder neuer auf dem Server — bei den meisten NAS-Geräten unter Dateidienste, SMB.</string>
     <string name="smb_error_unexpected">Die Freigabe konnte nicht erreicht werden.</string>
+    <string name="smb_error_unsupported">Dies ist ein Format, das StoryArc nicht liest.</string>
+    <string name="smb_error_password_protected">Dieses Archiv ist durch ein Passwort geschützt. StoryArc verwaltet keine Archiv-Passwörter, es gibt hier also nichts einzugeben.</string>
+    <string name="smb_error_damaged">Diese Datei konnte nicht gelesen werden. Sie ist möglicherweise beschädigt.</string>
     <string name="smb_error_local_network_denied">Dieses Gerät hat den Zugriff auf das lokale Netzwerk nicht erteilt, deshalb konnte die Verbindung nicht starten. Schalten Sie ihn in Einstellungen unter Apps, StoryArc, Berechtigungen ein.</string>
     <string name="smb_discovery_local_network_denied">Der Zugriff auf das lokale Netzwerk ist aus, deshalb findet StoryArc keine Freigaben in der Nähe. Schalten Sie ihn in Einstellungen unter Apps, StoryArc, Berechtigungen wieder ein. Sie können eine Freigabe weiterhin von Hand hinzufügen.</string>
     <string name="smb_error_key_not_stored">Dieses Gerät hat das Passwort nicht gespeichert, daher wurde die Freigabe nicht hinzugefügt.</string>

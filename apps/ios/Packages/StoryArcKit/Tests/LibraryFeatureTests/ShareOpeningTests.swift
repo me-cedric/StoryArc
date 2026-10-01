@@ -2,6 +2,7 @@ import Foundation
 import Testing
 
 @testable import LibraryFeature
+import Formats
 import StoryArcCore
 
 /// What the share browser does about one publication, driven rather than read as text.
@@ -157,6 +158,51 @@ struct ShareOpeningTests {
 
         #expect(answers.offerMade, "A publication needing a transfer was not offered at all.")
         #expect(answers.offered == nil, "A zero-length entry was offered as a size.")
+    }
+
+    @Test("A .cb7 on a share is named, not read as an unreachable network")
+    func unsupportedIndexFailureIsNamed() async {
+        // The indexer already names this from the headers over the share. Sending it to
+        // `unexpected` read as "the share could not be reached" for a file the share
+        // reached just fine.
+        let answers = Answers()
+        await ShareOpening.offerOrOpen(
+            index: { throw PublicationIndexer.IndexError.unsupported(format: "7-Zip") },
+            length: 10,
+            onOpen: { found, url in answers.opened = (found, url) },
+            onOffer: { bytes in answers.offerMade = true; answers.offered = bytes },
+            onSay: { said in answers.said = said }
+        )
+
+        #expect(answers.said == ShareOpening.unsupported)
+    }
+
+    @Test("A password-protected archive on a share is named, not read as an unreachable network")
+    func passwordProtectedIndexFailureIsNamed() async {
+        let answers = Answers()
+        await ShareOpening.offerOrOpen(
+            index: { throw PublicationIndexer.IndexError.archivePasswordProtected },
+            length: 10,
+            onOpen: { found, url in answers.opened = (found, url) },
+            onOffer: { bytes in answers.offerMade = true; answers.offered = bytes },
+            onSay: { said in answers.said = said }
+        )
+
+        #expect(answers.said == ShareOpening.passwordProtected)
+    }
+
+    @Test("A damaged archive on a share is named, not read as an unreachable network")
+    func damagedIndexFailureIsNamed() async {
+        let answers = Answers()
+        await ShareOpening.offerOrOpen(
+            index: { throw PublicationIndexer.IndexError.archiveUnreadable },
+            length: 10,
+            onOpen: { found, url in answers.opened = (found, url) },
+            onOffer: { bytes in answers.offerMade = true; answers.offered = bytes },
+            onSay: { said in answers.said = said }
+        )
+
+        #expect(answers.said == ShareOpening.damaged)
     }
 
     @Test("An index that failed over the share is named rather than swallowed")
