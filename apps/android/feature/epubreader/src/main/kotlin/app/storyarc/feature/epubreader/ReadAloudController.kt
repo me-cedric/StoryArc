@@ -80,6 +80,9 @@ internal class ReadAloudController(
     /** What the engine is saying, so the page can be moved to it once it starts. */
     private var current: Sentence? = null
 
+    /** Utterance errors since the last one the engine actually started. Reset by [onStart]. */
+    private var consecutiveErrors = 0
+
     private val focusListener = AudioManager.OnAudioFocusChangeListener { change ->
         when (change) {
             // Something else wants the speaker for a moment: a navigation direction, a
@@ -242,7 +245,15 @@ internal class ReadAloudController(
     }
 
     private val progress = object : UtteranceProgressListener() {
-        override fun onStart(utteranceId: String?) = Unit
+        override fun onStart(utteranceId: String?) {
+            // The engine is actually saying it now, so this is when the reached position is
+            // recorded and the highlight moves -- not when the sentence was only queued. A
+            // session that errors on every utterance before this point never advances past
+            // the sentence it last started, instead of racing to the end of the book.
+            consecutiveErrors = 0
+            val sentence = current?.takeIf { it.locator.href.toString() == utteranceId } ?: return
+            scope.launch { onSentence(sentence) }
+        }
 
         override fun onDone(utteranceId: String?) {
             // The engine finished a sentence of its own accord. A sentence it was told to
@@ -258,9 +269,19 @@ internal class ReadAloudController(
         override fun onError(utteranceId: String?) = Unit
 
         override fun onError(utteranceId: String?, errorCode: Int) {
-            // One sentence the engine could not say is not a reason to end the book: the
-            // usual cause is a language it has no voice for, in a single quoted line.
-            scope.launch { if (_session.value.isPlaying) speakNext(forward = true) }
+            scope.launch {
+                if (!_session.value.isPlaying) return@launch
+                consecutiveErrors += 1
+                // One sentence the engine could not say is not by itself a reason to end the
+                // book -- the usual cause is a language it has no voice for, in a single
+                // quoted line. An engine-level code, or enough of those in a row, means the
+                // walk cannot continue: see [shouldEndAfterSpeechError].
+                if (shouldEndAfterSpeechError(errorCode, consecutiveErrors)) {
+                    stop()
+                } else {
+                    speakNext(forward = true)
+                }
+            }
         }
     }
 
@@ -295,13 +316,16 @@ internal class ReadAloudController(
         current = sentence
         val engine = engine ?: return
         sentence.language?.let { engine.language = it }
-        engine.speak(
+        val queued = engine.speak(
             sentence.text,
             TextToSpeech.QUEUE_FLUSH,
             null,
             sentence.locator.href.toString(),
         )
-        scope.launch { onSentence(sentence) }
+        // A refused call gets neither `onStart` nor `onError`: nothing else will ever end
+        // this session, so it has to happen here, with the last *started* sentence's
+        // position already the one on record.
+        if (queued != TextToSpeech.SUCCESS) stop()
     }
 
     private companion object {
@@ -312,3 +336,33 @@ internal class ReadAloudController(
                 .build()
     }
 }
+
+/**
+ * Whether one more utterance error is the end of the read-aloud session.
+ *
+ * Pure, so the engine/utterance split and the consecutive count are a plain JVM test rather
+ * than code only a real `TextToSpeech` service can exercise. [ReadAloudController] is the one
+ * caller and holds the count; this only answers what it means.
+ *
+ * `errorCode` is an engine-level code: END of its own accord, because the usual cause is the
+ * synthesis service itself, not one sentence. [MAX_CONSECUTIVE_SPEECH_ERRORS] is this body
+ * else -- a small, repeated run of per-utterance errors is the shape of a book in a language
+ * the engine has no voice for, which is not a reason to stop at the first sentence but is one
+ * to stop rather than walk every remaining sentence to the end of the book in silence.
+ */
+internal fun shouldEndAfterSpeechError(errorCode: Int, consecutiveErrors: Int): Boolean =
+    isEngineLevelSpeechError(errorCode) || consecutiveErrors >= MAX_CONSECUTIVE_SPEECH_ERRORS
+
+/** An error naming the synthesis service or its output, rather than one sentence. */
+internal fun isEngineLevelSpeechError(errorCode: Int): Boolean = when (errorCode) {
+    TextToSpeech.ERROR_SERVICE,
+    TextToSpeech.ERROR_OUTPUT,
+    TextToSpeech.ERROR_NETWORK,
+    TextToSpeech.ERROR_NETWORK_TIMEOUT,
+    TextToSpeech.ERROR_NOT_INSTALLED_YET,
+    -> true
+    else -> false
+}
+
+/** A small number: enough to tell "one sentence" from "every sentence", and no more. */
+internal const val MAX_CONSECUTIVE_SPEECH_ERRORS = 3
