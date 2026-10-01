@@ -420,9 +420,7 @@ class LibraryViewModel(
         // corrects a name an older build derived. It adds nothing: a persisted tree
         // permission is one a reader picked, so it is already a source.
         reachable.forEach(::register)
-        // 10.1: a tree SafTree still lists but cannot name is one kind of gone folder; a
-        // registry source whose own tree the system no longer grants at all is the other.
-        refreshFolderAvailability(restored, reachable)
+        refreshFolderAvailability(restored, reachable) // 10.1
         // Even with no folder to restore: the app's own folder is walked on every scan, and
         // it is where a file shared to StoryArc lands.
         rescan()
@@ -433,8 +431,7 @@ class LibraryViewModel(
      * Adds a picked folder.
      *
      * The caller takes the persistable permission before calling — it belongs to
-     * the `Intent` result and cannot be recovered afterwards. 10.2: only this folder's own
-     * name leaves `unavailableFolders`, not the whole list.
+     * the `Intent` result and cannot be recovered afterwards.
      */
     fun addFolder(tree: Uri) {
         if (tree in _folders.value) return
@@ -593,10 +590,7 @@ class LibraryViewModel(
             removeFolder(tree)
             return
         }
-        // 10.13: an unreachable folder has no tree in `_folders` either.
-        if (source.kind == SourceKind.LOCAL_FOLDER) {
-            source.locator?.let(Uri::parse)?.let(::releaseFolderGrant)
-        }
+        if (source.kind == SourceKind.LOCAL_FOLDER) source.locator?.let(Uri::parse)?.let(::releaseFolderGrant) // 10.13
         forget(source)
     }
 
