@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.Source
@@ -50,6 +51,8 @@ import app.storyarc.core.model.Source
 @Composable
 fun SearchScreen(
     viewModel: LibraryViewModel,
+    /** The app's one pin set, so a certificate pinned elsewhere is honoured here too. */
+    pins: CertificatePins,
     /** How the app layer reaches a publication's own page. */
     onOpenPage: (Publication) -> Unit,
     /** How the app layer reaches a library that is not on this device, carrying the term. */
@@ -150,6 +153,7 @@ fun SearchScreen(
                 viewModel = viewModel,
                 query = query,
                 recents = recents,
+                pins = pins,
                 onOpenPage = onOpenPage,
                 onFollowToSource = onFollowToSource,
                 searchScope = scope,
