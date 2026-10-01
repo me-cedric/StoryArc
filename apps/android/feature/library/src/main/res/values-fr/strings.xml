@@ -26,8 +26,8 @@
     <string name="library_cell_unavailable">Nécessite que sa bibliothèque soit accessible</string>
     <string name="library_section_other">Autres</string>
     <plurals name="library_scanning">
-        <item quantity="one">Ajout de vos bandes dessinées — %1$d trouvée</item>
-        <item quantity="other">Ajout de vos bandes dessinées — %1$d trouvées</item>
+        <item quantity="one">Ajout de vos bandes dessinées — %1$,d trouvée</item>
+        <item quantity="other">Ajout de vos bandes dessinées — %1$,d trouvées</item>
     </plurals>
     <string name="library_scan_cancel">Annuler</string>
     <string name="library_add_folder">Ajouter un dossier</string>
@@ -145,8 +145,8 @@
     <string name="catalogue_acquire_protected">Ce que le serveur a envoyé est protégé par la protection de contenu de sa boutique, et StoryArc ne peut pas l’ouvrir.</string>
     <string name="library_add_source">Ajouter des livres</string>
     <plurals name="catalogue_section_count">
-        <item quantity="one">%1$d titre</item>
-        <item quantity="other">%1$d titres</item>
+        <item quantity="one">%1$,d titre</item>
+        <item quantity="other">%1$,d titres</item>
     </plurals>
     <string name="catalogue_back">Retour</string>
     <string name="catalogue_entry_downloaded">Sur cet appareil</string>

@@ -109,8 +109,8 @@
     <string name="sources_state_unreachable">Sin respuesta</string>
     <string name="sources_state_unauthorized">Requiere acceso</string>
     <plurals name="sources_detail">
-        <item quantity="one">%1$d título</item>
-        <item quantity="other">%1$d títulos</item>
+        <item quantity="one">%1$,d título</item>
+        <item quantity="other">%1$,d títulos</item>
     </plurals>
     <plurals name="sources_remove_body">
         <item quantity="one">Esto quita %1$d título de tu biblioteca.</item>
@@ -210,11 +210,11 @@
     <string name="app_icon_arc">Arco</string>
     <string name="app_icon_mono">Mono</string>
     <plurals name="sources_detail_partial">
-        <item quantity="one">Al menos %1$d título</item>
-        <item quantity="other">Al menos %1$d títulos</item>
+        <item quantity="one">Al menos %1$,d título</item>
+        <item quantity="other">Al menos %1$,d títulos</item>
     </plurals>
     <plurals name="sources_detail_progress">
-        <item quantity="one">%1$d de %2$d título</item>
-        <item quantity="other">%1$d de %2$d títulos</item>
+        <item quantity="one">%1$,d de %2$,d título</item>
+        <item quantity="other">%1$,d de %2$,d títulos</item>
     </plurals>
 </resources>

@@ -109,8 +109,8 @@
     <string name="sources_state_unreachable">Sans réponse</string>
     <string name="sources_state_unauthorized">Connexion requise</string>
     <plurals name="sources_detail">
-        <item quantity="one">%1$d titre</item>
-        <item quantity="other">%1$d titres</item>
+        <item quantity="one">%1$,d titre</item>
+        <item quantity="other">%1$,d titres</item>
     </plurals>
     <plurals name="sources_remove_body">
         <item quantity="one">Cela retire %1$d titre de votre bibliothèque.</item>
@@ -210,11 +210,11 @@
     <string name="app_icon_arc">Arc</string>
     <string name="app_icon_mono">Mono</string>
     <plurals name="sources_detail_partial">
-        <item quantity="one">Au moins %1$d titre</item>
-        <item quantity="other">Au moins %1$d titres</item>
+        <item quantity="one">Au moins %1$,d titre</item>
+        <item quantity="other">Au moins %1$,d titres</item>
     </plurals>
     <plurals name="sources_detail_progress">
-        <item quantity="one">%1$d sur %2$d titre</item>
-        <item quantity="other">%1$d sur %2$d titres</item>
+        <item quantity="one">%1$,d sur %2$,d titre</item>
+        <item quantity="other">%1$,d sur %2$,d titres</item>
     </plurals>
 </resources>

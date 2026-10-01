@@ -26,8 +26,8 @@
     <string name="library_cell_unavailable">Die zugehörige Bibliothek muss erreichbar sein</string>
     <string name="library_section_other">Weitere</string>
     <plurals name="library_scanning">
-        <item quantity="one">Ihre Comics werden hinzugefügt – %1$d gefunden</item>
-        <item quantity="other">Ihre Comics werden hinzugefügt – %1$d gefunden</item>
+        <item quantity="one">Ihre Comics werden hinzugefügt – %1$,d gefunden</item>
+        <item quantity="other">Ihre Comics werden hinzugefügt – %1$,d gefunden</item>
     </plurals>
     <string name="library_scan_cancel">Abbrechen</string>
     <string name="library_add_folder">Ordner hinzufügen</string>
@@ -143,8 +143,8 @@
     <string name="catalogue_acquire_protected">Was der Server gesendet hat, ist durch den Kopierschutz seines Shops geschützt, und StoryArc kann es nicht öffnen.</string>
     <string name="library_add_source">Bücher hinzufügen</string>
     <plurals name="catalogue_section_count">
-        <item quantity="one">%1$d Titel</item>
-        <item quantity="other">%1$d Titel</item>
+        <item quantity="one">%1$,d Titel</item>
+        <item quantity="other">%1$,d Titel</item>
     </plurals>
     <string name="catalogue_back">Zurück</string>
     <string name="catalogue_entry_downloaded">Auf diesem Gerät</string>
