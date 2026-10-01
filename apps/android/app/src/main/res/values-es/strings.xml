@@ -6,6 +6,9 @@
     <string name="open_in_unsupported">%1$s es un archivo %2$s, que StoryArc no lee. Lee CBZ, CBR, CBT, EPUB, PDF, M4B y otros audiolibros.</string>
     <string name="open_in_unreadable">StoryArc no reconoce %1$s. Lee CBZ, CBR, CBT, EPUB, PDF, M4B y otros audiolibros.</string>
     <string name="open_in_protected">%1$s está protegido por la protección de contenido de su tienda, por lo que StoryArc no puede abrirlo. StoryArc no retira protecciones de contenido, así que aquí no hay nada que introducir.</string>
+    <string name="open_in_password_protected">%1$s está protegido por una contraseña. StoryArc no gestiona contraseñas de archivos, así que aquí no hay nada que introducir.</string>
+    <string name="open_in_damaged">%1$s no se pudo leer. Puede estar dañado.</string>
+    <string name="open_in_solid_archive">%1$s usa compresión sólida, que StoryArc no puede abrir.</string>
     <string name="open_in_dismiss">OK</string>
     <!-- The name used when the provider offers no name and the Uri has no last segment.
          It is interpolated into the three sentences above, so it is written to read inside

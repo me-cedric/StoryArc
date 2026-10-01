@@ -4969,31 +4969,31 @@
       }
     },
     "library.cell.cannotOpen": {
-      "comment": "Shown under a cover when the publication's format cannot be read at all — a solid RAR4, say. Named rather than shown as a broken cover.",
+      "comment": "Shown under a cover when the publication uses solid compression -- a solid RAR4. Named rather than shown as a broken cover.",
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kann nicht geöffnet werden"
+            "value": "Dieser Comic verwendet durchgehende Komprimierung, die StoryArc nicht öffnen kann."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cannot be opened"
+            "value": "This comic uses solid compression, which StoryArc cannot open."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se puede abrir"
+            "value": "Este cómic usa compresión sólida, que StoryArc no puede abrir."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible à ouvrir"
+            "value": "Cette bande dessinée utilise une compression solide, que StoryArc ne peut pas ouvrir."
           }
         }
       }
@@ -10493,31 +10493,31 @@
       }
     },
     "smb.cannotOpen": {
-      "comment": "Shown in the share browser when a publication that has just been fetched turns out to be one no decoder will open — a solid RAR4. The transfer changed nothing, and the sentence says so rather than sending the reader to a reader that cannot render page one.",
+      "comment": "Shown in the share browser when a publication that has just been fetched turns out to use solid compression -- a solid RAR4. The transfer changed nothing, and the sentence says so rather than sending the reader to a reader that cannot render page one.",
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "StoryArc kann diese Datei nicht öffnen, hier so wenig wie irgendwo sonst."
+            "value": "Dieser Comic verwendet durchgehende Komprimierung, die StoryArc nicht öffnen kann."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "StoryArc cannot open this file, here or anywhere else."
+            "value": "This comic uses solid compression, which StoryArc cannot open."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "StoryArc no puede abrir este archivo, ni aquí ni en ningún otro sitio."
+            "value": "Este cómic usa compresión sólida, que StoryArc no puede abrir."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "StoryArc ne peut pas ouvrir ce fichier, ni ici ni ailleurs."
+            "value": "Cette bande dessinée utilise une compression solide, que StoryArc ne peut pas ouvrir."
           }
         }
       }

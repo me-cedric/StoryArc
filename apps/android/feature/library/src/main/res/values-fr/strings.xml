@@ -18,7 +18,7 @@
     <string name="source_offline_body">%1$s est injoignable, donc son contenu ne peut pas être listé. Ce que vous en avez déjà téléchargé reste dans votre bibliothèque et reste lisible.</string>
     <string name="source_offline_retry">Réessayer</string>
     <string name="source_state_unauthorized">Connexion requise</string>
-    <string name="library_cell_cannot_open">Impossible à ouvrir</string>
+    <string name="library_cell_cannot_open">Cette bande dessinée utilise une compression solide, que StoryArc ne peut pas ouvrir.</string>
     <string name="library_action_show_details">Afficher les détails</string>
     <string name="library_action_remove_from_shelf">Retirer de cette étagère</string>
     <string name="library_cell_finished">Terminé</string>
@@ -417,7 +417,7 @@
     <string name="detail_action_download">La télécharger</string>
     <string name="detail_needs_download">Celle-ci doit être sur votre appareil avant de s’ouvrir.</string>
     <string name="detail_needs_source">Elle n’est pas sur cet appareil, et la bibliothèque où elle se trouve ne répond pas. Elle sera récupérée dès son retour.</string>
-    <string name="detail_refused_body">StoryArc ne peut pas ouvrir ce fichier, ici ni ailleurs.</string>
+    <string name="detail_refused_body">Cette bande dessinée utilise une compression solide, que StoryArc ne peut pas ouvrir.</string>
     <string name="detail_provenance_device">Sur cet appareil</string>
     <string name="detail_provenance_library">De %1$s</string>
     <string name="detail_provenance_not_downloaded">De %1$s — pas téléchargée</string>

@@ -27,7 +27,19 @@ enum OpenedFile {
         /// unsupported container", so it is a case rather than a different string in the
         /// one above — those two words are the only thing a reader can act on.
         case contentProtected
-        /// The file could not be reached or could not be understood at all.
+        /// The archive asked for a password. Its own case, distinct from ``damaged``, so
+        /// the sentence never asks for one — StoryArc does not manage archive passwords.
+        case passwordProtected
+        /// A format StoryArc reads, and this particular file is damaged beyond recovery.
+        /// Distinct from ``unsupported`` on purpose: the sentence must not list the
+        /// formats StoryArc reads or suggest a conversion, because neither would help.
+        case damaged
+        /// A comic that uses solid compression. The container is supported and every
+        /// header parsed; no decoder with an OSI-approved licence reads one at all, local
+        /// or remote, so the archive is refused before the reader opens it rather than
+        /// after.
+        case solidArchive
+        /// The file could not be reached, or is not anything StoryArc recognises at all.
         case unreadable
     }
 
@@ -42,7 +54,12 @@ enum OpenedFile {
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
 
         do {
-            return .opened(try await PublicationIndexer.index(fileAt: url))
+            let publication = try await PublicationIndexer.index(fileAt: url)
+            // A solid RAR4 opens as a *record* rather than throwing — the library lists it
+            // and says why. Open-in has no library row to show it in, so the refusal has
+            // to happen here, before the reader is sent to a page it cannot render.
+            guard publication.isOpenable else { return .solidArchive }
+            return .opened(publication)
         } catch let error as PublicationIndexer.IndexError {
             // Named, not generic. `local-library`: "the app names the format it detected
             // and states which formats it supports, rather than reporting a generic
@@ -52,6 +69,8 @@ enum OpenedFile {
                 return .unsupported(detected: format)
             }
             if case .contentProtected = error { return .contentProtected }
+            if case .archivePasswordProtected = error { return .passwordProtected }
+            if case .archiveUnreadable = error { return .damaged }
             return .unreadable
         } catch {
             return .unreadable

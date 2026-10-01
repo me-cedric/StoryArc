@@ -18,7 +18,7 @@
     <string name="source_offline_body">%1$s ist nicht erreichbar, deshalb lässt sich der Inhalt nicht auflisten. Alles, was Sie bereits daraus geladen haben, bleibt in Ihrer Bibliothek und bleibt lesbar.</string>
     <string name="source_offline_retry">Erneut versuchen</string>
     <string name="source_state_unauthorized">Anmeldung erforderlich</string>
-    <string name="library_cell_cannot_open">Kann nicht geöffnet werden</string>
+    <string name="library_cell_cannot_open">Dieser Comic verwendet durchgehende Komprimierung, die StoryArc nicht öffnen kann.</string>
     <string name="library_action_show_details">Details anzeigen</string>
     <string name="library_action_remove_from_shelf">Von diesem Regal entfernen</string>
     <string name="library_cell_finished">Gelesen</string>
@@ -415,7 +415,7 @@
     <string name="detail_action_download">Herunterladen</string>
     <string name="detail_needs_download">Diese muss erst auf Ihrem Gerät sein, bevor sie sich öffnet.</string>
     <string name="detail_needs_source">Sie ist nicht auf diesem Gerät, und die Bibliothek, in der sie liegt, antwortet nicht. Sie wird geholt, sobald diese wieder da ist.</string>
-    <string name="detail_refused_body">StoryArc kann diese Datei nicht öffnen, hier so wenig wie anderswo.</string>
+    <string name="detail_refused_body">Dieser Comic verwendet durchgehende Komprimierung, die StoryArc nicht öffnen kann.</string>
     <string name="detail_provenance_device">Auf diesem Gerät</string>
     <string name="detail_provenance_library">Aus %1$s</string>
     <string name="detail_provenance_not_downloaded">Aus %1$s — nicht heruntergeladen</string>

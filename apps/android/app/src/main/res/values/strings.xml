@@ -9,6 +9,9 @@
          around the protection". Saying there is nothing to enter is what stops a reader
          waiting for a field that is never coming. -->
     <string name="open_in_protected">%1$s is protected by its store\'s content protection, so StoryArc cannot open it. StoryArc does not remove content protection, so there is nothing to enter here.</string>
+    <string name="open_in_password_protected">%1$s is protected by a password. StoryArc does not manage archive passwords, so there is nothing to enter here.</string>
+    <string name="open_in_damaged">%1$s could not be read. It may be damaged.</string>
+    <string name="open_in_solid_archive">%1$s uses solid compression, which StoryArc cannot open.</string>
     <string name="open_in_dismiss">OK</string>
     <!-- The name used when the provider offers no name and the Uri has no last segment.
          It is interpolated into the three sentences above, so it is written to read inside
