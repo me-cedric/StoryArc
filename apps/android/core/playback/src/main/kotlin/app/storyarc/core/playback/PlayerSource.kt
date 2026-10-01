@@ -194,6 +194,21 @@ data class NowPlaying(
     val leftInPartMillis: Long?
         get() = statedPartDurationMillis?.let { (it - offsetInPartMillis).coerceAtLeast(0) }
 
+    /**
+     * The clock time until the audio crosses into the next part, at the current speed.
+     *
+     * Null when nothing plays, when the part states no length, or when the part has no time
+     * left. `PlaybackHost` waits this long and then republishes: a chapter mark inside one
+     * file raises no media3 callback, and `audio-playback` asks a part crossing to be written
+     * at that moment.
+     */
+    val untilPartEndsMillis: Long?
+        get() {
+            if (!isPlaying) return null
+            val left = leftInPartMillis?.takeIf { it > 0 } ?: return null
+            return (left / speed.rate).toLong()
+        }
+
     /** Whether the scrub control may be offered. */
     val isScrubbable: Boolean get() = partDuration.isScrubbable
 

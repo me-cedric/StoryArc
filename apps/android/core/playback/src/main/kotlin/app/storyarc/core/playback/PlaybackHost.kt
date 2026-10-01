@@ -71,6 +71,7 @@ object PlaybackHost : SpokenAudio.Speaker {
     ).apply {
         onChange = { playing ->
             _nowPlaying.value = playing
+            wakeAtPartEnd(playing)
             if (playing == null) {
                 // The book ran out, or was displaced. Nothing to put back, so the carousel
                 // and a car both stop offering it.
@@ -141,6 +142,29 @@ object PlaybackHost : SpokenAudio.Speaker {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private var countdown: Job? = null
+
+    /** The republish that waits for the part playing to end. See [wakeAtPartEnd]. */
+    private var partEnd: Job? = null
+
+    /**
+     * Republishes just after the part playing ends, so the crossing is written at that moment.
+     *
+     * A folder crosses with a media3 transition callback. A chapter mark inside one file
+     * raises no callback, so [PlaybackCentre.publish] would see the crossing only at the next
+     * fifteen-second tick. Every publish calls this again, so a pause, a seek or a new speed
+     * replaces the wait that was set before it.
+     */
+    private fun wakeAtPartEnd(playing: NowPlaying?) {
+        partEnd?.cancel()
+        val wait = playing?.untilPartEndsMillis ?: return
+        partEnd = scope.launch {
+            delay(wait + PART_END_MARGIN_MILLIS)
+            centre.refresh()
+        }
+    }
+
+    /** How far past the mark the republish lands, so the player's clock is over it. */
+    private const val PART_END_MARGIN_MILLIS = 250L
 
     /**
      * Plays a narrated audiobook, displacing whatever was speaking — of either kind.
