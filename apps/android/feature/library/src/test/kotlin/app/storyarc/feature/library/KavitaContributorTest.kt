@@ -2,6 +2,7 @@ package app.storyarc.feature.library
 
 import app.storyarc.core.kavita.KavitaChapter
 import app.storyarc.core.kavita.KavitaSeries
+import app.storyarc.core.kavita.KavitaVolume
 import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.PublicationFormat
 import java.util.UUID
@@ -133,4 +134,35 @@ class KavitaContributorTest {
     }
 
     private fun seriesOf(format: Int) = KavitaSeries(id = 1, name = "Lantern Green", format = format)
+
+    /**
+     * `kavita-server` task 12.1: a library-held row's own address on the server, caught at
+     * the moment a browse reads it rather than only when a reader opens or keeps it. This
+     * is the rule [KavitaContributor.page] calls for every volume it reads, lifted out so it
+     * can be proved without a server. iOS's `KavitaContributorCatalogOriginTests` makes the
+     * same claim.
+     */
+    @Test
+    fun `every chapter in the volume gets its own origin, keyed by its row`() {
+        val series = KavitaSeries(id = 312, name = "Lantern Green", libraryId = 7)
+        val volume = KavitaVolume(
+            id = 55,
+            chapters = listOf(
+                KavitaChapter(id = 3103, number = "43", pages = 22),
+                KavitaChapter(id = 3104, number = "44", pages = 18),
+            ),
+        )
+
+        val origins = KavitaContributor.catalogOrigins(source, series, volume)
+
+        assertEquals(2, origins.size)
+        val id = KavitaContributor.publication(source, series, volume.chapters[0]).id
+        val first = origins.getValue(id)
+        assertEquals(source.toString(), first.sourceId)
+        assertEquals(7, first.libraryId)
+        assertEquals(312, first.seriesId)
+        assertEquals(55, first.volumeId)
+        assertEquals(3103, first.chapterId)
+        assertEquals(22, first.pages)
+    }
 }

@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
+import app.storyarc.core.persistence.KavitaProgressStore
 import java.util.UUID
 import kotlinx.coroutines.launch
 
@@ -81,9 +82,10 @@ private suspend fun LibraryViewModel.continueReadingKavita(source: Source, clien
             partialSources[source.id]?.let { partialSources = partialSources + (source.id to it.copy(total = all.size)) }
         }
     }
+    val kavita = KavitaProgressStore.open(getApplication())
     readOnward(
         progress = { partialSources[source.id] },
-        fetch = { page -> runCatching { KavitaContributor.page(source.id, client, page) }.getOrNull() },
+        fetch = { page -> runCatching { KavitaContributor.page(source.id, client, page, kavita) }.getOrNull() },
         land = { page, step -> land(source.id, page, step) },
     )
 }

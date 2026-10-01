@@ -162,7 +162,7 @@ struct AddToShelfMenu: View {
         for publication in publications {
             guard await model.add(publication, toServerList: list) else { continue }
             accepted += 1
-            guard let origin = progress.origin(of: publication.id) else { continue }
+            guard let origin = progress.resolvedOrigin(of: publication.id) else { continue }
             ShelfSync.note(
                 entry: origin.chapterId,
                 titled: publication.displayTitle,
