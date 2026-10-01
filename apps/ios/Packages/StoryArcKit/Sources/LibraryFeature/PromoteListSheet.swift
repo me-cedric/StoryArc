@@ -97,12 +97,9 @@ struct PromoteListSheet: View {
                             // until it is known rather than shown as nought: a count that
                             // corrects itself a frame later is a count nobody can trust.
                             if let promotion = plans[server.id] {
-                                Text(
-                                    "shelves.promote.entries \(promotion.copying.count) \(promotion.total)",
-                                    bundle: .module
-                                )
-                                .textRole(.footnote)
-                                .foregroundStyle(theme.palette.textSecondary)
+                                promoteEntriesText(promotion)
+                                    .textRole(.footnote)
+                                    .foregroundStyle(theme.palette.textSecondary)
                             }
                         }
 
@@ -170,4 +167,14 @@ struct PromoteListSheet: View {
         onCopied(undo)
         dismiss()
     }
+}
+
+/// "%d of %d entries", pluralized on the total rather than on the copying count: a total of
+/// one is grammatically singular ("1 of 1 entry") however many of it are being copied, which
+/// in practice is the same one. A total of two or more is always "entries" in every language
+/// this app ships, so a single other-form key covers it.
+func promoteEntriesText(_ promotion: ListPromotion) -> Text {
+    promotion.total == 1
+        ? Text("shelves.promote.entries.one \(promotion.copying.count)", bundle: .module)
+        : Text("shelves.promote.entries \(promotion.copying.count) \(promotion.total)", bundle: .module)
 }

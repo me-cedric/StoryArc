@@ -7024,27 +7024,75 @@
       "extractionState": "manual",
       "localizations": {
         "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ihre Comics werden hinzugefügt – %lld gefunden"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ihre Comics werden hinzugefügt – %lld gefunden"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ihre Comics werden hinzugefügt – %lld gefunden"
+                }
+              }
+            }
           }
         },
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Adding your comics — %lld found"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Adding your comics — %lld found"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Adding your comics — %lld found"
+                }
+              }
+            }
           }
         },
         "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Añadiendo tus cómics: %lld encontrados"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Añadiendo tus cómics: %lld encontrado"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Añadiendo tus cómics: %lld encontrados"
+                }
+              }
+            }
           }
         },
         "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ajout de vos bandes dessinées — %lld trouvées"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ajout de vos bandes dessinées — %lld trouvée"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ajout de vos bandes dessinées — %lld trouvées"
+                }
+              }
+            }
           }
         }
       }
@@ -9977,6 +10025,36 @@
         }
       }
     },
+    "shelves.promote.entries.one %lld": {
+      "comment": "The one-entry case of shelves.promote.entries: copying and total are both 1, so only one number is worth naming.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld von 1 Eintrag"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld of 1 entry"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld de 1 entrada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld entrée sur 1"
+          }
+        }
+      }
+    },
     "shelves.promote.failed": {
       "extractionState": "manual",
       "localizations": {
@@ -12068,27 +12146,75 @@
       "extractionState": "manual",
       "localizations": {
         "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld Titel wurden sowohl auf diesem Gerät als auch in der Herkunftsbibliothek weitergelesen. Die weiteste Position wurde behalten."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Titel wurde sowohl auf diesem Gerät als auch in der Herkunftsbibliothek weitergelesen. Die weiteste Position wurde behalten."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Titel wurden sowohl auf diesem Gerät als auch in der Herkunftsbibliothek weitergelesen. Die weiteste Position wurde behalten."
+                }
+              }
+            }
           }
         },
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld titles moved on both this device and the library they came from. The furthest position was kept."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld title moved on both this device and the library it came from. The furthest position was kept."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld titles moved on both this device and the library they came from. The furthest position was kept."
+                }
+              }
+            }
           }
         },
         "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld títulos avanzaron tanto en este dispositivo como en la biblioteca de origen. Se conservó la posición más avanzada."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld título avanzó tanto en este dispositivo como en la biblioteca de origen. Se conservó la posición más avanzada."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld títulos avanzaron tanto en este dispositivo como en la biblioteca de origen. Se conservó la posición más avanzada."
+                }
+              }
+            }
           }
         },
         "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld titres ont avancé à la fois sur cet appareil et dans la bibliothèque d’origine. La position la plus avancée a été conservée."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld titre a avancé à la fois sur cet appareil et dans la bibliothèque d’origine. La position la plus avancée a été conservée."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld titres ont avancé à la fois sur cet appareil et dans la bibliothèque d’origine. La position la plus avancée a été conservée."
+                }
+              }
+            }
           }
         }
       }
