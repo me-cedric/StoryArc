@@ -12212,6 +12212,35 @@
           }
         }
       }
+    },
+    "catalogue.error.redirect": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Adresse dieses Katalogs leitet in einer Schleife weiter oder hat ohne Zieladresse weitergeleitet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This catalogue's address redirects in a loop, or redirected with no address to follow."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La dirección de este catálogo redirige en bucle, o redirigió sin indicar una dirección a seguir."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'adresse de ce catalogue redirige en boucle, ou a redirigé sans indiquer d'adresse à suivre."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

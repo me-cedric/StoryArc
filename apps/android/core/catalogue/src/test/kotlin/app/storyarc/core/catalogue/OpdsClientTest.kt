@@ -221,6 +221,33 @@ class OpdsClientTest {
         assertEquals(OpdsError.RefusedAddress, error)
     }
 
+    // 11.8 -- a redirect is named as one, not folded into "refused" or a bare status
+
+    @Test
+    fun aRedirectWithNoLocationNamesARedirectRatherThanAnHttpStatus() = runBlocking {
+        status = 302
+        headers = emptyMap()
+        body = ""
+        val error = runCatching { OpdsClient().feed(base) }.exceptionOrNull()
+        assertEquals(OpdsError.Redirect, error)
+    }
+
+    @Test
+    fun aRedirectLoopNamesARedirectRatherThanARefusedAddress() = runBlocking {
+        // The server keeps extending the chain past what this app will follow -- the one
+        // case `OpdsRedirect` cannot tell apart from a downgrade or a non-web target without
+        // this case existing on its own.
+        server.createContext("/loop") { exchange ->
+            exchange.responseHeaders.add("Location", "/loop")
+            exchange.sendResponseHeaders(302, -1)
+            exchange.close()
+        }
+        val error = runCatching {
+            OpdsClient().feed("http://localhost:${server.address.port}/loop")
+        }.exceptionOrNull()
+        assertEquals(OpdsError.Redirect, error)
+    }
+
     private companion object {
         val ATOM = """
         <?xml version="1.0" encoding="utf-8"?>

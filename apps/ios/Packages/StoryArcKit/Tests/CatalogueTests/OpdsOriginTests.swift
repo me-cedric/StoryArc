@@ -58,4 +58,32 @@ struct OpdsOriginTests {
         let plain = try origin("http://nas.local:8080/opds")
         #expect(!plain.downgrades(try url("http://nas.local:8080/1.jpg")))
     }
+
+    // MARK: 11.8 — what a 3xx that was not followed is named
+
+    @Test func aDeclinedRedirectStillCarriesTheLocationItDeclined() throws {
+        // `OpdsRedirect.following` only ever declines a redirect `willPerformHTTPRedirection`
+        // was asked about, and that hook is asked only when the response had a `Location`
+        // to parse. A declined one is therefore a refusal this app made on purpose.
+        #expect(
+            OpdsRedirect.refusal(location: "http://books.example/moved", relativeTo: try url("https://books.example/"))
+                == .refusedAddress
+        )
+        #expect(
+            OpdsRedirect.refusal(location: "/moved", relativeTo: try url("https://books.example/x"))
+                == .refusedAddress
+        )
+    }
+
+    @Test func aRedirectWithNoLocationAtAllIsNeverARefusal() throws {
+        // Nothing to decline: the server's own 3xx had nowhere to send the reader, which
+        // is a fault in the catalogue, not an address this app turned down.
+        #expect(OpdsRedirect.refusal(location: nil, relativeTo: try url("https://books.example/")) == .redirect)
+    }
+
+    @Test func aLocationThatDoesNotParseIsAlsoNeverARefusal() throws {
+        #expect(
+            OpdsRedirect.refusal(location: "", relativeTo: try url("https://books.example/")) == .redirect
+        )
+    }
 }

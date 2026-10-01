@@ -197,6 +197,26 @@ struct OpdsClientTests {
         }
     }
 
+    // MARK: 11.8 — a redirect is named as one, not folded into "refused"
+
+    @Test func aRedirectWithNoLocationNamesARedirectRatherThanARefusal() async throws {
+        // No `Location` means `willPerformHTTPRedirection` was never asked about this one
+        // at all — there was nothing to decline. 11.8: before, this read exactly like the
+        // case above, so the reader was told the app had refused an address the server
+        // never gave it.
+        let client = client { _ in .response(status: 302, headers: [:], body: Data()) }
+        await #expect(throws: OpdsError.redirect) {
+            try await client.feed(at: try #require(URL(string: "https://library.example/opds/")))
+        }
+    }
+
+    @Test func aRedirectLoopNamesARedirectRatherThanARawTransportError() async throws {
+        let client = client { request in .redirect(to: request.url!) }
+        await #expect(throws: OpdsError.redirect) {
+            try await client.feed(at: try #require(URL(string: "https://library.example/opds/")))
+        }
+    }
+
     /// A box, because the stub runs on the session's queue and the test reads afterwards.
     private final class Captured: @unchecked Sendable {
         var value: String?

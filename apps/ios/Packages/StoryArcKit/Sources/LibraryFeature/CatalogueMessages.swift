@@ -18,6 +18,8 @@ enum CatalogueMessages {
             String(localized: "catalogue.error.empty", bundle: .module, locale: .storyArc)
         case .refusedAddress:
             String(localized: "catalogue.error.refusedAddress", bundle: .module, locale: .storyArc)
+        case .redirect:
+            String(localized: "catalogue.error.redirect", bundle: .module, locale: .storyArc)
         case .notAFeed(.html):
             String(localized: "catalogue.error.html", bundle: .module, locale: .storyArc)
         case let .notAFeed(.unrecognised(contentType)):
