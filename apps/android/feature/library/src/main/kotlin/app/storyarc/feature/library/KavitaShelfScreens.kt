@@ -262,6 +262,17 @@ fun KavitaListScreen(
                         fetching = null
                         if (opening is EntryOpening.Opened) {
                             seedKavitaOpen(opening.publication, entry.pagesRead, entry.pagesTotal, progress)
+                            // Task 7.3: remembered before the reader opens, so its own
+                            // next-entry offer can ask this list rather than the local one.
+                            ServerListContext.opened(
+                                ServerListContext.Place(
+                                    serverId = server.id,
+                                    serverAddress = server.address,
+                                    listId = listId,
+                                    entries = items,
+                                    position = items.indexOf(entry),
+                                ),
+                            )
                             onOpen(opening.publication, opening.path)
                         }
                         opening.failure(context, entry.displayName, server.title)?.let {
@@ -416,7 +427,7 @@ internal fun EntryRow(
  * A failed open used to clear the row's spinner and say nothing, so the reader could not tell
  * a refusal from a wait. `kavita-server` asks that a failure state its reason instead.
  */
-private sealed interface EntryOpening {
+internal sealed interface EntryOpening {
     data class Opened(val publication: Publication, val path: String) : EntryOpening
 
     /** The server did not hand the file over: unreachable, refused or unwell. */
@@ -432,8 +443,12 @@ private sealed interface EntryOpening {
  * A reading-list entry used to open with neither an origin nor a recorded server identity:
  * the reader could read here and the position never left the device, because nothing named
  * which server or which chapter it belonged to.
+ *
+ * Internal rather than private: `collections-and-reading-lists` task 7.3 asks the reader's
+ * own next-entry offer to fetch a server list's next chapter "the way the list screen does",
+ * and `ServerListContext` is the other caller.
  */
-private suspend fun fetchEntry(
+internal suspend fun fetchEntry(
     context: Context,
     client: KavitaClient,
     entry: KavitaReadingListItem,

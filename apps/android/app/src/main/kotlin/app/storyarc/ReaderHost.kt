@@ -15,6 +15,7 @@ import app.storyarc.core.persistence.AnnotationStore
 import app.storyarc.core.persistence.KavitaOrigin
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.KavitaSync
+import app.storyarc.feature.library.ServerListContext
 import app.storyarc.feature.reader.DownloadCleanupOffer
 import app.storyarc.feature.reader.ReaderScreen
 import app.storyarc.feature.reader.ReaderViewModel
@@ -146,8 +147,10 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
         // because it is the only place that can see both the reader and the library, and
         // the library is what knows a reading list may have a different opinion about what
         // comes next than the series does.
-        previousInSeries = host.library.previous(publication),
-        nextInSeries = host.library.next(publication),
+        // Task 7.3: a server reading list the reader is actually inside wins over the
+        // local library's own guess, the way a local reading list already does.
+        previousInSeries = ServerListContext.previous(publication) ?: host.library.previous(publication),
+        nextInSeries = ServerListContext.next(publication) ?: host.library.next(publication),
         onOpen = { next -> host.library.location(next)?.let { host.open(next, it) } },
     )
 }
