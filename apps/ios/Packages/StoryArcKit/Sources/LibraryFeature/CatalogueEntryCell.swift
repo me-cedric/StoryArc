@@ -104,7 +104,7 @@ struct CatalogueEntryCell: View {
             // up two different keys, and a catalogue holding both fails the build — Xcode
             // generates one symbol for them. One key, asked for the same way from both
             // places.
-            let formats = ListFormatter.localizedString(byJoining: unreadable)
+            let formats = localizedJoin(unreadable)
             return String(
                 localized: "catalogue.entry.unreadable \(formats)",
                 bundle: .module,

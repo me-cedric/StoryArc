@@ -274,7 +274,7 @@ struct CatalogueCertificateWarning: View {
 
                 if let expiry = certificate.notValidAfter {
                     Text(
-                        "catalogue.untrusted.expires \(expiry.formatted(date: .abbreviated, time: .omitted))",
+                        "catalogue.untrusted.expires \(expiry.formatted(abbreviatedDateStyle))",
                         bundle: .module
                     )
                     .textRole(.footnote)

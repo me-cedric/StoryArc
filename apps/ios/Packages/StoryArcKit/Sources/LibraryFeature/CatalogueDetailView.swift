@@ -65,7 +65,7 @@ struct CatalogueDetailView: View {
 
                 if let updated = entry.updated {
                     Text(
-                        "catalogue.detail.updated \(updated.formatted(date: .abbreviated, time: .omitted))",
+                        "catalogue.detail.updated \(updated.formatted(abbreviatedDateStyle))",
                         bundle: .module
                     )
                     .textRole(.footnote)
@@ -262,7 +262,7 @@ struct CatalogueDetailHeadline: View {
                 .foregroundStyle(theme.palette.textPrimary)
 
             if !entry.authors.isEmpty {
-                Text(ListFormatter.localizedString(byJoining: entry.authors))
+                Text(localizedJoin(entry.authors))
                     .textRole(.subheadline)
                     .foregroundStyle(theme.palette.textSecondary)
             }
