@@ -43,7 +43,9 @@ struct SettingsStoreTests {
                 appearance: .oledDark,
                 language: "fr",
                 turnPagesWithVolumeButtons: true,
-                linkReadingThemeToAppearance: true
+                linkReadingThemeToAppearance: true,
+                lightReadingTheme: .bold,
+                darkReadingTheme: .focus
             )
         )
 
@@ -52,6 +54,11 @@ struct SettingsStoreTests {
         #expect(restored.language == "fr")
         #expect(restored.turnPagesWithVolumeButtons)
         #expect(restored.linkReadingThemeToAppearance)
+        // `ebook-reader` / *Theme follows appearance*: the pair is "the light and dark
+        // reading themes the reader chose", so a reader who named Bold and Focus for the
+        // link gets Bold and Focus back, not the built-in Paper and Quiet.
+        #expect(restored.lightReadingTheme == .bold)
+        #expect(restored.darkReadingTheme == .focus)
     }
 
     @Test("An untouched store is the documented defaults, not an empty value")
@@ -68,6 +75,9 @@ struct SettingsStoreTests {
         // Off, because `settings-and-about` says the two are separate and this is the
         // opt-in it then allows.
         #expect(!settings.linkReadingThemeToAppearance)
+        // Paper and Quiet, what the link used before the pair was a setting of its own.
+        #expect(settings.lightReadingTheme == .paper)
+        #expect(settings.darkReadingTheme == .quiet)
         // On, because `page-transitions` makes the tap zones the default way to turn a
         // page. Android's `TapZonesDefaultTest` asserts the same two facts.
         #expect(settings.turnPagesByTappingTheEdges)
@@ -89,6 +99,10 @@ struct SettingsStoreTests {
         #expect(!settings.turnPagesWithVolumeButtons)
         // The field this build added, missing from what the earlier one wrote.
         #expect(settings.turnPagesByTappingTheEdges)
+        // The pair this build added. A blob written before it existed defaults to the
+        // fixed mapping the link used to use, not to the publisher's own Original.
+        #expect(settings.lightReadingTheme == .paper)
+        #expect(settings.darkReadingTheme == .quiet)
     }
 
     @Test("Changing appearance leaves the reading theme alone")

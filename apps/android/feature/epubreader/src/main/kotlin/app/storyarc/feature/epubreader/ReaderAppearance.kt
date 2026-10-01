@@ -58,7 +58,11 @@ internal data class ReaderAppearance(
                 chrome = settings.appearance,
                 useDynamicColor = settings.useDynamicColor,
                 linkedPreset = if (settings.linkReadingThemeToAppearance) {
-                    presetMatching(device)
+                    presetMatching(
+                        device,
+                        light = settings.lightReadingTheme,
+                        dark = settings.darkReadingTheme,
+                    )
                 } else {
                     null
                 },

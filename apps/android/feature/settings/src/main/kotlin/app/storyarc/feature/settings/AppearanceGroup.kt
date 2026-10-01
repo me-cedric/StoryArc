@@ -19,6 +19,7 @@ import app.storyarc.core.designsystem.theme.rememberNaturalTheme
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.AppearanceMode
+import app.storyarc.core.model.ThemePreset
 
 /** How the four appearances are named on screen. */
 internal val AppearanceMode.labelRes: Int
@@ -165,6 +166,31 @@ internal fun AppearanceGroup(
                 .settingsHighlight(SettingsAnchor.LINK_READING_THEME, highlight),
         )
 
+        // The pair the link adopts. `ebook-reader` / *Theme follows appearance*: the switch
+        // lands on "the light and dark reading themes the reader chose as their pair, not
+        // to an arbitrary default" -- so the pair itself has to be choosable, not just the
+        // toggle that uses it. Shown only while the link is on, the same way the dynamic
+        // colour row above is disabled rather than hidden under OLED Dark would be the
+        // wrong shape here: a pair nothing reads is not a setting, it is clutter.
+        if (settings.linkReadingThemeToAppearance) {
+            LinkedPresetPicker(
+                titleRes = R.string.appearance_link_theme_light,
+                selected = settings.lightReadingTheme,
+                onSelect = { onChange(settings.copy(lightReadingTheme = it)) },
+                modifier = Modifier
+                    .padding(top = StoryArcSpace.sm)
+                    .settingsHighlight(SettingsAnchor.LINK_READING_THEME, highlight),
+            )
+            LinkedPresetPicker(
+                titleRes = R.string.appearance_link_theme_dark,
+                selected = settings.darkReadingTheme,
+                onSelect = { onChange(settings.copy(darkReadingTheme = it)) },
+                modifier = Modifier
+                    .padding(top = StoryArcSpace.sm)
+                    .settingsHighlight(SettingsAnchor.LINK_READING_THEME, highlight),
+            )
+        }
+
         // Beside Appearance, which `settings-and-about` asks for by name: "both answer *what
         // does the app look like*". Last of the rows, because an icon is chosen once and an
         // appearance is changed on a whim — and because five 56dp tiles at the top would bury
@@ -178,5 +204,46 @@ internal fun AppearanceGroup(
                 .padding(top = StoryArcSpace.md)
                 .settingsHighlight(SettingsAnchor.APP_ICON, highlight),
         )
+    }
+}
+
+/**
+ * One half of the pair [AppSettings.linkReadingThemeToAppearance] adopts.
+ *
+ * Six radio rows under a label, the same shape [ReadingDefaults]'s own preset list uses for
+ * the per-scope default -- a list this screen already asks a reader to read twice, so a third
+ * copy of the same shape costs no new idiom to learn.
+ */
+@Composable
+internal fun LinkedPresetPicker(
+    titleRes: Int,
+    selected: ThemePreset,
+    onSelect: (ThemePreset) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalStoryArcPalette.current
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair)) {
+        Text(
+            text = stringResource(titleRes),
+            style = MaterialTheme.typography.labelLarge,
+            color = palette.textSecondary,
+        )
+        ThemePreset.entries.forEach { preset ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectableRow(selected = selected == preset) { onSelect(preset) }
+                    .padding(vertical = StoryArcSpace.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(selected = selected == preset, onClick = null)
+                Text(
+                    text = stringResource(preset.labelRes),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = palette.textPrimary,
+                    modifier = Modifier.padding(start = StoryArcSpace.sm),
+                )
+            }
+        }
     }
 }

@@ -48,6 +48,18 @@ public struct AppSettings: Sendable, Equatable, Codable {
     /// allows for readers who want them linked.
     public var linkReadingThemeToAppearance: Bool
 
+    /// The reading theme ``linkReadingThemeToAppearance`` adopts for a light appearance.
+    ///
+    /// `ebook-reader` / *Theme follows appearance*: the reader switches "between the light
+    /// and dark reading themes the reader chose as their pair, not to an arbitrary default".
+    /// Defaults to Paper, which is what the link used before the pair was a setting.
+    public var lightReadingTheme: ThemePreset
+
+    /// The reading theme ``linkReadingThemeToAppearance`` adopts for a dark appearance.
+    ///
+    /// Defaults to Quiet, for the same reason ``lightReadingTheme`` defaults to Paper.
+    public var darkReadingTheme: ThemePreset
+
     /// `offline-downloads`: downloads "pause and state that they are waiting for Wi-Fi" on
     /// cellular, and resume when it returns. Off by default, because a reader who has not
     /// asked for the restriction did not ask to be stopped either.
@@ -69,6 +81,8 @@ public struct AppSettings: Sendable, Equatable, Codable {
         turnPagesWithVolumeButtons: Bool = false,
         turnPagesByTappingTheEdges: Bool = true,
         linkReadingThemeToAppearance: Bool = false,
+        lightReadingTheme: ThemePreset = .paper,
+        darkReadingTheme: ThemePreset = .quiet,
         downloadOverWifiOnly: Bool = false,
         maximumDownloadBytes: Int64? = nil,
         removeDownloadsAfterFinishing: Bool = false
@@ -78,6 +92,8 @@ public struct AppSettings: Sendable, Equatable, Codable {
         self.turnPagesWithVolumeButtons = turnPagesWithVolumeButtons
         self.turnPagesByTappingTheEdges = turnPagesByTappingTheEdges
         self.linkReadingThemeToAppearance = linkReadingThemeToAppearance
+        self.lightReadingTheme = lightReadingTheme
+        self.darkReadingTheme = darkReadingTheme
         self.downloadOverWifiOnly = downloadOverWifiOnly
         self.maximumDownloadBytes = maximumDownloadBytes
         self.removeDownloadsAfterFinishing = removeDownloadsAfterFinishing
@@ -100,6 +116,12 @@ public struct AppSettings: Sendable, Equatable, Codable {
             linkReadingThemeToAppearance: try container.decodeIfPresent(
                 Bool.self, forKey: .linkReadingThemeToAppearance
             ) ?? false,
+            lightReadingTheme: try container.decodeIfPresent(
+                ThemePreset.self, forKey: .lightReadingTheme
+            ) ?? .paper,
+            darkReadingTheme: try container.decodeIfPresent(
+                ThemePreset.self, forKey: .darkReadingTheme
+            ) ?? .quiet,
             downloadOverWifiOnly: try container.decodeIfPresent(
                 Bool.self, forKey: .downloadOverWifiOnly
             ) ?? false,

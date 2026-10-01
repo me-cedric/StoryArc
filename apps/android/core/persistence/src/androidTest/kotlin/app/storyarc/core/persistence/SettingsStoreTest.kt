@@ -52,6 +52,8 @@ class SettingsStoreTest {
                 language = "fr",
                 turnPagesWithVolumeButtons = true,
                 linkReadingThemeToAppearance = true,
+                lightReadingTheme = ThemePreset.BOLD,
+                darkReadingTheme = ThemePreset.FOCUS,
             ),
         )
 
@@ -60,6 +62,11 @@ class SettingsStoreTest {
         assertEquals("fr", restored.language)
         assertTrue(restored.turnPagesWithVolumeButtons)
         assertTrue(restored.linkReadingThemeToAppearance)
+        // `ebook-reader` / *Theme follows appearance*: the pair is "the light and dark
+        // reading themes the reader chose", so a reader who named Bold and Focus for the
+        // link gets Bold and Focus back, not the built-in Paper and Quiet.
+        assertEquals(ThemePreset.BOLD, restored.lightReadingTheme)
+        assertEquals(ThemePreset.FOCUS, restored.darkReadingTheme)
     }
 
     @Test
@@ -73,6 +80,9 @@ class SettingsStoreTest {
         // Off, because `settings-and-about` says the two are separate and this is the
         // opt-in it then allows.
         assertFalse(settings.linkReadingThemeToAppearance)
+        // Paper and Quiet, what the link used before the pair was a setting of its own.
+        assertEquals(ThemePreset.PAPER, settings.lightReadingTheme)
+        assertEquals(ThemePreset.QUIET, settings.darkReadingTheme)
     }
 
     @Test

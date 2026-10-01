@@ -27,7 +27,7 @@ public func linkedPreset(for settings: AppSettings, in colorScheme: ColorScheme)
     let resolved: AppearanceMode = settings.appearance == .system
         ? (colorScheme == .dark ? .dark : .light)
         : settings.appearance
-    return .matching(resolved)
+    return .matching(resolved, light: settings.lightReadingTheme, dark: settings.darkReadingTheme)
 }
 
 public extension EpubReaderModel {

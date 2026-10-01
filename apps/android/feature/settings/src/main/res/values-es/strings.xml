@@ -31,6 +31,8 @@
     <string name="appearance_dynamic_colour_oled_note">Oscuro OLED ya usa la paleta de StoryArc: un tinte del fondo de pantalla sobre negro absoluto no es ninguna de las dos cosas.</string>
     <string name="appearance_dynamic_colour_natural_note">Natural trae sus propios acentos cálidos: un tinte del fondo de pantalla al lado serían dos temas a la vez.</string>
     <string name="appearance_link_theme">Igualar el tema de lectura a la app</string>
+    <string name="appearance_link_theme_light">Tema claro</string>
+    <string name="appearance_link_theme_dark">Tema oscuro</string>
     <string name="appearance_link_theme_note">Desactivado por defecto. Una app oscura con una página blanca es una preferencia legítima.</string>
     <string name="reading_volume_buttons">Los botones de volumen cambian de página</string>
     <string name="reading_volume_buttons_note">Desactivado por defecto: al leer, los botones de volumen dejarían de ajustar el volumen.</string>

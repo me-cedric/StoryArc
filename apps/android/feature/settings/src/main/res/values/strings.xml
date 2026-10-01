@@ -32,6 +32,8 @@
     <string name="appearance_dynamic_colour_natural_note">Natural brings its own warm accents: a wallpaper tint beside them would be two themes at once.</string>
     <string name="appearance_link_theme">Match the reading theme to the app</string>
     <string name="appearance_link_theme_note">Off by default. A dark app with a paper-white page is a legitimate preference.</string>
+    <string name="appearance_link_theme_light">Light theme</string>
+    <string name="appearance_link_theme_dark">Dark theme</string>
     <string name="reading_volume_buttons">Volume buttons turn pages</string>
     <string name="reading_volume_buttons_note">Off by default: while reading, the volume buttons would stop changing the volume.</string>
     <string name="reading_tap_zones">Tapping the page turns it</string>

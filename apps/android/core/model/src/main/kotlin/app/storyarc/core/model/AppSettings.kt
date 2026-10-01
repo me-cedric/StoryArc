@@ -50,6 +50,20 @@ data class AppSettings(
     val turnPagesByTappingTheEdges: Boolean = true,
     val linkReadingThemeToAppearance: Boolean = false,
     /**
+     * The reading theme [linkReadingThemeToAppearance] adopts for a light appearance.
+     *
+     * `ebook-reader` / *Theme follows appearance*: the reader switches "between the light
+     * and dark reading themes the reader chose as their pair, not to an arbitrary default".
+     * Defaults to Paper, which is what the link used before the pair was a setting.
+     */
+    val lightReadingTheme: ThemePreset = ThemePreset.PAPER,
+    /**
+     * The reading theme [linkReadingThemeToAppearance] adopts for a dark appearance.
+     *
+     * Defaults to Quiet, for the same reason [lightReadingTheme] defaults to Paper.
+     */
+    val darkReadingTheme: ThemePreset = ThemePreset.QUIET,
+    /**
      * `offline-downloads`: downloads "pause and state that they are waiting for Wi-Fi" on
      * cellular, and resume when it returns. Off by default, because a reader who has not
      * asked for the restriction did not ask to be stopped either.
