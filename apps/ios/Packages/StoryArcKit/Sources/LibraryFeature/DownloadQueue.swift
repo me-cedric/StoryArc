@@ -97,6 +97,9 @@ public final class DownloadQueue {
         transfers.onResumable { [weak self] name, data in
             Task { @MainActor in self?.keep(data, for: name) }
         }
+        transfers.onProgress { [weak self] name, written, expected in
+            Task { @MainActor in self?.advance(name, written: written, expected: expected) }
+        }
         Task { await reclaim() }
     }
 
@@ -199,7 +202,8 @@ public final class DownloadQueue {
                 sourceID: effective,
                 title: entry.title,
                 remote: acquisition.href,
-                mediaType: acquisition.mediaType
+                mediaType: acquisition.mediaType,
+                expectedBytes: acquisition.length
             )
         )
         titles[id] = entry

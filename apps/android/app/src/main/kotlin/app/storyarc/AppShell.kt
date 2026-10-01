@@ -112,6 +112,15 @@ internal fun AppShell(
     val downloads = remember { mutableStateOf(dependencies.downloads.library()) }
     val removed = remember { mutableStateOf<RemovedDownload?>(null) }
 
+    // Kept level with the one app-level queue for the life of the composition, not only at
+    // the moments a screen happened to write back to it. `offline-downloads`' *Progress
+    // never moves during a transfer*: the Downloads destination read this state once on
+    // appearance and then only after a reorder, a retry or a removal, so a reader watching a
+    // transfer run saw the row it started at until they left the screen and came back.
+    LaunchedEffect(dependencies.queue) {
+        dependencies.queue.library.collect { downloads.value = it }
+    }
+
     // Held across every destination, not inside the library's: the reader's end screen asks
     // it what comes next in the series, and a model created inside one branch would not
     // exist to ask.

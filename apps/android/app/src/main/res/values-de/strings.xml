@@ -60,6 +60,8 @@
     <string name="downloads_move_later">\u201e%1$s\u201c nach hinten</string>
     <string name="downloads_undo">R\u00fcckg\u00e4ngig</string>
     <string name="downloads_removed">\u201e%1$s\u201c von diesem Ger\u00e4t entfernt. Ihre Stelle bleibt erhalten.</string>
+    <string name="downloads_progress">%1$d %% \u00b7 %2$s von %3$s</string>
+    <string name="downloads_progress_unsized">Bisher %1$s</string>
 
     <!-- Der Player. Die Intervalle stehen in den Texten, weil sie auf den Bedienelementen
          stehen: 15 s zurück und 30 s vor sind eine Produktentscheidung. -->

@@ -154,11 +154,24 @@ class OpdsClient(
      *   no `Range`, which is a first attempt and is checked as one. A 416 says the same
      *   thing in its own words and takes the same path.
      */
-    suspend fun download(url: String, credential: OpdsCredential? = null, into: File) {
+    suspend fun download(
+        url: String,
+        credential: OpdsCredential? = null,
+        into: File,
+        /**
+         * How many bytes have landed, every [PROGRESS_INTERVAL_MILLIS] at most.
+         *
+         * `offline-downloads` wants a transfer's row to move while it runs, not a total that
+         * holds at zero until the file is whole. Throttled here rather than by the caller,
+         * because the raw rate is one call per [COPY_BYTES] read -- far more than any screen
+         * needs to redraw at.
+         */
+        onProgress: ((Long) -> Unit)? = null,
+    ) {
         try {
-            fetch(url, credential, into, resuming = resumable(into))
+            fetch(url, credential, into, resuming = resumable(into), onProgress = onProgress)
         } catch (restart: Restart) {
-            fetch(url, credential, into, resuming = null)
+            fetch(url, credential, into, resuming = null, onProgress = onProgress)
         }
         // A cancelled copy stops mid-body and leaves the bytes it wrote, which is the point:
         // the next attempt asks for the rest of them. It is not a completed download, so the
@@ -217,6 +230,7 @@ class OpdsClient(
         credential: OpdsCredential?,
         into: File? = null,
         resuming: String? = null,
+        onProgress: ((Long) -> Unit)? = null,
     ): Fetched =
         withContext(Dispatchers.IO) {
             // Read once, outside the blocking read loop. A copy that runs after the caller
@@ -231,7 +245,9 @@ class OpdsClient(
             var target = url
             var hops = 0
             while (true) {
-                val sink = into?.let { Sink(it, from, resuming) { job?.isActive != false } }
+                val sink = into?.let {
+                    Sink(it, from, resuming, onProgress) { job?.isActive != false }
+                }
                 when (val hop = one(target, credential, home, sink)) {
                     is Hop.Done -> return@withContext hop.fetched
                     is Hop.Moved -> {
@@ -249,6 +265,7 @@ class OpdsClient(
         val into: File,
         val from: Long,
         val validator: String?,
+        val onProgress: ((Long) -> Unit)? = null,
         val keepGoing: () -> Boolean,
     ) {
         /** Beside the partial, and so inside the directory a removal deletes. */
@@ -381,12 +398,20 @@ class OpdsClient(
         // after an interruption, and after an interruption there is no response left to read
         // it from.
         if (!append) record(connection, sink)
+        var written = if (append) sink.from else 0L
+        var lastReported = 0L
         FileOutputStream(sink.into, append).use { out ->
             val buffer = ByteArray(COPY_BYTES)
             while (sink.keepGoing()) {
                 val read = stream.read(buffer)
                 if (read < 0) break
                 out.write(buffer, 0, read)
+                written += read
+                val now = System.currentTimeMillis()
+                if (sink.onProgress != null && now - lastReported >= PROGRESS_INTERVAL_MILLIS) {
+                    lastReported = now
+                    sink.onProgress.invoke(written)
+                }
             }
         }
         if (!sink.keepGoing()) return
@@ -433,6 +458,9 @@ class OpdsClient(
 
         /** One read of a publication being written to disk. */
         const val COPY_BYTES = 64 * 1024
+
+        /** How often [onProgress] is told, at most. iOS throttles its own callback the same. */
+        const val PROGRESS_INTERVAL_MILLIS = 200L
 
         /** The bytes asked for are not there, so what is on disk is not a prefix of the file. */
         const val RANGE_NOT_SATISFIABLE = 416

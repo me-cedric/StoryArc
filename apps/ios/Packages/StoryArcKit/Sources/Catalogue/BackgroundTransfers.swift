@@ -184,6 +184,25 @@ public final class BackgroundTransfers: NSObject, @unchecked Sendable {
     public func onOrphan(_ handler: (@Sendable (String, URL) -> Void)?) {
         orphan.withLock { $0 = handler }
     }
+
+    private let progress = Mutex<(@Sendable (String, Int64, Int64) -> Void)?>(nil)
+
+    /// How often a named transfer is told apart, at most.
+    ///
+    /// `didWriteData` fires once per socket read, far more often than any screen needs to
+    /// redraw at. `offline-downloads` wants a row to visibly move, not every packet relayed
+    /// to it.
+    private static let progressInterval: TimeInterval = 0.2
+
+    /// The last moment each named transfer was told apart, so the throttle above has
+    /// something to measure against.
+    private let lastProgress = Mutex<[String: Date]>([:])
+
+    /// Told how many bytes have landed for a named transfer, throttled to a few times a
+    /// second.
+    public func onProgress(_ handler: (@Sendable (String, Int64, Int64) -> Void)?) {
+        progress.withLock { $0 = handler }
+    }
 }
 
 extension BackgroundTransfers: URLSessionDownloadDelegate {
@@ -205,6 +224,33 @@ extension BackgroundTransfers: URLSessionDownloadDelegate {
             return
         }
         resume(downloadTask, with: .success(kept))
+    }
+
+    /// Reports how far a download has got, throttled to ``progressInterval``.
+    ///
+    /// `offline-downloads`' *Progress never moves during a transfer*: the queue set an
+    /// expected total at enqueue and had nothing that ever advanced the other half of the
+    /// fraction. This is that other half.
+    public func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didWriteData bytesWritten: Int64,
+        totalBytesWritten: Int64,
+        totalBytesExpectedToWrite: Int64
+    ) {
+        guard let name = downloadTask.taskDescription,
+              let handler = progress.withLock({ $0 })
+        else { return }
+        let now = Date()
+        let due = lastProgress.withLock { last -> Bool in
+            if let previous = last[name], now.timeIntervalSince(previous) < Self.progressInterval {
+                return false
+            }
+            last[name] = now
+            return true
+        }
+        guard due else { return }
+        handler(name, totalBytesWritten, totalBytesExpectedToWrite)
     }
 
     public func urlSession(
@@ -264,6 +310,7 @@ extension BackgroundTransfers: URLSessionDownloadDelegate {
 
     private func resume(_ task: URLSessionTask, with outcome: Result<URL, any Error>) {
         guard let name = task.taskDescription else { return }
+        lastProgress.withLock { $0.removeValue(forKey: name) }
         let continuation = waiting.withLock { $0.removeValue(forKey: name) }
         if let continuation {
             continuation.resume(with: outcome)

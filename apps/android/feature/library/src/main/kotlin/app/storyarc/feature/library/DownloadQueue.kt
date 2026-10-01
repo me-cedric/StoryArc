@@ -245,6 +245,7 @@ class DownloadQueue(
                 title = entry.title,
                 remote = acquisition.href,
                 mediaType = acquisition.mediaType,
+                expectedBytes = acquisition.length,
             ),
         )
         entries[id] = entry
@@ -602,7 +603,11 @@ class DownloadQueue(
         val file = store.location(download)
         withContext(Dispatchers.IO) {
             store.prepare(file)
-            client.download(download.remote, credential, store.partial(download))
+            client.download(download.remote, credential, store.partial(download)) { written ->
+                // `offline-downloads` wants a reader to see a transfer move, not every
+                // packet relayed to them -- [OpdsClient] already throttles this call.
+                _library.value = _library.value.advancing(download.id, written)
+            }
             Files.move(
                 store.partial(download).toPath(),
                 file.toPath(),
