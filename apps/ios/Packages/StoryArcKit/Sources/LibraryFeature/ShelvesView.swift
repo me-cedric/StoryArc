@@ -265,7 +265,6 @@ public struct ShelvesView: View {
                                 server: shelf.server,
                                 listID: shelf.id,
                                 title: shelf.title,
-                                pending: edits.pending(for: ShelfSync.key(shelf)),
                                 progress: model.progressStore,
                                 onOpen: onOpen
                             )

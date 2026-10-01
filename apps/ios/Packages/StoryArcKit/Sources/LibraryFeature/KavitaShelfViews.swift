@@ -70,16 +70,16 @@ struct KavitaListView: View {
     let server: KavitaPage
     let listID: Int
     let title: String
-    /// Edits this device has made that the server has not taken yet.
-    ///
-    /// `collections-and-reading-lists` requires an edit made while the server was
-    /// unreachable to be "applied locally" and its pending state to be "visible on the
-    /// list". Passed in rather than read here, so the rows and the badge on the shelf above
-    /// them come from one reading of the queue.
-    var pending: [ShelfEdit] = []
     /// Where an opened entry's first position is written. See `seedKavitaOpen`.
     var progress: ProgressStore?
     let onOpen: (Publication, URL) -> Void
+
+    /// Edits this device has made that the server has not taken yet, "visible on the list".
+    /// Task 7.6: read here, as Android's `KavitaListScreen` already does, rather than passed
+    /// in — a caller that forgot to (`HomeShelvesRow` did) left every pending row invisible.
+    private var pending: [ShelfEdit] {
+        ShelfEditStore().queue().pending(for: ShelfKey(sourceID: server.id, shelfID: listID))
+    }
 
     @State private var items: [KavitaReadingListItem] = []
     @State private var fetching: Int?
@@ -106,8 +106,8 @@ struct KavitaListView: View {
     /// The server's entries in the reader's order, with the outstanding ones after them.
     ///
     /// ``ShelfSync`` and ``ShelfMerge`` decide both orders, so a test can assert them without
-    /// a server.
-    private var rows: [ShelfEntry] {
+    /// a server. Internal, not private, for exactly that test.
+    var rows: [ShelfEntry] {
         ShelfMerge.projecting(
             remote: ShelfSync.arranged(
                 items.map {
