@@ -278,6 +278,7 @@
     </plurals>
     <string name="shelves_conflict_title">La version de la bibliothèque en ligne a été conservée</string>
     <string name="shelves_conflict_body">« %1$s » a changé dans la bibliothèque en ligne, sa version a donc été conservée. Ceux-ci n’ont pas été ajoutés : %2$s.</string>
+    <string name="shelves_conflict_body_order">« %1$s » a changé dans la bibliothèque en ligne, l’ordre que vous avez défini n’a donc pas été appliqué.</string>
     <string name="shelves_conflict_understood">OK</string>
     <string name="kavita_chapter_actions">Actions du chapitre</string>
     <string name="kavita_add_to_list">Ajouter à « %1$s »</string>
