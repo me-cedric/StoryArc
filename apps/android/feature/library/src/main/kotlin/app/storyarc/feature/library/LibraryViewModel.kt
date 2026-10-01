@@ -1663,15 +1663,12 @@ class LibraryViewModel(
         val known = _publications.value
         for (list in _shelves.value.lists) {
             if (after.id !in list.entries) continue
-            // An entry whose publication is gone does not stop the flow: the spec says an
-            // unavailable entry "does not break the ordering or the next flow" -- walk
-            // forward past every unavailable entry in this list before trying the next
-            // list or falling back to the series.
+            // An entry whose publication is gone does not stop the flow: walk forward
+            // past every unavailable entry before trying the next list or the series.
             var cursor = after.id
             while (true) {
-                val nextId = list.next(cursor) ?: break
-                known.firstOrNull { it.id == nextId }?.let { return it }
-                cursor = nextId
+                cursor = list.next(cursor) ?: break
+                known.firstOrNull { it.id == cursor }?.let { return it }
             }
         }
         return LibraryIndex.next(after, known)
@@ -1690,9 +1687,8 @@ class LibraryViewModel(
             if (before.id !in list.entries) continue
             var cursor = before.id
             while (true) {
-                val previousId = list.previous(cursor) ?: break
-                known.firstOrNull { it.id == previousId }?.let { return it }
-                cursor = previousId
+                cursor = list.previous(cursor) ?: break
+                known.firstOrNull { it.id == cursor }?.let { return it }
             }
         }
         return LibraryIndex.previous(before, known)
