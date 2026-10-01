@@ -23,7 +23,26 @@ import org.junit.Test
  */
 class ShelfCoverTest {
 
-    private fun list(entries: List<String>) = ReadingList(name = "Crossover", entries = entries)
+    private fun list(entries: List<String>, cover: String? = null) =
+        ReadingList(name = "Crossover", entries = entries, coverMemberId = cover)
+
+    /** `collections-and-reading-lists` D1/task 7.13: the reader's own choice wins outright,
+     * even over four entries that would otherwise fill the quadrant. */
+    @Test
+    fun `a chosen cover wins over the quadrant`() {
+        assertEquals(
+            listOf("b"),
+            shelfTiles(list(listOf("a", "b", "c", "d"), cover = "b")),
+        )
+    }
+
+    @Test
+    fun `a cover no longer in the list falls back to the quadrant`() {
+        assertEquals(
+            listOf("a", "b", "c", "d"),
+            shelfTiles(list(listOf("a", "b", "c", "d"), cover = "gone")),
+        )
+    }
 
     @Test
     fun `a list of four or more shows its first four in its own order`() {

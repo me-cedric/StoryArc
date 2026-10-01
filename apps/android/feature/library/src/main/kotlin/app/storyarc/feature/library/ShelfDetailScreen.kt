@@ -162,7 +162,7 @@ fun CollectionDetailScreen(
     if (isChoosingCover && collection != null) {
         ShelfCoverPicker(
             viewModel = viewModel,
-            collection = collection,
+            subject = ShelfCoverSubject.OfCollection(collection),
             onDismiss = { isChoosingCover = false },
         )
     }
@@ -282,12 +282,27 @@ fun ReadingListDetailScreen(
     // list's own row had none at all -- only the arrows and the swipe already here.
     var shelving by remember { mutableStateOf<Publication?>(null) }
     var restarting by remember { mutableStateOf<Publication?>(null) }
+    // Whether the reader is choosing which cover this list wears. Task 7.13.
+    var isChoosingCover by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = palette.surfaceCanvas,
         snackbarHost = { SnackbarHost(snackbars) },
         topBar = {
             DetailBar(list?.name.orEmpty(), onBack) {
+                // Task 7.13: "unless the user sets a specific one" of a reading list, the
+                // way `CollectionDetailScreen` already offers it. A list holding nothing has
+                // nothing to offer, so it does not ask -- the same gate the collection's own
+                // button keeps.
+                if (entries.isNotEmpty()) {
+                    IconButton(onClick = { isChoosingCover = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.GridView,
+                            contentDescription = stringResource(R.string.shelves_cover),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
                 // The whole list at once. Its entries rather than the publications behind
                 // them: an entry whose source dropped the publication is skipped by the
                 // action itself rather than left out of what the reader asked for.
@@ -384,6 +399,14 @@ fun ReadingListDetailScreen(
                 }
             }
         }
+    }
+
+    if (isChoosingCover && list != null) {
+        ShelfCoverPicker(
+            viewModel = viewModel,
+            subject = ShelfCoverSubject.OfList(list),
+            onDismiss = { isChoosingCover = false },
+        )
     }
 
     val shelved = shelving

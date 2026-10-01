@@ -35,6 +35,9 @@ import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.CompositeCover
 import app.storyarc.core.model.PublicationCollection
+import app.storyarc.core.model.ReadingList
+import java.util.UUID
+import kotlinx.coroutines.flow.update
 
 /**
  * One thing the cover picker offers.
@@ -92,6 +95,39 @@ internal object ShelfCoverChoice {
             ShelfCoverOption.Composite
         }
     }
+
+    /**
+     * The reading-list twin of [options]. Task 7.13.
+     *
+     * List order rather than identity order: `collections-and-reading-lists`' delta says a
+     * list's own composite is picked by list order "because the order is what a reading list
+     * means", and the picker's own wall of choices reads the same order so a member's position
+     * here matches its position in the list beneath it.
+     */
+    fun options(list: ReadingList): List<ShelfCoverOption> =
+        listOf(ShelfCoverOption.Composite) + list.entries.map { ShelfCoverOption.Member(it) }
+
+    /** The reading-list twin of [chosen]. */
+    fun chosen(list: ReadingList): ShelfCoverOption {
+        val member = list.coverMemberId
+        return if (member != null && member in list.entries) {
+            ShelfCoverOption.Member(member)
+        } else {
+            ShelfCoverOption.Composite
+        }
+    }
+}
+
+/** Which kind of shelf [ShelfCoverPicker] is choosing a cover for. Task 7.13. */
+internal sealed interface ShelfCoverSubject {
+    data class OfCollection(val collection: PublicationCollection) : ShelfCoverSubject
+    data class OfList(val list: ReadingList) : ShelfCoverSubject
+}
+
+/** The reading-list twin of [LibraryViewModel.setCollectionCover]. */
+internal fun LibraryViewModel.setListCover(member: String?, id: UUID) {
+    _shelves.update { it.settingListCover(member, onList = id) }
+    shelvesStore?.save(_shelves.value)
 }
 
 /**
@@ -108,18 +144,29 @@ internal object ShelfCoverChoice {
 @Composable
 internal fun ShelfCoverPicker(
     viewModel: LibraryViewModel,
-    collection: PublicationCollection,
+    subject: ShelfCoverSubject,
     onDismiss: () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
     val publications by viewModel.publications.collectAsStateWithLifecycle()
-    val chosen = ShelfCoverChoice.chosen(collection)
+    val chosen = when (subject) {
+        is ShelfCoverSubject.OfCollection -> ShelfCoverChoice.chosen(subject.collection)
+        is ShelfCoverSubject.OfList -> ShelfCoverChoice.chosen(subject.list)
+    }
+    val options = when (subject) {
+        is ShelfCoverSubject.OfCollection -> ShelfCoverChoice.options(subject.collection)
+        is ShelfCoverSubject.OfList -> ShelfCoverChoice.options(subject.list)
+    }
 
-    // The collection as it would look with no choice made, for the composite's own tile.
-    // Without it the composite would preview the very cover the reader is trying to move away
-    // from -- [CompositeCover] answers the chosen one when there is one, which is right
-    // everywhere except on the control that offers to unchoose it.
-    val unchosen = collection.copy(coverMemberId = null)
+    // The shelf as it would look with no choice made, for the composite's own tile. Without
+    // it the composite would preview the very cover the reader is trying to move away from --
+    // [CompositeCover] and [shelfTiles] both answer the chosen one when there is one, which is
+    // right everywhere except on the control that offers to unchoose it.
+    val unchosenTiles = when (subject) {
+        is ShelfCoverSubject.OfCollection ->
+            CompositeCover.tiles(subject.collection.copy(coverMemberId = null))
+        is ShelfCoverSubject.OfList -> shelfTiles(subject.list.copy(coverMemberId = null))
+    }
 
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = palette.surfaceRaised) {
         Text(
@@ -161,14 +208,14 @@ internal fun ShelfCoverPicker(
             horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),
         ) {
-            items(ShelfCoverChoice.options(collection), key = { it.optionKey() }) { option ->
+            items(options, key = { it.optionKey() }) { option ->
                 val publication = (option as? ShelfCoverOption.Member)
                     ?.let { member -> publications.firstOrNull { it.id == member.id } }
                 CoverOption(
                     viewModel = viewModel,
                     width = optionMaximum,
                     tiles = when (option) {
-                        ShelfCoverOption.Composite -> CompositeCover.tiles(unchosen)
+                        ShelfCoverOption.Composite -> unchosenTiles
                         is ShelfCoverOption.Member -> listOf(option.id)
                     },
                     caption = when (option) {
@@ -184,10 +231,13 @@ internal fun ShelfCoverPicker(
                     // artwork to put on a shelf, so it is shown and not offered.
                     isPickable = option == ShelfCoverOption.Composite || publication != null,
                 ) {
-                    viewModel.setCollectionCover(
-                        (option as? ShelfCoverOption.Member)?.id,
-                        collection.id,
-                    )
+                    val member = (option as? ShelfCoverOption.Member)?.id
+                    when (subject) {
+                        is ShelfCoverSubject.OfCollection ->
+                            viewModel.setCollectionCover(member, subject.collection.id)
+                        is ShelfCoverSubject.OfList ->
+                            viewModel.setListCover(member, subject.list.id)
+                    }
                     onDismiss()
                 }
             }

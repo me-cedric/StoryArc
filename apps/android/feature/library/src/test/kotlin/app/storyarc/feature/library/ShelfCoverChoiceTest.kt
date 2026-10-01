@@ -2,6 +2,7 @@ package app.storyarc.feature.library
 
 import app.storyarc.core.model.CompositeCover
 import app.storyarc.core.model.PublicationCollection
+import app.storyarc.core.model.ReadingList
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -103,5 +104,60 @@ class ShelfCoverChoiceTest {
         for (each in cases) {
             assertTrue(ShelfCoverChoice.chosen(each) in ShelfCoverChoice.options(each))
         }
+    }
+}
+
+/**
+ * Task 7.13: the same claims as [ShelfCoverChoiceTest], for a reading list -- the delta widens
+ * "unless the user sets a specific one" from a collection to a list.
+ */
+class ShelfCoverChoiceListTest {
+
+    private fun list(entries: List<String>, cover: String? = null) =
+        ReadingList(name = "Crossover", entries = entries, coverMemberId = cover)
+
+    @Test
+    fun `the composite is always offered and offered first`() {
+        assertEquals(ShelfCoverOption.Composite, ShelfCoverChoice.options(list(listOf("b", "a"))).first())
+    }
+
+    /** List order rather than identity order: the delta's own reason is "the order is what a
+     * reading list means". */
+    @Test
+    fun `members are offered in list order not identity order`() {
+        assertEquals(
+            listOf(
+                ShelfCoverOption.Composite,
+                ShelfCoverOption.Member("delta"),
+                ShelfCoverOption.Member("alpha"),
+                ShelfCoverOption.Member("charlie"),
+            ),
+            ShelfCoverChoice.options(list(listOf("delta", "alpha", "charlie"))),
+        )
+    }
+
+    @Test
+    fun `a list holding nothing has only the composite to offer`() {
+        assertEquals(listOf(ShelfCoverOption.Composite), ShelfCoverChoice.options(list(emptyList())))
+    }
+
+    @Test
+    fun `with no choice made the composite is what is showing`() {
+        assertEquals(ShelfCoverOption.Composite, ShelfCoverChoice.chosen(list(listOf("a", "b"))))
+    }
+
+    @Test
+    fun `a chosen member is what is showing and is one of the options`() {
+        val picked = list(listOf("a", "b"), cover = "b")
+        assertEquals(ShelfCoverOption.Member("b"), ShelfCoverChoice.chosen(picked))
+        assertTrue(ShelfCoverOption.Member("b") in ShelfCoverChoice.options(picked))
+    }
+
+    @Test
+    fun `an entry no longer in the list falls back to the composite`() {
+        assertEquals(
+            ShelfCoverOption.Composite,
+            ShelfCoverChoice.chosen(list(listOf("a"), cover = "gone")),
+        )
     }
 }

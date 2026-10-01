@@ -98,17 +98,22 @@ private data class StoredList(
     val id: String,
     val name: String,
     val entries: List<String>,
+    // Absent on a record written before task 7.13; `ignoreUnknownKeys` and the default
+    // below read that the same way as an explicit null, so no migration is needed.
+    val coverMemberId: String? = null,
 ) {
     constructor(list: ReadingList) : this(
         id = list.id.toString(),
         name = list.name,
         entries = list.entries,
+        coverMemberId = list.coverMemberId,
     )
 
     fun list(): ReadingList = ReadingList(
         id = UUID.fromString(id),
         name = name,
         entries = entries,
+        coverMemberId = coverMemberId,
         origin = ShelfOrigin.Local,
     )
 }
