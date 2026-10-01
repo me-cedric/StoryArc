@@ -2,6 +2,7 @@ public import SwiftUI
 
 internal import DesignSystem
 public import Playback
+public import StoryArcCore
 
 /// The full player's presentation, hosted by the shell rather than by the bar that opens it.
 ///
@@ -31,33 +32,55 @@ public extension View {
     ///
     /// Attach it to something that outlives a session — the shell's own `TabView`. Attaching it
     /// to anything that reads ``PlayerCentre/compact`` reintroduces the defect above.
-    func playerSheet(isPresented: Binding<Bool>, centre: PlayerCentre) -> some View {
-        modifier(PlayerSheetModifier(isPresented: isPresented, centre: centre))
+    ///
+    /// - Parameters:
+    ///   - next: what comes after the book that just finished, for the end-of-book offer.
+    ///     `collections-and-reading-lists` task 7.2: the end of an audiobook offers what
+    ///     comes next the way the paged reader's own end screen does. `nil` offers nothing.
+    ///   - onOpenNext: what happens when the offer is taken.
+    func playerSheet(
+        isPresented: Binding<Bool>,
+        centre: PlayerCentre,
+        next: Publication? = nil,
+        onOpenNext: @escaping (Publication) -> Void = { _ in }
+    ) -> some View {
+        modifier(
+            PlayerSheetModifier(
+                isPresented: isPresented,
+                centre: centre,
+                next: next,
+                onOpenNext: onOpenNext
+            )
+        )
     }
 }
 
 struct PlayerSheetModifier: ViewModifier {
     @Binding var isPresented: Bool
     let centre: PlayerCentre
+    var next: Publication?
+    var onOpenNext: (Publication) -> Void = { _ in }
 
     func body(content: Content) -> some View {
         content
             .sheet(isPresented: $isPresented) {
-                FullPlayerView(centre: centre)
+                FullPlayerView(centre: centre, next: next, onOpenNext: onOpenNext)
                     .storyArcTheme()
             }
-            // The player closes when the *session* ends, and on nothing else.
+            // The player closes when the *session* ends for any reason but one.
             //
             // A stable host does not tear itself down, which is the point — so the one case
             // that used to be handled by accident now has to be handled on purpose: a player
-            // presented over a session that has finished is a dead player, with a scrubber for
-            // audio that is gone.
+            // presented over a session that has finished is a dead player, with a scrubber
+            // for audio that is gone — *unless* the book ran out, in which case
+            // ``FullPlayerView`` now draws the end-of-book offer instead of a dead scrubber,
+            // and closing the sheet out from under it is the one case this exists to add.
             //
             // `isRunning` and not `isPlaying`: pausing is not ending, and this modifier
             // dismissing on a pause would be the original defect rebuilt by hand.
             // ``PlayerCentre/isRunning``'s own comment says why the shell reads that one.
             .onChange(of: centre.isRunning) { _, running in
-                if !running { isPresented = false }
+                if !running, !centre.hasReachedTheEnd { isPresented = false }
             }
     }
 }

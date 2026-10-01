@@ -228,7 +228,17 @@ struct AppShell: View {
         // the book's chapter, so the bar is rebuilt as the audio moves, and a presentation
         // attached inside it was torn down by its own transport controls. This is attached to
         // the `TabView`, which exists for as long as the app does.
-        .playerSheet(isPresented: $isShowingPlayer, centre: .shared)
+        .playerSheet(
+            isPresented: $isShowingPlayer,
+            centre: .shared,
+            // `collections-and-reading-lists` task 7.2: the end of an audiobook offers
+            // what comes next, read from the book `PlayerCentre` kept past its own
+            // teardown — see `PlayerCentre.lastFinished`.
+            next: PlayerCentre.shared.lastFinished.flatMap { model.next(after: $0.publication) },
+            onOpenNext: { publication in
+                if let url = model.location(of: publication) { onOpen(publication, url) }
+            }
+        )
         // What changed, once, over whatever the reader landed on.
         //
         // `.large` and one detent, because the content is a heading and four rows: a medium

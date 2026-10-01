@@ -2,7 +2,7 @@ public import SwiftUI
 
 internal import DesignSystem
 public import Playback
-internal import StoryArcCore
+public import StoryArcCore
 
 /// The player behind the compact bar: what is playing, where it is, and everything a
 /// listener of a book can do to it.
@@ -31,26 +31,44 @@ public struct FullPlayerView: View {
     @Environment(\.dismiss) private var dismiss
 
     private let centre: PlayerCentre
+    /// What comes after the book that just finished, for the end-of-book offer.
+    /// `collections-and-reading-lists` task 7.2. `nil` offers nothing.
+    private let next: Publication?
+    private let onOpenNext: (Publication) -> Void
     @State private var showingChapters = false
     @State private var showingSpeed = false
     @State private var showingSleep = false
     /// The scrub in progress, so dragging does not fight the clock ticking underneath it.
     @State private var scrubbing: TimeInterval?
 
-    public init(centre: PlayerCentre) {
+    public init(
+        centre: PlayerCentre,
+        next: Publication? = nil,
+        onOpenNext: @escaping (Publication) -> Void = { _ in }
+    ) {
         self.centre = centre
+        self.next = next
+        self.onOpenNext = onOpenNext
     }
 
     public var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: StoryArcSpace.xl) {
-                    cover
-                    names
-                    position
-                    transport
-                    settings
-                    damage
+                    // `centre.book` is `nil` after both a finished book and an explicit
+                    // stop; `hasReachedTheEnd` is what tells them apart (see
+                    // ``PlayerCentre/lastFinished``), and only the first draws an offer
+                    // rather than the live transport.
+                    if centre.book == nil, centre.hasReachedTheEnd {
+                        PlayerFinishedOffer(next: next, onOpenNext: onOpenNext)
+                    } else {
+                        cover
+                        names
+                        position
+                        transport
+                        settings
+                        damage
+                    }
                 }
                 .padding(.horizontal, StoryArcSpace.gutter)
                 .padding(.vertical, StoryArcSpace.xl)
