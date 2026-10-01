@@ -667,11 +667,7 @@ class LibraryViewModel(
         if (gone.isEmpty()) return
         _publications.update { list -> list.filterNot { it.id in gone } }
         gone.forEach { covers.remove(it); locations.remove(it) }
-        // Written through rather than left for the next scan. [cacheLibrary] refuses to
-        // replace a good snapshot with an empty one — that guard is there for a walk that
-        // failed, and this is not one, so an emptied library clears the file outright.
-        if (_publications.value.isEmpty()) shelfCache.clear() else cacheLibrary()
-        shelfCache.forgetTheMoment()
+        writeShelfThrough()
         rebuild()
     }
 
@@ -707,6 +703,8 @@ class LibraryViewModel(
         _registry.update { it.removing(source.id, System.currentTimeMillis()) }
         sourceStore?.save(_registry.value)
         _publications.update { list -> list.filterNot { it.sourceId == source.id } }
+        writeShelfThrough() // 10.15
+        rebuild()
     }
 
     /** Removes a folder and gives its permission back. */
@@ -1470,7 +1468,7 @@ class LibraryViewModel(
      * Last session's shelf, so opening the app does not mean walking every folder before
      * anything appears. [LibraryShelfCache] holds the file and the moment alike.
      */
-    private val shelfCache by lazy {
+    internal val shelfCache by lazy {
         LibraryShelfCache(LibraryCache(File(getApplication<Application>().cacheDir, "library.json")))
     }
 

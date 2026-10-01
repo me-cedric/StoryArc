@@ -31,3 +31,15 @@ internal fun LibraryViewModel.retireStaleFolderRows(name: String, locator: Strin
             _publications.update { list -> list.filterNot { it.sourceId == stale.id } }
         }
 }
+
+/**
+ * Writes the shelf through immediately, rather than leaving it for the next scan.
+ * `cacheLibrary` refuses to replace a good snapshot with an empty one -- that guard is there
+ * for a walk that failed, and this is not one, so an emptied shelf clears the file outright.
+ * Shared by `clearSourceCache` and `forget` (10.15): neither wrote the snapshot through, so
+ * a removed source's rows came back from the cached shelf at the next launch.
+ */
+internal fun LibraryViewModel.writeShelfThrough() {
+    if (_publications.value.isEmpty()) shelfCache.clear() else cacheLibrary()
+    shelfCache.forgetTheMoment()
+}
