@@ -98,6 +98,12 @@ class LibraryViewModel(
     internal val credentials: CredentialStore? = null,
     /** The app-level download queue, the only writer of the download store. See [keepOffline]. */
     private val downloadQueue: DownloadQueue? = null,
+    /**
+     * The app's one pin set. 11.7: an OPDS row's cover is fetched through the same
+     * origin-bound client the library read and the detail page already use, and a
+     * catalogue behind a certificate the reader has pinned needs this to reach it.
+     */
+    private val pins: CertificatePins = CertificatePins(),
 ) : AndroidViewModel(application) {
 
     /**
@@ -1502,7 +1508,7 @@ class LibraryViewModel(
         }
 
         val path = locations[publication.id] ?: return ServerLibrary
-            .cachedCover(publication, _registry.value.sources, credentials, covers) {
+            .cachedCover(publication, _registry.value.sources, credentials, pins, covers) {
                 coverCache.store(it, publication.id, maxPixelSize)
             }
         val bitmap = withContext(Dispatchers.IO) {

@@ -143,10 +143,19 @@ internal object ServerLibrary {
         publication: Publication,
         sources: List<Source>,
         credentials: CredentialStore?,
+        pins: CertificatePins,
     ): Bitmap? {
         val remote = publication.identity.serverIdentifier ?: return null
-        val chapter = remote.remoteId.removePrefix(CHAPTER).toIntOrNull() ?: return null
         val source = sources.firstOrNull { it.id == remote.sourceId } ?: return null
+        return when {
+            remote.remoteId.startsWith(CHAPTER) -> kavitaCover(remote.remoteId, source, credentials)
+            remote.remoteId.startsWith(OPDS) -> opdsCover(remote.remoteId, source, credentials, pins)
+            else -> null
+        }
+    }
+
+    private suspend fun kavitaCover(remoteId: String, source: Source, credentials: CredentialStore?): Bitmap? {
+        val chapter = remoteId.removePrefix(CHAPTER).toIntOrNull() ?: return null
         val address = KavitaPage.of(source, credentials)?.address ?: return null
         return withContext(Dispatchers.IO) {
             runCatching {
@@ -156,8 +165,36 @@ internal object ServerLibrary {
         }
     }
 
+    /**
+     * An OPDS row's artwork, fetched through the catalogue it came from. [OpdsContributor]
+     * keeps no acquisition address -- such a link can carry a key in its query -- so the
+     * entry is found again by the id the row was filed under, through the origin-bound
+     * client [OpdsContributor.client] already builds. 11.7 / D29: an unreachable catalogue
+     * answers nothing here, same as it answers nothing to the read that fills the shelf.
+     */
+    private suspend fun opdsCover(
+        remoteId: String,
+        source: Source,
+        credentials: CredentialStore?,
+        pins: CertificatePins,
+    ): Bitmap? = withContext(Dispatchers.IO) {
+        runCatching {
+            val page = CataloguePage.of(source, credentials) ?: return@runCatching null
+            val client = OpdsContributor.client(page, pins)
+            val feed = client.feed(page.url, page.credential)
+            val url = feed.publications.firstOrNull { "opds:${it.id}" == remoteId }
+                ?.let { it.thumbnail ?: it.cover }
+                ?: return@runCatching null
+            val bytes = client.bytes(url, page.credential)
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        }.getOrNull()
+    }
+
     /** What a chapter's remote id is prefixed with. See [KavitaContributor.publication]. */
     const val CHAPTER = "chapter:"
+
+    /** What an OPDS row's remote id is prefixed with. See [OpdsContributor.publication]. */
+    const val OPDS = "opds:"
 
     /**
      * [cover], plus the caching every other cover in the library already gets.
@@ -170,9 +207,10 @@ internal object ServerLibrary {
         publication: Publication,
         sources: List<Source>,
         credentials: CredentialStore?,
+        pins: CertificatePins,
         into: MutableMap<String, Bitmap>,
         store: (Bitmap) -> Unit,
-    ): Bitmap? = cover(publication, sources, credentials)?.also {
+    ): Bitmap? = cover(publication, sources, credentials, pins)?.also {
         store(it)
         into[publication.id] = it
     }
