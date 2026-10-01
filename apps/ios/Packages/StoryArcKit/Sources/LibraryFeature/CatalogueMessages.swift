@@ -47,8 +47,7 @@ enum CatalogueMessages {
         case let .http(status):
             String(
                 format: String(localized: "catalogue.error.http", bundle: .module, locale: .storyArc),
-                status,
-                HTTPURLResponse.localizedString(forStatusCode: status)
+                status
             )
         }
     }
