@@ -30,7 +30,11 @@ struct ShelfOrderConflictTests {
     }
 
     /// @param serverOrder the chapter ids `ReadingList/items` answers with, in server order.
-    private func client(host: String, serverOrder: [Int], moved: @escaping @Sendable () -> Void) throws -> KavitaClient {
+    private func client(
+        host: String,
+        serverOrder: [Int],
+        moved: @escaping @Sendable () -> Void
+    ) throws -> KavitaClient {
         let address = try #require(KavitaAddress.from(base: "http://\(host)", apiKey: "key"))
         let items = "[" + serverOrder.enumerated().map { index, chapter in
             #"{"id":\#(chapter),"order":\#(index),"chapterId":\#(chapter),"seriesId":1,"volumeId":1,"libraryId":1}"#
@@ -56,7 +60,9 @@ struct ShelfOrderConflictTests {
     func baselineMatches() async throws {
         let moved = Flag()
         let client = try client(host: "order-matches.test", serverOrder: [1, 2, 3]) { moved.value += 1 }
-        try await KavitaSync.reorderCheckingBaseline(4, to: [3, 1, 2], baseline: [1, 2, 3], onConflict: nil, through: client)
+        try await KavitaSync.reorderCheckingBaseline(
+            4, to: [3, 1, 2], baseline: [1, 2, 3], onConflict: nil, through: client
+        )
         #expect(moved.value > 0)
     }
 
@@ -97,7 +103,9 @@ struct ShelfOrderConflictTests {
                 let path = request.url?.path() ?? ""
                 if path.hasSuffix("Plugin/authenticate") { return (200, Data(#"{"username":"ada","token":"t"}"#.utf8)) }
                 if path.hasSuffix("ReadingList/items") {
-                    return (200, Data(#"[{"id":2,"order":0,"chapterId":2},{"id":1,"order":1,"chapterId":1},{"id":3,"order":2,"chapterId":3}]"#.utf8))
+                    let items = #"[{"id":2,"order":0,"chapterId":2},{"id":1,"order":1,"chapterId":1},"#
+                        + #"{"id":3,"order":2,"chapterId":3}]"#
+                    return (200, Data(items.utf8))
                 }
                 return (404, Data())
             },
@@ -115,5 +123,40 @@ struct ShelfOrderConflictTests {
 
         #expect(store.unsent().first?.order == [3, 2, 1])
         #expect(store.unsent().first?.orderBaseline == [1, 2, 3])
+    }
+
+    @Test("A second drag in one visit is checked against the order the server took from the first")
+    func secondDragIsNotAFalseConflict() async throws {
+        // A baseline kept from when the view opened goes stale once the server takes the first
+        // drag, and the second drag was then dropped as a false conflict.
+        let first = try #require(KavitaSync.dragged(["1", "2", "3"], from: 0, to: 3))
+        let second = try #require(KavitaSync.dragged(first.order.map(String.init), from: 0, to: 2))
+        let moved = Flag()
+        let conflicts = Flag()
+        // The server already holds the first drag's order: it took it.
+        let client = try client(host: "order-second-drag.test", serverOrder: first.order) { moved.value += 1 }
+
+        try await KavitaSync.reorderCheckingBaseline(
+            4, to: second.order, baseline: second.baseline, onConflict: { _ in conflicts.value += 1 }, through: client
+        )
+
+        #expect(first.baseline == [1, 2, 3])
+        #expect(second.baseline == first.order)
+        #expect(conflicts.value == 0, "the second drag was dropped as a conflict with the reader's own first drag")
+        #expect(moved.value > 0)
+    }
+
+    @Test("A dropped drag shows the server's own order again")
+    func settledRowsShowTheServer() async throws {
+        let client = try client(host: "order-settled-kept.test", serverOrder: [2, 1, 3]) {}
+        let kept = await KavitaSync.settledRows(4, sent: [3, 1, 2], through: client)
+        #expect(kept?.map(\.chapterId) == [2, 1, 3])
+    }
+
+    @Test("A taken drag leaves the rows as they are")
+    func settledRowsLeaveATakenDrag() async throws {
+        let client = try client(host: "order-settled-taken.test", serverOrder: [3, 1, 2]) {}
+        let kept = await KavitaSync.settledRows(4, sent: [3, 1, 2], through: client)
+        #expect(kept == nil)
     }
 }

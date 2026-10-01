@@ -33,6 +33,34 @@ extension KavitaSync {
         }
     }
 
+    /// A drag on a server list: the order it makes, and the baseline its send checks first.
+    /// `nil` when either place is not a row.
+    ///
+    /// The baseline is the order the reader saw before this drag. When nothing is held, that
+    /// is the server's order: the order the list opened in, or the order of the reader's last
+    /// drag after the server took it. A baseline kept from when the view opened goes stale
+    /// after the first drag the server takes, and every later drag of that visit is then
+    /// dropped as a conflict with the reader's own earlier drag.
+    static func dragged(_ held: [String], from: Int, to destination: Int) -> (order: [Int], baseline: [Int])? {
+        guard from < held.count, destination <= held.count else { return nil }
+        var moved = held
+        moved.insert(moved.remove(at: from), at: destination > from ? destination - 1 : destination)
+        return (moved.compactMap(Int.init), held.compactMap(Int.init))
+    }
+
+    /// What the rows show once a drag's send has settled: the server's own order when it kept
+    /// that order over a stale drag, because the server's order wins. `nil` when the server
+    /// holds `order`, or did not answer, and the rows already show the right order.
+    static func settledRows(
+        _ listID: Int,
+        sent order: [Int],
+        through client: KavitaClient
+    ) async -> [KavitaReadingListItem]? {
+        guard let items = try? await client.readingListItems(listID) else { return nil }
+        let now = items.sorted { $0.order < $1.order }
+        return now.map(\.chapterId) == order ? nil : now
+    }
+
     /// Writes the notice a dropped order owes the reader — ``KavitaListView``'s own call
     /// into ``reorderCheckingBaseline``'s `onConflict`, lifted out to keep that call a
     /// one-liner.
