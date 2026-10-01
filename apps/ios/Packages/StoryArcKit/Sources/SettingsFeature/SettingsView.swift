@@ -68,6 +68,11 @@ public struct SettingsView: View {
     /// the host does it in one write, so a reader is never left with half a library gone.
     private let onClearDownloads: () -> Void
 
+    /// The storage-full hold's own remedy: takes one finished download off the device,
+    /// reversibly. See ``DownloadsSettings/onRemoveFinished``.
+    private let onRemoveFinished: (Download) -> RemovedDownload?
+    private let onRestoreFinished: (RemovedDownload) -> Void
+
     /// What the summary rows state, so Sources and Downloads describe themselves.
     private var summary: LibrarySummary {
         LibrarySummary(sources: sources.count, bytesOnDisk: bytesOnDisk)
@@ -101,7 +106,9 @@ public struct SettingsView: View {
         downloads: DownloadLibrary = DownloadLibrary(),
         bytesOnDisk: Int64 = 0,
         importedBytes: Int64 = 0,
-        onClearDownloads: @escaping () -> Void = {}
+        onClearDownloads: @escaping () -> Void = {},
+        onRemoveFinished: @escaping (Download) -> RemovedDownload? = { _ in nil },
+        onRestoreFinished: @escaping (RemovedDownload) -> Void = { _ in }
     ) {
         _settings = settings
         self.readerStore = readerStore
@@ -120,6 +127,8 @@ public struct SettingsView: View {
         self.bytesOnDisk = bytesOnDisk
         self.importedBytes = importedBytes
         self.onClearDownloads = onClearDownloads
+        self.onRemoveFinished = onRemoveFinished
+        self.onRestoreFinished = onRestoreFinished
     }
 
     public var body: some View {
@@ -245,7 +254,9 @@ public struct SettingsView: View {
                 importedBytes: importedBytes,
                 downloads: downloads,
                 settings: $settings,
-                highlight: highlight
+                highlight: highlight,
+                onRemoveFinished: onRemoveFinished,
+                onRestoreFinished: onRestoreFinished
             )
         case .language:
             LanguageSettings(settings: $settings)

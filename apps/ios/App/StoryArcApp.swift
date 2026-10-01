@@ -250,7 +250,9 @@ struct StoryArcApp: App {
                         removedDownload = nil
                         DownloadQueue.shared().clearing()
                         downloads = DownloadQueue.shared().library
-                    }
+                    },
+                    onRemoveFinished: removeFinished,
+                    onRestoreFinished: restoreFinished
                 )
                     .storyArcTheme(appearance: settings.appearance)
                     .speaking(settings.language)

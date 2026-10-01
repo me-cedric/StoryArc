@@ -116,6 +116,27 @@ struct DownloadsHeldNoteTests {
         #expect(keys.contains("downloads.held.storageFull.note"), "looked up \(keys.sorted())")
     }
 
+    @Test("The storage-full hold offers the free-space sheet; the other two holds do not")
+    func storageFullOffersFreeSpace() {
+        // The hold used to state a remedy with no action of its own (6.6). Waiting for
+        // Wi-Fi or for space the OS controls has no list to free, so only the reader's own
+        // limit gets the button.
+        let full = Self.lookups(
+            holding: [
+                Self.download("kept", state: .finished, bytes: 2_000),
+                Self.download("wanted", state: .queued),
+            ],
+            limit: 1_000
+        )
+        #expect(full.contains("downloads.held.freeSpace"), "looked up \(full.sorted())")
+
+        let wifi = Self.lookups(holding: [Self.download("one", state: .paused(.waitingForWiFi))])
+        #expect(!wifi.contains("downloads.held.freeSpace"), "looked up \(wifi.sorted())")
+
+        let outOfSpace = Self.lookups(holding: [Self.download("one", state: .paused(.outOfSpace))])
+        #expect(!outOfSpace.contains("downloads.held.freeSpace"), "looked up \(outOfSpace.sorted())")
+    }
+
     @Test("A queue that is not held says nothing about being held")
     func nothingWhenRunning() {
         // The other half of every claim above. A sentence drawn whatever the queue is doing is
