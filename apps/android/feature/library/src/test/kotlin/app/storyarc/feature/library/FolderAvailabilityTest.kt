@@ -57,6 +57,17 @@ class FolderAvailabilityTest {
     }
 
     @Test
+    fun `a folder marked unreachable whose tree answers again is connected again`() {
+        val source = folder("content://tree/Card", SourceConnectionState.Unreachable(10))
+        val registry = SourceRegistry(sources = listOf(source))
+
+        val result = FolderAvailability.of(registry, reachableLocators = setOf(source.locator!!), atEpochMillis = 20)
+
+        assertTrue(result.newlyUnreachable.isEmpty())
+        assertEquals(SourceConnectionState.Connected, result.registry[source.id]?.state)
+    }
+
+    @Test
     fun `a non-folder source is never touched`() {
         val server = Source(displayName = "Kavita", kind = SourceKind.KAVITA_SERVER, locator = "https://kavita.example")
         val registry = SourceRegistry(sources = listOf(server))
