@@ -129,11 +129,40 @@ enum OpdsJson {
     ) -> OpdsAcquisition? {
         guard let href = resolve(link.href) else { return nil }
         let relations = link.rel ?? []
-        // OPDS 2.0 lets an acquisition link carry no relation at all, in which case being
-        // in `links` with a readable type is the whole signal.
-        guard let kind = relations.lazy.compactMap(OpdsAcquisition.Kind.named).first
-            ?? (relations.isEmpty ? OpdsAcquisition.Kind.direct : nil)
-        else { return nil }
+        // 11.4: an `indirectAcquisition` or a protected type (OPDS-LCP, Adobe ADEPT) means
+        // another step stands between this link and an openable file, whatever relation it
+        // otherwise carries.
+        let isIndirect = !(link.properties?.indirectAcquisition ?? []).isEmpty
+            || Self.isProtectedType(link.type ?? "")
+
+        let kind: OpdsAcquisition.Kind?
+        if isIndirect {
+            kind = .indirect
+        } else if let named = relations.lazy.compactMap(OpdsAcquisition.Kind.named).first {
+            kind = named
+        } else if relations.isEmpty {
+            // OPDS 2.0 lets an acquisition link carry no relation at all, in which case
+            // being in `links` with a readable type is the whole signal.
+            kind = .direct
+        } else if relations.contains(where: { $0.hasPrefix("http://opds-spec.org/acquisition") }) {
+            // A relation the standard added after this code was written. Listed as
+            // indirect rather than dropped: the spec requires an unsupported acquisition
+            // to be named, and a dropped link cannot be named.
+            kind = .indirect
+        } else {
+            kind = nil
+        }
+        guard let kind else { return nil }
         return OpdsAcquisition(href: href, mediaType: link.type ?? "", kind: kind, length: link.size)
+    }
+
+    /// A media type that names a protection step rather than an openable file — see
+    /// `OpdsAtom`'s twin of this function, which this one duplicates rather than shares:
+    /// the two parsers have no common module to put it in, and three lines are not worth
+    /// inventing one.
+    private static func isProtectedType(_ type: String) -> Bool {
+        type == "application/vnd.adobe.adept+xml"
+            || type.contains("vnd.readium.lcp.license")
+            || type.hasSuffix("+lcp")
     }
 }
