@@ -218,7 +218,18 @@ class PlaybackCentre(
         // A pause the *platform* made is left alone. An interruption is a book the listener
         // still means to hear, and the one that ends for good is recorded by
         // [recordAndRelease] on its way out.
-        if (next.isListenerPause() && !nowPlaying.isListenerPause()) recordReached()
+        val becamePause = next.isListenerPause() && !nowPlaying.isListenerPause()
+        // **A part crossed, so the position is written.** iOS's `recordDrifted` writes on
+        // every part change for the same reason: a boundary is a landmark, and the offset
+        // restarts at it. Without this the only write between the periodic tick is the
+        // pause above, and a chapter mark crossed inside a single file — which raises no
+        // other callback at all — went unrecorded until the next fifteen-second tick, or
+        // never, if the session ended first. `nowPlaying` has to be non-null: a fresh start
+        // moves the index from nothing to zero, and that is not a crossing.
+        val crossedPart = next != null && nowPlaying != null && next.partIndex != nowPlaying?.partIndex
+        // One write, however many of the above are true at once — a pause that lands exactly
+        // on a part boundary is still one moment, not two writes of the same position.
+        if (becamePause || crossedPart) recordReached()
         nowPlaying = next
         onChange?.invoke(next)
     }

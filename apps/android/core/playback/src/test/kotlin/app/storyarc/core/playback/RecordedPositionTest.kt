@@ -103,6 +103,42 @@ class RecordedPositionTest {
         assertEquals(listOf(PlaybackPosition(0, 37_000)), written)
     }
 
+    /**
+     * A part crossed between two ticks is a landmark, written on the next one even though
+     * nothing the listener did raised a callback.
+     *
+     * `AudiobookSource.position` for `PartLayout.MARKS` answers from the player's clock
+     * alone, with no transition event at the mark — this is the periodic tick's `refresh()`
+     * catching up on a crossing the player itself never reported, which is the one case
+     * `audio-playback`'s "where a listening position is written" names and nothing wrote.
+     */
+    @Test
+    fun `a part crossed since the last publish writes where the player is`() {
+        val written = mutableListOf<PlaybackPosition>()
+        val player = FakePlayer()
+        val centre = started(player, written)
+
+        player.reachPart(1, 4_000)
+        centre.refresh()
+
+        assertEquals(listOf(PlaybackPosition(1, 4_000)), written)
+    }
+
+    /** Moving on inside the same part is the ordinary tick, and still writes nothing. */
+    @Test
+    fun `refreshing inside the same part writes nothing`() {
+        val written = mutableListOf<PlaybackPosition>()
+        val player = FakePlayer()
+        val centre = started(player, written)
+        player.reach(10_000)
+        centre.refresh()
+
+        player.reach(25_000)
+        centre.refresh()
+
+        assertEquals(emptyList<PlaybackPosition>(), written)
+    }
+
     @Test
     fun `a skip writes the place it landed`() {
         val written = mutableListOf<PlaybackPosition>()
