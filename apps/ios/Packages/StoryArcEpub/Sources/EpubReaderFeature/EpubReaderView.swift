@@ -72,6 +72,10 @@ public struct EpubReaderView: View {
     /// device's colour scheme and only this view can read that.
     private let settings: AppSettings?
 
+    /// What comes next, for the end screen — `nil` offers nothing, as `nextInSeries` does.
+    private let next: Publication?
+    private let onOpenNext: (Publication) -> Void
+
     /// The reading theme the app appearance dictates, or `nil` where the reader did not link
     /// the two.
     ///
@@ -94,9 +98,13 @@ public struct EpubReaderView: View {
         /// Where the highlights and notes a reader makes live between sessions.
         annotations: AnnotationStore? = nil,
         /// What the reader chose in Settings › Appearance. See ``linked``.
-        settings: AppSettings? = nil
+        settings: AppSettings? = nil,
+        next: Publication? = nil,
+        onOpenNext: @escaping (Publication) -> Void = { _ in }
     ) {
         self.settings = settings
+        self.next = next
+        self.onOpenNext = onOpenNext
         _model = State(
             initialValue: EpubReaderModel(
                 publication: publication,
@@ -152,6 +160,10 @@ public struct EpubReaderView: View {
 
             // Not the chrome, and on screen on their own terms — see ``transientOverlays``.
             transientOverlays
+
+            if model.isAtEnd, let next { // Task 7.2's end-of-book offer.
+                EpubEndOfPublication(next: next, onOpenNext: onOpenNext)
+            }
         }
         // The controls take themselves away, which until now only the comic reader did.
         //
