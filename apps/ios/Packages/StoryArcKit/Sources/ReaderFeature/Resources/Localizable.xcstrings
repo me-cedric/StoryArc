@@ -413,25 +413,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Helligkeit"
+            "value": "Bildschirmhelligkeit"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Brightness"
+            "value": "Screen brightness"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Brillo"
+            "value": "Brillo de la pantalla"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Luminosité"
+            "value": "Luminosité de l’écran"
           }
         }
       }

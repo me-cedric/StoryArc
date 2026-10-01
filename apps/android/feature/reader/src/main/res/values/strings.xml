@@ -90,7 +90,7 @@
     <string name="reader_matte_trueblack">True black</string>
     <string name="reader_matte_none">Black</string>
     <string name="reader_matte_swatch">Colour %1$s</string>
-    <string name="reader_brightness">Brightness</string>
+    <string name="reader_brightness">Screen brightness</string>
     <string name="reader_chapter_previous">Previous chapter</string>
     <string name="reader_chapter_next">Next chapter</string>
     <string name="reader_return">Back to page %1$d</string>
