@@ -16,6 +16,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.core.view.ViewCompat
 
 /**
  * Stops a publication reaching the network.
@@ -88,6 +89,18 @@ internal object PublicationEgress {
                 webView.webViewClient = Restricted(client)
             }
         }
+    }
+
+    /**
+     * Names the publication's web view for a screen reader, as its own pane title.
+     *
+     * `native-experience`: TalkBack reported "UNNAMED WebView" here (D23). A pane title
+     * announces the name when the pane appears without covering its content the way an
+     * `importantForAccessibility` region or a plain `contentDescription` would -- the
+     * page stays navigable paragraph by paragraph underneath it.
+     */
+    fun namePane(root: View, title: String) {
+        forEachWebView(root) { webView -> ViewCompat.setAccessibilityPaneTitle(webView, title) }
     }
 
     private fun forEachWebView(view: View, apply: (WebView) -> Unit) {
