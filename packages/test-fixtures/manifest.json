@@ -226,6 +226,27 @@
       "note": "The first entry is not solid, so a reader that delegates straight to libarchive lists page1.png and then fails fatally. Detection must read FHD_SOLID from the headers first."
     },
     {
+      "file": "comics/rar4-comicinfo.cbr",
+      "pins": "a CBR's ComicInfo.xml is read: series, writer and a designated cover that is not page one",
+      "expectedPageCount": 2,
+      "expectedPageOrder": [
+        "page1.png",
+        "page2.png"
+      ],
+      "actualContainer": "rar4",
+      "isStreamable": true,
+      "hasComicInfo": true,
+      "expectedSeries": "RAR Fixture",
+      "expectedComicInfo": {
+        "series": "RAR Fixture",
+        "number": "1",
+        "writers": [
+          "Test Writer"
+        ],
+        "coverPageIndex": 1
+      }
+    },
+    {
       "file": "comics/tar-store.cbt",
       "pins": "a TAR container opens; CBT is a supported format, not a mislabelled CBZ",
       "expectedPageCount": 3,

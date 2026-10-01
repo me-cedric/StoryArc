@@ -1358,6 +1358,45 @@ fixtures.append(
     }
 )
 
+# A CBR's own ComicInfo.xml, stored like its pages so no decoder is needed to
+# read it. `publication-formats` requires a CBR to be read for series, credits,
+# summary and reading direction exactly like a CBZ or a CBT, and to lose none of
+# that to the one archive kind that has needed a decoder for its pages.
+RAR_COMIC_INFO = b"""<?xml version="1.0" encoding="utf-8"?>
+<ComicInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Series>RAR Fixture</Series>
+  <Number>1</Number>
+  <Writer>Test Writer</Writer>
+  <Pages>
+    <Page Image="0" Type="Story"/>
+    <Page Image="1" Type="FrontCover"/>
+  </Pages>
+</ComicInfo>
+"""
+
+write_bytes(
+    "rar4-comicinfo.cbr",
+    rar4([("ComicInfo.xml", RAR_COMIC_INFO), ("page1.png", page(1)), ("page2.png", page(2))]),
+)
+fixtures.append(
+    {
+        "file": "comics/rar4-comicinfo.cbr",
+        "pins": "a CBR's ComicInfo.xml is read: series, writer and a designated cover that is not page one",
+        "expectedPageCount": 2,
+        "expectedPageOrder": ["page1.png", "page2.png"],
+        "actualContainer": "rar4",
+        "isStreamable": True,
+        "hasComicInfo": True,
+        "expectedSeries": "RAR Fixture",
+        "expectedComicInfo": {
+            "series": "RAR Fixture",
+            "number": "1",
+            "writers": ["Test Writer"],
+            "coverPageIndex": 1,
+        },
+    }
+)
+
 write_bytes("tar-store.cbt", cbt(three))
 register(
     "tar-store.cbt",

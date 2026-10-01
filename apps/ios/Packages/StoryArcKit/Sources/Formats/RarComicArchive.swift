@@ -15,12 +15,16 @@ public import Foundation
 /// a publication without transferring it.
 ///
 /// Split out of `ComicArchive.swift`, which had reached the 400-line cap this
-/// project enforces — this is the one archive kind with nothing left in common
-/// with the other two: no `ComicInfo`, so no spreads and no chapters either.
+/// project enforces.
 public struct RarComicArchive: ComicArchiveReading {
     public let pages: [PageEntry]
     public let skippedPageCount: Int
     public let generation: RarGeneration
+    /// `ComicInfo.xml` contents when the archive carries one, read by range when it is
+    /// stored and through `RarDecoder` when a local file exists and it is not.
+    public let comicInfoData: Data?
+    /// The archive's parsed metadata, when it carries any.
+    public let comicInfo: ComicInfo?
     /// Whether pages can be read out of order from a remote source.
     ///
     /// False for a solid archive, which has to be decompressed from the start.
@@ -69,6 +73,7 @@ public struct RarComicArchive: ComicArchiveReading {
         var skipped = 0
         var undecodable = 0
         var index: [String: RarEntry] = [:]
+        let comicInfoEntry = reader.entries.first { $0.path.lowercased().hasSuffix("comicinfo.xml") }
 
         for entry in reader.entries where PageOrdering.isPage(path: entry.path) {
             // A zero-length entry never decodes to anything, local file or not.
@@ -93,6 +98,35 @@ public struct RarComicArchive: ComicArchiveReading {
         self.pathToEntry = index
         self.isStreamable = !reader.isSolid
         self.isDownloadOnly = undecodable > 0
+
+        self.comicInfoData = await Self.comicInfoData(
+            for: comicInfoEntry, reader: reader, fileURL: fileURL
+        )
+        self.comicInfo = comicInfoData.flatMap(ComicInfo.init(data:))
+    }
+
+    /// `ComicInfo.xml`'s raw bytes, read by range when it is stored and through
+    /// `RarDecoder` when a local file exists and it is not — `nil` in index-only mode
+    /// when the entry is compressed, same as a compressed page.
+    private static func comicInfoData(
+        for entry: RarEntry?, reader: RarReader, fileURL: URL?
+    ) async -> Data? {
+        guard let entry else { return nil }
+        if entry.isStored { return try? await reader.data(for: entry) }
+        guard let fileURL else { return nil }
+        return try? RarDecoder.data(forEntryAt: entry.path, inArchiveAt: fileURL)
+    }
+
+    public var coverPage: PageEntry? {
+        CoverSelection.cover(of: pages, designated: comicInfo?.coverPageIndex)
+    }
+
+    public var doublePageIndices: [Int] {
+        PageDeclarations.spreads(of: pages, declared: comicInfo?.doublePageIndices ?? [])
+    }
+
+    public var chapterStartIndices: [Int] {
+        PageDeclarations.chapterStarts(of: pages, declared: comicInfo?.chapterStartIndices ?? [])
     }
 
     public func data(for page: PageEntry) async throws -> Data {

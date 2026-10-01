@@ -444,6 +444,7 @@ object PublicationIndexer {
         val info = when (archive) {
             is ZipComicArchive -> archive.comicInfo
             is TarComicArchive -> archive.comicInfo
+            is RarComicArchive -> archive.comicInfo
             is ImageFolderArchive -> archive.comicInfo
             is DocumentFolderArchive -> archive.comicInfo
             else -> null

@@ -41,6 +41,13 @@ struct PublicationIndexerTests {
 
     // MARK: - Metadata precedence
 
+    @Test("A CBR's series reaches the library, the same as a CBZ's")
+    func rarSeriesReachesTheLibrary() async throws {
+        let publication = try await index("comics/rar4-comicinfo.cbr")
+        #expect(publication.series == "RAR Fixture")
+        #expect(publication.origin == .embedded)
+    }
+
     @Test("Embedded metadata beats the filename")
     func embeddedWins() async throws {
         let publication = try await index("comics/manga-metadata.cbz")

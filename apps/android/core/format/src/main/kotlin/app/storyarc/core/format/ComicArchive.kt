@@ -361,9 +361,24 @@ class RarComicArchive private constructor(
      * compressed ones can be read until the file arrives.
      */
     val isDownloadOnly: Boolean,
+    /** `ComicInfo.xml` contents when the archive carries one, read by range when it is
+     * stored and through [RarDecoder] when a local file exists and it is not. */
+    val comicInfoData: ByteArray?,
 ) : ComicArchiveReading {
 
     val generation: RarGeneration get() = reader.generation
+
+    /** The archive's parsed metadata, when it carries any. */
+    val comicInfo: ComicInfo? by lazy { comicInfoData?.let(ComicInfo::parse) }
+
+    override val coverPage: PageEntry?
+        get() = CoverSelection.cover(pages, comicInfo?.coverPageIndex)
+
+    override val doublePageIndices: List<Int>
+        get() = PageDeclarations.spreads(pages, comicInfo?.doublePageIndices.orEmpty())
+
+    override val chapterStartIndices: List<Int>
+        get() = PageDeclarations.chapterStarts(pages, comicInfo?.chapterStartIndices.orEmpty())
 
     /**
      * Whether pages can be read out of order from a remote source.
@@ -401,6 +416,9 @@ class RarComicArchive private constructor(
             val index = mutableMapOf<String, RarEntry>()
             var skipped = 0
             var undecodable = 0
+            val comicInfoEntry = reader.entries.firstOrNull {
+                it.path.lowercase().endsWith("comicinfo.xml")
+            }
 
             // A compressed entry is readable only with a local file to hand to
             // libarchive, and only if the native library is actually there.
@@ -425,6 +443,17 @@ class RarComicArchive private constructor(
                 index[entry.path] = entry
             }
 
+            val comicInfoData = when {
+                comicInfoEntry == null -> null
+                comicInfoEntry.isStored -> runCatching { reader.data(comicInfoEntry) }.getOrNull()
+                file != null -> runCatching {
+                    RarDecoder.data(file, comicInfoEntry.path)
+                }.getOrNull()
+                // Index-only mode and the entry is compressed: unreadable until the
+                // file arrives, same as a compressed page.
+                else -> null
+            }
+
             return RarComicArchive(
                 source = source,
                 reader = reader,
@@ -433,6 +462,7 @@ class RarComicArchive private constructor(
                 pathToEntry = index,
                 file = file,
                 isDownloadOnly = undecodable > 0,
+                comicInfoData = comicInfoData,
             )
         }
     }
