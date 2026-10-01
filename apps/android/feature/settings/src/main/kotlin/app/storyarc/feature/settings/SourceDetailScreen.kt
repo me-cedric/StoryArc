@@ -1,6 +1,7 @@
 package app.storyarc.feature.settings
 
 import android.content.Context
+import android.text.format.DateFormat
 import android.text.format.Formatter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -44,7 +45,7 @@ import app.storyarc.core.model.SourceDiagnosis
 import app.storyarc.core.model.SourceFailure
 import app.storyarc.core.model.SourceRemovalWording
 import app.storyarc.core.persistence.ImportedCopies
-import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
@@ -85,6 +86,7 @@ internal fun SourceDetailScreen(
     // off `Locale.getDefault()` -- what `DateUtils.formatDateTime` uses for day and month
     // names -- would still be in the old one.
     val locale = LocalConfiguration.current.locales[0]
+    val is24Hour = DateFormat.is24HourFormat(context)
     var confirming by remember { mutableStateOf<SourceAction?>(null) }
 
     confirming?.let { action ->
@@ -162,7 +164,7 @@ internal fun SourceDetailScreen(
             )
             Field(
                 label = stringResource(R.string.sources_detail_last_sync),
-                value = diagnosis.lastSuccessfulSyncEpochMillis?.let { moment(locale, it) }
+                value = diagnosis.lastSuccessfulSyncEpochMillis?.let { moment(locale, it, is24Hour) }
                     ?: stringResource(R.string.sources_detail_never),
             )
             diagnosis.failure?.let { failure ->
@@ -175,7 +177,7 @@ internal fun SourceDetailScreen(
                     value = when (failure) {
                         is SourceFailure.Unreachable -> stringResource(
                             R.string.sources_detail_error_unreachable,
-                            moment(locale, failure.sinceEpochMillis),
+                            moment(locale, failure.sinceEpochMillis, is24Hour),
                         )
                         is SourceFailure.Unauthorized -> failure.reason
                     },
@@ -337,14 +339,16 @@ private fun Field(label: String, value: String) {
  * few things every device already knows how to write, and `localization` asks for dates
  * "in the reader's locale" rather than in ours.
  *
- * `java.text.DateFormat`, not `DateUtils.formatDateTime`: measured, `DateUtils` moves the
- * clock between 12- and 24-hour with the context it is given, but still writes the month
- * name from `Locale.getDefault()` -- a French reader saw "Oct 1, 2026, 17:06", the hour
- * right and the month wrong. `DateFormat.getDateTimeInstance(locale)`, the model
- * `CatalogueDetailScreen` already uses for a date alone, takes the locale for both.
+ * A skeleton, not `DateUtils.formatDateTime`: measured, `DateUtils` moves the clock between
+ * 12- and 24-hour with the context it is given, but still writes the month name from
+ * `Locale.getDefault()` -- a French reader saw "Oct 1, 2026, 17:06", the hour right and the
+ * month wrong. `getBestDateTimePattern` takes the locale for the words and the order, and
+ * [is24Hour] keeps the device's own clock setting, which a locale alone does not carry.
  */
-internal fun moment(locale: Locale, epochMillis: Long): String =
-    DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, locale).format(Date(epochMillis))
+internal fun moment(locale: Locale, epochMillis: Long, is24Hour: Boolean): String {
+    val pattern = DateFormat.getBestDateTimePattern(locale, if (is24Hour) "yMMMdHm" else "yMMMdhm")
+    return SimpleDateFormat(pattern, locale).format(Date(epochMillis))
+}
 
 private fun status(state: SourceConnectionState): Int = when (state) {
     is SourceConnectionState.Connected -> R.string.sources_state_connected
