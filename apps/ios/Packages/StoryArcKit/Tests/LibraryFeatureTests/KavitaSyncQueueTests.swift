@@ -198,6 +198,60 @@ struct KavitaSyncQueueTests {
         #expect(store.unsent().isEmpty)
     }
 
+    @Test("Task 12.6: deleting a shelf holds the deletion when the server is away")
+    func deleteShelfHoldsWhenUnreachable() async {
+        let store = store()
+        await KavitaSync.deleteShelf(9, isCollection: true, on: "a-server", to: nil, in: store)
+
+        let held = store.unsent().first
+        #expect(held?.listID == 9)
+        #expect(held?.deleteShelf == true)
+    }
+
+    @Test("Task 12.6: deleting a shelf reaches a reachable server and leaves nothing held")
+    func deleteShelfSendsWhenReachable() async throws {
+        let store = store()
+        let (address, configuration) = try acceptingAddress(host: "\(UUID().uuidString).delete-shelf.test")
+
+        await KavitaSync.deleteShelf(
+            9, isCollection: false, on: "a-server", to: address, in: store, configuration: configuration
+        )
+
+        #expect(store.unsent().isEmpty)
+    }
+
+    @Test("Task 12.6: removing a list entry holds the removal when the server is away")
+    func removeEntryHoldsWhenUnreachable() async {
+        let store = store()
+        await KavitaSync.removeEntry(3, at: 1, from: 9, on: "a-server", to: nil, in: store)
+
+        let held = store.unsent().first
+        #expect(held?.listID == 9)
+        #expect(held?.removeItemID == 3)
+        #expect(held?.removeItemPosition == 1)
+    }
+
+    @Test("Task 12.6: removing a list entry reaches a reachable server and leaves nothing held")
+    func removeEntrySendsWhenReachable() async throws {
+        let store = store()
+        let (address, configuration) = try acceptingAddress(host: "\(UUID().uuidString).remove-entry.test")
+
+        await KavitaSync.removeEntry(
+            3, at: 1, from: 9, on: "a-server", to: address, in: store, configuration: configuration
+        )
+
+        #expect(store.unsent().isEmpty)
+    }
+
+    @Test("Task 12.6: a held shelf deletion and a held entry removal are two different promises")
+    func deleteShelfAndRemoveEntryCoexist() async {
+        let store = store()
+        await KavitaSync.deleteShelf(9, isCollection: true, on: "a-server", to: nil, in: store)
+        await KavitaSync.removeEntry(3, at: 1, from: 9, on: "a-server", to: nil, in: store)
+
+        #expect(store.unsent().count == 2)
+    }
+
     @Test("A held mark beside a held position: only the mark is refused, and only it leaves")
     func flushRefusesOnlyTheMarkAmongWhatIsHeld() async throws {
         let store = store()

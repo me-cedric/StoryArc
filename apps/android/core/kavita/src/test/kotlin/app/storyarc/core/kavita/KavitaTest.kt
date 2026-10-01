@@ -210,6 +210,16 @@ class KavitaClientTest {
                               "persons":[{"id":1,"name":"Ada Okonkwo"}],
                               "genres":[{"id":1,"title":"Adventure"}],
                               "tags":[{"id":2,"title":"Ongoing"}]}"""
+                path.endsWith("/Collection") && exchange.requestMethod == "DELETE" -> {
+                    sentTo = path
+                    sentQuery = exchange.requestURI.query
+                    body = "true"
+                }
+                path.endsWith("/ReadingList/delete-item") -> {
+                    sentTo = path
+                    sentBody = exchange.requestBody.readBytes().decodeToString()
+                    body = "{}"
+                }
                 else -> {
                     status = 404
                     body = """{"message":"no"}"""
@@ -443,6 +453,28 @@ class KavitaClientTest {
         assertThrows(KavitaError.RouteMissing::class.java) {
             runBlocking { client().mark(11, 1100, 12, isRead = true) }
         }
+    }
+
+    @Test
+    fun deletingACollectionNamesTheOneToDrop() = runBlocking {
+        client().deleteCollection(4)
+
+        assertEquals("/api/Collection", sentTo)
+        assertEquals("tagId=4", sentQuery)
+    }
+
+    @Test
+    fun removingAListEntryNamesTheListTheEntryAndItsOwnPosition() = runBlocking {
+        // Kavita documents one route for this, shaped for a move rather than a drop -- the
+        // same body `moveInList` sends. `toPosition` carries the entry's own position:
+        // there is no destination for an entry that is leaving.
+        client().removeFromList(7, item = 3, position = 2)
+
+        assertEquals("/api/ReadingList/delete-item", sentTo)
+        assertTrue("\"readingListId\":7" in sentBody.orEmpty())
+        assertTrue("\"readingListItemId\":3" in sentBody.orEmpty())
+        assertTrue("\"fromPosition\":2" in sentBody.orEmpty())
+        assertTrue("\"toPosition\":2" in sentBody.orEmpty())
     }
 
     @Test

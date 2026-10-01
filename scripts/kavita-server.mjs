@@ -261,6 +261,7 @@ const ROUTES = [
   { at: '/api/Reader/mark-multiple-read', verb: 'POST', example: '/api/Reader/mark-multiple-read' },
   { at: '/api/Reader/mark-multiple-unread', verb: 'POST', example: '/api/Reader/mark-multiple-unread' },
   { at: '/api/Collection', verb: 'GET', example: '/api/Collection' },
+  { at: '/api/Collection', verb: 'DELETE', example: '/api/Collection?tagId=1' },
   { at: '/api/Collection/update-for-series', verb: 'POST', example: '/api/Collection/update-for-series' },
   {
     at: '/api/Series/series-by-collection',
@@ -272,6 +273,7 @@ const ROUTES = [
   { at: '/api/ReadingList/create', verb: 'POST', example: '/api/ReadingList/create' },
   { at: '/api/ReadingList/update-by-multiple', verb: 'POST', example: '/api/ReadingList/update-by-multiple' },
   { at: '/api/ReadingList/update-position', verb: 'POST', example: '/api/ReadingList/update-position' },
+  { at: '/api/ReadingList/delete-item', verb: 'POST', example: '/api/ReadingList/delete-item' },
   { at: '/api/ReadingList', verb: 'DELETE', example: '/api/ReadingList?readingListId=1' },
   { at: '/api/Search/search', verb: 'GET', example: '/api/Search/search?queryString=a' },
 ]
@@ -303,9 +305,17 @@ const libraryFiltered = (posted) => {
   return Number(named?.value ?? 0) || 0
 }
 
-/** The verb a route requires, or nothing when this mock asserts none for it. */
-const verbFor = (pathname) =>
-  ROUTES.find(({ at }) => (typeof at === 'string' ? at === pathname : at.test(pathname)))?.verb
+/**
+ * The verbs a route answers, empty when this mock asserts none for it.
+ *
+ * Most paths answer one verb, so most `ROUTES` entries list one. `/api/Collection` is the
+ * exception Kavita's own `openapi.json` makes: `GET` lists the collections and `DELETE`
+ * drops one, both on the same path -- so this reads every entry that matches the path
+ * rather than stopping at the first, and a caller asks whether its own verb is among them.
+ */
+const verbsFor = (pathname) =>
+  ROUTES.filter(({ at }) => (typeof at === 'string' ? at === pathname : at.test(pathname)))
+    .map(({ verb }) => verb)
 
 const server = createServer((request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`)
@@ -319,14 +329,14 @@ const server = createServer((request, response) => {
   // wrong verb is the defect this gate exists for and hiding it behind a 401 would only
   // move it. Kavita answers 404 here rather than 405; the mock says 405 because it knows
   // the route exists and the caller needs to be told which of the two is wrong.
-  const required = verbFor(url.pathname)
-  if (required && request.method !== required) {
+  const allowed = verbsFor(url.pathname)
+  if (allowed.length > 0 && !allowed.includes(request.method)) {
     response.writeHead(405, {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-store',
-      Allow: required,
+      Allow: allowed.join(', '),
     })
-    return response.end(JSON.stringify({ message: `${url.pathname} answers ${required}` }))
+    return response.end(JSON.stringify({ message: `${url.pathname} answers ${allowed.join(' or ')}` }))
   }
 
   // Authentication is the one route that does not need a token.
@@ -531,12 +541,21 @@ const server = createServer((request, response) => {
     return undefined
   }
 
-  if (url.pathname === '/api/Collection') {
+  if (url.pathname === '/api/Collection' && request.method === 'GET') {
     return send(response, 200, collections.map(({ id, title, summary }) => ({
       id,
       title,
       summary,
     })))
+  }
+
+  // Task 12.6: `deleteList`'s twin. `collections-and-reading-lists` treats a server
+  // collection as the same kind of object as a local one, and a local one can be deleted.
+  if (url.pathname === '/api/Collection' && request.method === 'DELETE') {
+    const at = collections.findIndex((each) => each.id === Number(url.searchParams.get('tagId')))
+    if (at < 0) return send(response, 404, { message: 'no such collection' })
+    collections.splice(at, 1)
+    return send(response, 200, true)
   }
 
   // `collections-and-reading-lists` lets a reader keep a new collection on a server. Kavita
@@ -678,6 +697,31 @@ const server = createServer((request, response) => {
       const [moved] = list.items.splice(from, 1)
       list.items.splice(to, 0, moved)
       list.items.forEach((item, at) => { item.order = at })
+      send(response, 200, {})
+    })
+    return undefined
+  }
+
+  // Task 12.6: a local list drops one entry without taking the whole list with it, and a
+  // server one now does too. Kavita documents one route for this, shaped for a move
+  // (`UpdateReadingListPosition`) rather than a drop -- both clients send `fromPosition`
+  // and `toPosition` equal, which is the one thing that shape gives a remover to say with.
+  if (url.pathname === '/api/ReadingList/delete-item' && request.method === 'POST') {
+    let body = ''
+    request.on('data', (chunk) => { body += chunk })
+    request.on('end', () => {
+      const posted = JSON.parse(body || '{}')
+      const list = readingLists.find((each) => each.id === posted.readingListId)
+      if (!list) return send(response, 404, { message: 'no such list' })
+      const at = posted.fromPosition
+      if (!Number.isInteger(at) || at < 0 || at >= list.items.length) {
+        return send(response, 400, { message: 'position out of range' })
+      }
+      if (list.items[at].id !== posted.readingListItemId) {
+        return send(response, 400, { message: 'that entry is not at that position' })
+      }
+      list.items.splice(at, 1)
+      list.items.forEach((item, position) => { item.order = position })
       send(response, 200, {})
     })
     return undefined
@@ -952,6 +996,19 @@ const drive = async () => {
   check('a collection a reader made carries an id nothing else has',
     new Set(grouped.map((each) => each.id)).size === grouped.length,
     grouped.map((each) => each.id))
+
+  // Task 12.6: `deleteList`'s twin -- a server collection is the same kind of object as a
+  // local one, and a local one can be deleted.
+  const madeId = grouped.find((each) => each.title === 'Made by a reader').id
+  const collectionDropped = await fetch(`${base}/api/Collection?tagId=${madeId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  check('a collection a reader made can be dropped again', collectionDropped.status === 200,
+    collectionDropped.status)
+  check('a dropped collection is no longer one the server lists',
+    (await (await get('/api/Collection', token)).json()).every((each) => each.id !== madeId))
+
   const unnamed = await post('/api/Collection/update-for-series', {
     collectionTagId: 0,
     collectionTagTitle: '',
@@ -1084,6 +1141,21 @@ const drive = async () => {
     appended.status)
   check('a chapter appended to a list is one the list then holds',
     (await listItems(keptId)).some((item) => item.chapterId === chapter.id))
+
+  // Task 12.6: a local list drops one entry without taking the whole list with it.
+  const beforeRemoval = await listItems(keptId)
+  const entry = beforeRemoval.find((item) => item.chapterId === chapter.id)
+  const removed = await post('/api/ReadingList/delete-item', {
+    readingListId: keptId,
+    readingListItemId: entry.id,
+    fromPosition: entry.order,
+    toPosition: entry.order,
+  }, token)
+  check('an entry a reader removes from a list is accepted', removed.status === 200,
+    removed.status)
+  check('a removed entry is one the list no longer holds',
+    !(await listItems(keptId)).some((item) => item.chapterId === chapter.id))
+
   const dropped = await fetch(`${base}/api/ReadingList?readingListId=${keptId}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
@@ -1096,9 +1168,14 @@ const drive = async () => {
   // And every one of them asked with a verb it does not answer. This is the check the mock
   // never had: it routed on the path alone, so a client using the wrong verb passed the
   // whole suite and only a live server could say otherwise.
-  const otherwise = { GET: 'POST', POST: 'GET', DELETE: 'GET' }
+  //
+  // By path rather than by `ROUTES` entry, since task 12.6 gave `/api/Collection` two —
+  // `GET` lists, `DELETE` drops one — and a verb this mock allows for either must never be
+  // the "wrong" one this loop picks.
   for (const route of ROUTES) {
-    const wrong = otherwise[route.verb]
+    const example = new URL(route.example, base)
+    const allowed = verbsFor(example.pathname)
+    const wrong = ['GET', 'POST', 'DELETE'].find((each) => !allowed.includes(each))
     const answered = await fetch(`${base}${route.example}`, {
       method: wrong,
       headers: {
@@ -1108,8 +1185,8 @@ const drive = async () => {
       ...(wrong === 'POST' ? { body: '{}' } : {}),
     })
     const label = typeof route.at === 'string' ? route.at : String(route.at)
-    check(`${label} answers ${route.verb} and refuses a ${wrong}`,
-      answered.status === 405 && answered.headers.get('allow') === route.verb,
+    check(`${label} answers ${allowed.join(' or ')} and refuses a ${wrong}`,
+      answered.status === 405 && answered.headers.get('allow') === allowed.join(', '),
       answered.status)
   }
 

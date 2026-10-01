@@ -90,6 +90,21 @@ data class KavitaUnsent(
      * before this existed, which sends exactly as it always did.
      */
     val orderBaseline: List<Int>? = null,
+    /**
+     * Set when this is a removal of one entry from [listId], a server reading list.
+     *
+     * The entry's own `readingListItemId` and its current position -- `removeFromList`
+     * wants both, because Kavita's one documented route for this is shaped for moving an
+     * entry (`UpdateReadingListPosition`) and not for dropping one. Null for everything that
+     * is not this.
+     */
+    val removeItemId: Int? = null,
+    val removeItemPosition: Int? = null,
+    /**
+     * Set when [listId] should be deleted outright rather than edited -- `true` for a
+     * collection, `false` for a reading list. Null for every other kind of held write.
+     */
+    val deleteShelf: Boolean? = null,
 ) {
     /**
      * What makes two held items the same thing.
@@ -107,9 +122,12 @@ data class KavitaUnsent(
      * hold a chapter numbered 12, and a key without the server would let one overwrite the
      * other's held entry.
      */
-    val key: String get() =
-        if (order != null) "order:${origin.sourceId}:$listId"
-        else listOf(origin.sourceId, origin.chapterId, listId, mark).joinToString(":")
+    val key: String get() = when {
+        deleteShelf != null -> "delete:${origin.sourceId}:$listId:$deleteShelf"
+        removeItemId != null -> "remove:${origin.sourceId}:$listId:$removeItemId"
+        order != null -> "order:${origin.sourceId}:$listId"
+        else -> listOf(origin.sourceId, origin.chapterId, listId, mark).joinToString(":")
+    }
 }
 
 /**

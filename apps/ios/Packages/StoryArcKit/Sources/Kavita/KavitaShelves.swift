@@ -337,6 +337,44 @@ extension KavitaClient {
         _ = try await send(request)
     }
 
+    /// Removes a collection from the server. ``deleteList(_:)``'s twin, task 12.6.
+    public func deleteCollection(_ id: Int) async throws {
+        guard let url = address.endpoint(
+            "Collection",
+            query: [URLQueryItem(name: "tagId", value: String(id))]
+        ) else { throw KavitaError.badAddress }
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        _ = try await send(request)
+    }
+
+    /// Removes one entry from a server reading list.
+    ///
+    /// `collections-and-reading-lists` requires every edit "the same kind of object as
+    /// locally created" ones, and a local list drops one entry without taking the whole
+    /// list with it. Kavita documents one route for this, `delete-item`, shaped for moving
+    /// an entry rather than dropping one — the same `UpdateReadingListPosition` body
+    /// ``moveInList(_:item:from:to:)`` sends. `toPosition` carries the entry's own current
+    /// position, the one field that shape gives a remover to say with: there is no
+    /// destination for an entry that is leaving.
+    public func removeFromList(_ listId: Int, item itemId: Int, at position: Int) async throws {
+        guard let url = address.endpoint("ReadingList/delete-item") else {
+            throw KavitaError.badAddress
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(
+            KavitaListPosition(
+                readingListId: listId,
+                readingListItemId: itemId,
+                fromPosition: position,
+                toPosition: position
+            )
+        )
+        _ = try await send(request)
+    }
+
     private func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
         guard let value = try? JSONDecoder().decode(type, from: data) else {
             throw KavitaError.unexpectedResponse
