@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -522,7 +523,14 @@ private fun Sleep(playing: NowPlaying, timer: SleepTimer?, onSleep: (SleepAfter?
  * to one.
  */
 @Composable
-internal fun PlayerFinishedScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
+internal fun PlayerFinishedScreen(
+    onBack: () -> Unit,
+    // `collections-and-reading-lists` task 7.2: the end of an audiobook offers what comes
+    // next, the way the paged reader's own end screen does. Null offers nothing.
+    next: Publication? = null,
+    onOpenNext: (Publication) -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
@@ -533,6 +541,11 @@ internal fun PlayerFinishedScreen(onBack: () -> Unit, modifier: Modifier = Modif
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (next != null) {
+            FilledTonalButton(onClick = { onOpenNext(next) }) {
+                Text(stringResource(R.string.player_finished_next, next.displayTitle))
+            }
+        }
         TextButton(onClick = onBack) { Text(stringResource(R.string.player_back)) }
     }
 }

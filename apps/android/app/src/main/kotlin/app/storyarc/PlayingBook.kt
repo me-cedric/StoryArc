@@ -79,6 +79,22 @@ internal object PlayingBook {
      */
     val following: StateFlow<Publication?> = _following.asStateFlow()
 
+    private val _lastPlayed = MutableStateFlow<Publication?>(null)
+
+    /**
+     * The publication most recently started here, kept past the teardown that clears
+     * [following].
+     *
+     * `collections-and-reading-lists` task 7.2: the end of an audiobook offers what comes
+     * next, the way the paged reader's own end screen does — and the offer needs to know
+     * which publication to ask the library's `next` about, after [following] has already
+     * gone back to null. Set wherever [following] is, and never cleared on its own: a
+     * listener who stopped the book, or let it run out, should still be offered a sequel
+     * on the screen that is standing where the player was. Cleared only when a second book
+     * starts, so a stale answer is never offered as the first book's.
+     */
+    val lastPlayed: StateFlow<Publication?> = _lastPlayed.asStateFlow()
+
     /** Where a chosen speed goes, and where the next book's comes from. */
     private var preferences: PlaybackPreferences? = null
 
@@ -177,6 +193,7 @@ internal object PlayingBook {
      */
     private fun follow(publication: Publication, store: ProgressStore) {
         _following.value = publication
+        _lastPlayed.value = publication
         PlaybackHost.recordPosition = { id, position, parts ->
             val known = _following.value
             // A book started before this process was, resumed by the notification-shade

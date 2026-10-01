@@ -180,6 +180,39 @@ class AudioSurfacesAreWiredTest {
         )
     }
 
+    @Test
+    fun `the finished screen offers what comes next, read from the book kept past its teardown`() {
+        // `collections-and-reading-lists` task 7.2: the end of an audiobook offers what
+        // comes next, the way the paged reader's own end screen does.
+        assertTrue(
+            "PlayingBook no longer keeps the last publication past `following`'s own" +
+                " teardown, so the finished screen has nothing to ask the library's" +
+                " `next` about once the session has gone.",
+            read(PLAYING_BOOK).contains("_lastPlayed.value = publication"),
+        )
+        assertTrue(
+            "The finished screen no longer reads PlayingBook.lastPlayed, so it never" +
+                " asks what comes next after the book that just ended.",
+            read(APP_SCREENS).contains("PlayingBook.lastPlayed.collectAsStateWithLifecycle()"),
+        )
+        assertTrue(
+            "The finished screen no longer asks the library for what comes next, so the" +
+                " offer it draws is never passed one to draw.",
+            read(APP_SCREENS).contains("next = lastPlayed?.let { host.library.next(it) }"),
+        )
+        assertTrue(
+            "Choosing the offer no longer opens the next publication, so the button" +
+                " does nothing.",
+            read(APP_SCREENS)
+                .contains("onOpenNext = { next -> host.library.location(next)?.let { host.open(next, it) } }"),
+        )
+        assertTrue(
+            "PlayerFinishedScreen no longer draws the offer when one is given, so a" +
+                " listener standing on a finished book never sees it.",
+            read(PLAYER_SCREEN).contains("onClick = { onOpenNext(next) }"),
+        )
+    }
+
     private fun read(path: String): String {
         val file = File(androidRoot, path)
         if (!file.isFile) error("$path is not under ${androidRoot.absolutePath} — has it moved?")
@@ -192,6 +225,7 @@ class AudioSurfacesAreWiredTest {
         const val CAR_SHELF = "app/src/main/kotlin/app/storyarc/CarShelf.kt"
         const val PLAYING_BOOK = "app/src/main/kotlin/app/storyarc/PlayingBook.kt"
         const val MAIN_ACTIVITY = "app/src/main/kotlin/app/storyarc/MainActivity.kt"
+        const val PLAYER_SCREEN = "app/src/main/kotlin/app/storyarc/PlayerScreen.kt"
 
         /**
          * The Gradle root, found by walking up from the working directory, per
