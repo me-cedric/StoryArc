@@ -12,24 +12,6 @@ public import StoryArcCore
 /// `PublicationIndexer` takes a `RandomAccessSource`, and ADR-0008 put that interface there
 /// so a remote archive could supply one. The first page of a 400 MB comic costs a few
 /// megabytes, not four hundred.
-/// What a path's own headers already said, or a fresh read of them.
-///
-/// A free function taking the current cached value rather than reaching into the view's own
-/// dictionary, so a test can drive the one thing this screen must get right about the merge —
-/// a row that has already answered is never asked again — without an actor-isolated `inout`
-/// across the `await` that reading one would need. The caller writes the dictionary back on
-/// its own actor, before and after. Android's `cachedOrIndexed` is the same decision, over a
-/// `MutableMap` that can hold the lock the whole time. `SmbBrowserViewTests` mutates this to
-/// prove it can fail.
-@MainActor
-func cachedOrIndexed(
-    cached: Publication?,
-    index: () async throws -> Publication
-) async rethrows -> Publication {
-    if let cached { return cached }
-    return try await index()
-}
-
 public struct SmbBrowserView: View {
     @Environment(\.theme) private var theme
 
@@ -330,4 +312,22 @@ public struct SmbBrowserView: View {
             onSay: { said in notice = said }
         )
     }
+}
+
+/// What a path's own headers already said, or a fresh read of them.
+///
+/// A free function taking the current cached value rather than reaching into the view's own
+/// dictionary, so a test can drive the one thing this screen must get right about the merge —
+/// a row that has already answered is never asked again — without an actor-isolated `inout`
+/// across the `await` that reading one would need. The caller writes the dictionary back on
+/// its own actor, before and after. Android's `cachedOrIndexed` is the same decision, over a
+/// `MutableMap` that can hold the lock the whole time. `SmbBrowserViewTests` mutates this to
+/// prove it can fail.
+@MainActor
+func cachedOrIndexed(
+    cached: Publication?,
+    index: () async throws -> Publication
+) async rethrows -> Publication {
+    if let cached { return cached }
+    return try await index()
 }
