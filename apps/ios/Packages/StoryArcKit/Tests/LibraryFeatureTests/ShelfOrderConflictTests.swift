@@ -67,7 +67,7 @@ struct ShelfOrderConflictTests {
         // The server answers 2,1,3 — it moved since this device last saw 1,2,3.
         let client = try client(host: "order-moved.test", serverOrder: [2, 1, 3]) { moved.value += 1 }
         try await KavitaSync.reorderCheckingBaseline(
-            4, to: [3, 1, 2], baseline: [1, 2, 3], onConflict: { conflicts.value += 1 }, through: client
+            4, to: [3, 1, 2], baseline: [1, 2, 3], onConflict: { _ in conflicts.value += 1 }, through: client
         )
         #expect(moved.value == 0)
         #expect(conflicts.value == 1)
@@ -79,7 +79,7 @@ struct ShelfOrderConflictTests {
         let conflicts = Flag()
         let client = try client(host: "order-no-baseline.test", serverOrder: [2, 1, 3]) { moved.value += 1 }
         try await KavitaSync.reorderCheckingBaseline(
-            4, to: [3, 1, 2], baseline: nil, onConflict: { conflicts.value += 1 }, through: client
+            4, to: [3, 1, 2], baseline: nil, onConflict: { _ in conflicts.value += 1 }, through: client
         )
         #expect(moved.value > 0)
         #expect(conflicts.value == 0)
@@ -101,7 +101,7 @@ struct ShelfOrderConflictTests {
                 }
                 return (404, Data())
             },
-            onOrderConflict: { conflicts.value += 1 }
+            onOrderConflict: { _ in conflicts.value += 1 }
         )
         #expect(conflicts.value == 1)
         #expect(store.unsent().isEmpty)
