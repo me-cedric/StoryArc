@@ -228,6 +228,21 @@ class ComicInfoTest {
     fun `a non-numeric year does not become a number`() {
         assertNull(parse("<ComicInfo><Year>MMXXVI</Year></ComicInfo>")?.year)
     }
+
+    // The one container that needed a decoder to read its pages, but not its metadata.
+
+    @Test
+    fun `a CBR's own ComicInfo xml is read`() = runTest {
+        ComicArchiveOpener.open(FixtureCorpus.file("comics/rar4-comicinfo.cbr")).use { archive ->
+            val rar = archive as RarComicArchive
+            assertEquals("RAR Fixture", rar.comicInfo?.series)
+            assertEquals("1", rar.comicInfo?.number)
+            assertEquals(listOf("Test Writer"), rar.comicInfo?.writers)
+            // The designated cover reaches the archive's own coverPage, the same
+            // override a CBZ and a CBT already have.
+            assertEquals("page2.png", archive.coverPage?.path)
+        }
+    }
 }
 
 /**

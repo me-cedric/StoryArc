@@ -235,6 +235,22 @@ struct ComicInfoTests {
         let info = ComicInfo(data: Data("<ComicInfo><Year>MMXXVI</Year></ComicInfo>".utf8))
         #expect(info?.year == nil)
     }
+
+    // MARK: - The one container that needed a decoder to read its pages, but not its metadata
+
+    @Test("A CBR's own ComicInfo.xml is read")
+    func rarComicInfo() async throws {
+        let archive = try await ComicArchiveOpener.open(
+            fileAt: FixtureCorpus.url("comics/rar4-comicinfo.cbr")
+        )
+        let rar = try #require(archive as? RarComicArchive)
+        #expect(rar.comicInfo?.series == "RAR Fixture")
+        #expect(rar.comicInfo?.number == "1")
+        #expect(rar.comicInfo?.writers == ["Test Writer"])
+        // The designated cover reaches the archive's own coverPage, the same
+        // override a CBZ and a CBT already have.
+        #expect(archive.coverPage?.path == "page2.png")
+    }
 }
 
 /// Cover selection is its own suite because the rule spans every container: the

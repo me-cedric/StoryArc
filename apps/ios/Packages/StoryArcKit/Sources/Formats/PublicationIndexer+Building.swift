@@ -130,6 +130,7 @@ extension PublicationIndexer {
     ) -> Publication {
         let info = (archive as? ZipComicArchive)?.comicInfo
             ?? (archive as? TarComicArchive)?.comicInfo
+            ?? (archive as? RarComicArchive)?.comicInfo
             ?? (archive as? ImageFolderArchive)?.comicInfo
 
         // Embedded metadata beats a filename guess, field by field rather than

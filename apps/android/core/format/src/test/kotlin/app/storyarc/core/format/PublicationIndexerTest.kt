@@ -51,6 +51,13 @@ class PublicationIndexerTest {
     // Metadata precedence.
 
     @Test
+    fun `a cbr's series reaches the library, the same as a cbz's`() = runTest {
+        val publication = index("comics/rar4-comicinfo.cbr")
+        assertEquals("RAR Fixture", publication.series)
+        assertEquals(MetadataOrigin.EMBEDDED, publication.origin)
+    }
+
+    @Test
     fun `embedded metadata beats the filename`() = runTest {
         val publication = index("comics/manga-metadata.cbz")
         assertEquals("Fixture Manga", publication.series)
