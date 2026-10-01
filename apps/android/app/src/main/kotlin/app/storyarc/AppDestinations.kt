@@ -16,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.lifecycleScope
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -39,6 +41,11 @@ import kotlinx.coroutines.launch
  */
 @Composable
 internal fun Destination(host: AppHost, destination: AppDestination) {
+    // 10.5: here rather than inside `LibraryScreen`, so the foreground reconcile runs
+    // whichever of the four destinations is on screen. `reconcileWatchedFolders` used to
+    // run only while the library destination was composed, so returning to the foreground
+    // on Home or Downloads reconciled nothing until the reader happened to visit it.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { host.library.reconcileWatchedFolders() }
     when (destination) {
         AppDestination.HOME -> HomeDestination(host)
         AppDestination.LIBRARY -> LibraryDestination(host)

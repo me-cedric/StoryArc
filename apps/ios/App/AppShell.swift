@@ -202,6 +202,11 @@ struct AppShell: View {
         }
         .tabViewStyle(.sidebarAdaptable)
         .tabBarMinimizeBehavior(.onScrollDown)
+        // 10.5: here rather than on `LibraryView`, so the foreground reconcile and the
+        // local-source re-check run whichever of the four tabs is on screen. A tab is only
+        // composed once a reader opens it, so attached to the library tab alone this never
+        // fired for a reader who returned to the foreground on Home or Downloads.
+        .watchingFolders(of: model)
         // The docked transport, for everything that speaks. `audio-playback` requires that
         // it reserve no space when there is no session, and ``PlaybackAccessory`` is what
         // holds that promise — see its own comment for why an empty builder is not enough.

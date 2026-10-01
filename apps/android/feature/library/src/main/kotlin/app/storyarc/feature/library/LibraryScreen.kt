@@ -307,15 +307,14 @@ fun LibraryScreen(
     // same activity and the EPUB reader is an activity of its own, so "the reader
     // closed" reaches this screen two different ways — and only one of them
     // recomposes it. Resuming covers both.
+    //
+    // 10.5: the folder reconcile itself moved to `Destination`, so it runs whichever
+    // destination is on screen rather than only this one.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel?.refreshProgress()
         // Settings is where an imported copy is deleted, and a library that only read the
         // store at startup would keep offering a book whose bytes are gone.
         viewModel?.refreshImports()
-        // `local-library`: on returning to the foreground the app "reconciles by comparing
-        // file modification times and sizes rather than re-reading every archive". The
-        // watcher covers the app being on screen; a provider notifies nobody while it is not.
-        viewModel?.reconcileWatchedFolders()
     }
     val publications by (viewModel?.publications ?: MutableStateFlow(emptyList()))
         .collectAsStateWithLifecycle()
