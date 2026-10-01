@@ -142,6 +142,27 @@ class CarLibraryTest {
     }
 
     /**
+     * The defect, from the car's side: `asPlayed` used to answer every row at zero, so a car
+     * always offered a finished book's first chapter again.
+     */
+    @Test
+    fun `a shelf row resumes where the listener stopped`() {
+        val played = theSeaWolf.copy(partIndex = 2, offsetMillis = 45_000).asPlayed()
+
+        assertEquals(2, played.partIndex)
+        assertEquals(45_000L, played.offsetMillis)
+    }
+
+    @Test
+    fun `a row's position survives a publish and a read back`() {
+        val inProgress = theSeaWolf.copy(partIndex = 2, offsetMillis = 45_000)
+        val library = library()
+        library.publish(listOf(inProgress))
+
+        assertEquals(inProgress, library.books().single())
+    }
+
+    /**
      * One builder draws both kinds of row, so a shelf row must carry its length across.
      * Dropping it here is how the two builders drifted apart in the first place.
      */

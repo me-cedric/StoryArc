@@ -162,6 +162,7 @@ internal fun AppShell(
             context = activity.applicationContext,
             publications = library.publications,
             locate = library::location,
+            progress = dependencies.progress,
         )
     }
 

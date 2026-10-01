@@ -3,6 +3,7 @@ package app.storyarc.core.playback
 import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
+import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
@@ -190,6 +191,42 @@ object PlaybackHost : SpokenAudio.Speaker {
                 startPositionMs = from?.offsetMillis ?: 0L,
             )
         }
+    }
+
+    /**
+     * Adopts a book the car started directly, as the app's one session.
+     *
+     * [PlaybackService.LibraryCallback.onSetMediaItems] is the one caller, from the same
+     * process this object runs in — a car reaches no other. Before this, the car's choice
+     * went straight to the service player with no [PlayerSource] attached at all: no
+     * `reading-progress` write, no [PlaybackMemory] kept current, and the row the car itself
+     * drew next always started at zero. [player] is the service's own decoder, the one the
+     * car's own `setMediaItems`/`prepare`/`play` chain is about to load and start — see
+     * [AudiobookSource.attach] for why this does not load it a second time.
+     *
+     * @param book what the service already resolved the car's choice to — [PlaybackMemory]'s
+     *   own record, or a shelf row — so the position matches exactly what the car was handed.
+     */
+    internal fun attachCarStart(context: Context, book: PlayedBook, player: Player) {
+        val audiobook = Audiobook(
+            id = book.id,
+            title = book.title,
+            author = book.author,
+            sources = book.uris.mapIndexed { index, uri ->
+                Audiobook.AudioPart(uri, book.partTitles.getOrNull(index).orEmpty())
+            },
+            artworkUri = book.artworkUri,
+        )
+        // The book already speaking is adopted rather than restarted, exactly as [start]'s
+        // own first line answers the app's side of the same question.
+        if (SpokenAudio.shared.claim(audiobook.id, by = this) == SessionHandover.ADOPT) return
+        memory = PlaybackMemory.open(context).also {
+            it.remember(audiobook, book.partIndex, book.offsetMillis)
+        }
+        val source = AudiobookSource(audiobook, player)
+        current = source
+        source.attach()
+        centre.attach(source)
     }
 
     /**
