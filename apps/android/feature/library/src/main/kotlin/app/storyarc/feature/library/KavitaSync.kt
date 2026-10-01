@@ -226,21 +226,22 @@ object KavitaSync {
      * Sends one deliberate mark, keeping it for later if the server is not there.
      *
      * D2: a 404 means this server lacks the mark routes, and holding it would resend it
-     * forever to a route that can only ever refuse it. [onRouteMissing] says so instead.
+     * forever to a route that can only ever refuse it. [onRouteMissing] says so instead. By
+     * default it raises [KavitaMarkRefusal], which the shell shows over the screen in front.
      */
     suspend fun mark(
         store: KavitaProgressStore,
         address: KavitaAddress?,
         origin: KavitaOrigin,
         isRead: Boolean,
-        onRouteMissing: (suspend () -> Unit)? = null,
+        onRouteMissing: suspend () -> Unit = { KavitaMarkRefusal.note() },
     ) {
         val unsent = KavitaUnsent(origin, page = 0, mark = isRead)
         if (address == null) return store.hold(unsent)
         try {
             send(KavitaClient(address), unsent)
         } catch (_: KavitaError.RouteMissing) {
-            onRouteMissing?.invoke()
+            onRouteMissing()
         } catch (_: Exception) {
             store.hold(unsent)
         }
@@ -382,8 +383,11 @@ object KavitaSync {
         progress: ProgressStore? = null,
         /** Task 7.4: told of a list id whose held order was dropped as stale, not sent. */
         onOrderConflict: (suspend (listId: Int) -> Unit)? = null,
-        /** D2: told once for each held mark a 404 refused, which then leaves the queue too. */
-        onRouteMissing: (suspend (KavitaUnsent) -> Unit)? = null,
+        /**
+         * D2: told once for each held mark a 404 refused, which then leaves the queue too. By
+         * default it raises [KavitaMarkRefusal], as [mark] does.
+         */
+        onRouteMissing: suspend (KavitaUnsent) -> Unit = { KavitaMarkRefusal.note() },
     ): List<KavitaUnsent> {
         val waiting = store.unsent().filter { it.origin.sourceId == sourceId }
         if (waiting.isEmpty()) return emptyList()
@@ -403,7 +407,7 @@ object KavitaSync {
         }
         // Both leave the queue: what the server took, and what it can never take.
         store.sent(delivered + refused)
-        refused.forEach { onRouteMissing?.invoke(it) }
+        refused.forEach { onRouteMissing(it) }
         // A plain position, not a mark or a list write -- the only kind of held item a
         // local record has anything to say about.
         delivered.filter { it.mark == null && it.listId == null }
