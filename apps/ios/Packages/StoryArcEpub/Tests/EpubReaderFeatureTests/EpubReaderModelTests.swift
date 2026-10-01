@@ -62,6 +62,16 @@ struct EpubReaderModelTests {
         #expect(reader.navigator != nil)
     }
 
+    /// `ebook-reader`, *A publication with nothing to say*: the control is there only once
+    /// the walk finds text, and a book of prose has it on its first pages.
+    @Test("A book with text offers read-aloud once it opens")
+    func offersReadAloud() async {
+        let reader = model("fixture.epub")
+        await reader.open()
+
+        #expect(reader.canReadAloud)
+    }
+
     @Test("A file that is not a book says so rather than showing a blank page")
     func reportsFailure() async {
         let reader = model("no-package.epub")

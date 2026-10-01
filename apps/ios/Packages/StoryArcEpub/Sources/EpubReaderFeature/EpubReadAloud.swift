@@ -137,7 +137,6 @@ extension EpubReaderModel {
         // Adopting is only ever adopting a *voice*: a narrated audiobook never reaches this
         // reader, and if one somehow did there would be no sentence for this screen to draw.
         guard handover == .adopt, centre.speaking == publication.id else { return }
-        // Already speaking, so already known to have a word -- no second walk needed.
         // The book on screen is the book being spoken. No restart: the reader takes over
         // drawing the sentence the voice is already on, and the voice never notices.
         canReadAloud = true
@@ -145,24 +144,33 @@ extension EpubReaderModel {
         Task { await centre.redrawSpokenSentence() }
     }
 
-    /// How many elements the walk below will cross looking for the first word, so an
+    /// How many resources the walk below crosses looking for something to say, so an
     /// image-only publication with a long reading order does not walk it in full.
-    private nonisolated static let resourceBound = 50
+    nonisolated private static let resourceBound = 50
 
-    /// Whether this publication has a word it can speak.
+    /// Whether this publication has something the synthesizer will say.
     ///
     /// `speech != nil` answered too early: Readium installs a content service on every
     /// reflowable EPUB, so an image-only one answered yes and the control played nothing
-    /// when pressed. This walks the content iterator instead, bounded, for the first
-    /// element with a non-blank segment. Android's `SpokenSentences.isSpeakable` is the
-    /// same walk.
+    /// when pressed. Android's `SpokenSentences.isSpeakable` is the same walk.
     nonisolated static func isSpeakable(_ publication: ReadiumShared.Publication?) async -> Bool {
-        guard let content = publication?.content() else { return false }
-        let iterator = content.iterator()
-        for _ in 0..<resourceBound {
-            guard let element = try? await iterator.next() else { return false }
-            if let text = element as? TextContentElement,
-               text.segments.contains(where: { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) {
+        await hasSomethingToSay(publication?.content())
+    }
+
+    /// The walk itself, for the first element with text, across at most
+    /// ``resourceBound`` resources.
+    ///
+    /// Any `TextualContentElement`, not only a paragraph: Readium's synthesizer also says
+    /// an image's caption or its alternative text, so a book of described images has
+    /// something to say and keeps its control.
+    nonisolated static func hasSomethingToSay(_ content: (any Content)?) async -> Bool {
+        guard let iterator = content?.iterator() else { return false }
+        var resources: Set<AnyURL> = []
+        while let element = try? await iterator.next() {
+            resources.insert(element.locator.href)
+            guard resources.count <= resourceBound else { return false }
+            if let text = (element as? any TextualContentElement)?.text,
+               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 return true
             }
         }
