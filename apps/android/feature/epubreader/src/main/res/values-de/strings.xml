@@ -15,6 +15,8 @@
     <string name="epub_progress">%1$d%% gelesen</string>
     <string name="epub_failure_unreachable">Dieses Buch ist nicht erreichbar.</string>
     <string name="epub_failure_unreadable">Dieses Buch konnte nicht geöffnet werden.</string>
+    <string name="epub_end_finished">Gelesen</string>
+    <string name="epub_end_next">Weiter: %1$s</string>
     <string name="theme_presets">Themen</string>
     <string name="theme_sheet_expand">Mehr anzeigen</string>
     <string name="theme_sheet_collapse">Weniger anzeigen</string>
