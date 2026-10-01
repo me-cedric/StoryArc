@@ -199,6 +199,8 @@ fun ShelvesScreen(
     // "states plainly that the publications themselves are not deleted". This is the gap between
     // the two -- while it holds something, nothing has been written.
     var deleting by remember { mutableStateOf<ShelfDeletion?>(null) }
+    /** Task 12.6's twin of [deleting], for a shelf the server holds. */
+    var deletingServerShelf by remember { mutableStateOf<ServerShelfDeletion?>(null) }
 
     /** Task 7.10: the shelf a reader is renaming, and the name typed so far. */
     var renaming by remember { mutableStateOf<ShelfRenameTarget?>(null) }
@@ -296,7 +298,11 @@ fun ShelvesScreen(
                     )
                 }
                 items(serverCollections, key = { "c-${it.server.id}-${it.id}" }) { shelf ->
-                    ServerShelfCard(viewModel, shelf) {
+                    ServerShelfCard(
+                        viewModel = viewModel,
+                        shelf = shelf,
+                        onDelete = { deletingServerShelf = ServerShelfDeletion.of(shelf) },
+                    ) {
                         onOpenServerCollection(shelf.server, shelf.id, shelf.title)
                     }
                 }
@@ -335,6 +341,7 @@ fun ShelvesScreen(
                         viewModel = viewModel,
                         shelf = shelf,
                         pending = queue.pending(ShelfSync.key(shelf)).size,
+                        onDelete = { deletingServerShelf = ServerShelfDeletion.of(shelf) },
                     ) {
                         onOpenServerList(shelf.server, shelf.id, shelf.title)
                     }
@@ -401,6 +408,18 @@ fun ShelvesScreen(
                 deleting = null
             },
             onDismiss = { deleting = null },
+        )
+    }
+
+    deletingServerShelf?.let { deletion ->
+        ServerShelfDeletionDialog(
+            deletion = deletion,
+            onConfirm = {
+                serverShelves = serverShelves.filterNot { it.id == deletion.id && it.isList != deletion.isCollection }
+                scope.launch { deletion.send(context) }
+                deletingServerShelf = null
+            },
+            onDismiss = { deletingServerShelf = null },
         )
     }
 
@@ -517,6 +536,7 @@ private fun ServerShelfCard(
     viewModel: LibraryViewModel,
     shelf: ServerShelf,
     pending: Int = 0,
+    onDelete: (() -> Unit)? = null,
     onOpen: () -> Unit,
 ) {
     val client = remember(shelf.server.address) { KavitaClient(shelf.server.address) }
@@ -548,6 +568,7 @@ private fun ServerShelfCard(
         tiles = tiles,
         onOpen = onOpen,
         pending = pending,
+        onDelete = onDelete,
         cover = {
             ServerShelfCover(
                 name = shelf.title,
