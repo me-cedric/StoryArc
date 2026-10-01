@@ -2,6 +2,9 @@ package app.storyarc.feature.settings
 
 import android.content.Context
 import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -150,6 +153,40 @@ class FreeSpaceSheetTest {
             "the undo row settles once restored",
             isDrawn(context.getString(R.string.downloads_removed, "one")),
         )
+    }
+
+    @Test
+    fun `a removal still undoable when the sheet closes is settled rather than left on disk`() {
+        // The undo row closes with the sheet, and nothing else holds the removal. Bytes left
+        // beside the file then stay for ever, on the one sheet whose purpose is to free space.
+        val one = download("one", bytes = 512_000L)
+        val taken = removedDownload(one).also { it.aside.writeText("bytes waiting on an undo") }
+        var isOpen by mutableStateOf(true)
+
+        compose.setContent {
+            StoryArcTheme {
+                Column {
+                    if (isOpen) {
+                        FreeSpaceContent(
+                            downloads = DownloadLibrary(listOf(one)),
+                            onRemove = { taken },
+                            onRestore = {},
+                        )
+                    }
+                }
+            }
+        }
+        compose.waitForIdle()
+        compose.onNodeWithContentDescription(
+            context.getString(R.string.downloads_remove_action, "one"),
+        ).performClick()
+        compose.waitForIdle()
+        assertTrue("the undo window is still open", taken.aside.exists())
+
+        isOpen = false
+        compose.waitForIdle()
+
+        compose.waitUntil(timeoutMillis = 5_000) { !taken.aside.exists() }
     }
 
     @Test

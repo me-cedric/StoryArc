@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +38,8 @@ import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.largestFirst
 import app.storyarc.core.persistence.RemovedDownload
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -119,6 +122,16 @@ internal fun FreeSpaceContent(
         if (removed === taken) {
             taken.settle()
             removed = null
+        }
+    }
+
+    // The undo row closes with the sheet, and the effect above is cancelled with it. Nothing
+    // else holds this removal, so its bytes go now rather than stay beside the file for ever
+    // -- on a sheet whose whole purpose is to free space. Off this composition's own scope,
+    // which is cancelled in the same disposal.
+    DisposableEffect(Unit) {
+        onDispose {
+            removed?.let { taken -> CoroutineScope(Dispatchers.IO).launch { taken.settle() } }
         }
     }
 
