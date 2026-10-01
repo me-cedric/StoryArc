@@ -162,6 +162,9 @@
     <string name="downloads_held_waiting_for_wifi_note">Les téléchargements reprennent d’eux-mêmes dès le retour du Wi-Fi.</string>
     <string name="downloads_held_out_of_space_note">Les téléchargements reprennent d’eux-mêmes lorsque l’appareil a de la place.</string>
     <string name="downloads_held_storage_full_note">Supprimez un téléchargement ou augmentez la limite.</string>
+    <string name="downloads_held_free_space">Libérer de l’espace</string>
+    <string name="downloads_removed">« %1$s » supprimé de cet appareil. Votre place est conservée.</string>
+    <string name="downloads_undo">Annuler</string>
     <string name="settings_sources_none">Aucune bibliothèque</string>
     <string name="settings_downloads_none">Rien de téléchargé</string>
     <string name="settings_downloads_summary">%1$s téléchargés</string>

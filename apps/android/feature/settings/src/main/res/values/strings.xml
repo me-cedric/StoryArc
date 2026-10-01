@@ -167,6 +167,9 @@
     <string name="downloads_held_waiting_for_wifi_note">Downloads continue by themselves when Wi-Fi returns.</string>
     <string name="downloads_held_out_of_space_note">Downloads continue by themselves when the device has room.</string>
     <string name="downloads_held_storage_full_note">Remove a download or raise the limit.</string>
+    <string name="downloads_held_free_space">Free up space</string>
+    <string name="downloads_removed">“%1$s” removed from this device. Your place is kept.</string>
+    <string name="downloads_undo">Undo</string>
     <string name="settings_sources_none">No libraries yet</string>
     <string name="settings_downloads_none">Nothing downloaded</string>
     <string name="settings_downloads_summary">%1$s downloaded</string>

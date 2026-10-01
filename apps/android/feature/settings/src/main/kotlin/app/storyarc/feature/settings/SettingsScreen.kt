@@ -33,12 +33,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
+import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceAction
 import app.storyarc.core.model.SourceDiagnosis
 import app.storyarc.core.persistence.ImportedCopies
 import app.storyarc.core.persistence.ReaderPreferences
+import app.storyarc.core.persistence.RemovedDownload
 import java.util.UUID
 
 /**
@@ -121,6 +123,12 @@ fun SettingsScreen(
      * one write, so a reader is never left with half a library gone.
      */
     onClearDownloads: () -> Unit = {},
+    /**
+     * Takes a finished download off the device, reversibly -- the storage-full hold's own
+     * remedy. See [DownloadsGroup]'s own parameter of the same name.
+     */
+    onRemoveFinished: suspend (Download) -> RemovedDownload? = { null },
+    onRestoreFinished: suspend (RemovedDownload) -> Unit = {},
 ) {
     // The match rather than the group, because a search result that named a *setting* has
     // to survive the navigation: the group is where to go, the anchor is what to point at
@@ -211,6 +219,8 @@ fun SettingsScreen(
                     bytesOnDisk = bytesOnDisk,
                     importedBytes = importedBytes,
                     onClearDownloads = onClearDownloads,
+                    onRemoveFinished = onRemoveFinished,
+                    onRestoreFinished = onRestoreFinished,
                 )
             }
         }
@@ -386,6 +396,8 @@ private fun GroupDetail(
     bytesOnDisk: Long,
     importedBytes: Long,
     onClearDownloads: () -> Unit,
+    onRemoveFinished: suspend (Download) -> RemovedDownload?,
+    onRestoreFinished: suspend (RemovedDownload) -> Unit,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -442,6 +454,8 @@ private fun GroupDetail(
                     settings = settings,
                     onChange = onChange,
                     highlight = highlight,
+                    onRemoveFinished = onRemoveFinished,
+                    onRestoreFinished = onRestoreFinished,
                 )
             }
         }

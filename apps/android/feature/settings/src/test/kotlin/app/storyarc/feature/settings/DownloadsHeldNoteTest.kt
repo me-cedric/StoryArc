@@ -11,6 +11,7 @@ import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadHold
 import app.storyarc.core.model.DownloadLibrary
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -54,7 +55,7 @@ class DownloadsHeldNoteTest {
 
     /** Draws the group over one library and one policy, and returns the sentences it can read. */
     private fun show(downloads: List<Download>, limit: Long? = null): Sentences {
-        var read = Sentences("", "", "", "", "", "", "")
+        var read = Sentences("", "", "", "", "", "", "", "")
         compose.setContent {
             read = Sentences(
                 waitingForWifi = stringResource(R.string.downloads_paused_waiting_for_wifi),
@@ -63,6 +64,7 @@ class DownloadsHeldNoteTest {
                 outOfSpaceNote = stringResource(R.string.downloads_held_out_of_space_note),
                 storageFull = stringResource(R.string.downloads_held_storage_full),
                 storageFullNote = stringResource(R.string.downloads_held_storage_full_note),
+                freeSpace = stringResource(R.string.downloads_held_free_space),
                 anyField = stringResource(R.string.downloads_total),
             )
             StoryArcTheme {
@@ -115,6 +117,38 @@ class DownloadsHeldNoteTest {
     }
 
     @Test
+    fun `the storage-full hold offers the free-space button`() {
+        // The hold used to state a remedy with no action of its own (6.6).
+        val said = show(
+            listOf(
+                download("kept", Download.State.Finished, bytes = 2_000),
+                download("wanted", Download.State.Queued),
+            ),
+            limit = 1_000,
+        )
+
+        compose.onNodeWithText(said.freeSpace).assertExists()
+    }
+
+    @Test
+    fun `waiting for wifi offers no free-space button`() {
+        // Nothing the reader's own limit controls, and nothing finished to list either --
+        // `DownloadLibrary.hold` reports `STORAGE_FULL` only once something is.
+        val said = show(listOf(download("one", waiting)))
+
+        assertFalse(isDrawn(said.freeSpace))
+    }
+
+    @Test
+    fun `out of space offers no free-space button`() {
+        // The device, not the reader's own limit, is what is stopping this queue -- freeing
+        // the reader's own budget would not start it again.
+        val said = show(listOf(download("one", Download.State.Paused(Download.Pause.OUT_OF_SPACE))))
+
+        assertFalse(isDrawn(said.freeSpace))
+    }
+
+    @Test
     fun `a queue that is not held says nothing about being held`() {
         // The other half of every claim above. A sentence drawn whatever the queue is doing is
         // no information at all, and on a queue that is running it is false.
@@ -151,6 +185,7 @@ class DownloadsHeldNoteTest {
         val outOfSpaceNote: String,
         val storageFull: String,
         val storageFullNote: String,
+        val freeSpace: String,
         val anyField: String,
     ) {
         val holds: List<String> get() = listOf(

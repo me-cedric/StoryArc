@@ -10,15 +10,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
+import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadHold
 import app.storyarc.core.model.DownloadLibrary
+import app.storyarc.core.persistence.RemovedDownload
 
 /**
  * What the reader has asked of the queue, and what it has spent.
@@ -71,12 +78,42 @@ internal fun DownloadsGroup(
     onChange: (AppSettings) -> Unit = {},
     /** The row a search result pointed at, if the reader arrived through one. */
     highlight: SettingsAnchor? = null,
+    /**
+     * Takes a finished download off the device, reversibly -- the storage-full hold's own
+     * remedy. Null when there was nothing to take. The module holds no queue of its own, so
+     * the app layer supplies this the same way it supplies [onChange]. iOS's
+     * `DownloadsSettings` takes the same closure as `onRemoveFinished`.
+     */
+    onRemoveFinished: suspend (Download) -> RemovedDownload? = { null },
+    /** Puts a download [onRemoveFinished] took back, undoing it. */
+    onRestoreFinished: suspend (RemovedDownload) -> Unit = {},
 ) {
     val palette = LocalStoryArcPalette.current
     val context = LocalContext.current
+    val hold = downloads.hold(settings.maximumDownloadBytes)
+    var isFreeingSpace by remember { mutableStateOf(false) }
 
-    Waiting(downloads.hold(settings.maximumDownloadBytes))
+    Waiting(hold)
+
+    // The one hold the reader can act on directly. `DownloadLibrary.hold` reports
+    // `STORAGE_FULL` only once something finished is on disk to show, so this hold cannot
+    // occur with nothing for the sheet to list.
+    if (hold == DownloadHold.STORAGE_FULL) {
+        TextButton(onClick = { isFreeingSpace = true }) {
+            Text(stringResource(R.string.downloads_held_free_space))
+        }
+    }
+
     Policy(settings, onChange, highlight)
+
+    if (isFreeingSpace) {
+        FreeSpaceSheet(
+            downloads = downloads,
+            onRemove = onRemoveFinished,
+            onRestore = onRestoreFinished,
+            onDismiss = { isFreeingSpace = false },
+        )
+    }
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(top = StoryArcSpace.md),
