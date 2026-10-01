@@ -36,6 +36,8 @@
     <string name="downloads_destination_empty">Aún no hay nada en este dispositivo. Un libro que abras desde una biblioteca en línea se guarda aquí.</string>
 
     <string name="downloads_total">Espacio utilizado por las descargas</string>
+    <string name="downloads_cache">Caché de portadas</string>
+    <string name="downloads_largest">Las más grandes en este dispositivo</string>
     <string name="downloads_stop">Detener</string>
     <string name="downloads_remove">Eliminar la descarga</string>
     <string name="downloads_cancel">Cancelar</string>

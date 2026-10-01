@@ -116,4 +116,23 @@ public struct CoverCache: Sendable {
     public func clear() {
         try? FileManager.default.removeItem(at: directory)
     }
+
+    /// What this cache alone is holding.
+    ///
+    /// `offline-downloads` asks the storage view for "the cover cache size", which is not
+    /// `Persistence/StorageUsage`'s "Cache" row — that walks the whole caches directory,
+    /// the web view's own data included, because this cache is one tenant of it rather than
+    /// all of it.
+    public func sizeOnDisk() -> Int64 {
+        guard let walker = FileManager.default.enumerator(
+            at: directory, includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey]
+        ) else { return 0 }
+        var total: Int64 = 0
+        for case let url as URL in walker {
+            let values = try? url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
+            guard values?.isRegularFile == true else { continue }
+            total += Int64(values?.fileSize ?? 0)
+        }
+        return total
+    }
 }

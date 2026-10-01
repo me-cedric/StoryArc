@@ -86,4 +86,21 @@ struct CoverCacheTests {
     func missingIsNil() {
         #expect(cache().image(for: "never-seen", maxPixelSize: 200) == nil)
     }
+
+    @Test("An empty cache is nothing on disk")
+    func emptyCacheSizeIsZero() {
+        #expect(cache().sizeOnDisk() == 0)
+    }
+
+    @Test("A stored cover is counted, and clearing counts it away again")
+    func sizeTracksWhatIsStored() throws {
+        let cache = cache()
+        defer { cache.clear() }
+
+        cache.store(try image(), for: "bone.cbz", maxPixelSize: 200)
+        #expect(cache.sizeOnDisk() > 0)
+
+        cache.clear()
+        #expect(cache.sizeOnDisk() == 0)
+    }
 }

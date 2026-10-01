@@ -138,4 +138,50 @@ class DownloadLibraryTest {
         assertEquals(Download.State.Finished, library["done"]?.state)
         assertEquals(Download.State.Queued, library["waiting"]?.state)
     }
+
+    // --- The storage view's breakdown -------------------------------------------------
+
+    private fun finished(id: String, source: UUID? = null, bytes: Long) = Download(
+        id = id,
+        sourceId = source,
+        title = id,
+        remote = "https://library.example/$id.epub",
+        mediaType = "application/epub+zip",
+        state = Download.State.Finished,
+        expectedBytes = bytes,
+        downloadedBytes = bytes,
+    )
+
+    @Test
+    fun largestFirstOrdersByBytes() {
+        val library = DownloadLibrary(
+            listOf(finished("small", bytes = 1_000), finished("large", bytes = 9_000), download("pending")),
+        )
+        assertEquals(listOf("large", "small"), library.largestFirst.map { it.id })
+    }
+
+    @Test
+    fun bytesBySourceSumsPerSource() {
+        val first = UUID.randomUUID()
+        val second = UUID.randomUUID()
+        val library = DownloadLibrary(
+            listOf(
+                finished("a", source = first, bytes = 1_000),
+                finished("b", source = first, bytes = 2_000),
+                finished("c", source = second, bytes = 5_000),
+                finished("d", bytes = 500),
+            ),
+        )
+        val totals = library.bytesBySource
+        assertEquals(3_000L, totals[first])
+        assertEquals(5_000L, totals[second])
+        assertEquals(500L, totals[null])
+    }
+
+    @Test
+    fun anEmptyLibraryBreaksDownToNothing() {
+        val library = DownloadLibrary(listOf(download("pending")))
+        assertTrue(library.largestFirst.isEmpty())
+        assertTrue(library.bytesBySource.isEmpty())
+    }
 }

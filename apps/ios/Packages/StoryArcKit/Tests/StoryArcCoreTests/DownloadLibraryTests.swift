@@ -154,4 +154,54 @@ struct DownloadLibraryTests {
         #expect(library["done"]?.state == .finished)
         #expect(library["waiting"]?.state == .queued)
     }
+
+    // MARK: - The storage view's breakdown
+
+    /// A finished download of a given size, for the reason `download(_:source:)` is: the
+    /// publication need not exist for these tests.
+    private func finished(_ id: String, source: UUID? = nil, bytes: Int64) -> Download {
+        Download(
+            id: id,
+            sourceID: source,
+            title: id,
+            remote: URL(fileURLWithPath: "/\(id).epub"),
+            mediaType: "application/epub+zip",
+            state: .finished,
+            expectedBytes: bytes,
+            downloadedBytes: bytes
+        )
+    }
+
+    @Test("The largest download is first, and a queued one is not counted at all")
+    func largestFirstOrdersByBytes() {
+        let library = DownloadLibrary(downloads: [
+            finished("small", bytes: 1_000),
+            finished("large", bytes: 9_000),
+            download("pending"),
+        ])
+        #expect(library.largestFirst.map(\.id) == ["large", "small"])
+    }
+
+    @Test("Bytes are summed per source, and nil keys a download with none")
+    func bytesBySourceSumsPerSource() {
+        let first = UUID()
+        let second = UUID()
+        let library = DownloadLibrary(downloads: [
+            finished("a", source: first, bytes: 1_000),
+            finished("b", source: first, bytes: 2_000),
+            finished("c", source: second, bytes: 5_000),
+            finished("d", bytes: 500),
+        ])
+        let totals = library.bytesBySource
+        #expect(totals[first] == 3_000)
+        #expect(totals[second] == 5_000)
+        #expect(totals[nil] == 500)
+    }
+
+    @Test("A library with nothing finished has nothing to break down")
+    func anEmptyLibraryBreaksDownToNothing() {
+        let library = DownloadLibrary(downloads: [download("pending")])
+        #expect(library.largestFirst.isEmpty)
+        #expect(library.bytesBySource.isEmpty)
+    }
 }
