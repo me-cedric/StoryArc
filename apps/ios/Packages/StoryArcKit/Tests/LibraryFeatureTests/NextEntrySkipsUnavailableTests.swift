@@ -30,39 +30,39 @@ struct NextEntrySkipsUnavailableTests {
 
     @Test("next() walks past a gone entry to the next available one in the same list")
     func nextSkipsGoneEntries() {
-        let a = publication("A", remoteID: "a")
-        let b = publication("B", remoteID: "b")
-        let c = publication("C", remoteID: "c")
+        let first = publication("A", remoteID: "a")
+        let second = publication("B", remoteID: "b")
+        let third = publication("C", remoteID: "c")
 
         let model = LibraryModel()
-        model.publications = [a, b, c]
+        model.publications = [first, second, third]
         model.shelves = Shelves(lists: [
             ReadingList(
                 name: "Crossover",
-                entries: [a.id, "gone-1", b.id, "gone-2", c.id]
+                entries: [first.id, "gone-1", second.id, "gone-2", third.id]
             )
         ])
 
-        #expect(model.next(after: a)?.id == b.id)
-        #expect(model.next(after: b)?.id == c.id)
+        #expect(model.next(after: first)?.id == second.id)
+        #expect(model.next(after: second)?.id == third.id)
     }
 
     @Test("previous() walks back past a gone entry to the prior available one")
     func previousSkipsGoneEntries() {
-        let a = publication("A", remoteID: "a")
-        let b = publication("B", remoteID: "b")
-        let c = publication("C", remoteID: "c")
+        let first = publication("A", remoteID: "a")
+        let second = publication("B", remoteID: "b")
+        let third = publication("C", remoteID: "c")
 
         let model = LibraryModel()
-        model.publications = [a, b, c]
+        model.publications = [first, second, third]
         model.shelves = Shelves(lists: [
             ReadingList(
                 name: "Crossover",
-                entries: [a.id, "gone-1", b.id, "gone-2", c.id]
+                entries: [first.id, "gone-1", second.id, "gone-2", third.id]
             )
         ])
 
-        #expect(model.previous(before: c)?.id == b.id)
-        #expect(model.previous(before: b)?.id == a.id)
+        #expect(model.previous(before: third)?.id == second.id)
+        #expect(model.previous(before: second)?.id == first.id)
     }
 }

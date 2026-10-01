@@ -18,9 +18,11 @@ import StoryArcCore
 @Suite("A server list's pending rows do not depend on who opened it", .serialized)
 struct KavitaListPendingTests {
 
+    private static let local = URL(string: "http://localhost:1") ?? URL(filePath: "/")
+
     private func view(server: String, list: Int) -> KavitaListView {
         KavitaListView(
-            server: KavitaPage(id: server, title: "Attic", address: KavitaAddress(base: URL(string: "http://localhost:1")!, apiKey: "k")),
+            server: KavitaPage(id: server, title: "Attic", address: KavitaAddress(base: Self.local, apiKey: "k")),
             listID: list,
             title: "Crossover",
             onOpen: { _, _ in }
