@@ -52,7 +52,7 @@ enum OpdsAtom {
         /// An entry-level link not yet resolved to an acquisition, because OPDS lets a
         /// `<link>` carry an `<opds:indirectAcquisition>` child that only its end tag has
         /// finished naming — see 11.4's `finalizePendingAcquisition()`.
-        private var pendingAcquisition: (href: URL, relation: String, type: String, length: Int64?)?
+        private var pendingAcquisition: PendingLink?
         private var pendingAcquisitionIsIndirect = false
 
         init(baseURL: URL) {
@@ -242,7 +242,7 @@ enum OpdsAtom {
                 // Not appended yet: `didEndElement("link")` finishes this once it knows
                 // whether an `indirectAcquisition` child followed — see
                 // `finalizePendingAcquisition()`.
-                pendingAcquisition = (href, relation, type, length)
+                pendingAcquisition = PendingLink(href: href, relation: relation, type: type, length: length)
                 pendingAcquisitionIsIndirect = Self.isProtectedType(type)
             }
         }
@@ -256,22 +256,22 @@ enum OpdsAtom {
                 pendingAcquisition = nil
                 pendingAcquisitionIsIndirect = false
             }
+            let kind: OpdsAcquisition.Kind
             if pendingAcquisitionIsIndirect {
-                entry?.acquisitions.append(
-                    OpdsAcquisition(href: pending.href, mediaType: pending.type, kind: .indirect, length: pending.length)
-                )
-            } else if let kind = OpdsAcquisition.Kind.named(pending.relation) {
-                entry?.acquisitions.append(
-                    OpdsAcquisition(href: pending.href, mediaType: pending.type, kind: kind, length: pending.length)
-                )
+                kind = .indirect
+            } else if let named = OpdsAcquisition.Kind.named(pending.relation) {
+                kind = named
             } else if pending.relation.hasPrefix("http://opds-spec.org/acquisition") {
                 // A relation the standard added after this code was written. Listed as
                 // indirect rather than dropped: the spec requires an unsupported
                 // acquisition to be named, and a dropped link cannot be named.
-                entry?.acquisitions.append(
-                    OpdsAcquisition(href: pending.href, mediaType: pending.type, kind: .indirect, length: pending.length)
-                )
+                kind = .indirect
+            } else {
+                return
             }
+            entry?.acquisitions.append(
+                OpdsAcquisition(href: pending.href, mediaType: pending.type, kind: kind, length: pending.length)
+            )
         }
 
         /// A media type that names a protection step rather than an openable file —
@@ -283,6 +283,14 @@ enum OpdsAtom {
                 || type.contains("vnd.readium.lcp.license")
                 || type.hasSuffix("+lcp")
         }
+    }
+
+    /// An entry-level link whose acquisition kind waits for its end tag. 11.4.
+    private struct PendingLink {
+        let href: URL
+        let relation: String
+        let type: String
+        let length: Int64?
     }
 
     /// An entry under construction.
