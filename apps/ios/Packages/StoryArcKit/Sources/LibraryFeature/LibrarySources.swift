@@ -224,6 +224,13 @@ extension LibraryModel {
 
         // The publications it contributed go with it, and the rest of the shelf stays.
         publications.removeAll { $0.sourceID == source.id }
+        // 10.15: written through rather than left for the next scan, the way
+        // ``clearCache(of:)`` already does. A scan never removes a row of a source it did
+        // not walk, so without this the old snapshot put the removed rows straight back on
+        // the shelf at the next launch, and the launch scan then wrote them into the
+        // snapshot again — they never went.
+        if publications.isEmpty { libraryCache.clear() } else { cacheLibrary() }
+        cachedAt = nil
         rebuild()
     }
 }
