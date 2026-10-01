@@ -168,6 +168,9 @@ struct CatalogueDetailView: View {
             )
             return
         }
+        if await openStreamed(link, overridingMeteredConnection: overridingMeteredConnection) {
+            return
+        }
         guard let file = await queue.fetch(
             entry,
             using: link,
@@ -175,6 +178,42 @@ struct CatalogueDetailView: View {
             overridingMeteredConnection: overridingMeteredConnection
         ) else { return }
         await open(from: file)
+    }
+
+    /// Enqueues and opens straight from the acquisition address, for a format whose decoder
+    /// can read from a source rather than a file.
+    ///
+    /// `offline-downloads`' *Reading while downloading*: the rule ``PublicationDetailView``
+    /// already applies through ``ReadingAddress``, asked here before anything has a local
+    /// file to open at all. Leaves the blocking fetch in ``take(using:overridingMeteredConnection:)``
+    /// to run — by returning `false` — for a format that needs a file, or when the stream
+    /// cannot be opened.
+    private func openStreamed(
+        _ link: OpdsAcquisition,
+        overridingMeteredConnection: Bool
+    ) async -> Bool {
+        guard ShareOpening.catalogueReadsWhereItLies(PublicationFormat(mediaType: link.mediaType))
+        else { return false }
+        queue.enqueue(
+            entry,
+            using: link,
+            sourceID: sourceID,
+            overridingMeteredConnection: overridingMeteredConnection
+        )
+        let id = queue.downloadID(for: entry.id, sourceID: sourceID)
+        guard let address = ReadingAddress.of(
+            local: nil, transfer: queue.library[id], readsWhereItLies: true
+        ) else { return false }
+        guard let source = try? await ComicArchiveOpener.source(for: address),
+              let publication = try? await PublicationIndexer.index(
+                  source: source,
+                  name: address.lastPathComponent,
+                  identity: PublicationIdentity(normalizedPath: address.absoluteString),
+                  seriesHint: entry.series
+              )
+        else { return false }
+        onOpen(publication, address)
+        return true
     }
 
     private func open(from file: URL) async {

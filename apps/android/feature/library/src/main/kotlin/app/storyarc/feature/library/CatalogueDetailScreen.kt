@@ -53,9 +53,12 @@ import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.model.ReadingAddress
 import java.text.DateFormat
 import java.util.UUID
 import kotlinx.coroutines.launch
@@ -454,10 +457,50 @@ internal suspend fun openWhenReady(
      */
     overridingMeteredConnection: Boolean = false,
 ) {
+    if (openStreamed(queue, entry, link, sourceId, onOpen, overridingMeteredConnection)) return
     val file = queue.downloaded(entry, sourceId)
         ?: queue.fetch(entry, link, overridingMeteredConnection, sourceId)
         ?: return
     runCatching { PublicationIndexer.index(file, catalogueSeries = entry.series) }
         .getOrNull()
         ?.let { onOpen(it, file.absolutePath) }
+}
+
+/**
+ * Enqueues and opens straight from the acquisition address, for a format whose decoder can
+ * read from a source rather than a file.
+ *
+ * `offline-downloads`' *Reading while downloading*: the rule [PublicationDetailScreen]
+ * already applies through [ReadingAddress], asked here before anything has a local file to
+ * open at all. Returns false -- leaving the blocking fetch in [openWhenReady] to run -- for
+ * a format that needs a file, or when the stream cannot be opened.
+ */
+private suspend fun openStreamed(
+    queue: DownloadQueue,
+    entry: OpdsEntry,
+    link: OpdsAcquisition,
+    sourceId: UUID?,
+    onOpen: (Publication, String) -> Unit,
+    overridingMeteredConnection: Boolean,
+): Boolean {
+    if (queue.downloaded(entry, sourceId) != null) return false
+    if (!catalogueReadsWhereItLies(PublicationFormat.ofMediaType(link.mediaType))) return false
+    queue.enqueue(entry, link, overridingMeteredConnection, sourceId)
+    val id = queue.downloadId(entry.id, sourceId)
+    val address = ReadingAddress.of(
+        local = null,
+        transfer = queue.library.value[id],
+        readsWhereItLies = true,
+    ) ?: return false
+    val publication = runCatching {
+        val source = PublicationAccess.remoteSource(address) ?: return@runCatching null
+        PublicationIndexer.index(
+            source = source,
+            name = entry.title,
+            identity = PublicationIdentity(normalizedPath = address),
+            seriesHint = entry.series,
+        )
+    }.getOrNull() ?: return false
+    onOpen(publication, address)
+    return true
 }

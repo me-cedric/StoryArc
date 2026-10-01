@@ -197,6 +197,33 @@ class ShareOpeningTest {
         )
     }
 
+    // --- Reading while downloading, from a catalogue entry --------------------------------
+
+    @Test
+    fun `a comic acquisition reads from its catalogue address`() {
+        assertTrue(catalogueReadsWhereItLies(PublicationFormat.CBZ))
+    }
+
+    @Test
+    fun `a PDF, CBR or EPUB acquisition does not, because the decoder wants a file`() {
+        assertTrue(!catalogueReadsWhereItLies(PublicationFormat.PDF))
+        assertTrue(!catalogueReadsWhereItLies(PublicationFormat.CBR))
+        assertTrue(!catalogueReadsWhereItLies(PublicationFormat.EPUB))
+    }
+
+    @Test
+    fun `an audio acquisition does not stream, even though no decoder was asked`() {
+        // There is no `Publication` yet to read a `StreamingCapability` off, so this is
+        // excluded on the format alone -- a player wants a file regardless of what a read of
+        // the container would have said.
+        assertTrue(!catalogueReadsWhereItLies(PublicationFormat.M4B))
+    }
+
+    @Test
+    fun `a media type nothing recognises does not stream`() {
+        assertTrue(!catalogueReadsWhereItLies(null))
+    }
+
     private fun publication(
         format: PublicationFormat = PublicationFormat.CBR,
         streaming: StreamingCapability = StreamingCapability.STREAMS,
