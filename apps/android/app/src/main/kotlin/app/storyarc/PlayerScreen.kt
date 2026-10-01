@@ -527,8 +527,8 @@ internal fun PlayerFinishedScreen(
     onBack: () -> Unit,
     // `collections-and-reading-lists` task 7.2: the end of an audiobook offers what comes
     // next, the way the paged reader's own end screen does. Null offers nothing.
-    next: Publication? = null,
-    onOpenNext: (Publication) -> Unit = {},
+    next: Publication?,
+    onOpenNext: (Publication) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
