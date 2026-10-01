@@ -33,10 +33,7 @@ struct CatalogueEntryCell: View {
 
     /// The formats this entry offers that StoryArc can open.
     private var readable: [OpdsAcquisition] {
-        entry.acquisitions.filter { acquisition in
-            guard acquisition.kind.isFetchable else { return false }
-            return PublicationFormat(mediaType: acquisition.mediaType)?.isOpenable == true
-        }
+        CatalogueAcquisition.readable(in: entry)
     }
 
     var body: some View {
@@ -87,23 +84,41 @@ struct CatalogueEntryCell: View {
     /// carry their number — which is most feeds generated from filenames — printed
     /// `Harbour Lights #1` in the title and `Harbour Lights #1` again in the caption, on
     /// every entry. The shelf had a broken guard; the catalogue had none.
-    private var subtitle: String {
-        guard readable.isEmpty else {
+    private var subtitle: String { Self.subtitle(for: entry) }
+
+    /// The series, the author, or — when nothing here can be opened — what was offered
+    /// instead, named the way `opds-catalog` asks a refusal to be named.
+    ///
+    /// A `static func` beside the view rather than a computed property alone: the rule is
+    /// pure, and a test reaches it here without building a `View` and a `theme`. 11.6.
+    static func subtitle(for entry: OpdsEntry) -> String {
+        guard CatalogueAcquisition.readable(in: entry).isEmpty else {
             return seriesLine(for: entry) ?? entry.authors.first ?? ""
         }
-        let offered = entry.acquisitions.map(\.mediaType).filter { !$0.isEmpty }
-        guard !offered.isEmpty else {
-            return String(localized: "catalogue.entry.noDownload", bundle: .module, locale: .storyArc)
+        // A format the app could open, offered through a kind it cannot act on — a loan,
+        // a purchase, a subscription — is not the same refusal as a format the app has no
+        // decoder for. Each gets the sentence `opds-catalog` asks for it to have.
+        let unreadable = CatalogueAcquisition.unreadable(in: entry)
+        if !unreadable.isEmpty {
+            // Interpolated rather than handed to `String(format:)`: the two spellings look
+            // up two different keys, and a catalogue holding both fails the build — Xcode
+            // generates one symbol for them. One key, asked for the same way from both
+            // places.
+            let formats = ListFormatter.localizedString(byJoining: unreadable)
+            return String(
+                localized: "catalogue.entry.unreadable \(formats)",
+                bundle: .module,
+                locale: .storyArc
+            )
         }
-        // Interpolated rather than handed to `String(format:)`: the two spellings look up
-        // two different keys, and a catalogue holding both fails the build — Xcode
-        // generates one symbol for them. One key, asked for the same way from both places.
-        let formats = ListFormatter.localizedString(byJoining: Array(Set(offered)).sorted())
-        return String(
-            localized: "catalogue.entry.unreadable \(formats)",
-            bundle: .module,
-            locale: .storyArc
-        )
+        if let kind = CatalogueAcquisition.unsupported(in: entry).first {
+            return String(
+                localized: "catalogue.detail.unsupported \(CatalogueFormatChoice.name(of: kind))",
+                bundle: .module,
+                locale: .storyArc
+            )
+        }
+        return String(localized: "catalogue.entry.noDownload", bundle: .module, locale: .storyArc)
     }
 
     @ViewBuilder
