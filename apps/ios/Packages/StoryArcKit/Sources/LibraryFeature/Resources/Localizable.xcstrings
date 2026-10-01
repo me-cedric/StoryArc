@@ -959,31 +959,31 @@
       }
     },
     "catalogue.error.http": {
-      "comment": "The second value is the status phrase, which `HTTPURLResponse.localizedString(forStatusCode:)` gives iOS. Android states the status code alone, because Android provides no localised status phrase. The difference is deliberate, and `localization` / One state, one name calls a sentence a platform facility supplies no divergence.",
+      "comment": "The status code alone, as on Android. `HTTPURLResponse.localizedString(forStatusCode:)` answers in the device's language and not in the language the reader chose, so a French reader on an English device read an English phrase inside a French sentence.",
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Der Server hat abgelehnt: %1$d %2$@."
+            "value": "Der Server hat abgelehnt: %1$d."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The server refused: %1$d %2$@."
+            "value": "The server refused: %1$d."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "El servidor lo rechazó: %1$d %2$@."
+            "value": "El servidor lo rechazó: %1$d."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Le serveur a refusé : %1$d %2$@."
+            "value": "Le serveur a refusé : %1$d."
           }
         }
       }
