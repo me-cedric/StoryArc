@@ -10020,7 +10020,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$lld entrées sur %2$lld"
+            "value": "%1$lld sur %2$lld entrées"
           }
         }
       }
@@ -10050,7 +10050,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld entrée sur 1"
+            "value": "%lld sur 1 entrée"
           }
         }
       }
