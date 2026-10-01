@@ -65,4 +65,19 @@ class CoverLoaderInstrumentedTest {
         val larger = CoverLoader.anyCover(publication, file, 600)
         assertEquals(600, maxOf(larger.width, larger.height))
     }
+
+    @Test
+    fun aCoverReadThroughARangedSourceMatchesTheSameFileReadWhole() = runBlocking {
+        // `PublicationAccess.anyCover` reaches a share's row through exactly this
+        // overload -- a `RandomAccessSource` rather than a `File` -- so a share row
+        // drawing the same cover a local copy would is the claim that fix rests on.
+        val file = fixture("comics/natural-sort.cbz")
+        val publication = PublicationIndexer.index(file)
+
+        val fromFile = CoverLoader.anyCover(publication, file, 200)
+        val fromSource = CoverLoader.anyCover(publication, FileSource(file), 200)
+
+        assertEquals(fromFile.width, fromSource.width)
+        assertEquals(fromFile.height, fromSource.height)
+    }
 }

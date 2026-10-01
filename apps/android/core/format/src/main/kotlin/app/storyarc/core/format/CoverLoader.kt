@@ -58,6 +58,15 @@ object CoverLoader {
     )
 
     /**
+     * The same, for a source already open over a network -- a share's own ranged reads.
+     *
+     * Nothing is transferred: the archive is read where the reader is looking, the same
+     * way [PublicationAccess.openArchive] already reads a remote path for the reader itself.
+     */
+    suspend fun coverData(publication: Publication, source: RandomAccessSource): ByteArray =
+        coverData(publication, { source }, { ComicArchiveOpener.open(source) })
+
+    /**
      * Where a cover comes from, once the difference between a path and a `Uri` is
      * out of the way. Both callers above are the same three rules.
      */
@@ -167,5 +176,26 @@ object CoverLoader {
             renderedCover(resolver, uri, maxPixelSize)
         } else {
             cover(publication, resolver, uri, maxPixelSize)
+        }
+
+    /**
+     * The cover of a publication reached over a network share, decoded and bounded the
+     * same way a local one is.
+     */
+    suspend fun cover(publication: Publication, source: RandomAccessSource, maxPixelSize: Int): Bitmap =
+        decode(maxPixelSize) { coverData(publication, source) }
+
+    /**
+     * The cover of any publication over a share, whichever way it has to be produced.
+     *
+     * PDF has no ranged renderer yet -- `publication-formats`' remote PDF streaming is
+     * still unbuilt -- so a PDF over a share has no cover to draw today, the same answer
+     * a caller already treats an unreadable cover as.
+     */
+    suspend fun anyCover(publication: Publication, source: RandomAccessSource, maxPixelSize: Int): Bitmap =
+        if (publication.format == PublicationFormat.PDF) {
+            throw CoverException.Unreadable()
+        } else {
+            cover(publication, source, maxPixelSize)
         }
 }
