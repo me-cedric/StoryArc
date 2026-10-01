@@ -49,6 +49,26 @@ struct SmbContributorTests {
         #expect(publication?.sourceID == source)
     }
 
+    @Test("A row states the size the share already stated, for free")
+    func statesItsSize() {
+        // `publication-formats` asks the download offer on the publication page to state
+        // the size, and a directory entry already carries its own length — so the share
+        // walk hands it over rather than leaving the reader to guess.
+        let publication = SmbContributor.publication(
+            source: source,
+            entry: SmbEntry(
+                name: "Lantern Green 043.cbz",
+                path: "comics/Lantern Green/Lantern Green 043.cbz",
+                isDirectory: false,
+                length: 400_000_000
+            ),
+            address: address,
+            folder: "comics/Lantern Green"
+        )
+
+        #expect(publication?.fileSize == 400_000_000)
+    }
+
     @Test("A row under a configured root opens through the reader's own reading of its address")
     func rootRoundTrips() throws {
         // `entry.path` is relative to the share and so repeats the root the reader picked. The

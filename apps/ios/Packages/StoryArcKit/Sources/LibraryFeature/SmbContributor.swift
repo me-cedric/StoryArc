@@ -96,7 +96,11 @@ enum SmbContributor {
             volume: facts.volume,
             year: facts.year,
             origin: .inferred,
-            sourceID: source
+            sourceID: source,
+            // The share already states this for free — a directory entry carries its
+            // own length — so the download offer on the publication page can state a
+            // size instead of leaving the reader guessing.
+            fileSize: entry.length
         )
     }
 

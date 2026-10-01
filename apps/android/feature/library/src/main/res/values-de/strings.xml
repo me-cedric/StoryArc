@@ -417,6 +417,7 @@
     <string name="detail_action_continue_listening">Weiterhören</string>
     <string name="detail_action_download">Herunterladen</string>
     <string name="detail_needs_download">Diese muss erst auf Ihrem Gerät sein, bevor sie sich öffnet.</string>
+    <string name="detail_needs_download_sized">Diese muss erst auf Ihrem Gerät sein, bevor sie sich öffnet (%1$s).</string>
     <string name="detail_needs_source">Sie ist nicht auf diesem Gerät, und die Bibliothek, in der sie liegt, antwortet nicht. Sie wird geholt, sobald diese wieder da ist.</string>
     <string name="detail_refused_body">Dieser Comic verwendet durchgehende Komprimierung, die StoryArc nicht öffnen kann.</string>
     <string name="detail_provenance_device">Auf diesem Gerät</string>

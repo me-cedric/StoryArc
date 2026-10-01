@@ -110,6 +110,10 @@ internal object SmbContributor {
             // The filename's, and not the file's: reading the file means fetching it.
             origin = MetadataOrigin.INFERRED,
             sourceId = sourceId,
+            // The share already states this for free -- a directory entry carries its
+            // own length -- so the download offer on the publication page can state a
+            // size instead of leaving the reader guessing.
+            fileSize = entry.length,
         )
     }
 

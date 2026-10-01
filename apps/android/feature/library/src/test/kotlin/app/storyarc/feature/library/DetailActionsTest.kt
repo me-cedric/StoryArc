@@ -265,4 +265,32 @@ class DetailActionsTest {
             downloadControl(PrimaryAction.REFUSED, canDownload = true),
         )
     }
+
+    // The download offer's size.
+
+    @Test
+    fun `the needs-download explanation states the size when the source stated one`() {
+        val (resource, size) = explanationResource(PrimaryAction.NEEDS_DOWNLOAD, 400_000_000L)!!
+        assertEquals(R.string.detail_needs_download_sized, resource)
+        assertEquals(400_000_000L, size)
+    }
+
+    @Test
+    fun `an absent or zero size falls back to the sizeless sentence`() {
+        // `offline-downloads` requires an unknown size to be stated as an absence rather
+        // than as a zero, and a zero directory-entry length is the only shape "nothing
+        // stated" can arrive in here.
+        for (fileSize in listOf(null, 0L)) {
+            val (resource, size) = explanationResource(PrimaryAction.NEEDS_DOWNLOAD, fileSize)!!
+            assertEquals("fileSize=$fileSize", R.string.detail_needs_download, resource)
+            assertEquals("fileSize=$fileSize", null, size)
+        }
+    }
+
+    @Test
+    fun `a size is never stated for an explanation that is not the download one`() {
+        val (resource, size) = explanationResource(PrimaryAction.NEEDS_SOURCE, 400_000_000L)!!
+        assertEquals(R.string.detail_needs_source, resource)
+        assertEquals(null, size)
+    }
 }

@@ -419,6 +419,7 @@
     <string name="detail_action_continue_listening">Reprendre l’écoute</string>
     <string name="detail_action_download">La télécharger</string>
     <string name="detail_needs_download">Celle-ci doit être sur votre appareil avant de s’ouvrir.</string>
+    <string name="detail_needs_download_sized">Celle-ci doit être sur votre appareil avant de s’ouvrir (%1$s).</string>
     <string name="detail_needs_source">Elle n’est pas sur cet appareil, et la bibliothèque où elle se trouve ne répond pas. Elle sera récupérée dès son retour.</string>
     <string name="detail_refused_body">Cette bande dessinée utilise une compression solide, que StoryArc ne peut pas ouvrir.</string>
     <string name="detail_provenance_device">Sur cet appareil</string>
