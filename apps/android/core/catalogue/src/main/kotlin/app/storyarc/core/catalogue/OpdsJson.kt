@@ -23,6 +23,8 @@ import kotlinx.serialization.json.longOrNull
  */
 internal object OpdsJson {
 
+    private const val ACQUISITION = "http://opds-spec.org/acquisition"
+
     private val json = Json { ignoreUnknownKeys = true }
 
     fun parse(body: ByteArray, baseUrl: String): OpdsFeed {
@@ -149,21 +151,32 @@ internal object OpdsJson {
                 val each = link.asObject() ?: return@mapNotNull null
                 val href = each["href"].asString()?.let(resolve) ?: return@mapNotNull null
                 val relations = each.relations()
-                // OPDS 2.0 lets an acquisition link carry no relation at all, in which case
-                // being in `links` with a readable type is the whole signal.
-                val kind = relations.firstNotNullOfOrNull(OpdsAcquisition.Kind::named)
-                    ?: OpdsAcquisition.Kind.DIRECT.takeIf { relations.isEmpty() }
-                    ?: return@mapNotNull null
+                val type = each["type"].asString().orEmpty()
+                // 11.4: an `indirectAcquisition` or a protected type (OPDS-LCP, Adobe
+                // ADEPT) means another step stands between this link and an openable
+                // file, whatever relation it otherwise carries.
+                val isIndirect = each.hasIndirectAcquisition() || isProtectedType(type)
+                val kind = when {
+                    isIndirect -> OpdsAcquisition.Kind.INDIRECT
+                    // OPDS 2.0 lets an acquisition link carry no relation at all, in
+                    // which case being in `links` with a readable type is the whole
+                    // signal.
+                    relations.isEmpty() -> OpdsAcquisition.Kind.DIRECT
+                    else -> relations.firstNotNullOfOrNull(OpdsAcquisition.Kind::named)
+                        // A relation the standard added after this code was written.
+                        // Listed as indirect rather than dropped: the spec requires an
+                        // unsupported acquisition to be named, and a dropped link cannot
+                        // be named.
+                        ?: OpdsAcquisition.Kind.INDIRECT.takeIf {
+                            relations.any { rel -> rel.startsWith(ACQUISITION) }
+                        }
+                        ?: return@mapNotNull null
+                }
                 // The Readium Link Object's own field: the resource's size in bytes, before
                 // any encryption or compression in an archive. `asLong` yields null for a
                 // server that sends it as a string, which is a feed with no size stated
                 // rather than a feed to refuse.
-                OpdsAcquisition.of(
-                    href,
-                    each["type"].asString().orEmpty(),
-                    kind,
-                    each["size"].asLong(),
-                )
+                OpdsAcquisition.of(href, type, kind, each["size"].asLong())
             },
         )
     }
@@ -185,6 +198,26 @@ internal object OpdsJson {
 
     private fun JsonObject.numberOfItems(): Int? =
         this["properties"]?.asObject()?.get("numberOfItems")?.asInt()
+
+    /**
+     * Present, non-empty, when the standard's `indirectAcquisition` names another step
+     * between this link and an openable file. Its own content is never read -- the outer
+     * link's `type` is what `publication-formats` already shows the reader as "offered
+     * as" -- so this only needs to say whether the step exists. 11.4.
+     */
+    private fun JsonObject.hasIndirectAcquisition(): Boolean =
+        this["properties"]?.asObject()?.get("indirectAcquisition")?.asArray()?.isNotEmpty() == true
+
+    /**
+     * A media type that names a protection step rather than an openable file -- see
+     * `OpdsAtom`'s twin of this function, which this one duplicates rather than shares:
+     * the two parsers have no common module to put it in, and three lines are not worth
+     * inventing one.
+     */
+    private fun isProtectedType(type: String): Boolean =
+        type == "application/vnd.adobe.adept+xml" ||
+            type.contains("vnd.readium.lcp.license") ||
+            type.endsWith("+lcp")
 
     private fun JsonElement?.asObject(): JsonObject? = runCatching { this?.jsonObject }.getOrNull()
     private fun JsonElement?.asArray(): List<JsonElement>? =

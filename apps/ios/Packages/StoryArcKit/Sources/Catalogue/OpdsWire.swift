@@ -75,6 +75,12 @@ struct OpdsWireLink: Decodable {
 
 struct OpdsWireProperties: Decodable {
     let numberOfItems: Int?
+
+    /// Present, non-empty, when the standard's `indirectAcquisition` names another step
+    /// between this link and an openable file. Its own content is never read — the outer
+    /// link's `type` is what `publication-formats` already shows the reader as "offered
+    /// as" — so this only needs to say whether the step exists. 11.4.
+    let indirectAcquisition: [OpdsWireAnything]?
 }
 
 struct OpdsWirePublication: Decodable {

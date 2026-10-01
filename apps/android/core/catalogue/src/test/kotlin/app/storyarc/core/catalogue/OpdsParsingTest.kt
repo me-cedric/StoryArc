@@ -258,6 +258,48 @@ class OpdsParsingTest {
         )
     }
 
+    // 11.4 -- the same, read from OPDS 2.0 JSON
+
+    @Test
+    fun aJsonIndirectAcquisitionPropertyMarksTheLinkIndirect() {
+        val body = """
+        { "metadata": { "title": "t" }, "publications": [
+          { "metadata": { "title": "e" }, "links": [
+            { "href": "/x.epub", "type": "application/epub+zip",
+              "properties": { "indirectAcquisition": [{ "type": "application/vnd.readium.lcp.license.v1.0+json" }] } }
+          ] } ] }
+        """.trimIndent()
+        val feed = OpdsDocument.parse(body.toByteArray(), baseUrl = base)
+        val acquisition = feed.publications.first().acquisitions.first()
+        assertEquals(OpdsAcquisition.Kind.INDIRECT, acquisition.kind)
+        assertEquals("application/epub+zip", acquisition.mediaType)
+    }
+
+    @Test
+    fun aJsonLcpLicenseTypeIsIndirectWithNoIndirectAcquisitionProperty() {
+        val body = """
+        { "metadata": { "title": "t" }, "publications": [
+          { "metadata": { "title": "e" }, "links": [
+            { "href": "/x.lcpl", "type": "application/vnd.readium.lcp.license.v1.0+json" }
+          ] } ] }
+        """.trimIndent()
+        val feed = OpdsDocument.parse(body.toByteArray(), baseUrl = base)
+        assertEquals(OpdsAcquisition.Kind.INDIRECT, feed.publications.first().acquisitions.first().kind)
+    }
+
+    @Test
+    fun aJsonUnknownAcquisitionRelationIsIndirectRatherThanLost() {
+        val body = """
+        { "metadata": { "title": "t" }, "publications": [
+          { "metadata": { "title": "e" }, "links": [
+            { "href": "/x.epub", "type": "application/epub+zip",
+              "rel": "http://opds-spec.org/acquisition/lend-later" }
+          ] } ] }
+        """.trimIndent()
+        val feed = OpdsDocument.parse(body.toByteArray(), baseUrl = base)
+        assertEquals(OpdsAcquisition.Kind.INDIRECT, feed.publications.first().acquisitions.first().kind)
+    }
+
     // What an acquisition costs
 
     /**
