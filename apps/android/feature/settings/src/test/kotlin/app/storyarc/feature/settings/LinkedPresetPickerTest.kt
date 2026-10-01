@@ -119,4 +119,24 @@ class AppearanceGroupLinkedPresetTest {
         compose.onAllNodes(hasText("Bold") and isSelectable())[0].assertIsSelected()
         compose.onAllNodes(hasText("Calm") and isSelectable())[1].assertIsSelected()
     }
+
+    // Tall enough that both lists are laid out inside the window. A row below the window's
+    // edge measures to nothing, and a tap on it lands on whatever row is drawn there instead.
+    @Test
+    @Config(qualifiers = "w411dp-h2400dp")
+    fun `a tap in one half of the pair writes that half and leaves the other alone`() {
+        val settings = AppSettings(linkReadingThemeToAppearance = true)
+        val written = mutableListOf<AppSettings>()
+        compose.setContent {
+            StoryArcTheme { AppearanceGroup(settings = settings, onChange = { written += it }) }
+        }
+
+        compose.onAllNodes(hasText("Focus") and isSelectable())[0].performClick()
+        compose.onAllNodes(hasText("Calm") and isSelectable())[1].performClick()
+
+        assertEquals(ThemePreset.FOCUS, written[0].lightReadingTheme)
+        assertEquals(ThemePreset.QUIET, written[0].darkReadingTheme)
+        assertEquals(ThemePreset.PAPER, written[1].lightReadingTheme)
+        assertEquals(ThemePreset.CALM, written[1].darkReadingTheme)
+    }
 }
