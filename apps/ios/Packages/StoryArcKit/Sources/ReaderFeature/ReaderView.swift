@@ -384,6 +384,7 @@ public struct ReaderView: View {
         .onKeyPress(.pageUp) { turnInReadingOrder(by: -1); return .handled }
         .onKeyPress(.pageDown) { turnInReadingOrder(by: 1); return .handled }
         .onKeyPress(.space) { turnInReadingOrder(by: 1); return .handled }
+        .onKeyPress(.return) { toggleChrome(); return .handled }
         .modifier(GameControllerTurning(onTurn: turn))
         // The status bar, the idle timer and the orientation lock — see
         // ``ReaderSystemChrome``, which is where the `#if os(iOS)` around all three lives.
