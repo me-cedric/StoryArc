@@ -27,6 +27,12 @@ final class FolderWatcher {
     /// and its series folders.
     static let limit = 96
 
+    /// Whether the last `watch(_:onChange:)` found more directories than `limit` could
+    /// cover. 10.9: a change inside one of those is noticed only on the next return to the
+    /// foreground otherwise -- `WatchingFolders` polls while this is true and the scene
+    /// stays active.
+    private(set) var reachedLimit = false
+
     private var sources: [String: any DispatchSourceFileSystemObject] = [:]
     private var coalesced: Task<Void, Never>?
     private var notify: (@MainActor () -> Void)?
@@ -36,7 +42,9 @@ final class FolderWatcher {
     func watch(_ folders: [URL], onChange: @escaping @MainActor () -> Void) {
         stop()
         notify = onChange
-        for directory in Self.directories(under: folders) { add(directory) }
+        let walked = Self.directories(under: folders)
+        reachedLimit = walked.truncated
+        for directory in walked.directories { add(directory) }
     }
 
     /// Stops watching. Every descriptor is closed by its source's cancel handler.
@@ -90,7 +98,7 @@ final class FolderWatcher {
     ///
     /// Breadth-first on purpose: when the limit bites, the folders it keeps are the ones a
     /// reader drops a file into.
-    private static func directories(under folders: [URL]) -> [URL] {
+    private static func directories(under folders: [URL]) -> (directories: [URL], truncated: Bool) {
         var queue = folders
         var found: [URL] = []
         while !queue.isEmpty, found.count < limit {
@@ -105,7 +113,7 @@ final class FolderWatcher {
                 (try? $0.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
             }
         }
-        return found
+        return (found, !queue.isEmpty)
     }
 }
 
@@ -140,6 +148,17 @@ private struct WatchingFolders: ViewModifier {
                 // 10.5: folded in here too, for the same reason -- a folder's grant can be
                 // revoked while the app is away, and nothing else re-asks on return.
                 model.resolveLocalSources()
+            }
+            // 10.9: past the watch limit, a change is otherwise noticed only on the next
+            // return to the foreground. Restarted by SwiftUI whenever `scenePhase` changes,
+            // which is what stops it the moment the scene leaves `.active`.
+            .task(id: scenePhase) {
+                guard scenePhase == .active else { return }
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(10))
+                    guard !Task.isCancelled, model.watcher.reachedLimit else { continue }
+                    await model.reconcileWatchedFolders()
+                }
             }
     }
 }
