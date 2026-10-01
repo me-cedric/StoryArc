@@ -113,6 +113,9 @@ public struct AppSettings: Sendable, Equatable, Codable {
             turnPagesWithVolumeButtons: try container.decodeIfPresent(
                 Bool.self, forKey: .turnPagesWithVolumeButtons
             ) ?? false,
+            turnPagesByTappingTheEdges: try container.decodeIfPresent(
+                Bool.self, forKey: .turnPagesByTappingTheEdges
+            ) ?? true,
             linkReadingThemeToAppearance: try container.decodeIfPresent(
                 Bool.self, forKey: .linkReadingThemeToAppearance
             ) ?? false,
