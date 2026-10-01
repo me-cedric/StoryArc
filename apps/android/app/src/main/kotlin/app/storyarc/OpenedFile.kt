@@ -10,6 +10,7 @@ import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.format.UriSource
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.persistence.RememberedFiles
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -85,7 +86,8 @@ internal object OpenedFile {
      *
      * `local-library` settles the lifetime and forbids a copy: the publication "is not kept,
      * because the access that came with the intent ends with the process", and "the user keeps
-     * such a publication by importing it". So this has to open now, and nothing more.
+     * such a publication by importing it" — unless the sender itself granted a persistable
+     * permission, which is the named exception [rememberIfPersistable] takes.
      *
      * Takes the activity's [Context] rather than its `ContentResolver`, because a file the
      * provider does not name is named by [displayName] from `strings.xml`, and a resolver
@@ -127,6 +129,24 @@ internal object OpenedFile {
                 is IndexException.Unsupported -> Outcome.Unsupported(name, error.format)
                 else -> Outcome.Unreadable(name)
             }
+        }
+    }
+
+    /**
+     * Takes a persistable read grant when the sender itself offered one, and remembers the
+     * file so it comes back as a publication at the next launch.
+     *
+     * 10.10: `takePersistableUriPermission` was called only from the three folder pickers,
+     * never for a handed-over file — so the one case `local-library`'s "is not kept" names as
+     * its own exception was never taken, even when the sender had already granted it.
+     */
+    fun rememberIfPersistable(context: Context, intent: Intent, uri: Uri) {
+        if (intent.flags and Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION == 0) return
+        runCatching {
+            context.contentResolver
+                .takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }.onSuccess {
+            RememberedFiles.open(context).remember(uri)
         }
     }
 

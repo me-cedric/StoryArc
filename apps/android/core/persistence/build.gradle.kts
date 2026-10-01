@@ -36,6 +36,9 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // 10.10: RememberedFilesTest is this module's first use of android.net.Uri in a unit
+    // test, which the plain JVM test jar stubs out entirely.
+    testImplementation(libs.robolectric)
 
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.runner)
