@@ -3826,6 +3826,64 @@
         }
       }
     },
+    "kavita.mark.refused.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Version dieses Kavita-Servers nimmt keine Markierungen als gelesen oder ungelesen von StoryArc an. Die Markierung bleibt auf diesem Gerät."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The version of this Kavita server does not accept read or unread marks from StoryArc. The mark stays on this device."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La versión de este servidor Kavita no acepta marcas de leído o no leído de StoryArc. La marca se queda en este dispositivo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La version de ce serveur Kavita n’accepte pas les marques lu ou non lu de StoryArc. La marque reste sur cet appareil."
+          }
+        }
+      }
+    },
+    "kavita.mark.refused.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markierung nicht gesendet"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mark not sent"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marca no enviada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marque non envoyée"
+          }
+        }
+      }
+    },
     "kavita.offline.kept": {
       "extractionState": "manual",
       "localizations": {

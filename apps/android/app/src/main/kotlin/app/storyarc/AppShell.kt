@@ -45,6 +45,7 @@ import app.storyarc.feature.epubreader.EpubReaderActivity
 import app.storyarc.feature.epubreader.offeringNext
 import app.storyarc.feature.library.CataloguePage
 import app.storyarc.feature.library.KavitaLevel
+import app.storyarc.feature.library.KavitaMarkRefusedDialog
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.LibraryViewModel
 import app.storyarc.feature.library.SmbPage
@@ -304,6 +305,9 @@ internal fun AppShell(
         // states which formats it supports, rather than reporting a generic failure".
         RefusedFileDialog(outcome = outcome, onDismiss = { refusedFile = null })
     }
+
+    // D2: a read mark the server cannot accept, said over the screen that made it.
+    KavitaMarkRefusedDialog()
 
     AdaptiveNavigationShell(
         entries = AppDestination.entries.map { destination ->

@@ -6,11 +6,6 @@ import Kavita
 import Persistence
 import StoryArcCore
 
-/// A report that reaches the server drops what an earlier, offline read had held.
-///
-/// The field defect: an offline read holds page 10; an online session later reports page 20;
-/// a subsequent flush still sends the held page 10 and moves the server back. Android's
-/// `KavitaSyncQueueTest` asserts the same case.
 /// A box, mutated from a `@Sendable` callback and read back on the test's own task — never
 /// from two places at once, so `@unchecked` is honest. `ShelfOrderConflictTests`' own `Flag`
 /// is the same shape, private to that file.
@@ -19,6 +14,11 @@ private final class Box<Value>: @unchecked Sendable {
     init(_ value: Value) { self.value = value }
 }
 
+/// A report that reaches the server drops what an earlier, offline read had held.
+///
+/// The field defect: an offline read holds page 10; an online session later reports page 20;
+/// a subsequent flush still sends the held page 10 and moves the server back. Android's
+/// `KavitaSyncQueueTest` asserts the same case.
 @Suite("A successful report clears its own held entry")
 struct KavitaSyncQueueTests {
 
@@ -187,6 +187,17 @@ struct KavitaSyncQueueTests {
         #expect(store.unsent().isEmpty, "a route the server will never grow must not be retried forever")
     }
 
+    @Test("D2: a mark the server refuses raises the notice the shell shows")
+    @MainActor
+    func refusedMarkRaisesTheNotice() async throws {
+        let (address, configuration) = try routeMissingAddress(host: "\(UUID().uuidString).mark-notice.test")
+        KavitaMarkRefusal.shared.isRefused = false
+
+        await KavitaSync.mark(true, for: origin(), to: address, in: store(), configuration: configuration)
+
+        #expect(KavitaMarkRefusal.shared.isRefused)
+    }
+
     @Test("D2: a held mark a flush finds refused leaves the queue and is reported, not retried")
     func flushDropsAHeldMarkOnRouteMissing() async throws {
         let store = store()
@@ -270,7 +281,10 @@ struct KavitaSyncQueueTests {
         store.hold(KavitaUnsent(origin: origin, page: 5))
         let (address, configuration) = try routeMissingAddress(host: "\(UUID().uuidString).flush-mixed.test")
 
-        _ = await KavitaSync.flush(origin.sourceId, to: address, in: store, configuration: configuration)
+        // Told nothing here, so only `refusedMarkRaisesTheNotice` touches the shared notice.
+        _ = await KavitaSync.flush(
+            origin.sourceId, to: address, in: store, configuration: configuration, onRouteMissing: { _ in }
+        )
 
         // The position's own 404 is an ordinary failure `send` lets through uncaught, so
         // `flush`'s `catch { continue }` keeps it held — this asserts the mark's departure

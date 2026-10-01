@@ -219,21 +219,22 @@ public enum KavitaSync {
     /// Sends one deliberate mark, keeping it for later if the server is not there.
     ///
     /// D2: a 404 means this server lacks the mark routes, and holding it would resend it
-    /// forever to a route that can only ever refuse it. `onRouteMissing` says so instead.
+    /// forever to a route that can only ever refuse it. `onRouteMissing` says so instead. By
+    /// default it raises ``KavitaMarkRefusal``, which the shell shows over the screen in front.
     public static func mark(
         _ isRead: Bool,
         for origin: KavitaOrigin,
         to address: KavitaAddress?,
         in store: KavitaProgressStore,
         configuration: URLSessionConfiguration? = nil,
-        onRouteMissing: (@Sendable () -> Void)? = nil
+        onRouteMissing: @MainActor @Sendable () -> Void = { KavitaMarkRefusal.shared.note() }
     ) async {
         let unsent = KavitaUnsent(origin: origin, page: 0, mark: isRead)
         guard let address else { return store.hold(unsent) }
         do {
             try await send(KavitaClient(address: address, configuration: configuration), unsent)
         } catch KavitaError.routeMissing {
-            onRouteMissing?()
+            await onRouteMissing()
         } catch {
             store.hold(unsent)
         }
@@ -333,7 +334,8 @@ public enum KavitaSync {
         /// Task 7.4: told when a held order was dropped as stale rather than sent.
         onOrderConflict: (@Sendable (Int) -> Void)? = nil,
         /// D2: told once for each held mark a 404 refused, which then leaves the queue too.
-        onRouteMissing: (@Sendable (KavitaUnsent) -> Void)? = nil
+        /// By default it raises ``KavitaMarkRefusal``, as ``mark(_:for:to:in:configuration:onRouteMissing:)`` does.
+        onRouteMissing: @MainActor @Sendable (KavitaUnsent) -> Void = { _ in KavitaMarkRefusal.shared.note() }
     ) async -> [KavitaUnsent] {
         let held = store.unsent().filter { $0.origin.sourceId == sourceId }
         guard !held.isEmpty else { return [] }
@@ -353,7 +355,7 @@ public enum KavitaSync {
         }
         // Both leave the queue: what the server took, and what it can never take.
         store.sent(delivered + refused)
-        for each in refused { onRouteMissing?(each) }
+        for each in refused { await onRouteMissing(each) }
         // A plain position, not a mark or a list write — the only kind of held item a
         // local record has anything to say about.
         for each in delivered where each.mark == nil && each.listID == nil {

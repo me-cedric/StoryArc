@@ -258,6 +258,8 @@
     <string name="kavita_open_failed">Impossible d’ouvrir « %1$s ».</string>
     <string name="kavita_open_not_sent">%1$s ne l’a pas envoyé. Réessayez quand le serveur répond.</string>
     <string name="kavita_open_unreadable">%1$s a envoyé un fichier que StoryArc ne sait pas lire.</string>
+    <string name="kavita_mark_refused_title">Marque non envoyée</string>
+    <string name="kavita_mark_refused_body">La version de ce serveur Kavita n’accepte pas les marques lu ou non lu de StoryArc. La marque reste sur cet appareil.</string>
     <string name="kavita_continue">Continuer · %1$s</string>
     <string name="library_mark_read">Marquer comme lu</string>
     <string name="library_mark_unread">Marquer comme non lu</string>

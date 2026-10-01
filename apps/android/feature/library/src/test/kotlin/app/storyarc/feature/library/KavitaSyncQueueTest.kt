@@ -234,6 +234,19 @@ class KavitaSyncQueueTest {
     }
 
     @Test
+    fun `D2 a mark the server refuses raises the notice the shell shows`() {
+        KavitaMarkRefusal.dismiss()
+        routeMissingServer { address ->
+            runBlocking {
+                KavitaSync.mark(store(), address, origin("mark-notice-server"), isRead = true)
+            }
+        }
+
+        assertTrue(KavitaMarkRefusal.isRefused.value)
+        KavitaMarkRefusal.dismiss()
+    }
+
+    @Test
     fun `D2 a held mark a flush finds refused leaves the queue and is reported, not retried`() {
         routeMissingServer { address ->
             runBlocking {
@@ -311,7 +324,8 @@ class KavitaSyncQueueTest {
                 store.hold(KavitaUnsent(origin, page = 0, mark = true))
                 store.hold(KavitaUnsent(origin, page = 5))
 
-                KavitaSync.flush(store, origin.sourceId, address)
+                // Told nothing here, so only the notice test touches the shared notice.
+                KavitaSync.flush(store, origin.sourceId, address, onRouteMissing = {})
 
                 assertEquals(1, store.unsent().size)
                 assertTrue(store.unsent().none { it.mark != null })
