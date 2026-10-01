@@ -93,6 +93,11 @@ public final class PlayerCentre {
     /// out has. Cleared by ``begin(_:source:)``, so a second book cannot inherit it.
     public private(set) var hasReachedTheEnd = false
 
+    /// The book that just ran out, kept past the teardown that clears ``book`` — task 7.2's
+    /// end-of-book offer needs it to ask the library's `next(after:)`. `nil` for a session
+    /// that stopped any other way, per ``hasReachedTheEnd``. Cleared by ``begin(_:source:)``.
+    public private(set) var lastFinished: SpokenBook?
+
     /// The word a listener is owed because opening a publication stopped their voice.
     ///
     /// Armed only by ``displace()`` and spent only by ``takeVoiceStopped()``, both in
@@ -208,6 +213,7 @@ public final class PlayerCentre {
         // it. A listener who finished one book and started another would otherwise have the
         // second marked finished at its first tick.
         hasReachedTheEnd = false
+        lastFinished = nil
         // A second book must not inherit the first's floor, or its opening minutes would go
         // unwritten while the offset climbed back to where the last book stopped.
         recorded = nil
@@ -351,6 +357,7 @@ public final class PlayerCentre {
     private func finish(with next: PlaybackSession) {
         guard session.isActive || book != nil else { return }
         recordReached()
+        if hasReachedTheEnd { lastFinished = book }
         session = next
         source?.moved = nil
         source?.ended = nil
