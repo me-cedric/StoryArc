@@ -109,8 +109,15 @@ final class ReadingContinuityUITests: XCTestCase {
         )
         let readable = app.buttons.matching(shape)
         guard readable.firstMatch.waitForExistence(timeout: 15) else { return nil }
+        // **On this device, not only readable in principle.** A simulator that capture walks
+        // have used also holds rows from the mock servers, spoken as "Needs its library to be
+        // reachable" when no mock is running. On 2026-09-29 this walk picked one on such a
+        // simulator, and the reader had no page to open. A runner holds no such row.
         return readable.allElementsBoundByIndex
-            .first { $0.isHittable && !$0.label.contains("100 percent read") }?
+            .first {
+                $0.isHittable && !$0.label.contains("100 percent read")
+                    && !$0.label.contains("Needs its library to be reachable")
+            }?
             .label
     }
 
@@ -129,20 +136,17 @@ final class ReadingContinuityUITests: XCTestCase {
     /// localised sentence and this test is about the number surviving rather than about how
     /// it is worded.
     private func pagePosition(in app: XCUIApplication) -> String? {
-        // Twice, because the first tap can land before the reader has finished opening --
-        // and a tap the page has not started listening for is a tap that reveals nothing.
-        // A resumed publication is slower than a fresh one: it has a position to restore.
-        showChrome(in: app)
-        // One query with the match in it, rather than every label mapped into an array.
-        // The chrome fades after four seconds: an array of `XCUIElement` is a snapshot, and
-        // reading `.label` off each in turn asks the app about elements that have since
-        // gone — which fails as "no matches found for element at index 4" and says nothing
-        // whatever about reading. A predicate query is answered in one round trip.
-        let numbered = app.staticTexts.matching(NSPredicate(format: "label MATCHES %@", ".*\\d+.*")).firstMatch
-        if numbered.waitForExistence(timeout: 5) { return numbered.label }
-        showChrome(in: app)
-        guard numbered.waitForExistence(timeout: 10) else { return nil }
-        return numbered.label
+        // **Read off the page, not off the chrome.** Since `quiet-reader` the chrome over a
+        // comic is two icon buttons and states no position; the page itself carries it, as
+        // its spoken label ("Page 2 of 3", `reader.pageLabel`). Looking for a number in the
+        // chrome's static text found nothing, which is why this walk failed on CI from
+        // 2026-09-12 with "The reader shows no position to read". Two numbers in one label is
+        // the page's shape and nothing else on the reader's screen has it.
+        let page = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label MATCHES %@", ".*\\d+\\D+\\d+.*"))
+            .firstMatch
+        guard page.waitForExistence(timeout: 10) else { return nil }
+        return page.label
     }
 
     /// Brings the reader's chrome back. It fades after four seconds, and a position nobody

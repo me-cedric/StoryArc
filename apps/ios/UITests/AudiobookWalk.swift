@@ -77,6 +77,16 @@ extension XCTestCase {
         // The player starts asynchronously — the container is read for its chapters first — so
         // this waits for the bar rather than for a frame count.
         let wayIn = app.buttons["Open the player"].firstMatch
+        // **Once more, when a sibling test left the book near its end.** The fixture lasts six
+        // seconds and its position is kept in the progress store, which no launch argument
+        // resets. A test earlier in the same run can leave it a moment from the end, so
+        // "Continue listening" plays out before the bar is looked for, and the session ends
+        // with it. Measured on 2026-09-29 on a fresh simulator: the tap reached "Continue
+        // listening" and no bar appeared. A finished book starts over on the next tap.
+        if !wayIn.waitForExistence(timeout: 4) {
+            let again = app.buttons.matching(opensAPublication).firstMatch
+            if again.waitForExistence(timeout: 3) { again.tap() }
+        }
         XCTAssertTrue(
             wayIn.waitForExistence(timeout: 10),
             "The compact bar never appeared after opening an audiobook. In the bottom strip: "
