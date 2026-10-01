@@ -5,6 +5,7 @@ import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
+import app.storyarc.core.persistence.ImportedCopies
 
 /**
  * Which folder sources a restore or a resume finds unreachable, decided without a
@@ -33,8 +34,11 @@ internal data class FolderAvailability(
             reachableLocators: Set<String>,
             atEpochMillis: Long,
         ): FolderAvailability {
+            // Not "On this device": its locator is no tree anyone picked, so it is never
+            // among the reachable trees, and marking it would grey every imported copy.
             val unreachable = registry.sources.filter {
-                it.kind == SourceKind.LOCAL_FOLDER && it.locator !in reachableLocators
+                it.kind == SourceKind.LOCAL_FOLDER && it.id != ImportedCopies.SOURCE_ID &&
+                    it.locator !in reachableLocators
             }
             if (unreachable.isEmpty()) return FolderAvailability(registry, emptyList())
             val marked = unreachable.fold(registry) { acc, source ->

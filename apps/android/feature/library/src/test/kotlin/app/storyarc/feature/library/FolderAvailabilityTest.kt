@@ -4,6 +4,7 @@ import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
+import app.storyarc.core.persistence.ImportedCopies
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -64,6 +65,22 @@ class FolderAvailabilityTest {
 
         assertTrue(result.newlyUnreachable.isEmpty())
         assertEquals(server, result.registry[server.id])
+    }
+
+    @Test
+    fun `the imported copies' own source is not a picked folder, and is left alone`() {
+        val imported = Source(
+            id = ImportedCopies.SOURCE_ID,
+            displayName = "On this device",
+            kind = SourceKind.LOCAL_FOLDER,
+            locator = "storyarc/imported",
+        ).copy(state = SourceConnectionState.Connected)
+        val registry = SourceRegistry(sources = listOf(imported))
+
+        val result = FolderAvailability.of(registry, reachableLocators = emptySet(), atEpochMillis = 1)
+
+        assertTrue(result.newlyUnreachable.isEmpty())
+        assertEquals(imported, result.registry[imported.id])
     }
 
     @Test
