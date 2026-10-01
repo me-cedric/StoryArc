@@ -25,12 +25,19 @@ struct SourceRemoval: Equatable {
     /// a folder.
     let folder: URL?
 
-    /// Matched on the folder's own name, which is the key the registry and the bookmarks
-    /// both use — a path is not stable identity on iOS.
-    static func of(_ source: Source, folders: [URL]) -> SourceRemoval {
+    /// Matched on a folder's own key when `keyOf` can give one, and by name otherwise — a
+    /// path is not stable identity on iOS. 10.3: the name is not unique, so a caller that
+    /// can resolve the bookmark's own key passes it; a caller that cannot (every existing
+    /// test here) still gets the name-matched answer it always did.
+    static func of(
+        _ source: Source,
+        folders: [URL],
+        keyOf: (URL) -> String? = { _ in nil }
+    ) -> SourceRemoval {
         SourceRemoval(
             credentialReference: source.credentialReference,
-            folder: folders.first { $0.lastPathComponent == source.locator }
+            folder: folders.first { keyOf($0) == source.locator }
+                ?? folders.first { $0.lastPathComponent == source.locator }
         )
     }
 }

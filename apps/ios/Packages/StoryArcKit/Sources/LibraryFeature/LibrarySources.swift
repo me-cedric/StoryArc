@@ -39,9 +39,9 @@ extension LibraryModel {
     // in the other half of this type.
     /// The source a folder belongs to, if it is one.
     ///
-    /// Matched on the folder's name, the same key ``register(_:)`` uses — except for the
-    /// app's own Documents folder, which is matched on identity because it has no locator
-    /// and never had one.
+    /// Matched on the bookmark's own key, the same locator ``register(_:)`` uses — except
+    /// for the app's own Documents folder, which is matched on identity because it has no
+    /// locator and never had one. 10.3: the name is not unique, a key is.
     ///
     /// **The Documents folder used to be nobody's, and that was called the honest answer.**
     /// The argument was that it "is not a source", so pretending a publication found there
@@ -58,9 +58,9 @@ extension LibraryModel {
     /// A reader cannot tell those bytes from an imported copy, and should not have to.
     func source(of folder: URL) -> UUID? {
         if isAppStorage(folder) { return ImportedCopies.sourceID }
-        return registry.sources.first {
-            $0.kind == .localFolder && $0.locator == folder.lastPathComponent
-        }?.id
+        // 10.3: the bookmark's own key, not the name two folders can share.
+        let locator = bookmarks?.key(for: folder) ?? folder.lastPathComponent
+        return registry.sources.first { $0.kind == .localFolder && $0.locator == locator }?.id
     }
 
     /// Whether a URL is inside the app's own Documents folder.
@@ -101,36 +101,31 @@ extension LibraryModel {
     // in the other half of this type.
     /// Records a folder as a source, if it is not one already.
     ///
-    /// Matched on the folder's name, which is what a bookmark restores by. A folder picked
-    /// twice is one source, and the reader's own name for it survives — `sources` requires
-    /// a rename to stick, so re-adding must not overwrite one.
+    /// Matched on the bookmark's own key. A folder picked twice is one source, and the
+    /// reader's own name for it survives — `sources` requires a rename to stick, so
+    /// re-adding must not overwrite one.
+    ///
+    /// 10.3: the key, not the name, is what makes two folders two sources. A locator keyed
+    /// on the name — what this matched on before — made "Comics" and a second "Comics"
+    /// become one source and one bookmark the moment the second was registered: `source(of
+    /// folder:)` and ``LibrarySourceHealth/folder(of:)`` both matched by name too, so the
+    /// first folder found by either lookup answered for both.
     func register(_ url: URL) {
         let name = url.lastPathComponent
-        // The bookmark's key, not the filesystem path. A path is not stable identity on
-        // iOS: the app container carries a UUID that changes on reinstall and on restore to
-        // a new device, so a path-keyed source is a *new* source every time — which showed
-        // up as the same folder listed three times. `FolderBookmarks` keys on the folder's
-        // own name, and that is what survives.
-        let locator = url.lastPathComponent
-        // Connected, not connecting. State is never persisted — it describes a network, and
-        // a state read from disk is a claim about the past — so every source loads as
-        // `connecting` and something has to answer. For a folder the answer is immediate:
-        // it is reachable or it is not, and there is nothing to probe. Left unanswered it
-        // sat on "Connecting" forever, which is what a reader saw.
-        // Matched on where the folder *is*, not on what it is called. A reader who renames
-        // a source keeps its name; matching by name would fail to recognise it on the next
-        // launch and add the same folder a second time.
-        //
-        // The name is still consulted, but only to adopt a source stored before `locator`
-        // existed. Without that a migration produces exactly the duplicate the locator was
-        // added to prevent — which it did, on a device, before this line.
+        let locator = bookmarks?.key(for: url) ?? name
+        // Three generations of locator can still be on disk: this folder's own key, the
+        // name every folder's locator used to be, and `nil` from before a locator existed
+        // at all. The first folder of a shared name to register claims the name-keyed row
+        // and moves it to its own key; a second folder of that name then finds nothing
+        // here and gets a row of its own, which is the fix.
         let existing = registry.sources.first { $0.kind == .localFolder && $0.locator == locator }
+            ?? registry.sources.first { $0.kind == .localFolder && $0.locator == name }
             ?? registry.sources.first {
                 $0.kind == .localFolder && $0.locator == nil && $0.displayName == name
             }
 
         if let existing {
-            if existing.locator == nil { registry = registry.locating(existing.id, at: locator) }
+            if existing.locator != locator { registry = registry.locating(existing.id, at: locator) }
             // A registry written by an intermediate build can already hold both: one row
             // that found its locator and one that never had one. The second is an artifact,
             // not a source, so it is discarded rather than tombstoned — a tombstone would
@@ -204,7 +199,7 @@ extension LibraryModel {
         // gone. Deleted by the reference the *registry* holds rather than one re-derived
         // from `source.id`, because a source whose id and credential reference disagreed —
         // which every iOS Kavita source's did — would otherwise keep its key for ever.
-        let removal = SourceRemoval.of(source, folders: folders)
+        let removal = SourceRemoval.of(source, folders: folders) { [bookmarks] in bookmarks?.key(for: $0) }
         if let reference = removal.credentialReference { credentials?.remove(reference) }
 
         // The folder, if this is one. Below the deletion rather than above it: this lookup
@@ -212,8 +207,13 @@ extension LibraryModel {
         // nothing at all — not the secret, not the registry entry, not the shelf.
         if let folder = removal.folder {
             folder.stopAccessingSecurityScopedResource()
-            // The bookmark is keyed by the folder's own name, which a rename never changes.
-            bookmarks?.remove(named: folder.lastPathComponent)
+            // By key, 10.3: removing one of two folders that share a name must not take
+            // the other one's bookmark with it, which `remove(named:)` would.
+            if let key = bookmarks?.key(for: folder) {
+                bookmarks?.remove(key: key)
+            } else {
+                bookmarks?.remove(named: folder.lastPathComponent)
+            }
             folders.removeAll { $0 == folder }
             snapshots.removeValue(forKey: folder.path)
             startWatching()

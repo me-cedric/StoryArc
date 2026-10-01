@@ -20,6 +20,11 @@ public import Foundation
 public struct FolderBookmarks {
     private let defaults: UserDefaults
     private let key = "app.storyarc.libraryFolders"
+    /// Resolved keys, so a scan asking for the same folder's identity once per publication
+    /// costs one `bookmarkData` call rather than one per file. A class, not a dictionary
+    /// stored directly: copying this struct must still see what an earlier copy resolved.
+    private let cache = KeyCache()
+    private final class KeyCache { var keys: [URL: String] = [:] }
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -63,9 +68,36 @@ public struct FolderBookmarks {
         let name = url.lastPathComponent
         guard !stored.contains(where: { $0.name == name && $0.data == bookmark }) else { return }
         let isFile = !Self.isDirectory(url)
-        stored.append(Entry(name: name, data: bookmark, isFile: isFile))
+        // 10.3: a key of its own, not the name. Two folders picked under the same name
+        // used to become one source and one bookmark, because both the registry's locator
+        // and this store's own identity were the name.
+        stored.append(Entry(name: name, data: bookmark, isFile: isFile, key: UUID().uuidString))
         if isFile { stored = Self.trimmingOldestFiles(stored) }
         write(stored)
+    }
+
+    /// A folder's own identity: stable across launches, and unique even when another
+    /// folder shares its name. `nil` only when the url was never remembered at all.
+    ///
+    /// Cached after the first resolution. A folder bookmarked before this existed has no
+    /// key on disk yet; one is minted and written back the first time anything asks, the
+    /// same way `restore()` backfills one for every entry it resolves.
+    public func key(for url: URL) -> String? {
+        if let cached = cache.keys[url] { return cached }
+        guard let bookmark = try? url.bookmarkData(
+            options: .minimalBookmark,
+            includingResourceValuesForKeys: nil,
+            relativeTo: nil
+        ) else { return nil }
+        var stored = raw()
+        guard let index = stored.firstIndex(where: { $0.data == bookmark }) else { return nil }
+        let resolved = stored[index].key ?? UUID().uuidString
+        if stored[index].key == nil {
+            stored[index].key = resolved
+            write(stored)
+        }
+        cache.keys[url] = resolved
+        return resolved
     }
 
     /// How many single files are kept, oldest dropped first.
@@ -102,6 +134,9 @@ public struct FolderBookmarks {
         var files: [URL] = []
         var stale: [Stale] = []
         var survivors: [Entry] = []
+        // Set when a survivor's key was just minted, so a pre-10.3 entry that still
+        // resolves gets one written back even though its count has not changed.
+        var backfilledAKey = false
 
         for entry in raw() {
             var isStale = false
@@ -126,20 +161,26 @@ public struct FolderBookmarks {
             // written before this store told the two apart still lands in the right list —
             // and so does one whose folder has since become a file, or the reverse.
             if Self.isDirectory(url) { folders.append(url) } else { files.append(url) }
+            if entry.key == nil { backfilledAKey = true }
+            let key = entry.key ?? UUID().uuidString
+            if !entry.wasFile { cache.keys[url] = key }
             // A stale bookmark still resolved, so it is refreshed rather than
             // reported: the folder moved and the system found it anyway.
             if isStale, let refreshed = try? url.bookmarkData(options: .minimalBookmark) {
                 survivors.append(
-                    Entry(name: url.lastPathComponent, data: refreshed, isFile: entry.wasFile)
+                    Entry(name: url.lastPathComponent, data: refreshed, isFile: entry.wasFile, key: key)
                 )
             } else {
-                survivors.append(entry)
+                var survivor = entry
+                survivor.key = key
+                survivors.append(survivor)
             }
         }
 
         // Unresolvable entries are dropped, so a folder that has gone for good does
-        // not report itself every launch for ever.
-        if survivors.count != raw().count { write(survivors) }
+        // not report itself every launch for ever. A newly-minted key is written back
+        // the same way, even on a launch where nothing else changed.
+        if survivors.count != raw().count || backfilledAKey { write(survivors) }
         return Restored(folders: folders, files: files, stale: stale)
     }
 
@@ -155,6 +196,12 @@ public struct FolderBookmarks {
     /// ADR-0006 keys progress on the publication, not on the folder it came from.
     public func remove(named name: String) {
         write(raw().filter { $0.name != name })
+    }
+
+    /// Forgets one folder by its own key, leaving every other folder of the same name.
+    /// `remove(named:)` drops all of them, which is exactly the defect 10.3 fixes.
+    public func remove(key: String) {
+        write(raw().filter { $0.key != key })
     }
 
     public func removeAll() {
@@ -173,6 +220,10 @@ public struct FolderBookmarks {
         /// missing value reads as "a folder", which is what every entry written by those
         /// builds was meant to be.
         let isFile: Bool?
+        /// This folder's own identity, independent of its name. Optional for the same
+        /// reason `isFile` is — an entry written before 10.3 has none yet — and backfilled
+        /// the first time `restore()` or `key(for:)` resolves it.
+        var key: String?
 
         var wasFile: Bool { isFile ?? false }
     }
