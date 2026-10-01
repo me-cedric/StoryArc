@@ -101,6 +101,15 @@ val PageTransition.needsARasteredPage: Boolean
 val PageTransition.needsTwoRasters: Boolean
     get() = this == PageTransition.PAGE_CURL
 
+/**
+ * Whether this device can hold the curl's refresh rate, by API level alone.
+ *
+ * API 33 is where AGSL's `RuntimeShader` arrives, and ADR-0003 keeps the floor at 31
+ * rather than raising it for one animation. Both the comic and the EPUB reader's own
+ * `canCurl` read this, so a reader meets one rule rather than two that can drift.
+ */
+fun canCurlOn(sdkInt: Int): Boolean = sdkInt >= 33
+
 /** Whether this is the continuous mode, in either axis. */
 val PageTransition.isScroll: Boolean
     get() = this == PageTransition.VERTICAL_SCROLL || this == PageTransition.HORIZONTAL_SCROLL

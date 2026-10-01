@@ -2,6 +2,9 @@ package app.storyarc.feature.epubreader
 
 import android.app.Application
 import android.net.Uri
+import android.os.Build
+import app.storyarc.core.designsystem.theme.observeReduceMotion
+import app.storyarc.core.designsystem.theme.systemReduceMotion
 import app.storyarc.core.model.Annotation
 import app.storyarc.core.model.Bookmark
 import app.storyarc.core.model.HighlightColour
@@ -9,8 +12,8 @@ import app.storyarc.core.model.Excerpt
 import app.storyarc.core.model.SearchMatch
 import app.storyarc.core.model.SearchSnippet
 import app.storyarc.core.model.PublicationIdentity
-import android.provider.Settings
 import app.storyarc.core.model.PageTransition
+import app.storyarc.core.model.canCurlOn
 import app.storyarc.core.model.ScrollAxis
 import app.storyarc.core.model.TransitionChoices
 import app.storyarc.core.model.ReaderPalette
@@ -179,12 +182,12 @@ class EpubReaderViewModel(
     val customPalette: StateFlow<ReaderPalette?> = _customPalette.asStateFlow()
 
     /**
-     * What Readium should render with, recomputed whenever either changes.
-     *
-     * Exposed rather than pushed: the activity owns the navigator and submits this
-     * to it, which keeps the view model free of a Readium fragment.
+     * What Readium should render with. `effective`, not the chosen transition: a reader
+     * with Reduce Motion on and Slide chosen gets Fast fade's own turn, and Readium has
+     * to agree which mode is running.
      */
-    val preferences get() = _theme.value.preferences(_values.value, _transition.value)
+    fun preferences(reduceMotion: Boolean) =
+        _theme.value.preferences(_values.value, transitions(reduceMotion).effective)
 
     /** What an unrecorded [adopt] or [choose] is putting in force, until it settles. */
     private var notRecorded: ShelfSettings? = null
@@ -249,26 +252,23 @@ class EpubReaderViewModel(
     }
 
     /**
-     * Which page-turn rows to offer, and which of them this content cannot run.
-     *
-     * The curl is not refused for lack of a device here but for lack of a *raster*: a
-     * reflowable page is live web content. The two reasons are different and the reader
-     * is told which.
+     * Which page-turn rows to offer, and which of them this content cannot run. A
+     * parameter rather than read here, so a recomposition on [reduceMotionFlow]
+     * recomputes this too.
      */
-    val transitions: TransitionChoices
-        get() = TransitionChoices(
-            chosen = _transition.value,
-            // Reflowing text scrolls the way it is read; the axis is not a choice here.
-            axis = ScrollAxis.VERTICAL,
-            reduceMotion = reduceMotion,
-            canCurl = true,
-            // The activity takes the turn over from Readium when this is chosen —
-            // `TurnInterceptor` steals the drag, `FadeTurn` draws the dip. Until that
-            // existed this was false, because offering a mode that quietly gave a Slide
-            // instead would have been worse than saying it was not available yet.
-            canFade = true,
-            isReflowable = true,
-        )
+    fun transitions(reduceMotion: Boolean): TransitionChoices = TransitionChoices(
+        chosen = _transition.value,
+        // Reflowing text scrolls the way it is read; the axis is not a choice here.
+        axis = ScrollAxis.VERTICAL,
+        reduceMotion = reduceMotion,
+        canCurl = canCurl,
+        // The activity takes the turn over from Readium when this is chosen —
+        // `TurnInterceptor` steals the drag, `FadeTurn` draws the dip. Until that
+        // existed this was false, because offering a mode that quietly gave a Slide
+        // instead would have been worse than saying it was not available yet.
+        canFade = true,
+        isReflowable = true,
+    )
 
     /**
      * Chooses a page turn, for this shelf alone. Keeps the shelf's own theme rather
@@ -288,20 +288,20 @@ class EpubReaderViewModel(
         _transition.value = transition
     }
 
+    private val canCurl: Boolean = canCurlOn(Build.VERSION.SDK_INT)
+
     /**
-     * Whether the reader has asked the system to remove animations.
-     *
-     * Android has no `UIAccessibility.isReduceMotionEnabled`; what it has is an animator
-     * duration scale a reader can set to zero. Read on demand rather than cached,
-     * because `page-transitions` requires turning it off mid-session to restore the
-     * chosen mode "without the reader being reopened".
+     * Whether the reader has asked the system to remove animations, observed live
+     * through a `ContentObserver` rather than pulled on demand -- a plain read answered
+     * only when something else happened to ask again, the next page turn.
      */
-    private val reduceMotion: Boolean
-        get() = Settings.Global.getFloat(
-            application.contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            1f,
-        ) == 0f
+    private val _reduceMotion = MutableStateFlow(systemReduceMotion(application.contentResolver))
+    val reduceMotionFlow: StateFlow<Boolean> = _reduceMotion.asStateFlow()
+    private val stopObservingReduceMotion =
+        observeReduceMotion(application.contentResolver) { _reduceMotion.value = it }
+
+    /** Stops observing the system setting. The activity calls this from `onDestroy`. */
+    fun close() = stopObservingReduceMotion()
 
     /**
      * Puts the reader's own colours in force, or refuses and says why.

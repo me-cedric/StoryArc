@@ -301,8 +301,8 @@ private fun Pager(
     val adjustments = settings.adjustments
     val direction = viewModel.readingDirection(settings)
     val isRightToLeft = direction == ReadingDirection.RIGHT_TO_LEFT
-
-    val choices = viewModel.transitions(settings)
+    val reduceMotion by viewModel.reduceMotionFlow.collectAsStateWithLifecycle()
+    val choices = viewModel.transitions(settings, reduceMotion)
 
     /**
      * Whether two pages can share the screen.
@@ -679,7 +679,7 @@ private fun Pager(
             // Nothing on screen says the reader is already at the first page — the page
             // simply stays put, which is indistinguishable from a missed tap.
             haptics.play(StoryArcFeedback.REFUSAL)
-            val response = RefusalResponse.of(viewModel.reduceMotion, isRightToLeft, paging is Paging.Scrolled)
+            val response = RefusalResponse.of(reduceMotion, isRightToLeft, paging is Paging.Scrolled)
             scope.launch { resistance.play(response) }
         }
     }

@@ -10,8 +10,9 @@ import androidx.compose.runtime.mutableStateSetOf
 import androidx.lifecycle.ViewModel
 import android.content.ContentResolver
 import android.os.Build
-import android.provider.Settings
 import android.util.Log
+import app.storyarc.core.designsystem.theme.observeReduceMotion
+import app.storyarc.core.designsystem.theme.systemReduceMotion
 import app.storyarc.core.format.AdoptingArchive
 import app.storyarc.core.format.PageCodec
 import app.storyarc.core.format.PageDecoder
@@ -131,29 +132,24 @@ class ReaderViewModel(
     internal var pendingScrollRestore = shelfStore?.scrollOffsets()?.entry(publication.identity)
 
     /**
-     * Whether the reader has asked the system to remove animations.
-     *
-     * Android has no `UIAccessibility.isReduceMotionEnabled`; what it has is an
-     * animator duration scale a reader can set to zero in developer options or in
-     * accessibility settings. Read on demand rather than cached, because
+     * Whether the reader has asked the system to remove animations, observed live
+     * through a `ContentObserver` rather than pulled on demand -- a plain read answered
+     * only when something else happened to ask again, the next page turn.
      * `page-transitions` requires turning the setting off mid-session to restore the
      * chosen mode "without the reader being reopened".
      */
-    internal val reduceMotion: Boolean
-        get() = Settings.Global.getFloat(
-            resolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            1f,
-        ) == 0f
+    private val _reduceMotion = MutableStateFlow(systemReduceMotion(resolver))
+    val reduceMotionFlow: StateFlow<Boolean> = _reduceMotion.asStateFlow()
+    private val stopObservingReduceMotion = observeReduceMotion(resolver) { _reduceMotion.value = it }
 
     /**
      * Which transition rows to offer, which of them cannot run, and what runs instead.
      *
-     * Recomputed rather than stored, because two of its three inputs are conditions of
-     * the moment: the reduced-motion setting can be turned off, and the next device may
-     * be able to curl. `page-transitions` requires a stored Curl to survive both.
+     * [reduceMotion] is a parameter rather than read here, so a recomposition on
+     * [reduceMotionFlow] recomputes this too. The next device may also be able to curl,
+     * which `page-transitions` requires a stored Curl to survive.
      */
-    fun transitions(settings: ShelfSettings): TransitionChoices = TransitionChoices(
+    fun transitions(settings: ShelfSettings, reduceMotion: Boolean): TransitionChoices = TransitionChoices(
         chosen = settings.transition,
         axis = settings.scrollAxis ?: impliedAxis,
         reduceMotion = reduceMotion,
@@ -749,6 +745,7 @@ class ReaderViewModel(
     }
 
     override fun onCleared() {
+        stopObservingReduceMotion()
         archive?.close()
         pdf?.close()
         _pdfText.value?.close()

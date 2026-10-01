@@ -359,6 +359,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     val values by model.values.collectAsStateWithLifecycle()
                     val customPalette by model.customPalette.collectAsStateWithLifecycle()
                     val transition by model.transition.collectAsStateWithLifecycle()
+                    val reduceMotion by model.reduceMotionFlow.collectAsStateWithLifecycle()
                     val brightness by model.brightness.collectAsStateWithLifecycle()
                     val contents by model.tableOfContents.collectAsStateWithLifecycle()
                     val resource by model.currentResource.collectAsStateWithLifecycle()
@@ -404,11 +405,9 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                         }
                     }
 
-                    // `reading-themes`: the change is "visible immediately in the
-                    // reader behind the sheet", so the navigator is told the moment
-                    // either half of the theme changes rather than when the sheet
-                    // closes.
-                    LaunchedEffect(theme, values, transition) { applyTheme() }
+                    // `reading-themes`: visible immediately. Reduce Motion is a key too,
+                    // so turning it off mid-session applies at once, not on the next turn.
+                    LaunchedEffect(theme, values, transition, reduceMotion) { applyTheme(reduceMotion) }
 
                     // `ebook-reader`: the reading theme follows the appearance "then and
                     // there rather than at the next open", and only for the reader who
@@ -418,12 +417,12 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     val linked = linkedReadingTheme(settings)
                     LaunchedEffect(linked) { model.follow(linked) }
 
-                    // `page-transitions`: the reader picks a page turn *after* the book
-                    // is open, so ownership changes here rather than when the navigator
-                    // is created. Nil hands Readium back its own Slide.
-                    LaunchedEffect(transition) {
-                        interceptor.onTurn =
-                            if (transition == PageTransition.FAST_FADE) ::turnWithFade else null
+                    // `page-transitions`: the reader picks a page turn *after* the book is
+                    // open. `effective`, not `transition` -- Reduce Motion can turn Slide
+                    // into Fast fade's own turn, and ownership has to follow that.
+                    val effective = model.transitions(reduceMotion).effective
+                    LaunchedEffect(effective) {
+                        interceptor.onTurn = if (effective == PageTransition.FAST_FADE) ::turnWithFade else null
                     }
 
                     // `ebook-reader`: a footnote "opens in place". A bottom sheet is the
@@ -551,7 +550,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                             onLeavePublisherStyles = model::leavePublisherStyles,
                             onAdoptColours = model::adoptColours,
                             onDiscardColours = model::discardCustomColours,
-                            choices = model.transitions,
+                            choices = model.transitions(reduceMotion),
                             onChooseTransition = model::choose,
                             onClose = { isCustomisingTheme = false },
                             chapter = chapter,
@@ -682,7 +681,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
         // Painted once the navigator exists: a decoration applied before it is on
         // screen is a decoration Readium has nowhere to put.
         lifecycleScope.launch { drawAnnotations() }
-        applyTheme()
+        applyTheme(model.reduceMotionFlow.value)
     }
 
     /**
@@ -692,7 +691,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * fragment the activity owns and a view model holding one would outlive it.
      */
     @OptIn(ExperimentalReadiumApi::class)
-    private fun applyTheme() {
+    private fun applyTheme(reduceMotion: Boolean) {
         val navigator =
             supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
                 ?: return
@@ -706,7 +705,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
         // inside the same chapter. Going to the stored locator afterwards puts them
         // where the text was.
         val locator = navigator.currentLocator.value
-        navigator.submitPreferences(model.preferences)
+        navigator.submitPreferences(model.preferences(reduceMotion))
 
         // ponytail: after the reflow, not during it. `submitPreferences` has no
         // completion, so this waits a frame's worth rather than observing the
@@ -966,6 +965,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
         // finishing the reader the same act as stopping the voice, which is a different
         // case from backgrounding and the one the foreground service never answered.
         ReadAloudHost.release(drawing)
+        model.close()
         speakable = null
         super.onDestroy()
     }
