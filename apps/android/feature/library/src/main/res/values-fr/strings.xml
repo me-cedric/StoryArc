@@ -340,7 +340,7 @@
     <string name="catalogue_acquire_other">Ouvrir en %1$s</string>
     <string name="library_import">Ouvrir un fichier</string>
     <string name="library_import_failed_title">Impossible d’ouvrir ce fichier</string>
-    <string name="library_import_failed">%1$s n’a pas pu être copié dans StoryArc. L’app lit les formats CBZ, CBR, CBT, EPUB et PDF.</string>
+    <string name="library_import_failed">%1$s n’a pas pu être copié dans StoryArc. L’app lit les formats CBZ, CBR, CBT, EPUB, PDF, M4B et d’autres livres audio.</string>
     <string name="open_in_unsupported">%1$s est un fichier %2$s, que StoryArc ne lit pas. Il lit les formats CBZ, CBR, CBT, EPUB, PDF, M4B et d’autres livres audio.</string>
     <string name="library_import_dismiss">OK</string>
     <string name="source_on_this_device">Sur cet appareil</string>

@@ -6062,25 +6062,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ konnte nicht in StoryArc kopiert werden. Die App liest CBZ, CBR, CBT, EPUB und PDF."
+            "value": "%@ konnte nicht in StoryArc kopiert werden. Die App liest CBZ, CBR, CBT, EPUB, PDF, M4B und andere Hörbücher."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ could not be copied into StoryArc. It reads CBZ, CBR, CBT, EPUB and PDF."
+            "value": "%@ could not be copied into StoryArc. It reads CBZ, CBR, CBT, EPUB, PDF, M4B and other audiobooks."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo copiar %@ en StoryArc. La app lee CBZ, CBR, CBT, EPUB y PDF."
+            "value": "No se pudo copiar %@ en StoryArc. La app lee CBZ, CBR, CBT, EPUB, PDF, M4B y otros audiolibros."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ n’a pas pu être copié dans StoryArc. L’app lit les formats CBZ, CBR, CBT, EPUB et PDF."
+            "value": "%@ n’a pas pu être copié dans StoryArc. L’app lit les formats CBZ, CBR, CBT, EPUB, PDF, M4B et d’autres livres audio."
           }
         }
       }
