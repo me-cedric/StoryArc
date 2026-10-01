@@ -113,7 +113,7 @@ internal fun UnavailableFolders(
  * ever seen before the first publication arrives.
  */
 @Composable
-internal fun Scanning(found: Int, onCancel: () -> Unit = {}, modifier: Modifier = Modifier) {
+internal fun Scanning(found: Int, modifier: Modifier = Modifier, onCancel: () -> Unit = {}) {
     val palette = LocalStoryArcPalette.current
     Column(
         modifier = modifier,
