@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -222,6 +223,25 @@ fun KavitaListScreen(
         }
     }
 
+    // Task 12.6: takes an entry out of the list here first, then owes the server its removal,
+    // after the push before it for the reason `pushing` gives. KavitaSync holds a removal the
+    // server does not take, as it holds a move.
+    fun remove(entry: KavitaReadingListItem) {
+        items = items - entry
+        val previous = pushing
+        pushing = scope.launch {
+            previous?.join()
+            KavitaSync.removeEntry(
+                KavitaProgressStore.open(context),
+                server.address,
+                server.id,
+                listId,
+                entry.id,
+                entry.order,
+            )
+        }
+    }
+
     Scaffold(
         containerColor = palette.surfaceCanvas,
         topBar = { ShelfBar(title, onBack) },
@@ -271,6 +291,8 @@ fun KavitaListScreen(
                     canMoveDown = !row.isPending && index + 1 < held,
                     onUp = { move(index, index - 1) },
                     onDown = { move(index, index + 1) },
+                    // A pending entry is not on the server yet, so there is nothing to remove.
+                    onRemove = entry?.takeUnless { row.isPending }?.let { leaving -> { remove(leaving) } },
                 ) {
                     if (entry == null) return@EntryRow
                     scope.launch {
@@ -338,6 +360,8 @@ internal fun EntryRow(
     canMoveDown: Boolean,
     onUp: () -> Unit,
     onDown: () -> Unit,
+    /** Task 12.6: removes the entry from the server list. Null draws no control. */
+    onRemove: (() -> Unit)? = null,
     onOpen: () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -440,6 +464,16 @@ internal fun EntryRow(
                 contentDescription = stringResource(R.string.shelves_move_down, row.title),
                 tint = palette.textSecondary,
             )
+        }
+        // The same control, icon and words a local reading list's row already draws.
+        if (onRemove != null) {
+            IconButton(onClick = onRemove) {
+                Icon(
+                    Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.shelves_remove_entry, row.title),
+                    tint = palette.textSecondary,
+                )
+            }
         }
     }
 }
