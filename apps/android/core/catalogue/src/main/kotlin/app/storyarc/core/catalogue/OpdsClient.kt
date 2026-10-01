@@ -284,7 +284,11 @@ class OpdsClient(
                 when (val hop = one(target, credential, home, sink)) {
                     is Hop.Done -> return@withContext hop.fetched
                     is Hop.Moved -> {
-                        if (++hops > MAX_REDIRECTS) throw OpdsError.RefusedAddress
+                        // 11.8: a loop is this app giving up on a chain the server keeps
+                        // extending, not a redirect it understood and declined --
+                        // `RefusedAddress` would have said the second when what happened
+                        // is the first.
+                        if (++hops > MAX_REDIRECTS) throw OpdsError.Redirect
                         target = URI(target).resolve(hop.location).toString()
                     }
                 }
@@ -378,8 +382,11 @@ class OpdsClient(
             when {
                 status in 200..299 -> Unit
                 status in 300..399 -> {
+                    // 11.8: a 3xx with nothing to follow is a fault in the catalogue's own
+                    // redirect, not an ordinary HTTP status the reader can make sense of
+                    // from the number alone.
                     val location = connection.getHeaderField("Location")
-                        ?: throw OpdsError.Http(status)
+                        ?: throw OpdsError.Redirect
                     return Hop.Moved(location)
                 }
                 // Which scheme, so the prompt can ask for the right thing. A server

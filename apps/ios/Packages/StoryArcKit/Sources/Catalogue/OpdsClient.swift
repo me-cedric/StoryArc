@@ -177,6 +177,12 @@ public actor OpdsClient {
             if let refused = trust.takeRefusal() {
                 throw OpdsRefusal.untrusted(refused)
             }
+            // 11.8: a redirect loop is `URLSession` giving up on the chain itself, not a
+            // decision this client made — `.refusedAddress` would have told the reader the
+            // app declined an address it understood, which is not what happened here.
+            if (error as? URLError)?.code == .httpTooManyRedirects {
+                throw OpdsError.redirect
+            }
             throw error
         }
 
@@ -186,10 +192,12 @@ public actor OpdsClient {
         case 200...299:
             return (data, http)
         case 300...399:
-            // A redirect only reaches here when the delegate declined to follow it, and it
-            // declines for one reason: the address it named is not one this app follows.
-            // Android's manual redirect loop reports the same thing for the same case.
-            throw OpdsError.refusedAddress
+            // 11.8: see `OpdsRedirect.refusal` for why this is two different sentences
+            // rather than one.
+            throw OpdsRedirect.refusal(
+                location: http.value(forHTTPHeaderField: "Location"),
+                relativeTo: http.url
+            )
         case 401:
             // Which scheme, so the prompt can ask for the right thing. A server that wants
             // a token and is handed a username fails in a way that looks like a wrong

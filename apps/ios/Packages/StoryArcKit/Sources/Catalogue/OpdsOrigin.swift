@@ -83,4 +83,23 @@ enum OpdsRedirect {
         }
         return request
     }
+
+    /// What a 3xx response that was never followed should surface as, once `fetch` sees it
+    /// as the task's final response.
+    ///
+    /// Reaches there two ways. ``following(_:from:)`` declined it — a downgrade or a
+    /// target this app does not fetch — in which case the response still carries the
+    /// `Location` it declined, so `willPerformHTTPRedirection` ran and chose to stop. Or
+    /// the server sent a 3xx with no `Location` at all, which that hook is never asked
+    /// about, because there is nothing in it to parse into a next request.
+    ///
+    /// A pure function beside the logic rather than inline in `OpdsClient.fetch`: the
+    /// declining half of this is exercised live, through a real redirect, by
+    /// `OpdsClientTests`; a *declined* redirect cannot be, because stopping a custom
+    /// `URLProtocol`'s task mid-redirect hangs until the session's own watchdog gives up,
+    /// which is a test-harness limit and not something this rule should wait on. 11.8.
+    static func refusal(location: String?, relativeTo: URL?) -> OpdsError {
+        let target = location.flatMap { URL(string: $0, relativeTo: relativeTo) }
+        return target == nil ? .redirect : .refusedAddress
+    }
 }

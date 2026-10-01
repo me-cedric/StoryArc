@@ -116,6 +116,13 @@ public enum OpdsError: Error, Equatable, Sendable {
     /// address, or named cleartext from a source the reader reaches over `https`.
     case refusedAddress
 
+    /// A redirect this app could not use: a loop, or a 3xx with no `Location` to follow.
+    ///
+    /// 11.8: both used to surface as ``refusedAddress``, which told the reader the app
+    /// had *declined* a redirect it understood — the sentence for a downgrade or a
+    /// non-web target, said over a server fault neither of those is.
+    case redirect
+
     /// What arrived instead of a feed.
     public enum Received: Equatable, Sendable {
         case html
@@ -131,7 +138,7 @@ public enum OpdsError: Error, Equatable, Sendable {
         switch self {
         case let .http(status): status >= 500 || status == 408 || status == 429
         case .empty: true
-        case .notAFeed, .malformed, .unauthorized, .refusedAddress: false
+        case .notAFeed, .malformed, .unauthorized, .refusedAddress, .redirect: false
         }
     }
 

@@ -268,6 +268,15 @@ sealed class OpdsError(message: String) : Exception(message) {
      */
     data object RefusedAddress : OpdsError("refused address")
 
+    /**
+     * A redirect this app could not use: a loop, or a 3xx with no `Location` to follow.
+     *
+     * 11.8: both used to surface as [RefusedAddress], which told the reader the app had
+     * *declined* a redirect it understood -- the sentence for a downgrade or a non-web
+     * target, said over a server fault neither of those is.
+     */
+    data object Redirect : OpdsError("redirect")
+
     /** What arrived instead of a feed. */
     sealed class Received {
         data object Html : Received()
@@ -286,7 +295,7 @@ sealed class OpdsError(message: String) : Exception(message) {
             is Http -> status >= 500 || status == 408 || status == 429
             is Empty -> true
             // An address this app refuses is not one it will change its mind about.
-            is NotAFeed, is Malformed, is Unauthorized, is RefusedAddress -> false
+            is NotAFeed, is Malformed, is Unauthorized, is RefusedAddress, is Redirect -> false
         }
 
     /**
