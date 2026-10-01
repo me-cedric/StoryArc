@@ -43,6 +43,7 @@ struct SettingsStoreTests {
                 appearance: .oledDark,
                 language: "fr",
                 turnPagesWithVolumeButtons: true,
+                turnPagesByTappingTheEdges: false,
                 linkReadingThemeToAppearance: true,
                 lightReadingTheme: .bold,
                 darkReadingTheme: .focus
@@ -53,6 +54,7 @@ struct SettingsStoreTests {
         #expect(restored.appearance == .oledDark)
         #expect(restored.language == "fr")
         #expect(restored.turnPagesWithVolumeButtons)
+        #expect(!restored.turnPagesByTappingTheEdges)
         #expect(restored.linkReadingThemeToAppearance)
         // `ebook-reader` / *Theme follows appearance*: the pair is "the light and dark
         // reading themes the reader chose", so a reader who named Bold and Focus for the
