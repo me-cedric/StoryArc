@@ -259,7 +259,7 @@ class LibraryViewModel(
      * Where each publication came from, as the string its identity carries: a
      * filesystem path, or a document `Uri` from a picked folder.
      */
-    private val locations = mutableMapOf<String, String>()
+    internal val locations = mutableMapOf<String, String>()
     /**
      * The walk currently running.
      *
@@ -412,6 +412,7 @@ class LibraryViewModel(
         // that follows corrects it in place.
         restoreCachedLibrary()
         readServers()
+        restoreRememberedFiles() // 10.10
 
         val restored = SafTree.persistedTrees(resolver)
         val reachable = restored.filter { SafTree.displayName(resolver, it) != null }

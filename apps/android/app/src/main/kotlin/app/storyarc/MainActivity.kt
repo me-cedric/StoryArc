@@ -87,7 +87,10 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        OpenedFile.uriFrom(intent)?.let { handedOver.value = it }
+        OpenedFile.uriFrom(intent)?.let {
+            handedOver.value = it
+            OpenedFile.rememberIfPersistable(applicationContext, intent, it)
+        }
         HomeScreenActions.requestFrom(intent)?.let { quickAction.value = it }
     }
 
@@ -135,7 +138,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // A cold start from a file manager or a share sheet. Until this line existed the
         // system handed StoryArc a file and StoryArc showed its library instead.
-        handedOver.value = OpenedFile.uriFrom(intent)
+        OpenedFile.uriFrom(intent)?.let {
+            handedOver.value = it
+            OpenedFile.rememberIfPersistable(applicationContext, intent, it)
+        }
         // And the other kind of cold start: the reader held the app icon down and chose an
         // entry. `native-experience` asks for quick actions, and until this line the
         // launcher started the app and the choice was dropped on the floor.
