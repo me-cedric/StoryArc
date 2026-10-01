@@ -140,7 +140,10 @@ struct CatalogueFormatChoice: View {
     }
 
     /// How an acquisition the app refuses is named in the sentence that refuses it.
-    private static func name(of kind: OpdsAcquisition.Kind) -> String {
+    ///
+    /// Not `private`: ``CatalogueEntryCell`` names the same refusal in its caption, and
+    /// `opds-catalog` requires both places to say it the same way — see 11.6.
+    static func name(of kind: OpdsAcquisition.Kind) -> String {
         switch kind {
         case .borrow: String(localized: "catalogue.acquire.kind.borrow", bundle: .module, locale: .storyArc)
         case .buy: String(localized: "catalogue.acquire.kind.buy", bundle: .module, locale: .storyArc)
