@@ -2,6 +2,9 @@ package app.storyarc
 
 import android.net.Uri
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Download
@@ -36,6 +39,7 @@ import app.storyarc.core.model.QuickActionRequest
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.persistence.RemovedDownload
 import app.storyarc.core.playback.PlaybackHost
+import app.storyarc.feature.epubreader.EXTRA_RESULT_NEXT_ID
 import app.storyarc.feature.epubreader.EpubReaderActivity
 import app.storyarc.feature.library.CataloguePage
 import app.storyarc.feature.library.KavitaLevel
@@ -158,6 +162,11 @@ internal fun AppShell(
         )
     }
 
+    // Holds the launcher below until it exists — `host.open` is defined before the
+    // launcher is, since the launcher's own result reopens through `host.open`. See the
+    // assignment just after `host` for why this is a box rather than a forward reference.
+    val epubLauncher = remember { mutableStateOf<ActivityResultLauncher<android.content.Intent>?>(null) }
+
     val host = AppHost(
         activity = activity,
         dependencies = dependencies,
@@ -202,18 +211,26 @@ internal fun AppShell(
                 )
                 navigation = navigation.push(Screen.Player)
             } else if (publication.format == PublicationFormat.EPUB && !publication.isFixedLayout) {
-                activity.startActivity(
-                    EpubReaderActivity.intent(
-                        activity,
-                        path,
-                        publication.displayTitle,
-                        publication.series,
-                        // Carries a Kavita server identifier when the browser recorded
-                        // one, so a position this activity writes on leaving still
-                        // finds the origin `kavita-server` remembers the chapter under.
-                        publication.identity,
-                    ),
+                // `collections-and-reading-lists` task 7.2: the reflowable reader offers
+                // what comes next at the end, the way the paged reader's own end screen
+                // already does. Left out, rather than offered with nothing to open, when
+                // the next entry has no file on this device — task 7.14 is what widens
+                // this to a server's own route.
+                val next = library.next(publication)
+                val nextLocation = next?.let { library.location(it) }
+                val intent = EpubReaderActivity.intent(
+                    activity,
+                    path,
+                    publication.displayTitle,
+                    publication.series,
+                    // Carries a Kavita server identifier when the browser recorded
+                    // one, so a position this activity writes on leaving still
+                    // finds the origin `kavita-server` remembers the chapter under.
+                    publication.identity,
+                    nextId = next?.id?.takeIf { nextLocation != null },
+                    nextTitle = next?.displayTitle?.takeIf { nextLocation != null },
                 )
+                epubLauncher.value?.launch(intent) ?: activity.startActivity(intent)
             } else {
                 // Replaced rather than stacked when a reader is already open: the next
                 // volume offered at the end of one would otherwise leave a pile of readers
@@ -259,6 +276,19 @@ internal fun AppShell(
         // comes round, and this host is rebuilt on every recomposition anyway.
         isReading = { navigation.current is Screen.Reader },
     )
+
+    // `collections-and-reading-lists` task 7.2: the EPUB reader is a separate activity,
+    // so the choice it hands back on the end-of-book offer reopens through `host.open`
+    // here rather than inside the activity, which has no library of its own to ask.
+    epubLauncher.value = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val nextId = result.data?.getStringExtra(EXTRA_RESULT_NEXT_ID)
+            ?: return@rememberLauncherForActivityResult
+        val next = library.publications.value.firstOrNull { it.id == nextId } ?: return@rememberLauncherForActivityResult
+        val location = library.location(next) ?: return@rememberLauncherForActivityResult
+        host.open(next, location)
+    }
 
     AppIntents(
         host = host,
