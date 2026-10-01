@@ -1,6 +1,9 @@
 package app.storyarc.core.format
 
+import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.PublicationIdentity
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -90,5 +93,20 @@ class CoverLoaderTest {
         val fromFile = CoverLoader.coverData(publication, file)
         val fromSource = CoverLoader.coverData(publication, FileSource(file))
         assertArrayEquals(fromFile, fromSource)
+    }
+
+    @Test
+    fun `a share row with no recorded cover reads its own archive's cover`() = runTest {
+        // `SmbContributor` catalogues a share row from its name alone: no cover path and no
+        // page count. The comic branch required a cover path, so such a row never drew one,
+        // over a share or anywhere else.
+        val (indexed, file) = publication("comics/natural-sort.cbz")
+        val row = Publication(
+            identity = PublicationIdentity(normalizedPath = "smb://nas/Comics/natural-sort.cbz"),
+            format = PublicationFormat.CBZ,
+            displayTitle = "Natural Sort",
+            origin = MetadataOrigin.INFERRED,
+        )
+        assertArrayEquals(CoverLoader.coverData(indexed, file), CoverLoader.coverData(row, FileSource(file)))
     }
 }

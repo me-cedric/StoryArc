@@ -94,7 +94,14 @@ object CoverLoader {
             }
 
             else -> {
-                val path = publication.coverPath ?: throw CoverException.NoCover()
+                val path = publication.coverPath
+                // A share row is catalogued from its name alone (`SmbContributor`): no page
+                // count and no recorded cover yet, so the archive names its own cover. An
+                // indexed comic with no recorded cover has no pages, and a refused one opens
+                // nothing, so neither is opened again here.
+                if (path == null && (publication.pageCount != null || !publication.isOpenable)) {
+                    throw CoverException.NoCover()
+                }
                 val opened = runCatching { archive() }.getOrNull()
                     ?: throw CoverException.Unreadable()
                 opened.use {
