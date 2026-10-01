@@ -68,6 +68,7 @@ public struct ShelvesView: View {
     /// confirmation "states plainly that the publications themselves are not deleted". This
     /// is the gap between the two — while it holds something, nothing has been written.
     @State private var deleting: ShelfDeletion?
+    @State var deletingServerShelf: ServerShelfDeletion? // task 12.6's twin of `deleting`
 
     public init(model: LibraryModel, onOpen: @escaping (Publication, URL) -> Void = { _, _ in }) {
         self.model = model
@@ -162,6 +163,7 @@ public struct ShelvesView: View {
             }
         }
         .shelfDeletionConfirmation($deleting, model: model)
+        .serverShelfDeletionConfirmation($deletingServerShelf, removingFrom: $serverShelves)
     }
 
     // MARK: Sections
@@ -205,17 +207,14 @@ public struct ShelvesView: View {
                         }
                     }
                     ForEach(server) { shelf in
-                        NavigationLink {
+                        serverShelfCell(shelf, model: model, deletingServerShelf: $deletingServerShelf) {
                             KavitaCollectionView(
                                 server: shelf.server,
                                 collectionID: shelf.id,
                                 title: shelf.title,
                                 onOpen: onOpen
                             )
-                        } label: {
-                            serverCard(shelf)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -264,7 +263,12 @@ public struct ShelvesView: View {
                         }
                     }
                     ForEach(server) { shelf in
-                        NavigationLink {
+                        serverShelfCell(
+                            shelf,
+                            pending: edits.pending(for: ShelfSync.key(shelf)).count,
+                            model: model,
+                            deletingServerShelf: $deletingServerShelf
+                        ) {
                             KavitaListView(
                                 server: shelf.server,
                                 listID: shelf.id,
@@ -272,10 +276,7 @@ public struct ShelvesView: View {
                                 progress: model.progressStore,
                                 onOpen: onOpen
                             )
-                        } label: {
-                            serverCard(shelf, pending: edits.pending(for: ShelfSync.key(shelf)).count)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -327,16 +328,6 @@ public struct ShelvesView: View {
         }
         .buttonStyle(.bordered)
         .padding(.top, StoryArcSpace.xs)
-    }
-
-    /// A shelf that lives in an online library.
-    ///
-    /// Its members are chapters or series on a server, so the artwork comes from the client
-    /// rather than the library's decoder — but the composite is the same one a local shelf
-    /// gets, which is what `collections-and-reading-lists` asks for.
-    @ViewBuilder
-    private func serverCard(_ shelf: ServerShelf, pending: Int = 0) -> some View {
-        ServerShelfCardView(shelf: shelf, pending: pending, model: model)
     }
 
     @ViewBuilder
