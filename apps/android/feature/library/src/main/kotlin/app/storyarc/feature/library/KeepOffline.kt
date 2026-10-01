@@ -87,9 +87,7 @@ internal object KeepOffline {
             // fetched from. `collections-and-reading-lists`' bulk download "queues them
             // per offline-downloads" -- this is that queueing, for the member kind the
             // copy above cannot reach at all.
-            if (queue != null && enqueueRemote(publication, registry, credentials, queue)) {
-                copied += publication.id
-            }
+            if (queue != null) enqueueRemote(publication, registry, credentials, queue)?.let { copied += it }
         }
         return copied
     }
@@ -102,6 +100,7 @@ internal object KeepOffline {
      * catalogue holding a credential -- so the feed is read again, once, to find the one
      * entry this row names. A member whose source is unreachable, or whose entry a later
      * feed no longer lists, is left out rather than failing the rest of the selection.
+     * Returns the queue's id for what it queued, which is what the undo takes back.
      *
      * Kavita's chapters are not reached here: a chapter's own remote identifier carries
      * nothing past its id, and resolving it back to the series it belongs to has no single
@@ -113,21 +112,23 @@ internal object KeepOffline {
         registry: SourceRegistry,
         credentials: CredentialStore?,
         queue: DownloadQueue,
-    ): Boolean {
-        val server = publication.identity.serverIdentifier ?: return false
-        val source = registry[server.sourceId] ?: return false
-        val page = CataloguePage.of(source, credentials) ?: return false
+    ): String? {
+        val server = publication.identity.serverIdentifier ?: return null
+        val source = registry[server.sourceId] ?: return null
+        val page = CataloguePage.of(source, credentials) ?: return null
         val feed = runCatching {
             OpdsClient(CertificatePins(), page.origin).feed(page.url, page.credential)
-        }.getOrNull() ?: return false
-        val (entry, acquisition) = RemoteMemberResolution.opdsEntry(server.remoteId, feed) ?: return false
-        queue.enqueue(entry, acquisition, sourceId = server.sourceId)
-        return true
+        }.getOrNull() ?: return null
+        val (entry, acquisition) = RemoteMemberResolution.opdsEntry(server.remoteId, feed) ?: return null
+        return RemoteMemberResolution.enqueue(entry, acquisition, server.sourceId, queue)
     }
 
-    /** Forgets copies this made, deleting the files with them. */
+    /**
+     * Forgets copies this made, deleting the files with them. Through `cancel`, because a
+     * member [keep] queued from its catalogue can still be running.
+     */
     fun forget(store: DownloadStore, ids: Set<String>, queue: DownloadQueue? = null) {
-        if (queue != null) return ids.forEach(queue::remove)
+        if (queue != null) return ids.forEach(queue::cancel)
         var library = store.library()
         for (id in ids) {
             val download = library[id] ?: continue
