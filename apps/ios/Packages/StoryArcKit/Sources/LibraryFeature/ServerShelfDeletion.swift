@@ -42,7 +42,7 @@ func serverShelfCell<Destination: View>(
     _ shelf: ServerShelf,
     pending: Int = 0,
     model: LibraryModel,
-    deletingServerShelf: Binding<ServerShelfDeletion?>,
+    deleting: Binding<ServerShelfDeletion?>,
     @ViewBuilder destination: () -> Destination
 ) -> some View {
     NavigationLink {
@@ -53,7 +53,7 @@ func serverShelfCell<Destination: View>(
     .buttonStyle(.plain)
     .contextMenu {
         Button(role: .destructive) {
-            deletingServerShelf.wrappedValue = ServerShelfDeletion(shelf)
+            deleting.wrappedValue = ServerShelfDeletion(shelf)
         } label: {
             Label {
                 Text("shelves.delete", bundle: .module)
@@ -73,7 +73,9 @@ extension View {
         removingFrom shelves: Binding<[ServerShelf]>
     ) -> some View {
         serverShelfDeletionConfirmation(deleting) { deletion in
-            shelves.wrappedValue.removeAll { $0.id == deletion.id && $0.isList != deletion.isCollection }
+            shelves.wrappedValue.removeAll {
+                $0.server.id == deletion.sourceId && $0.id == deletion.id && $0.isList != deletion.isCollection
+            }
         }
     }
 

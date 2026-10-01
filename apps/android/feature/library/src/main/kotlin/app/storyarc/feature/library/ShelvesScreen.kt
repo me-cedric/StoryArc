@@ -415,7 +415,9 @@ fun ShelvesScreen(
         ServerShelfDeletionDialog(
             deletion = deletion,
             onConfirm = {
-                serverShelves = serverShelves.filterNot { it.id == deletion.id && it.isList != deletion.isCollection }
+                serverShelves = serverShelves.filterNot {
+                    it.server.id == deletion.sourceId && it.id == deletion.id && it.isList != deletion.isCollection
+                }
                 scope.launch { deletion.send(context) }
                 deletingServerShelf = null
             },
