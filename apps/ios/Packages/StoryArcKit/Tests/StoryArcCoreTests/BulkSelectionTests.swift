@@ -67,10 +67,9 @@ struct BulkSelectionTests {
     /// publications a server would not hold, not the whole selection and not none of it.
     @Test("Only a publication from a different server is refused")
     func refusedByServerIsExactlyTheMismatch() {
-        let refused = BulkSelection.refusedByServer(
-            ["a", "b", "c"],
-            serverID: "attic"
-        ) { ["a": "attic", "b": "loft", "c": nil][$0] ?? nil }
+        // "c" has no origin at all, which is a refusal too.
+        let origins = ["a": "attic", "b": "loft"]
+        let refused = BulkSelection.refusedByServer(["a", "b", "c"], serverID: "attic") { origins[$0] }
 
         #expect(refused == ["b", "c"])
     }

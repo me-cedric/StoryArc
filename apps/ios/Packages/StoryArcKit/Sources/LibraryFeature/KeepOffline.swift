@@ -133,14 +133,14 @@ extension LibraryModel {
         for publication: Publication,
         origin resolvedOrigin: (String) -> KavitaOrigin? = { KavitaProgressStore().resolvedOrigin(of: $0) },
         credentials: CredentialStore? = CredentialStore()
-    ) -> (origin: KavitaOrigin, sourceID: UUID, address: KavitaAddress)? {
+    ) -> (origin: KavitaOrigin, address: KavitaAddress)? {
         guard let server = publication.identity.serverIdentifier,
               server.remoteID.hasPrefix("chapter:"),
               let origin = resolvedOrigin(publication.id),
               let source = registry[server.sourceID],
               let page = KavitaPage(source: source, credentials: credentials)
         else { return nil }
-        return (origin, server.sourceID, page.address)
+        return (origin, page.address)
     }
 
     /// Whether a Kavita row the library has only ever listed — never opened, never kept —
@@ -164,7 +164,8 @@ extension LibraryModel {
     /// either. Returns the kept publication's own id, which is what the caller inserts into
     /// what this round downloaded.
     private func enqueueKavita(_ publication: Publication, queue: DownloadQueue) async -> Download.ID? {
-        guard let (origin, sourceID, address) = kavitaKeepRoute(for: publication) else { return nil }
+        guard let (origin, address) = kavitaKeepRoute(for: publication) else { return nil }
+        let sourceID = publication.identity.serverIdentifier?.sourceID
         let chapter = KavitaChapter(id: origin.chapterId, number: publication.number ?? "", pages: origin.pages)
         let series = KavitaSeries(
             id: origin.seriesId,
