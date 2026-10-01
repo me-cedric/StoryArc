@@ -225,3 +225,38 @@ internal fun PrimaryAction.explanation(): Int? = when (this) {
     PrimaryAction.NEEDS_SOURCE -> R.string.detail_needs_source
     PrimaryAction.REFUSED -> R.string.detail_refused_body
 }
+
+/**
+ * Which string resource the explanation draws, and the size to fill it with when it is the
+ * one that takes a size.
+ *
+ * `publication-formats` asks a download offer to state the size, and the share browser
+ * already does -- `SmbBrowserScreen.kt` draws it the same way, with the same formatter. A
+ * plain function rather than a `@Composable`, so a unit test can assert the decision without
+ * a Compose host.
+ */
+internal fun explanationResource(
+    action: PrimaryAction,
+    fileSize: Long?,
+    format: PublicationFormat,
+): Pair<Int, Long?>? {
+    val resource = action.explanation() ?: return null
+    return when {
+        action == PrimaryAction.NEEDS_DOWNLOAD && fileSize != null && fileSize > 0L ->
+            R.string.detail_needs_download_sized to fileSize
+        action == PrimaryAction.REFUSED -> refusalSentence(format) to null
+        else -> resource to null
+    }
+}
+
+/**
+ * The sentence that names why a publication does not open.
+ *
+ * Two things make a publication refused, and they owe different sentences. A solid RAR4 is
+ * refused from its headers, and `publication-formats` names solid compression as the reason.
+ * A CB7 share row is refused from its name alone (`SmbContributor`), and the same spec names
+ * the container and the formats StoryArc reads instead. The grid cell, the list row and the
+ * publication page all ask this, so a CB7 is never said to use solid compression.
+ */
+internal fun refusalSentence(format: PublicationFormat): Int =
+    if (format == PublicationFormat.CB7) R.string.library_cannot_open_cb7 else R.string.library_cell_cannot_open

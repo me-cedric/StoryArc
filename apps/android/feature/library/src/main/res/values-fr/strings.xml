@@ -19,6 +19,7 @@
     <string name="source_offline_retry">Réessayer</string>
     <string name="source_state_unauthorized">Connexion requise</string>
     <string name="library_cell_cannot_open">Cette bande dessinée utilise une compression solide, que StoryArc ne peut pas ouvrir.</string>
+    <string name="library_cannot_open_cb7">Ceci est un fichier CB7, que StoryArc ne lit pas. Il lit les formats CBZ, CBR, CBT, EPUB, PDF, M4B et d’autres livres audio.</string>
     <string name="library_action_show_details">Afficher les détails</string>
     <string name="library_action_remove_from_shelf">Retirer de cette étagère</string>
     <string name="library_cell_finished">Terminé</string>
@@ -306,7 +307,7 @@
     <string name="smb_error_authentication">Le nom d’utilisateur ou le mot de passe a été refusé.</string>
     <string name="smb_error_smb1">Ce serveur ne propose que SMB 1, désactivé pour des raisons de sécurité. Activez SMB 2 ou une version ultérieure sur le serveur — sur la plupart des NAS, dans Services de fichiers, SMB.</string>
     <string name="smb_error_unexpected">Le partage n’a pas pu être atteint.</string>
-    <string name="smb_error_unsupported">Ceci est un format que StoryArc ne lit pas.</string>
+    <string name="smb_error_unsupported">Ceci est un format que StoryArc ne lit pas. Il lit les formats CBZ, CBR, CBT, EPUB, PDF, M4B et d’autres livres audio.</string>
     <string name="smb_error_password_protected">Cette archive est protégée par un mot de passe. StoryArc ne gère pas les mots de passe d’archive ; il n’y a rien à saisir ici.</string>
     <string name="smb_error_damaged">Ce fichier n’a pas pu être lu. Il est peut-être endommagé.</string>
     <string name="smb_error_local_network_denied">Cet appareil n’a pas accordé l’accès au réseau local, donc la connexion n’a pas démarré. Activez-le dans Paramètres, sous Applications, StoryArc, Autorisations.</string>

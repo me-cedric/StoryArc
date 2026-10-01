@@ -439,7 +439,7 @@ private fun ListRow(
 // one home now: the provenance line on the publication's page.
 private fun rowSubtitle(publication: Publication): String {
     val parts = buildList {
-        if (!publication.isOpenable) add(stringResource(R.string.library_cell_cannot_open))
+        if (!publication.isOpenable) add(stringResource(refusalSentence(publication.format)))
         // `seriesLine` rather than the comparison written out here: it compares the whole
         // composed line against the title, so a row headed `Harbour Lights #1` does not
         // caption itself `Harbour Lights #1`.

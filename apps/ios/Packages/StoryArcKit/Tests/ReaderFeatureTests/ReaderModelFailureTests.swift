@@ -50,6 +50,9 @@ struct ReaderModelFailureTests {
 
         #expect(model.failure != nil)
         #expect(model.pages.isEmpty)
+        // "States which formats it does support", per `publication-formats`: a bare "not a
+        // format StoryArc reads" is the generic failure that scenario forbids.
+        #expect(model.failure?.contains("CBZ") == true, "\(model.failure ?? "nil") names no format.")
     }
 
     @Test("A typed archive error is named, not shown as a raw case")

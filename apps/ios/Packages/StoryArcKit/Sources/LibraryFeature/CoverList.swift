@@ -366,7 +366,7 @@ struct ListRow: View {
         }
         var parts: [String] = []
         if !publication.isOpenable {
-            parts.append(String(localized: "library.cell.cannotOpen", bundle: .module, locale: .storyArc))
+            parts.append(publication.refusalSentence)
         }
         // ``seriesLine(for:)`` rather than the composition spelled out again: the row used
         // to compare the bare series against the title and then print the series *and the

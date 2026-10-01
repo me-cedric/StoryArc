@@ -57,7 +57,7 @@
          `ReaderFailureSaysNothingInternalTest` fails if the message comes back to the
          screen, and if a catch stops recording it. -->
     <string name="reader_cannot_open">StoryArc n’a pas pu ouvrir ce livre.</string>
-    <string name="reader_unsupported">Ceci est un format que StoryArc ne lit pas.</string>
+    <string name="reader_unsupported">Ceci est un format que StoryArc ne lit pas. Il lit les formats CBZ, CBR, CBT, EPUB, PDF, M4B et d’autres livres audio.</string>
     <string name="reader_password_protected">Cette archive est protégée par un mot de passe. StoryArc ne gère pas les mots de passe d’archive ; il n’y a rien à saisir ici.</string>
     <string name="reader_damaged">Ce fichier n’a pas pu être lu. Il est peut-être endommagé.</string>
     <string name="reader_solid_archive">Cette bande dessinée utilise une compression solide, que StoryArc ne peut pas ouvrir.</string>
