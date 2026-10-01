@@ -202,11 +202,12 @@ struct KavitaSyncQueueTests {
     func flushRefusesOnlyTheMarkAmongWhatIsHeld() async throws {
         let store = store()
         let origin = origin()
+        // The same origin for both: `KavitaUnsent.key` tells a mark from a position by its
+        // own `mark` field, so the two coexist in the queue, and both reach the same stub
+        // in the same flush — which is what proves the mark's 404 is read as `routeMissing`
+        // specifically, and the position's plain 404 is not.
         store.hold(KavitaUnsent(origin: origin, page: 0, mark: true))
-        store.hold(KavitaUnsent(origin: self.origin(), page: 5))
-        // A position posts to a route this same stub answers 404 too, so this proves the
-        // mark's own 404 is read as `routeMissing` specifically — `report`'s path has no
-        // `sendVersioned` guard and so is not this test's claim; see ``KavitaClientTests``.
+        store.hold(KavitaUnsent(origin: origin, page: 5))
         let (address, configuration) = try routeMissingAddress(host: "\(UUID().uuidString).flush-mixed.test")
 
         _ = await KavitaSync.flush(origin.sourceId, to: address, in: store, configuration: configuration)

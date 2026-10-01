@@ -117,6 +117,9 @@ class KavitaClientTest {
     private var listings = 0
     private var listingIsMissing = false
 
+    /** Whether the mark routes answer 404, which is a server too old for `mark-multiple-*`. */
+    private var markRouteIsMissing = false
+
     /** A key the server refuses however often it is renewed, which is not an old server. */
     private var keyIsRefused = false
 
@@ -182,9 +185,19 @@ class KavitaClientTest {
                 path.endsWith("/Series/volumes") ->
                     body = """[{"id":10,"number":0,"chapters":[{"id":1,"number":"1","pages":8,"pagesRead":8}]},
                               {"id":11,"number":1,"name":"Volume 1","chapters":[]}]"""
-                path.endsWith("/Reader/progress") ||
-                    path.endsWith("/Reader/mark-chapter-read") ||
-                    path.endsWith("/Reader/mark-chapter-unread") -> {
+                path.endsWith("/Reader/mark-multiple-read") || path.endsWith("/Reader/mark-multiple-unread") -> {
+                    sentTo = path
+                    sentBearer = bearer
+                    sentQuery = exchange.requestURI.query
+                    sentBody = exchange.requestBody.readBytes().decodeToString()
+                    body = if (markRouteIsMissing) {
+                        status = 404
+                        """{"message":"no such route"}"""
+                    } else {
+                        "{}"
+                    }
+                }
+                path.endsWith("/Reader/progress") -> {
                     sentTo = path
                     sentBearer = bearer
                     sentQuery = exchange.requestURI.query
@@ -412,12 +425,24 @@ class KavitaClientTest {
     }
 
     @Test
-    fun markingAChapterReadNamesTheSeriesAsWellAsTheChapter() = runBlocking {
-        client().mark(11, 12, isRead = false)
+    fun markingAChapterNamesTheSeriesTheVolumeAndTheChapter() = runBlocking {
+        client().mark(11, 1100, 12, isRead = false)
 
-        assertEquals("/api/Reader/mark-chapter-unread", sentTo)
+        // D2: `mark-multiple-unread`, not `mark-chapter-unread` -- the single-chapter unread
+        // route does not exist on any published Kavita.
+        assertEquals("/api/Reader/mark-multiple-unread", sentTo)
         assertTrue("\"seriesId\":11" in sentBody.orEmpty())
-        assertTrue("\"chapterId\":12" in sentBody.orEmpty())
+        assertTrue("\"volumeIds\":[1100]" in sentBody.orEmpty())
+        assertTrue("\"chapterIds\":[12]" in sentBody.orEmpty())
+    }
+
+    @Test
+    fun a404OnTheMarkRouteIsReadAsTheServerBeingTooOldForIt() {
+        markRouteIsMissing = true
+
+        assertThrows(KavitaError.RouteMissing::class.java) {
+            runBlocking { client().mark(11, 1100, 12, isRead = true) }
+        }
     }
 
     @Test
