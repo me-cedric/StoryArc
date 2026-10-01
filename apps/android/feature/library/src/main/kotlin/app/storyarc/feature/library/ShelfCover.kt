@@ -257,6 +257,8 @@ internal fun ShelfCard(
     pending: Int = 0,
     /** Null for a shelf this device does not own, where deleting is the library's business. */
     onDelete: (() -> Unit)? = null,
+    /** Task 7.10: null for a shelf this device does not own, the same as [onDelete]. */
+    onRename: (() -> Unit)? = null,
     /**
      * Whether this shelf is already on the home surface, or null for one that cannot be
      * pinned at all.
@@ -279,7 +281,7 @@ internal fun ShelfCard(
     val palette = LocalStoryArcPalette.current
     var menuOpen by remember { mutableStateOf(false) }
     val deleteLabel = stringResource(R.string.shelves_delete, title)
-    val hasMenu = onDelete != null || isPinned != null
+    val hasMenu = onDelete != null || onRename != null || isPinned != null
 
     Column(
         modifier = modifier
@@ -315,6 +317,17 @@ internal fun ShelfCard(
                             onClick = {
                                 menuOpen = false
                                 onTogglePin()
+                            },
+                        )
+                    }
+                    // Task 7.10: an ordinary action beside the destructive one, the same
+                    // order Pin keeps above Delete.
+                    if (onRename != null) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.shelves_rename)) },
+                            onClick = {
+                                menuOpen = false
+                                onRename()
                             },
                         )
                     }

@@ -73,7 +73,7 @@ class LibraryViewModel(
     internal val progressStore: ProgressStore? = null,
     private val preferences: LibraryPreferences? = null,
     internal val sourceStore: SourceStore? = null,
-    private val shelvesStore: ShelvesStore? = null,
+    internal val shelvesStore: ShelvesStore? = null,
     /**
      * Where copies the reader imported live. `local-library` asks for them to be kept in
      * "app-managed storage", and this store already owns exactly that -- see
@@ -130,7 +130,7 @@ class LibraryViewModel(
     val listServers: StateFlow<List<KavitaPage>> = _listServers.asStateFlow()
     val registry: StateFlow<SourceRegistry> = _registry.asStateFlow()
 
-    private val _shelves = MutableStateFlow(shelvesStore?.shelves() ?: Shelves())
+    internal val _shelves = MutableStateFlow(shelvesStore?.shelves() ?: Shelves())
 
     /** The reader's collections and reading lists. */
     val shelves: StateFlow<Shelves> = _shelves.asStateFlow()

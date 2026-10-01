@@ -200,6 +200,9 @@ fun ShelvesScreen(
     // the two -- while it holds something, nothing has been written.
     var deleting by remember { mutableStateOf<ShelfDeletion?>(null) }
 
+    /** Task 7.10: the shelf a reader is renaming, and the name typed so far. */
+    var renaming by remember { mutableStateOf<ShelfRenameTarget?>(null) }
+
     Scaffold(
         containerColor = palette.surfaceCanvas,
         topBar = {
@@ -287,6 +290,7 @@ fun ShelvesScreen(
                         tiles = shelfTiles(collection),
                         onOpen = { onOpenCollection(collection.id) },
                         onDelete = { deleting = ShelfDeletion.of(collection) },
+                        onRename = { renaming = ShelfRenameTarget(isList = false, collection.id, collection.name) },
                         isPinned = ShelfPin.Collection(collection.id) in pinned,
                         onTogglePin = { togglePin(ShelfPin.Collection(collection.id)) },
                     )
@@ -321,6 +325,7 @@ fun ShelvesScreen(
                         onOpen = { onOpenList(list.id) },
                         progress = shelfFraction(list, finished),
                         onDelete = { deleting = ShelfDeletion.of(list) },
+                        onRename = { renaming = ShelfRenameTarget(isList = true, list.id, list.name) },
                         isPinned = ShelfPin.ReadingListPin(list.id) in pinned,
                         onTogglePin = { togglePin(ShelfPin.ReadingListPin(list.id)) },
                     )
@@ -369,6 +374,22 @@ fun ShelvesScreen(
                     Text(stringResource(R.string.shelves_conflict_understood))
                 }
             },
+        )
+    }
+
+    renaming?.let { target ->
+        ShelfRenameDialog(
+            name = target.name,
+            onName = { renaming = target.copy(name = it) },
+            onConfirm = {
+                if (target.isList) {
+                    viewModel.renameList(target.id, target.name)
+                } else {
+                    viewModel.renameCollection(target.id, target.name)
+                }
+                renaming = null
+            },
+            onDismiss = { renaming = null },
         )
     }
 

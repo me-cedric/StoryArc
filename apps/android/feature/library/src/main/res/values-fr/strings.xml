@@ -184,6 +184,7 @@
     <string name="shelves_create">Créer</string>
     <string name="shelves_cancel">Annuler</string>
     <string name="shelves_delete">Supprimer %1$s</string>
+    <string name="shelves_rename">Renommer</string>
     <string name="shelves_pin">Épingler à l’accueil</string>
     <string name="shelves_unpin">Ne plus épingler</string>
     <string name="shelves_delete_confirm">Supprimer</string>
