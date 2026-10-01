@@ -33,6 +33,7 @@ import app.storyarc.core.model.ShelfMemory
 import app.storyarc.core.model.ShelfSettings
 import app.storyarc.core.model.ThemeScope
 import app.storyarc.core.model.TransitionChoices
+import app.storyarc.core.model.canCurlOn
 import app.storyarc.core.model.scrollAlong
 import app.storyarc.core.persistence.AnnotationStore
 import app.storyarc.core.persistence.ReaderPreferences
@@ -98,7 +99,7 @@ class ReaderViewModel(
      * the capability per device. Whether a curl holds the display's refresh rate is
      * therefore measured where it runs, not asserted here.
      */
-    private val canCurl: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
+    private val canCurl: Boolean = canCurlOn(Build.VERSION.SDK_INT),
     /**
      * Where highlights and notes are kept, or null in a preview.
      *
