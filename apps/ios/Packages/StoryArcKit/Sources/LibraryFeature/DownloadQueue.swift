@@ -100,6 +100,9 @@ public final class DownloadQueue {
         transfers.onProgress { [weak self] name, written, expected in
             Task { @MainActor in self?.advance(name, written: written, expected: expected) }
         }
+        transfers.onAttempt { [weak self] name, resumed in
+            Task { @MainActor in self?.noteAttempt(name, resumed: resumed) }
+        }
         Task { await reclaim() }
     }
 

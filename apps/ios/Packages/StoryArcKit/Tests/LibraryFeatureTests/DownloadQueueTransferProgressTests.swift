@@ -91,6 +91,47 @@ struct DownloadQueueTransferProgressTests {
         #expect(queue.library[id]?.expectedBytes == nil)
     }
 
+    @Test("A resume the system carried on is stated while the transfer runs")
+    func noteAttemptRecordsAResume() throws {
+        let queue = DownloadQueue(store: try store(), settings: { AppSettings() })
+        let acquisition = OpdsAcquisition(
+            href: URL(string: "https://example.invalid/hl13.epub")!,
+            mediaType: "application/epub+zip",
+            kind: .open
+        )
+        queue.enqueue(OpdsEntry(id: "hl13", title: "Harbour Lights 13"), using: acquisition)
+        let id = queue.downloadID(for: "hl13")
+
+        queue.noteAttempt(id, resumed: true)
+
+        #expect(queue.library[id]?.lastAttempt == .resumed)
+    }
+
+    @Test("A resume the server refused is stated as a restart while the transfer runs")
+    func noteAttemptRecordsARestart() throws {
+        let queue = DownloadQueue(store: try store(), settings: { AppSettings() })
+        let acquisition = OpdsAcquisition(
+            href: URL(string: "https://example.invalid/hl14.epub")!,
+            mediaType: "application/epub+zip",
+            kind: .open
+        )
+        queue.enqueue(OpdsEntry(id: "hl14", title: "Harbour Lights 14"), using: acquisition)
+        let id = queue.downloadID(for: "hl14")
+
+        queue.noteAttempt(id, resumed: false)
+
+        #expect(queue.library[id]?.lastAttempt == .restarted)
+    }
+
+    @Test("An attempt for a download the queue no longer holds writes nothing back")
+    func noteAttemptOfAnUnknownDownloadDoesNothing() throws {
+        let queue = DownloadQueue(store: try store(), settings: { AppSettings() })
+
+        queue.noteAttempt("gone", resumed: true)
+
+        #expect(queue.library["gone"] == nil)
+    }
+
     @Test("Advancing a download the queue no longer holds does nothing")
     func advanceOfAnUnknownDownloadDoesNothing() throws {
         let queue = DownloadQueue(store: try store(), settings: { AppSettings() })
