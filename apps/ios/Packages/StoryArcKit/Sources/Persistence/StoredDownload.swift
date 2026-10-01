@@ -44,6 +44,12 @@ struct StoredDownload: Codable {
     /// existed has none, and it comes back queued.
     let pause: String?
 
+    /// `offline-downloads`' *Resuming after interruption*: whether the transfer that
+    /// produced what is on disk carried on or started over. Optional for the same reason
+    /// ``pause`` is: a record written before this field existed has none, which is also the
+    /// honest answer for a download that has never been interrupted.
+    let lastAttempt: String?
+
     init(_ download: Download) {
         id = download.id
         sourceID = download.sourceID
@@ -60,6 +66,7 @@ struct StoredDownload: Codable {
         } else {
             pause = nil
         }
+        lastAttempt = download.lastAttempt?.rawValue
         if case let .failed(reason, count) = download.state {
             failure = reason
             attempts = count
@@ -80,7 +87,8 @@ struct StoredDownload: Codable {
             expectedBytes: expectedBytes,
             downloadedBytes: downloadedBytes,
             completedAt: completedAt,
-            verificationFailures: verificationFailures ?? 0
+            verificationFailures: verificationFailures ?? 0,
+            lastAttempt: lastAttempt.flatMap(Download.LastAttempt.init(rawValue:))
         )
     }
 

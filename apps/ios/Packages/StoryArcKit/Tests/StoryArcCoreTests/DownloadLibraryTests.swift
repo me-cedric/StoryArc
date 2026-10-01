@@ -204,4 +204,51 @@ struct DownloadLibraryTests {
         #expect(library.largestFirst.isEmpty)
         #expect(library.bytesBySource.isEmpty)
     }
+
+    @Test("Recording an attempt writes it onto the download it belongs to, and no other")
+    func recordingAttemptWritesOnlyItsOwnRecord() {
+        let library = DownloadLibrary(downloads: [download("one"), download("two")])
+            .recordingAttempt("one", as: .resumed)
+
+        #expect(library["one"]?.lastAttempt == .resumed)
+        #expect(library["two"]?.lastAttempt == nil)
+    }
+
+    @Test("Recording nil clears what an earlier attempt left")
+    func recordingNilClearsTheAttempt() {
+        let library = DownloadLibrary(downloads: [download("one")])
+            .recordingAttempt("one", as: .restarted)
+            .recordingAttempt("one", as: nil)
+
+        #expect(library["one"]?.lastAttempt == nil)
+    }
+}
+
+/// What a download's last attempt was, from whether there was something to resume and
+/// what the server actually did with it.
+///
+/// `offline-downloads`' *Resuming after interruption* builds both outcomes and states
+/// neither — `Download.LastAttempt.of` is the rule a row reads to tell them apart, lifted
+/// out of `LibraryFeature/DownloadQueueTransfer` so a test can reach it without a real
+/// transfer. Android answers the same three claims at `OpdsClient.download`'s own return
+/// value, proved against a real server in `DownloadResumeTest`.
+@Suite("What the last attempt at a download did")
+struct DownloadLastAttemptTests {
+    @Test("A first attempt, with nothing to carry on from, is neither a resume nor a restart")
+    func firstAttemptIsNeither() {
+        #expect(Download.LastAttempt.of(hadSomethingToResume: false, resumed: false) == nil)
+        // Even a server that happens to answer 206 to a request that asked for nothing to
+        // resume is not what this field means: there was nothing here to carry on.
+        #expect(Download.LastAttempt.of(hadSomethingToResume: false, resumed: true) == nil)
+    }
+
+    @Test("Something to resume, honoured, is a resume")
+    func honouredIsResumed() {
+        #expect(Download.LastAttempt.of(hadSomethingToResume: true, resumed: true) == .resumed)
+    }
+
+    @Test("Something to resume, refused, is a restart")
+    func refusedIsRestarted() {
+        #expect(Download.LastAttempt.of(hadSomethingToResume: true, resumed: false) == .restarted)
+    }
 }

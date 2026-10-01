@@ -47,6 +47,15 @@ public struct Download: Sendable, Identifiable, Equatable {
     /// the first corrupt download and the second.
     public var verificationFailures: Int
 
+    /// Whether the transfer that produced what is on disk now carried on from an earlier
+    /// one, or started over.
+    ///
+    /// `offline-downloads`' *Resuming after interruption* builds both outcomes and says
+    /// neither: the reader is never told which one happened. `nil` is a transfer that has
+    /// never been interrupted — a first attempt is neither a resume nor a restart, and
+    /// saying so would be the noise every other conditional row in this app avoids.
+    public var lastAttempt: LastAttempt?
+
     public init(
         id: String,
         sourceID: UUID? = nil,
@@ -57,7 +66,8 @@ public struct Download: Sendable, Identifiable, Equatable {
         expectedBytes: Int64? = nil,
         downloadedBytes: Int64 = 0,
         completedAt: Date? = nil,
-        verificationFailures: Int = 0
+        verificationFailures: Int = 0,
+        lastAttempt: LastAttempt? = nil
     ) {
         self.id = id
         self.sourceID = sourceID
@@ -69,6 +79,34 @@ public struct Download: Sendable, Identifiable, Equatable {
         self.downloadedBytes = downloadedBytes
         self.completedAt = completedAt
         self.verificationFailures = verificationFailures
+        self.lastAttempt = lastAttempt
+    }
+
+    /// What the last attempt at this download did, for the row to state in the reader's own
+    /// words rather than the network's.
+    ///
+    /// Carries a raw value for the reason ``Pause`` does: ``Persistence/DownloadStore``
+    /// writes the case name down, and each platform's store is its own.
+    public enum LastAttempt: String, Sendable, Equatable {
+        /// Carried on from where an earlier attempt stopped.
+        case resumed
+        /// Started over, whether because nothing was left to carry on from or because the
+        /// server would not continue what was already on disk.
+        case restarted
+
+        /// What the last attempt was, from whether there was something to try carrying on
+        /// from and what actually happened to it.
+        ///
+        /// Lifted out of ``LibraryFeature/DownloadQueueTransfer`` so it is testable on its
+        /// own: that file asks the background session for a file and cannot itself be
+        /// driven by a test without a real transfer.
+        ///
+        /// `nil` for a first attempt — one that never asked the system to carry anything on
+        /// has nothing to call either a resume or a restart.
+        public static func of(hadSomethingToResume: Bool, resumed: Bool) -> LastAttempt? {
+            guard hadSomethingToResume else { return nil }
+            return resumed ? .resumed : .restarted
+        }
     }
 
     /// Where a download is in its life.

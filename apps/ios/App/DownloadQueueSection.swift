@@ -299,6 +299,24 @@ private struct DownloadQueueRow: View {
         }
 
         progressLine
+        attemptLine
+    }
+
+    /// Whether the last attempt at this download carried a transfer on or started it over.
+    ///
+    /// `offline-downloads`' *Resuming after interruption* builds both outcomes and states
+    /// neither on the row — `DownloadResumption.swift` and `BackgroundTransfers.swift`
+    /// already do the resuming; this is only what a reader is told about it. Drawn only
+    /// once there has been an attempt to say something about: a download still on its
+    /// first try is neither, and saying so would be the noise every other conditional line
+    /// on this row avoids.
+    @ViewBuilder
+    private var attemptLine: some View {
+        if let attempt = download.lastAttempt {
+            Text(attempt.rowKey)
+                .textRole(.footnote)
+                .foregroundStyle(theme.palette.textSecondary)
+        }
     }
 
     /// How far through, and how much of what — the half of `offline-downloads` the bar
@@ -361,20 +379,5 @@ private struct DownloadQueueRow: View {
         .labelStyle(.iconOnly)
         .buttonStyle(.plain)
         .foregroundStyle(theme.palette.textSecondary)
-    }
-}
-
-extension Download.Pause {
-    /// Why this one is not moving, in the reader's terms.
-    ///
-    /// The app target's own copy of the mapping `SettingsFeature` carries, because the
-    /// strings are in this bundle now: the queue moved out of Settings, and a key looked up
-    /// in the wrong bundle renders as the key.
-    var explanationKey: LocalizedStringKey {
-        switch self {
-        case .byReader: "downloads.paused.byReader"
-        case .waitingForWiFi: "downloads.paused.waitingForWiFi"
-        case .outOfSpace: "downloads.paused.outOfSpace"
-        }
     }
 }

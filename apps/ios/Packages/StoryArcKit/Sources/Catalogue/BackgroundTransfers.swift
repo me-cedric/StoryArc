@@ -19,8 +19,10 @@ public final class BackgroundTransfers: NSObject, @unchecked Sendable {
 
     private static let instance = Mutex<BackgroundTransfers?>(nil)
 
-    /// A caller suspended on one transfer.
-    private typealias Waiter = CheckedContinuation<URL, any Error>
+    /// A caller suspended on one transfer, and whether the system carried it on from an
+    /// earlier attempt or started it over — the `Content-Range` answer only this layer
+    /// sees, since the record it belongs on lives above the session.
+    private typealias Waiter = CheckedContinuation<(file: URL, resumed: Bool), any Error>
 
     /// The one background session for the whole app.
     ///
@@ -106,7 +108,7 @@ public final class BackgroundTransfers: NSObject, @unchecked Sendable {
         _ request: URLRequest,
         named: String,
         resumingWith resumeData: Data? = nil
-    ) async throws -> URL {
+    ) async throws -> (file: URL, resumed: Bool) {
         let task = resumeData.map(session.downloadTask(withResumeData:))
             ?? session.downloadTask(with: request)
         task.taskDescription = named
@@ -223,7 +225,12 @@ extension BackgroundTransfers: URLSessionDownloadDelegate {
             resume(downloadTask, with: .failure(error))
             return
         }
-        resume(downloadTask, with: .success(kept))
+        // 206 is the one status a ranged request gets when the server actually continued
+        // the file; `offline-downloads`' *Resuming after interruption* says it "starts over
+        // otherwise", and a 200 is that — whether because nothing was asked to be resumed,
+        // or because the server answered the whole resource anyway.
+        let resumed = (downloadTask.response as? HTTPURLResponse)?.statusCode == 206
+        resume(downloadTask, with: .success((kept, resumed)))
     }
 
     /// Reports how far a download has got, throttled to ``progressInterval``.
@@ -308,7 +315,7 @@ extension BackgroundTransfers: URLSessionDownloadDelegate {
         OpdsRedirect.following(request, from: task.originalRequest)
     }
 
-    private func resume(_ task: URLSessionTask, with outcome: Result<URL, any Error>) {
+    private func resume(_ task: URLSessionTask, with outcome: Result<(file: URL, resumed: Bool), any Error>) {
         guard let name = task.taskDescription else { return }
         lastProgress.withLock { $0.removeValue(forKey: name) }
         let continuation = waiting.withLock { $0.removeValue(forKey: name) }
@@ -317,7 +324,7 @@ extension BackgroundTransfers: URLSessionDownloadDelegate {
             return
         }
         // Nobody is waiting: this is a transfer that outlived the process that asked for it.
-        guard case let .success(file) = outcome else { return }
+        guard case let .success((file, _)) = outcome else { return }
         let adopt = orphan.withLock { $0 }
         if let adopt {
             adopt(name, file)
