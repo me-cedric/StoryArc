@@ -74,8 +74,14 @@ extension ReaderView {
         } else if turns, location.x > size.width - edge {
             turn(by: 1)
         } else {
-            withAnimation(.easeInOut(duration: 0.2)) { wantsChrome.toggle() }
+            toggleChrome()
         }
+    }
+
+    /// What the Return key does too — `page-transitions` asks for "one key" that
+    /// toggles the chrome the same way a centre tap does.
+    func toggleChrome() {
+        withAnimation(.easeInOut(duration: 0.2)) { wantsChrome.toggle() }
     }
 
     /// A tap handler with the setting already read into it.
