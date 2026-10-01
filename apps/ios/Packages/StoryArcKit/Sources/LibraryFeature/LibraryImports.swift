@@ -13,6 +13,22 @@ internal import StoryArcCore
 ///
 /// Split out of ``LibraryModel`` for the same reason ``LibrarySources`` was: the file is at
 /// its line cap, and this is a seam that was already there.
+/// Why an import did not happen, and what the reader can be told about it.
+///
+/// 10.8: a refused format used to be dropped — `importFile` read `try?` and kept only the
+/// file's name, so the alert never said what the file was detected as. `detected` carries
+/// `ImportedCopies.ImportError`'s own format name, `nil` only for its `.unreadable` case,
+/// where there is none to carry.
+public struct ImportFailure: Sendable, Equatable {
+    public let name: String
+    public let detected: String?
+
+    /// The current list, data rather than prose — the same one `RefusedFile.supported`
+    /// names for a handed-over file, kept in step by hand since the two live in different
+    /// modules. Not translated: these are the formats' own names.
+    public static let supported = "CBZ, CBR, CBT, EPUB, PDF, M4B"
+}
+
 extension LibraryModel {
     /// Copies a publication into app storage and puts it in the library.
     ///
@@ -22,15 +38,18 @@ extension LibraryModel {
     /// here on the library reads only bytes the app owns.
     public func importFile(_ url: URL) async {
         guard let store = downloadStore else { return }
-        guard let copy = try? store.importing(url, into: store.library()) else {
+        do {
+            let copy = try store.importing(url, into: store.library())
+            registerImportedSource()
+            await index(copy.file)
+            rebuild()
+        } catch let ImportedCopies.ImportError.unsupported(format) {
             // Named, not silent. A reader who picked a file StoryArc cannot read has no
             // way to tell that from a broken app unless the app says which it is.
-            importFailure = url.lastPathComponent
-            return
+            importFailure = ImportFailure(name: url.lastPathComponent, detected: format)
+        } catch {
+            importFailure = ImportFailure(name: url.lastPathComponent, detected: nil)
         }
-        registerImportedSource()
-        await index(copy.file)
-        rebuild()
     }
 
     /// Reconciles the library with what has actually been imported.

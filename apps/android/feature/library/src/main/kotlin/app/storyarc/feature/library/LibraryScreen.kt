@@ -339,13 +339,18 @@ fun LibraryScreen(
 
     // Named, not swallowed. `local-library` forbids a generic failure elsewhere and there is
     // no reason an import should be the exception.
-    val importFailure by (viewModel?.importFailure ?: MutableStateFlow<String?>(null))
+    val importFailure by (viewModel?.importFailure ?: MutableStateFlow<ImportFailure?>(null))
         .collectAsStateWithLifecycle()
-    importFailure?.let { name ->
+    importFailure?.let { failure ->
+        // 10.8: the same sentence open-in refuses a format with, so both paths name the
+        // format and the current list rather than the import path's own, shorter one.
+        val message = failure.detected?.let { detected ->
+            stringResource(R.string.open_in_unsupported, failure.name, detected)
+        } ?: stringResource(R.string.library_import_failed, failure.name)
         AlertDialog(
             onDismissRequest = { viewModel?.dismissImportFailure() },
             title = { Text(stringResource(R.string.library_import_failed_title)) },
-            text = { Text(stringResource(R.string.library_import_failed, name)) },
+            text = { Text(message) },
             confirmButton = {
                 TextButton(onClick = { viewModel?.dismissImportFailure() }) {
                     Text(stringResource(R.string.library_import_dismiss))
