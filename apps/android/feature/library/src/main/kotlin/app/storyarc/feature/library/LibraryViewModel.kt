@@ -74,7 +74,7 @@ class LibraryViewModel(
     application: Application,
     private val progressStore: ProgressStore? = null,
     private val preferences: LibraryPreferences? = null,
-    private val sourceStore: SourceStore? = null,
+    internal val sourceStore: SourceStore? = null,
     private val shelvesStore: ShelvesStore? = null,
     /**
      * Where copies the reader imported live. `local-library` asks for them to be kept in
@@ -249,7 +249,7 @@ class LibraryViewModel(
      * `local-library` requires naming the folder and offering a single action to
      * re-pick it, so the names are kept rather than the count.
      */
-    private val _unavailableFolders = MutableStateFlow<List<String>>(emptyList())
+    internal val _unavailableFolders = MutableStateFlow<List<String>>(emptyList())
     val unavailableFolders: StateFlow<List<String>> = _unavailableFolders.asStateFlow()
 
     private val covers = mutableMapOf<String, Bitmap>()
@@ -280,7 +280,7 @@ class LibraryViewModel(
      */
     private var progressJob: Job? = null
 
-    private val resolver get() = getApplication<Application>().contentResolver
+    internal val resolver get() = getApplication<Application>().contentResolver
 
     /**
      * The app's own folder on external storage.
@@ -415,13 +415,15 @@ class LibraryViewModel(
 
         val restored = SafTree.persistedTrees(resolver)
         val reachable = restored.filter { SafTree.displayName(resolver, it) != null }
-        _unavailableFolders.value = (restored - reachable.toSet()).map { nameOf(it) }
         _folders.value = reachable
         // Connection state is never persisted, so a restored folder loads as *connecting*
         // and stays there — nothing probes a folder. [register] is what answers, and it also
         // corrects a name an older build derived. It adds nothing: a persisted tree
         // permission is one a reader picked, so it is already a source.
         reachable.forEach(::register)
+        // 10.1: a tree SafTree still lists but cannot name is one kind of gone folder; a
+        // registry source whose own tree the system no longer grants at all is the other.
+        refreshFolderAvailability(restored, reachable)
         // Even with no folder to restore: the app's own folder is walked on every scan, and
         // it is where a file shared to StoryArc lands.
         rescan()
@@ -1086,8 +1088,10 @@ class LibraryViewModel(
         super.onCleared()
     }
 
-    /** Brings every watched folder up to date. */
+    /** Brings every watched folder up to date, and re-checks that each can still be read. */
     fun reconcileWatchedFolders() {
+        val restored = SafTree.persistedTrees(resolver)
+        refreshFolderAvailability(restored, restored.filter { SafTree.displayName(resolver, it) != null })
         val trees = _folders.value
         if (trees.isEmpty()) return
         viewModelScope.launch {
