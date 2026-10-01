@@ -65,6 +65,23 @@ extension DownloadQueue {
         return try? Data(contentsOf: store.resumeData(of: download))
     }
 
+    /// Records how far a running transfer has got.
+    ///
+    /// `offline-downloads`' *Progress never moves during a transfer*: nothing called this
+    /// before the background session gained a ``Catalogue/BackgroundTransfers/onProgress(_:)``
+    /// handler, so a row's bar sat at the fraction `enqueue` left it — zero — until the whole
+    /// file had already landed. `expected` is `0` for a server that stated no total, which is
+    /// the same "say nothing rather than a fabricated size" rule ``DownloadLibrary/advancing``
+    /// already keeps by taking it as optional.
+    ///
+    /// A download the queue no longer holds — cancelled, removed, or already finished and
+    /// replaced by a new attempt under the same name — is one this write would resurrect, so
+    /// it is asked for first.
+    func advance(_ id: Download.ID, written: Int64, expected: Int64) {
+        guard library[id] != nil else { return }
+        library = library.advancing(id, downloaded: written, expected: expected > 0 ? expected : nil)
+    }
+
     /// Keeps what a held transfer left, so the next attempt asks only for the rest.
     ///
     /// Only for a download the app still holds and is not running. A record removed while its

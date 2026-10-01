@@ -71,6 +71,29 @@ class DownloadQueueEnqueueTest {
     }
 
     @Test
+    fun `a download enqueued with a stated size records it before any byte arrives`() {
+        // `offline-downloads` asks a queued download to show "its size" -- before this, the
+        // acquisition's own `length` reached nowhere, and the row's bar had nothing to be a
+        // fraction of until the transfer finished.
+        val sized = acquisition.copy(length = 41_000_000L)
+        val source = UUID.randomUUID()
+        val queue = DownloadQueue(
+            context,
+            CertificatePins(),
+            store(),
+            settings = { AppSettings(downloadOverWifiOnly = true) },
+            onWifi = MutableStateFlow(false),
+        )
+
+        queue.enqueue(entry, sized, sourceId = source)
+
+        assertEquals(
+            41_000_000L,
+            queue.library.value[queue.downloadId(entry.id, source)]?.expectedBytes,
+        )
+    }
+
+    @Test
     fun `a running transfer asks the foreground service to follow it`() {
         // Cleared first, so a service started while the queue was built cannot answer for the
         // transfer. A queue with nothing to do stops the service rather than starting it, so

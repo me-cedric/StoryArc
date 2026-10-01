@@ -49,6 +49,7 @@ import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.Publication
+import app.storyarc.feature.library.DownloadQueueProgress
 
 /** The proportions of a comic cover, near enough for every publisher. */
 private const val COVER_ASPECT = 2f / 3f
@@ -319,9 +320,42 @@ internal fun DownloadQueueRow(
                     // than a fabricated total.
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
+                DownloadProgressLine(download)
             }
         }
     }
+}
+
+/**
+ * How far through, and how much of what — the half of `offline-downloads` the bar alone
+ * cannot carry.
+ *
+ * The spec asks a queued publication to have "its size shown, and progress visible on the
+ * publication and in a single downloads view". The row had the bar and nothing else. What
+ * there is to say is [DownloadQueueProgress]'s own; only the rendering is here, because the
+ * strings are in this module. iOS's `DownloadQueueSection.progressLine` is the same line.
+ */
+@Composable
+private fun DownloadProgressLine(download: Download) {
+    val statement = DownloadQueueProgress.statement(download) ?: return
+    val context = LocalContext.current
+    val text = when (statement) {
+        is DownloadQueueProgress.Statement.Sized -> stringResource(
+            R.string.downloads_progress,
+            statement.percent,
+            Formatter.formatShortFileSize(context, statement.downloaded),
+            Formatter.formatShortFileSize(context, statement.expected),
+        )
+        is DownloadQueueProgress.Statement.Unsized -> stringResource(
+            R.string.downloads_progress_unsized,
+            Formatter.formatShortFileSize(context, statement.downloaded),
+        )
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = LocalStoryArcPalette.current.textSecondary,
+    )
 }
 
 /**

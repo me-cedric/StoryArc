@@ -134,4 +134,8 @@
     <string name="downloads_move_later">Move \u201c%1$s\u201d later</string>
     <string name="downloads_undo">Undo</string>
     <string name="downloads_removed">\u201c%1$s\u201d removed from this device. Your place is kept.</string>
+    <!-- The bar answers roughly how far; this line answers how much, the question a reader
+         with little space free is actually asking. iOS carries the same pair of keys. -->
+    <string name="downloads_progress">%1$d%% \u00b7 %2$s of %3$s</string>
+    <string name="downloads_progress_unsized">%1$s so far</string>
 </resources>

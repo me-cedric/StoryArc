@@ -1,6 +1,7 @@
 package app.storyarc.core.catalogue
 
 import com.sun.net.httpserver.HttpServer
+import java.io.File
 import java.net.InetSocketAddress
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -8,7 +9,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 
 /**
  * The client, against a real HTTP server on the loopback interface.
@@ -20,6 +23,9 @@ import org.junit.Test
  * iOS's `OpdsClientTests` covers the same cases through a `URLProtocol` stub.
  */
 class OpdsClientTest {
+
+    @get:Rule
+    val folder = TemporaryFolder()
 
     private lateinit var server: HttpServer
     private var status = 200
@@ -121,6 +127,22 @@ class OpdsClientTest {
             "http://localhost:${server.address.port}/catalogue/unread",
             feed.navigation.first().href,
         )
+    }
+
+    @Test
+    fun aDownloadReportsProgressAsBytesLand() = runBlocking {
+        // `offline-downloads` wants a transfer's row to move while it runs. The throttle is
+        // real time, so a test cannot pin how many calls arrive -- only that at least one
+        // did, and that the last one agrees with what actually landed on disk.
+        headers = emptyMap()
+        body = "x".repeat(5_000)
+        val into = File(folder.root, "progress.bin")
+        val seen = mutableListOf<Long>()
+
+        OpdsClient().download("${base}book.epub", into = into) { written -> seen += written }
+
+        assertTrue("No progress was reported for a transfer that wrote bytes.", seen.isNotEmpty())
+        assertEquals(into.length(), seen.last())
     }
 
     @Test

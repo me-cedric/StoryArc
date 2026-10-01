@@ -61,6 +61,8 @@
     <string name="downloads_move_later">Reculer \u00ab\u00a0%1$s\u00a0\u00bb</string>
     <string name="downloads_undo">Annuler</string>
     <string name="downloads_removed">\u00ab\u00a0%1$s\u00a0\u00bb supprim\u00e9 de cet appareil. Votre place est conserv\u00e9e.</string>
+    <string name="downloads_progress">%1$d\u00a0%% \u00b7 %2$s sur %3$s</string>
+    <string name="downloads_progress_unsized">%1$s jusqu\u2019ici</string>
 
     <!-- Le lecteur. Les intervalles figurent dans les libellés parce qu'ils figurent sur
          les commandes : 15 s en arrière et 30 s en avant sont une décision produit. -->
