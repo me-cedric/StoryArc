@@ -1,11 +1,14 @@
 public import CoreGraphics
 public import Foundation
-
+import OSLog
 public import SwiftUI
 
 public import Formats
 public import Persistence
 public import StoryArcCore
+
+/// Logs an open failure; `reader.cannotOpen` is the only text a reader sees.
+private let readerOpenLog = Logger(subsystem: "app.storyarc.reader", category: "open")
 
 /// One publication, open for reading.
 ///
@@ -306,7 +309,8 @@ public final class ReaderModel {
         } catch let error as ComicArchiveError {
             failure = Self.sentence(for: error)
         } catch {
-            failure = String(describing: error)
+            readerOpenLog.error("open failed: \(error, privacy: .public)")
+            failure = String(localized: "reader.cannotOpen", bundle: .module, locale: .storyArc)
         }
         noteIfEmpty()
     }
@@ -345,7 +349,8 @@ public final class ReaderModel {
             await warm(around: currentIndex)
             await deriveCoverColours()
         } catch {
-            failure = String(describing: error)
+            readerOpenLog.error("open failed: \(error, privacy: .public)")
+            failure = String(localized: "reader.cannotOpen", bundle: .module, locale: .storyArc)
         }
     }
 
