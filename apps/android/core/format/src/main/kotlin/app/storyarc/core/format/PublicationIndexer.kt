@@ -564,8 +564,14 @@ object PublicationIndexer {
     private fun streamingOf(archive: ComicArchiveReading): StreamingCapability {
         val rar = archive as? RarComicArchive ?: return StreamingCapability.STREAMS
         // A solid RAR5 reads once local; a solid RAR4 never opens at all and is
-        // refused before it reaches here.
-        return if (rar.isStreamable) StreamingCapability.STREAMS else StreamingCapability.DOWNLOAD_ONLY
+        // refused before it reaches here. A non-solid archive catalogued from
+        // its headers alone, with a compressed page and no file yet, is just as
+        // download-only even though it is not solid.
+        return if (rar.isStreamable && !rar.isDownloadOnly) {
+            StreamingCapability.STREAMS
+        } else {
+            StreamingCapability.DOWNLOAD_ONLY
+        }
     }
 
     /**

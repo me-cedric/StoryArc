@@ -337,9 +337,11 @@ class TarComicArchive private constructor(
  * and the only part that needs a local file.
  *
  * That split is why this type takes an optional [File]. Given one, every page is
- * readable. Without one — a remote source not yet downloaded — stored pages read
- * and compressed pages count as skipped, which is what `publication-formats` means
- * by opening what can be read and reporting what was not.
+ * readable. Without one — a remote source not yet downloaded — every page is still
+ * listed from its header: a stored one reads straight away, and a compressed one
+ * sets [isDownloadOnly] rather than being dropped or failing the whole archive,
+ * which is what `publication-formats` means by cataloguing a publication without
+ * transferring it.
  */
 class RarComicArchive private constructor(
     private val source: RandomAccessSource,
@@ -349,6 +351,16 @@ class RarComicArchive private constructor(
     private val pathToEntry: Map<String, RarEntry>,
     /** Where the archive lives on disk, when it does. */
     private val file: File?,
+    /**
+     * True when at least one listed page is compressed and there is no local
+     * file yet to hand to [RarDecoder].
+     *
+     * Set only in index-only mode — a remote CBR catalogued from its headers
+     * alone. `publication-formats`' streaming table marks such a publication
+     * download-only: the pages are real and counted, but none of the
+     * compressed ones can be read until the file arrives.
+     */
+    val isDownloadOnly: Boolean,
 ) : ComicArchiveReading {
 
     val generation: RarGeneration get() = reader.generation
@@ -388,24 +400,29 @@ class RarComicArchive private constructor(
             val candidates = mutableListOf<PageEntry>()
             val index = mutableMapOf<String, RarEntry>()
             var skipped = 0
+            var undecodable = 0
 
             // A compressed entry is readable only with a local file to hand to
             // libarchive, and only if the native library is actually there.
             val canDecode = file != null && RarDecoder.isAvailable
             for (entry in reader.entries) {
                 if (!PageOrdering.isPage(entry.path)) continue
-                if ((!entry.isStored && !canDecode) || entry.size == 0L) {
+                // A zero-length entry never decodes to anything, local file or
+                // not.
+                if (entry.size == 0L) {
                     skipped++
                     continue
                 }
+                // Without a decoder — index-only mode, over a share — a
+                // compressed entry is still a real page: it is listed from the
+                // header, and the archive flags itself as download-only so the
+                // caller can mark the publication that way instead of lying
+                // about streaming it.
+                if (!entry.isStored && !canDecode) {
+                    undecodable++
+                }
                 candidates += PageEntry(entry.path, entry.size)
                 index[entry.path] = entry
-            }
-
-            if (candidates.isEmpty() && skipped > 0) {
-                // Pages exist but none can be read. That is a decoder gap, not a
-                // damaged file, so it is named as the container it is.
-                throw ComicArchiveException.UnsupportedContainer(FormatSniffer.Container.RAR)
             }
 
             return RarComicArchive(
@@ -415,6 +432,7 @@ class RarComicArchive private constructor(
                 skippedPageCount = skipped,
                 pathToEntry = index,
                 file = file,
+                isDownloadOnly = undecodable > 0,
             )
         }
     }

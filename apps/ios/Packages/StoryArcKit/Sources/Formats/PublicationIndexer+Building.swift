@@ -79,6 +79,45 @@ extension PublicationIndexer {
         )
     }
 
+    /// A CBR read from an already-open source, local or remote.
+    ///
+    /// Shared by the file path, which always has a `fileURL`, and the remote path,
+    /// which has one only after a download — passing `nil` there is exactly what
+    /// makes a share-row CBR catalogue from its headers instead of a bare record.
+    static func rarArchive(
+        source: any RandomAccessSource,
+        fileURL: URL?,
+        identity: PublicationIdentity,
+        name: String,
+        fallback: FilenameMetadata
+    ) async throws -> Publication {
+        let archive: RarComicArchive
+        do {
+            archive = try await RarComicArchive(source: source, fileURL: fileURL)
+        } catch ComicArchiveError.solidArchive {
+            // Readable as a *record* even though it cannot be opened: the library
+            // should list it and say why, not silently drop it.
+            return Publication(
+                identity: identity,
+                format: .cbr,
+                displayTitle: title(from: nil, fallback: fallback, filename: name),
+                series: fallback.series,
+                number: fallback.number,
+                volume: fallback.volume,
+                year: fallback.year,
+                origin: .inferred,
+                streaming: .refused
+            )
+        } catch ComicArchiveError.passwordProtected {
+            throw IndexError.archivePasswordProtected
+        } catch let ComicArchiveError.unsupportedContainer(container) {
+            throw IndexError.unsupported(format: container.displayName)
+        } catch {
+            throw IndexError.archiveUnreadable
+        }
+        return comic(archive, format: .cbr, identity: identity, filename: name, fallback: fallback)
+    }
+
     static func comic(
         _ archive: any ComicArchiveReading,
         format: PublicationFormat,
@@ -203,8 +242,10 @@ extension PublicationIndexer {
     static func streaming(of archive: any ComicArchiveReading) -> StreamingCapability {
         guard let rar = archive as? RarComicArchive else { return .streams }
         // A solid RAR5 reads once local; a solid RAR4 never opens at all and is
-        // refused before it reaches here.
-        return rar.isStreamable ? .streams : .downloadOnly
+        // refused before it reaches here. A non-solid archive catalogued from
+        // its headers alone, with a compressed page and no file yet, is just as
+        // download-only even though it is not solid.
+        return (rar.isStreamable && !rar.isDownloadOnly) ? .streams : .downloadOnly
     }
 
     /// What to show in a list.

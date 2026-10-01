@@ -8,9 +8,11 @@ public import Foundation
 /// used and the only part that needs a local file.
 ///
 /// That split is why this type takes an optional URL. Given one, every page is
-/// readable. Without one — a remote source not yet downloaded — stored pages read
-/// and compressed pages count as skipped, which is what `publication-formats`
-/// means by opening what can be read and reporting what was not.
+/// readable. Without one — a remote source not yet downloaded — every page is
+/// still listed from its header: a stored one reads straight away, and a
+/// compressed one sets ``isDownloadOnly`` rather than being dropped or failing
+/// the whole archive, which is what `publication-formats` means by cataloguing
+/// a publication without transferring it.
 ///
 /// Split out of `ComicArchive.swift`, which had reached the 400-line cap this
 /// project enforces — this is the one archive kind with nothing left in common
@@ -25,6 +27,14 @@ public struct RarComicArchive: ComicArchiveReading {
     /// `Streaming capability per format` requires flagging that before the user
     /// taps a remote publication, rather than discovering it mid-read.
     public let isStreamable: Bool
+    /// True when at least one listed page is compressed and there is no local
+    /// file yet to hand to `RarDecoder`.
+    ///
+    /// Set only in index-only mode — a remote CBR catalogued from its headers
+    /// alone. `publication-formats`' streaming table marks such a publication
+    /// download-only: the pages are real and counted, but none of the
+    /// compressed ones can be read until the file arrives.
+    public let isDownloadOnly: Bool
 
     private let reader: RarReader
     private let pathToEntry: [String: RarEntry]
@@ -57,31 +67,32 @@ public struct RarComicArchive: ComicArchiveReading {
 
         var candidates: [PageEntry] = []
         var skipped = 0
+        var undecodable = 0
         var index: [String: RarEntry] = [:]
 
         for entry in reader.entries where PageOrdering.isPage(path: entry.path) {
-            // A compressed entry is readable only with a local file to hand to
-            // libarchive. Without one it is a page we can see and cannot read, so
-            // it counts as skipped rather than failing later.
-            let readable = entry.isStored || fileURL != nil
-            guard readable, entry.size > 0 else {
+            // A zero-length entry never decodes to anything, local file or not.
+            guard entry.size > 0 else {
                 skipped += 1
                 continue
             }
+            // A compressed entry is readable only with a local file to hand to
+            // libarchive. Without one — index-only mode, over a share — it is
+            // still a real page: it is listed from the header, and the archive
+            // flags itself as download-only so the caller can mark the
+            // publication that way instead of lying about streaming it.
+            if !entry.isStored, fileURL == nil {
+                undecodable += 1
+            }
             candidates.append(PageEntry(path: entry.path, byteCount: Int(entry.size)))
             index[entry.path] = entry
-        }
-
-        guard !candidates.isEmpty || skipped == 0 else {
-            // Pages exist but none can be read. That is a decoder gap, not a
-            // damaged file, so it is named as the container it is.
-            throw ComicArchiveError.unsupportedContainer(.rar)
         }
 
         self.pages = PageOrdering.sorted(candidates)
         self.skippedPageCount = skipped
         self.pathToEntry = index
         self.isStreamable = !reader.isSolid
+        self.isDownloadOnly = undecodable > 0
     }
 
     public func data(for page: PageEntry) async throws -> Data {

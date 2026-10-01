@@ -2,6 +2,7 @@ package app.storyarc.core.format
 
 import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReadingDirection
 import app.storyarc.core.model.StreamingCapability
 import kotlinx.coroutines.test.runTest
@@ -173,6 +174,30 @@ class PublicationIndexerTest {
         assertEquals(StreamingCapability.STREAMS, index("comics/rar5-store.cbr").streaming)
         assertEquals(StreamingCapability.DOWNLOAD_ONLY, index("comics/rar5-solid.cbr").streaming)
         assertEquals(StreamingCapability.REFUSED, index("comics/rar4-solid.cbr").streaming)
+    }
+
+    @Test
+    fun `a compressed rar on a share is catalogued from its headers, not refused`() = runTest {
+        // `SmbBrowserScreen` indexes a share row with no decoder path. Before this
+        // fix, a compressed page with no decoder made `RarComicArchive.open` throw
+        // `UnsupportedContainer`, which `comicFromSource` turned into
+        // `IndexException.Unsupported` -- an unexpected-failure notice rather than a
+        // download offer. `publication-formats` requires the publication to be
+        // catalogued from its headers and marked download-only instead.
+        val bytes = FixtureCorpus.file("comics/rar4-store.cbr").readBytes()
+        val methodOffset = RarReader.RAR4_SIGNATURE.size + 13 + 25
+        assertEquals(0x30, bytes[methodOffset].toInt())
+        bytes[methodOffset] = 0x33
+
+        val publication = PublicationIndexer.index(
+            source = DataSource(bytes),
+            name = "share.cbr",
+            identity = PublicationIdentity(normalizedPath = "share.cbr"),
+        )
+
+        assertEquals(PublicationFormat.CBR, publication.format)
+        assertEquals(3, publication.pageCount)
+        assertEquals(StreamingCapability.DOWNLOAD_ONLY, publication.streaming)
     }
 
     @Test
