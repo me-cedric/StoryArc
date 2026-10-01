@@ -195,6 +195,7 @@ fun ReaderScreen(
     LaunchedEffect(viewModel) { viewModel.open(maxPixelSize) }
     SmbNetworkWatchEffect()
     PageRecoveryEffect(viewModel)
+    ReaderBrightnessEffect(viewModel.brightness.collectAsStateWithLifecycle().value)
 
     // `comic-reader`: "the screen does not auto-lock while a page is visible, and
     // normal locking resumes on leaving". A long look at one page is reading, not
@@ -1192,6 +1193,7 @@ private fun Pager(
     // Outside the chrome, not inside it: the chrome fades and takes its children with it,
     // and a sheet that vanishes four seconds after it opens is not a sheet.
     if (isAdjusting) {
+        val brightness by viewModel.brightness.collectAsStateWithLifecycle()
         AdjustmentsSheet(
             adjustments = adjustments,
             shelf = viewModel.shelfName,
@@ -1202,6 +1204,10 @@ private fun Pager(
             },
             onChange = viewModel::choose,
             onDismiss = { isAdjusting = false },
+            matte = settings.theme.custom?.background,
+            onChooseMatte = viewModel::chooseMatte,
+            brightness = brightness,
+            onChooseBrightness = viewModel::chooseBrightness,
         )
     }
 

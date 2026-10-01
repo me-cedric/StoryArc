@@ -192,6 +192,31 @@ class ReaderViewModel(
     val matte: String?
         get() = _settings.value.theme.custom?.background
 
+    /**
+     * Chooses the matte, or no matte, for this shelf from now on.
+     *
+     * Goes through [update], the one path that writes
+     * `ReaderPreferences.remembering(_, ThemeScope.FIXED_LAYOUT)` -- the same store
+     * `app.storyarc.feature.settings`'s own matte picker writes the global default to.
+     */
+    fun chooseMatte(hex: String?) {
+        update(_settings.value.copy(theme = matting(hex, _settings.value.theme)))
+    }
+
+    /**
+     * Reader-local screen brightness, or null for the device's own.
+     *
+     * `reading-themes`: "reader-local screen brightness, independent of the system slider",
+     * reverted "on leaving" -- never written through [update], because a session-only value
+     * is not a stored preference. [ReaderBrightnessEffect] is what applies and reverts it.
+     */
+    private val _brightness = MutableStateFlow<Float?>(null)
+    val brightness: StateFlow<Float?> = _brightness.asStateFlow()
+
+    fun chooseBrightness(value: Float) {
+        _brightness.value = value
+    }
+
     /** Chooses a transition, for this shelf, from now on. */
     fun choose(transition: PageTransition) {
         update(_settings.value.copy(transition = transition))
