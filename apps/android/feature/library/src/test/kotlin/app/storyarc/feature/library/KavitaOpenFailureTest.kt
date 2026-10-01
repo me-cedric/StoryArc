@@ -98,7 +98,8 @@ class KavitaOpenFailureTest {
         compose.waitUntil(10_000) {
             compose.onAllNodes(hasText(title)).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText(title).performClick()
+        // The title itself, where a reader taps: the row centre can fall on a row button.
+        compose.onNodeWithText(title, useUnmergedTree = true).performClick()
     }
 
     private fun waitForSnackbar(expected: String) {
