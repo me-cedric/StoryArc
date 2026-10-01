@@ -82,9 +82,14 @@ struct CollectionDetail: View {
 /// end of one is the next in *this* order rather than the next in a series.
 struct ReadingListDetail: View {
     @Environment(\.theme) private var theme
+    @Environment(\.displayScale) private var displayScale
 
     let model: LibraryModel
     let id: UUID
+
+    /// ``ShelfCover``'s own row-scale thumbnail — small enough that a hundred entries cost
+    /// a hundred small decodes rather than a hundred full covers.
+    private static let thumbnailWidth: CGFloat = 40
 
     /// How the reader has asked to see the list, for as long as they are looking at it.
     ///
@@ -215,17 +220,31 @@ struct ReadingListDetail: View {
     @State private var refusedServer: String?
     @State private var restarting: Publication?
 
+    /// Artwork that has arrived for a row, keyed by the entry it belongs to.
+    ///
+    /// `collections-and-reading-lists`' delta: "each entry shows the publication's own cover
+    /// beside its position in the list" — the same fetch ``ShelfCover`` already does for the
+    /// shelf's own artwork, kept on the detail screen so a list of a hundred entries asks the
+    /// library for exactly the covers it draws.
+    @State private var covers: [String: CGImage] = [:]
+
     @ViewBuilder
     private func row(_ entry: String, number: Int, isFinished: Bool) -> some View {
         let publication = model.publications.first { $0.id == entry }
+        let fraction = publication.flatMap { isFinished ? nil : model.readFraction(of: $0) }
+        let state = ReadingListRowState.of(
+            isAvailable: publication != nil,
+            isFinished: isFinished,
+            fraction: fraction
+        )
 
         // The page, not the reader — which is what Android's equivalent does
         // (`AppScreens.kt`) and what `publication-detail` asks of "every surface that shows
         // a publication". The rule's own exception is a **resume affordance**, and this row
-        // is not one: it carries a number, a title and a finished mark, with no cover, no
-        // progress and no *Continue* wording. Nothing about it says a reader has already
-        // decided to read this one now, so sending them straight into the reader was the app
-        // deciding for them.
+        // is not one: it carries a number, a title, a cover and a read state, with no
+        // *Continue* wording. Nothing about it says a reader has already decided to read
+        // this one now, so sending them straight into the reader was the app deciding for
+        // them.
         //
         // An entry whose publication is gone stays disabled below, so the destination is
         // always a publication the library still holds.
@@ -235,6 +254,13 @@ struct ReadingListDetail: View {
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textTertiary)
                     .frame(minWidth: StoryArcSpace.lg, alignment: .trailing)
+
+                // The position stays legible without it — ``thumbnail`` draws a plain well
+                // rather than nothing while a cover is missing or has not arrived, so an
+                // entry never loses its place in the row for lacking one.
+                thumbnail(for: entry)
+                    .frame(width: Self.thumbnailWidth, height: Self.thumbnailWidth * 1.5)
+                    .clipShape(.rect(cornerRadius: StoryArcRadius.sm))
 
                 VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
                     Text(publication?.displayTitle ?? entry)
@@ -250,19 +276,30 @@ struct ReadingListDetail: View {
                         Text("shelves.list.unavailable", bundle: .module)
                             .textRole(.footnote)
                             .foregroundStyle(StoryArcColor.Status.offline)
+                    } else if let drawn = state.drawn {
+                        // An unread entry draws nothing here, as an unread publication draws
+                        // nothing in the library's own grid — ``state.spoken`` still names
+                        // it, to a reader who cannot see the absence of a badge.
+                        Text(drawn)
+                            .textRole(.footnote)
+                            .foregroundStyle(theme.palette.textSecondary)
                     }
                 }
 
                 Spacer(minLength: 0)
-
-                if isFinished {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(StoryArcColor.Status.success)
-                }
             }
         }
         .buttonStyle(.plain)
         .disabled(publication == nil)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            [publication?.displayTitle ?? entry, state.spoken].joined(separator: ", ")
+        )
+        .task(id: entry) {
+            guard covers[entry] == nil, let publication else { return }
+            let side = Int(Self.thumbnailWidth * displayScale)
+            covers[entry] = await model.cover(for: publication, maxPixelSize: side)
+        }
         // `library-browsing`'s *A publication's actions wherever it is drawn*: a reading
         // list's own row had none at all, only the swipe this screen already offered for
         // removal. An entry the library no longer holds a publication for has nothing a
@@ -280,5 +317,65 @@ struct ReadingListDetail: View {
         }
         .restartConfirmation($restarting, model: model)
         .refusedByServer($refusedServer, model: model, publication: publication)
+    }
+
+    /// The row's own cover, or a plain well while one has not arrived.
+    ///
+    /// Decorative: the row's merged accessibility label already states the title and the
+    /// read state, so a label here would read the title twice.
+    @ViewBuilder
+    private func thumbnail(for entry: String) -> some View {
+        if let image = covers[entry] {
+            Image(decorative: image, scale: 1)
+                .resizable()
+                .scaledToFill()
+        } else {
+            theme.palette.surfaceRaised
+        }
+    }
+}
+
+/// What a reading list's row draws beneath its title, and what it says to a screen reader.
+///
+/// `collections-and-reading-lists`' delta: "each entry states its own read state — finished,
+/// part-read with the position reached, or unread — in the same terms the library uses for a
+/// publication". Free of the view so a test can call it directly, and shared in shape with
+/// Android's `entryReadState` even though each platform reaches its own strings for it.
+///
+/// An unread entry draws nothing, the rule the library's own grid cell and
+/// ``KavitaShelfViews``' server row both already keep — nothing on a shelf says "unread" out
+/// loud through a badge. ``spoken`` still names it, since a screen reader is told what a
+/// sighted reader would see by its absence.
+struct ReadingListRowState: Equatable {
+    /// What is drawn beneath the title, or nil to draw nothing.
+    let drawn: String?
+    /// What a screen reader is told, which never withholds "unread" the way `drawn` does.
+    let spoken: String
+
+    static func of(isAvailable: Bool, isFinished: Bool, fraction: Double?) -> ReadingListRowState {
+        guard isAvailable else {
+            return ReadingListRowState(
+                drawn: nil,
+                spoken: String(localized: "shelves.list.unavailable", bundle: .module, locale: .storyArc)
+            )
+        }
+        let drawn: String? =
+            if isFinished {
+                String(localized: "library.cell.finished", bundle: .module, locale: .storyArc)
+            } else if let fraction {
+                String(
+                    localized: "library.cell.progress \(Int(fraction * 100))",
+                    bundle: .module,
+                    locale: .storyArc
+                )
+            } else {
+                nil
+            }
+        let spoken = drawn ?? String(
+            localized: "library.readState.unread",
+            bundle: .module,
+            locale: .storyArc
+        )
+        return ReadingListRowState(drawn: drawn, spoken: spoken)
     }
 }
