@@ -304,6 +304,11 @@ extension ShelfCover {
     /// reorders redraws itself. Everything else is ``CompositeCover``'s rule kept word for
     /// word: four tiles or one, never a quadrant with a hole in it.
     static func tiles(of list: ReadingList) -> [String] {
+        // The reader's own choice wins outright, the same first clause
+        // ``CompositeCover/tiles(of:)`` reads for a collection -- task 7.13.
+        if let chosen = list.coverMemberID, list.entries.contains(chosen) {
+            return [chosen]
+        }
         guard list.entries.count >= CompositeCover.tileCount else {
             return Array(list.entries.prefix(1))
         }

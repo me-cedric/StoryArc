@@ -79,6 +79,51 @@ struct ShelfCoverChoiceTests {
     }
 }
 
+/// Task 7.13: the same claims as ``ShelfCoverChoiceTests``, for a reading list -- the delta
+/// widens "unless the user sets a specific one" from a collection to a list.
+@Suite("Shelf cover choice, for a reading list")
+struct ShelfCoverChoiceListTests {
+
+    private func list(_ entries: [String], cover: String? = nil) -> ReadingList {
+        ReadingList(name: "Crossover", entries: entries, coverMemberID: cover)
+    }
+
+    @Test("The composite is always offered, and offered first")
+    func compositeLeads() {
+        #expect(ShelfCoverChoice.options(of: list(["b", "a"])).first == .composite)
+    }
+
+    /// List order rather than identity order, unlike a collection's: the delta's own reason
+    /// is "the order is what a reading list means".
+    @Test("Members are offered in list order, not identity order")
+    func listOrder() {
+        let options = ShelfCoverChoice.options(of: list(["delta", "alpha", "charlie"]))
+        #expect(options == [.composite, .member("delta"), .member("alpha"), .member("charlie")])
+    }
+
+    @Test("A list holding nothing has only the composite to offer")
+    func emptyList() {
+        #expect(ShelfCoverChoice.options(of: list([])) == [.composite])
+    }
+
+    @Test("With no choice made, the composite is what is showing")
+    func compositeByDefault() {
+        #expect(ShelfCoverChoice.chosen(in: list(["a", "b"])) == .composite)
+    }
+
+    @Test("A chosen member is what is showing, and is one of the options")
+    func chosenMember() {
+        let picked = list(["a", "b"], cover: "b")
+        #expect(ShelfCoverChoice.chosen(in: picked) == .member("b"))
+        #expect(ShelfCoverChoice.options(of: picked).contains(.member("b")))
+    }
+
+    @Test("An entry no longer in the list falls back to the composite")
+    func coverThatLeft() {
+        #expect(ShelfCoverChoice.chosen(in: list(["a"], cover: "gone")) == .composite)
+    }
+}
+
 /// The screen that offers the choice, and the model call the choice reaches.
 ///
 /// The picker answering its own questions proves nothing about whether a reader can open it:
@@ -136,7 +181,10 @@ struct ShelfCoverMenuTests {
 
     /// The walk `SourceDetailSizeTests` describes: depth capped, class instances visited
     /// once, and every claim made from it positive.
-    private static func strings(in root: Any) -> Set<String> {
+    ///
+    /// `fileprivate` rather than `private`: ``ReadingListCoverMenuTests`` reuses it below
+    /// rather than copying the walk for a screen that is otherwise a different type.
+    fileprivate static func strings(in root: Any) -> Set<String> {
         var found: Set<String> = []
         var seen: Set<ObjectIdentifier> = []
 
@@ -156,5 +204,63 @@ struct ShelfCoverMenuTests {
 
         walk(root, depth: 0)
         return found
+    }
+}
+
+/// Task 7.13's own half of ``ShelfCoverMenuTests``: the same three claims, for a reading
+/// list's own screen and model call.
+@MainActor
+@Suite("The reading-list screen offers a cover")
+struct ReadingListCoverMenuTests {
+
+    private func model(holding entries: [String]) throws -> (LibraryModel, UUID) {
+        let model = LibraryModel()
+        model.create(list: "Crossover")
+        let id = try #require(model.shelves.lists.first?.id)
+        if !entries.isEmpty { model.append(entries, toList: id) }
+        return (model, id)
+    }
+
+    @Test("A list holding something offers the cover choice")
+    func offersTheChoice() throws {
+        let (model, id) = try model(holding: ["a", "b"])
+
+        let drawn = ShelfCoverMenuTests.strings(in: ReadingListDetail(model: model, id: id).body)
+
+        #expect(
+            drawn.contains("shelves.cover"),
+            "the reading-list screen offers no way to choose a cover, so settingCover(onList:) is unreachable again"
+        )
+    }
+
+    @Test("A list holding nothing does not offer it")
+    func emptyOffersNothing() throws {
+        let (model, id) = try model(holding: [])
+
+        let drawn = ShelfCoverMenuTests.strings(in: ReadingListDetail(model: model, id: id).body)
+
+        #expect(!drawn.contains("shelves.cover"))
+    }
+
+    @Test("The chosen cover is the one the list then wears")
+    func choosingSets() throws {
+        let (model, id) = try model(holding: ["a", "b"])
+
+        model.setCover("b", onList: id)
+
+        #expect(model.shelves.lists.first?.coverMemberID == "b")
+        #expect(ShelfCoverChoice.chosen(in: try #require(model.shelves.lists.first)) == .member("b"))
+    }
+
+    /// ``ShelfCover/tiles(of:)``'s own new clause: the chosen cover reaches the composite
+    /// wherever a list's artwork is drawn, not only the picker that set it.
+    @Test("The chosen cover is what the list's own composite draws")
+    func choiceReachesTheComposite() throws {
+        let (model, id) = try model(holding: ["a", "b", "c", "d"])
+
+        model.setCover("c", onList: id)
+
+        let list = try #require(model.shelves.lists.first)
+        #expect(ShelfCover.tiles(of: list) == ["c"])
     }
 }

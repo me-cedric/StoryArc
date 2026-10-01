@@ -28,6 +28,9 @@ struct ShelvesStoreTests {
                 .adding(["a", "b"], to: collectionID)
                 .settingCover("a", on: collectionID)
                 .appending(["c", "a", "b"], to: listID)
+                // Task 7.13: a list's own chosen cover, the same round trip a
+                // collection's already makes.
+                .settingCover("a", onList: listID)
         )
 
         let read = store.shelves()
@@ -35,6 +38,7 @@ struct ShelvesStoreTests {
         #expect(read.collections.first?.coverMemberID == "a")
         // The order is the point of a list, and it has to survive being written down.
         #expect(read.lists.first?.entries == ["c", "a", "b"])
+        #expect(read.lists.first?.coverMemberID == "a")
     }
 
     @Test("A server's groupings are not written")
