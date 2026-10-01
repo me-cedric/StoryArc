@@ -33,7 +33,7 @@
     <string name="library_add_folder">Añadir una carpeta</string>
     <string name="library_folder_unavailable">Ya no se puede leer %1$s.</string>
     <string name="library_repick_folder">Elegir de nuevo</string>
-    <string name="library_skipped">%1$d no se pudieron abrir</string>
+    <string name="library_skipped">%1$,d no se pudieron abrir</string>
     <string name="library_skipped_one">«%1$s» no se pudo abrir</string>
     <string name="library_skipped_list">Lo que no se pudo abrir</string>
     <string name="library_skipped_dismiss">Descartar</string>
@@ -166,8 +166,8 @@
     <string name="downloads_retry">Reintentar</string>
     <string name="downloads_stop">Detener</string>
     <plurals name="downloads_queued">
-        <item quantity="one">%1$d más en espera</item>
-        <item quantity="other">%1$d más en espera</item>
+        <item quantity="one">%1$,d más en espera</item>
+        <item quantity="other">%1$,d más en espera</item>
     </plurals>
     <string name="shelves_title">Estanterías</string>
     <string name="shelves_collections">Colecciones</string>
@@ -200,16 +200,16 @@
     <string name="shelves_collection_empty">Aún no hay nada en esta colección. Añade libros y cómics desde tu biblioteca.</string>
     <string name="shelves_list_empty">Aún no hay nada en esta lista. Añade libros y cómics desde tu biblioteca.</string>
     <string name="shelves_list_unavailable">Ya no está donde estaba</string>
-    <string name="shelves_list_progress">%1$d de %2$d leídos</string>
-    <string name="shelves_on_device">%1$d de %2$d en este dispositivo</string>
+    <string name="shelves_list_progress">%1$,d de %2$,d leídos</string>
+    <string name="shelves_on_device">%1$,d de %2$,d en este dispositivo</string>
     <string name="shelves_list_order">El orden de la lista</string>
     <string name="shelves_add_to">Añadir a…</string>
     <string name="shelves_move_up">Mover %1$s hacia arriba</string>
     <string name="shelves_move_down">Mover %1$s hacia abajo</string>
     <string name="shelves_remove_entry">Quitar %1$s de esta lista</string>
     <plurals name="shelves_count">
-        <item quantity="one">%1$d título</item>
-        <item quantity="other">%1$d títulos</item>
+        <item quantity="one">%1$,d título</item>
+        <item quantity="other">%1$,d títulos</item>
     </plurals>
     <string name="shelves_promote">Copiar a una biblioteca en línea…</string>
     <string name="shelves_promote_named">Copiar en %1$s…</string>
@@ -219,19 +219,19 @@
     <string name="shelves_promote_plan">Lo que va a ocurrir</string>
     <string name="shelves_promote_copy">Copiar</string>
     <plurals name="shelves_promote_entries">
-        <item quantity="one">%1$d de %2$d entrada</item>
-        <item quantity="other">%1$d de %2$d entradas</item>
+        <item quantity="one">%1$,d de %2$,d entrada</item>
+        <item quantity="other">%1$,d de %2$,d entradas</item>
     </plurals>
     <string name="shelves_promote_why">%1$s no las tiene, y StoryArc nunca sube ningún archivo. Se quedan en la lista de este dispositivo.</string>
     <string name="shelves_promote_none">%1$s no tiene ninguna de estas entradas, así que no hay nada que copiar.</string>
     <string name="shelves_promote_failed">No se copió nada. La biblioteca en línea no aceptó la lista.</string>
     <plurals name="shelves_promote_copying">
-        <item quantity="one">Se copiará %1$d entrada</item>
-        <item quantity="other">Se copiarán %1$d entradas</item>
+        <item quantity="one">Se copiará %1$,d entrada</item>
+        <item quantity="other">Se copiarán %1$,d entradas</item>
     </plurals>
     <plurals name="shelves_promote_left_behind">
-        <item quantity="one">%1$d entrada no se puede copiar</item>
-        <item quantity="other">%1$d entradas no se pueden copiar</item>
+        <item quantity="one">%1$,d entrada no se puede copiar</item>
+        <item quantity="other">%1$,d entradas no se pueden copiar</item>
     </plurals>
     <string name="kavita_title">Biblioteca Kavita</string>
     <string name="kavita_address_label">Dirección</string>
@@ -329,8 +329,8 @@
     <string name="downloads_removed_after_finishing">«%1$s» eliminado de este dispositivo. Se conserva tu posición.</string>
     <string name="downloads_channel">Descargas</string>
     <plurals name="downloads_running">
-        <item quantity="one">Descargando %1$d título</item>
-        <item quantity="other">Descargando %1$d títulos</item>
+        <item quantity="one">Descargando %1$,d título</item>
+        <item quantity="other">Descargando %1$,d títulos</item>
     </plurals>
     <string name="library_select">Seleccionar</string>
     <string name="library_select_done">Listo</string>
@@ -339,16 +339,16 @@
     <string name="library_bulk_download_none">Ya están todas en este dispositivo.</string>
     <string name="library_bulk_download_size">Se copiarán %1$s al almacenamiento de StoryArc.</string>
     <plurals name="library_selected">
-        <item quantity="one">%1$d seleccionada</item>
-        <item quantity="other">%1$d seleccionadas</item>
+        <item quantity="one">%1$,d seleccionada</item>
+        <item quantity="other">%1$,d seleccionadas</item>
     </plurals>
     <plurals name="library_bulk_changed">
-        <item quantity="one">%1$d título cambiado</item>
-        <item quantity="other">%1$d títulos cambiados</item>
+        <item quantity="one">%1$,d título cambiado</item>
+        <item quantity="other">%1$,d títulos cambiados</item>
     </plurals>
     <plurals name="library_bulk_download_title">
-        <item quantity="one">¿Guardar %1$d título en este dispositivo?</item>
-        <item quantity="other">¿Guardar %1$d títulos en este dispositivo?</item>
+        <item quantity="one">¿Guardar %1$,d título en este dispositivo?</item>
+        <item quantity="other">¿Guardar %1$,d títulos en este dispositivo?</item>
     </plurals>
     <string name="shelves_bulk">Todo el estante</string>
     <string name="catalogue_acquire_other">Abrir como %1$s</string>
@@ -415,8 +415,8 @@
     <string name="home_finished_one">Terminado</string>
     <string name="library_open_comic">Abrir un c\u00f3mic</string>
     <plurals name="home_pages_left">
-        <item quantity="one">Queda %1$d p\u00e1gina</item>
-        <item quantity="other">Quedan %1$d p\u00e1ginas</item>
+        <item quantity="one">Queda %1$,d p\u00e1gina</item>
+        <item quantity="other">Quedan %1$,d p\u00e1ginas</item>
     </plurals>
     <!-- Página de una publicación. El único sitio del recorrido que dice de dónde viene. -->
     <string name="detail_back">Atrás</string>

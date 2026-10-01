@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.persistence.speaking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -48,5 +49,13 @@ class SourceCountGroupingTest {
             "1,200 of 5,000 titles",
             resources.getQuantityString(R.plurals.sources_detail_progress, 5_000, 1_200, 5_000),
         )
+    }
+
+    @Test
+    fun `removing a source states its title count grouped with the German separator`() {
+        val resources = application.speaking("de").resources
+        val sentence = resources.getQuantityString(R.plurals.sources_remove_body, 5_000, 5_000)
+
+        assertTrue("an ungrouped count in \"$sentence\"", sentence.contains("5.000"))
     }
 }
