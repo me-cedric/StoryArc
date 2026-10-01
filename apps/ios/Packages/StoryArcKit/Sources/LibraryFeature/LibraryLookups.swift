@@ -1,11 +1,16 @@
 public import CoreGraphics
 public import Foundation
 
+internal import Catalogue
 public import Formats
 internal import Persistence
 public import StoryArcCore
 
 internal import ImageIO
+
+/// Thrown, and only ever discarded by `try?`, when a catalogue no longer lists the entry a
+/// row was filed under or names no artwork for it. 11.7.
+private struct OpdsArtworkNotFound: Error {}
 
 // What a cell needs to know about one publication.
 //
@@ -76,7 +81,15 @@ extension LibraryModel {
             return stored
         }
 
-        guard let url = locations[publication.id] else { return nil }
+        guard let url = locations[publication.id] else {
+            // 11.7 / D29: an OPDS row has no local file to decode a cover out of at all —
+            // its artwork is fetched from the catalogue instead.
+            guard let image = await opdsCover(for: publication, maxPixelSize: maxPixelSize) else {
+                return nil
+            }
+            covers[publication.id] = image
+            return image
+        }
 
         let image = await Task.detached(priority: .utility) {
             let decoded = try? await CoverLoader.anyCover(
@@ -89,6 +102,55 @@ extension LibraryModel {
         guard let image else { return nil }
         covers[publication.id] = image
         return image
+    }
+
+    /// An OPDS row's artwork, fetched through the catalogue it came from and cached the
+    /// same way a local cover is — by `publication.id`, through ``serverCover(for:maxPixelSize:fetch:)``,
+    /// so a reader who has seen a catalogue's grid once does not refetch it on the next launch.
+    ///
+    /// 11.7 / D29: `OpdsContributor`'s own rule is that no acquisition URL is kept, because
+    /// such a link can carry a key in its query — so the artwork address is not kept either,
+    /// and the entry is found again by the id it was filed under, through the source it came
+    /// from. An unreachable catalogue answers nothing here, same as it answers nothing to
+    /// the read that fills the shelf: a missing cover for an offline row is the grey,
+    /// coverless well, never a retry loop.
+    ///
+    /// Internal, not `private`: 11.7's own regression test asserts this directly, against a
+    /// registry holding one OPDS source and a stubbed transport, the way ``isOnDevice(_:)``
+    /// beside it is asserted without a window. `client` is that seam — nil builds the real
+    /// one, ``ServerLibrary/client(for:)``'s own way, so a test can hand this a client built
+    /// over a stubbed `URLSessionConfiguration` instead, the same seam `OpdsClientTests`
+    /// uses for the client itself.
+    func opdsCover(
+        for publication: Publication,
+        maxPixelSize: Int,
+        client overridden: OpdsClient? = nil
+    ) async -> CGImage? {
+        guard let identifier = publication.identity.serverIdentifier,
+              identifier.remoteID.hasPrefix("opds:"),
+              let source = registry.sources.first(where: { $0.id == identifier.sourceID }),
+              let page = CataloguePage(source: source, credentials: CredentialStore())
+        else { return nil }
+
+        let client = overridden ?? ServerLibrary.client(for: page)
+        return await serverCover(for: publication.id, maxPixelSize: maxPixelSize) {
+            guard let feed = try? await client.feed(at: page.url, credential: page.credential),
+                  let url = Self.artworkURL(forRemoteID: identifier.remoteID, in: feed.publications)
+            else { throw OpdsArtworkNotFound() }
+            return try await client.data(at: url, credential: page.credential)
+        }
+    }
+
+    /// The artwork link named by the entry filed under this row's id, among those a feed
+    /// just listed — the thumbnail where the feed offered one, the full cover otherwise.
+    ///
+    /// Pulled out as a pure function so the lookup is asserted directly, with no catalogue
+    /// and no network: the entry order, a `nil` thumbnail, an id nothing matches.
+    ///
+    /// `nonisolated`: it touches no actor state, and a synchronous test should not have to
+    /// pay `LibraryModel`'s `@MainActor` isolation for a lookup over a plain array.
+    nonisolated static func artworkURL(forRemoteID remoteID: String, in entries: [OpdsEntry]) -> URL? {
+        entries.first(where: { "opds:\($0.id)" == remoteID }).flatMap { $0.thumbnail ?? $0.cover }
     }
 
     /// A server's own artwork, cached the same way a local publication's cover is.
