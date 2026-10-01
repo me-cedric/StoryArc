@@ -194,14 +194,16 @@ class ReadingThemeTest {
 
     @Test
     fun `A linked reading theme follows the appearance, and OLED Dark does not go darker`() {
-        assertEquals(ThemePreset.PAPER, presetMatching(AppearanceMode.LIGHT))
-        assertEquals(ThemePreset.QUIET, presetMatching(AppearanceMode.DARK))
+        fun linked(mode: AppearanceMode) =
+            presetMatching(mode, light = ThemePreset.FOCUS, dark = ThemePreset.CALM)
+        assertEquals(ThemePreset.FOCUS, linked(AppearanceMode.LIGHT))
+        assertEquals(ThemePreset.CALM, linked(AppearanceMode.DARK))
         // The difference between Dark and OLED Dark is the *chrome*'s black point, and a
         // reading surface is deliberately never pure black — so a darker reading theme here
         // would undo the reason that appearance exists.
-        assertEquals(ThemePreset.QUIET, presetMatching(AppearanceMode.OLED_DARK))
+        assertEquals(ThemePreset.CALM, linked(AppearanceMode.OLED_DARK))
         // System is a question rather than a value, and the caller is meant to resolve it.
-        assertEquals(ThemePreset.PAPER, presetMatching(AppearanceMode.SYSTEM))
+        assertEquals(ThemePreset.FOCUS, linked(AppearanceMode.SYSTEM))
     }
 
     // Contrast.

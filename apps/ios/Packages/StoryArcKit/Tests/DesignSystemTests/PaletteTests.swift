@@ -114,14 +114,14 @@ struct AppearanceModeTests {
 
     @Test("A linked reading theme follows the appearance, and OLED Dark does not go darker")
     func linkedThemeMapping() {
-        #expect(ThemePreset.matching(.light) == .paper)
-        #expect(ThemePreset.matching(.dark) == .quiet)
+        #expect(ThemePreset.matching(.light, light: .focus, dark: .calm) == .focus)
+        #expect(ThemePreset.matching(.dark, light: .focus, dark: .calm) == .calm)
         // The difference between Dark and OLED Dark is the *chrome*'s black point, and a
         // reading surface is deliberately never pure black — so a darker reading theme
         // here would undo the reason that appearance exists.
-        #expect(ThemePreset.matching(.oledDark) == .quiet)
+        #expect(ThemePreset.matching(.oledDark, light: .focus, dark: .calm) == .calm)
         // System is a question rather than a value, and the caller is meant to resolve it.
-        #expect(ThemePreset.matching(.system) == .paper)
+        #expect(ThemePreset.matching(.system, light: .focus, dark: .calm) == .focus)
     }
 
     @Test("OLED Dark makes chrome true black and the reader surface deliberately not")

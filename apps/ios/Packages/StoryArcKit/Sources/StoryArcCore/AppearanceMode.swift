@@ -33,34 +33,22 @@ public enum AppearanceMode: String, CaseIterable, Sendable, Codable {
 }
 
 public extension ThemePreset {
-    /// The reading theme that goes with an app appearance.
+    /// The reading theme that goes with an app appearance, from the reader's own pair.
     ///
     /// `settings-and-about` keeps the two apart by default — "a dark app chrome with a
     /// paper-white page is a legitimate preference" — and then allows "a single opt-in
-    /// setting" that links them. This is the mapping that setting uses.
+    /// setting" that links them. This is the mapping that setting uses. `ebook-reader` /
+    /// *Theme follows appearance*: it lands on "the light and dark reading themes the reader
+    /// chose as their pair, not to an arbitrary default", so the pair is an input.
     ///
-    /// Two presets, not four. Light is Paper and every dark appearance is Quiet, because
-    /// the difference between Dark and OLED Dark is the *chrome*'s black point and a
-    /// reading surface is deliberately never pure black anyway. Mapping OLED Dark to a
-    /// darker reading theme would undo the reason that appearance exists.
+    /// Two presets, not four, because the difference between Dark and OLED Dark is the
+    /// *chrome*'s black point and a reading surface is deliberately never pure black
+    /// anyway. Mapping OLED Dark to a darker reading theme would undo the reason that
+    /// appearance exists.
     ///
     /// System resolves to whichever the device is showing, so it is the caller's job to
     /// pass the resolved appearance rather than `.system` — there is no answer for
     /// "follow the device" here, only for what the device currently says.
-    static func matching(_ appearance: AppearanceMode) -> ThemePreset {
-        matching(appearance, light: .paper, dark: .quiet)
-    }
-
-    /// The reading theme that goes with an app appearance, from the reader's own pair.
-    ///
-    /// `ebook-reader` / *Theme follows appearance*: the switch lands on "the light and dark
-    /// reading themes the reader chose as their pair, not to an arbitrary default" — so the
-    /// pair is an input here rather than the fixed Paper/Quiet ``matching(_:)`` falls back
-    /// to for a caller that has none to offer.
-    ///
-    /// Two presets, not four, for the same reason ``matching(_:)`` documents: Dark and OLED
-    /// Dark both resolve to `dark`, because a reading surface is deliberately never pure
-    /// black regardless of which dark chrome sits around it.
     static func matching(
         _ appearance: AppearanceMode,
         light: ThemePreset,
