@@ -88,6 +88,12 @@ class EpubReader private constructor(
      * controls that cannot do anything.
      */
     val isFixedLayout: Boolean,
+    /**
+     * The spine's own `page-progression-direction`, as the package document spells it --
+     * `"rtl"`, `"ltr"` or null when it declares none. `ReadingDirection.inferred` takes this
+     * as its declared value, so an explicit direction wins over the language guess.
+     */
+    val pageProgressionDirection: String?,
 ) {
 
     companion object {
@@ -160,6 +166,8 @@ class EpubReader private constructor(
                 ?.let { items[it]?.first }
                 ?: items.values
                     .firstOrNull { it.second == "application/x-dtbncx+xml" }?.first
+            val pageProgressionDirection = elements(packageXml, "spine")
+                .firstNotNullOfOrNull { it["page-progression-direction"] }
 
             // Missing is not an error: a publication with no declared contents
             // still reads front to back.
@@ -196,6 +204,7 @@ class EpubReader private constructor(
                 toc = toc,
                 coverHref = coverHref,
                 isFixedLayout = isFixedLayout,
+                pageProgressionDirection = pageProgressionDirection,
             )
         }
 

@@ -58,6 +58,10 @@ public struct EpubReader: Sendable {
     /// so `ebook-reader` requires the image reader and forbids offering typography
     /// controls that cannot do anything.
     public let isFixedLayout: Bool
+    /// The spine's own `page-progression-direction`, as the package document spells it —
+    /// `"rtl"`, `"ltr"` or `nil` when it declares none. `ReadingDirection.inferred` takes
+    /// this as its declared value, so an explicit direction wins over the language guess.
+    public let pageProgressionDirection: String?
 
     private let reader: ZipReader
     let pathToEntry: [String: ZipEntry]  // internal: see EpubSpineCover.swift
@@ -98,6 +102,7 @@ public struct EpubReader: Sendable {
         self.spine = package.spine
         self.coverHref = package.coverHref
         self.isFixedLayout = package.isFixedLayout
+        self.pageProgressionDirection = package.pageProgressionDirection
 
         // The table of contents lives in a different file, in a different format,
         // depending on the version. Missing is not an error: a publication with no
@@ -137,6 +142,7 @@ public struct EpubReader: Sendable {
         let navHref: String?
         let ncxHref: String?
         let isFixedLayout: Bool
+        let pageProgressionDirection: String?
     }
 
     // One pass over the package document, reading metadata, manifest and spine in the
@@ -202,6 +208,7 @@ public struct EpubReader: Sendable {
         let ncxId = attribute("toc", ofFirst: "spine", in: xml)
         let ncxHref = ncxId.flatMap { items[$0]?.href }
             ?? items.values.first { $0.mediaType == "application/x-dtbncx+xml" }?.href
+        let pageProgressionDirection = attribute("page-progression-direction", ofFirst: "spine", in: xml)
 
         return Package(
             version: version,
@@ -220,7 +227,8 @@ public struct EpubReader: Sendable {
             coverHref: coverHref,
             navHref: navHref,
             ncxHref: ncxHref,
-            isFixedLayout: isFixedLayout
+            isFixedLayout: isFixedLayout,
+            pageProgressionDirection: pageProgressionDirection
         )
     }
 
@@ -360,17 +368,6 @@ public struct EpubReader: Sendable {
               let end = text.range(of: to, range: start.upperBound..<text.endIndex)
         else { return nil }
         return String(text[start.upperBound..<end.lowerBound])
-    }
-
-    /// The five predefined XML entities. An EPUB title with an ampersand in it is
-    /// ordinary, and showing `&amp;` in a library is not.
-    private static func unescape(_ value: String) -> String {
-        value
-            .replacingOccurrences(of: "&lt;", with: "<")
-            .replacingOccurrences(of: "&gt;", with: ">")
-            .replacingOccurrences(of: "&quot;", with: "\"")
-            .replacingOccurrences(of: "&apos;", with: "'")
-            .replacingOccurrences(of: "&amp;", with: "&")
     }
 
     // MARK: - Paths

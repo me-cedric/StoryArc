@@ -126,6 +126,9 @@ object FixtureCorpus {
         val hasNavDocument: Boolean,
         val hasCoverImage: Boolean,
         val isFixedLayout: Boolean,
+        /** `"rtl"`, `"ltr"`, or null for a fixture that declares no
+         * `page-progression-direction` at all. iOS's `EbookFixture` carries the same field. */
+        val expectedPageProgressionDirection: String?,
     )
 
     val ebooks: List<Ebook> by lazy {
@@ -156,6 +159,7 @@ object FixtureCorpus {
                 hasNavDocument = obj.getValue("hasNavDocument").jsonPrimitive.boolean,
                 hasCoverImage = obj.getValue("hasCoverImage").jsonPrimitive.boolean,
                 isFixedLayout = obj.getValue("isFixedLayout").jsonPrimitive.boolean,
+                expectedPageProgressionDirection = str("expectedPageProgressionDirection"),
             )
         }
     }

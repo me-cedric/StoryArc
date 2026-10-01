@@ -480,6 +480,27 @@
       "note": "The declared cover is what a well-made EPUB carries and what most files do not. A shelf of converted books whose covers are all placeholders is the failure this pins against."
     },
     {
+      "file": "ebooks/declared-rtl.epub",
+      "pins": "a spine's own page-progression-direction wins over the language guess, in a language other than Japanese",
+      "epubVersion": 3,
+      "expectedSpineCount": 1,
+      "expectedTitle": "Declared Right To Left",
+      "expectedAuthor": "StoryArc Fixtures",
+      "expectedLanguage": "en",
+      "expectedIdentifier": "urn:uuid:storyarc-fixture-rtl",
+      "expectedSpineHrefs": [
+        "OEBPS/ch1.xhtml"
+      ],
+      "expectedTocTitles": [],
+      "expectedCoverHref": null,
+      "expectedSpineCoverHref": null,
+      "hasNavDocument": false,
+      "hasCoverImage": false,
+      "isFixedLayout": false,
+      "expectedPageProgressionDirection": "rtl",
+      "note": "English, not Japanese, on purpose: the language guess for English is already left-to-right, so a parser that silently ignored the declared attribute and fell through to the language guess would still pass a Japanese fixture by accident."
+    },
+    {
       "file": "ebooks/no-package.epub",
       "pins": "an EPUB with no container document is refused by name, not opened empty",
       "epubVersion": 0,

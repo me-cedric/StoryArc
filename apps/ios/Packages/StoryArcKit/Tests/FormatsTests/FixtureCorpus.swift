@@ -87,6 +87,9 @@ enum FixtureCorpus {
         let hasCoverImage: Bool
         let isFixedLayout: Bool
         let expectedRefusal: String?
+        /// `"rtl"`, `"ltr"`, or `nil` for a fixture that declares no
+        /// `page-progression-direction` at all. Android's `Ebook` carries the same field.
+        let expectedPageProgressionDirection: String?
     }
 
     /// One case from the manifest's `filenames` table. Needs no file on disk:
