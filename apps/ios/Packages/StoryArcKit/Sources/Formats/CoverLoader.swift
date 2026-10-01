@@ -65,7 +65,14 @@ public enum CoverLoader {
             throw CoverError.noCover
 
         case .cbz, .cbr, .cbt, .cb7, .imageFolder:
-            guard let path = publication.coverPath else { throw CoverError.noCover }
+            let path = publication.coverPath
+            // A share row is catalogued from its name alone (`SmbContributor`): no page
+            // count and no recorded cover yet, so the archive names its own cover. An
+            // indexed comic with no recorded cover has no pages, and a refused one opens
+            // nothing, so neither is opened again here.
+            if path == nil, publication.pageCount != nil || !publication.isOpenable {
+                throw CoverError.noCover
+            }
             guard let archive = try? await ComicArchiveOpener.open(fileAt: url) else {
                 throw CoverError.unreadable
             }

@@ -99,4 +99,26 @@ struct CoverLoaderTests {
         #expect(fromShare.width == fromFile.width)
         #expect(fromShare.height == fromFile.height)
     }
+
+    @Test("A share row with no recorded cover reads its own archive's cover")
+    func shareRowWithoutCoverPath() async throws {
+        // `SmbContributor` catalogues a share row from its name alone: no cover path and no
+        // page count. The comic branch required a cover path, so such a row never drew one,
+        // over a share or anywhere else.
+        let (indexed, localURL) = try await publication("comics/natural-sort.cbz")
+        let scheme = "storyarc-test-row-cover"
+        ComicArchiveOpener.register(scheme: scheme) { _ in try FileSource(url: localURL) }
+        let remoteURL = try #require(URL(string: "\(scheme)://nas.local/Comics/natural-sort.cbz"))
+        let row = Publication(
+            identity: PublicationIdentity(normalizedPath: remoteURL.absoluteString),
+            format: .cbz,
+            displayTitle: "Natural Sort",
+            origin: .inferred
+        )
+
+        let fromRow = try await CoverLoader.coverData(for: row, at: remoteURL)
+        let fromIndexed = try await CoverLoader.coverData(for: indexed, at: localURL)
+
+        #expect(fromRow == fromIndexed)
+    }
 }
