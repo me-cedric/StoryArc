@@ -5,6 +5,7 @@ import android.net.Uri
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
 import kotlinx.coroutines.flow.update
+import java.util.UUID
 
 /** Gives a folder's persisted read permission back, if the system still grants one. */
 internal fun LibraryViewModel.releaseFolderGrant(tree: Uri) {
@@ -42,4 +43,14 @@ internal fun LibraryViewModel.retireStaleFolderRows(name: String, locator: Strin
 internal fun LibraryViewModel.writeShelfThrough() {
     if (_publications.value.isEmpty()) shelfCache.clear() else cacheLibrary()
     shelfCache.forgetTheMoment()
+}
+
+/**
+ * Takes a removed source's rows off the shelf, and writes the shelf through (10.11, 10.15).
+ * A folder's removal needs the write as much as a server's: when it empties the shelf, the
+ * scan that follows refuses to replace the old snapshot, and the rows came back next launch.
+ */
+internal fun LibraryViewModel.dropRowsOf(sourceId: UUID) {
+    _publications.update { list -> list.filterNot { it.sourceId == sourceId } }
+    writeShelfThrough()
 }

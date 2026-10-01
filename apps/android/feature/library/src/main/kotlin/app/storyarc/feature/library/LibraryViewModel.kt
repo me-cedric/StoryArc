@@ -1,7 +1,6 @@
 package app.storyarc.feature.library
 
 import android.app.Application
-import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.runtime.getValue
@@ -32,7 +31,6 @@ import app.storyarc.core.model.RecentSearches
 import app.storyarc.core.persistence.DownloadStore
 import app.storyarc.core.persistence.KavitaCardStore
 import app.storyarc.core.persistence.ImportedCopies
-import app.storyarc.core.persistence.ImportedCopy
 import app.storyarc.core.persistence.documentNameOf
 import app.storyarc.core.persistence.importing
 import app.storyarc.core.persistence.imports
@@ -559,7 +557,7 @@ class LibraryViewModel(
         } ?: return
         _registry.update { it.removing(source.id, System.currentTimeMillis(), identitiesHeld(source.id)) }
         sourceStore?.save(_registry.value)
-        _publications.update { list -> list.filterNot { it.sourceId == source.id } }
+        dropRowsOf(source.id)
     }
 
     /**
@@ -703,8 +701,7 @@ class LibraryViewModel(
     private fun forget(source: Source) {
         _registry.update { it.removing(source.id, System.currentTimeMillis(), identitiesHeld(source.id)) }
         sourceStore?.save(_registry.value)
-        _publications.update { list -> list.filterNot { it.sourceId == source.id } }
-        writeShelfThrough() // 10.15
+        dropRowsOf(source.id)
         rebuild()
     }
 
