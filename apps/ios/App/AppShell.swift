@@ -261,6 +261,9 @@ struct AppShell: View {
         .task {
             model.restoreFolders()
             await model.refreshProgress()
+            // 10.12: the 30-day retention `sources` promises, finally asked about. Once
+            // per launch is enough — nothing expires between here and the next one.
+            await model.purgeExpiredTombstones()
         }
     }
 

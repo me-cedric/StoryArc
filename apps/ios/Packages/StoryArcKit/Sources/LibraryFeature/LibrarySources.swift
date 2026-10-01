@@ -79,9 +79,18 @@ extension LibraryModel {
     /// Distinct from ``register(_:)``, which adopts a folder the app already found. A
     /// catalogue arrives already confirmed — it answered, and it told us its name — so
     /// there is nothing to match and nothing to probe.
+    ///
+    /// 10.14: a tombstone for the same place takes the source over rather than letting it
+    /// in under a fresh identifier — `sources` promises "re-adding the same source restores
+    /// where the user stopped", and a server that cannot sync its own position (an OPDS
+    /// catalogue, unlike Kavita) has no way to keep that promise except this one.
     public func add(_ source: Source) {
         guard registry[source.id] == nil else { return }
-        registry = registry.adding(source)
+        if let tombstone = registry.tombstone(for: source) {
+            registry = registry.readding(source.rekeyed(to: tombstone.sourceID))
+        } else {
+            registry = registry.adding(source)
+        }
         sourceStore?.save(registry)
     }
 
@@ -219,7 +228,10 @@ extension LibraryModel {
             startWatching()
         }
 
-        registry = registry.removing(source.id, at: Date())
+        // Captured before the rows go, for the tombstone (10.12): what a later purge has
+        // to know is what this source held, and it cannot be asked once the rows are gone.
+        let identities = publications.filter { $0.sourceID == source.id }.map(\.identity)
+        registry = registry.removing(source.id, at: Date(), holding: identities)
         sourceStore?.save(registry)
 
         // The publications it contributed go with it, and the rest of the shelf stays.

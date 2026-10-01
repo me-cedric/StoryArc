@@ -150,31 +150,64 @@ public struct SourceRegistry: Sendable, Equatable {
     ///
     /// Re-adding a source with the same identifier clears its tombstone, which is what
     /// makes the retention promise true rather than merely delayed.
-    public func removing(_ id: Source.ID, at moment: Date) -> SourceRegistry {
-        guard self[id] != nil else { return self }
+    ///
+    /// - Parameter identities: every publication this source held, at the moment it is
+    ///   removed. 10.12: carried so the purge that follows thirty days later can tell
+    ///   whether another source still holds the same book before it forgets the position;
+    ///   10.14: the tombstone's own `kind` and `locator` are what let a later `add` of the
+    ///   same place find it.
+    public func removing(
+        _ id: Source.ID,
+        at moment: Date,
+        holding identities: [PublicationIdentity] = []
+    ) -> SourceRegistry {
+        guard let source = self[id] else { return self }
         return SourceRegistry(
             sources: sources.filter { $0.id != id },
             tombstones: tombstones.filter { $0.sourceID != id }
-                + [SourceTombstone(sourceID: id, removedAt: moment)]
+                + [
+                    SourceTombstone(
+                        sourceID: id,
+                        removedAt: moment,
+                        kind: source.kind,
+                        locator: source.locator,
+                        identities: identities
+                    ),
+                ]
         )
     }
 
-    /// The sources whose progress may now be forgotten, and a registry without them.
+    /// The tombstones whose progress may now be forgotten, and a registry without them.
     ///
-    /// Separated from ``removing(_:at:)`` on purpose: deciding *when* the 30 days are up
-    /// is a different question from deciding that a source is gone, and the caller that
-    /// deletes reading positions should be the one that asks. Losing a reading position
-    /// is the one thing ADR-0006 says the app must never do by accident.
+    /// Separated from ``removing(_:at:holding:)`` on purpose: deciding *when* the 30 days
+    /// are up is a different question from deciding that a source is gone, and the caller
+    /// that deletes reading positions should be the one that asks. Losing a reading
+    /// position is the one thing ADR-0006 says the app must never do by accident.
+    ///
+    /// The whole tombstone, not only the id it was filed under: the caller needs the
+    /// identities it carries to decide, publication by publication, whether anything else
+    /// still holds the same book.
     public func collectingExpiredTombstones(
         at moment: Date,
         retention: TimeInterval = SourceTombstone.retention
-    ) -> (registry: SourceRegistry, expired: [Source.ID]) {
+    ) -> (registry: SourceRegistry, expired: [SourceTombstone]) {
         let expired = tombstones.filter { moment.timeIntervalSince($0.removedAt) >= retention }
         guard !expired.isEmpty else { return (self, []) }
         let kept = tombstones.filter { tombstone in
             !expired.contains { $0.sourceID == tombstone.sourceID }
         }
-        return (SourceRegistry(sources: sources, tombstones: kept), expired.map(\.sourceID))
+        return (SourceRegistry(sources: sources, tombstones: kept), expired)
+    }
+
+    /// A tombstone for the same place, if one is still open.
+    ///
+    /// 10.14: matched on `kind` and `locator` rather than on name — a reader who renamed
+    /// the source before removing it should still have it recognised, and a `nil` locator
+    /// never matches anything, because `nil == nil` would match every such source to the
+    /// first tombstone of its kind.
+    public func tombstone(for source: Source) -> SourceTombstone? {
+        guard let locator = source.locator else { return nil }
+        return tombstones.first { $0.kind == source.kind && $0.locator == locator }
     }
 
     /// Re-adding a source the reader removed, with its progress intact.
@@ -199,10 +232,45 @@ public struct SourceTombstone: Sendable, Equatable, Codable {
 
     public let sourceID: UUID
     public let removedAt: Date
+    /// The source's own kind and locator, so a later `add` of the same place can be told
+    /// from an unrelated one of the same kind. 10.14.
+    public let kind: SourceKind
+    public let locator: String?
+    /// Every publication this source held, so the purge can tell whether another source
+    /// still needs the position before it forgets one. Empty for a tombstone written
+    /// before 10.12, which decodes and purges exactly as it always has: nothing to check
+    /// twice, nothing protected.
+    public let identities: [PublicationIdentity]
 
-    public init(sourceID: UUID, removedAt: Date) {
+    public init(
+        sourceID: UUID,
+        removedAt: Date,
+        kind: SourceKind,
+        locator: String? = nil,
+        identities: [PublicationIdentity] = []
+    ) {
         self.sourceID = sourceID
         self.removedAt = removedAt
+        self.kind = kind
+        self.locator = locator
+        self.identities = identities
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case sourceID, removedAt, kind, locator, identities
+    }
+
+    /// A tombstone written before 10.12/10.14 has none of the three new fields. Defaulted
+    /// rather than refused: `SourceStore.registry()` drops the *whole* registry on a
+    /// decode failure, and a safe default here costs nothing a tombstone needs for the
+    /// 30-day purge, which only ever read `sourceID` and `removedAt`.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        sourceID = try container.decode(UUID.self, forKey: .sourceID)
+        removedAt = try container.decode(Date.self, forKey: .removedAt)
+        kind = try container.decodeIfPresent(SourceKind.self, forKey: .kind) ?? .localFolder
+        locator = try container.decodeIfPresent(String.self, forKey: .locator)
+        identities = try container.decodeIfPresent([PublicationIdentity].self, forKey: .identities) ?? []
     }
 }
 
@@ -228,6 +296,23 @@ extension Source {
             kind: kind,
             state: state,
             lastSuccessfulSync: moment ?? lastSuccessfulSync,
+            credentialReference: credentialReference,
+            locator: locator
+        )
+    }
+
+    /// The same source, filed under a different identifier.
+    ///
+    /// 10.14: what lets a freshly-connected source take over a removed one's tombstone,
+    /// id and all, so its reading positions resolve as the same publications again
+    /// instead of under an identifier `ProgressStore` has never seen.
+    public func rekeyed(to id: UUID) -> Source {
+        Source(
+            id: id,
+            displayName: displayName,
+            kind: kind,
+            state: state,
+            lastSuccessfulSync: lastSuccessfulSync,
             credentialReference: credentialReference,
             locator: locator
         )
