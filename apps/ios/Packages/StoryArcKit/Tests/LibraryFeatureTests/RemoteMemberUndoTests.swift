@@ -29,7 +29,8 @@ struct RemoteMemberUndoTests {
         let defaults = try #require(UserDefaults(suiteName: name))
         let directory = FileManager.default.temporaryDirectory
             .appending(path: name, directoryHint: .isDirectory)
-        return DownloadQueue(store: DownloadStore(defaults: defaults, directory: directory), settings: { AppSettings() })
+        let store = DownloadStore(defaults: defaults, directory: directory)
+        return DownloadQueue(store: store, settings: { AppSettings() })
     }
 
     @Test("Undoing a group download takes back a member it queued from its catalogue")
