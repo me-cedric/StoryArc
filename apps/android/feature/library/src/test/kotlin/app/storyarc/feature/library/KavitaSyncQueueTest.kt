@@ -251,6 +251,54 @@ class KavitaSyncQueueTest {
     }
 
     @Test
+    fun `task 12_6 deleting a shelf holds the deletion when the server is away`() = runBlocking {
+        val store = store()
+        KavitaSync.deleteShelf(store, address = null, sourceId = "a-server", listId = 9, isCollection = true)
+
+        val held = store.unsent().first()
+        assertEquals(9, held.listId)
+        assertEquals(true, held.deleteShelf)
+    }
+
+    @Test
+    fun `task 12_6 deleting a shelf reaches a reachable server and leaves nothing held`() = runBlocking {
+        val store = store()
+        val address = KavitaAddress("http://localhost:${server.address.port}", "key")
+        KavitaSync.deleteShelf(store, address, sourceId = "a-server", listId = 9, isCollection = false)
+
+        assertTrue(store.unsent().isEmpty())
+    }
+
+    @Test
+    fun `task 12_6 removing a list entry holds the removal when the server is away`() = runBlocking {
+        val store = store()
+        KavitaSync.removeEntry(store, address = null, sourceId = "a-server", listId = 9, itemId = 3, position = 1)
+
+        val held = store.unsent().first()
+        assertEquals(9, held.listId)
+        assertEquals(3, held.removeItemId)
+        assertEquals(1, held.removeItemPosition)
+    }
+
+    @Test
+    fun `task 12_6 removing a list entry reaches a reachable server and leaves nothing held`() = runBlocking {
+        val store = store()
+        val address = KavitaAddress("http://localhost:${server.address.port}", "key")
+        KavitaSync.removeEntry(store, address, sourceId = "a-server", listId = 9, itemId = 3, position = 1)
+
+        assertTrue(store.unsent().isEmpty())
+    }
+
+    @Test
+    fun `task 12_6 a held shelf deletion and a held entry removal are two different promises`() = runBlocking {
+        val store = store()
+        KavitaSync.deleteShelf(store, address = null, sourceId = "a-server", listId = 9, isCollection = true)
+        KavitaSync.removeEntry(store, address = null, sourceId = "a-server", listId = 9, itemId = 3, position = 1)
+
+        assertEquals(2, store.unsent().size)
+    }
+
+    @Test
     fun `a held mark beside a held position only the mark is refused and only it leaves`() {
         routeMissingServer { address ->
             runBlocking {

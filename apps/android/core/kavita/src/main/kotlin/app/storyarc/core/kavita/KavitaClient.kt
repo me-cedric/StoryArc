@@ -376,6 +376,36 @@ class KavitaClient(val address: KavitaAddress) {
         )
     }
 
+    /** Removes a collection from the server. [deleteList]'s twin, task 12.6. */
+    suspend fun deleteCollection(id: Int) {
+        request(
+            address.endpoint("Collection", mapOf("tagId" to id.toString())),
+            method = "DELETE",
+        )
+    }
+
+    /**
+     * Removes one entry from a server reading list.
+     *
+     * `collections-and-reading-lists` requires every edit "the same kind of object as
+     * locally created" ones, and a local list drops one entry without taking the whole list
+     * with it. Kavita documents one route for this, `delete-item`, shaped for moving an
+     * entry rather than dropping one -- the same `UpdateReadingListPosition` body
+     * [moveInList] sends. [position] carries the entry's own current position, the one field
+     * that shape gives a remover to say with: there is no destination for an entry that is
+     * leaving.
+     */
+    suspend fun removeFromList(listId: Int, item: Int, position: Int) {
+        request(
+            address.endpoint("ReadingList/delete-item"),
+            method = "POST",
+            body = Json.encodeToString(
+                KavitaListPosition.serializer(),
+                KavitaListPosition(listId, item, position, position),
+            ),
+        )
+    }
+
     /**
      * Everything the server matched, in the five kinds the spec names.
      *

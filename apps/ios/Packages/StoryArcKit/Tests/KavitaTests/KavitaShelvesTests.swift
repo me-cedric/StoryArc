@@ -114,6 +114,31 @@ struct KavitaShelvesTests {
         #expect(asked.query == "readingListId=7")
     }
 
+    @Test("Deleting a collection names the one to drop — task 12.6")
+    func deleteCollectionNamesTheCollection() async throws {
+        let asked = Asked()
+        try await client(asked, body: "true").deleteCollection(4)
+        #expect(asked.method == "DELETE")
+        #expect(asked.path == "/api/Collection")
+        #expect(asked.query == "tagId=4")
+    }
+
+    @Test("Removing a list entry names the list, the entry, and its own position — task 12.6")
+    func removeFromListNamesTheEntryAndItsPosition() async throws {
+        // Kavita documents one route for this, shaped for a move rather than a drop — the
+        // same body `moveInList` sends. `toPosition` carries the entry's own position: there
+        // is no destination for an entry that is leaving.
+        let asked = Asked()
+        let sent = Sent()
+        try await client(asked, sent: sent, body: "{}").removeFromList(7, item: 3, at: 2)
+        #expect(asked.method == "POST")
+        #expect(asked.path == "/api/ReadingList/delete-item")
+        #expect(sent.body?.contains(#""readingListId":7"#) == true)
+        #expect(sent.body?.contains(#""readingListItemId":3"#) == true)
+        #expect(sent.body?.contains(#""fromPosition":2"#) == true)
+        #expect(sent.body?.contains(#""toPosition":2"#) == true)
+    }
+
     @Test("Moving an entry names the list, the entry, and both positions")
     func moveNamesTheEntryAndBothPositions() async throws {
         // Kavita moves by position and by entry together. A client that sent one without the

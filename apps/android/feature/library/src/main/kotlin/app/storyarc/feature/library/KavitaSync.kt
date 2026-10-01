@@ -260,6 +260,57 @@ object KavitaSync {
     }
 
     /**
+     * Deletes a server shelf, queuing the deletion if the server is not there.
+     *
+     * `collections-and-reading-lists` treats a server shelf "as the same kind of object as
+     * locally created ones", and a local shelf can be deleted -- so this is the gap. Sent
+     * through the one queue every other list edit uses, with the same confirmation local
+     * shelves take: that confirmation is the caller's, this is what it confirms.
+     */
+    suspend fun deleteShelf(
+        store: KavitaProgressStore,
+        address: KavitaAddress?,
+        sourceId: String,
+        listId: Int,
+        isCollection: Boolean,
+    ) {
+        val unsent = KavitaUnsent(
+            origin = KavitaOrigin(sourceId, libraryId = 0, seriesId = 0, volumeId = 0, chapterId = 0),
+            page = 0,
+            listId = listId,
+            deleteShelf = isCollection,
+        )
+        if (address == null) return store.hold(unsent)
+        val sent = runCatching { send(KavitaClient(address), unsent) }
+        if (sent.isFailure) store.hold(unsent)
+    }
+
+    /**
+     * Removes one entry from a server reading list, queuing the removal if the server is not
+     * there. The same promise [append] makes in the other direction: a local list drops one
+     * entry without taking the whole list, and a server one now does too.
+     */
+    suspend fun removeEntry(
+        store: KavitaProgressStore,
+        address: KavitaAddress?,
+        sourceId: String,
+        listId: Int,
+        itemId: Int,
+        position: Int,
+    ) {
+        val unsent = KavitaUnsent(
+            origin = KavitaOrigin(sourceId, libraryId = 0, seriesId = 0, volumeId = 0, chapterId = 0),
+            page = 0,
+            listId = listId,
+            removeItemId = itemId,
+            removeItemPosition = position,
+        )
+        if (address == null) return store.hold(unsent)
+        val sent = runCatching { send(KavitaClient(address), unsent) }
+        if (sent.isFailure) store.hold(unsent)
+    }
+
+    /**
      * Records the order a reader gave a server reading list, then tries to send it.
      *
      * Written down before anything is sent, which is the opposite way round from a position
@@ -368,7 +419,15 @@ object KavitaSync {
         val listId = held.listId
         val mark = held.mark
         val order = held.order
+        val deleteShelf = held.deleteShelf
+        val removeItemId = held.removeItemId
         when {
+            // Task 12.6: a shelf deletion and an entry removal both carry no chapter, no
+            // mark and no order, so they are read before any of those do.
+            listId != null && deleteShelf != null ->
+                if (deleteShelf) client.deleteCollection(listId) else client.deleteList(listId)
+            listId != null && removeItemId != null ->
+                client.removeFromList(listId, removeItemId, held.removeItemPosition ?: 0)
             listId != null && order != null ->
                 reorder(client, listId, order, held.orderBaseline, onOrderConflict)
             listId != null ->

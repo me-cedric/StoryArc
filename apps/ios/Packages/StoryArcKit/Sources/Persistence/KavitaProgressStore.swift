@@ -126,6 +126,19 @@ public struct KavitaUnsent: Sendable, Equatable, Codable {
     /// before this existed, which sends exactly as it always did.
     public let orderBaseline: [Int]?
 
+    /// Set when this is a removal of one entry from ``listID``, a server reading list.
+    ///
+    /// The entry's own `readingListItemId` and its current position — ``KavitaClient/removeFromList(_:item:at:)``
+    /// wants both, because Kavita's one documented route for this is shaped for moving an
+    /// entry (`UpdateReadingListPosition`) and not for dropping one. `nil` for everything
+    /// that is not this.
+    public let removeItemID: Int?
+    public let removeItemPosition: Int?
+
+    /// Set when ``listID`` should be deleted outright rather than edited — `true` for a
+    /// collection, `false` for a reading list. `nil` for every other kind of held write.
+    public let deleteShelf: Bool?
+
     /// What makes two held items the same thing.
     ///
     /// The chapter alone is not enough: a position, a mark and a list append can all be
@@ -141,6 +154,12 @@ public struct KavitaUnsent: Sendable, Equatable, Codable {
     /// hold a chapter numbered 12, and a key without the server would let one overwrite the
     /// other's held entry.
     public var key: String {
+        if let deleteShelf {
+            return "delete:\(origin.sourceId):\(listID.map(String.init) ?? "-"):\(deleteShelf)"
+        }
+        if let removeItemID {
+            return "remove:\(origin.sourceId):\(listID.map(String.init) ?? "-"):\(removeItemID)"
+        }
         guard order == nil else {
             return "order:\(origin.sourceId):\(listID.map(String.init) ?? "-")"
         }
@@ -154,7 +173,10 @@ public struct KavitaUnsent: Sendable, Equatable, Codable {
         mark: Bool? = nil,
         listID: Int? = nil,
         order: [Int]? = nil,
-        orderBaseline: [Int]? = nil
+        orderBaseline: [Int]? = nil,
+        removeItemID: Int? = nil,
+        removeItemPosition: Int? = nil,
+        deleteShelf: Bool? = nil
     ) {
         self.origin = origin
         self.page = page
@@ -162,6 +184,9 @@ public struct KavitaUnsent: Sendable, Equatable, Codable {
         self.listID = listID
         self.order = order
         self.orderBaseline = orderBaseline
+        self.removeItemID = removeItemID
+        self.removeItemPosition = removeItemPosition
+        self.deleteShelf = deleteShelf
     }
 
     /// A queue written before marks existed has no `mark` field, and it means "a position".
@@ -173,10 +198,14 @@ public struct KavitaUnsent: Sendable, Equatable, Codable {
         listID = try container.decodeIfPresent(Int.self, forKey: .listID)
         order = try container.decodeIfPresent([Int].self, forKey: .order)
         orderBaseline = try container.decodeIfPresent([Int].self, forKey: .orderBaseline)
+        removeItemID = try container.decodeIfPresent(Int.self, forKey: .removeItemID)
+        removeItemPosition = try container.decodeIfPresent(Int.self, forKey: .removeItemPosition)
+        deleteShelf = try container.decodeIfPresent(Bool.self, forKey: .deleteShelf)
     }
 
     private enum CodingKeys: String, CodingKey {
         case origin, page, mark, listID, order, orderBaseline
+        case removeItemID, removeItemPosition, deleteShelf
     }
 }
 

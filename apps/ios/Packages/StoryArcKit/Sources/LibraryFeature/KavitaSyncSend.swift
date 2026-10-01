@@ -13,6 +13,16 @@ extension KavitaSync {
         _ held: KavitaUnsent,
         onOrderConflict: (@Sendable (Int) -> Void)? = nil
     ) async throws {
+        // Task 12.6: a shelf deletion and an entry removal both carry no chapter, no mark
+        // and no order, so they are read before any of those do.
+        if let listID = held.listID, let deleteShelf = held.deleteShelf {
+            return deleteShelf
+                ? try await client.deleteCollection(listID)
+                : try await client.deleteList(listID)
+        }
+        if let listID = held.listID, let itemID = held.removeItemID {
+            return try await client.removeFromList(listID, item: itemID, at: held.removeItemPosition ?? 0)
+        }
         if let listID = held.listID, let order = held.order {
             return try await reorderCheckingBaseline(
                 listID,
