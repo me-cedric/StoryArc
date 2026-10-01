@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -126,7 +127,7 @@ internal fun AdjustmentsSheet(
 
             AdjustmentSlider(
                 labelRes = R.string.reader_brightness,
-                value = brightness ?: 1f,
+                value = brightnessInForce(brightness, LocalContext.current.contentResolver),
                 range = 0.1f..1f,
                 onChange = onChooseBrightness,
             )
