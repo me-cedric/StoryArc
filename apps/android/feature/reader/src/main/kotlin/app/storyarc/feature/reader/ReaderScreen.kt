@@ -731,6 +731,11 @@ private fun Pager(
         scope.launch { paging.goTo(displayIndex(mark), animate = false) }
     }
 
+    // What the Enter key does too -- "one key" toggles the chrome, the same as a tap.
+    fun toggleChrome() {
+        isChromeVisible = !isChromeVisible
+    }
+
     fun handleTap(point: Offset, size: IntSize) {
         val edge = size.width * EDGE_ZONE_FRACTION
         val target = when {
@@ -743,7 +748,7 @@ private fun Pager(
             else -> null
         }
         if (target == null) {
-            isChromeVisible = !isChromeVisible
+            toggleChrome()
             return
         }
         turn(target)
@@ -783,12 +788,13 @@ private fun Pager(
         .focusable()
         .onKeyEvent { event ->
             if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
-            when (event.key) {
-                Key.DirectionLeft -> turn(paging.current - 1)
-                Key.DirectionRight -> turn(paging.current + 1)
-                Key.PageUp -> turnInReadingOrder(-1)
-                Key.PageDown, Key.Spacebar -> turnInReadingOrder(1)
-                else -> return@onKeyEvent false
+            when (ReaderKeyAction.of(event.key)) {
+                ReaderKeyAction.TurnBackward -> turn(paging.current - 1)
+                ReaderKeyAction.TurnForward -> turn(paging.current + 1)
+                ReaderKeyAction.PreviousInOrder -> turnInReadingOrder(-1)
+                ReaderKeyAction.NextInOrder -> turnInReadingOrder(1)
+                ReaderKeyAction.ToggleChrome -> toggleChrome()
+                null -> return@onKeyEvent false
             }
             true
         }
