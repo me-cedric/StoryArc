@@ -68,7 +68,7 @@ public struct ShelvesView: View {
     /// confirmation "states plainly that the publications themselves are not deleted". This
     /// is the gap between the two — while it holds something, nothing has been written.
     @State private var deleting: ShelfDeletion?
-    @State var deletingServerShelf: ServerShelfDeletion? // task 12.6's twin of `deleting`
+    @State private var deletingServerShelf: ServerShelfDeletion? // task 12.6: `deleting` for a server shelf
 
     public init(model: LibraryModel, onOpen: @escaping (Publication, URL) -> Void = { _, _ in }) {
         self.model = model
@@ -207,7 +207,7 @@ public struct ShelvesView: View {
                         }
                     }
                     ForEach(server) { shelf in
-                        serverShelfCell(shelf, model: model, deletingServerShelf: $deletingServerShelf) {
+                        serverShelfCell(shelf, model: model, deleting: $deletingServerShelf) {
                             KavitaCollectionView(
                                 server: shelf.server,
                                 collectionID: shelf.id,
@@ -263,12 +263,8 @@ public struct ShelvesView: View {
                         }
                     }
                     ForEach(server) { shelf in
-                        serverShelfCell(
-                            shelf,
-                            pending: edits.pending(for: ShelfSync.key(shelf)).count,
-                            model: model,
-                            deletingServerShelf: $deletingServerShelf
-                        ) {
+                        let pending = edits.pending(for: ShelfSync.key(shelf)).count
+                        serverShelfCell(shelf, pending: pending, model: model, deleting: $deletingServerShelf) {
                             KavitaListView(
                                 server: shelf.server,
                                 listID: shelf.id,
