@@ -40,6 +40,7 @@ import app.storyarc.feature.library.HOME_SHELF_SOLE_COVER_KEY
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.RestartConfirmation
 import app.storyarc.feature.library.ServerShelf
+import app.storyarc.feature.library.purgeExpiredTombstones
 import app.storyarc.feature.library.serverCover
 import app.storyarc.navigation.AppSheet
 import app.storyarc.navigation.Screen
@@ -73,6 +74,9 @@ internal fun HomeDestination(host: AppHost) {
     // restart a walk that has already happened.
     LaunchedEffect(Unit) {
         if (host.library.publications.value.isEmpty()) host.library.restoreFolders()
+        // 10.12: the 30-day retention `sources` promises, finally asked about. Once per
+        // launch is enough -- nothing expires between here and the next one.
+        host.library.purgeExpiredTombstones()
     }
 
     // Read straight from the local store rather than through the library's own progress map,
