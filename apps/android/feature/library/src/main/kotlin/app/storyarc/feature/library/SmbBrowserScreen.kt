@@ -28,6 +28,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -108,6 +109,13 @@ fun SmbBrowserScreen(
     // the whole file may come across. See [TransferAsk].
     var transferring by remember(path) { mutableStateOf<TransferAsk?>(null) }
 
+    // What a row's own headers already said, keyed by its path -- filled in as each row
+    // nears the viewport (below), and read back here so a tap never re-reads what a row
+    // already read. `publication-formats` asks the format, the page count, the cover and
+    // the streaming state to reach the row rather than staying guessed from the filename
+    // until the reader taps it.
+    val indexed = remember(path) { mutableStateMapOf<String, Publication>() }
+
     // Indexes from the share's own headers, then does what the offer says. The tap and the
     // metered confirmation both arrive here, so the decision is written once.
     //
@@ -118,7 +126,13 @@ fun SmbBrowserScreen(
         scope.launch {
             opening = entry.path
             offerOrOpen(
-                index = { indexOnShare(client, address, entry) },
+                index = {
+                    val remotePath = SmbLocator.entry(entry.path, address)
+                    val publication = cachedOrIndexed(indexed, entry.path) {
+                        indexOnShare(client, address, entry).first
+                    }
+                    publication to remotePath
+                },
                 length = entry.length,
                 onOpen = onOpen,
                 onOffer = { bytes -> transferring = TransferAsk(entry, bytes) },
@@ -185,7 +199,18 @@ fun SmbBrowserScreen(
                 }
             }
             items(entries, key = { it.path }) { entry ->
-                EntryRow(entry, isOpening = opening == entry.path) {
+                // Composed only for a row Compose has actually laid out -- near the
+                // viewport, not the whole list -- the same lazy trigger `CoverGrid`
+                // already reads a publication's cover with. One ranged read of the
+                // headers; nothing is transferred.
+                LaunchedEffect(entry.path) {
+                    if (!entry.isDirectory && entry.path !in indexed) {
+                        runCatching {
+                            cachedOrIndexed(indexed, entry.path) { indexOnShare(client, address, entry).first }
+                        }
+                    }
+                }
+                EntryRow(entry, overlay = indexed[entry.path], isOpening = opening == entry.path) {
                     if (entry.isDirectory) {
                         onEnter(entry.path)
                     } else if (NetworkCost.isCareful(context)) {
@@ -292,8 +317,17 @@ private data class TransferAsk(
     val bytes: Long?,
 )
 
+/**
+ * One file or folder on the share.
+ *
+ * @param overlay what the file's own headers said, once a ranged read near the viewport has
+ *   answered -- null until then, and for a folder, which this row never indexes. Named for
+ *   the thing it is: a correction the headers make to what the filename alone implied,
+ *   merged into the row rather than replacing it, because the name and the icon stay put
+ *   while only the warning line changes.
+ */
 @Composable
-private fun EntryRow(entry: SmbEntry, isOpening: Boolean, onTap: () -> Unit) {
+private fun EntryRow(entry: SmbEntry, overlay: Publication?, isOpening: Boolean, onTap: () -> Unit) {
     val palette = LocalStoryArcPalette.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -316,12 +350,36 @@ private fun EntryRow(entry: SmbEntry, isOpening: Boolean, onTap: () -> Unit) {
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(entry.name, style = MaterialTheme.typography.bodyLarge, color = palette.textPrimary)
+            // Named before the tap, not after: a solid archive's headers already say so,
+            // and `publication-formats` asks for that to reach the reader before a transfer
+            // rather than after one.
+            if (overlay?.isOpenable == false) {
+                Text(
+                    text = stringResource(R.string.library_cell_cannot_open),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.textSecondary,
+                )
+            }
         }
         if (isOpening) {
             CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.padding(2.dp))
         }
     }
 }
+
+/**
+ * What a path's own headers already said, or a fresh read of them -- recorded either way.
+ *
+ * A plain function over the map a composable holds, rather than logic inside the composable
+ * itself, so a test can drive the one thing this screen must get right about the merge: a row
+ * that has already answered is never asked again. `SmbBrowserScreenTest` mutates this to prove
+ * it can fail.
+ */
+internal suspend fun cachedOrIndexed(
+    cache: MutableMap<String, Publication>,
+    path: String,
+    index: suspend () -> Publication,
+): Publication = cache[path] ?: index().also { cache[path] = it }
 
 /**
  * Indexes a publication on the share, and says where it lives.
