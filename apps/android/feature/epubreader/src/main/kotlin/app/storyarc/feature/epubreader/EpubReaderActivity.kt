@@ -49,7 +49,6 @@ import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Bookmark
 import app.storyarc.core.model.ExternalLink
 import app.storyarc.core.model.HighlightColour
-import app.storyarc.core.model.PageTransition
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.SearchMatch
 import app.storyarc.core.persistence.AnnotationStore
@@ -257,8 +256,18 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
     /// What the dip is added to, above the book and below the chrome.
     private lateinit var root: FrameLayout
 
-    /** A turn already running. A second swipe during one would fade over a fade. */
-    private var isTurning = false
+    /** Every page turn, from a tap, a key, a volume press or a swipe. */
+    private val turns by lazy {
+        EpubPageTurns(
+            scope = lifecycleScope,
+            navigator = { supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment },
+            dipHost = { root },
+            dipIndex = DIP_INDEX,
+            pageColour = { AndroidColor.parseColor(model.theme.value.background) },
+            reduceMotion = { model.reduceMotionFlow.value },
+            fadeOwnsTheTurn = { interceptor.onTurn != null },
+        )
+    }
 
     /**
      * The open publication, held so pressing play has something to hand [ReadAloudHost]: the
@@ -429,9 +438,9 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     // `page-transitions`: the reader picks a page turn *after* the book is
                     // open. `effective`, not `transition` -- Reduce Motion can turn Slide
                     // into Fast fade's own turn, and ownership has to follow that.
-                    val effective = model.transitions(reduceMotion).effective
-                    LaunchedEffect(effective) {
-                        interceptor.onTurn = if (effective == PageTransition.FAST_FADE) ::turnWithFade else null
+                    val fadeOwnsTheTurn = model.transitions(reduceMotion).fadeOwnsTheTurn
+                    LaunchedEffect(fadeOwnsTheTurn) {
+                        interceptor.onTurn = if (fadeOwnsTheTurn) turns::withFade else null
                     }
 
                     // `ebook-reader`: a footnote "opens in place". A bottom sheet is the
@@ -682,17 +691,15 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
             object : InputListener {
                 override fun onTap(event: TapEvent): Boolean {
                     val width = navigator.requireView().width.toFloat()
-                    when (EdgeTap.outcome(event.point.x, width, settings.turnPagesByTappingTheEdges)) {
-                        true -> turnPage(forward = true)
-                        false -> turnPage(forward = false)
-                        null -> model.toggleChrome()
-                    }
+                    turns.tap(event.point.x, width, settings.turnPagesByTappingTheEdges, model::toggleChrome)
                     return true
                 }
             },
         )
 
-        prepareReadAloud(publication)
+        // Its own coroutine: the walk for a first word reads resources, and the theme and
+        // the position below must not wait for it.
+        lifecycleScope.launch { prepareReadAloud(publication) }
         model.follow(navigator.currentLocator)
         // Painted once the navigator exists: a decoration applied before it is on
         // screen is a decoration Readium has nowhere to put.
@@ -994,21 +1001,13 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
 
     /**
      * Arrow, page, space and Enter turn the page or toggle the chrome; the volume keys
-     * do the first where `turnPagesWithVolumeButtons` is on. A key never reaches Compose
-     * here -- the navigator fragment's web view holds focus -- so this is the one path
-     * for all of them, the same reason `MainActivity.onKeyDown` exists for the volume keys.
+     * do the first where `turnPagesWithVolumeButtons` is on. Here rather than in Compose:
+     * the navigator's web view holds the focus, and a key it leaves unhandled reaches the
+     * activity, not the Compose tree. `MainActivity.onKeyDown` exists for the same reason.
      */
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (settings.turnPagesWithVolumeButtons) {
-            volumeTurnsForward(keyCode)?.let { turnPage(it); return true }
-        }
-        return when (EpubTurnKey.of(keyCode)) {
-            EpubTurnKey.TurnBackward -> turnPage(false).let { true }
-            EpubTurnKey.TurnForward -> turnPage(true).let { true }
-            EpubTurnKey.ToggleChrome -> model.toggleChrome().let { true }
-            null -> super.onKeyDown(keyCode, event)
-        }
-    }
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean =
+        turns.key(keyCode, settings.turnPagesWithVolumeButtons, model::toggleChrome) ||
+            super.onKeyDown(keyCode, event)
 
     /**
      * Goes somewhere in the book, remembering where the reader was.
@@ -1029,59 +1028,6 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                 ?: return
         val locator = runCatching { Locator.fromJSON(JSONObject(json)) }.getOrNull() ?: return
         navigator.go(locator, animated = false)
-    }
-
-    /**
-     * Turns a page with a transition StoryArc draws rather than one Readium draws.
-     *
-     * The dip is opaque before the navigator moves, so the swap is never on screen: what
-     * a reader sees is the page they were on fading to the page colour, and the next one
-     * arriving out of it. `page-transitions` calls this Fast fade.
-     *
-     * A turn that cannot happen — the last page, the first page — takes the dip straight
-     * back off instead of completing, because a full fade there would read as a turn that
-     * did happen.
-     */
-    @OptIn(ExperimentalReadiumApi::class)
-    private fun turnWithFade(forward: Boolean) {
-        val navigator =
-            supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
-                ?: return
-        if (isTurning) return
-        isTurning = true
-
-        lifecycleScope.launch {
-            try {
-                FadeTurn(root, DIP_INDEX).run(
-                    pageColour = AndroidColor.parseColor(model.theme.value.background),
-                ) {
-                    if (forward) {
-                        navigator.goForward(animated = false)
-                    } else {
-                        navigator.goBackward(animated = false)
-                    }
-                }
-            } finally {
-                isTurning = false
-            }
-        }
-    }
-
-    /**
-     * Turns a page from a tap, a key or a volume press -- whichever one it is not
-     * drawing, Readium's own, animated unless Reduce Motion is on.
-     */
-    @OptIn(ExperimentalReadiumApi::class)
-    private fun turnPage(forward: Boolean) {
-        if (interceptor.onTurn != null) {
-            turnWithFade(forward)
-            return
-        }
-        val navigator =
-            supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
-                ?: return
-        val animated = !model.reduceMotionFlow.value
-        if (forward) navigator.goForward(animated = animated) else navigator.goBackward(animated = animated)
     }
 
     /**
