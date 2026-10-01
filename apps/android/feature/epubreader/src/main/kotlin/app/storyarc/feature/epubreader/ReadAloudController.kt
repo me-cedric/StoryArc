@@ -1,11 +1,15 @@
 package app.storyarc.feature.epubreader
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import androidx.core.content.ContextCompat
 import app.storyarc.core.playback.InterruptionOutcome
 import app.storyarc.core.playback.PlaybackSession
 import kotlinx.coroutines.CoroutineScope
@@ -106,6 +110,16 @@ internal class ReadAloudController(
             .build()
 
     /**
+     * Headphones, or a wired adapter, come out.
+     *
+     * A speech source over the shared player would get this from media3's own
+     * `setHandleAudioBecomingNoisy` for free; until it does, nothing else on this path hears
+     * it at all. Paused as a listener pause — the ordinary button's own outcome — so
+     * reconnecting the same or a different output never starts the voice again on its own.
+     */
+    private val becomingNoisy = NoisyAudioPause(onNoisy = { pauseFor(interrupted = false) })
+
+    /**
      * Starts speaking from where the reader is.
      *
      * The reader's own locator, not the top of the resource: a reader who presses play in
@@ -119,6 +133,7 @@ internal class ReadAloudController(
         if (audio?.requestAudioFocus(focusRequest) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
             return
         }
+        becomingNoisy.register(context)
         sentences.restart(from)
         _session.value = _session.value.started()
         withEngine { speakNext(forward = true) }
@@ -166,6 +181,7 @@ internal class ReadAloudController(
         current = null
         engine?.stop()
         audio?.abandonAudioFocusRequest(focusRequest)
+        becomingNoisy.unregister(context)
         // Last, because it is what [ReadAloudHost] is watching: everything this session
         // holds is already given up by the time the host hears that it ended.
         _session.value = next
@@ -366,3 +382,35 @@ internal fun isEngineLevelSpeechError(errorCode: Int): Boolean = when (errorCode
 
 /** A small number: enough to tell "one sentence" from "every sentence", and no more. */
 internal const val MAX_CONSECUTIVE_SPEECH_ERRORS = 3
+
+/**
+ * Calls [onNoisy] while registered, for `ACTION_AUDIO_BECOMING_NOISY`.
+ *
+ * Its own type, beside [ReadAloudController] rather than inside it, so the registration and
+ * the broadcast are a Robolectric test against a plain [Context] — nothing here needs the
+ * `TextToSpeech` or the Readium `Publication` the rest of the controller does.
+ */
+internal class NoisyAudioPause(private val onNoisy: () -> Unit) : BroadcastReceiver() {
+
+    private var registered = false
+
+    override fun onReceive(context: Context, intent: Intent) = onNoisy()
+
+    /** While the voice speaks, never before and never twice. */
+    fun register(context: Context) {
+        if (registered) return
+        ContextCompat.registerReceiver(
+            context,
+            this,
+            IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+        registered = true
+    }
+
+    fun unregister(context: Context) {
+        if (!registered) return
+        context.unregisterReceiver(this)
+        registered = false
+    }
+}
