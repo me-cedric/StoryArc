@@ -25,6 +25,25 @@ enum RemoteMemberResolution {
         else { return nil }
         return (entry, acquisition)
     }
+
+    /// Queues a resolved member, and returns the id its undo takes back.
+    ///
+    /// The queue's id, not the row's: the row is `srv:<source>:opds:<entry>` and the queue
+    /// keys the download `opds:<source>:<entry>`, so an undo by the row's id took nothing
+    /// back. `nil` when the queue already held this download — the reader queued it before
+    /// the group did, and the group's undo is not theirs to cancel.
+    @MainActor
+    static func enqueue(
+        _ entry: OpdsEntry,
+        using acquisition: OpdsAcquisition,
+        sourceID: UUID,
+        in queue: DownloadQueue
+    ) -> Download.ID? {
+        let id = queue.downloadID(for: entry.id, sourceID: sourceID)
+        guard queue.library[id] == nil else { return nil }
+        queue.enqueue(entry, using: acquisition, sourceID: sourceID)
+        return id
+    }
 }
 
 /// Downloading, for a publication that is already a file.
@@ -90,7 +109,7 @@ extension LibraryModel {
             // fetched from. `collections-and-reading-lists`' bulk download "queues them
             // per offline-downloads" — this is that queueing, for the member kind the
             // copy above cannot reach at all.
-            if await enqueueRemote(publication, queue: queue) { kept.insert(id) }
+            if let queued = await enqueueRemote(publication, queue: queue) { kept.insert(queued) }
         }
         return kept
     }
@@ -106,24 +125,25 @@ extension LibraryModel {
     /// Kavita's chapters are not reached here: a chapter's own remote identifier carries
     /// nothing past its id, and resolving it back to the series it belongs to has no
     /// single request to ask for — see `KavitaKeep`'s `Subject`, which this would have to
-    /// build. `docs/delivery` tracks that as the remaining half.
-    private func enqueueRemote(_ publication: Publication, queue: DownloadQueue) async -> Bool {
+    /// build. `docs/delivery` tracks that as the remaining half. Returns the queue's id for
+    /// what it queued, which is what the undo takes back.
+    private func enqueueRemote(_ publication: Publication, queue: DownloadQueue) async -> Download.ID? {
         guard let server = publication.identity.serverIdentifier,
               let source = registry[server.sourceID],
               let page = CataloguePage(source: source, credentials: CredentialStore()),
               let feed = try? await OpdsClient(origin: page.origin).feed(at: page.url, credential: page.credential),
               let (entry, acquisition) = RemoteMemberResolution.opdsEntry(matching: server.remoteID, in: feed)
-        else { return false }
-        queue.enqueue(entry, using: acquisition, sourceID: server.sourceID)
-        return true
+        else { return nil }
+        return RemoteMemberResolution.enqueue(entry, using: acquisition, sourceID: server.sourceID, in: queue)
     }
 
     /// Forgets copies this made, deleting the files with them.
     ///
     /// Through the shared queue, for the same reason the keep above is: a removal ``store``
-    /// wrote directly would be undone the next time any catalogue's own queue saved.
+    /// wrote directly would be undone the next time any catalogue's own queue saved. Through
+    /// `cancel`, because a member the keep queued from its catalogue can still be running.
     func forgetKept(_ ids: Set<String>, queue: DownloadQueue = .shared()) {
-        for id in ids { queue.remove(id) }
+        for id in ids { queue.cancel(id) }
     }
 
     /// Puts one publication's bytes beside the other downloads, off the main actor.
