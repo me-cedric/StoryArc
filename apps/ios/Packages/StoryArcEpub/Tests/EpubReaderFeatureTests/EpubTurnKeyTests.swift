@@ -1,5 +1,6 @@
 internal import SwiftUI
 import Testing
+import ReadiumNavigator
 
 @testable import EpubReaderFeature
 
@@ -30,5 +31,23 @@ struct EpubTurnKeyTests {
     @Test("An unmapped key does nothing, so typing in a search field is not a turn")
     func unmapped() {
         #expect(EpubTurnKey.outcome(for: "a") == nil)
+    }
+
+    /// The key Readium reports while the navigator or its web view holds the first
+    /// responder, which is most of the time: the navigator takes it when it appears.
+    @Test("A key Readium reports maps the same way")
+    func readiumKeys() {
+        #expect(EpubTurnKey.outcome(for: KeyEvent(phase: .down, key: .arrowLeft)) == .backward)
+        #expect(EpubTurnKey.outcome(for: KeyEvent(phase: .down, key: .pageUp)) == .backward)
+        #expect(EpubTurnKey.outcome(for: KeyEvent(phase: .down, key: .arrowRight)) == .forward)
+        #expect(EpubTurnKey.outcome(for: KeyEvent(phase: .down, key: .pageDown)) == .forward)
+        #expect(EpubTurnKey.outcome(for: KeyEvent(phase: .down, key: .space)) == .forward)
+        #expect(EpubTurnKey.outcome(for: KeyEvent(phase: .down, key: .enter)) == .toggleChrome)
+        #expect(EpubTurnKey.outcome(for: KeyEvent(phase: .down, key: .a)) == nil)
+    }
+
+    @Test("A key with a modifier is a shortcut, not a turn")
+    func readiumShortcut() {
+        #expect(EpubTurnKey.outcome(for: KeyEvent(phase: .down, key: .arrowRight, modifiers: .command)) == nil)
     }
 }

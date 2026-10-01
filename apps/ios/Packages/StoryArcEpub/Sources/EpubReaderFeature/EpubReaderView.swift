@@ -110,8 +110,7 @@ public struct EpubReaderView: View {
     }
 
     public var body: some View {
-        // Shared below with the keyboard and game-controller modifier, so every input
-        // picks the same turn.
+        // Nil while Readium owns the turn, which leaves its paginated scroll as it was.
         let turn: ((Bool) -> Void)? = model.ownsTheTurn ? { forward in
             Task { await model.turnWithFade(forward: forward) }
         } : nil
@@ -314,7 +313,7 @@ public struct EpubReaderView: View {
         // Keyboard, Return and a game controller — see `EpubReaderTurnKeys`.
         .modifier(EpubReaderTurnKeys(
             isCoveredBySheet: isShowingMenu || isShowingTheme || isShowingContents || editingNote != nil,
-            onTurn: turn ?? animatedTurn,
+            onTurn: { forward in Task { await model.turn(forward: forward) } },
             onToggleChrome: toggleChromeOrCloseTheme
         ))
         // `comic-reader`'s rule, and it reads the same for a book: a long look at
