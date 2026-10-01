@@ -1101,15 +1101,14 @@ class LibraryViewModel(
     }
 
     /**
-     * Notices what changed in one folder, and re-reads only that.
-     *
-     * Nothing happens at all when the folder is unchanged, which is the common case: the
-     * listing is compared, it matches, and not one archive is opened.
+     * Notices what changed in one folder, and re-reads only that: nothing, in the common
+     * case of an unchanged listing, and nothing while it has no snapshot yet either -- the
+     * running scan owns that one, and an empty fallback used to report every file as added.
      */
     private suspend fun reconcile(tree: Uri) {
+        val snapshot = snapshots[tree.toString()].takeIf(::mayReconcile) ?: return
         val listing = withContext(Dispatchers.IO) { LibraryScanner.listing(resolver, tree) }
         val walked = listing.map { it.entry }
-        val snapshot = snapshots[tree.toString()] ?: FolderSnapshot()
         // Null means the walk found nothing where something used to be -- an unreadable
         // folder far more often than a reader who deleted every book. Nothing is removed and
         // the snapshot is left alone; see `FolderSnapshot.change`.
