@@ -311,7 +311,7 @@ struct CoverCell: View {
         if !publication.isOpenable {
             // Said plainly rather than shown as a broken cover. `publication-formats`
             // requires a named refusal, and a grid cell is where a user meets it.
-            return String(localized: "library.cell.cannotOpen", bundle: .module, locale: .storyArc)
+            return publication.refusalSentence
         }
         // The author when the series line would only repeat the title — the same
         // fall-through the no-series case has always taken.

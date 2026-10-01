@@ -22,6 +22,7 @@
     <string name="source_offline_retry">Try again</string>
     <string name="source_state_unauthorized">Sign-in needed</string>
     <string name="library_cell_cannot_open">This comic uses solid compression, which StoryArc cannot open.</string>
+    <string name="library_cannot_open_cb7">This is a CB7 file, which StoryArc does not read. It reads CBZ, CBR, CBT, EPUB, PDF, M4B and other audiobooks.</string>
     <string name="library_action_show_details">Show details</string>
     <string name="library_action_remove_from_shelf">Remove from this shelf</string>
     <string name="library_cell_finished">Finished</string>
@@ -333,7 +334,7 @@
     <!-- These three name an indexing refusal the share already knows, rather than reading
          as the network sentence above. `offerOrOpen` keeps that one for an actual network
          failure (SmbError) only. -->
-    <string name="smb_error_unsupported">This is a format StoryArc does not read.</string>
+    <string name="smb_error_unsupported">This is a format StoryArc does not read. It reads CBZ, CBR, CBT, EPUB, PDF, M4B and other audiobooks.</string>
     <string name="smb_error_password_protected">This archive is protected by a password. StoryArc does not manage archive passwords, so there is nothing to enter here.</string>
     <string name="smb_error_damaged">This file could not be read. It may be damaged.</string>
     <string name="smb_error_local_network_denied">This device has not granted local network access, so the connection did not start. Turn it on in Settings, under Apps, StoryArc, Permissions.</string>

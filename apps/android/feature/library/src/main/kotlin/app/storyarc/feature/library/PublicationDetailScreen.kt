@@ -55,6 +55,7 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadingAddress
 
 /** Enough pixels for the largest the cover is ever drawn, on the densest screen. */
@@ -498,6 +499,7 @@ internal fun DetailMainPane(
                 accent = accent,
                 resumeChapter = resumeChapterTitle(parts, stoppedIn),
                 fileSize = publication.fileSize,
+                format = publication.format,
                 onRead = onRead,
                 onDownload = onDownload,
             )
@@ -568,6 +570,17 @@ internal fun DetailMainPane(
     }
 }
 
+/** The resolved sentence, or null for the one state that draws none. */
+@Composable
+private fun explanationText(action: PrimaryAction, fileSize: Long?, format: PublicationFormat): String? {
+    val (resource, sizedBytes) = explanationResource(action, fileSize, format) ?: return null
+    return if (sizedBytes != null) {
+        stringResource(resource, Formatter.formatShortFileSize(LocalContext.current, sizedBytes))
+    } else {
+        stringResource(resource)
+    }
+}
+
 /**
  * The one thing the page wants the reader to do, and a sentence when it cannot.
  *
@@ -583,41 +596,13 @@ internal fun DetailMainPane(
  *   asks the download offer to state rather than leaving the reader guessing. Null or zero
  *   is an honest absence, not a size to show.
  */
-/**
- * Which string resource the explanation draws, and the size to fill it with when it is the
- * one that takes a size.
- *
- * `publication-formats` asks a download offer to state the size, and the share browser
- * already does -- `SmbBrowserScreen.kt` draws it the same way, with the same formatter. A
- * plain function rather than a `@Composable`, so a unit test can assert the decision without
- * a Compose host.
- */
-internal fun explanationResource(action: PrimaryAction, fileSize: Long?): Pair<Int, Long?>? {
-    val resource = action.explanation() ?: return null
-    return if (action == PrimaryAction.NEEDS_DOWNLOAD && fileSize != null && fileSize > 0L) {
-        R.string.detail_needs_download_sized to fileSize
-    } else {
-        resource to null
-    }
-}
-
-/** The resolved sentence, or null for the one state that draws none. */
-@Composable
-private fun explanationText(action: PrimaryAction, fileSize: Long?): String? {
-    val (resource, sizedBytes) = explanationResource(action, fileSize) ?: return null
-    return if (sizedBytes != null) {
-        stringResource(resource, Formatter.formatShortFileSize(LocalContext.current, sizedBytes))
-    } else {
-        stringResource(resource)
-    }
-}
-
 @Composable
 private fun DetailPrimaryAction(
     action: PrimaryAction,
     accent: DetailAccent?,
     resumeChapter: String?,
     fileSize: Long?,
+    format: PublicationFormat,
     onRead: () -> Unit,
     onDownload: (() -> Unit)?,
 ) {
@@ -665,7 +650,7 @@ private fun DetailPrimaryAction(
                 )
             }
         }
-        explanationText(action, fileSize)?.let { explanation ->
+        explanationText(action, fileSize, format)?.let { explanation ->
             Text(
                 text = explanation,
                 style = MaterialTheme.typography.bodySmall,

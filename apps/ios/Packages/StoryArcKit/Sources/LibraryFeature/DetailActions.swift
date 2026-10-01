@@ -74,7 +74,7 @@ struct DetailActions: View {
                 }
             } else if !publication.isOpenable {
                 // Named, per `publication-formats`: a refusal says which format it refused.
-                Text("library.cell.cannotOpen", bundle: .module)
+                Text(publication.refusalSentence)
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textSecondary)
             } else if address == nil {
@@ -242,5 +242,21 @@ struct DetailActions: View {
     private func forget() {
         model.forgetKept([publication.id])
         isKept = model.keptOffline.contains(publication.id)
+    }
+}
+
+extension Publication {
+    /// The sentence that names why this publication does not open.
+    ///
+    /// Two things make a publication refused, and they owe different sentences. A solid RAR4
+    /// is refused from its headers, and `publication-formats` names solid compression as the
+    /// reason. A CB7 share row is refused from its name alone (`SmbContributor`), and the same
+    /// spec names the container and the formats StoryArc reads instead. The grid cell, the
+    /// list row and the publication page all ask this, so a CB7 is never said to use solid
+    /// compression. Android's `refusalSentence` makes the same choice.
+    var refusalSentence: String {
+        format == .cb7
+            ? String(localized: "library.cell.cannotOpen.cb7", bundle: .module, locale: .storyArc)
+            : String(localized: "library.cell.cannotOpen", bundle: .module, locale: .storyArc)
     }
 }

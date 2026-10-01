@@ -3355,25 +3355,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dies ist ein Format, das StoryArc nicht liest."
+            "value": "Dies ist ein Format, das StoryArc nicht liest. StoryArc liest CBZ, CBR, CBT, EPUB, PDF, M4B und andere Hörbücher."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This is a format StoryArc does not read."
+            "value": "This is a format StoryArc does not read. It reads CBZ, CBR, CBT, EPUB, PDF, M4B and other audiobooks."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Este es un formato que StoryArc no lee."
+            "value": "Este es un formato que StoryArc no lee. Lee CBZ, CBR, CBT, EPUB, PDF, M4B y otros audiolibros."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ceci est un format que StoryArc ne lit pas."
+            "value": "Ceci est un format que StoryArc ne lit pas. Il lit les formats CBZ, CBR, CBT, EPUB, PDF, M4B et d’autres livres audio."
           }
         }
       }

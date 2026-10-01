@@ -787,7 +787,7 @@ internal val ON_DEVICE_MARK_SIZE = 18.dp
 private fun cellSubtitle(publication: Publication): String? = when {
     // Said plainly rather than shown as a broken cover. `publication-formats`
     // requires a named refusal, and a grid cell is where a user meets one.
-    !publication.isOpenable -> stringResource(R.string.library_cell_cannot_open)
+    !publication.isOpenable -> stringResource(refusalSentence(publication.format))
 
     // The same rule the list caption uses, from the same function. A cell headed
     // `Harbour Lights #1` captioning itself `Harbour Lights #1` was the defect; comparing

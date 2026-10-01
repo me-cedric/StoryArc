@@ -270,7 +270,7 @@ class DetailActionsTest {
 
     @Test
     fun `the needs-download explanation states the size when the source stated one`() {
-        val (resource, size) = explanationResource(PrimaryAction.NEEDS_DOWNLOAD, 400_000_000L)!!
+        val (resource, size) = explanationResource(PrimaryAction.NEEDS_DOWNLOAD, 400_000_000L, PublicationFormat.CBZ)!!
         assertEquals(R.string.detail_needs_download_sized, resource)
         assertEquals(400_000_000L, size)
     }
@@ -281,7 +281,7 @@ class DetailActionsTest {
         // than as a zero, and a zero directory-entry length is the only shape "nothing
         // stated" can arrive in here.
         for (fileSize in listOf(null, 0L)) {
-            val (resource, size) = explanationResource(PrimaryAction.NEEDS_DOWNLOAD, fileSize)!!
+            val (resource, size) = explanationResource(PrimaryAction.NEEDS_DOWNLOAD, fileSize, PublicationFormat.CBZ)!!
             assertEquals("fileSize=$fileSize", R.string.detail_needs_download, resource)
             assertEquals("fileSize=$fileSize", null, size)
         }
@@ -289,8 +289,31 @@ class DetailActionsTest {
 
     @Test
     fun `a size is never stated for an explanation that is not the download one`() {
-        val (resource, size) = explanationResource(PrimaryAction.NEEDS_SOURCE, 400_000_000L)!!
+        val (resource, size) = explanationResource(PrimaryAction.NEEDS_SOURCE, 400_000_000L, PublicationFormat.CBZ)!!
         assertEquals(R.string.detail_needs_source, resource)
         assertEquals(null, size)
+    }
+
+    // Why a refused publication does not open.
+
+    @Test
+    fun `a cb7 is refused by its container, never as solid compression`() {
+        // `SmbContributor` refuses a CB7 share row from its name alone. The cell, the list row
+        // and the publication page used to say every refused row uses solid compression,
+        // which is true of a solid RAR4 and false of a CB7.
+        assertEquals(R.string.library_cannot_open_cb7, refusalSentence(PublicationFormat.CB7))
+        assertEquals(
+            R.string.library_cannot_open_cb7 to null,
+            explanationResource(PrimaryAction.REFUSED, 400_000_000L, PublicationFormat.CB7),
+        )
+    }
+
+    @Test
+    fun `a solid rar4 is refused by its compression`() {
+        assertEquals(R.string.library_cell_cannot_open, refusalSentence(PublicationFormat.CBR))
+        assertEquals(
+            R.string.library_cell_cannot_open to null,
+            explanationResource(PrimaryAction.REFUSED, null, PublicationFormat.CBR),
+        )
     }
 }
