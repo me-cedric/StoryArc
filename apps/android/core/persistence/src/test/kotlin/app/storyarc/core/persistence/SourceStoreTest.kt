@@ -1,5 +1,6 @@
 package app.storyarc.core.persistence
 
+import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
@@ -74,6 +75,46 @@ class SourceStoreTest {
         assertEquals(1, read.tombstones.size)
         assertEquals(only.id, read.tombstones.first().sourceId)
         assertEquals(500L, read.tombstones.first().removedAtEpochMillis)
+    }
+
+    @Test
+    fun `a tombstone's kind, locator and identities survive, for 10_12 and 10_14`() {
+        val store = store()
+        val identity = PublicationIdentity(normalizedPath = "/Comics/01.cbz")
+        val only = Source(
+            displayName = "Books",
+            kind = SourceKind.OPDS_CATALOG,
+            locator = "https://example.com/feed",
+        )
+        store.save(SourceRegistry().adding(only).removing(only.id, 500, listOf(identity)))
+
+        val tombstone = store.registry().tombstones.first()
+
+        assertEquals(SourceKind.OPDS_CATALOG, tombstone.kind)
+        assertEquals("https://example.com/feed", tombstone.locator)
+        assertEquals(listOf(identity), tombstone.identities)
+    }
+
+    @Test
+    fun `a tombstone written before 10_12 decodes as a folder with nothing held`() {
+        // No `kind`, `locator` or `identities` field at all -- the shape this store wrote
+        // before those fields existed. `registry()` must not throw, and the purge that
+        // reads the result must not invent a book nobody told it about.
+        val preferences = FakePreferences()
+        preferences.edit().putString(
+            "registry",
+            """
+            {"sources":[],"tombstones":[
+              {"sourceId":"11111111-1111-1111-1111-111111111111","removedAtEpochMillis":500}
+            ]}
+            """.trimIndent(),
+        ).apply()
+
+        val tombstone = SourceStore(preferences).registry().tombstones.first()
+
+        assertEquals(SourceKind.LOCAL_FOLDER, tombstone.kind)
+        assertNull(tombstone.locator)
+        assertTrue(tombstone.identities.isEmpty())
     }
 
     @Test

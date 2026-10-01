@@ -2,6 +2,7 @@ package app.storyarc.core.persistence
 
 import android.content.Context
 import android.content.SharedPreferences
+import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
@@ -78,8 +79,19 @@ internal data class StoredRegistry(
                 locator = entry.locator,
             )
         },
+        // A tombstone written before 10.12/10.14 has no `kind`. Defaulted rather than
+        // refused: `registry()` drops the *whole* registry on a decode failure, and a
+        // safe default here costs nothing a tombstone needs for the 30-day purge, which
+        // only ever read `sourceId` and `removedAtEpochMillis`.
         tombstones = tombstones.map {
-            SourceTombstone(UUID.fromString(it.sourceId), it.removedAtEpochMillis)
+            SourceTombstone(
+                sourceId = UUID.fromString(it.sourceId),
+                removedAtEpochMillis = it.removedAtEpochMillis,
+                kind = it.kind?.let { k -> runCatching { SourceKind.valueOf(k) }.getOrNull() }
+                    ?: SourceKind.LOCAL_FOLDER,
+                locator = it.locator,
+                identities = it.identities,
+            )
         },
     )
 
@@ -96,7 +108,13 @@ internal data class StoredRegistry(
                 )
             },
             tombstones = registry.tombstones.map {
-                StoredTombstone(it.sourceId.toString(), it.removedAtEpochMillis)
+                StoredTombstone(
+                    sourceId = it.sourceId.toString(),
+                    removedAtEpochMillis = it.removedAtEpochMillis,
+                    kind = it.kind.name,
+                    locator = it.locator,
+                    identities = it.identities,
+                )
             },
         )
     }
@@ -113,4 +131,10 @@ internal data class StoredSource(
 )
 
 @Serializable
-internal data class StoredTombstone(val sourceId: String, val removedAtEpochMillis: Long)
+internal data class StoredTombstone(
+    val sourceId: String,
+    val removedAtEpochMillis: Long,
+    val kind: String? = null,
+    val locator: String? = null,
+    val identities: List<PublicationIdentity> = emptyList(),
+)

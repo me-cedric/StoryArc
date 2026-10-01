@@ -201,7 +201,7 @@ class SourceRegistryTest {
 
         val (after, expired) = registry.collectingExpiredTombstones(SourceTombstone.RETENTION_MILLIS)
 
-        assertEquals(listOf(only.id), expired)
+        assertEquals(listOf(only.id), expired.map { it.sourceId })
         assertTrue(after.tombstones.isEmpty())
     }
 
@@ -236,7 +236,7 @@ class SourceRegistryTest {
             SourceTombstone.RETENTION_MILLIS + 1,
         )
 
-        assertEquals(listOf(old.id), expired)
+        assertEquals(listOf(old.id), expired.map { it.sourceId })
         assertEquals(listOf(recent.id), after.tombstones.map { it.sourceId })
     }
 
@@ -245,6 +245,66 @@ class SourceRegistryTest {
         val registry = SourceRegistry().adding(source("Comics"))
 
         assertEquals(registry, registry.removing(UUID.randomUUID(), 1))
+    }
+
+    // 10.12 / 10.14: what a tombstone carries, and what finds it again
+
+    private fun catalogue(name: String = "Comics", locator: String = "https://example.com/feed") =
+        Source(displayName = name, kind = SourceKind.OPDS_CATALOG, locator = locator)
+
+    @Test
+    fun `a tombstone carries the source's own kind, locator and identities`() {
+        val identity = PublicationIdentity(normalizedPath = "/Comics/01.cbz")
+        val original = catalogue()
+        val registry = SourceRegistry().adding(original)
+            .removing(original.id, 0, listOf(identity))
+
+        val tombstone = registry.tombstones.first()
+        assertEquals(SourceKind.OPDS_CATALOG, tombstone.kind)
+        assertEquals("https://example.com/feed", tombstone.locator)
+        assertEquals(listOf(identity), tombstone.identities)
+    }
+
+    @Test
+    fun `a tombstone for the same kind and locator is found again`() {
+        val original = catalogue()
+        val registry = SourceRegistry().adding(original).removing(original.id, 0)
+
+        val readded = catalogue()
+        assertEquals(original.id, registry.tombstone(readded)?.sourceId)
+    }
+
+    @Test
+    fun `a different locator is not mistaken for the same place`() {
+        val original = catalogue()
+        val registry = SourceRegistry().adding(original).removing(original.id, 0)
+
+        val unrelated = catalogue(name = "Manga", locator = "https://other.example/feed")
+        assertNull(registry.tombstone(unrelated))
+    }
+
+    @Test
+    fun `two sources with no locator at all are never mistaken for one another`() {
+        val original = source("Comics", kind = SourceKind.OPDS_CATALOG)
+        val registry = SourceRegistry().adding(original).removing(original.id, 0)
+
+        val another = source("Manga", kind = SourceKind.OPDS_CATALOG)
+        assertNull(registry.tombstone(another))
+    }
+
+    @Test
+    fun `re-adding over a found tombstone keeps the old identifier and clears it`() {
+        val original = catalogue()
+        val registry = SourceRegistry().adding(original).removing(original.id, 0)
+
+        val fresh = catalogue()
+        val tombstone = registry.tombstone(fresh)
+        assertNotNull(tombstone)
+        val after = registry.readding(fresh.copy(id = tombstone!!.sourceId))
+
+        assertNotNull(after[original.id])
+        assertNull(after[fresh.id])
+        assertTrue(after.tombstones.isEmpty())
     }
 
     @Test

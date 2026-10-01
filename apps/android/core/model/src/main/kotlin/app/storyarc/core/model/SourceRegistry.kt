@@ -166,33 +166,59 @@ data class SourceRegistry(
      *
      * Re-adding a source with the same identifier clears its tombstone, which is what
      * makes the retention promise true rather than merely delayed.
+     *
+     * @param identities every publication this source held, at the moment it is removed.
+     *   10.12: carried so the purge that follows thirty days later can tell whether another
+     *   source still holds the same book before it forgets the position; 10.14: the
+     *   tombstone's own kind and locator are what let a later [adding] of the same place
+     *   find it.
      */
-    fun removing(id: UUID, atEpochMillis: Long): SourceRegistry {
-        if (this[id] == null) return this
+    fun removing(
+        id: UUID,
+        atEpochMillis: Long,
+        identities: List<PublicationIdentity> = emptyList(),
+    ): SourceRegistry {
+        val source = this[id] ?: return this
         return copy(
             sources = sources.filterNot { it.id == id },
             tombstones = tombstones.filterNot { it.sourceId == id } +
-                SourceTombstone(id, atEpochMillis),
+                SourceTombstone(id, atEpochMillis, source.kind, source.locator, identities),
         )
     }
 
     /**
-     * The sources whose progress may now be forgotten, and a registry without them.
+     * The tombstones whose progress may now be forgotten, and a registry without them.
      *
      * Separated from [removing] on purpose: deciding *when* the 30 days are up is a
      * different question from deciding that a source is gone, and the caller that deletes
      * reading positions should be the one that asks. Losing a reading position is the one
      * thing ADR-0006 says the app must never do by accident.
+     *
+     * The whole tombstone, not only the id it was filed under: the caller needs the
+     * identities it carries to decide, publication by publication, whether anything else
+     * still holds the same book.
      */
     fun collectingExpiredTombstones(
         atEpochMillis: Long,
         retentionMillis: Long = SourceTombstone.RETENTION_MILLIS,
-    ): Pair<SourceRegistry, List<UUID>> {
+    ): Pair<SourceRegistry, List<SourceTombstone>> {
         val expired = tombstones.filter { atEpochMillis - it.removedAtEpochMillis >= retentionMillis }
         if (expired.isEmpty()) return this to emptyList()
         val expiredIds = expired.map { it.sourceId }.toSet()
-        return copy(tombstones = tombstones.filterNot { it.sourceId in expiredIds }) to
-            expired.map { it.sourceId }
+        return copy(tombstones = tombstones.filterNot { it.sourceId in expiredIds }) to expired
+    }
+
+    /**
+     * A tombstone for the same place, if one is still open.
+     *
+     * 10.14: matched on [SourceKind] and locator rather than on name — a reader who renamed
+     * the source before removing it should still have it recognised, and a `null` locator
+     * never matches anything, because `null == null` would match every such source to the
+     * first tombstone of its kind.
+     */
+    fun tombstone(forSource: Source): SourceTombstone? {
+        val locator = forSource.locator ?: return null
+        return tombstones.firstOrNull { it.kind == forSource.kind && it.locator == locator }
     }
 
     /**
@@ -204,6 +230,19 @@ data class SourceRegistry(
         sources = sources + source,
         tombstones = tombstones.filterNot { it.sourceId == source.id },
     )
+
+    /**
+     * Adds a source, or re-adds it under an open tombstone for the same place.
+     *
+     * 10.14: a tombstone for the same place takes the source over rather than letting it
+     * in under a fresh identifier — `sources` promises "re-adding the same source restores
+     * where the user stopped", and a server that cannot sync its own position (an OPDS
+     * catalogue, unlike Kavita) has no way to keep that promise except this one.
+     */
+    fun adoptingOrReadding(source: Source): SourceRegistry {
+        val tombstone = tombstone(source)
+        return if (tombstone != null) readding(source.copy(id = tombstone.sourceId)) else adding(source)
+    }
 }
 
 /**
@@ -211,8 +250,22 @@ data class SourceRegistry(
  *
  * Kept so the progress belonging to its publications can outlive it for a while. See
  * [SourceRegistry.removing].
+ *
+ * @param kind the source's own kind, so a later [SourceRegistry.tombstone] of the same
+ *   place can be told from an unrelated one of the same kind. 10.14.
+ * @param locator the source's own locator, for the same reason.
+ * @param identities every publication this source held, so the purge can tell whether
+ *   another source still needs the position before it forgets one. Empty for a tombstone
+ *   written before 10.12, which decodes and purges exactly as it always has: nothing to
+ *   check twice, nothing protected.
  */
-data class SourceTombstone(val sourceId: UUID, val removedAtEpochMillis: Long) {
+data class SourceTombstone(
+    val sourceId: UUID,
+    val removedAtEpochMillis: Long,
+    val kind: SourceKind = SourceKind.LOCAL_FOLDER,
+    val locator: String? = null,
+    val identities: List<PublicationIdentity> = emptyList(),
+) {
     companion object {
         /**
          * Thirty days, from `sources`. Long enough that a reader who removed a server by

@@ -72,7 +72,7 @@ import java.io.File
 
 class LibraryViewModel(
     application: Application,
-    private val progressStore: ProgressStore? = null,
+    internal val progressStore: ProgressStore? = null,
     private val preferences: LibraryPreferences? = null,
     internal val sourceStore: SourceStore? = null,
     private val shelvesStore: ShelvesStore? = null,
@@ -506,7 +506,7 @@ class LibraryViewModel(
      */
     fun addSource(source: Source) {
         if (_registry.value[source.id] != null) return
-        _registry.update { it.adding(source) }
+        _registry.update { it.adoptingOrReadding(source) }
         sourceStore?.save(_registry.value)
     }
 
@@ -557,7 +557,7 @@ class LibraryViewModel(
         val source = _registry.value.sources.firstOrNull {
             it.kind == SourceKind.LOCAL_FOLDER && it.locator == tree.toString()
         } ?: return
-        _registry.update { it.removing(source.id, System.currentTimeMillis()) }
+        _registry.update { it.removing(source.id, System.currentTimeMillis(), identitiesHeld(source.id)) }
         sourceStore?.save(_registry.value)
         _publications.update { list -> list.filterNot { it.sourceId == source.id } }
     }
@@ -701,7 +701,7 @@ class LibraryViewModel(
      * deleted them before [removeSource] was called, as that method's note says.
      */
     private fun forget(source: Source) {
-        _registry.update { it.removing(source.id, System.currentTimeMillis()) }
+        _registry.update { it.removing(source.id, System.currentTimeMillis(), identitiesHeld(source.id)) }
         sourceStore?.save(_registry.value)
         _publications.update { list -> list.filterNot { it.sourceId == source.id } }
         writeShelfThrough() // 10.15
