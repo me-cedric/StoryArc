@@ -79,6 +79,21 @@ class ReaderAppearanceTest {
     }
 
     @Test
+    fun `a linked preset resolves to the reader's own stored pair`() {
+        // `ebook-reader` / *Theme follows appearance*: the switch lands on "the light and
+        // dark reading themes the reader chose as their pair, not to an arbitrary default".
+        val settings = AppSettings(
+            appearance = AppearanceMode.SYSTEM,
+            linkReadingThemeToAppearance = true,
+            lightReadingTheme = ThemePreset.FOCUS,
+            darkReadingTheme = ThemePreset.CALM,
+        )
+
+        assertEquals(ThemePreset.CALM, of(settings, device = AppearanceMode.DARK).linkedPreset)
+        assertEquals(ThemePreset.FOCUS, of(settings, device = AppearanceMode.LIGHT).linkedPreset)
+    }
+
+    @Test
     fun `OLED Dark blackens the chrome and stops short of the reading surface`() {
         val settings = AppSettings(
             appearance = AppearanceMode.OLED_DARK,

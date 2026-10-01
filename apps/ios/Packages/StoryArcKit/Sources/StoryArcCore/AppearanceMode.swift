@@ -48,12 +48,30 @@ public extension ThemePreset {
     /// pass the resolved appearance rather than `.system` — there is no answer for
     /// "follow the device" here, only for what the device currently says.
     static func matching(_ appearance: AppearanceMode) -> ThemePreset {
+        matching(appearance, light: .paper, dark: .quiet)
+    }
+
+    /// The reading theme that goes with an app appearance, from the reader's own pair.
+    ///
+    /// `ebook-reader` / *Theme follows appearance*: the switch lands on "the light and dark
+    /// reading themes the reader chose as their pair, not to an arbitrary default" — so the
+    /// pair is an input here rather than the fixed Paper/Quiet ``matching(_:)`` falls back
+    /// to for a caller that has none to offer.
+    ///
+    /// Two presets, not four, for the same reason ``matching(_:)`` documents: Dark and OLED
+    /// Dark both resolve to `dark`, because a reading surface is deliberately never pure
+    /// black regardless of which dark chrome sits around it.
+    static func matching(
+        _ appearance: AppearanceMode,
+        light: ThemePreset,
+        dark: ThemePreset
+    ) -> ThemePreset {
         switch appearance {
-        case .light: .paper
-        case .dark, .oledDark: .quiet
+        case .light: light
+        case .dark, .oledDark: dark
         // A caller that has not resolved System gets the light answer rather than a
         // crash. Documented rather than silent: `.system` is a question, not a value.
-        case .system: .paper
+        case .system: light
         }
     }
 }

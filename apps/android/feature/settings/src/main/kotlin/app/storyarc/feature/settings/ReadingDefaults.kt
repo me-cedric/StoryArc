@@ -333,7 +333,7 @@ private val ThemeScope.labelRes: Int
  * module for six words, and `reading-themes` names them in the spec rather than in code —
  * so the duplication is of a translation, not of a decision.
  */
-private val ThemePreset.labelRes: Int
+internal val ThemePreset.labelRes: Int
     get() = when (this) {
         ThemePreset.ORIGINAL -> R.string.preset_original
         ThemePreset.QUIET -> R.string.preset_quiet

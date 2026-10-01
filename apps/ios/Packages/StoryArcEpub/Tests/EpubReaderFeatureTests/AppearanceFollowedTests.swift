@@ -69,6 +69,29 @@ struct AppearanceFollowedTests {
         #expect(linkedPreset(for: linked, in: .light) == .paper, "a light device means the light reading theme")
     }
 
+    @Test("The link resolves to the reader's own stored pair, not a fixed Paper and Quiet")
+    func theLinkFollowsTheStoredPair() {
+        let linked = AppSettings(
+            appearance: .system,
+            linkReadingThemeToAppearance: true,
+            lightReadingTheme: .focus,
+            darkReadingTheme: .calm
+        )
+
+        #expect(
+            linkedPreset(for: linked, in: .dark) == .calm,
+            """
+            The link landed on Quiet rather than the reader's own dark half of the pair. \
+            `ebook-reader` / *Theme follows appearance* asks for "the light and dark reading \
+            themes the reader chose as their pair, not to an arbitrary default".
+            """
+        )
+        #expect(
+            linkedPreset(for: linked, in: .light) == .focus,
+            "the link landed on Paper rather than the reader's own light half of the pair"
+        )
+    }
+
     // MARK: - What the reader does with one
 
     @Test("A device that turns dark mid-book changes the page when the reader opted in")

@@ -86,6 +86,23 @@ struct AppearanceSettings: View {
                     }
                 }
                 .settingsHighlight(.linkReadingTheme, when: highlight)
+
+                // The pair the link adopts. `ebook-reader` / *Theme follows appearance*:
+                // the switch lands on "the light and dark reading themes the reader chose
+                // as their pair, not to an arbitrary default" — so the pair itself has to
+                // be choosable, not just the toggle that uses it.
+                if settings.linkReadingThemeToAppearance {
+                    LinkedPresetPicker(
+                        titleKey: "appearance.linkTheme.light",
+                        selection: $settings.lightReadingTheme
+                    )
+                    .settingsHighlight(.linkReadingTheme, when: highlight)
+                    LinkedPresetPicker(
+                        titleKey: "appearance.linkTheme.dark",
+                        selection: $settings.darkReadingTheme
+                    )
+                    .settingsHighlight(.linkReadingTheme, when: highlight)
+                }
             }
 
             // Beside Appearance, which `settings-and-about` asks for by name: "both answer
@@ -98,6 +115,29 @@ struct AppearanceSettings: View {
             // rather than at the choice.
             AppIconSettings(store: appIcon)
                 .settingsHighlight(.appIcon, when: highlight)
+        }
+    }
+}
+
+/// One half of the pair ``AppSettings/linkReadingThemeToAppearance`` adopts.
+///
+/// `ebook-reader` / *Theme follows appearance*: the switch lands on the pair "the reader
+/// chose", so each half needs its own picker rather than the toggle alone deciding Paper
+/// and Quiet for every reader. A `Picker` with a menu style, the same control
+/// ``AppearanceSettings`` otherwise builds by hand for the four appearances — here a menu
+/// rather than rows, because this list is a detail beneath an already-expanded toggle
+/// rather than a screen's own content.
+private struct LinkedPresetPicker: View {
+    let titleKey: LocalizedStringKey
+    @Binding var selection: ThemePreset
+
+    var body: some View {
+        Picker(selection: $selection) {
+            ForEach(ThemePreset.allCases, id: \.self) { preset in
+                Text(preset.settingsTitleKey, bundle: .module).tag(preset)
+            }
+        } label: {
+            Text(titleKey, bundle: .module)
         }
     }
 }

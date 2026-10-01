@@ -58,7 +58,26 @@ enum class AppearanceMode {
  * only for what the device currently says. A caller that has not resolved it gets the light
  * answer rather than a crash.
  */
-fun presetMatching(appearance: AppearanceMode): ThemePreset = when (appearance) {
-    AppearanceMode.LIGHT, AppearanceMode.SYSTEM -> ThemePreset.PAPER
-    AppearanceMode.DARK, AppearanceMode.OLED_DARK -> ThemePreset.QUIET
+fun presetMatching(appearance: AppearanceMode): ThemePreset =
+    presetMatching(appearance, light = ThemePreset.PAPER, dark = ThemePreset.QUIET)
+
+/**
+ * The reading theme that goes with an app appearance, from the reader's own pair.
+ *
+ * `ebook-reader` / *Theme follows appearance*: the switch lands on "the light and dark
+ * reading themes the reader chose as their pair, not to an arbitrary default" — so the pair
+ * is an input here rather than the fixed Paper/Quiet [presetMatching] falls back to for a
+ * caller that has none to offer.
+ *
+ * Two presets, not four, for the same reason the single-argument overload documents: Dark
+ * and OLED Dark both resolve to [dark], because a reading surface is deliberately never
+ * pure black regardless of which dark chrome sits around it.
+ */
+fun presetMatching(
+    appearance: AppearanceMode,
+    light: ThemePreset,
+    dark: ThemePreset,
+): ThemePreset = when (appearance) {
+    AppearanceMode.LIGHT, AppearanceMode.SYSTEM -> light
+    AppearanceMode.DARK, AppearanceMode.OLED_DARK -> dark
 }
