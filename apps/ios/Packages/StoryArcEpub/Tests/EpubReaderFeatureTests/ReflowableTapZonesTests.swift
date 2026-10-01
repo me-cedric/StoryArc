@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import UIKit
 
 @testable import EpubReaderFeature
 
@@ -56,24 +57,14 @@ struct ReflowableTapZonesTests {
     }
 
     @Test("A tap only turns the page while the reader's setting says it may")
-    func theSettingIsHonoured() throws {
-        let text = try turnSource()
-
-        #expect(
-            text.contains("if tapTurnsPages, point.x < band"),
-            "The leading zone turns without consulting the setting."
-        )
-        #expect(
-            text.contains("} else if tapTurnsPages, point.x > view.bounds.width - band {"),
-            "The trailing zone turns without consulting the setting."
-        )
-        #expect(
-            text.contains("reveal?()"),
-            """
-            With the zones off a tap must still reveal the chrome — the way back to the \
-            menu is the one thing a reader still needs from a tap.
-            """
-        )
+    func theSettingIsHonoured() {
+        #expect(EdgeTap.outcome(x: 100, width: 900, tapTurnsPages: true) == false)
+        #expect(EdgeTap.outcome(x: 800, width: 900, tapTurnsPages: true) == true)
+        #expect(EdgeTap.outcome(x: 450, width: 900, tapTurnsPages: true) == nil)
+        // With the zones off a tap must still reveal the chrome — the way back to the
+        // menu is the one thing a reader still needs from a tap.
+        #expect(EdgeTap.outcome(x: 100, width: 900, tapTurnsPages: false) == nil)
+        #expect(EdgeTap.outcome(x: 800, width: 900, tapTurnsPages: false) == nil)
     }
 
     @Test("The flag reaches the gestures from the reader's own settings")
@@ -86,19 +77,70 @@ struct ReflowableTapZonesTests {
     }
 
     @Test("A tap turns the page in every mode, not only while Fast fade owns the turn")
-    func theTapIsInstalledAlways() throws {
+    @MainActor
+    func theTapTurnsInEveryMode() {
+        var turns: [String] = []
+        let gestures = TurnGestures()
+
+        // Slide or Scroll: Fast fade does not own the turn, so Readium's animated turn
+        // answers an edge tap. Before this, nothing did, and the tap only toggled the chrome.
+        gestures.apply(
+            turn: nil,
+            animatedTurn: { turns.append("animated \($0)") },
+            reveal: { turns.append("reveal") },
+            tapTurnsPages: true,
+            on: UIView()
+        )
+        gestures.tapped(at: 800, width: 900)
+        gestures.tapped(at: 100, width: 900)
+        gestures.tapped(at: 450, width: 900)
+        #expect(turns == ["animated true", "animated false", "reveal"])
+
+        // Fast fade: its own turn wins over Readium's.
+        turns = []
+        gestures.apply(
+            turn: { turns.append("fade \($0)") },
+            animatedTurn: { turns.append("animated \($0)") },
+            reveal: { turns.append("reveal") },
+            tapTurnsPages: true,
+            on: UIView()
+        )
+        gestures.tapped(at: 800, width: 900)
+        #expect(turns == ["fade true"])
+    }
+
+    @Test("A turn key takes the same turn a tap does, and Return reveals the chrome")
+    @MainActor
+    func theKeysTakeTheSameTurn() {
+        var turns: [String] = []
+        let gestures = TurnGestures()
+        gestures.apply(
+            turn: nil,
+            animatedTurn: { turns.append("animated \($0)") },
+            reveal: { turns.append("reveal") },
+            tapTurnsPages: false,
+            on: UIView()
+        )
+
+        // The tap-zone setting governs taps only: `page-transitions` keeps every other
+        // trigger turning pages with the zones off.
+        gestures.pressed(.forward)
+        gestures.pressed(.backward)
+        gestures.pressed(.toggleChrome)
+        #expect(turns == ["animated true", "animated false", "reveal"])
+    }
+
+    @Test("Readium's own tap and key observers are what the reader listens to")
+    func theObserversAreRegistered() throws {
+        let host = try source("apps/ios/Packages/StoryArcEpub/Sources/EpubReaderFeature/EpubReaderHost.swift")
         let text = try turnSource()
 
-        #expect(
-            !text.contains("guard shouldOwn else { return }"),
-            """
-            The old guard that skipped installing anything outside Fast fade is back — a \
-            reader who left Slide chosen would have no tap zones again.
-            """
-        )
-        #expect(
-            text.contains("(turn ?? animatedTurn)?(false)") && text.contains("(turn ?? animatedTurn)?(true)"),
-            "Readium's own animated turn no longer backs up Fast fade's for an edge tap."
-        )
+        // A UIKit tap recogniser over the web view heard a tap on a link too, so following
+        // a link near the edge also turned the page. Readium's observer leaves those out.
+        #expect(host.contains("context.coordinator.observe(navigator)"))
+        #expect(host.contains("coordinator.stopObserving(controller)"))
+        #expect(text.contains("navigator.addObserver(.activate {"))
+        #expect(text.contains("navigator.addObserver(.key {"))
+        #expect(!text.contains("UITapGestureRecognizer"))
     }
 }

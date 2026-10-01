@@ -14,11 +14,9 @@ internal import DesignSystem
 
 /// The navigator, in a SwiftUI hierarchy.
 ///
-/// The tap is registered through ``TurnGestures``, a plain `UIGestureRecognizer`, rather
+/// The tap and the turn keys are registered through Readium's own input observers rather
 /// than a SwiftUI gesture: a gesture layered over the web view swallows the taps the
-/// reader needs to turn pages and follow links, where a recogniser added directly to the
-/// navigator's own view — and set to recognise simultaneously with whatever else is
-/// listening — does not.
+/// reader needs to turn pages and follow links. See ``TurnGestures``.
 struct NavigatorHost: UIViewControllerRepresentable {
     let navigator: EPUBNavigatorViewController
     /// Non-nil when StoryArc draws the turn. See ``EpubReaderModel/ownsTheTurn``.
@@ -30,7 +28,14 @@ struct NavigatorHost: UIViewControllerRepresentable {
     let tapTurnsPages: Bool
     let onTap: () -> Void
 
-    func makeUIViewController(context: Context) -> EPUBNavigatorViewController { navigator }
+    func makeUIViewController(context: Context) -> EPUBNavigatorViewController {
+        context.coordinator.observe(navigator)
+        return navigator
+    }
+
+    static func dismantleUIViewController(_ controller: EPUBNavigatorViewController, coordinator: TurnGestures) {
+        coordinator.stopObserving(controller)
+    }
 
     func makeCoordinator() -> TurnGestures { TurnGestures() }
 
@@ -39,8 +44,7 @@ struct NavigatorHost: UIViewControllerRepresentable {
     /// Not `makeUIViewController`: that runs once, when the reader opens, and the reader
     /// picks a page turn afterwards. Installing there meant the gestures were only ever
     /// set up for whatever mode the book happened to open in — so choosing Fast fade did
-    /// nothing at all, which is exactly how this was found. ``TurnGestures`` installs its
-    /// tap recogniser the first time this runs, which covers the book's opening mode too.
+    /// nothing at all, which is exactly how this was found.
     func updateUIViewController(_ controller: EPUBNavigatorViewController, context: Context) {
         context.coordinator.apply(
             turn: turn,

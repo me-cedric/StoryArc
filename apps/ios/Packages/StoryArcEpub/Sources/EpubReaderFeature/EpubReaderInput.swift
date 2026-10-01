@@ -1,13 +1,18 @@
 internal import SwiftUI
 internal import GameController
+internal import ReadiumNavigator
 
 // Keyboard, Return and a game controller for the reflowable reader.
 //
 // `page-transitions`, *Hardware input*: arrow, page and space keys turn the page in
-// every reader, and a game controller's d-pad and shoulder buttons do the same —
-// `EpubReaderHost.swift` already does the equivalent for an edge tap. No key toggles
-// the chrome in any reader before this; Return does it here and is the "one key"
-// `page-transitions` asks every reader to bind.
+// every reader, and a game controller's d-pad and shoulder buttons do the same. No key
+// toggled the chrome in any reader before this; Return does it here and is the "one key"
+// `native-experience` asks every reader to bind.
+//
+// A key reaches the reader by one of two ways. While the navigator or its web view holds
+// the first responder, Readium's key observer hears it — see ``TurnGestures``. While
+// SwiftUI holds the focus, after a sheet closes, `EpubReaderTurnKeys` below hears it.
+// Only one of them holds the first responder at a time, so a key turns one page.
 //
 // Split out of `EpubReaderView.swift`, which is at the 400-line cap SwiftLint enforces
 // under `apps/ios`, the same reason the comic reader keeps `ReaderKeyboardFocus.swift`
@@ -29,6 +34,36 @@ enum EpubTurnKey: Equatable {
         case .rightArrow, .pageDown, .space: .forward
         case .return: .toggleChrome
         default: nil
+        }
+    }
+
+    /// The same rule for a key Readium reports. A key with a modifier is a shortcut, not a
+    /// turn, as Readium's own `DirectionalNavigationAdapter` decides.
+    static func outcome(for event: KeyEvent) -> EpubTurnKey? {
+        guard event.modifiers.isEmpty else { return nil }
+        switch event.key {
+        case .arrowLeft, .pageUp: return .backward
+        case .arrowRight, .pageDown, .space: return .forward
+        case .enter: return .toggleChrome
+        default: return nil
+        }
+    }
+}
+
+extension EpubReaderModel {
+    /// The turn a key or a controller takes, decided when it is pressed: Fast fade's own
+    /// where it owns the turn, Readium's otherwise.
+    ///
+    /// Decided here rather than captured by the view, because a controller is bound once,
+    /// when the reader appears. A closure captured then kept the mode the book opened in,
+    /// so a reader who chose Fast fade afterwards still got a Slide from the d-pad.
+    func turn(forward: Bool) async {
+        if ownsTheTurn {
+            await turnWithFade(forward: forward)
+        } else if forward {
+            await goForward()
+        } else {
+            await goBackward()
         }
     }
 }
@@ -53,6 +88,7 @@ struct EpubReaderTurnKeys: ViewModifier {
             .onAppear { isFocused = true }
             .onChange(of: isCoveredBySheet) { _, isCovered in if !isCovered { isFocused = true } }
             .onKeyPress { press in
+                guard press.modifiers.isEmpty else { return .ignored }
                 switch EpubTurnKey.outcome(for: press.key) {
                 case .forward: onTurn(true)
                 case .backward: onTurn(false)
