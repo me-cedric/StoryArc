@@ -47,13 +47,21 @@ class ReadAloudSpeechErrorTest {
         assertTrue(shouldEndAfterSpeechError(TextToSpeech.ERROR_SERVICE, consecutiveErrors = 1))
     }
 
+    /** One voice still downloading, for one quoted line, is not the whole engine failing. */
+    @Test
+    fun `one error for a voice still downloading does not end the session`() {
+        assertFalse(
+            shouldEndAfterSpeechError(TextToSpeech.ERROR_NOT_INSTALLED_YET, consecutiveErrors = 1),
+        )
+    }
+
     @Test
     fun `isEngineLevelSpeechError names the service, the output and the network, not synthesis`() {
         assertTrue(isEngineLevelSpeechError(TextToSpeech.ERROR_SERVICE))
         assertTrue(isEngineLevelSpeechError(TextToSpeech.ERROR_OUTPUT))
         assertTrue(isEngineLevelSpeechError(TextToSpeech.ERROR_NETWORK))
         assertTrue(isEngineLevelSpeechError(TextToSpeech.ERROR_NETWORK_TIMEOUT))
-        assertTrue(isEngineLevelSpeechError(TextToSpeech.ERROR_NOT_INSTALLED_YET))
+        assertFalse(isEngineLevelSpeechError(TextToSpeech.ERROR_NOT_INSTALLED_YET))
         assertFalse(isEngineLevelSpeechError(TextToSpeech.ERROR_SYNTHESIS))
         assertFalse(isEngineLevelSpeechError(TextToSpeech.ERROR_INVALID_REQUEST))
         assertFalse(isEngineLevelSpeechError(TextToSpeech.ERROR))

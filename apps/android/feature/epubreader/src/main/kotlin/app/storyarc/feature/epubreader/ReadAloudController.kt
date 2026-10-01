@@ -84,7 +84,7 @@ internal class ReadAloudController(
     /** What the engine is saying, so the page can be moved to it once it starts. */
     private var current: Sentence? = null
 
-    /** Utterance errors since the last one the engine actually started. Reset by [onStart]. */
+    /** Utterance errors since the last sentence the engine finished. Reset in `onDone`. */
     private var consecutiveErrors = 0
 
     private val focusListener = AudioManager.OnAudioFocusChangeListener { change ->
@@ -266,15 +266,22 @@ internal class ReadAloudController(
             // recorded and the highlight moves -- not when the sentence was only queued. A
             // session that errors on every utterance before this point never advances past
             // the sentence it last started, instead of racing to the end of the book.
-            consecutiveErrors = 0
-            val sentence = current?.takeIf { it.locator.href.toString() == utteranceId } ?: return
-            scope.launch { onSentence(sentence) }
+            scope.launch {
+                val sentence = current?.takeIf { it.locator.href.toString() == utteranceId }
+                    ?: return@launch
+                onSentence(sentence)
+            }
         }
 
         override fun onDone(utteranceId: String?) {
             // The engine finished a sentence of its own accord. A sentence it was told to
             // stop reports `onStop`, not this, so a pause never runs on into the next one.
-            scope.launch { if (_session.value.isPlaying) speakNext(forward = true) }
+            // Only a finished sentence ends a run of errors: an engine can start an
+            // utterance and then fail it, and that start is not a sentence said.
+            scope.launch {
+                consecutiveErrors = 0
+                if (_session.value.isPlaying) speakNext(forward = true)
+            }
         }
 
         override fun onStop(utteranceId: String?, interrupted: Boolean) = Unit
@@ -360,22 +367,26 @@ internal class ReadAloudController(
  * than code only a real `TextToSpeech` service can exercise. [ReadAloudController] is the one
  * caller and holds the count; this only answers what it means.
  *
- * `errorCode` is an engine-level code: END of its own accord, because the usual cause is the
- * synthesis service itself, not one sentence. [MAX_CONSECUTIVE_SPEECH_ERRORS] is this body
- * else -- a small, repeated run of per-utterance errors is the shape of a book in a language
- * the engine has no voice for, which is not a reason to stop at the first sentence but is one
- * to stop rather than walk every remaining sentence to the end of the book in silence.
+ * An engine-level code ends the session at once, because the cause is the synthesis service
+ * and not one sentence. Any other code ends it after [MAX_CONSECUTIVE_SPEECH_ERRORS] in a row.
+ * One such error is usually a quoted line in a language that has no voice on the device. That
+ * is not a reason to stop. A run of them is a book the engine cannot say, and walking every
+ * sentence to the end of the book in silence is worse than stopping.
  */
 internal fun shouldEndAfterSpeechError(errorCode: Int, consecutiveErrors: Int): Boolean =
     isEngineLevelSpeechError(errorCode) || consecutiveErrors >= MAX_CONSECUTIVE_SPEECH_ERRORS
 
-/** An error naming the synthesis service or its output, rather than one sentence. */
+/**
+ * An error naming the synthesis service or its output, rather than one sentence.
+ *
+ * `ERROR_NOT_INSTALLED_YET` is not in this list. It names one voice whose data is still
+ * downloading, which is the "one quoted line" case above, so the consecutive count decides.
+ */
 internal fun isEngineLevelSpeechError(errorCode: Int): Boolean = when (errorCode) {
     TextToSpeech.ERROR_SERVICE,
     TextToSpeech.ERROR_OUTPUT,
     TextToSpeech.ERROR_NETWORK,
     TextToSpeech.ERROR_NETWORK_TIMEOUT,
-    TextToSpeech.ERROR_NOT_INSTALLED_YET,
     -> true
     else -> false
 }
