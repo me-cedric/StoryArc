@@ -1,3 +1,4 @@
+import DesignSystem
 import StoryArcCore
 import SwiftUI
 
@@ -28,7 +29,13 @@ struct SeriesShelfView: View {
 
     var body: some View {
         ScrollView {
-            CoverGrid(publications: members, model: model)
+            VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
+                if !members.isEmpty {
+                    ShelfOnDeviceLine(members, model: model)
+                        .padding(.horizontal, StoryArcSpace.gutter)
+                }
+                CoverGrid(publications: members, model: model)
+            }
         }
         .background(theme.palette.surfaceCanvas)
         .navigationTitle(name)

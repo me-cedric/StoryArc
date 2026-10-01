@@ -3,6 +3,7 @@ package app.storyarc.feature.library
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -130,12 +131,16 @@ fun CollectionDetailScreen(
                     modifier = Modifier.padding(StoryArcSpace.gutter),
                 )
             } else {
+                Box(modifier = Modifier.padding(horizontal = StoryArcSpace.gutter)) {
+                    ShelfOnDeviceLine(members, location = viewModel::location)
+                }
                 CoverGrid(
                     publications = members,
                     viewModel = viewModel,
                     continueReading = emptyList(),
                     onOpen = onOpen,
                     onAddToShelf = { shelving = it },
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -317,6 +322,16 @@ fun ReadingListDetailScreen(
                             style = MaterialTheme.typography.labelLarge,
                             color = palette.textSecondary,
                         )
+                        // `collections-and-reading-lists`' bulk download states a count and a
+                        // size before it starts; this states the same question the other way,
+                        // up front. An entry whose publication is gone is every entry minus
+                        // the ones `shown` can still answer for, so the total is `entries.size`
+                        // rather than derived from the (possibly shorter) publication list.
+                        val onDevice = shown.count { entry ->
+                            publications.firstOrNull { it.id == entry }
+                                ?.let { isOnDevice(viewModel.location(it)) } == true
+                        }
+                        ShelfOnDeviceLine(onDevice, entries.size)
                         // `library-browsing`: the curated order is "labelled as such -- not
                         // alphabetical", another field applies for the session, and there is
                         // a one-tap way back. The chip carries the name of the order it is

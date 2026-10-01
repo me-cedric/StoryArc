@@ -1,7 +1,31 @@
 internal import Foundation
 
+internal import Catalogue
 internal import Persistence
 internal import StoryArcCore
+
+/// How `OpdsContributor` names an entry's remote identifier, so a row built from one can be
+/// told apart from a Kavita chapter's `"chapter:"`.
+private let opdsRemoteIDPrefix = "opds:"
+
+/// Finding, in a freshly read feed, the one entry a catalogue-only row names.
+///
+/// Its own type so the matching can be driven by a feed of the test's own choosing — the
+/// rule is "which entry and which acquisition", and that question has nothing to do with
+/// how the feed arrived. Android's `RemoteMemberResolution` is the same rule.
+enum RemoteMemberResolution {
+    /// `remoteID` as `OpdsContributor` wrote it onto the row's identity, and `feed` as read
+    /// again from that row's own source. `nil` for anything that is not an OPDS remote id,
+    /// or whose entry the feed no longer lists.
+    static func opdsEntry(matching remoteID: String, in feed: OpdsFeed) -> (OpdsEntry, OpdsAcquisition)? {
+        guard remoteID.hasPrefix(opdsRemoteIDPrefix) else { return nil }
+        let entryID = String(remoteID.dropFirst(opdsRemoteIDPrefix.count))
+        guard let entry = feed.publications.first(where: { $0.id == entryID }),
+              let acquisition = CatalogueAcquisition.best(of: entry)
+        else { return nil }
+        return (entry, acquisition)
+    }
+}
 
 /// Downloading, for a publication that is already a file.
 ///
@@ -53,17 +77,45 @@ extension LibraryModel {
 
         var kept: Set<String> = []
         for id in wanted {
-            guard let publication = publications.first(where: { $0.id == id }),
-                  // A folder of images has no single file to copy, and saying so by
-                  // skipping it beats copying a directory the reader never asked about.
-                  publication.format != .imageFolder,
-                  let url = location(of: publication),
-                  let bytes = await copy(publication, at: url, into: store)
-            else { continue }
-            record(publication, from: url, bytes: bytes, in: queue)
-            kept.insert(id)
+            guard let publication = publications.first(where: { $0.id == id }) else { continue }
+            // A folder of images has no single file to copy, and saying so by skipping it
+            // beats copying a directory the reader never asked about.
+            if let url = location(of: publication), publication.format != .imageFolder {
+                guard let bytes = await copy(publication, at: url, into: store) else { continue }
+                record(publication, from: url, bytes: bytes, in: queue)
+                kept.insert(id)
+                continue
+            }
+            // No local file: a unified-shelf row for a source this device has never
+            // fetched from. `collections-and-reading-lists`' bulk download "queues them
+            // per offline-downloads" — this is that queueing, for the member kind the
+            // copy above cannot reach at all.
+            if await enqueueRemote(publication, queue: queue) { kept.insert(id) }
         }
         return kept
+    }
+
+    /// Queues a catalogue-only member for download, resolving its OPDS acquisition fresh.
+    ///
+    /// `OpdsContributor` deliberately keeps no acquisition URL on the row — "an OPDS
+    /// acquisition link can carry a key in its query, and `sources` forbids a cached
+    /// catalogue holding a credential" — so the feed is read again, once, to find the one
+    /// entry this row names. A member whose source is unreachable, or whose entry a later
+    /// feed no longer lists, is left out rather than failing the rest of the selection.
+    ///
+    /// Kavita's chapters are not reached here: a chapter's own remote identifier carries
+    /// nothing past its id, and resolving it back to the series it belongs to has no
+    /// single request to ask for — see `KavitaKeep`'s `Subject`, which this would have to
+    /// build. `docs/delivery` tracks that as the remaining half.
+    private func enqueueRemote(_ publication: Publication, queue: DownloadQueue) async -> Bool {
+        guard let server = publication.identity.serverIdentifier,
+              let source = registry[server.sourceID],
+              let page = CataloguePage(source: source, credentials: CredentialStore()),
+              let feed = try? await OpdsClient(origin: page.origin).feed(at: page.url, credential: page.credential),
+              let (entry, acquisition) = RemoteMemberResolution.opdsEntry(matching: server.remoteID, in: feed)
+        else { return false }
+        queue.enqueue(entry, using: acquisition, sourceID: server.sourceID)
+        return true
     }
 
     /// Forgets copies this made, deleting the files with them.

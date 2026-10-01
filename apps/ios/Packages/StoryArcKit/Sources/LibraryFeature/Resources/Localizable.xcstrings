@@ -9383,6 +9383,36 @@
         }
       }
     },
+    "shelves.onDevice %lld %lld": {
+      "comment": "A collection, reading list or series header. collections-and-reading-lists' bulk download wants the reader to know before they start how much is already here.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld von %2$lld auf diesem Gerät"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld of %2$lld on this device"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld de %2$lld en este dispositivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld sur %2$lld sur cet appareil"
+          }
+        }
+      }
+    },
     "shelves.pending %lld": {
       "extractionState": "manual",
       "localizations": {

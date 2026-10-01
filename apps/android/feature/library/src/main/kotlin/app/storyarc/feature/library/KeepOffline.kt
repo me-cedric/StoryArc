@@ -2,11 +2,15 @@ package app.storyarc.feature.library
 
 import android.content.ContentResolver
 import android.net.Uri
+import app.storyarc.core.catalogue.CertificatePins
+import app.storyarc.core.catalogue.OpdsClient
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.model.BulkSelection
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.SourceRegistry
+import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.DownloadStore
 import java.io.File
 import java.io.InputStream
@@ -59,6 +63,9 @@ internal object KeepOffline {
         locate: (Publication) -> String?,
         /** The app-level queue, the only writer of [store]. Null only where none exists. */
         queue: DownloadQueue? = null,
+        /** Where a catalogue-only member's source is found, to resolve it before queueing. */
+        registry: SourceRegistry = SourceRegistry(),
+        credentials: CredentialStore? = null,
     ): Set<String> {
         val wanted = BulkSelection.downloading(selection, kept(store))
         store.prepare()
@@ -69,12 +76,53 @@ internal object KeepOffline {
             // A folder of images has no single file to copy, and saying so by skipping it
             // beats copying a directory the reader never asked about.
             if (publication.format == PublicationFormat.IMAGE_FOLDER) continue
-            val path = locate(publication) ?: continue
-            val bytes = copy(resolver, store, publication, path) ?: continue
-            record(store, publication, path, bytes, queue)
-            copied += publication.id
+            val path = locate(publication)
+            if (path != null) {
+                val bytes = copy(resolver, store, publication, path) ?: continue
+                record(store, publication, path, bytes, queue)
+                copied += publication.id
+                continue
+            }
+            // No local file: a unified-shelf row for a source this device has never
+            // fetched from. `collections-and-reading-lists`' bulk download "queues them
+            // per offline-downloads" -- this is that queueing, for the member kind the
+            // copy above cannot reach at all.
+            if (queue != null && enqueueRemote(publication, registry, credentials, queue)) {
+                copied += publication.id
+            }
         }
         return copied
+    }
+
+    /**
+     * Queues a catalogue-only member for download, resolving its OPDS acquisition fresh.
+     *
+     * [OpdsContributor] deliberately keeps no acquisition URL on the row -- an OPDS
+     * acquisition link can carry a key in its query, and `sources` forbids a cached
+     * catalogue holding a credential -- so the feed is read again, once, to find the one
+     * entry this row names. A member whose source is unreachable, or whose entry a later
+     * feed no longer lists, is left out rather than failing the rest of the selection.
+     *
+     * Kavita's chapters are not reached here: a chapter's own remote identifier carries
+     * nothing past its id, and resolving it back to the series it belongs to has no single
+     * request to ask for -- see `KavitaKeep`'s `Subject`, which this would have to build.
+     * `docs/delivery` tracks that as the remaining half.
+     */
+    private suspend fun enqueueRemote(
+        publication: Publication,
+        registry: SourceRegistry,
+        credentials: CredentialStore?,
+        queue: DownloadQueue,
+    ): Boolean {
+        val server = publication.identity.serverIdentifier ?: return false
+        val source = registry[server.sourceId] ?: return false
+        val page = CataloguePage.of(source, credentials) ?: return false
+        val feed = runCatching {
+            OpdsClient(CertificatePins(), page.origin).feed(page.url, page.credential)
+        }.getOrNull() ?: return false
+        val (entry, acquisition) = RemoteMemberResolution.opdsEntry(server.remoteId, feed) ?: return false
+        queue.enqueue(entry, acquisition, sourceId = server.sourceId)
+        return true
     }
 
     /** Forgets copies this made, deleting the files with them. */

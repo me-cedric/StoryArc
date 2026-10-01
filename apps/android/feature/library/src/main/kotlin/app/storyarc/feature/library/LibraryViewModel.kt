@@ -1583,7 +1583,10 @@ class LibraryViewModel(
 
     /** Copies a whole selection into the download store, and reports what it copied. */
     suspend fun keepOffline(selection: Set<String>): Set<String> =
-        KeepOffline.keep(resolver, downloads, _publications.value, selection, ::location, downloadQueue)
+        KeepOffline.keep(
+            resolver, downloads, _publications.value, selection, ::location, downloadQueue,
+            registry = _registry.value, credentials = credentials,
+        )
 
     /** Forgets copies [keepOffline] made, deleting the files with them. */
     fun forgetKept(ids: Set<String>) = KeepOffline.forget(downloads, ids, downloadQueue)
