@@ -107,7 +107,7 @@ struct CatalogueFormatChoice: View {
         VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
             if !unreadable.isEmpty {
                 Text(
-                    "catalogue.entry.unreadable \(ListFormatter.localizedString(byJoining: unreadable))",
+                    "catalogue.entry.unreadable \(localizedJoin(unreadable))",
                     bundle: .module
                 )
                 .textRole(.footnote)

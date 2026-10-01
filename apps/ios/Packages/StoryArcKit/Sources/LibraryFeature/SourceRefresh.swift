@@ -1,6 +1,7 @@
 internal import SwiftUI
 
 internal import DesignSystem
+internal import StoryArcCore
 
 /// Who started the refresh that is running now.
 ///
@@ -124,7 +125,7 @@ struct CheckedNotice: View {
         guard Date.now.timeIntervalSince(checkedAt) >= Self.justNow else {
             return "library.checked.now"
         }
-        return "library.checked \(checkedAt.formatted(.relative(presentation: .named)))"
+        return "library.checked \(checkedAt.formatted(.relative(presentation: .named).locale(.storyArc)))"
     }
 
     var body: some View {

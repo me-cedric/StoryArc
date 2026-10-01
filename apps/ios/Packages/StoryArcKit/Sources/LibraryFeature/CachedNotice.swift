@@ -1,6 +1,7 @@
 internal import SwiftUI
 
 internal import DesignSystem
+internal import StoryArcCore
 
 /// States that the shelf on screen is last session's, and when it was confirmed.
 ///
@@ -22,7 +23,7 @@ struct CachedNotice: View {
 
     var body: some View {
         Text(
-            "library.cached \(refreshedAt.formatted(.relative(presentation: .named)))",
+            "library.cached \(refreshedAt.formatted(.relative(presentation: .named).locale(.storyArc)))",
             bundle: .module
         )
         .textRole(.footnote)
