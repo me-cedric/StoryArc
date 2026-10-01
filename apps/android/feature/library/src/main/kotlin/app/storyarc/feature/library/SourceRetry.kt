@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.viewModelScope
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.kavita.KavitaClient
@@ -13,6 +14,8 @@ import app.storyarc.core.model.SourceReachability
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.persistence.ShelfEditStore
+import app.storyarc.core.persistence.chosenLanguage
+import app.storyarc.core.persistence.speaking
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -146,12 +149,21 @@ internal suspend fun LibraryViewModel.probeAndWait(
     }
 }
 
+/**
+ * The application context, wrapped for the reader's chosen language.
+ *
+ * `getString` on a bare application context reads the system's language: the per-app
+ * override reaches an activity's own `attachBaseContext`, and a coroutine with no activity
+ * on the stack -- a reconnection, the app returning to the foreground -- has none.
+ */
+internal fun Application.speakingReaderLanguage(): Context = speaking(chosenLanguage())
+
 /** The asking itself, so the flag above brackets it and nothing else. */
 private suspend fun LibraryViewModel.probeEverySource(
     credentials: CredentialStore?,
     pins: CertificatePins,
 ) {
-    val application = getApplication<Application>()
+    val application = getApplication<Application>().speakingReaderLanguage()
     val reason = application.getString(R.string.source_state_unauthorized)
     // The share that answered and refused. Without it a share demanding SMB 3 encryption
     // reads "No answer since ...", and this loop re-asks it for as long as the library is on

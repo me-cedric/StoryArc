@@ -43,6 +43,7 @@ class SourceRetryWiringTest {
 
     private val retry: String by lazy { read(RETRY_SOURCE) }
     private val triggers: String by lazy { read(TRIGGERS_SOURCE) }
+    private val viewModel: String by lazy { read(VIEWMODEL_SOURCE) }
 
     /**
      * The body of `probeEverySource`, not the whole file. Task 7.5: "pushed on
@@ -208,6 +209,32 @@ class SourceRetryWiringTest {
         )
     }
 
+    /**
+     * Task 15.5: the two reasons this loop hands `SourceHealth.probe` used to come from
+     * `application.getString` -- the process's base context, which stays in the system's
+     * language outside any activity. `probeEverySource` runs from a reconnection or the app
+     * returning to the foreground, neither of which is an activity callback.
+     */
+    @Test
+    fun `the unauthorized and encryption reasons are read through the reader's chosen language`() {
+        assertTrue(
+            "probeEverySource no longer wraps the application context with" +
+                " speakingReaderLanguage, so its two reasons read in the system's language" +
+                " rather than the reader's own.",
+            probeEverySource.contains("getApplication<Application>().speakingReaderLanguage()"),
+        )
+        assertTrue(
+            "speakingReaderLanguage no longer wraps the application context with `speaking`.",
+            retry.contains("fun Application.speakingReaderLanguage(): Context = speaking(chosenLanguage())"),
+        )
+        assertTrue(
+            "LibraryViewModel.testSource no longer wraps its application context with" +
+                " speakingReaderLanguage either, so a reader-pressed Test connection reads" +
+                " the two reasons in the system's language too.",
+            viewModel.contains("getApplication<Application>().speakingReaderLanguage()"),
+        )
+    }
+
     private companion object {
         /** Set by this module's `build.gradle.kts`, from its own `projectDir`. */
         const val MODULE_DIRECTORY = "storyarc.library.projectDir"
@@ -215,5 +242,7 @@ class SourceRetryWiringTest {
             "src/main/kotlin/app/storyarc/feature/library/SourceRetry.kt"
         const val TRIGGERS_SOURCE =
             "src/main/kotlin/app/storyarc/feature/library/SourceRetryTriggers.kt"
+        const val VIEWMODEL_SOURCE =
+            "src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt"
     }
 }
