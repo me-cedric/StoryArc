@@ -63,6 +63,13 @@
     <string name="downloads_removed">\u00ab%1$s\u00bb eliminado de este dispositivo. Se conserva tu posici\u00f3n.</string>
     <string name="downloads_progress">%1$d %% \u00b7 %2$s de %3$s</string>
     <string name="downloads_progress_unsized">%1$s hasta ahora</string>
+    <string name="downloads_pause">Pausar</string>
+    <string name="downloads_resume">Reanudar</string>
+    <string name="downloads_pause_all">Pausar todo</string>
+    <string name="downloads_resume_all">Reanudar todo</string>
+    <string name="downloads_cancel_all">Cancelar todo</string>
+    <string name="downloads_cancel_all_title">¿Detener todas las descargas?</string>
+    <string name="downloads_cancel_all_body">Esto detiene cada transferencia en curso. No se conserva nada de ellas en este dispositivo, y cada una se puede descargar otra vez.</string>
 
     <!-- El reproductor. Los intervalos van en los textos porque van en los controles:
          15 s atrás y 30 s adelante son una decisión de producto. -->

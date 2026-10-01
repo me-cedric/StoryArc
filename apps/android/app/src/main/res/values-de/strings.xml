@@ -62,6 +62,13 @@
     <string name="downloads_removed">\u201e%1$s\u201c von diesem Ger\u00e4t entfernt. Ihre Stelle bleibt erhalten.</string>
     <string name="downloads_progress">%1$d %% \u00b7 %2$s von %3$s</string>
     <string name="downloads_progress_unsized">Bisher %1$s</string>
+    <string name="downloads_pause">Pausieren</string>
+    <string name="downloads_resume">Fortsetzen</string>
+    <string name="downloads_pause_all">Alle pausieren</string>
+    <string name="downloads_resume_all">Alle fortsetzen</string>
+    <string name="downloads_cancel_all">Alle abbrechen</string>
+    <string name="downloads_cancel_all_title">Alle Downloads stoppen?</string>
+    <string name="downloads_cancel_all_body">Dies stoppt jede laufende Übertragung. Nichts davon bleibt auf diesem Gerät, und jede kann erneut heruntergeladen werden.</string>
 
     <!-- Der Player. Die Intervalle stehen in den Texten, weil sie auf den Bedienelementen
          stehen: 15 s zurück und 30 s vor sind eine Produktentscheidung. -->

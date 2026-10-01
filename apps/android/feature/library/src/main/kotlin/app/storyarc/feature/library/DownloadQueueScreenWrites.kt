@@ -75,6 +75,34 @@ fun DownloadQueue.removingAll(sourceId: UUID): List<Download> {
 }
 
 /**
+ * Pauses every download currently queued or running -- the Downloads destination's global
+ * pause, beside the per-row one [DownloadQueue.pause] already gives.
+ *
+ * `offline-downloads`' second requirement asks for "per-item and global pause, resume,
+ * cancel" together; only the per-item half had a caller from this screen.
+ */
+fun DownloadQueue.pauseAll() {
+    _library.value.downloads
+        .filter { it.state == Download.State.Queued || it.state == Download.State.Running }
+        .forEach { pause(it.id) }
+}
+
+/** Puts every paused or failed download back in the queue -- the global resume. */
+fun DownloadQueue.resumeAll() {
+    _library.value.downloads
+        .filter { it.state is Download.State.Paused || it.state is Download.State.Failed }
+        .forEach { resume(it.id) }
+}
+
+/**
+ * Stops every transfer still in flight and forgets its record -- the global cancel. A
+ * finished download is untouched: this clears the queue, not the library.
+ */
+fun DownloadQueue.cancelAll() {
+    _library.value.pending.forEach { cancel(it.id) }
+}
+
+/**
  * Stops every transfer and forgets every download, deleting the files -- the clear in
  * Settings.
  *

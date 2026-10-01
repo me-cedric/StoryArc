@@ -2,6 +2,7 @@ package app.storyarc
 
 import android.text.format.Formatter
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,6 +12,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -18,6 +20,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -35,10 +39,13 @@ import app.storyarc.core.designsystem.grid.rememberCoverColumns
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Download
+import app.storyarc.feature.library.cancelAll
 import app.storyarc.feature.library.isOnDevice
+import app.storyarc.feature.library.pauseAll
 import app.storyarc.feature.library.reorder
 import app.storyarc.feature.library.removeAfterFinishing
 import app.storyarc.feature.library.restore
+import app.storyarc.feature.library.resumeAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -76,6 +83,7 @@ internal fun DownloadsDestination(host: AppHost) {
 
     var removing by remember { mutableStateOf<Download?>(null) }
     var bytesOnDisk by remember { mutableLongStateOf(0L) }
+    var confirmingStopAll by remember { mutableStateOf(false) }
 
     // Finished downloads are how a publication fetched from a server comes to be on the
     // shelf at all. The total is asked of the filesystem rather than summed from the record:
@@ -145,7 +153,13 @@ internal fun DownloadsDestination(host: AppHost) {
             wide { DestinationTitle(stringResource(R.string.destination_downloads)) }
 
             if (inFlight.isNotEmpty()) {
-                wide { SectionHeading(stringResource(R.string.downloads_destination_in_flight)) }
+                wide {
+                    InFlightHeader(
+                        onPauseAll = host.dependencies.queue::pauseAll,
+                        onResumeAll = host.dependencies.queue::resumeAll,
+                        onStopAll = { confirmingStopAll = true },
+                    )
+                }
                 items(inFlight, key = { it.id }, span = { GridItemSpan(maxLineSpan) }) { one ->
                     DownloadQueueRow(
                         download = one,
@@ -154,6 +168,14 @@ internal fun DownloadsDestination(host: AppHost) {
                         canReorder = one.state == Download.State.Queued,
                         onReorder = { later ->
                             host.dependencies.queue.reorder(one.id, later)
+                            host.downloads.value = host.dependencies.queue.library.value
+                        },
+                        onPause = {
+                            host.dependencies.queue.pause(one.id)
+                            host.downloads.value = host.dependencies.queue.library.value
+                        },
+                        onResume = {
+                            host.dependencies.queue.resume(one.id)
                             host.downloads.value = host.dependencies.queue.library.value
                         },
                         onStop = { removing = one },
@@ -213,6 +235,63 @@ internal fun DownloadsDestination(host: AppHost) {
                 host.activity.lifecycleScope.launch { remove(host, download) }
             },
         )
+    }
+
+    if (confirmingStopAll) {
+        AlertDialog(
+            onDismissRequest = { confirmingStopAll = false },
+            title = { Text(stringResource(R.string.downloads_cancel_all_title)) },
+            text = { Text(stringResource(R.string.downloads_cancel_all_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmingStopAll = false
+                        host.dependencies.queue.cancelAll()
+                        host.downloads.value = host.dependencies.queue.library.value
+                    },
+                ) { Text(stringResource(R.string.downloads_cancel_all)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingStopAll = false }) {
+                    Text(stringResource(R.string.downloads_cancel))
+                }
+            },
+        )
+    }
+}
+
+/**
+ * The in-flight section's own heading, with the three global controls
+ * `offline-downloads`' second requirement asks for beside the per-row ones.
+ */
+@Composable
+private fun InFlightHeader(
+    onPauseAll: () -> Unit,
+    onResumeAll: () -> Unit,
+    onStopAll: () -> Unit,
+) {
+    val heading = @Composable { SectionHeading(stringResource(R.string.downloads_destination_in_flight)) }
+    val controls = @Composable {
+        TextButton(onClick = onPauseAll) { Text(stringResource(R.string.downloads_pause_all)) }
+        TextButton(onClick = onResumeAll) { Text(stringResource(R.string.downloads_resume_all)) }
+        TextButton(onClick = onStopAll) { Text(stringResource(R.string.downloads_cancel_all)) }
+    }
+
+    // Three word-length buttons beside the heading share no line at the accessibility font
+    // scales, the same threshold `DownloadQueueRow`'s own controls split at.
+    if (LocalDensity.current.fontScale >= 1.5f) {
+        Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
+            heading()
+            Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) { controls() }
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            heading()
+            Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) { controls() }
+        }
     }
 }
 

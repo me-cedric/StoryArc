@@ -19,9 +19,12 @@ import StoryArcCore
 /// how a downloads screen turns back into the queue inspector this destination exists to
 /// stop being.
 ///
-/// **Stop, reorder, retry — and not yet pause.** Each one goes to the one app-level
-/// ``LibraryFeature/DownloadQueue`` (dl-core 1.1): Stop cancels the transfer, reorder moves the
-/// record, and Retry resumes a failed row and starts it. This row has no pause control yet.
+/// **Stop, reorder, retry, pause and resume — per row and across the whole queue.** Each one
+/// goes to the one app-level ``LibraryFeature/DownloadQueue`` (dl-core 1.1): Stop cancels the
+/// transfer, reorder moves the record, Retry resumes a failed row and starts it, and Pause and
+/// Resume hold a row where it is and put it back. `offline-downloads`' second requirement asks
+/// for "per-item and global pause, resume, cancel" together, which is what the three buttons
+/// above the list send to every row at once.
 struct DownloadQueueSection: View {
     @Environment(\.theme) private var theme
 
@@ -31,18 +34,44 @@ struct DownloadQueueSection: View {
     /// Moves a queued download one place; `true` is later.
     let onReorder: (Download, Bool) -> Void
 
+    /// Holds one download where it is. Called for a queued or running download and no other.
+    let onPause: (Download) -> Void
+
+    /// Puts a paused download back in the queue. Called for a paused download and no other.
+    let onResume: (Download) -> Void
+
     /// Takes one out of the queue altogether, confirmed by the caller.
     let onStop: (Download) -> Void
 
     /// Puts a failed one back in the queue. Called for a failed download and no other.
     let onRetry: (Download) -> Void
 
+    /// Holds every queued or running download where it is.
+    let onPauseAll: () -> Void
+
+    /// Puts every paused or failed download back in the queue.
+    let onResumeAll: () -> Void
+
+    /// Takes every download still pending out of the queue altogether, confirmed by the caller.
+    let onStopAll: () -> Void
+
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.md) {
-            Text("downloads.inFlight")
-                .textRole(.title3)
-                .foregroundStyle(theme.palette.textPrimary)
-                .padding(.horizontal, StoryArcSpace.gutter)
+            // `ViewThatFits`, as the per-row controls below already use: three word-length
+            // buttons beside the title share no line at the accessibility sizes, and a title
+            // that is free to wrap is what keeps every button tappable there.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: StoryArcSpace.sm) {
+                    title
+                    Spacer(minLength: 0)
+                    globalControls
+                }
+                VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
+                    title
+                    globalControls
+                }
+            }
+            .padding(.horizontal, StoryArcSpace.gutter)
 
             VStack(spacing: StoryArcSpace.sm) {
                 ForEach(downloads) { download in
@@ -52,12 +81,34 @@ struct DownloadQueueSection: View {
                         // started, and the list is short enough that its ends are obvious.
                         canReorder: download.state == .queued,
                         onReorder: { onReorder(download, $0) },
+                        onPause: { onPause(download) },
+                        onResume: { onResume(download) },
                         onStop: { onStop(download) },
                         onRetry: { onRetry(download) }
                     )
                 }
             }
             .padding(.horizontal, StoryArcSpace.gutter)
+        }
+    }
+
+    private var title: some View {
+        Text("downloads.inFlight")
+            .textRole(.title3)
+            .foregroundStyle(theme.palette.textPrimary)
+    }
+
+    private var globalControls: some View {
+        HStack(spacing: StoryArcSpace.sm) {
+            Button(action: onPauseAll) { Text("downloads.pauseAll") }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            Button(action: onResumeAll) { Text("downloads.resumeAll") }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            Button(role: .destructive, action: onStopAll) { Text("downloads.cancelAll") }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
         }
     }
 }
@@ -72,10 +123,11 @@ struct DownloadQueueSection: View {
 /// already followed one screen away, and which Android's `DownloadQueueRow` adopted a day
 /// before this one.
 ///
-/// **Failed only, not paused.** The banner folds the two together because it sits beside a
-/// live queue and can call `resume`. This screen cannot: a row paused for Wi-Fi or for space
-/// would be re-queued and would pause again on the next pump, which is a control that lies
-/// about what it did.
+/// **A paused row offers Resume rather than Pause**, whatever paused it — the reader, a
+/// metered connection or low space — the same as ``LibraryFeature/DownloadBanner`` already
+/// offers a retry for any of the three. Asking to resume a row still held for Wi-Fi or space
+/// re-queues it and lets `pump()` pause it again on its own, which is the same honest
+/// round trip a reader's own retry on a failed row makes.
 private struct DownloadQueueRow: View {
     @Environment(\.theme) private var theme
 
@@ -87,6 +139,17 @@ private struct DownloadQueueRow: View {
     let download: Download
     let canReorder: Bool
     let onReorder: (Bool) -> Void
+
+    /// Holds this row where it is. Shown only for a queued or running download — a row
+    /// already paused or failed has nothing left to pause.
+    let onPause: () -> Void
+
+    /// Puts this row back in the queue. Shown only for a row this reader paused: a row held
+    /// for Wi-Fi or for space is put back by the connection or the space returning, and a
+    /// control here would re-queue it only for the next `pump()` to pause it again for the
+    /// same reason — a control that lies about what it did.
+    let onResume: () -> Void
+
     let onStop: () -> Void
     let onRetry: () -> Void
 
@@ -94,12 +157,16 @@ private struct DownloadQueueRow: View {
         if case .failed = download.state { true } else { false }
     }
 
-    /// A failed row is two lines at every size, because it carries two word-length buttons
-    /// rather than one and *Remove download* is four times the width of *Stop* in every
-    /// language this app speaks. It is the tallest row on the screen anyway — the reason and
-    /// the attempt count sit under it — so the second line costs nothing it was not already
-    /// spending. Android splits its failed row at every scale for the same reason.
-    private var isStacked: Bool { hasFailed || typeSize.isAccessibilitySize }
+    private var isHeld: Bool {
+        if case .paused = download.state { true } else { false }
+    }
+
+    /// A failed or held row is two lines at every size, because each carries two word-length
+    /// buttons rather than one and the wider of the two is four times the width of *Stop* in
+    /// every language this app speaks. It is the tallest row on the screen anyway — a reason
+    /// sits under it — so the second line costs nothing it was not already spending. Android
+    /// splits the same rows at every scale for the same reason.
+    private var isStacked: Bool { hasFailed || isHeld || typeSize.isAccessibilitySize }
 
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
@@ -126,18 +193,26 @@ private struct DownloadQueueRow: View {
             .foregroundStyle(theme.palette.textPrimary)
     }
 
-    /// Retry and remove on a failure; reorder, where there is an order to change, and stop
-    /// on everything else.
+    /// Retry and remove on a failure, resume and remove on a hold, reorder where there is an
+    /// order to change plus pause and stop on everything else.
     @ViewBuilder
     private var controls: some View {
         if hasFailed {
-            failedControls
+            twoControls(first: retry, second: remove)
+        } else if isHeld {
+            twoControls(first: resumeButton, second: remove)
         } else {
             HStack(spacing: StoryArcSpace.sm) {
                 if canReorder {
                     reorder(later: false, symbol: "chevron.up")
                     reorder(later: true, symbol: "chevron.down")
                 }
+
+                Button(action: onPause) {
+                    Text("downloads.pause").lineLimit(1)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
 
                 Button(role: .destructive, action: onStop) {
                     Text("downloads.stop").lineLimit(1)
@@ -148,23 +223,23 @@ private struct DownloadQueueRow: View {
         }
     }
 
-    /// *Retry* first, because it is the thing a reader opened this screen to do, and *Remove
-    /// download* beside it — or under it.
+    /// The first control named first, because it is the thing a reader opened this screen to
+    /// do, and the second — always *Remove download* — beside it, or under it.
     ///
     /// Beside it at the ordinary sizes. At the accessibility sizes the two do not share a
     /// line even without the title: *Download entfernen* on its own is wider than the row at
     /// AccessibilityXXXL, so the pair goes one under the other and each label is free to
     /// wrap. Neither is ever truncated to a verb with no object, which is what a `lineLimit`
     /// would have made of the German.
-    private var failedControls: some View {
+    private func twoControls(first: some View, second: some View) -> some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: StoryArcSpace.sm) {
-                retry
-                remove
+                first
+                second
             }
             VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
-                retry
-                remove
+                first
+                second
             }
         }
     }
@@ -172,6 +247,14 @@ private struct DownloadQueueRow: View {
     private var retry: some View {
         Button(action: onRetry) {
             Text("downloads.retry")
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+    }
+
+    private var resumeButton: some View {
+        Button(action: onResume) {
+            Text("downloads.resume")
         }
         .buttonStyle(.bordered)
         .controlSize(.small)

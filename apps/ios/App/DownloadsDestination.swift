@@ -74,6 +74,9 @@ struct DownloadsDestination: View {
     /// A removal inside its ten-second window, still offering to come back.
     @State private var removed: RemovedDownload?
 
+    /// Whether the global cancel has been asked for and not yet confirmed.
+    @State private var confirmingStopAll = false
+
     /// Everything readable with no network at all.
     ///
     /// The same projection the shelf's on-device surface uses, and deliberately: the
@@ -98,8 +101,13 @@ struct DownloadsDestination: View {
                         DownloadQueueSection(
                             downloads: inFlight,
                             onReorder: reorder,
+                            onPause: { queue.pause($0.id) },
+                            onResume: { queue.resume($0.id) },
                             onStop: ask,
-                            onRetry: retry
+                            onRetry: retry,
+                            onPauseAll: { queue.pauseAll() },
+                            onResumeAll: { queue.resumeAll() },
+                            onStopAll: { confirmingStopAll = true }
                         )
                     }
 
@@ -171,6 +179,15 @@ struct DownloadsDestination: View {
             case .removing:
                 Text("downloads.remove.body \(download.title)")
             }
+        }
+        .alert(
+            Text("downloads.cancelAll.title"),
+            isPresented: $confirmingStopAll
+        ) {
+            Button(role: .cancel) {} label: { Text("downloads.cancel") }
+            Button(role: .destructive) { queue.cancelAll() } label: { Text("downloads.cancelAll") }
+        } message: {
+            Text("downloads.cancelAll.body")
         }
     }
 
