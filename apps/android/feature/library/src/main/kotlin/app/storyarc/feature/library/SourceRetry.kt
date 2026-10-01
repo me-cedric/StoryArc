@@ -156,7 +156,7 @@ internal suspend fun LibraryViewModel.probeAndWait(
  * override reaches an activity's own `attachBaseContext`, and a coroutine with no activity
  * on the stack -- a reconnection, the app returning to the foreground -- has none.
  */
-internal fun Application.speakingReaderLanguage(): Context = speaking(chosenLanguage())
+internal fun Context.speakingReaderLanguage(): Context = speaking(chosenLanguage())
 
 /** The asking itself, so the flag above brackets it and nothing else. */
 private suspend fun LibraryViewModel.probeEverySource(
