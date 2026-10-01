@@ -1,5 +1,8 @@
 package app.storyarc.feature.library
 
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
@@ -7,17 +10,19 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material3.Icon
@@ -29,6 +34,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,11 +42,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.Publication
@@ -351,8 +364,9 @@ fun ReadingListDetailScreen(
                         // chosen sort that is the more useful of the two, and it is the
                         // visible proof that the curated order is still there underneath.
                         number = numbers[entry] ?: 0,
-                        title = publication?.displayTitle ?: entry,
-                        isAvailable = publication != null,
+                        entry = entry,
+                        publication = publication,
+                        viewModel = viewModel,
                         isFinished = entry in finished,
                         // Moving is offered only in the curated order. `ListOrder` says why
                         // it has to be: these buttons move an entry by the position it
@@ -421,24 +435,57 @@ private fun DetailBar(
 @Composable
 private fun EntryRow(
     number: Int,
-    title: String,
-    isAvailable: Boolean,
+    entry: String,
+    publication: Publication?,
+    viewModel: LibraryViewModel,
     isFinished: Boolean,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
     isReorderable: Boolean,
     onOpen: () -> Unit,
-    /** Opens the same action sheet every other cell offers. `null` where [isAvailable] is
-     * false: an entry the library holds no publication for has nothing a menu could act on. */
+    /** Opens the same action sheet every other cell offers. `null` where [publication] is
+     * null: an entry the library holds no publication for has nothing a menu could act on. */
     onLongOpen: (() -> Unit)? = null,
     onUp: () -> Unit,
     onDown: () -> Unit,
     onRemove: () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
+    val title = publication?.displayTitle ?: entry
+    val isAvailable = publication != null
+
+    // `collections-and-reading-lists`' delta: "each entry shows the publication's own cover
+    // beside its position in the list" -- the same fetch `ShelfCover` already makes for the
+    // shelf's own artwork. A row's own `remember`/`LaunchedEffect` rather than one dictionary
+    // held by the screen, the way `CoverList.kt`'s `ListRow` already fetches its own.
+    val density = LocalDensity.current
+    val maxPixelSize = remember(density) { with(density) { (POSTER_HEIGHT * 2f / 3f).roundToPx() } }
+    var cover by remember(entry) { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(entry, publication) {
+        cover = publication?.let { viewModel.cover(it, maxPixelSize) }
+    }
+
+    val badge = readingListRowBadge(
+        isFinished = isFinished,
+        percentRead = publication?.let { viewModel.readFraction(it) }
+            ?.takeIf { !isFinished }
+            ?.let { (it * 100).toInt() },
+    )
+    val drawnBadge = when (badge) {
+        ReadingListRowBadge.Finished -> stringResource(R.string.library_cell_finished)
+        is ReadingListRowBadge.PartRead -> stringResource(R.string.library_cell_progress, badge.percent)
+        ReadingListRowBadge.None -> null
+    }
+    val unavailableLabel = stringResource(R.string.shelves_list_unavailable)
+    val spoken = when {
+        !isAvailable -> unavailableLabel
+        drawnBadge != null -> drawnBadge
+        else -> stringResource(R.string.library_read_state_unread)
+    }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
@@ -446,13 +493,37 @@ private fun EntryRow(
                 onClick = onOpen,
                 onLongClick = onLongOpen,
             )
-            .defaultMinSize(minHeight = 48.dp),
+            .defaultMinSize(minHeight = 48.dp)
+            // The row's own merged label: its place in the list, its title and its read
+            // state in the library's own words -- including "Unread", the one state with
+            // nothing drawn for a sighted reader to see either.
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$number. $title. $spoken"
+            },
     ) {
         Text(
             text = "$number",
             style = MaterialTheme.typography.bodySmall,
             color = palette.textTertiary,
         )
+        // The library's own cover shape, at a row's height -- `KavitaShelfScreens.kt`'s
+        // server row already draws it this way.
+        Box(
+            modifier = Modifier
+                .height(POSTER_HEIGHT)
+                .aspectRatio(2f / 3f)
+                .clip(RoundedCornerShape(StoryArcRadius.sm))
+                .background(palette.surfaceRaised),
+        ) {
+            cover?.let {
+                Image(
+                    bitmap = it.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
         Column(modifier = Modifier.weight(1f).padding(start = StoryArcSpace.xs)) {
             Text(
                 text = title,
@@ -461,24 +532,18 @@ private fun EntryRow(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (!isAvailable) {
-                // `collections-and-reading-lists`: an entry whose source no longer has the
-                // publication "remains in the list, marked unavailable, and does not break
-                // the ordering or the next flow". Removing it would renumber everything
-                // after it.
+            // `collections-and-reading-lists`: an entry whose source no longer has the
+            // publication "remains in the list, marked unavailable, and does not break the
+            // ordering or the next flow" -- said in place of the read state, which an
+            // unavailable entry has none of.
+            val beneath = if (isAvailable) drawnBadge else unavailableLabel
+            beneath?.let {
                 Text(
-                    text = stringResource(R.string.shelves_list_unavailable),
+                    text = it,
                     style = MaterialTheme.typography.bodySmall,
-                    color = palette.textTertiary,
+                    color = if (isAvailable) palette.textSecondary else palette.textTertiary,
                 )
             }
-        }
-        if (isFinished) {
-            Icon(
-                imageVector = Icons.Filled.CheckCircle,
-                contentDescription = null,
-                tint = palette.accent,
-            )
         }
         // Absent rather than disabled while a sort is overriding the list. Two greyed arrows
         // on every row would be a control the reader has to work out is unreachable, on the
@@ -508,3 +573,7 @@ private fun EntryRow(
         }
     }
 }
+
+/** A list row's own cover, at row height. `KavitaShelfScreens.kt`'s own constant is private
+ * to that file, so the local row keeps its own rather than widening it to share one. */
+private val POSTER_HEIGHT = 56.dp
