@@ -5,10 +5,14 @@ import androidx.lifecycle.viewModelScope
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.model.RetryTrigger
+import app.storyarc.core.model.ShelfConflictNotice
+import app.storyarc.core.model.ShelfKey
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceProbe
 import app.storyarc.core.model.SourceReachability
 import app.storyarc.core.persistence.CredentialStore
+import app.storyarc.core.persistence.KavitaProgressStore
+import app.storyarc.core.persistence.ShelfEditStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -180,4 +184,37 @@ private suspend fun LibraryViewModel.probeEverySource(
     // can take one, so an unreachable one leaves the offer disabled rather than
     // failing after the reader has already confirmed it.
     _listServers.value = answered
+
+    // Task 7.5: "pushed on reconnection" used to mean only the screen that happened to be
+    // open when the server came back. A source answering here is the same reconnection,
+    // so it reconciles its own remembered lists and flushes what is still owed -- including
+    // a held reorder on its own, which `reconcile`'s own push skips when no append is owed.
+    if (answered.isNotEmpty()) {
+        val editStore = ShelfEditStore.open(application)
+        val progressStore = KavitaProgressStore.open(application)
+        for (page in answered) {
+            val shelves = _serverLists.value
+                .filter { it.server.id == page.id }
+                .map { ServerShelf(it.server, it.id, it.title, isList = true) }
+            ShelfSync.reconcile(shelves, editStore, progressStore)
+            KavitaSync.flush(
+                progressStore,
+                page.id,
+                page.address,
+                onOrderConflict = { listId ->
+                    val shelfName = shelves.firstOrNull { it.id == listId }?.title.orEmpty()
+                    editStore.update {
+                        it.noting(
+                            ShelfConflictNotice(
+                                shelf = ShelfKey(page.id, listId),
+                                shelfName = shelfName,
+                                at = System.currentTimeMillis(),
+                                isOrder = true,
+                            ),
+                        )
+                    }
+                },
+            )
+        }
+    }
 }
