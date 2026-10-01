@@ -195,16 +195,12 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
             title: String,
             series: String?,
             identity: PublicationIdentity = PublicationIdentity(normalizedPath = location),
-            nextId: String? = null,
-            nextTitle: String? = null,
         ): Intent =
             Intent(context, EpubReaderActivity::class.java)
                 .putExtra(EXTRA_LOCATION, location)
                 .putExtra(EXTRA_TITLE, title)
                 .putExtra(EXTRA_SERIES, series)
                 .putExtra(EXTRA_IDENTITY, Json.encodeToString(PublicationIdentity.serializer(), identity))
-                .putExtra(EXTRA_NEXT_ID, nextId)
-                .putExtra(EXTRA_NEXT_TITLE, nextTitle)
     }
 
     private val model: EpubReaderViewModel by lazy {
@@ -619,8 +615,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                         onOpenMenu = { isShowingMenu = true },
                     )
 
-                    // Not the chrome, and on screen on their own terms — see
-                    // `EpubReaderOverlays.kt`.
+                    // Not the chrome, and on screen on their own terms: `EpubReaderOverlays.kt`.
                     EpubReaderOverlays(
                         canReturn = returnPoint != null,
                         onReturn = { model.takeReturnPoint()?.let { goToLocator(it, remember = false) } },
@@ -630,12 +625,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                         onSkipSentence = ReadAloudHost::skip,
                         onStopReadAloud = ReadAloudHost::end,
                     )
-
-                    // Task 7.2: the paged reader offers what comes next at the end; so does this.
-                    EpubEndOfBookOffer(intent, failure, progression) { nextId ->
-                        setResult(RESULT_OK, Intent().putExtra(EXTRA_RESULT_NEXT_ID, nextId))
-                        finish()
-                    }
+                    EpubEndOfBookOffer(this@EpubReaderActivity, failure, progression) // Task 7.2.
                 }
             }
         }

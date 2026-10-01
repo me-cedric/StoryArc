@@ -198,13 +198,12 @@ class AudioSurfacesAreWiredTest {
         assertTrue(
             "The finished screen no longer asks the library for what comes next, so the" +
                 " offer it draws is never passed one to draw.",
-            read(APP_SCREENS).contains("next = lastPlayed?.let { host.library.next(it) }"),
+            read(APP_SCREENS).contains("next = lastPlayed?.let { host.library.offeredNext(it) }"),
         )
         assertTrue(
             "Choosing the offer no longer opens the next publication, so the button" +
                 " does nothing.",
-            read(APP_SCREENS)
-                .contains("onOpenNext = { next -> host.library.location(next)?.let { host.open(next, it) } }"),
+            read(APP_SCREENS).contains("onOpenNext = host::openEntry"),
         )
         assertTrue(
             "PlayerFinishedScreen no longer draws the offer when one is given, so a" +

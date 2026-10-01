@@ -34,6 +34,7 @@ import app.storyarc.core.designsystem.navigation.CompactPlayerLabels
 import app.storyarc.core.designsystem.navigation.NavigationEntry
 import app.storyarc.core.designsystem.navigation.RailMenuLabels
 import app.storyarc.core.model.AppSettings
+import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.QuickActionRequest
 import app.storyarc.core.model.SourceConnectionState
@@ -41,11 +42,13 @@ import app.storyarc.core.persistence.RemovedDownload
 import app.storyarc.core.playback.PlaybackHost
 import app.storyarc.feature.epubreader.EXTRA_RESULT_NEXT_ID
 import app.storyarc.feature.epubreader.EpubReaderActivity
+import app.storyarc.feature.epubreader.offeringNext
 import app.storyarc.feature.library.CataloguePage
 import app.storyarc.feature.library.KavitaLevel
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.LibraryViewModel
 import app.storyarc.feature.library.SmbPage
+import app.storyarc.feature.library.offeredNext
 import app.storyarc.feature.settings.BuildInfo
 import app.storyarc.feature.settings.WhatsNew
 import app.storyarc.feature.settings.WhatsNewRelease
@@ -166,6 +169,8 @@ internal fun AppShell(
     // launcher is, since the launcher's own result reopens through `host.open`. See the
     // assignment just after `host` for why this is a box rather than a forward reference.
     val epubLauncher = remember { mutableStateOf<ActivityResultLauncher<android.content.Intent>?>(null) }
+    // What the EPUB reader was told to offer, so the choice it hands back opens that entry.
+    val epubNext = remember { mutableStateOf<Publication?>(null) }
 
     val host = AppHost(
         activity = activity,
@@ -211,13 +216,10 @@ internal fun AppShell(
                 )
                 navigation = navigation.push(Screen.Player)
             } else if (publication.format == PublicationFormat.EPUB && !publication.isFixedLayout) {
-                // `collections-and-reading-lists` task 7.2: the reflowable reader offers
-                // what comes next at the end, the way the paged reader's own end screen
-                // already does. Left out, rather than offered with nothing to open, when
-                // the next entry has no file on this device — task 7.14 is what widens
-                // this to a server's own route.
-                val next = library.next(publication)
-                val nextLocation = next?.let { library.location(it) }
+                // `collections-and-reading-lists` tasks 7.2, 7.3 and 7.14: the reflowable
+                // reader offers what comes next at the end, the way the paged reader's own
+                // end screen does, and only an entry that choosing it can open.
+                val next = library.offeredNext(publication).also { epubNext.value = it }
                 val intent = EpubReaderActivity.intent(
                     activity,
                     path,
@@ -227,9 +229,7 @@ internal fun AppShell(
                     // one, so a position this activity writes on leaving still
                     // finds the origin `kavita-server` remembers the chapter under.
                     publication.identity,
-                    nextId = next?.id?.takeIf { nextLocation != null },
-                    nextTitle = next?.displayTitle?.takeIf { nextLocation != null },
-                )
+                ).offeringNext(next)
                 epubLauncher.value?.launch(intent) ?: activity.startActivity(intent)
             } else {
                 // Replaced rather than stacked when a reader is already open: the next
@@ -278,16 +278,14 @@ internal fun AppShell(
     )
 
     // `collections-and-reading-lists` task 7.2: the EPUB reader is a separate activity,
-    // so the choice it hands back on the end-of-book offer reopens through `host.open`
+    // so the choice it hands back on the end-of-book offer opens through `openEntry`
     // here rather than inside the activity, which has no library of its own to ask.
     epubLauncher.value = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { result ->
         val nextId = result.data?.getStringExtra(EXTRA_RESULT_NEXT_ID)
             ?: return@rememberLauncherForActivityResult
-        val next = library.publications.value.firstOrNull { it.id == nextId } ?: return@rememberLauncherForActivityResult
-        val location = library.location(next) ?: return@rememberLauncherForActivityResult
-        host.open(next, location)
+        epubNext.value?.takeIf { it.id == nextId }?.let(host::openEntry)
     }
 
     AppIntents(

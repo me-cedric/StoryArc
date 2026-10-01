@@ -9,6 +9,7 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.persistence.KavitaProgressStore
+import app.storyarc.core.persistence.ProgressStore
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -91,7 +92,9 @@ object ServerListContext {
     /** What fetching the next or the previous entry found. */
     sealed interface Fetch {
         data class Opened(val publication: Publication, val path: String) : Fetch
-        data object Failed : Fetch
+
+        /** [message] is the sentence the failure owes the reader. It names the entry. */
+        data class Failed(val message: String) : Fetch
     }
 
     /**
@@ -111,7 +114,39 @@ object ServerListContext {
                 _current.value = place.copy(position = place.entries.indexOf(item))
                 Fetch.Opened(opening.publication, opening.path)
             }
-            else -> Fetch.Failed
+            else -> Fetch.Failed(context.getString(R.string.kavita_open_failed, item.displayName))
         }
     }
+
+    /**
+     * Opens the entry an end screen offered, when [offered] is one that [next] or [previous]
+     * answered. The fetch is the list screen's own, and so is the seed of the server's
+     * position. Null when [offered] names no entry of [current].
+     *
+     * Tasks 7.3 and 7.14: the offer names a server list's entry before this device has a file
+     * for it, so taking the offer fetches one rather than looking for a file that is not there.
+     */
+    suspend fun open(context: Context, offered: Publication, progress: ProgressStore?): Fetch? {
+        val place = current.value ?: return null
+        val remote = offered.identity.serverIdentifier ?: return null
+        if (remote.sourceId.toString() != place.serverId) return null
+        val item = place.entries.firstOrNull { remote.remoteId == "chapter:${it.chapterId}" } ?: return null
+        val fetched = fetch(context, place, item)
+        if (fetched is Fetch.Opened) seedKavitaOpen(fetched.publication, item.pagesRead, item.pagesTotal, progress)
+        return fetched
+    }
 }
+
+/**
+ * What an end-of-publication screen offers after [after]: the next entry of the server list
+ * the reader is inside, or else the library's own next.
+ *
+ * Task 7.14: the library's next can be a Kavita or OPDS row with no file on this device. An
+ * end screen cannot open that row, so the offer leaves it out.
+ */
+fun LibraryViewModel.offeredNext(after: Publication): Publication? =
+    ServerListContext.next(after) ?: next(after)?.takeIf { location(it) != null }
+
+/** The mirror of [offeredNext], for the chapter actions' "previous" control. */
+fun LibraryViewModel.offeredPrevious(before: Publication): Publication? =
+    ServerListContext.previous(before) ?: previous(before)?.takeIf { location(it) != null }

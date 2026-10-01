@@ -26,6 +26,7 @@ import app.storyarc.feature.library.KavitaLevel
 import app.storyarc.feature.library.KavitaListScreen
 import app.storyarc.feature.library.SeriesShelfScreen
 import app.storyarc.feature.library.KavitaPage
+import app.storyarc.feature.library.offeredNext
 import app.storyarc.feature.library.ListPromoter
 import app.storyarc.feature.library.OfflineSourceScreen
 import app.storyarc.feature.library.PublicationDetailScreen
@@ -258,8 +259,8 @@ internal fun HostedScreen(
                 val lastPlayed = PlayingBook.lastPlayed.collectAsStateWithLifecycle().value
                 PlayerFinishedScreen(
                     onBack = back,
-                    next = lastPlayed?.let { host.library.next(it) },
-                    onOpenNext = { next -> host.library.location(next)?.let { host.open(next, it) } },
+                    next = lastPlayed?.let { host.library.offeredNext(it) },
+                    onOpenNext = host::openEntry,
                 )
             } else {
                 PlayerScreen(

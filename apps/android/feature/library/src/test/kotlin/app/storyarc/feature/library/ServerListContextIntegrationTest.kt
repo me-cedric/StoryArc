@@ -8,9 +8,12 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.kavita.KavitaAddress
+import app.storyarc.core.kavita.KavitaReadingListItem
+import app.storyarc.core.persistence.ProgressStore
 import com.sun.net.httpserver.HttpServer
 import java.io.File
 import java.net.InetSocketAddress
+import java.util.UUID
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -147,8 +150,58 @@ class ServerListContextIntegrationTest {
 
         val fetched = ServerListContext.fetch(context, place, requireNotNull(place.next))
 
-        assertEquals(ServerListContext.Fetch.Failed, fetched)
+        assertTrue(
+            "A refused fetch no longer names the entry it could not open.",
+            (fetched as? ServerListContext.Fetch.Failed)?.message?.contains("Issue #11") == true,
+        )
         assertEquals(0, ServerListContext.current.value?.position)
+    }
+
+    @Test
+    fun `taking the offered entry fetches it, seeds the server's position and advances the place`() = runTest {
+        // Tasks 7.3 and 7.14: the offer is a placeholder with no file, so taking it fetches.
+        val comic = corpus.resolve("comics/single-page.cbz").readBytes()
+        val port = serve(11, comic)
+        val serverId = UUID.randomUUID().toString()
+        val place = ServerListContext.Place(
+            serverId = serverId,
+            serverAddress = KavitaAddress("http://localhost:$port", "key"),
+            listId = 8,
+            entries = listOf(
+                KavitaReadingListItem(chapterId = 10, order = 0, title = "Issue #10"),
+                KavitaReadingListItem(chapterId = 11, order = 1, title = "Issue #11", pagesRead = 5, pagesTotal = 22),
+            ),
+            position = 0,
+        )
+        ServerListContext.opened(place)
+        val reading = place.placeholder(place.entries[0])
+        val offered = requireNotNull(ServerListContext.next(reading))
+        val progress = ProgressStore.inMemory(context)
+
+        val opened = ServerListContext.open(context, offered, progress)
+
+        assertTrue("Taking the offer did not fetch the entry it named.", opened is ServerListContext.Fetch.Opened)
+        assertEquals(1, ServerListContext.current.value?.position)
+        val publication = (opened as ServerListContext.Fetch.Opened).publication
+        assertTrue(
+            "The taken entry opened without the position the server reported for it.",
+            progress.progress(publication.identity) != null,
+        )
+    }
+
+    @Test
+    fun `an offer that names no entry of the current list opens nothing`() = runTest {
+        val place = ServerListContext.Place(
+            serverId = UUID.randomUUID().toString(),
+            serverAddress = KavitaAddress("http://localhost:1", "key"),
+            listId = 8,
+            entries = listOf(KavitaReadingListItem(chapterId = 10, order = 0, title = "Issue #10")),
+            position = 0,
+        )
+        ServerListContext.opened(place)
+        val elsewhere = place.copy(serverId = UUID.randomUUID().toString()).placeholder(place.entries[0])
+
+        assertNull(ServerListContext.open(context, elsewhere, progress = null))
     }
 
     private fun requireNonNullPlace() = requireNotNull(ServerListContext.current.value)

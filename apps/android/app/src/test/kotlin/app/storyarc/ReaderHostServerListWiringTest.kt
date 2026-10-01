@@ -5,24 +5,30 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * `collections-and-reading-lists` task 7.3: a server reading list the reader is actually
- * inside answers the reader's next/previous offer before the local library's own guess does
- * — [ServerListContextTest] and [ServerListContextIntegrationTest] in `:feature:library`
- * prove what that answer is; this is only that `ReaderHost` asks for it first.
+ * `collections-and-reading-lists` tasks 7.3 and 7.14: a server reading list the reader is
+ * inside answers the reader's next/previous offer before the local library's own guess does,
+ * and a taken offer is fetched when it has no file yet. [ServerListContextTest] and
+ * [ServerListContextIntegrationTest] in `:feature:library` prove what the answer is and what
+ * taking it fetches; this is only that `ReaderHost` asks for both.
  */
 class ReaderHostServerListWiringTest {
 
     @Test
-    fun `the reader asks the server list before the local library`() {
+    fun `the reader asks for an offer it can open, and opens a taken one through openEntry`() {
         val host = read(READER_HOST)
         assertTrue(
-            "ReaderHost no longer asks ServerListContext for the next entry, so a server" +
-                " list's own order is never offered — only the local library's guess.",
-            host.contains("ServerListContext.next(publication) ?: host.library.next(publication)"),
+            "ReaderHost no longer asks offeredNext for the next entry, so a server list's own" +
+                " order is never offered, and a row with no file can be offered again.",
+            host.contains("nextInSeries = host.library.offeredNext(publication)"),
         )
         assertTrue(
-            "ReaderHost no longer asks ServerListContext for the previous entry.",
-            host.contains("ServerListContext.previous(publication) ?: host.library.previous(publication)"),
+            "ReaderHost no longer asks offeredPrevious for the previous entry.",
+            host.contains("previousInSeries = host.library.offeredPrevious(publication)"),
+        )
+        assertTrue(
+            "ReaderHost no longer opens a taken offer through openEntry, so a server list's" +
+                " next entry, which has no file yet, opens nothing.",
+            host.contains("onOpen = host::openEntry"),
         )
     }
 
