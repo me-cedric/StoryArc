@@ -294,7 +294,10 @@ internal fun BulkDownloadPrompt(
             TextButton(onClick = {
                 onSettled()
                 scope.launch {
-                    onChange(BulkUndo(BulkUndo.Kind.Kept, viewModel.keepOffline(wanted)))
+                    // Nothing kept, nothing to undo: a selection of members no source could
+                    // queue is the case `ShelfBulkActions` and iOS already leave silent.
+                    val kept = viewModel.keepOffline(wanted)
+                    if (kept.isNotEmpty()) onChange(BulkUndo(BulkUndo.Kind.Kept, kept))
                 }
             }) {
                 Text(stringResource(R.string.library_bulk_download))
