@@ -282,14 +282,12 @@ private fun ClearableRow(
     /**
      * How the size reads.
      *
-     * A parameter rather than always [formatBytes], because the downloads total is the one
-     * figure on this screen that a reader can also see somewhere else — the Downloads group
-     * and the Settings summary both show the same `bytesOnDisk` through the platform
-     * formatter, which is decimal. One number rendered two ways in one screen reads as two
-     * numbers. The cache and the history appear only here, so they keep the convention
-     * [formatBytes] documents.
+     * A parameter rather than always this default, because the downloads row passes the
+     * same [android.text.format.Formatter.formatShortFileSize] call explicitly — one number
+     * rendered two ways in one screen reads as two numbers, and the cache and the history
+     * appear only here, so they take the default.
      */
-    size: String = formatBytes(bytes),
+    size: String = android.text.format.Formatter.formatShortFileSize(LocalContext.current, bytes),
     onClear: () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -319,20 +317,6 @@ private fun ClearableRow(
             Text(stringResource(R.string.privacy_clear))
         }
     }
-}
-
-/**
- * A size a person can read.
- *
- * Powers of 1024 with the SI names, which is what every file manager on both platforms
- * shows — matching the convention a reader already has beats being right about kibibytes.
- */
-private fun formatBytes(bytes: Long): String = when {
-    bytes <= 0 -> "0 kB"
-    bytes < 1024 -> "1 kB"
-    bytes < 1024 * 1024 -> "${bytes / 1024} kB"
-    bytes < 1024 * 1024 * 1024 -> "%.1f MB".format(bytes / (1024.0 * 1024))
-    else -> "%.1f GB".format(bytes / (1024.0 * 1024 * 1024))
 }
 
 /**
