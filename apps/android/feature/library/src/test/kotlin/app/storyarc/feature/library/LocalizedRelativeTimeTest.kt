@@ -56,4 +56,18 @@ class LocalizedRelativeTimeTest {
 
         assertEquals("il y a 0 minute", french)
     }
+
+    @Test
+    fun `a span of months reads in months, not in weeks`() {
+        val fiveMonthsAgo = now - 150L * 24 * 60 * 60 * 1_000
+
+        assertEquals("5 months ago", localizedRelativeTime(fiveMonthsAgo, now, Locale.US))
+    }
+
+    @Test
+    fun `a span of years reads in years`() {
+        val twoYearsAgo = now - 2L * 365 * 24 * 60 * 60 * 1_000
+
+        assertEquals("il y a 2 ans", localizedRelativeTime(twoYearsAgo, now, Locale.FRENCH))
+    }
 }

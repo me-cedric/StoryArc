@@ -23,7 +23,12 @@ internal fun localizedRelativeTime(
     finestUnit: RelativeDateTimeFormatter.RelativeUnit = RelativeDateTimeFormatter.RelativeUnit.MINUTES,
 ): String {
     val elapsed = (now - epochMillis).coerceAtLeast(0)
+    // Years and months as iOS's `.relative(presentation: .named)` states them, so a source
+    // unchecked since spring reads "5 months ago" rather than "22 weeks ago". A month is 30
+    // days here: the bucket only has to be the one a reader would name.
     val units = listOf(
+        RelativeDateTimeFormatter.RelativeUnit.YEARS to DateUtils.DAY_IN_MILLIS * DAYS_IN_YEAR,
+        RelativeDateTimeFormatter.RelativeUnit.MONTHS to DateUtils.DAY_IN_MILLIS * DAYS_IN_MONTH,
         RelativeDateTimeFormatter.RelativeUnit.WEEKS to DateUtils.WEEK_IN_MILLIS,
         RelativeDateTimeFormatter.RelativeUnit.DAYS to DateUtils.DAY_IN_MILLIS,
         RelativeDateTimeFormatter.RelativeUnit.HOURS to DateUtils.HOUR_IN_MILLIS,
@@ -40,3 +45,6 @@ internal fun localizedRelativeTime(
         unit,
     )
 }
+
+private const val DAYS_IN_YEAR = 365
+private const val DAYS_IN_MONTH = 30
