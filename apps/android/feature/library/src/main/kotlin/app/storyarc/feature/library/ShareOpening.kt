@@ -34,6 +34,18 @@ internal fun needsLocalFile(format: PublicationFormat): Boolean =
     format == PublicationFormat.PDF || format == PublicationFormat.CBR
 
 /**
+ * Whether a catalogue acquisition of this format can be read from its address before the
+ * download finishes.
+ *
+ * [readsFromAnAddress] answers the same question for a publication already indexed, and
+ * knows whether an EPUB is fixed-layout. A catalogue entry has neither yet -- only a media
+ * type -- so an EPUB is excluded here too: the common case is reflowable, and [needsLocalFile]
+ * alone would stream a format this screen cannot yet tell apart from one it can.
+ */
+internal fun catalogueReadsWhereItLies(format: PublicationFormat?): Boolean =
+    format != null && format != PublicationFormat.EPUB && !format.isAudio && !needsLocalFile(format)
+
+/**
  * Whether the reader this publication opens in can read from an address rather than a file.
  *
  * The same three-way choice `AppShell` makes when a publication is opened, asked before the

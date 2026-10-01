@@ -261,4 +261,31 @@ struct ShareOpeningTests {
             PublicationFormat.allCases.filter(ShareOpening.needsLocalFile) == [.cbr, .epub, .pdf]
         )
     }
+
+    // MARK: - Reading while downloading, from a catalogue entry
+
+    @Test("A comic acquisition reads from its catalogue address")
+    func comicAcquisitionReadsWhereItLies() {
+        #expect(ShareOpening.catalogueReadsWhereItLies(.cbz))
+    }
+
+    @Test("A PDF or CBR acquisition does not, because the decoder wants a file")
+    func fileDecodersDoNotStreamFromTheCatalogue() {
+        #expect(!ShareOpening.catalogueReadsWhereItLies(.pdf))
+        #expect(!ShareOpening.catalogueReadsWhereItLies(.cbr))
+        #expect(!ShareOpening.catalogueReadsWhereItLies(.epub))
+    }
+
+    @Test("An audio acquisition does not stream, even though AVURLAsset is not asked")
+    func audioAcquisitionDoesNotStreamFromTheCatalogue() {
+        // There is no `Publication` yet to read a `StreamingCapability` off, so this has to
+        // be excluded on the format alone — `AVURLAsset` wants a file regardless of what a
+        // read of the container would have said.
+        #expect(!ShareOpening.catalogueReadsWhereItLies(.m4b))
+    }
+
+    @Test("A media type nothing recognises does not stream")
+    func unrecognisedMediaTypeDoesNotStream() {
+        #expect(!ShareOpening.catalogueReadsWhereItLies(nil))
+    }
 }

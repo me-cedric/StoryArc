@@ -43,6 +43,19 @@ enum ShareOpening {
         }
     }
 
+    /// Whether a catalogue acquisition of this format can be read from its address before
+    /// the download finishes.
+    ///
+    /// ``needsLocalFile(_:)`` answers the same question for a publication already indexed.
+    /// A catalogue entry has none yet — only a media type — so audio is excluded here as
+    /// well: the entry above decides it from a `Publication`'s ``StreamingCapability``,
+    /// which does not exist until a source has been opened and read, and `AVURLAsset` wants
+    /// a file regardless of what that read would say.
+    static func catalogueReadsWhereItLies(_ format: PublicationFormat?) -> Bool {
+        guard let format, !format.isAudio else { return false }
+        return !needsLocalFile(format)
+    }
+
     /// Where a publication's own page opens it from.
     ///
     /// The page's whole rule, in one call: a copy on this device wins, otherwise the address
