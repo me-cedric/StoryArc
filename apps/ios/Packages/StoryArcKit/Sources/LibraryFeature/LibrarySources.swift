@@ -275,6 +275,19 @@ extension LibraryModel {
         shelvesStore?.save(shelves)
     }
 
+    /// Task 7.10: `Shelves.renaming(collection:to:)` has answered since the model was
+    /// written; nothing reader-facing reached it.
+    public func rename(collection id: UUID, to name: String) {
+        shelves = shelves.renaming(collection: id, to: name)
+        shelvesStore?.save(shelves)
+    }
+
+    /// The reading-list twin of ``rename(collection:to:)``.
+    public func rename(list id: UUID, to name: String) {
+        shelves = shelves.renaming(list: id, to: name)
+        shelvesStore?.save(shelves)
+    }
+
     public func add(_ members: Set<String>, toCollection id: UUID) {
         shelves = shelves.adding(members, to: id)
         shelvesStore?.save(shelves)

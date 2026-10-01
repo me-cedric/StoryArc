@@ -22,6 +22,7 @@ public struct ShelvesView: View {
 
     @State private var creating: ShelfDraft?
     @State private var draftName = ""
+    @State private var renaming: ShelfRenameTarget? // Task 7.10
 
     /// Set when a server would not take the shelf the reader asked it to keep.
     @State private var serverRefusedTheShelf = false
@@ -125,6 +126,7 @@ public struct ShelvesView: View {
         } onServer: { kind, name, page in
             Task { await keep(kind, named: name, on: page) }
         }
+        .shelfRename($renaming) { model.rename($0) }
         // A server that would not take it is said out loud rather than quietly turned into a
         // local shelf: a shelf whose stated home is a lie is worse than an error.
         .alert(
@@ -198,6 +200,7 @@ public struct ShelvesView: View {
                         .buttonStyle(.plain)
                         .contextMenu {
                             pinButton(.collection(collection.id))
+                            renameButton { renaming = ShelfRenameTarget(collection) }
                             deleteButton { deleting = ShelfDeletion(collection) }
                         }
                     }
@@ -256,6 +259,7 @@ public struct ShelvesView: View {
                         .buttonStyle(.plain)
                         .contextMenu {
                             pinButton(.list(list.id))
+                            renameButton { renaming = ShelfRenameTarget(list) }
                             deleteButton { deleting = ShelfDeletion(list) }
                         }
                     }

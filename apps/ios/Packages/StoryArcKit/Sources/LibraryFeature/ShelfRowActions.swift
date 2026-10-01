@@ -52,4 +52,17 @@ extension ShelvesView {
             }
         }
     }
+
+    /// Task 7.10: an ordinary action beside the destructive one, the same order `pinButton`
+    /// keeps above `deleteButton`.
+    @ViewBuilder
+    func renameButton(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label {
+                Text("shelves.rename", bundle: .module)
+            } icon: {
+                Image(systemName: "pencil")
+            }
+        }
+    }
 }
