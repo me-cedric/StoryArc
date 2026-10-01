@@ -621,7 +621,7 @@ class LibraryViewModel(
         }
         viewModelScope.launch {
             _registry.update { it.marking(source.id, SourceConnectionState.Connecting) }
-            val application = getApplication<Application>()
+            val application = getApplication<Application>().speakingReaderLanguage()
             val reason = application.getString(R.string.source_state_unauthorized)
             val encryption = application.getString(R.string.smb_error_encryption)
             val state = SourceHealth.probe(
