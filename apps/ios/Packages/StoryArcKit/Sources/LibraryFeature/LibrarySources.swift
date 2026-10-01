@@ -334,11 +334,15 @@ extension LibraryModel {
     /// who keeps no lists will always get.
     public func next(after publication: Publication) -> Publication? {
         for list in shelves.lists where list.entries.contains(publication.id) {
-            guard let nextID = list.next(after: publication.id) else { continue }
             // An entry whose publication is gone does not stop the flow: the spec says an
             // unavailable entry "does not break the ordering or the next flow", so the
-            // search carries on past it.
-            if let found = publications.first(where: { $0.id == nextID }) { return found }
+            // search walks forward past every unavailable entry in this list before
+            // trying the next list or falling back to the series.
+            var cursor = publication.id
+            while let nextID = list.next(after: cursor) {
+                if let found = publications.first(where: { $0.id == nextID }) { return found }
+                cursor = nextID
+            }
         }
         return LibraryIndex.next(after: publication, in: publications)
     }
@@ -350,8 +354,11 @@ extension LibraryModel {
     /// through the issue numbers it cuts across.
     public func previous(before publication: Publication) -> Publication? {
         for list in shelves.lists where list.entries.contains(publication.id) {
-            guard let previousID = list.previous(before: publication.id) else { continue }
-            if let found = publications.first(where: { $0.id == previousID }) { return found }
+            var cursor = publication.id
+            while let previousID = list.previous(before: cursor) {
+                if let found = publications.first(where: { $0.id == previousID }) { return found }
+                cursor = previousID
+            }
         }
         return LibraryIndex.previous(before: publication, in: publications)
     }
