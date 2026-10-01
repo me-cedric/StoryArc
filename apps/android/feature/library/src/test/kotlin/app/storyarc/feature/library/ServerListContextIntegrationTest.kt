@@ -93,7 +93,8 @@ class ServerListContextIntegrationTest {
         compose.waitUntil(10_000) {
             compose.onAllNodes(hasText("Issue #10")).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("Issue #10").performClick()
+        // The title itself, where a reader taps: the row centre can fall on a row button.
+        compose.onNodeWithText("Issue #10", useUnmergedTree = true).performClick()
         compose.waitUntil(10_000) { ServerListContext.current.value != null }
 
         val place = requireNonNullPlace()
