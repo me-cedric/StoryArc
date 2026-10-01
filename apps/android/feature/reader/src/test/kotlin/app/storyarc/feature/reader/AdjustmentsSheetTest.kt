@@ -77,6 +77,10 @@ class AdjustmentsSheetTest {
         "greyscale" to "copy(isGreyscale =",
         "border cropping" to "copy(cropsBorders =",
         "excusing this page from the crop" to "onChange = onCropThisPage",
+        // D34: `ebook-reader`'s *Fixed-layout EPUB* asks for these two from the container,
+        // not from a filter over the artwork — see `ReaderMatte.kt`'s doc comment.
+        "the matte" to "onChoose(hex)",
+        "reader-local screen brightness" to "onChange = onChooseBrightness",
     )
 
     @Test
