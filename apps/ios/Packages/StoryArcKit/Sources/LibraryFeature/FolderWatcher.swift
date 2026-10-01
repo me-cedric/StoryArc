@@ -1,5 +1,5 @@
 internal import Foundation
-internal import SwiftUI
+public import SwiftUI
 
 /// Notices when a watched folder's contents change.
 ///
@@ -115,7 +115,11 @@ extension View {
     /// The watcher covers the app being on screen; this covers the other scenario in
     /// `local-library`, where the change happened while the app was in the background and
     /// no event was delivered to anyone.
-    func watchingFolders(of model: LibraryModel) -> some View {
+    ///
+    /// 10.5: `public`, and applied once by `AppShell` rather than by `LibraryView` — a tab
+    /// is only composed once a reader opens it, so attached here it never fired for a
+    /// reader who returned to the foreground on Home or Downloads.
+    public func watchingFolders(of model: LibraryModel) -> some View {
         modifier(WatchingFolders(model: model))
     }
 }
@@ -133,6 +137,9 @@ private struct WatchingFolders: ViewModifier {
                 // comparing file modification times and sizes rather than re-reading every
                 // archive".
                 Task { await model.reconcileWatchedFolders() }
+                // 10.5: folded in here too, for the same reason -- a folder's grant can be
+                // revoked while the app is away, and nothing else re-asks on return.
+                model.resolveLocalSources()
             }
     }
 }

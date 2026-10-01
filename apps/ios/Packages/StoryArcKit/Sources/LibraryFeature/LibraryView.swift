@@ -353,9 +353,8 @@ public struct LibraryView: View {
                     pins: pins
                 )
             )
-            // `local-library`'s "reconciles ... after files changed": a provider notifies
-            // nobody while the app is away. Android does the same on `ON_RESUME`.
-            .watchingFolders(of: model)
+            // 10.5: the foreground reconcile moved to `AppShell`, so it runs whichever tab
+            // is on screen rather than only this one.
             // `sources` names pull-to-refresh: a refresh "re-fetches the catalogue in the
             // background" and updates the view "incrementally rather than clearing it".
             //
