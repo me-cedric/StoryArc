@@ -116,7 +116,7 @@ struct KavitaClientTests {
         ))
     }
 
-    @Test("Marking a chapter names the series, the volume and the chapter")
+    @Test("Marking a chapter names the series and the chapter, and no whole volume")
     func marksAChapter() async throws {
         let sent = KavitaSent()
         let client = try client { request in
@@ -127,7 +127,7 @@ struct KavitaClientTests {
             return self.json("{}")
         }
 
-        try await client.mark(seriesId: 11, volumeId: 1100, chapterId: 12, isRead: false)
+        try await client.mark(seriesId: 11, chapterId: 12, isRead: false)
 
         let request = try #require(sent.request)
         // D2: `mark-multiple-unread`, not `mark-chapter-unread` — the single-chapter unread
@@ -137,7 +137,7 @@ struct KavitaClientTests {
         let text = try #require(String(bytes: body, encoding: .utf8))
         #expect(
             text.contains("\"seriesId\":11")
-                && text.contains("\"volumeIds\":[1100]")
+                && text.contains("\"volumeIds\":[]")
                 && text.contains("\"chapterIds\":[12]")
         )
     }
@@ -151,7 +151,7 @@ struct KavitaClientTests {
         }
 
         await #expect(throws: KavitaError.routeMissing(path: "Reader/mark-multiple-read")) {
-            try await client.mark(seriesId: 11, volumeId: 1100, chapterId: 12, isRead: true)
+            try await client.mark(seriesId: 11, chapterId: 12, isRead: true)
         }
     }
 

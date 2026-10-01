@@ -44,7 +44,6 @@ extension KavitaSync {
         }
         try await client.mark(
             seriesId: held.origin.seriesId,
-            volumeId: held.origin.volumeId,
             chapterId: held.origin.chapterId,
             isRead: mark
         )
