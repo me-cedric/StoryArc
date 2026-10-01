@@ -25,7 +25,10 @@
     <string name="library_cell_finished">Gelesen</string>
     <string name="library_cell_unavailable">Die zugehörige Bibliothek muss erreichbar sein</string>
     <string name="library_section_other">Weitere</string>
-    <string name="library_scanning">Ihre Comics werden hinzugefügt – %1$d gefunden</string>
+    <plurals name="library_scanning">
+        <item quantity="one">Ihre Comics werden hinzugefügt – %1$d gefunden</item>
+        <item quantity="other">Ihre Comics werden hinzugefügt – %1$d gefunden</item>
+    </plurals>
     <string name="library_scan_cancel">Abbrechen</string>
     <string name="library_add_folder">Ordner hinzufügen</string>
     <string name="library_folder_unavailable">%1$s kann nicht mehr gelesen werden.</string>
@@ -215,7 +218,10 @@
     <string name="shelves_promote_choose">Online-Bibliothek wählen</string>
     <string name="shelves_promote_plan">Was passieren wird</string>
     <string name="shelves_promote_copy">Kopieren</string>
-    <string name="shelves_promote_entries">%1$d von %2$d Einträgen</string>
+    <plurals name="shelves_promote_entries">
+        <item quantity="one">%1$d von %2$d Eintrag</item>
+        <item quantity="other">%1$d von %2$d Einträgen</item>
+    </plurals>
     <string name="shelves_promote_why">%1$s hat sie nicht, und StoryArc lädt niemals eine Datei hoch. Sie bleiben in der Liste auf diesem Gerät.</string>
     <string name="shelves_promote_none">%1$s hat keinen dieser Einträge, es gibt also nichts zu kopieren.</string>
     <string name="shelves_promote_failed">Es wurde nichts kopiert. Die Online-Bibliothek hat die Liste nicht angenommen.</string>
@@ -355,7 +361,10 @@
     <string name="sync_conflict_title">An zwei Stellen gelesen</string>
     <string name="sync_conflict_keep">Weiteste behalten</string>
     <string name="sync_conflict_take">Die andere nehmen</string>
-    <string name="sync_conflict_body">%1$d Titel wurden sowohl auf diesem Gerät als auch in der Herkunftsbibliothek weitergelesen. Die weiteste Position wurde behalten.</string>
+    <plurals name="sync_conflict_body">
+        <item quantity="one">%1$d Titel wurde sowohl auf diesem Gerät als auch in der Herkunftsbibliothek weitergelesen. Die weiteste Position wurde behalten.</item>
+        <item quantity="other">%1$d Titel wurden sowohl auf diesem Gerät als auch in der Herkunftsbibliothek weitergelesen. Die weiteste Position wurde behalten.</item>
+    </plurals>
     <string name="sync_conflict_body_one">„%1$s“ wurde sowohl auf diesem Gerät als auch in der Herkunftsbibliothek weitergelesen — %2$s wurde behalten, nicht %3$s.</string>
     <string name="sync_conflict_show">Anzeigen</string>
     <string name="sync_conflict_item">%1$s: %2$s behalten, nicht %3$s.</string>

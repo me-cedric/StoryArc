@@ -116,8 +116,9 @@ internal fun PromoteListSheet(
                         // The count is on the row itself, so the choice between two servers
                         // is made on what each of them can actually take.
                         Text(
-                            text = stringResource(
-                                R.string.shelves_promote_entries,
+                            text = pluralStringResource(
+                                R.plurals.shelves_promote_entries,
+                                plan.total,
                                 plan.copying.size,
                                 plan.total,
                             ),

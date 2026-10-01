@@ -123,7 +123,7 @@ class LibraryNoticesTest {
         // `when`, so a rescan of a library that already had books reported nothing here.
         show(scanningFound = 3)
 
-        compose.onNodeWithText(context.getString(R.string.library_scanning, 3)).assertIsDisplayed()
+        compose.onNodeWithText(context.resources.getQuantityString(R.plurals.library_scanning, 3, 3)).assertIsDisplayed()
     }
 
     @Test
@@ -145,7 +145,7 @@ class LibraryNoticesTest {
             registry = SourceRegistry().adding(server(answeredAt = 1_000L)),
         )
 
-        compose.onNodeWithText(context.getString(R.string.library_scanning, 3)).assertIsDisplayed()
+        compose.onNodeWithText(context.resources.getQuantityString(R.plurals.library_scanning, 3, 3)).assertIsDisplayed()
         compose.onAllNodesWithText(context.getString(R.string.library_refreshing))
             .assertCountEquals(0)
     }

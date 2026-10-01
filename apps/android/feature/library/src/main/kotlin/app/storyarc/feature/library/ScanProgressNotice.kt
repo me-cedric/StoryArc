@@ -10,6 +10,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -34,7 +35,7 @@ internal fun ScanProgressNotice(found: Int, onCancel: () -> Unit, modifier: Modi
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = stringResource(R.string.library_scanning, found),
+            text = pluralStringResource(R.plurals.library_scanning, found, found),
             style = MaterialTheme.typography.labelLarge,
             color = palette.textSecondary,
             modifier = Modifier.weight(1f),

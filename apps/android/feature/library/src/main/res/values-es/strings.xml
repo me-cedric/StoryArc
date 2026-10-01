@@ -25,7 +25,10 @@
     <string name="library_cell_finished">Terminado</string>
     <string name="library_cell_unavailable">Necesita que su biblioteca esté disponible</string>
     <string name="library_section_other">Otros</string>
-    <string name="library_scanning">Añadiendo tus cómics: %1$d encontrados</string>
+    <plurals name="library_scanning">
+        <item quantity="one">Añadiendo tus cómics: %1$d encontrado</item>
+        <item quantity="other">Añadiendo tus cómics: %1$d encontrados</item>
+    </plurals>
     <string name="library_scan_cancel">Cancelar</string>
     <string name="library_add_folder">Añadir una carpeta</string>
     <string name="library_folder_unavailable">Ya no se puede leer %1$s.</string>
@@ -215,7 +218,10 @@
     <string name="shelves_promote_choose">Elegir una biblioteca en línea</string>
     <string name="shelves_promote_plan">Lo que va a ocurrir</string>
     <string name="shelves_promote_copy">Copiar</string>
-    <string name="shelves_promote_entries">%1$d de %2$d entradas</string>
+    <plurals name="shelves_promote_entries">
+        <item quantity="one">%1$d de %2$d entrada</item>
+        <item quantity="other">%1$d de %2$d entradas</item>
+    </plurals>
     <string name="shelves_promote_why">%1$s no las tiene, y StoryArc nunca sube ningún archivo. Se quedan en la lista de este dispositivo.</string>
     <string name="shelves_promote_none">%1$s no tiene ninguna de estas entradas, así que no hay nada que copiar.</string>
     <string name="shelves_promote_failed">No se copió nada. La biblioteca en línea no aceptó la lista.</string>
@@ -355,7 +361,10 @@
     <string name="sync_conflict_title">Leído en dos sitios</string>
     <string name="sync_conflict_keep">Quedarse con el más avanzado</string>
     <string name="sync_conflict_take">Tomar la otra</string>
-    <string name="sync_conflict_body">%1$d títulos avanzaron tanto en este dispositivo como en la biblioteca de origen. Se conservó la posición más avanzada.</string>
+    <plurals name="sync_conflict_body">
+        <item quantity="one">%1$d título avanzó tanto en este dispositivo como en la biblioteca de origen. Se conservó la posición más avanzada.</item>
+        <item quantity="other">%1$d títulos avanzaron tanto en este dispositivo como en la biblioteca de origen. Se conservó la posición más avanzada.</item>
+    </plurals>
     <string name="sync_conflict_body_one">«%1$s» avanzó tanto en este dispositivo como en la biblioteca de origen — se conservó %2$s, no %3$s.</string>
     <string name="sync_conflict_show">Mostrar</string>
     <string name="sync_conflict_item">%1$s: se conservó %2$s, no %3$s.</string>
