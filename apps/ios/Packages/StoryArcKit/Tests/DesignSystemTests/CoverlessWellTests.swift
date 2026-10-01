@@ -70,6 +70,24 @@ struct CoverlessWellTests {
         #expect(coverlessWellSymbol(for: format) == coverlessWellSymbol(for: .cbz))
     }
 
+    // MARK: - A shelf's own well
+
+    /// `collections-and-reading-lists` D1: a shelf with no artwork draws the same well a
+    /// publication does, named for the shelf rather than for a format — and, when one of
+    /// its members' formats is known, with that format's own glyph.
+    @Test("A shelf's own well draws the known format's glyph when one resolved")
+    func shelfWellWithKnownFormat() {
+        let known: PublicationFormat? = .cbz
+        #expect(coverlessWellSymbol(for: known) == coverlessWellSymbol(for: .cbz))
+    }
+
+    @Test("A shelf's own well falls back to a generic glyph when none resolved")
+    func shelfWellFallsBackWithNoFormat() {
+        let generic = coverlessWellSymbol(for: PublicationFormat?.none)
+        #expect(generic != coverlessWellSymbol(for: .cbz))
+        #expect(generic != coverlessWellSymbol(for: .m4b))
+    }
+
     // MARK: - The reach
 
     /// The package directory, from this test's own compiled path.

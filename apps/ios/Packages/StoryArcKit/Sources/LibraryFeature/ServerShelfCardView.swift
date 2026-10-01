@@ -31,6 +31,7 @@ struct ServerShelfCardView: View {
             cover: AnyView(
                 ServerShelfCover(
                     tiles: shelf.chosenCover ? [Self.serverCover] : tiles,
+                    name: shelf.title,
                     load: load
                 )
             )
