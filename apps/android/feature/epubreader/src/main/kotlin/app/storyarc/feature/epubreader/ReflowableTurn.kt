@@ -9,6 +9,8 @@ import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import app.storyarc.core.model.PageTransition
+import app.storyarc.core.model.TransitionChoices
 import kotlin.coroutines.resume
 import kotlin.math.abs
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -186,6 +188,14 @@ internal class FadeTurn(private val host: ViewGroup, private val index: Int) {
         const val DURATION_MS: Long = 240
     }
 }
+
+/**
+ * Whether Fast fade draws the turn rather than Readium: `effective`, not the chosen mode.
+ * Under Reduce Motion a chosen Slide runs as Fast fade, and the turn has to follow it --
+ * it stayed Readium's animated Slide while this read the chosen mode.
+ */
+internal val TransitionChoices.fadeOwnsTheTurn: Boolean
+    get() = effective == PageTransition.FAST_FADE
 
 /**
  * Where a tap lands, by edge band. `page-transitions`: edge-third taps turn the page

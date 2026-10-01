@@ -1,13 +1,17 @@
 package app.storyarc.feature.epubreader
 
+import android.os.Looper
+import android.provider.Settings
 import app.storyarc.core.model.PageTransition
 import app.storyarc.core.model.PublicationIdentity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
@@ -49,6 +53,37 @@ class ReduceMotionTurnTest {
         model.choose(PageTransition.FAST_FADE)
 
         assertEquals(PageTransition.FAST_FADE, model.transitions(reduceMotion = true).effective)
+    }
+
+    @Test
+    @Config(sdk = [34])
+    fun `under reduce motion a chosen slide is fast fade's own turn, not readium's`() {
+        val model = reader()
+        model.choose(PageTransition.SLIDE)
+
+        assertFalse(model.transitions(reduceMotion = false).fadeOwnsTheTurn)
+        assertTrue(model.transitions(reduceMotion = true).fadeOwnsTheTurn)
+    }
+
+    @Test
+    @Config(sdk = [34])
+    fun `the reader follows reduce motion as the system setting changes`() {
+        val resolver = RuntimeEnvironment.getApplication().contentResolver
+        Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+        val model = reader()
+        assertFalse(model.reduceMotionFlow.value)
+
+        Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+        resolver.notifyChange(Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE), null)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertTrue("turning Reduce Motion on mid-session reaches the reader", model.reduceMotionFlow.value)
+
+        // Closed with the activity: a change after that reaches nothing.
+        model.close()
+        Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+        resolver.notifyChange(Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE), null)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertTrue(model.reduceMotionFlow.value)
     }
 
     @Test
