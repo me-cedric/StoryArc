@@ -1,6 +1,7 @@
 import SwiftUI
 
 import DesignSystem
+import Formats
 import LibraryFeature
 import Persistence
 import StoryArcCore
@@ -59,6 +60,10 @@ struct DownloadsDestination: View {
     /// record. The system can reclaim a download, and a total that counts bytes nobody has
     /// is the kind of number that makes a reader distrust the whole screen.
     @State private var bytesOnDisk: Int64 = 0
+
+    /// What the cover cache alone is holding. `offline-downloads` asks the storage view to
+    /// state it apart from the downloads total, which it is not part of.
+    @State private var coverCacheBytes: Int64 = 0
 
     /// The download a reader has asked to take off this device, and not yet confirmed.
     @State private var removing: Download?
@@ -236,15 +241,13 @@ struct DownloadsDestination: View {
     /// covers over a line reading zero, and until this row named what it counts that read
     /// as the screen contradicting itself.
     private var space: some View {
-        HStack {
-            Text("downloads.total")
-                .foregroundStyle(theme.palette.textSecondary)
-            Spacer(minLength: StoryArcSpace.md)
-            Text(DownloadStore.formatted(bytesOnDisk))
-                .foregroundStyle(theme.palette.textSecondary)
-        }
-        .textRole(.footnote)
-        .padding(.horizontal, StoryArcSpace.gutter)
+        StorageBreakdownSection(
+            totalBytes: bytesOnDisk,
+            coverCacheBytes: coverCacheBytes,
+            downloads: downloads,
+            registry: model.registry,
+            onRemove: ask
+        )
     }
 
     /// The ten seconds in which a removal can be taken back.
@@ -344,6 +347,7 @@ struct DownloadsDestination: View {
     /// Re-reads what is true after a change: the total on disk, and the shelf.
     private func reload() {
         bytesOnDisk = store.bytesOnDisk()
+        coverCacheBytes = CoverCache().sizeOnDisk()
         // The library holds a row for every imported copy, and a row whose file has just
         // been deleted is a book that opens onto nothing.
         Task { await model.refreshImports() }

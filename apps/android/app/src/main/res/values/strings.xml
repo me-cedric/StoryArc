@@ -99,6 +99,11 @@
     <!-- The downloads destination speaks the vocabulary the settings screen used to. Same
          words, same four languages; only the module they are drawn from changed. -->
     <string name="downloads_total">Space used by downloads</string>
+    <!-- The cover cache's own size, in the storage view: distinct from the general Cache
+         row in Settings, which also counts the web view's own data. iOS carries the same
+         pair of keys. -->
+    <string name="downloads_cache">Cover cache</string>
+    <string name="downloads_largest">Largest on this device</string>
     <string name="downloads_stop">Stop</string>
     <string name="downloads_remove">Remove download</string>
     <string name="downloads_cancel">Cancel</string>

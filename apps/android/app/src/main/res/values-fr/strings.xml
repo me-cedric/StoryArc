@@ -36,6 +36,8 @@
     <string name="downloads_destination_empty">Rien n’est encore sur cet appareil. Un livre ouvert depuis une bibliothèque en ligne est conservé ici.</string>
 
     <string name="downloads_total">Espace utilisé par les téléchargements</string>
+    <string name="downloads_cache">Cache des couvertures</string>
+    <string name="downloads_largest">Les plus volumineux sur cet appareil</string>
     <string name="downloads_stop">Arr\u00eater</string>
     <string name="downloads_remove">Supprimer le t\u00e9l\u00e9chargement</string>
     <string name="downloads_cancel">Annuler</string>

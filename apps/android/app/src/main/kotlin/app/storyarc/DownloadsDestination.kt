@@ -1,6 +1,5 @@
 package app.storyarc
 
-import android.text.format.Formatter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,7 +28,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,6 +38,7 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Download
 import app.storyarc.feature.library.cancelAll
+import app.storyarc.feature.library.coverCacheBytes
 import app.storyarc.feature.library.isOnDevice
 import app.storyarc.feature.library.pauseAll
 import app.storyarc.feature.library.reorder
@@ -76,14 +75,15 @@ import kotlinx.coroutines.withContext
  */
 @Composable
 internal fun DownloadsDestination(host: AppHost) {
-    val context = LocalContext.current
     val library = host.downloads.value
     val publications by host.library.publications.collectAsStateWithLifecycle()
     val snackbars = remember { SnackbarHostState() }
 
     var removing by remember { mutableStateOf<Download?>(null) }
     var bytesOnDisk by remember { mutableLongStateOf(0L) }
+    var coverCacheBytes by remember { mutableLongStateOf(0L) }
     var confirmingStopAll by remember { mutableStateOf(false) }
+    val registry by host.library.registry.collectAsStateWithLifecycle()
 
     // Finished downloads are how a publication fetched from a server comes to be on the
     // shelf at all. The total is asked of the filesystem rather than summed from the record:
@@ -94,6 +94,7 @@ internal fun DownloadsDestination(host: AppHost) {
         // Off the main thread: the total is a walk of the download tree, and a shelf that
         // stutters while it is counted is a shelf that reads as slow.
         bytesOnDisk = withContext(Dispatchers.IO) { host.dependencies.downloads.bytesOnDisk() }
+        coverCacheBytes = withContext(Dispatchers.IO) { host.library.coverCacheBytes() }
     }
 
     // The same question the library's availability axis asks — *can I open this with no
@@ -221,7 +222,15 @@ internal fun DownloadsDestination(host: AppHost) {
                         },
                     )
                 }
-                wide { SpaceUsed(Formatter.formatShortFileSize(context, bytesOnDisk)) }
+                wide {
+                    StorageBreakdownSection(
+                        totalBytes = bytesOnDisk,
+                        coverCacheBytes = coverCacheBytes,
+                        downloads = library,
+                        registry = registry,
+                        onRemove = { removing = it },
+                    )
+                }
             }
         }
     }
@@ -383,23 +392,3 @@ private fun SectionHeading(text: String) {
     )
 }
 
-/** What the files weigh, stated once and quietly. */
-@Composable
-private fun SpaceUsed(size: String) {
-    val palette = LocalStoryArcPalette.current
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(top = StoryArcSpace.md),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            text = stringResource(R.string.downloads_total),
-            style = MaterialTheme.typography.bodyMedium,
-            color = palette.textSecondary,
-        )
-        Text(
-            text = size,
-            style = MaterialTheme.typography.bodyMedium,
-            color = palette.textSecondary,
-        )
-    }
-}

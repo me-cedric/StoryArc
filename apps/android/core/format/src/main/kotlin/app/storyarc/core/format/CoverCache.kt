@@ -76,4 +76,14 @@ class CoverCache(private val directory: File) {
     fun clear() {
         runCatching { directory.deleteRecursively() }
     }
+
+    /**
+     * What this cache alone is holding.
+     *
+     * `offline-downloads` asks the storage view for "the cover cache size", which is not
+     * the Privacy screen's general "Cache" row -- that walks the whole cache directory,
+     * the web view's own data included, because this cache is one tenant of it rather than
+     * all of it.
+     */
+    fun sizeOnDisk(): Long = directory.walkTopDown().filter { it.isFile }.sumOf { it.length() }
 }

@@ -36,6 +36,8 @@
     <string name="downloads_destination_empty">Noch nichts auf diesem Gerät. Ein Buch, das Sie aus einer Online-Bibliothek öffnen, wird hier behalten.</string>
 
     <string name="downloads_total">Von Downloads belegter Speicher</string>
+    <string name="downloads_cache">Cover-Cache</string>
+    <string name="downloads_largest">Am meisten Speicherplatz</string>
     <string name="downloads_stop">Stoppen</string>
     <string name="downloads_remove">Download entfernen</string>
     <string name="downloads_cancel">Abbrechen</string>
