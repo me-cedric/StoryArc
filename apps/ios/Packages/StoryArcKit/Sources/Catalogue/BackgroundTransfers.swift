@@ -205,6 +205,15 @@ public final class BackgroundTransfers: NSObject, @unchecked Sendable {
     public func onProgress(_ handler: (@Sendable (String, Int64, Int64) -> Void)?) {
         progress.withLock { $0 = handler }
     }
+
+    private let attempt = Mutex<(@Sendable (String, Bool) -> Void)?>(nil)
+
+    /// Told, as soon as the system knows, whether a transfer started from resume data
+    /// carried on (`true`) or started over (`false`). The queue row is drawn only while the
+    /// transfer is in flight, so the answer at completion arrives after the row has gone.
+    public func onAttempt(_ handler: (@Sendable (String, Bool) -> Void)?) {
+        attempt.withLock { $0 = handler }
+    }
 }
 
 extension BackgroundTransfers: URLSessionDownloadDelegate {
@@ -231,6 +240,20 @@ extension BackgroundTransfers: URLSessionDownloadDelegate {
         // or because the server answered the whole resource anyway.
         let resumed = (downloadTask.response as? HTTPURLResponse)?.statusCode == 206
         resume(downloadTask, with: .success((kept, resumed)))
+    }
+
+    /// Called only for a task made from resume data. An offset of zero is the system
+    /// starting over, because the server would not continue the file.
+    public func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didResumeAtOffset fileOffset: Int64,
+        expectedTotalBytes: Int64
+    ) {
+        guard let name = downloadTask.taskDescription,
+              let handler = attempt.withLock({ $0 })
+        else { return }
+        handler(name, fileOffset > 0)
     }
 
     /// Reports how far a download has got, throttled to ``progressInterval``.

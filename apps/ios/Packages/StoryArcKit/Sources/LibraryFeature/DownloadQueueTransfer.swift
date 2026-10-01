@@ -82,6 +82,18 @@ extension DownloadQueue {
         library = library.advancing(id, downloaded: written, expected: expected > 0 ? expected : nil)
     }
 
+    /// Records whether a transfer made from resume data carried on or started over, while
+    /// the row that states it is still drawn.
+    ///
+    /// `offline-downloads`' *Resuming after interruption* asks the row to state which
+    /// happened. The answer at completion arrives as the record turns finished and leaves
+    /// the queue section, so this is the one a reader sees. A download the queue no longer
+    /// holds is not written back, for the reason ``advance(_:written:expected:)`` gives.
+    func noteAttempt(_ id: Download.ID, resumed: Bool) {
+        guard library[id] != nil else { return }
+        library = library.recordingAttempt(id, as: .of(hadSomethingToResume: true, resumed: resumed))
+    }
+
     /// Keeps what a held transfer left, so the next attempt asks only for the rest.
     ///
     /// Only for a download the app still holds and is not running. A record removed while its
@@ -141,6 +153,11 @@ extension DownloadQueue {
                 request.setValue(credential.header, forHTTPHeaderField: "Authorization")
             }
             let resumeData = resumption(for: download)
+            // With nothing to carry on from, the line a previous attempt left is no longer
+            // true of this one. With resume data, ``noteAttempt(_:resumed:)`` says it.
+            if resumeData == nil {
+                library = library.recordingAttempt(download.id, as: nil)
+            }
             let (temporary, resumed) = try await transfers.download(
                 request,
                 named: download.id,
