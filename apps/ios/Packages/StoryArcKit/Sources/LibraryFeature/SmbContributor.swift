@@ -96,6 +96,11 @@ enum SmbContributor {
             volume: facts.volume,
             year: facts.year,
             origin: .inferred,
+            // CB7 parses as a format and does not open (`PublicationFormat.isOpenable`),
+            // known from the name alone — no header read decides it. Named before the
+            // tap instead of leaving every row streamable until an index proves
+            // otherwise.
+            streaming: format == .cb7 ? .refused : .streams,
             sourceID: source,
             // The share already states this for free — a directory entry carries its
             // own length — so the download offer on the publication page can state a

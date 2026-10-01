@@ -5,6 +5,7 @@ import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.model.StreamingCapability
 import app.storyarc.core.smb.SmbAddress
 import app.storyarc.core.smb.SmbClient
 import app.storyarc.core.smb.SmbEntry
@@ -114,6 +115,12 @@ internal object SmbContributor {
             // own length -- so the download offer on the publication page can state a
             // size instead of leaving the reader guessing.
             fileSize = entry.length,
+            // CB7 parses as a format and does not open (`PublicationFormat.isOpenable`),
+            // and that is known from the name alone -- no header read decides it. A share
+            // row said so only once tapped, through the same generic failure a password
+            // or a damaged archive earns, because the default here left every row
+            // streamable until an index proved otherwise. Named before the tap instead.
+            streaming = if (format == PublicationFormat.CB7) StreamingCapability.REFUSED else StreamingCapability.STREAMS,
         )
     }
 

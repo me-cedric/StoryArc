@@ -2,10 +2,12 @@ package app.storyarc.feature.library
 
 import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.StreamingCapability
 import app.storyarc.core.smb.SmbAddress
 import app.storyarc.core.smb.SmbEntry
 import java.util.UUID
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -132,6 +134,18 @@ class SmbContributorTest {
         assertEquals(PublicationFormat.CBT, row("a.cbt")?.format)
         assertEquals(PublicationFormat.EPUB, row("a.epub")?.format)
         assertEquals(PublicationFormat.PDF, row("a.pdf")?.format)
+    }
+
+    @Test
+    fun `a cb7 row is refused by name, before any tap`() {
+        // Known from the name alone: no header read decides a CB7 cannot open.
+        val cb7 = row("Lantern Green 043.cb7")!!
+        assertEquals(StreamingCapability.REFUSED, cb7.streaming)
+        assertFalse(cb7.isOpenable)
+
+        val cbz = row("Lantern Green 043.cbz")!!
+        assertEquals(StreamingCapability.STREAMS, cbz.streaming)
+        assertTrue(cbz.isOpenable)
     }
 
     @Test

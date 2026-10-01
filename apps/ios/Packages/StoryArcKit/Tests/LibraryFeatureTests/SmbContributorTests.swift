@@ -135,4 +135,16 @@ struct SmbContributorTests {
         #expect(SmbContributor.firstSlice == 200)
         #expect(SmbContributor.maxFolders == 40)
     }
+
+    @Test("A CB7 row is refused by name, before any tap")
+    func cb7Refused() {
+        // Known from the name alone: no header read decides a CB7 cannot open.
+        let cb7 = row("Lantern Green 043.cb7")
+        #expect(cb7?.streaming == .refused)
+        #expect(cb7?.isOpenable == false)
+
+        let cbz = row("Lantern Green 043.cbz")
+        #expect(cbz?.streaming == .streams)
+        #expect(cbz?.isOpenable == true)
+    }
 }
