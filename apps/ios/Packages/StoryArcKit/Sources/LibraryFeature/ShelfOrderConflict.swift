@@ -82,14 +82,17 @@ extension LibraryModel {
     func reconcileAndFlush(_ listCapable: [KavitaPage]) async {
         guard !listCapable.isEmpty else { return }
         let editStore = ShelfEditStore()
-        let progressStore = KavitaProgressStore()
+        let queue = KavitaProgressStore()
         for page in listCapable {
             let shelves = serverLists.filter { $0.server.id == page.id }
-            await ShelfSync.reconcile(lists: shelves, store: editStore, progress: progressStore)
+            await ShelfSync.reconcile(lists: shelves, store: editStore, progress: queue)
             await KavitaSync.flush(
                 page.id,
                 to: page.address,
-                in: progressStore,
+                in: queue,
+                // A position delivered here is stamped as synced, as the browser's own flush
+                // stamps it, so the next pull does not read it as changed on this device.
+                progress: progressStore,
                 onOrderConflict: { listID in
                     let shelfName = shelves.first { $0.id == listID }?.title ?? ""
                     KavitaSync.noteOrderConflict(sourceID: page.id, listID: listID, shelfName: shelfName)

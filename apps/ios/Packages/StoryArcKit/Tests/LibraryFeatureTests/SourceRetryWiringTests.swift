@@ -58,6 +58,10 @@ struct SourceRetryWiringTests {
             body.contains("await KavitaSync.flush("),
             "reconcileAndFlush no longer flushes on its own, so a held reorder with no owed append waits."
         )
+        #expect(
+            body.contains("progress: progressStore,"),
+            "the reconnection flush no longer stamps a delivered position as synced for the next pull."
+        )
         let reconcile = body.range(of: "await ShelfSync.reconcile(")
         let flush = body.range(of: "await KavitaSync.flush(")
         if let reconcile, let flush {
