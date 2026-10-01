@@ -81,8 +81,20 @@ reader and the player, and a stale reorder no longer overwrites the server. The 
 turn pages from an edge tap, a key or a controller, and they follow Reduce Motion. The EPUB
 egress test now passes on CI. Wave 3 also fixed the iOS edge-tap setting, which did not
 survive a relaunch, and it added task 9.12: a right-to-left EPUB turns the wrong way. Tasks
-6.4, 7.7, 7.8, 7.9, 9.7, 9.8, 9.9 and 9.12 move to wave 6. The goal is
-paused after this wave, at the owner's request.
+6.4, 7.7, 7.8, 7.9, 9.7, 9.8, 9.9 and 9.12 move to wave 6.
+
+**Wave 4 landed on 2026-10-01** with 40 more tasks (165 of 240 in all). OPDS: sections at
+entry level, covers on the library shelf, a loan or a purchase named as one, and a pinned
+certificate that reaches the shelf (all 10 tasks). Kavita shelves: mark read and unread
+through `mark-multiple-*` for one chapter only, and delete of a list entry, a list and a
+collection (all 6 tasks). On 2026-10-01 the live Kavita 0.9.1.4 server accepted each of
+these requests in the app's shape, and the check put the server back as it was. Formats: a
+CBR's ComicInfo, a declared right-to-left EPUB, a named sentence for a damaged, password or
+solid archive, and the size of a share download (11 tasks). Localization: no raw Swift error
+in the reader, dates, lists and numbers in the chosen language, and plural wording (8
+tasks). Android audio: chapter marks inside one file, and car controls that respect chapters
+(5 tasks). Tasks 13.2, 13.3, 13.6, 14.7, 14.13 to 14.16, 15.5 and 15.9 to 15.11 move to
+wave 6. The goal is paused after this wave, at the owner's request.
 
 **What this pass changes in the records below.**
 
