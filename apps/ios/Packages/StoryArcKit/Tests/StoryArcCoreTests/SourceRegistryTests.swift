@@ -180,7 +180,7 @@ struct SourceRegistryTests {
             at: removed.addingTimeInterval(SourceTombstone.retention)
         )
 
-        #expect(expired == [only.id])
+        #expect(expired.map(\.sourceID) == [only.id])
         #expect(after.tombstones.isEmpty)
     }
 
@@ -221,7 +221,7 @@ struct SourceRegistryTests {
             at: start.addingTimeInterval(SourceTombstone.retention + 1)
         )
 
-        #expect(expired == [old.id])
+        #expect(expired.map(\.sourceID) == [old.id])
         #expect(after.tombstones.map(\.sourceID) == [recent.id])
     }
 
@@ -230,6 +230,65 @@ struct SourceRegistryTests {
         let registry = SourceRegistry().adding(source("Comics"))
 
         #expect(registry.removing(UUID(), at: Date()) == registry)
+    }
+
+    // MARK: - 10.12 / 10.14: what a tombstone carries, and what finds it again
+
+    @Test("A tombstone carries the source's own kind, locator and identities")
+    func tombstoneCarriesWhatItHeld() {
+        let catalogue = Source(displayName: "Comics", kind: .opdsCatalog, locator: "https://example.com/feed")
+        let identity = PublicationIdentity(normalizedPath: "/Comics/01.cbz")
+        let registry = SourceRegistry().adding(catalogue)
+            .removing(catalogue.id, at: Date(), holding: [identity])
+
+        let tombstone = registry.tombstones.first
+        #expect(tombstone?.kind == .opdsCatalog)
+        #expect(tombstone?.locator == "https://example.com/feed")
+        #expect(tombstone?.identities == [identity])
+    }
+
+    @Test("A tombstone for the same kind and locator is found again")
+    func findsATombstoneForTheSamePlace() {
+        let original = Source(displayName: "Comics", kind: .opdsCatalog, locator: "https://example.com/feed")
+        let registry = SourceRegistry().adding(original).removing(original.id, at: Date())
+
+        let readded = Source(displayName: "Comics", kind: .opdsCatalog, locator: "https://example.com/feed")
+        #expect(registry.tombstone(for: readded)?.sourceID == original.id)
+    }
+
+    @Test("A different locator is not mistaken for the same place")
+    func aDifferentLocatorIsNotTheSamePlace() {
+        let original = Source(displayName: "Comics", kind: .opdsCatalog, locator: "https://example.com/feed")
+        let registry = SourceRegistry().adding(original).removing(original.id, at: Date())
+
+        let unrelated = Source(displayName: "Manga", kind: .opdsCatalog, locator: "https://other.example/feed")
+        #expect(registry.tombstone(for: unrelated) == nil)
+    }
+
+    @Test("Two sources with no locator at all are never mistaken for one another")
+    func noLocatorNeverMatches() {
+        let original = Source(displayName: "Comics", kind: .opdsCatalog)
+        let registry = SourceRegistry().adding(original).removing(original.id, at: Date())
+
+        let another = Source(displayName: "Manga", kind: .opdsCatalog)
+        #expect(registry.tombstone(for: another) == nil)
+    }
+
+    @Test("Re-adding over a found tombstone keeps the old identifier and clears it")
+    func readdingOverATombstoneKeepsTheOldID() {
+        let original = Source(displayName: "Comics", kind: .opdsCatalog, locator: "https://example.com/feed")
+        let registry = SourceRegistry().adding(original).removing(original.id, at: Date())
+
+        let fresh = Source(displayName: "Comics", kind: .opdsCatalog, locator: "https://example.com/feed")
+        guard let tombstone = registry.tombstone(for: fresh) else {
+            Issue.record("expected a tombstone for the same place")
+            return
+        }
+        let after = registry.readding(fresh.rekeyed(to: tombstone.sourceID))
+
+        #expect(after[original.id] != nil)
+        #expect(after[fresh.id] == nil)
+        #expect(after.tombstones.isEmpty)
     }
 
     // MARK: - When a source last answered
