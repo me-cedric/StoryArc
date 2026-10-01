@@ -106,9 +106,10 @@ private suspend fun ReaderViewModel.decode(index: Int, page: PageEntry) {
             if (bitmap.width > 0) {
                 earlyTallness.note(bitmap.height.toDouble() / bitmap.width, index)
             }
-            // Wider than tall, with no tolerance to tune: a portrait page scanned with a
-            // slight skew is still portrait, and a spread is half again as wide as a page.
-            if (bitmap.width > bitmap.height) wide += index
+            // `PageDecoder.isSpread`'s 1.2 margin, per D27: "materially wider" means a
+            // page half again as wide as it is tall, not merely a little wide -- a page
+            // one percent wider than tall from a slight scan skew is still portrait.
+            if (PageDecoder.isSpread(bitmap.width, bitmap.height)) wide += index
             if (isOnScreen) pageFailingSince = null
         }
 

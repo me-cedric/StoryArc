@@ -236,9 +236,10 @@ public final class ReaderModel {
         if image.width > 0 {
             earlyTallness.note(ratio: Double(image.height) / Double(image.width), at: index)
         }
-        // Wider than tall, with no tolerance to tune: a portrait page scanned with a
-        // slight skew is still portrait, and a spread is half again as wide as a page.
-        if image.width > image.height { wideIndices.insert(index) }
+        // `PageDecoder.isSpread`'s 1.2 margin, per D27: a page one percent wider than tall
+        // from a slight scan skew is still portrait.
+        let size = CGSize(width: CGFloat(image.width), height: CGFloat(image.height))
+        if PageDecoder.isSpread(size) { wideIndices.insert(index) }
     }
 
     /// The direction the reader turns pages in.
