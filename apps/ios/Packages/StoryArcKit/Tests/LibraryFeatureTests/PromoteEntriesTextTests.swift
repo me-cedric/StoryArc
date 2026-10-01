@@ -21,13 +21,14 @@ struct PromoteEntriesTextTests {
     func totalOfOneIsSingular() {
         let text = promoteEntriesText(promotion(copying: 1, leftBehind: 0))
         let rendered = String(describing: text)
-        #expect(!rendered.contains("1 entries"), "read the plural for a total of one: \(rendered)")
+        #expect(rendered.contains("\"1 of 1 entry\""), "read the plural for a total of one: \(rendered)")
     }
 
     @Test("A total of several reads the plural key, not the singular one")
     func totalOfSeveralIsPlural() {
         let text = promoteEntriesText(promotion(copying: 2, leftBehind: 1))
         let rendered = String(describing: text)
-        #expect(!rendered.contains("entries.one"), "used the singular key for a total of 3: \(rendered)")
+        // The description holds the resolved sentence, never the key, so the check is the words.
+        #expect(rendered.contains("\"2 of 3 entries\""), "used the singular key for a total of 3: \(rendered)")
     }
 }
