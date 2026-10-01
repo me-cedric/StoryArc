@@ -155,17 +155,11 @@ fun KavitaListScreen(
     // leaving the list in an order nobody asked for.
     var pushing by remember(listId) { mutableStateOf<Job?>(null) }
 
-    // Task 7.4: the order the server held when this screen opened. A drag is checked against
-    // this, not against whatever `items` has become after earlier drags of the same visit, so
-    // the conflict a send finds is "did the server change" rather than "did I".
-    var baseline by remember(listId) { mutableStateOf<List<Int>>(emptyList()) }
-
     LaunchedEffect(listId) {
         wanted = KavitaSync.wantedOrder(KavitaProgressStore.open(context), server.id, listId)
         items = runCatching { client.readingListItems(listId) }
             .getOrDefault(emptyList())
             .sortedBy { it.order }
-        baseline = items.map { it.chapterId }
     }
 
     // Edits this device has made that the server has not taken yet.
@@ -192,9 +186,7 @@ fun KavitaListScreen(
     // rather than a lost order.
     fun move(from: Int, to: Int) {
         val held = rows.filterNot { it.isPending }.map { it.id }
-        if (from !in held.indices || to !in held.indices) return
-        val next = held.toMutableList().apply { add(to, removeAt(from)) }
-        val order = next.mapNotNull { it.toIntOrNull() }
+        val (order, baseline) = ShelfSync.dragged(held, from, to) ?: return
         items = order.mapNotNull { id -> items.firstOrNull { it.chapterId == id } } +
             items.filterNot { it.chapterId in order }
         val previous = pushing
@@ -210,7 +202,10 @@ fun KavitaListScreen(
                 baseline = baseline,
                 onOrderConflict = {
                     // Task 7.4: the server moved since `baseline`, so the drag was dropped
-                    // rather than sent over whatever changed it there.
+                    // rather than sent over whatever changed it there. The server's order
+                    // wins, so the rows show it again.
+                    runCatching { client.readingListItems(listId) }
+                        .onSuccess { fetched -> items = fetched.sortedBy { it.order } }
                     ShelfEditStore.open(context).update {
                         it.noting(
                             ShelfConflictNotice(
