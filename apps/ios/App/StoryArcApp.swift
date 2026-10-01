@@ -329,7 +329,12 @@ struct StoryArcApp: App {
                         // is a question about the device, and an `App` sits outside every
                         // view hierarchy, so a colour scheme read here never moves. The
                         // reader resolves it from its own environment.
-                        settings: settings
+                        settings: settings,
+                        // `collections-and-reading-lists` task 7.2: the reflowable
+                        // reader offers what comes next at the end, the way the
+                        // paged reader's own end screen already does.
+                        next: library.next(after: selection.publication),
+                        onOpenNext: openNext
                     )
                     // Identity, so opening the next issue from the end screen
                     // builds a fresh reader rather than reusing the previous one's
