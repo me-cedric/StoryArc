@@ -43,6 +43,10 @@ android {
 
 dependencies {
     implementation(project(":core:model"))
+    // `speaking`/`chosenLanguage`: the per-app language override. A `MediaLibraryService`
+    // is a `Context` of its own with no activity above it, so without this it draws every
+    // notification and Android Auto label in the system's language.
+    implementation(project(":core:persistence"))
     implementation(libs.kotlinx.coroutines.core)
 
     // The decoder and the platform's media contract. `api`, not `implementation`, for
