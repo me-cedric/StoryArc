@@ -68,7 +68,21 @@ curl fixes. The live Kavita 0.9.1.4 server accepted the app's progress request s
 2026-09-29, and the position did not change. Wave 2 also found that an empty iOS collection
 draws a blank card (task 7.11, wave 3), and it left the curl shape work (D10 to D14, D33), the
 full read of SMB and OPDS sources, and the long press on search and the server browsers for
-later waves. The goal is paused after this wave, at the owner's request.
+later waves.
+
+**Wave 3 landed on 2026-10-01** with 44 more tasks (125 of 240 in all). The reader now
+chooses the light and dark themes that the appearance link uses (D15). The comic reader has
+its own matte and screen brightness (D34). The Android theme sheet is anchored on a wide
+window (D22). All 15 local-folder tasks landed: a gone folder is marked and named, a scan can
+be cancelled, two folders with the same name are two sources, and a removed source keeps its
+books for thirty days. The download view has per-row and global pause, resume and cancel,
+live progress and a storage breakdown. The next entry follows a reading list into the EPUB
+reader and the player, and a stale reorder no longer overwrites the server. The ebook readers
+turn pages from an edge tap, a key or a controller, and they follow Reduce Motion. The EPUB
+egress test now passes on CI. Wave 3 also fixed the iOS edge-tap setting, which did not
+survive a relaunch, and it added task 9.12: a right-to-left EPUB turns the wrong way. Tasks
+6.4, 7.7, 7.8, 7.9, 9.7, 9.8, 9.9 and 9.12 move to wave 6. The goal is
+paused after this wave, at the owner's request.
 
 **What this pass changes in the records below.**
 
