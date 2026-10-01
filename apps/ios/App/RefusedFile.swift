@@ -21,6 +21,17 @@ struct RefusedFile: Identifiable, Sendable {
     /// genuinely different things. Listing the supported formats under this one would be
     /// wrong twice over: the format *is* supported, and there is nothing to convert to.
     var isProtected = false
+    /// Whether the archive asked for a password. Its own flag, for the same reason as
+    /// ``isProtected``: the sentence must never ask for one, because StoryArc does not
+    /// manage archive passwords.
+    var isPasswordProtected = false
+    /// Whether the file is a format StoryArc reads, damaged beyond recovery. Its own flag
+    /// rather than `detected`, so the sentence does not list formats or suggest a
+    /// conversion that would not help.
+    var isDamaged = false
+    /// Whether the file is a comic using solid compression — supported, parsed
+    /// completely, and still not openable by any decoder with an OSI-approved licence.
+    var isSolidArchive = false
 
     var id: String { name }
 
@@ -42,6 +53,19 @@ struct RefusedFile: Identifiable, Sendable {
         // that asks for it.
         if isProtected {
             return Text("open.in.protected \(name)")
+        }
+        // No password field either, for the same reason: StoryArc does not manage archive
+        // passwords, so there is nothing here to enter one into.
+        if isPasswordProtected {
+            return Text("open.in.passwordProtected \(name)")
+        }
+        if isSolidArchive {
+            return Text("open.in.solidArchive \(name)")
+        }
+        // Named as damaged rather than unsupported: the format *is* one StoryArc reads, so
+        // listing the supported formats or implying a conversion would not help.
+        if isDamaged {
+            return Text("open.in.damaged \(name)")
         }
         if let detected {
             return Text("open.in.unsupported \(name) \(detected) \(Self.supported)")

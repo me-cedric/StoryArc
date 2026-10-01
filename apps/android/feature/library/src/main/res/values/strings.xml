@@ -21,7 +21,7 @@
     <string name="source_offline_body">%1$s cannot be reached, so what it holds cannot be listed. Anything you have already downloaded from it stays in your library and stays readable.</string>
     <string name="source_offline_retry">Try again</string>
     <string name="source_state_unauthorized">Sign-in needed</string>
-    <string name="library_cell_cannot_open">Cannot be opened</string>
+    <string name="library_cell_cannot_open">This comic uses solid compression, which StoryArc cannot open.</string>
     <string name="library_action_show_details">Show details</string>
     <string name="library_action_remove_from_shelf">Remove from this shelf</string>
     <string name="library_cell_finished">Finished</string>
@@ -441,7 +441,7 @@
     <string name="detail_action_download">Download it</string>
     <string name="detail_needs_download">This one has to be on your device before it opens.</string>
     <string name="detail_needs_source">It is not on this device, and the library it lives in is not answering. It will be fetched when that library is back.</string>
-    <string name="detail_refused_body">StoryArc cannot open this file, here or anywhere else.</string>
+    <string name="detail_refused_body">This comic uses solid compression, which StoryArc cannot open.</string>
     <string name="detail_provenance_device">On this device</string>
     <string name="detail_provenance_library">From %1$s</string>
     <string name="detail_provenance_not_downloaded">From %1$s — not downloaded</string>

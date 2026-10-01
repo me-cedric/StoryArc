@@ -18,7 +18,7 @@
     <string name="source_offline_body">No se puede acceder a %1$s, así que no se puede listar lo que contiene. Lo que ya hayas descargado de ahí sigue en tu biblioteca y se puede leer.</string>
     <string name="source_offline_retry">Reintentar</string>
     <string name="source_state_unauthorized">Se requiere iniciar sesión</string>
-    <string name="library_cell_cannot_open">No se puede abrir</string>
+    <string name="library_cell_cannot_open">Este cómic usa compresión sólida, que StoryArc no puede abrir.</string>
     <string name="library_action_show_details">Mostrar detalles</string>
     <string name="library_action_remove_from_shelf">Quitar de esta estantería</string>
     <string name="library_cell_finished">Terminado</string>
@@ -415,7 +415,7 @@
     <string name="detail_action_download">Descargarla</string>
     <string name="detail_needs_download">Esta tiene que estar en tu dispositivo antes de abrirse.</string>
     <string name="detail_needs_source">No está en este dispositivo, y la biblioteca donde vive no responde. Se traerá en cuanto vuelva.</string>
-    <string name="detail_refused_body">StoryArc no puede abrir este archivo, ni aquí ni en ningún otro sitio.</string>
+    <string name="detail_refused_body">Este cómic usa compresión sólida, que StoryArc no puede abrir.</string>
     <string name="detail_provenance_device">En este dispositivo</string>
     <string name="detail_provenance_library">De %1$s</string>
     <string name="detail_provenance_not_downloaded">De %1$s — sin descargar</string>

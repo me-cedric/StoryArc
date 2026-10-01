@@ -1756,6 +1756,96 @@
           }
         }
       }
+    },
+    "open.in.damaged %@": {
+      "extractionState": "manual",
+      "comment": "Shown when a handed-over file is a format StoryArc reads, damaged beyond recovery. The value is the file name. Deliberately not the unsupported sentence: the format IS supported, so listing formats or implying a conversion would not help.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ konnte nicht gelesen werden. Es ist möglicherweise beschädigt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ could not be read. It may be damaged."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ no se pudo leer. Puede estar dañado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ n’a pas pu être lu. Il est peut-être endommagé."
+          }
+        }
+      }
+    },
+    "open.in.passwordProtected %@": {
+      "extractionState": "manual",
+      "comment": "Shown when a handed-over archive asks for a password. The value is the file name. Offers nothing to fill in on purpose: publication-formats says the app states that the archive is protected and does not prompt for a password, because StoryArc does not manage archive passwords.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ist durch ein Passwort geschützt. StoryArc verwaltet keine Archiv-Passwörter, es gibt hier also nichts einzugeben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is protected by a password. StoryArc does not manage archive passwords, so there is nothing to enter here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ está protegido por una contraseña. StoryArc no gestiona contraseñas de archivos, así que aquí no hay nada que introducir."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ est protégé par un mot de passe. StoryArc ne gère pas les mots de passe d’archive ; il n’y a rien à saisir ici."
+          }
+        }
+      }
+    },
+    "open.in.solidArchive %@": {
+      "extractionState": "manual",
+      "comment": "Shown when a handed-over comic uses solid compression. The value is the file name. The container is supported and every header parsed; no decoder with an OSI-approved licence reads a solid RAR4 at all, so it is refused here before the reader opens it.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ verwendet durchgehende Komprimierung, die StoryArc nicht öffnen kann."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ uses solid compression, which StoryArc cannot open."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ usa compresión sólida, que StoryArc no puede abrir."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ utilise une compression solide, que StoryArc ne peut pas ouvrir."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -44,6 +44,9 @@ struct RefusedFileWordingTests {
         "open.in.unsupported %@ %@ %@",
         "open.in.unreadable %@ %@",
         "open.in.protected %@",
+        "open.in.passwordProtected %@",
+        "open.in.damaged %@",
+        "open.in.solidArchive %@",
     ]
 
     /// The four languages `localization` names. English is the one every other falls back to.
@@ -146,6 +149,47 @@ struct RefusedFileWordingTests {
             one sentence more — `ProtectedAudiobookPromptsForNothingTest` asserts \
             "nothing to enter" — because it forecloses the expectation rather than leaving \
             the reader waiting for a field that is never coming.
+            """
+        )
+    }
+
+    @Test("The password refusal forecloses the field it does not draw")
+    func passwordForeclosesTheField() throws {
+        let strings = try catalogue()
+        let entry = strings["open.in.passwordProtected %@"] as? [String: Any]
+        let localizations = entry?["localizations"] as? [String: Any]
+        let unit = (localizations?["en"] as? [String: Any])?["stringUnit"] as? [String: Any]
+        let value = try #require(
+            unit?["value"] as? String,
+            "open.in.passwordProtected %@ carries no English value."
+        )
+        #expect(
+            value.contains("nothing to enter"),
+            """
+            `publication-formats` requires the app to state that the archive is protected \
+            and "not prompt for a password, because StoryArc does not manage archive \
+            passwords". A sentence that asked for one would be exactly that prompt.
+            """
+        )
+    }
+
+    @Test("The damaged refusal names no format and suggests no conversion")
+    func damagedNamesNoFormat() throws {
+        let strings = try catalogue()
+        let entry = strings["open.in.damaged %@"] as? [String: Any]
+        let localizations = entry?["localizations"] as? [String: Any]
+        let unit = (localizations?["en"] as? [String: Any])?["stringUnit"] as? [String: Any]
+        let value = try #require(
+            unit?["value"] as? String,
+            "open.in.damaged %@ carries no English value."
+        )
+        #expect(
+            !value.contains("CBZ") && !value.contains("reads"),
+            """
+            A damaged file is a format StoryArc already reads — the decoder found it \
+            unreadable, not unknown. Listing the formats StoryArc supports, as \
+            `open.in.unsupported` does, would wrongly suggest converting a file that needs \
+            no converting.
             """
         )
     }

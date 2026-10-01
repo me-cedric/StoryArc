@@ -27,6 +27,16 @@ internal fun RefusedFileDialog(outcome: OpenedFile.Outcome, onDismiss: () -> Uni
         // dialog stays a dialog with one dismiss button — no field, no sign-in, no code.
         is OpenedFile.Outcome.ContentProtected ->
             stringResource(R.string.open_in_protected, outcome.name)
+        // No password field either, for the same reason: StoryArc does not manage archive
+        // passwords, so there is nothing here to enter one into.
+        is OpenedFile.Outcome.PasswordProtected ->
+            stringResource(R.string.open_in_password_protected, outcome.name)
+        // Named as damaged rather than unsupported: the format *is* one StoryArc reads, so
+        // listing the supported formats or implying a conversion would not help.
+        is OpenedFile.Outcome.Damaged ->
+            stringResource(R.string.open_in_damaged, outcome.name)
+        is OpenedFile.Outcome.SolidArchive ->
+            stringResource(R.string.open_in_solid_archive, outcome.name)
         // An opened file is not a refusal, and this dialog is only ever shown for one.
         is OpenedFile.Outcome.Opened -> return
     }

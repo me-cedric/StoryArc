@@ -41,8 +41,28 @@ internal object OpenedFile {
         /** The format was recognised and StoryArc does not read it. */
         data class Unsupported(val name: String, val detected: String) : Outcome
 
-        /** The bytes could not be reached, or could not be understood at all. */
+        /** The bytes could not be reached, or are not anything StoryArc recognises at all. */
         data class Unreadable(val name: String) : Outcome
+
+        /**
+         * The archive asked for a password. Its own outcome, distinct from [Damaged], so the
+         * dialog never asks for one -- StoryArc does not manage archive passwords.
+         */
+        data class PasswordProtected(val name: String) : Outcome
+
+        /**
+         * A format StoryArc reads, and this particular file is damaged beyond recovery.
+         * Distinct from [Unsupported] on purpose: the message must not list the formats
+         * StoryArc reads or suggest a conversion, because neither would help.
+         */
+        data class Damaged(val name: String) : Outcome
+
+        /**
+         * A comic that uses solid compression. The container is supported and every header
+         * parsed; no decoder with an OSI-approved licence reads one at all, local or remote,
+         * so the archive is refused before the reader opens it rather than after.
+         */
+        data class SolidArchive(val name: String) : Outcome
 
         /**
          * An audiobook locked by its store's content protection.
@@ -121,12 +141,21 @@ internal object OpenedFile {
                     name = name,
                     identity = PublicationIdentity(contentDigest = digest),
                 )
-                Outcome.Opened(publication, uri.toString())
+                // A solid RAR4 opens as a *record* rather than throwing -- the library lists
+                // it and says why. Open-in has no library row to show it in, so the refusal
+                // has to happen here, before the reader is sent to a page it cannot render.
+                if (!publication.isOpenable) {
+                    Outcome.SolidArchive(name)
+                } else {
+                    Outcome.Opened(publication, uri.toString())
+                }
             }
         }.getOrElse { error ->
             when (error) {
                 is IndexException.ContentProtected -> Outcome.ContentProtected(name)
                 is IndexException.Unsupported -> Outcome.Unsupported(name, error.format)
+                is IndexException.ArchivePasswordProtected -> Outcome.PasswordProtected(name)
+                is IndexException.ArchiveUnreadable -> Outcome.Damaged(name)
                 else -> Outcome.Unreadable(name)
             }
         }
