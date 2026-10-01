@@ -231,10 +231,12 @@ struct AppShell: View {
         .playerSheet(
             isPresented: $isShowingPlayer,
             centre: .shared,
-            // `collections-and-reading-lists` task 7.2: the end of an audiobook offers
-            // what comes next, read from the book `PlayerCentre` kept past its own
-            // teardown — see `PlayerCentre.lastFinished`.
-            next: PlayerCentre.shared.lastFinished.flatMap { model.next(after: $0.publication) },
+            // `collections-and-reading-lists` tasks 7.2 and 7.14: the end of an audiobook
+            // offers what comes next, read from the book `PlayerCentre` kept past its own
+            // teardown (see `PlayerCentre.lastFinished`), and only an entry with a file here.
+            next: PlayerCentre.shared.lastFinished
+                .flatMap { model.offeredNext(after: $0.publication) }
+                .flatMap { model.location(of: $0) == nil ? nil : $0 },
             onOpenNext: { publication in
                 if let url = model.location(of: publication) { onOpen(publication, url) }
             }

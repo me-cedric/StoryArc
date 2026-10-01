@@ -84,6 +84,8 @@ struct StoryArcApp: App {
     /// detected instead of failing silently, and a reader who picked the wrong file needs
     /// to know it was the file rather than the app.
     @State var refusedFile: RefusedFile?
+    /// Why a taken next-entry offer did not open, if it did not. See `NextEntryOpening.swift`.
+    @State var nextEntryFailure: String?
 
     let bookmarks = FolderBookmarks()
 
@@ -330,14 +332,13 @@ struct StoryArcApp: App {
                         // view hierarchy, so a colour scheme read here never moves. The
                         // reader resolves it from its own environment.
                         settings: settings,
-                        // `collections-and-reading-lists` task 7.2: the reflowable
-                        // reader offers what comes next at the end, the way the
-                        // paged reader's own end screen already does. Task 7.3: a
-                        // server list the reader is actually inside beats the series.
-                        next: ServerListContext.next(after: selection.publication)
-                            ?? library.next(after: selection.publication),
+                        // `collections-and-reading-lists` tasks 7.2, 7.3 and 7.14: the
+                        // reflowable reader offers what comes next at the end, the way
+                        // the paged reader's own end screen does.
+                        next: library.offeredNext(after: selection.publication),
                         onOpenNext: openNext
                     )
+                    .nextEntryFailure($nextEntryFailure)
                     // Identity, so opening the next issue from the end screen
                     // builds a fresh reader rather than reusing the previous one's
                     // `@State`.
@@ -357,11 +358,10 @@ struct StoryArcApp: App {
                         // `comic-reader`'s chapter actions and its end screen both ask what
                         // surrounds this issue, and only the app layer sees both the reader
                         // and the library — including a list, whose order beats the series.
-                        // Task 7.3: a server list the reader is actually inside beats both.
-                        previousInSeries: ServerListContext.previous(before: selection.publication)
-                            ?? library.previous(before: selection.publication),
-                        nextInSeries: ServerListContext.next(after: selection.publication)
-                            ?? library.next(after: selection.publication),
+                        // Tasks 7.3 and 7.14: a server list the reader is inside beats both,
+                        // and nothing is offered that choosing it could not open.
+                        previousInSeries: library.offeredPrevious(before: selection.publication),
+                        nextInSeries: library.offeredNext(after: selection.publication),
                         onOpen: openNext,
                         downloadCleanup: downloadCleanupOffer(for: selection.publication),
                         // Only for a publication that lives on a share. Everything else is
@@ -371,6 +371,7 @@ struct StoryArcApp: App {
                             ? { await keepForOffline(selection) }
                             : nil
                     )
+                    .nextEntryFailure($nextEntryFailure)
                     // `page-transitions` makes the turn zones a setting, and the reader is a
                     // module that does not read the settings store.
                     .environment(\.turnPagesByTappingTheEdges, settings.turnPagesByTappingTheEdges)
