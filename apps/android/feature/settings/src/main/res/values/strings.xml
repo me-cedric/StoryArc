@@ -114,8 +114,8 @@
     <string name="sources_state_unreachable">Not answering</string>
     <string name="sources_state_unauthorized">Needs sign-in</string>
     <plurals name="sources_detail">
-        <item quantity="one">%1$d title</item>
-        <item quantity="other">%1$d titles</item>
+        <item quantity="one">%1$,d title</item>
+        <item quantity="other">%1$,d titles</item>
     </plurals>
     <plurals name="sources_remove_body">
         <item quantity="one">This removes %1$d title from your library.</item>
@@ -222,11 +222,11 @@
     <string name="app_icon_arc">Arc</string>
     <string name="app_icon_mono">Mono</string>
     <plurals name="sources_detail_partial">
-        <item quantity="one">At least %1$d title</item>
-        <item quantity="other">At least %1$d titles</item>
+        <item quantity="one">At least %1$,d title</item>
+        <item quantity="other">At least %1$,d titles</item>
     </plurals>
     <plurals name="sources_detail_progress">
-        <item quantity="one">%1$d of %2$d title</item>
-        <item quantity="other">%1$d of %2$d titles</item>
+        <item quantity="one">%1$,d of %2$,d title</item>
+        <item quantity="other">%1$,d of %2$,d titles</item>
     </plurals>
 </resources>

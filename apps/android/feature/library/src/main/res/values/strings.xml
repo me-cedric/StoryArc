@@ -29,8 +29,8 @@
     <string name="library_cell_unavailable">Needs its library to be reachable</string>
     <string name="library_section_other">Other</string>
     <plurals name="library_scanning">
-        <item quantity="one">Adding your comics — %1$d found</item>
-        <item quantity="other">Adding your comics — %1$d found</item>
+        <item quantity="one">Adding your comics — %1$,d found</item>
+        <item quantity="other">Adding your comics — %1$,d found</item>
     </plurals>
     <string name="library_scan_cancel">Cancel</string>
     <string name="library_add_folder">Add a folder</string>
@@ -159,8 +159,8 @@
     <string name="catalogue_acquire_protected">What the server sent is protected by its store\'s content protection, and StoryArc cannot open it.</string>
     <string name="library_add_source">Add books</string>
     <plurals name="catalogue_section_count">
-        <item quantity="one">%1$d title</item>
-        <item quantity="other">%1$d titles</item>
+        <item quantity="one">%1$,d title</item>
+        <item quantity="other">%1$,d titles</item>
     </plurals>
     <string name="catalogue_back">Back</string>
     <string name="catalogue_entry_downloaded">On this device</string>
