@@ -23,7 +23,7 @@ import app.storyarc.core.persistence.ImportedCopies
  * same shape for the same reason.
  */
 internal data class FolderAvailability(
-    /** The registry with every newly-unreachable folder source marked, unchanged otherwise. */
+    /** The registry with every folder source marked as its tree now answers, unchanged otherwise. */
     val registry: SourceRegistry,
     /** The folder sources this pass marked unreachable, for naming in `unavailableFolders`. */
     val newlyUnreachable: List<Source>,
@@ -40,11 +40,20 @@ internal data class FolderAvailability(
                 it.kind == SourceKind.LOCAL_FOLDER && it.id != ImportedCopies.SOURCE_ID &&
                     it.locator !in reachableLocators
             }
-            if (unreachable.isEmpty()) return FolderAvailability(registry, emptyList())
+            // And back: a tree that answers again, a card put back in, is connected again on
+            // the next resume rather than grey until the next launch.
+            val recovered = registry.sources.filter {
+                it.kind == SourceKind.LOCAL_FOLDER && it.locator in reachableLocators &&
+                    it.state is SourceConnectionState.Unreachable
+            }
+            if (unreachable.isEmpty() && recovered.isEmpty()) return FolderAvailability(registry, emptyList())
             val marked = unreachable.fold(registry) { acc, source ->
                 acc.marking(source.id, SourceConnectionState.Unreachable(atEpochMillis), atEpochMillis)
             }
-            return FolderAvailability(marked, unreachable)
+            val answered = recovered.fold(marked) { acc, source ->
+                acc.marking(source.id, SourceConnectionState.Connected, atEpochMillis)
+            }
+            return FolderAvailability(answered, unreachable)
         }
     }
 }
@@ -63,7 +72,7 @@ internal fun LibraryViewModel.refreshFolderAvailability(restored: List<Uri>, rea
         reachable.map { it.toString() }.toSet(),
         System.currentTimeMillis(),
     )
-    if (availability.newlyUnreachable.isNotEmpty()) {
+    if (availability.registry != _registry.value) {
         _registry.value = availability.registry
         sourceStore?.save(availability.registry)
     }
