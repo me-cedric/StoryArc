@@ -1,5 +1,6 @@
 package app.storyarc.feature.epubreader
 
+import android.app.Activity
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -20,10 +21,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.Publication
 
 /** Carried on `EpubReaderActivity`'s intent: task 7.2's end-of-book offer, or null for none. */
 internal const val EXTRA_NEXT_ID = "next_id"
 internal const val EXTRA_NEXT_TITLE = "next_title"
+
+/**
+ * Tells `EpubReaderActivity` what to offer at the end of the book. Null offers nothing.
+ *
+ * Here rather than as two more parameters of `EpubReaderActivity.intent`, because that file
+ * is over the line cap and `scripts/line-cap.mjs` lets it shrink but not grow.
+ */
+fun Intent.offeringNext(next: Publication?): Intent =
+    putExtra(EXTRA_NEXT_ID, next?.id).putExtra(EXTRA_NEXT_TITLE, next?.displayTitle)
 
 /** Carried on the activity result when the offer is taken, read back by the app layer. */
 const val EXTRA_RESULT_NEXT_ID = "result_next_id"
@@ -32,25 +43,23 @@ const val EXTRA_RESULT_NEXT_ID = "result_next_id"
 private const val EPUB_FINISHED_PROGRESSION = 0.999
 
 /**
- * Reads the offer out of [intent] and draws it once the book is at [EPUB_FINISHED_PROGRESSION],
- * the way the paged reader's own end screen draws over its last page.
- *
- * Takes the intent and the raw state rather than the activity itself, so this stays a
- * composable function nothing but the chrome calls — see [EpubEndOfPublication] below for
- * why it is a function of its own and not a reuse of `ReaderScreen`'s.
+ * Reads the offer out of [activity]'s intent and draws it once the book is at
+ * [EPUB_FINISHED_PROGRESSION], the way the paged reader's own end screen draws over its last
+ * page. See [EpubEndOfPublication] below for why it is a function of its own and not a reuse
+ * of `ReaderScreen`'s.
  */
 @Composable
-internal fun EpubEndOfBookOffer(
-    intent: Intent,
-    failure: Int?,
-    progression: Double,
-    onOpenNext: (String) -> Unit,
-) {
-    val nextId = intent.getStringExtra(EXTRA_NEXT_ID) ?: return
+internal fun EpubEndOfBookOffer(activity: Activity, failure: Int?, progression: Double) {
+    val nextId = activity.intent.getStringExtra(EXTRA_NEXT_ID) ?: return
     if (failure != null || progression < EPUB_FINISHED_PROGRESSION) return
     EpubEndOfPublication(
-        nextTitle = intent.getStringExtra(EXTRA_NEXT_TITLE),
-        onOpenNext = { onOpenNext(nextId) },
+        nextTitle = activity.intent.getStringExtra(EXTRA_NEXT_TITLE),
+        onOpenNext = {
+            // Handed back as the activity's result: the app layer opens it, since this
+            // activity has no library of its own to ask.
+            activity.setResult(Activity.RESULT_OK, Intent().putExtra(EXTRA_RESULT_NEXT_ID, nextId))
+            activity.finish()
+        },
     )
 }
 

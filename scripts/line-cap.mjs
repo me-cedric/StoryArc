@@ -73,10 +73,7 @@ export const capFor = (path) => {
 const ALLOWED = {
     'apps/android/feature/reader/src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt': 1893,
     'apps/android/feature/library/src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt': 1690,
-    // 2026-09-28: +10 for collections-and-reading-lists task 7.2 (the end-of-book offer's
-    // intent extras and its one call into EpubEndOfBookOffer). The offer's own gating and
-    // layout live in EpubEndOfPublication.kt instead, which is under the cap.
-    'apps/android/feature/epubreader/src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt': 1061,
+    'apps/android/feature/epubreader/src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt': 1051,
 }
 
 /** Source this project writes. Generated files and dependencies are nobody's to split. */

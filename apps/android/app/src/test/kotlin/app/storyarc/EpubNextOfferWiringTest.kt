@@ -17,14 +17,14 @@ class EpubNextOfferWiringTest {
     fun `the next entry is resolved and offered before the EPUB reader opens`() {
         val shell = read(APP_SHELL)
         assertTrue(
-            "AppShell no longer asks the library what comes after this publication, so" +
+            "AppShell no longer asks offeredNext what comes after this publication, so" +
                 " the EPUB reader is never told what to offer at its end.",
-            shell.contains("val next = library.next(publication)"),
+            shell.contains("val next = library.offeredNext(publication).also { epubNext.value = it }"),
         )
         assertTrue(
-            "AppShell no longer withholds the offer when the next entry has no file on" +
-                " this device, so the end screen would offer something it cannot open.",
-            shell.contains("nextId = next?.id?.takeIf { nextLocation != null }"),
+            "AppShell no longer puts the offer on the EPUB reader's intent, so the end" +
+                " screen has nothing to name.",
+            shell.contains(").offeringNext(next)"),
         )
         assertTrue(
             "AppShell no longer launches the EPUB reader through the result launcher, so" +
@@ -42,9 +42,9 @@ class EpubNextOfferWiringTest {
             shell.contains("result.data?.getStringExtra(EXTRA_RESULT_NEXT_ID)"),
         )
         assertTrue(
-            "The resolved next publication is no longer opened through the host, so" +
-                " tapping the offer does nothing.",
-            shell.contains("host.open(next, location)"),
+            "The offered entry is no longer opened through openEntry, so tapping the offer" +
+                " for a server list's next entry, which has no file yet, does nothing.",
+            shell.contains("epubNext.value?.takeIf { it.id == nextId }?.let(host::openEntry)"),
         )
     }
 
@@ -54,12 +54,12 @@ class EpubNextOfferWiringTest {
         assertTrue(
             "EpubReaderActivity no longer asks EpubEndOfBookOffer to draw, so a reader" +
                 " who reaches the end of the book sees no offer.",
-            activity.contains("EpubEndOfBookOffer(intent, failure, progression)"),
+            activity.contains("EpubEndOfBookOffer(this@EpubReaderActivity, failure, progression)"),
         )
         assertTrue(
             "Choosing the offer no longer sets a result the launcher can read, so the" +
                 " choice is lost the moment this activity finishes.",
-            activity.contains("Intent().putExtra(EXTRA_RESULT_NEXT_ID, nextId)"),
+            read(EPUB_END_OF_PUBLICATION).contains("Intent().putExtra(EXTRA_RESULT_NEXT_ID, nextId)"),
         )
     }
 
@@ -69,7 +69,7 @@ class EpubNextOfferWiringTest {
         assertTrue(
             "EpubEndOfBookOffer no longer reads the next id out of the intent, so the" +
                 " offer never knows what to name or open.",
-            offer.contains("""intent.getStringExtra(EXTRA_NEXT_ID) ?: return"""),
+            offer.contains("""activity.intent.getStringExtra(EXTRA_NEXT_ID) ?: return"""),
         )
         assertTrue(
             "The offer is no longer gated on reaching the end of the book, so it would" +
