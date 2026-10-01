@@ -301,7 +301,10 @@ struct KavitaListView: View {
         }
     }
 
-    private func open(_ entry: KavitaReadingListItem) async {
+    /// Internal, not private: a test calls this directly rather than driving a tap through
+    /// the rendered row, the way `KavitaOpenFailureTests` already does for `entryRow`'s own
+    /// fetch. Task 7.3 adds `ServerListContext.opened(_:)` to what this does.
+    func open(_ entry: KavitaReadingListItem) async {
         fetching = entry.chapterId
         defer { fetching = nil }
 
@@ -313,6 +316,17 @@ struct KavitaListView: View {
         )
         if case let .opened(publication, file) = opening {
             await seedKavitaOpen(publication, pagesRead: entry.pagesRead, of: entry.pagesTotal, into: progress)
+            // Task 7.3: remembered before the reader opens, so its own next-entry offer
+            // can ask this list rather than the local one.
+            ServerListContext.opened(
+                .init(
+                    serverId: server.id,
+                    serverAddress: server.address,
+                    listId: listID,
+                    entries: items,
+                    position: items.firstIndex(of: entry) ?? 0
+                )
+            )
             onOpen(publication, file)
         }
         openFailure = opening.reason(server: server.title).map { (entry.displayName, $0) }

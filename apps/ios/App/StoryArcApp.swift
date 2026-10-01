@@ -332,8 +332,10 @@ struct StoryArcApp: App {
                         settings: settings,
                         // `collections-and-reading-lists` task 7.2: the reflowable
                         // reader offers what comes next at the end, the way the
-                        // paged reader's own end screen already does.
-                        next: library.next(after: selection.publication),
+                        // paged reader's own end screen already does. Task 7.3: a
+                        // server list the reader is actually inside beats the series.
+                        next: ServerListContext.next(after: selection.publication)
+                            ?? library.next(after: selection.publication),
                         onOpenNext: openNext
                     )
                     // Identity, so opening the next issue from the end screen
@@ -355,8 +357,11 @@ struct StoryArcApp: App {
                         // `comic-reader`'s chapter actions and its end screen both ask what
                         // surrounds this issue, and only the app layer sees both the reader
                         // and the library — including a list, whose order beats the series.
-                        previousInSeries: library.previous(before: selection.publication),
-                        nextInSeries: library.next(after: selection.publication),
+                        // Task 7.3: a server list the reader is actually inside beats both.
+                        previousInSeries: ServerListContext.previous(before: selection.publication)
+                            ?? library.previous(before: selection.publication),
+                        nextInSeries: ServerListContext.next(after: selection.publication)
+                            ?? library.next(after: selection.publication),
                         onOpen: openNext,
                         downloadCleanup: downloadCleanupOffer(for: selection.publication),
                         // Only for a publication that lives on a share. Everything else is
