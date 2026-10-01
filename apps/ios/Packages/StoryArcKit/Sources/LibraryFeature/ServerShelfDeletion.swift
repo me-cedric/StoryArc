@@ -37,6 +37,7 @@ struct ServerShelfDeletion: Identifiable, Equatable {
 /// method, so the two call sites — a collection's grid and a list's — shrink to this one
 /// line each, which is what let the delete action join them without crossing the 400-line
 /// cap `ShelvesView.swift` is already at.
+@MainActor
 @ViewBuilder
 func serverShelfCell<Destination: View>(
     _ shelf: ServerShelf,
