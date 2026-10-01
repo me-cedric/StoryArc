@@ -138,6 +138,28 @@ class SourceTombstonePurgeTest {
     }
 
     @Test
+    fun `an empty shelf while another source remains defers the purge`() = runTest {
+        val progress = ProgressStore.inMemory(RuntimeEnvironment.getApplication())
+        val library = library(progress)
+        val source = catalogue()
+        val other = catalogue(name = "Manga", locator = "https://other.example/feed")
+        library.addSource(source)
+        library.addSource(other)
+        val identity = PublicationIdentity(normalizedPath = "/Comics/01.cbz")
+        library._publications.value = listOf(publication(identity, source.id))
+        progress.save(ReadingProgress(identity = identity, position = ReadingPosition.Page(3, 10), updatedAtEpochMillis = 0))
+
+        library.removeSource(source, credentials = null)
+        // A launch with no cached shelf: what `other` holds is not known yet.
+        library._publications.value = emptyList()
+
+        library.purgeExpiredTombstones(System.currentTimeMillis() + SourceTombstone.RETENTION_MILLIS + 1)
+
+        assertEquals(identity, progress.progress(identity)?.identity)
+        assertTrue(library._registry.value.tombstones.any { it.sourceId == source.id })
+    }
+
+    @Test
     fun `purging before the thirty days are up forgets nothing`() = runTest {
         val progress = ProgressStore.inMemory(RuntimeEnvironment.getApplication())
         val library = library(progress)

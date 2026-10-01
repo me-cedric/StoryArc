@@ -27,6 +27,9 @@ internal fun LibraryViewModel.identitiesHeld(sourceId: UUID): List<PublicationId
  * launch and the next that the previous launch's pass did not already collect.
  */
 suspend fun LibraryViewModel.purgeExpiredTombstones(atEpochMillis: Long = System.currentTimeMillis()) {
+    // An empty shelf while sources remain cannot say what those sources hold: the cached shelf
+    // was missing, and no scan has finished. The purge waits for a launch that can tell.
+    if (_publications.value.isEmpty() && _registry.value.sources.isNotEmpty()) return
     val (pruned, expired) = _registry.value.collectingExpiredTombstones(atEpochMillis)
     if (expired.isEmpty()) return
     _registry.value = pruned

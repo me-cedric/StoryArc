@@ -17,6 +17,9 @@ extension LibraryModel {
     /// forbids losing a position by accident, and ``PublicationIdentity/matches(_:)`` is
     /// the same rule `adopt(_:from:)` already uses to decide the two are one book.
     public func purgeExpiredTombstones(at moment: Date = .now) async {
+        // An empty shelf while sources remain cannot say what those sources hold: the cached
+        // shelf was missing, and no scan has finished. The purge waits for a launch that can.
+        guard !(publications.isEmpty && !registry.sources.isEmpty) else { return }
         let (pruned, expired) = registry.collectingExpiredTombstones(at: moment)
         guard !expired.isEmpty else { return }
         registry = pruned
