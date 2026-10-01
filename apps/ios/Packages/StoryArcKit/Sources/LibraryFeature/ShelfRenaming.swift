@@ -26,8 +26,11 @@ extension LibraryModel {
     /// Dispatches to ``rename(collection:to:)`` or ``rename(list:to:)``, so `ShelvesView`'s
     /// own call is one line.
     func rename(_ target: ShelfRenameTarget) {
-        if target.isList { rename(list: target.id, to: target.name) }
-        else { rename(collection: target.id, to: target.name) }
+        if target.isList {
+            rename(list: target.id, to: target.name)
+        } else {
+            rename(collection: target.id, to: target.name)
+        }
     }
 }
 
