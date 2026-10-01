@@ -87,14 +87,19 @@ private struct StoredList: Codable {
     let id: UUID
     let name: String
     let entries: [String]
+    /// Absent on a record written before task 7.13, which `Decodable`'s synthesis reads as
+    /// `nil` with no migration needed -- the same tolerance `StoredCollection.coverMemberID`
+    /// already relies on by being optional.
+    let coverMemberID: String?
 
     init(_ list: ReadingList) {
         id = list.id
         name = list.name
         entries = list.entries
+        coverMemberID = list.coverMemberID
     }
 
     var list: ReadingList {
-        ReadingList(id: id, name: name, entries: entries, origin: .local)
+        ReadingList(id: id, name: name, entries: entries, coverMemberID: coverMemberID, origin: .local)
     }
 }

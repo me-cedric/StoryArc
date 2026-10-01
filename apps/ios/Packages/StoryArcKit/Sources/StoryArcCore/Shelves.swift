@@ -63,17 +63,26 @@ public struct ReadingList: Sendable, Identifiable, Equatable {
     /// is the whole difference from a collection.
     public var entries: [String]
 
+    /// The cover the reader chose, when they chose one.
+    ///
+    /// `nil` means the composite: the delta extends "unless the user sets a specific one"
+    /// from a collection to a reading list. ``PublicationCollection/coverMemberID`` is the
+    /// same field for the other kind of shelf.
+    public var coverMemberID: String?
+
     public let origin: ShelfOrigin
 
     public init(
         id: UUID = UUID(),
         name: String,
         entries: [String] = [],
+        coverMemberID: String? = nil,
         origin: ShelfOrigin = .local
     ) {
         self.id = id
         self.name = name
         self.entries = entries
+        self.coverMemberID = coverMemberID
         self.origin = origin
     }
 
@@ -213,6 +222,21 @@ public struct Shelves: Sendable, Equatable {
                 var renamed = each
                 renamed.name = trimmed
                 return renamed
+            }
+        )
+    }
+
+    /// The reading-list twin of ``settingCover(_:on:)``.
+    public func settingCover(_ member: String?, onList id: UUID) -> Shelves {
+        Shelves(
+            collections: collections,
+            lists: lists.map { each in
+                guard each.id == id, member == nil || each.entries.contains(member ?? "") else {
+                    return each
+                }
+                var changed = each
+                changed.coverMemberID = member
+                return changed
             }
         )
     }

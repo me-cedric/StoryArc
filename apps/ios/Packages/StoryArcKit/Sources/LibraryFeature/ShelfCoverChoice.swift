@@ -3,6 +3,16 @@ internal import SwiftUI
 internal import DesignSystem
 internal import StoryArcCore
 
+extension LibraryModel {
+    /// Task 7.13: the reading-list twin of ``setCover(_:onCollection:)``, kept beside the
+    /// picker that is its only caller rather than widening `LibrarySources.swift`, which is
+    /// already at its own line cap.
+    func setCover(_ member: String?, onList id: UUID) {
+        shelves = shelves.settingCover(member, onList: id)
+        shelvesStore?.save(shelves)
+    }
+}
+
 /// What a collection can be given for a cover, and which of them it is wearing.
 ///
 /// `collections-and-reading-lists`: a collection's cover "is a composite of its first four
@@ -56,6 +66,24 @@ enum ShelfCoverChoice {
         }
         return .member(member)
     }
+
+    /// The reading-list twin of ``options(of:)``.
+    ///
+    /// List order rather than identity order: `collections-and-reading-lists`' delta says a
+    /// list's own composite is picked by list order "because the order is what a reading list
+    /// means", and the picker's own wall of choices reads the same order so a member's
+    /// position here matches its position in the list beneath it.
+    static func options(of list: ReadingList) -> [Option] {
+        [.composite] + list.entries.map(Option.member)
+    }
+
+    /// The reading-list twin of ``chosen(in:)``.
+    static func chosen(in list: ReadingList) -> Option {
+        guard let member = list.coverMemberID, list.entries.contains(member) else {
+            return .composite
+        }
+        return .member(member)
+    }
 }
 
 /// Choosing a collection's cover.
@@ -69,7 +97,25 @@ struct ShelfCoverPicker: View {
     @Environment(\.dismiss) private var dismiss
 
     let model: LibraryModel
-    let collection: PublicationCollection
+    let subject: Subject
+
+    /// Which kind of shelf is choosing a cover. Task 7.13 widens this picker from a
+    /// collection alone to a reading list, since the delta asks "unless the user sets a
+    /// specific one" of both.
+    enum Subject {
+        case collection(PublicationCollection)
+        case list(ReadingList)
+    }
+
+    init(model: LibraryModel, collection: PublicationCollection) {
+        self.model = model
+        self.subject = .collection(collection)
+    }
+
+    init(model: LibraryModel, list: ReadingList) {
+        self.model = model
+        self.subject = .list(list)
+    }
 
     /// Narrower than the shelf lattice: these are single covers rather than composites of
     /// four, so they stay legible small, and a collection of forty is a wall to scan rather
@@ -78,15 +124,44 @@ struct ShelfCoverPicker: View {
         [GridItem(.adaptive(minimum: 92, maximum: 140), spacing: StoryArcSpace.md, alignment: .top)]
     }
 
-    /// The collection as it would look with no choice made, for the composite's own tile.
+    private var name: String {
+        switch subject {
+        case let .collection(collection): collection.name
+        case let .list(list): list.name
+        }
+    }
+
+    private var options: [ShelfCoverChoice.Option] {
+        switch subject {
+        case let .collection(collection): ShelfCoverChoice.options(of: collection)
+        case let .list(list): ShelfCoverChoice.options(of: list)
+        }
+    }
+
+    private var chosen: ShelfCoverChoice.Option {
+        switch subject {
+        case let .collection(collection): ShelfCoverChoice.chosen(in: collection)
+        case let .list(list): ShelfCoverChoice.chosen(in: list)
+        }
+    }
+
+    /// The composite's own tiles with no choice made.
     ///
     /// Without this the composite would preview the very cover the reader is trying to move
-    /// away from — ``CompositeCover`` answers the chosen one when there is one, which is
-    /// right everywhere except on the control that offers to unchoose it.
-    private var unchosen: PublicationCollection {
-        var copy = collection
-        copy.coverMemberID = nil
-        return copy
+    /// away from — ``CompositeCover`` and ``ShelfCover/tiles(of:)`` both answer the chosen
+    /// one when there is one, which is right everywhere except on the control that offers to
+    /// unchoose it.
+    private var compositeTiles: [String] {
+        switch subject {
+        case let .collection(collection):
+            var unchosen = collection
+            unchosen.coverMemberID = nil
+            return CompositeCover.tiles(of: unchosen)
+        case let .list(list):
+            var unchosen = list
+            unchosen.coverMemberID = nil
+            return ShelfCover.tiles(of: unchosen)
+        }
     }
 
     var body: some View {
@@ -98,7 +173,7 @@ struct ShelfCoverPicker: View {
                         .foregroundStyle(theme.palette.textSecondary)
 
                     LazyVGrid(columns: columns, alignment: .leading, spacing: StoryArcSpace.lg) {
-                        ForEach(ShelfCoverChoice.options(of: collection)) { option in
+                        ForEach(options) { option in
                             cell(option)
                         }
                     }
@@ -121,7 +196,7 @@ struct ShelfCoverPicker: View {
     @ViewBuilder
     private func cell(_ option: ShelfCoverChoice.Option) -> some View {
         let publication = publication(for: option)
-        let isChosen = ShelfCoverChoice.chosen(in: collection) == option
+        let isChosen = chosen == option
         // A member whose file has gone still counts as a member — `collections-and-reading-
         // lists` keeps an entry the source dropped rather than renumbering around it — but
         // there is no artwork to put on a shelf, so it is shown and not offered.
@@ -131,7 +206,7 @@ struct ShelfCoverPicker: View {
             choose(option)
         } label: {
             VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
-                ShelfCover(model: model, tiles: tiles(for: option), name: collection.name, width: 140)
+                ShelfCover(model: model, tiles: tiles(for: option), name: name, width: 140)
                     .clipShape(.rect(cornerRadius: StoryArcRadius.sm))
                     .overlay {
                         RoundedRectangle(cornerRadius: StoryArcRadius.sm)
@@ -167,7 +242,7 @@ struct ShelfCoverPicker: View {
     /// What the tile draws for an option. One cover for a member; the four for the composite.
     private func tiles(for option: ShelfCoverChoice.Option) -> [String] {
         switch option {
-        case .composite: CompositeCover.tiles(of: unchosen)
+        case .composite: compositeTiles
         case let .member(member): [member]
         }
     }
@@ -191,9 +266,10 @@ struct ShelfCoverPicker: View {
     }
 
     private func choose(_ option: ShelfCoverChoice.Option) {
-        switch option {
-        case .composite: model.setCover(nil, onCollection: collection.id)
-        case let .member(member): model.setCover(member, onCollection: collection.id)
+        let member: String? = if case let .member(member) = option { member } else { nil }
+        switch subject {
+        case let .collection(collection): model.setCover(member, onCollection: collection.id)
+        case let .list(list): model.setCover(member, onList: list.id)
         }
         dismiss()
     }

@@ -100,6 +100,9 @@ struct ReadingListDetail: View {
     /// asked for that quietly outlives the evening it was set in.
     @State private var order = ListOrder.curated
 
+    /// Whether the reader is choosing which cover this list wears. Task 7.13.
+    @State private var isChoosingCover = false
+
     var body: some View {
         let list = model.shelves.lists.first { $0.id == self.id }
         let entries = list?.entries ?? []
@@ -182,6 +185,22 @@ struct ReadingListDetail: View {
             ToolbarItem(placement: .primaryAction) {
                 ListOrderMenu(order: $order)
             }
+            // Task 7.13: "unless the user sets a specific one" of a reading list, the way
+            // ``CollectionDetail`` already offers it. A list holding nothing has nothing to
+            // offer, so it does not ask -- the same gate the collection's own button keeps.
+            if !entries.isEmpty {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        isChoosingCover = true
+                    } label: {
+                        Label {
+                            Text("shelves.cover", bundle: .module)
+                        } icon: {
+                            Image(systemName: "square.grid.2x2")
+                        }
+                    }
+                }
+            }
             #if os(iOS)
             // Reordering by drag needs edit mode, and `EditButton` is the control iOS
             // readers already know. It does not exist on macOS, where the package builds
@@ -214,6 +233,11 @@ struct ReadingListDetail: View {
         // The list itself goes too: the same requirement offers to copy a local one onto a
         // server, and the offer belongs where the reader is looking at the list.
         .shelfBulkActions(model: model, members: Set(entries), promoting: list)
+        .sheet(isPresented: $isChoosingCover) {
+            if let list {
+                ShelfCoverPicker(model: model, list: list)
+            }
+        }
     }
 
     /// The server whose list just refused a row's publication, if one did.
