@@ -11,6 +11,14 @@ import StoryArcCore
 /// The field defect: an offline read holds page 10; an online session later reports page 20;
 /// a subsequent flush still sends the held page 10 and moves the server back. Android's
 /// `KavitaSyncQueueTest` asserts the same case.
+/// A box, mutated from a `@Sendable` callback and read back on the test's own task — never
+/// from two places at once, so `@unchecked` is honest. `ShelfOrderConflictTests`' own `Flag`
+/// is the same shape, private to that file.
+private final class Box<Value>: @unchecked Sendable {
+    var value: Value
+    init(_ value: Value) { self.value = value }
+}
+
 @Suite("A successful report clears its own held entry")
 struct KavitaSyncQueueTests {
 
@@ -145,5 +153,69 @@ struct KavitaSyncQueueTests {
 
         #expect(store.unsent().count == 2)
         #expect(Set(store.unsent().map(\.page)) == [3, 7])
+    }
+
+    /// A server old enough to lack `mark-multiple-*`.
+    private func routeMissingAddress(host: String) throws -> (KavitaAddress, URLSessionConfiguration) {
+        let address = KavitaAddress(base: try #require(URL(string: "http://\(host)")), apiKey: "key")
+        let configuration = EntryStub.session(host: host) { request in
+            request.url?.path().hasSuffix("Plugin/authenticate") == true
+                ? (200, Data(#"{"username":"ada","token":"t"}"#.utf8))
+                : (404, Data())
+        }
+        return (address, configuration)
+    }
+
+    @Test("D2: a mark sent now, refused with a 404, is not held for a retry that can never land")
+    func immediateMarkDropsOnRouteMissing() async throws {
+        let store = store()
+        let origin = origin()
+        let (address, configuration) = try routeMissingAddress(host: "\(UUID().uuidString).mark-missing.test")
+        let toldMissing = Box(false)
+
+        await KavitaSync.mark(
+            true, for: origin, to: address, in: store, configuration: configuration
+        ) { toldMissing.value = true }
+
+        #expect(toldMissing.value)
+        #expect(store.unsent().isEmpty, "a route the server will never grow must not be retried forever")
+    }
+
+    @Test("D2: a held mark a flush finds refused leaves the queue and is reported, not retried")
+    func flushDropsAHeldMarkOnRouteMissing() async throws {
+        let store = store()
+        let origin = origin()
+        store.hold(KavitaUnsent(origin: origin, page: 0, mark: true))
+        let (address, configuration) = try routeMissingAddress(host: "\(UUID().uuidString).flush-missing.test")
+        let reported = Box<KavitaUnsent?>(nil)
+
+        _ = await KavitaSync.flush(
+            origin.sourceId, to: address, in: store, configuration: configuration,
+            onRouteMissing: { reported.value = $0 }
+        )
+
+        #expect(reported.value?.origin.chapterId == origin.chapterId)
+        #expect(store.unsent().isEmpty)
+    }
+
+    @Test("A held mark beside a held position: only the mark is refused, and only it leaves")
+    func flushRefusesOnlyTheMarkAmongWhatIsHeld() async throws {
+        let store = store()
+        let origin = origin()
+        store.hold(KavitaUnsent(origin: origin, page: 0, mark: true))
+        store.hold(KavitaUnsent(origin: self.origin(), page: 5))
+        // A position posts to a route this same stub answers 404 too, so this proves the
+        // mark's own 404 is read as `routeMissing` specifically — `report`'s path has no
+        // `sendVersioned` guard and so is not this test's claim; see ``KavitaClientTests``.
+        let (address, configuration) = try routeMissingAddress(host: "\(UUID().uuidString).flush-mixed.test")
+
+        _ = await KavitaSync.flush(origin.sourceId, to: address, in: store, configuration: configuration)
+
+        // The position's own 404 is an ordinary failure `send` lets through uncaught, so
+        // `flush`'s `catch { continue }` keeps it held — this asserts the mark's departure
+        // is `onRouteMissing`'s doing, not a side effect of every held entry leaving
+        // regardless of its own kind.
+        #expect(store.unsent().count == 1)
+        #expect(store.unsent().allSatisfy { $0.mark == nil })
     }
 }

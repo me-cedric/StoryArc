@@ -204,10 +204,17 @@ extension KavitaClient {
     }
 }
 
-/// Which chapter to mark, in the shape Kavita's mark endpoints want.
-struct KavitaMark: Encodable {
+/// Which chapters to mark, in the shape Kavita's `MarkVolumesReadDto` wants.
+///
+/// `mark-multiple-read` and `mark-multiple-unread`, read from Kavita's own `openapi.json`
+/// at `kavita-routes.md` rather than guessed — the two single-chapter routes this replaced,
+/// `mark-chapter-read` and `mark-chapter-unread`, sent `{seriesId, chapterId}`, and the
+/// second of those routes does not exist on any published Kavita.
+struct KavitaMarkMultiple: Encodable {
     let seriesId: Int
-    let chapterId: Int
+    let volumeIds: [Int]
+    let chapterIds: [Int]
+    let generateReadingSession: Bool
 }
 
 extension KavitaClient {
@@ -216,15 +223,24 @@ extension KavitaClient {
     /// `kavita-server` asks for the state to be "reflected in that server's own UI", which a
     /// position cannot do on its own: page zero of an unread chapter and page zero of a
     /// chapter the reader deliberately unmarked are the same number.
-    public func mark(seriesId: Int, chapterId: Int, isRead: Bool) async throws {
-        let path = isRead ? "Reader/mark-chapter-read" : "Reader/mark-chapter-unread"
+    ///
+    /// Through ``sendVersioned(_:path:)``, so a server too old for `mark-multiple-*` answers
+    /// ``KavitaError/routeMissing(path:)`` rather than a 404 ``KavitaSync`` would hold and
+    /// resend forever — decision D2.
+    public func mark(seriesId: Int, volumeId: Int, chapterId: Int, isRead: Bool) async throws {
+        let path = isRead ? "Reader/mark-multiple-read" : "Reader/mark-multiple-unread"
         guard let url = address.endpoint(path) else { throw KavitaError.badAddress }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(
-            KavitaMark(seriesId: seriesId, chapterId: chapterId)
+            KavitaMarkMultiple(
+                seriesId: seriesId,
+                volumeIds: [volumeId],
+                chapterIds: [chapterId],
+                generateReadingSession: false
+            )
         )
-        _ = try await send(request)
+        _ = try await sendVersioned(request, path: path)
     }
 }

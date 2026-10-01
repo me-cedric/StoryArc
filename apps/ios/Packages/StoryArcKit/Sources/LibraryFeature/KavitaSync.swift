@@ -217,16 +217,23 @@ public enum KavitaSync {
     }
 
     /// Sends one deliberate mark, keeping it for later if the server is not there.
+    ///
+    /// D2: a 404 means this server lacks the mark routes, and holding it would resend it
+    /// forever to a route that can only ever refuse it. `onRouteMissing` says so instead.
     public static func mark(
         _ isRead: Bool,
         for origin: KavitaOrigin,
         to address: KavitaAddress?,
-        in store: KavitaProgressStore
+        in store: KavitaProgressStore,
+        configuration: URLSessionConfiguration? = nil,
+        onRouteMissing: (@Sendable () -> Void)? = nil
     ) async {
         let unsent = KavitaUnsent(origin: origin, page: 0, mark: isRead)
         guard let address else { return store.hold(unsent) }
         do {
-            try await send(KavitaClient(address: address), unsent)
+            try await send(KavitaClient(address: address, configuration: configuration), unsent)
+        } catch KavitaError.routeMissing {
+            onRouteMissing?()
         } catch {
             store.hold(unsent)
         }
@@ -324,64 +331,34 @@ public enum KavitaSync {
         progress: ProgressStore? = nil,
         configuration: URLSessionConfiguration? = nil,
         /// Task 7.4: told when a held order was dropped as stale rather than sent.
-        onOrderConflict: (@Sendable (Int) -> Void)? = nil
+        onOrderConflict: (@Sendable (Int) -> Void)? = nil,
+        /// D2: told once for each held mark a 404 refused, which then leaves the queue too.
+        onRouteMissing: (@Sendable (KavitaUnsent) -> Void)? = nil
     ) async -> [KavitaUnsent] {
         let held = store.unsent().filter { $0.origin.sourceId == sourceId }
         guard !held.isEmpty else { return [] }
 
         let client = KavitaClient(address: address, configuration: configuration)
         var delivered: [KavitaUnsent] = []
+        var refused: [KavitaUnsent] = []
         for each in held {
-            guard (try? await send(client, each, onOrderConflict: onOrderConflict)) != nil else { continue }
-            delivered.append(each)
+            do {
+                try await send(client, each, onOrderConflict: onOrderConflict)
+                delivered.append(each)
+            } catch KavitaError.routeMissing {
+                refused.append(each)
+            } catch {
+                continue
+            }
         }
-        store.sent(delivered)
+        // Both leave the queue: what the server took, and what it can never take.
+        store.sent(delivered + refused)
+        for each in refused { onRouteMissing?(each) }
         // A plain position, not a mark or a list write — the only kind of held item a
         // local record has anything to say about.
         for each in delivered where each.mark == nil && each.listID == nil {
             await stampSynced(chapterId: each.origin.chapterId, in: store, into: progress)
         }
         return delivered
-    }
-
-    private static func send(
-        _ client: KavitaClient,
-        _ held: KavitaUnsent,
-        onOrderConflict: (@Sendable (Int) -> Void)? = nil
-    ) async throws {
-        if let listID = held.listID, let order = held.order {
-            return try await reorderCheckingBaseline(
-                listID,
-                to: order,
-                baseline: held.orderBaseline,
-                onConflict: onOrderConflict,
-                through: client
-            )
-        }
-        if let listID = held.listID {
-            return try await client.append(
-                toList: listID,
-                seriesId: held.origin.seriesId,
-                chapterIds: [held.origin.chapterId]
-            )
-        }
-        guard let mark = held.mark else {
-            return try await client.report(position(held.origin, held.page))
-        }
-        try await client.mark(
-            seriesId: held.origin.seriesId,
-            chapterId: held.origin.chapterId,
-            isRead: mark
-        )
-    }
-
-    private static func position(_ origin: KavitaOrigin, _ page: Int) -> KavitaPosition {
-        KavitaPosition(
-            libraryId: origin.libraryId,
-            seriesId: origin.seriesId,
-            volumeId: origin.volumeId,
-            chapterId: origin.chapterId,
-            pageNum: page
-        )
     }
 }

@@ -229,16 +229,16 @@ const authorised = (request) =>
  * They survived because this mock was written from the client, so the client asked for a
  * route it had invented and this mock answered it.
  *
- * **Two entries below are kept against the published spec, and this is the only place that
- * says so beside `STATUS.md`.** `/api/Reader/mark-chapter-unread` is absent from all five,
- * so unmarking a chapter is dead against every Kavita; the nearest route is
- * `/api/Reader/mark-multiple-unread`, whose body is a different shape from the
- * `{seriesId, chapterId}` both clients send. `/api/Reader/mark-chapter-read` is absent from
- * v0.8.6, v0.8.8 and v0.8.9.1 and present from v0.9.0, so it 404s on the three older
- * releases. Both are left answering here because no replacement has been measured against a
- * live server, and guessing a write shape is the mistake this file already records twice.
- * A change to either caller -- `KavitaMetadata.swift:196` and `KavitaClient.kt:163` -- will
- * pass every suite and still 404 on a real server.
+ * **D2 closed the gap the paragraph above used to describe.** Both clients sent
+ * `mark-chapter-read` and `mark-chapter-unread` with a `{seriesId, chapterId}` body; the
+ * second route is absent from every published Kavita and the first 404s on three of five.
+ * Both clients now send `mark-multiple-read` and `mark-multiple-unread`, with the
+ * `{seriesId, volumeIds, chapterIds, generateReadingSession}` body `kavita-routes.md` reads
+ * from Kavita's own `openapi.json` rather than guesses. The two single-chapter routes are
+ * still answered below, unused by either client, so a server old enough to lack
+ * `mark-multiple-*` is a case this mock can still be asked to produce by a test that wants
+ * one -- see `KavitaSyncQueueTests`' own route-missing cases and their Android twin in
+ * `KavitaSyncQueueTest`.
  */
 const ROUTES = [
   { at: '/api/Plugin/authenticate', verb: 'POST', example: `/api/Plugin/authenticate?apiKey=${API_KEY}` },
@@ -258,6 +258,8 @@ const ROUTES = [
   { at: '/api/Reader/progress', verb: 'POST', example: '/api/Reader/progress' },
   { at: '/api/Reader/mark-chapter-read', verb: 'POST', example: '/api/Reader/mark-chapter-read' },
   { at: '/api/Reader/mark-chapter-unread', verb: 'POST', example: '/api/Reader/mark-chapter-unread' },
+  { at: '/api/Reader/mark-multiple-read', verb: 'POST', example: '/api/Reader/mark-multiple-read' },
+  { at: '/api/Reader/mark-multiple-unread', verb: 'POST', example: '/api/Reader/mark-multiple-unread' },
   { at: '/api/Collection', verb: 'GET', example: '/api/Collection' },
   { at: '/api/Collection/update-for-series', verb: 'POST', example: '/api/Collection/update-for-series' },
   {
@@ -488,6 +490,27 @@ const server = createServer((request, response) => {
         .find((each) => each.id === posted.chapterId)
       if (!chapter) return send(response, 404, { message: 'no such chapter' })
       chapter.pagesRead = url.pathname.endsWith('unread') ? 0 : chapter.pages
+      send(response, 200, {})
+    })
+    return undefined
+  }
+
+  // D2: `MarkVolumesReadDto` -- a series, the volumes, and the chapters, any of which may be
+  // empty. Only `chapterIds` is answered: neither client sends a bare volume or series mark
+  // today, and a route that silently ignored the other two fields would be as misleading as
+  // one that was never measured at all.
+  const markingMultiple = url.pathname === '/api/Reader/mark-multiple-read' ||
+    url.pathname === '/api/Reader/mark-multiple-unread'
+  if (markingMultiple && request.method === 'POST') {
+    let body = ''
+    request.on('data', (chunk) => { body += chunk })
+    request.on('end', () => {
+      const posted = JSON.parse(body || '{}')
+      const wanted = new Set(posted.chapterIds || [])
+      const matched = series.flatMap((each) => each.chapters).filter((each) => wanted.has(each.id))
+      if (matched.length === 0) return send(response, 404, { message: 'no such chapter' })
+      const unread = url.pathname.endsWith('unread')
+      for (const chapter of matched) chapter.pagesRead = unread ? 0 : chapter.pages
       send(response, 200, {})
     })
     return undefined
@@ -847,11 +870,17 @@ const drive = async () => {
     check('a finished chapter hands the continue point on', next.id === first.chapters[1].id, next.id)
   }
 
-  // A deliberate mark is not a position, and must move the same number.
-  await post('/api/Reader/mark-chapter-unread', { seriesId: first.id, chapterId: chapter.id }, token)
+  // A deliberate mark is not a position, and must move the same number. D2: both clients
+  // send mark-multiple-read and mark-multiple-unread now, documented at Kavita's own
+  // openapi.json and read from kavita-routes.md rather than guessed.
+  await post('/api/Reader/mark-multiple-unread', {
+    seriesId: first.id, volumeIds: [], chapterIds: [chapter.id], generateReadingSession: false,
+  }, token)
   check('unmarking a chapter returns it to nothing read',
     (await volumes(first.id))[0].chapters[0].pagesRead === 0)
-  await post('/api/Reader/mark-chapter-read', { seriesId: first.id, chapterId: chapter.id }, token)
+  await post('/api/Reader/mark-multiple-read', {
+    seriesId: first.id, volumeIds: [], chapterIds: [chapter.id], generateReadingSession: false,
+  }, token)
   const marked = (await volumes(first.id))[0].chapters[0]
   check('marking a chapter read reads all of it', marked.pagesRead === marked.pages, marked.pagesRead)
 
