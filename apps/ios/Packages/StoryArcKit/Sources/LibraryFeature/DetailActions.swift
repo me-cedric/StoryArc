@@ -169,7 +169,7 @@ struct DetailActions: View {
             AddToShelfMenu(
                 model: model,
                 publications: [publication],
-                onRefused: { refusedServer = $0 },
+                onRefused: { server, _ in refusedServer = server },
                 onRestart: { isRestarting = true }
             )
         } label: {

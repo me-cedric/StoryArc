@@ -207,7 +207,7 @@ struct ListRow: View {
                 PublicationActionMenu(
                     model: model,
                     publication: publication,
-                    onRefused: { refusedServer = $0 },
+                    onRefused: { server, _ in refusedServer = server },
                     onRestart: { restarting = publication }
                 )
             }
