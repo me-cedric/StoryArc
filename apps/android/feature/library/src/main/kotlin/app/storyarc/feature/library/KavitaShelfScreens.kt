@@ -62,6 +62,7 @@ import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.kavita.KavitaReadingListItem
 import app.storyarc.core.kavita.KavitaSeries
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.ShelfConflictNotice
 import app.storyarc.core.model.ShelfEntry
 import app.storyarc.core.model.ShelfKey
 import app.storyarc.core.model.ShelfMerge
@@ -154,11 +155,17 @@ fun KavitaListScreen(
     // leaving the list in an order nobody asked for.
     var pushing by remember(listId) { mutableStateOf<Job?>(null) }
 
+    // Task 7.4: the order the server held when this screen opened. A drag is checked against
+    // this, not against whatever `items` has become after earlier drags of the same visit, so
+    // the conflict a send finds is "did the server change" rather than "did I".
+    var baseline by remember(listId) { mutableStateOf<List<Int>>(emptyList()) }
+
     LaunchedEffect(listId) {
         wanted = KavitaSync.wantedOrder(KavitaProgressStore.open(context), server.id, listId)
         items = runCatching { client.readingListItems(listId) }
             .getOrDefault(emptyList())
             .sortedBy { it.order }
+        baseline = items.map { it.chapterId }
     }
 
     // Edits this device has made that the server has not taken yet.
@@ -194,7 +201,28 @@ fun KavitaListScreen(
         pushing = scope.launch {
             previous?.join()
             val store = KavitaProgressStore.open(context)
-            KavitaSync.reorder(store, server.address, server.id, listId, order)
+            KavitaSync.reorder(
+                store,
+                server.address,
+                server.id,
+                listId,
+                order,
+                baseline = baseline,
+                onOrderConflict = {
+                    // Task 7.4: the server moved since `baseline`, so the drag was dropped
+                    // rather than sent over whatever changed it there.
+                    ShelfEditStore.open(context).update {
+                        it.noting(
+                            ShelfConflictNotice(
+                                shelf = ShelfKey(server.id, listId),
+                                shelfName = title,
+                                at = System.currentTimeMillis(),
+                                isOrder = true,
+                            ),
+                        )
+                    }
+                },
+            )
             wanted = KavitaSync.wantedOrder(store, server.id, listId)
         }
     }

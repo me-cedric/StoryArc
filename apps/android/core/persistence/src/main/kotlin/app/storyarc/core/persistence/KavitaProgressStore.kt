@@ -80,6 +80,16 @@ data class KavitaUnsent(
      * send that fails must cost them nothing.
      */
     val order: List<Int>? = null,
+    /**
+     * The server order this device had seen when [order] was made.
+     *
+     * `collections-and-reading-lists` task 7.4: before a held order is sent, the server's
+     * current order is compared against this one. A mismatch means the server moved since
+     * the reader dragged a row, and the held order is dropped rather than sent over it --
+     * sending it would silently discard whatever changed it there. Null for an order held
+     * before this existed, which sends exactly as it always did.
+     */
+    val orderBaseline: List<Int>? = null,
 ) {
     /**
      * What makes two held items the same thing.

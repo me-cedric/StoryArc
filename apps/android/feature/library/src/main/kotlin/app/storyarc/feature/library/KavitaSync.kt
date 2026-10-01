@@ -265,17 +265,29 @@ object KavitaSync {
         sourceId: String,
         listId: Int,
         order: List<Int>,
+        /**
+         * The server order this device had seen, read by the caller before this move was
+         * applied locally. Null skips the check and sends exactly as every caller did before
+         * task 7.4. Ignored when an order is already held for this list -- the earlier
+         * hold's own baseline is what a later send is still checked against, so a second
+         * drag before the first reaches the server does not quietly widen what counts as
+         * unchanged.
+         */
+        baseline: List<Int>? = null,
+        onOrderConflict: (suspend () -> Unit)? = null,
     ) {
+        val held = store.unsent().firstOrNull { it.key == "order:$sourceId:$listId" }
         store.hold(
             KavitaUnsent(
                 origin = KavitaOrigin(sourceId, libraryId = 0, seriesId = 0, volumeId = 0, chapterId = 0),
                 page = 0,
                 listId = listId,
                 order = order,
+                orderBaseline = held?.orderBaseline ?: baseline,
             ),
         )
         if (address == null) return
-        flush(store, sourceId, address)
+        flush(store, sourceId, address, onOrderConflict = onOrderConflict?.let { notify -> { _: Int -> notify() } })
     }
 
     /**
@@ -305,12 +317,14 @@ object KavitaSync {
         sourceId: String,
         address: KavitaAddress,
         progress: ProgressStore? = null,
+        /** Task 7.4: told of a list id whose held order was dropped as stale, not sent. */
+        onOrderConflict: (suspend (listId: Int) -> Unit)? = null,
     ): List<KavitaUnsent> {
         val waiting = store.unsent().filter { it.origin.sourceId == sourceId }
         if (waiting.isEmpty()) return emptyList()
 
         val client = KavitaClient(address)
-        val delivered = waiting.filter { held -> runCatching { send(client, held) }.isSuccess }
+        val delivered = waiting.filter { held -> runCatching { send(client, held, onOrderConflict) }.isSuccess }
         store.sent(delivered)
         // A plain position, not a mark or a list write -- the only kind of held item a
         // local record has anything to say about.
@@ -319,12 +333,17 @@ object KavitaSync {
         return delivered
     }
 
-    private suspend fun send(client: KavitaClient, held: KavitaUnsent) {
+    private suspend fun send(
+        client: KavitaClient,
+        held: KavitaUnsent,
+        onOrderConflict: (suspend (listId: Int) -> Unit)? = null,
+    ) {
         val listId = held.listId
         val mark = held.mark
         val order = held.order
         when {
-            listId != null && order != null -> reorder(client, listId, order)
+            listId != null && order != null ->
+                reorder(client, listId, order, held.orderBaseline, onOrderConflict)
             listId != null ->
                 client.append(listId, held.origin.seriesId, listOf(held.origin.chapterId))
             mark != null -> client.mark(held.origin.seriesId, held.origin.chapterId, mark)
@@ -338,9 +357,24 @@ object KavitaSync {
      * The list is read first because Kavita moves an entry by position, and the positions only
      * mean anything against the order the server is actually in. [ShelfSync.moves] plans the
      * run; anything that throws leaves the whole order held for the next flush.
+     *
+     * Task 7.4: the list is also read to answer whether it is still in the order [baseline]
+     * names. A server that moved since then is not overwritten -- [onConflict] is told
+     * instead, and this returns having sent nothing, which is what lets [flush] drop the
+     * stale order rather than hold it for ever.
      */
-    private suspend fun reorder(client: KavitaClient, listId: Int, order: List<Int>) {
+    private suspend fun reorder(
+        client: KavitaClient,
+        listId: Int,
+        order: List<Int>,
+        baseline: List<Int>?,
+        onConflict: (suspend (listId: Int) -> Unit)?,
+    ) {
         val items = client.readingListItems(listId).sortedBy { it.order }
+        if (baseline != null && items.map { it.chapterId } != baseline) {
+            onConflict?.invoke(listId)
+            return
+        }
         val places = items.map { ShelfSync.Place(item = it.id, chapter = it.chapterId) }
         for (move in ShelfSync.moves(places, order)) {
             client.moveInList(listId, move.item, move.from, move.to)

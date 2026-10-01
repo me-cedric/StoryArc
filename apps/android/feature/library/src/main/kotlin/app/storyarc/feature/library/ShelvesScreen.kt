@@ -392,11 +392,16 @@ fun ShelvesScreen(
             title = { Text(stringResource(R.string.shelves_conflict_title)) },
             text = {
                 Text(
-                    stringResource(
-                        R.string.shelves_conflict_body,
-                        notice.shelfName,
-                        notice.discarded.joinToString(", "),
-                    ),
+                    // Task 7.4: an order has no entries to name, only the order itself.
+                    if (notice.isOrder) {
+                        stringResource(R.string.shelves_conflict_body_order, notice.shelfName)
+                    } else {
+                        stringResource(
+                            R.string.shelves_conflict_body,
+                            notice.shelfName,
+                            notice.discarded.joinToString(", "),
+                        )
+                    },
                 )
             },
             confirmButton = {

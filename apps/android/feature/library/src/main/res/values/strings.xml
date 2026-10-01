@@ -302,6 +302,7 @@
     </plurals>
     <string name="shelves_conflict_title">The online library’s version was kept</string>
     <string name="shelves_conflict_body">“%1$s” changed in the online library, so its version was kept. These were not added: %2$s.</string>
+    <string name="shelves_conflict_body_order">“%1$s” changed in the online library, so the order you set was not applied.</string>
     <string name="shelves_conflict_understood">OK</string>
     <string name="kavita_chapter_actions">Chapter actions</string>
     <string name="kavita_add_to_list">Add to “%1$s”</string>

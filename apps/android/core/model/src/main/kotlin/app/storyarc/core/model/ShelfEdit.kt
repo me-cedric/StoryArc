@@ -73,10 +73,16 @@ data class ShelfConflictNotice(
     val shelfName: String,
     /**
      * The titles that were dropped, so the sentence says what changed rather than that
-     * something did.
+     * something did. Empty for [isOrder], which has no entries to name -- only an order.
      */
-    val discarded: List<String>,
+    val discarded: List<String> = emptyList(),
     val at: Long,
+    /**
+     * Whether this is task 7.4's conflict: an order the reader gave the list, dropped
+     * because the server's own order had already moved. [discarded] names nothing for one
+     * of these, so the sentence it reads from is its own.
+     */
+    val isOrder: Boolean = false,
 ) {
     val id: String get() = "${shelf.sourceId}/${shelf.shelfId}/$at"
 }
