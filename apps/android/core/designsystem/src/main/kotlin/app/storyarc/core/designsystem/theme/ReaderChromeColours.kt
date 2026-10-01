@@ -11,6 +11,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 /**
+ * The container and content colour, as a plain rule over a palette and a flag -- no
+ * `Context`, so `ReaderChromeContrastTest` can assert it with no composition at all.
+ *
+ * `native-experience`: "translucent materials are replaced with the opaque fallback
+ * declared in the design tokens" -- this capsule never read the setting at all, so
+ * Increase Contrast left it exactly as translucent as it always was.
+ */
+internal fun readerChromeColourPair(isHighContrast: Boolean, palette: StoryArcPalette): Pair<Color, Color> =
+    if (isHighContrast) {
+        palette.surfaceOverlay to palette.textPrimary
+    } else {
+        palette.scrim.copy(alpha = SCRIM_ALPHA) to Color.White
+    }
+
+/**
  * The colours of the capsule that floats over a page, said once for both readers.
  *
  * **Why this left `:feature:reader` and became shared.** The comic reader named these and the
@@ -36,21 +51,6 @@ import androidx.compose.ui.unit.dp
  * Pinned by `ReaderChromeColoursTest`, which asserts the pair against the real
  * `FloatingToolbarDefaults` rather than restating it.
  */
-/**
- * The container and content colour, as a plain rule over a palette and a flag -- no
- * `Context`, so `ReaderChromeContrastTest` can assert it with no composition at all.
- *
- * `native-experience`: "translucent materials are replaced with the opaque fallback
- * declared in the design tokens" -- this capsule never read the setting at all, so
- * Increase Contrast left it exactly as translucent as it always was.
- */
-internal fun readerChromeColourPair(isHighContrast: Boolean, palette: StoryArcPalette): Pair<Color, Color> =
-    if (isHighContrast) {
-        palette.surfaceOverlay to palette.textPrimary
-    } else {
-        palette.scrim.copy(alpha = SCRIM_ALPHA) to Color.White
-    }
-
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun readerChromeColours(): FloatingToolbarColors {
