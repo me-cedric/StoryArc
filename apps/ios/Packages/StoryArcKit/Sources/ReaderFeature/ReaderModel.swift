@@ -302,6 +302,8 @@ public final class ReaderModel {
             }
             await warm(around: currentIndex)
             await deriveCoverColours()
+        } catch let error as ComicArchiveError {
+            failure = Self.sentence(for: error)
         } catch {
             failure = String(describing: error)
         }

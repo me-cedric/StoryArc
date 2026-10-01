@@ -61,6 +61,14 @@
          `ReaderFailureSaysNothingInternalTest` fails if the message comes back to the
          screen, and if a catch stops recording it. -->
     <string name="reader_cannot_open">StoryArc could not open this book.</string>
+    <!-- These four catch the typed archive errors `reader_cannot_open` deliberately does
+         not name. They are named because the format or the reason is already known,
+         read from the headers rather than guessed at, and `open_in_*` in the app module
+         says the same thing when the same file is opened through Open-in. -->
+    <string name="reader_unsupported">This is a format StoryArc does not read.</string>
+    <string name="reader_password_protected">This archive is protected by a password. StoryArc does not manage archive passwords, so there is nothing to enter here.</string>
+    <string name="reader_damaged">This file could not be read. It may be damaged.</string>
+    <string name="reader_solid_archive">This comic uses solid compression, which StoryArc cannot open.</string>
     <string name="reader_offline_brief">Waiting for the network…</string>
     <string name="reader_offline_long">This comic is in a shared folder that cannot be reached. Pages already read are still here.</string>
     <string name="reader_offline_download">Download it</string>

@@ -14,6 +14,7 @@ import android.util.Log
 import app.storyarc.core.designsystem.theme.observeReduceMotion
 import app.storyarc.core.designsystem.theme.systemReduceMotion
 import app.storyarc.core.format.AdoptingArchive
+import app.storyarc.core.format.ComicArchiveException
 import app.storyarc.core.format.PageCodec
 import app.storyarc.core.format.PageDecoder
 import app.storyarc.core.format.PageEntry
@@ -475,6 +476,24 @@ class ReaderViewModel(
                 initialIndex = recorded.index
             }
             deriveCoverColours()
+        } catch (cause: ComicArchiveException.UnsupportedContainer) {
+            // Named, the same as Open-in's refusal: the container is recognised and
+            // this is a different claim from "could not be read at all".
+            Log.w(TAG, "cannot open this ${publication.format}", cause)
+            _failure.value = R.string.reader_unsupported
+        } catch (cause: ComicArchiveException.PasswordProtected) {
+            // No password field here either -- StoryArc does not manage archive passwords.
+            Log.w(TAG, "cannot open this ${publication.format}", cause)
+            _failure.value = R.string.reader_password_protected
+        } catch (cause: ComicArchiveException.SolidArchive) {
+            // The same sentence the library cell and the publication page already show
+            // for this archive -- `publication-formats` names solid compression once.
+            Log.w(TAG, "cannot open this ${publication.format}", cause)
+            _failure.value = R.string.reader_solid_archive
+        } catch (cause: ComicArchiveException.Unreadable) {
+            // Damaged, not unsupported: the format is one StoryArc reads.
+            Log.w(TAG, "cannot open this ${publication.format}", cause)
+            _failure.value = R.string.reader_damaged
         } catch (cause: Exception) {
             Log.w(TAG, "cannot open this ${publication.format}", cause)
             _failure.value = R.string.reader_cannot_open

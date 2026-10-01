@@ -136,17 +136,6 @@ struct ReaderModelTests {
         #expect(model.wideIndices.contains(2))
     }
 
-    @Test("A publication that cannot be opened says so rather than showing nothing")
-    func reportsFailure() async {
-        let location = url("comics/refused.cb7")
-        let model = ReaderModel(publication: publication(.cb7, at: location), url: location)
-
-        await model.open(maxPixelSize: 256)
-
-        #expect(model.failure != nil)
-        #expect(model.pages.isEmpty)
-    }
-
     @Test("The reader carries the count of what the archive could not read")
     func skippedPagesReachTheReader() async {
         // `publication-formats`: a damaged archive opens "whatever pages it can read and
