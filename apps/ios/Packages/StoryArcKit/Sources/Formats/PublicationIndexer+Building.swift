@@ -14,10 +14,13 @@ public import StoryArcCore
 /// > module, which is still narrower than the `package` the rest of StoryArcKit
 /// > could see. Nothing outside `Formats` can reach them.
 extension PublicationIndexer {
-    /// A publication that exists but whose pages cannot be reached from here.
+    /// A publication that exists but whose pages cannot be reached from here yet.
     ///
-    /// The library should list it and say why, not silently drop it — the same answer a
-    /// solid archive already gets.
+    /// The library should list it and say why, not silently drop it. ``downloadOnly``,
+    /// never ``StreamingCapability/refused`` — this is "not checked without a local
+    /// copy", not "no decoder will ever open it", and ``StreamingOffer/of`` trusts
+    /// ``StreamingCapability/refused`` unconditionally precisely because this helper
+    /// never produces it.
     static func record(
         _ format: PublicationFormat,
         _ identity: PublicationIdentity,
@@ -33,7 +36,7 @@ extension PublicationIndexer {
             volume: fallback.volume,
             year: fallback.year,
             origin: .inferred,
-            streaming: .refused
+            streaming: .downloadOnly
         )
     }
 

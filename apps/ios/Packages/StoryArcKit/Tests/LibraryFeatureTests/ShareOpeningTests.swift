@@ -174,18 +174,19 @@ struct ShareOpeningTests {
         #expect(!answers.offerMade, "A failed index still offered a transfer.")
     }
 
-    @Test("A remote record marked refused is offered rather than declined")
-    func remoteRefusedIsOffered() async {
-        // `PublicationIndexer.index(source:name:identity:)` marks a remote PDF, EPUB and CBR
-        // `refused` to mean "its pages cannot be reached from here". Believing that here would
-        // decline to fetch the very publication the offer is for.
+    @Test("A solid RAR4 on a share is refused before the whole file is transferred")
+    func solidRar4OnAShareIsRefused() async {
+        // `RarComicArchive` detects a solid RAR4 from its headers alone, so this is no
+        // longer a placeholder meaning "not checked yet" — it is the real answer, and
+        // believing it here is what stops the reader paying for a transfer that changes
+        // nothing.
         let answers = await openingFromShare(publication(streaming: .refused))
 
         #expect(
-            answers.offerMade,
-            "A remote record marked refused was declined before any file existed."
+            !answers.offerMade,
+            "A solid RAR4 on a share was offered a transfer instead of being refused."
         )
-        #expect(answers.said == nil)
+        #expect(answers.said == ShareOpening.cannotOpen)
     }
 
     // MARK: - Where a publication's own page opens it from

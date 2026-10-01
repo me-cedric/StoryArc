@@ -57,15 +57,16 @@ struct StreamingOfferTests {
         )
     }
 
-    @Test("A remote record marked refused is fetched rather than declined")
-    func refusedRemoteIsFetched() {
-        // `PublicationIndexer.index(source:...)` marks a remote PDF, EPUB or CBR `refused`
-        // to mean "its pages cannot be reached from here". Believing that as a refusal
-        // would decline to fetch every comic in a RAR on every share.
+    @Test("A solid RAR4 is refused over a share too, without a download first")
+    func refusedRemoteIsRefused() {
+        // The spec table: a solid RAR4 is "refused, local or remote", and the index
+        // decides it "without transferring it" — `RarComicArchive` reads the solid flag
+        // from the headers alone. Offering the download here would transfer a whole
+        // archive only to refuse it afterwards.
         #expect(
             StreamingOffer.of(
                 streaming: .refused, isLocal: false, readsWhereItLies: false, bytes: 9_000
-            ) == .download(bytes: 9_000)
+            ) == .refuse
         )
     }
 
