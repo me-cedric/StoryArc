@@ -7,9 +7,11 @@ import android.graphics.Color as AndroidColor
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import androidx.activity.enableEdgeToEdge
 import android.widget.FrameLayout
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -301,6 +303,9 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+        // `native-experience`: edge to edge below API 35 too -- `MainActivity` already
+        // does this, and `EpubChrome`'s `safeDrawingPadding` expects the same window.
+        enableEdgeToEdge()
         // The navigator cannot be restored: its publication is not parcelable, and
         // re-parsing takes a moment. Readium provides a dummy factory for exactly
         // this window — it lets the restore complete so the real fragment can
@@ -320,7 +325,11 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     fragment: Fragment,
                     view: View,
                     savedInstanceState: Bundle?,
-                ) = PublicationEgress.deny(view)
+                ) {
+                    PublicationEgress.deny(view)
+                    // `native-experience`: TalkBack reported "UNNAMED WebView" here.
+                    PublicationEgress.namePane(view, intent.getStringExtra(EXTRA_TITLE).orEmpty())
+                }
             },
             true,
         )
@@ -667,10 +676,17 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
 
         // Through Readium's own input listener, not a Compose gesture: a gesture layered over
         // the web view swallows the taps the reader needs to turn pages and follow links.
+        // `page-transitions`: an edge-third tap turns the page in every mode, not only
+        // while Fast fade owns the turn; the middle third still reveals the chrome.
         navigator.addInputListener(
             object : InputListener {
                 override fun onTap(event: TapEvent): Boolean {
-                    model.toggleChrome()
+                    val width = navigator.requireView().width.toFloat()
+                    when (EdgeTap.outcome(event.point.x, width, settings.turnPagesByTappingTheEdges)) {
+                        true -> turnPage(forward = true)
+                        false -> turnPage(forward = false)
+                        null -> model.toggleChrome()
+                    }
                     return true
                 }
             },
@@ -977,6 +993,24 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
     }
 
     /**
+     * Arrow, page, space and Enter turn the page or toggle the chrome; the volume keys
+     * do the first where `turnPagesWithVolumeButtons` is on. A key never reaches Compose
+     * here -- the navigator fragment's web view holds focus -- so this is the one path
+     * for all of them, the same reason `MainActivity.onKeyDown` exists for the volume keys.
+     */
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (settings.turnPagesWithVolumeButtons) {
+            volumeTurnsForward(keyCode)?.let { turnPage(it); return true }
+        }
+        return when (EpubTurnKey.of(keyCode)) {
+            EpubTurnKey.TurnBackward -> turnPage(false).let { true }
+            EpubTurnKey.TurnForward -> turnPage(true).let { true }
+            EpubTurnKey.ToggleChrome -> model.toggleChrome().let { true }
+            null -> super.onKeyDown(keyCode, event)
+        }
+    }
+
+    /**
      * Goes somewhere in the book, remembering where the reader was.
      *
      * `ebook-reader` asks for the return control on "a longer jump" from a link. It is
@@ -1031,6 +1065,23 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                 isTurning = false
             }
         }
+    }
+
+    /**
+     * Turns a page from a tap, a key or a volume press -- whichever one it is not
+     * drawing, Readium's own, animated unless Reduce Motion is on.
+     */
+    @OptIn(ExperimentalReadiumApi::class)
+    private fun turnPage(forward: Boolean) {
+        if (interceptor.onTurn != null) {
+            turnWithFade(forward)
+            return
+        }
+        val navigator =
+            supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
+                ?: return
+        val animated = !model.reduceMotionFlow.value
+        if (forward) navigator.goForward(animated = animated) else navigator.goBackward(animated = animated)
     }
 
     /**

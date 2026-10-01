@@ -3,6 +3,7 @@ package app.storyarc.feature.epubreader
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.content.Context
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
@@ -184,4 +185,59 @@ internal class FadeTurn(private val host: ViewGroup, private val index: Int) {
          */
         const val DURATION_MS: Long = 240
     }
+}
+
+/**
+ * Where a tap lands, by edge band. `page-transitions`: edge-third taps turn the page
+ * "where enabled in settings", in every mode -- not only while Fast fade owns the turn,
+ * which is the one case [TurnInterceptor] above already handled.
+ */
+internal object EdgeTap {
+    /** A third of the width, the same band the comic reader's `EDGE_ZONE_FRACTION` is. */
+    const val EDGE_FRACTION = 1f / 3f
+
+    /**
+     * `true` to turn forward, `false` back, `null` to reveal the chrome instead --
+     * either because the tap landed in the middle third, or because the setting is off.
+     */
+    fun outcome(x: Float, width: Float, tapTurnsPages: Boolean): Boolean? {
+        if (!tapTurnsPages) return null
+        val band = width * EDGE_FRACTION
+        return when {
+            x < band -> false
+            x > width - band -> true
+            else -> null
+        }
+    }
+}
+
+/**
+ * Which action, if any, a key press means for the reflowable reader. Arrow, page and
+ * space keys turn the page; Enter toggles the chrome, the same as the comic reader's own
+ * `ReaderKeyAction` -- a separate type because `feature:epubreader` cannot depend on
+ * `feature:reader` for it ("no feature depends on another feature module").
+ */
+internal enum class EpubTurnKey {
+    TurnBackward, TurnForward, ToggleChrome,
+    ;
+
+    companion object {
+        fun of(keyCode: Int): EpubTurnKey? = when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_PAGE_UP -> TurnBackward
+            KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_PAGE_DOWN, KeyEvent.KEYCODE_SPACE -> TurnForward
+            KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> ToggleChrome
+            else -> null
+        }
+    }
+}
+
+/**
+ * Whether a volume key turns the page, and which way. `page-transitions`: "the volume
+ * buttons turn pages where enabled in settings"; volume-down is documented as always
+ * forward, the same convention `MainActivity.onKeyDown` uses for the comic reader.
+ */
+internal fun volumeTurnsForward(keyCode: Int): Boolean? = when (keyCode) {
+    KeyEvent.KEYCODE_VOLUME_DOWN -> true
+    KeyEvent.KEYCODE_VOLUME_UP -> false
+    else -> null
 }

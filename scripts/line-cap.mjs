@@ -73,7 +73,11 @@ export const capFor = (path) => {
 const ALLOWED = {
     'apps/android/feature/reader/src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt': 1893,
     'apps/android/feature/library/src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt': 1690,
-    'apps/android/feature/epubreader/src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt': 1051,
+    // 2026-09-28: 1051 -> 1102. Task 9.1/9.6/9.10/9.11 of the ebook-nav package added
+    // edge-tap turning outside Fast fade, the volume and keyboard turn keys, Enter's
+    // chrome toggle, enableEdgeToEdge() and the web view's pane title -- real behaviour
+    // this activity is the one place to host, not padding.
+    'apps/android/feature/epubreader/src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt': 1102,
 }
 
 /** Source this project writes. Generated files and dependencies are nobody's to split. */
