@@ -419,7 +419,8 @@ class PlaybackService : MediaLibraryService() {
             startPositionMs: Long,
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
             val asked = mediaItems.singleOrNull()?.mediaId
-            val book = memory.last()?.takeIf { it.id == asked }
+            val remembered = memory.last()?.takeIf { it.id == asked }
+            val book = remembered
                 ?: library.books().firstOrNull { it.id == asked }?.asPlayed()
                 ?: return super.onSetMediaItems(
                     mediaSession,
@@ -429,7 +430,15 @@ class PlaybackService : MediaLibraryService() {
                     startPositionMs,
                 )
             if (controller.packageName != packageName) {
-                player?.let { PlaybackHost.attachCarStart(this@PlaybackService, book, it) }
+                // A remembered book states a time into the item. A shelf row states
+                // `reading-progress`' time into a part, which for a later chapter of one file
+                // only the marks can place.
+                val partTime = if (remembered == null) {
+                    PlaybackPosition(book.partIndex, book.offsetMillis)
+                } else {
+                    null
+                }
+                player?.let { PlaybackHost.attachCarStart(this@PlaybackService, book, it, partTime) }
             }
             return Futures.immediateFuture(resumptionOf(book).let {
                 MediaSession.MediaItemsWithStartPosition(it.items, it.startIndex, it.startPositionMs)
