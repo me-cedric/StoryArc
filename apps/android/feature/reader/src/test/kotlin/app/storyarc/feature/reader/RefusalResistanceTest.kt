@@ -55,7 +55,7 @@ class RefusalResistanceTest {
         assertTrue(
             "The response no longer reads Reduce Motion, the direction and the mode.",
             screen.contains(
-                "val response = RefusalResponse.of(viewModel.reduceMotion, isRightToLeft, paging is Paging.Scrolled)",
+                "val response = RefusalResponse.of(reduceMotion, isRightToLeft, paging is Paging.Scrolled)",
             ),
         )
         assertTrue(

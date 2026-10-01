@@ -81,10 +81,8 @@ extension EpubReaderModel {
             self.observer = observer
             navigator.delegate = observer
             self.navigator = navigator
-            // Submitted rather than passed at construction: the same call applies a
-            // later change, so there is one path into Readium instead of two. `effective`,
-            // not the chosen mode — a book that opens with Reduce Motion already on and
-            // Slide chosen has to open in Fast fade's own turn, not Readium's animated one.
+            // `effective`: a book opening with Reduce Motion already on and Slide chosen
+            // has to open in Fast fade's own turn, not Readium's animated one.
             navigator.submitPreferences(
                 theme.preferences(values: values, transition: transitions(reduceMotion: reduceMotion).effective)
             )
@@ -151,12 +149,7 @@ extension EpubReaderModel {
         )
     }
 
-    /// Moves on an edge tap or a turn key, wherever Fast fade is not the mode drawing it.
-    ///
-    /// `animated: !reduceMotion` for the same reason ``ownsTheTurn`` reads `effective`
-    /// rather than `transition`: a reader with Reduce Motion on who is in Scroll mode —
-    /// the one case this reaches, since Slide becomes Fast fade's own turn under Reduce
-    /// Motion and never calls here — should not get an animated jump either.
+    /// Moves on an edge tap or a turn key, wherever Fast fade is not drawing the turn.
     public func goForward() async {
         _ = await navigator?.goForward(options: NavigatorGoOptions(animated: !reduceMotion))
     }
