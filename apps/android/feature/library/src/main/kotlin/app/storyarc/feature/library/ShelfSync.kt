@@ -158,6 +158,24 @@ object ShelfSync {
         return named + rows.filterNot { it.id in taken }
     }
 
+    /** A drag on a server list: the order it makes, and the baseline a send checks first. */
+    data class Drag(val order: List<Int>, val baseline: List<Int>)
+
+    /**
+     * Moves the row at [from] in [held] to [to]. Null when either place is not a row.
+     *
+     * Task 7.4: the baseline is the order the reader saw before this drag. When nothing is
+     * held, that is the server's order: the order the list opened in, or the order of the
+     * reader's last drag after the server took it. A baseline kept from when the screen
+     * opened goes stale after the first drag the server takes, and every later drag of that
+     * visit is then dropped as a conflict with the reader's own earlier drag.
+     */
+    fun dragged(held: List<String>, from: Int, to: Int): Drag? {
+        if (from !in held.indices || to !in held.indices) return null
+        val moved = held.toMutableList().apply { add(to, removeAt(from)) }
+        return Drag(moved.mapNotNull { it.toIntOrNull() }, held.mapNotNull { it.toIntOrNull() })
+    }
+
     /** The same key, from the shape the add-to sheet works in. */
     fun key(list: ServerList): ShelfKey = ShelfKey(list.server.id, list.id)
 

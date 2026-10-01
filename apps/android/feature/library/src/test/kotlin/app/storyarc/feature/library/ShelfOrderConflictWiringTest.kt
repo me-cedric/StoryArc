@@ -13,17 +13,27 @@ import org.junit.Test
 class ShelfOrderConflictWiringTest {
 
     @Test
-    fun `the screen reads a baseline once, and passes it to every drag`() {
+    fun `each drag is checked against the order the reader saw before it`() {
         val screens = read(KAVITA_SHELF_SCREENS)
         assertTrue(
-            "KavitaListScreen no longer captures the server's order when it opens, so a" +
-                " drag has no baseline to check a later send against.",
-            screens.contains("baseline = items.map { it.chapterId }"),
+            "A drag no longer takes its order and its baseline from ShelfSync.dragged, so the" +
+                " baseline can go stale after the first drag the server takes.",
+            screens.contains("val (order, baseline) = ShelfSync.dragged(held, from, to) ?: return"),
         )
         assertTrue(
-            "A drag no longer passes the captured baseline to KavitaSync.reorder, so" +
-                " every send goes through unchecked again.",
+            "A drag no longer passes its baseline to KavitaSync.reorder, so every send goes" +
+                " through unchecked again.",
             screens.contains("baseline = baseline,"),
+        )
+    }
+
+    @Test
+    fun `a dropped order shows the server's own order again`() {
+        val screens = read(KAVITA_SHELF_SCREENS)
+        assertTrue(
+            "A dropped order no longer reloads the server's order, so the rows keep showing" +
+                " an order the server did not take.",
+            screens.contains(".onSuccess { fetched -> items = fetched.sortedBy { it.order } }"),
         )
     }
 

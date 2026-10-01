@@ -33,14 +33,17 @@ class ShelfOrderConflictTest {
             .also { it.sent(it.unsent()) }
 
     /** @param serverOrder the chapter ids `ReadingList/items` answers with, in server order. */
-    private fun serve(serverOrder: List<Int>): KavitaAddress {
+    private fun serve(serverOrder: List<Int>): KavitaAddress = serve { serverOrder }
+
+    /** [serverOrder] is read on every request, so a test can move the server between sends. */
+    private fun serve(serverOrder: () -> List<Int>): KavitaAddress {
         val started = HttpServer.create(InetSocketAddress("localhost", 0), 0)
         started.createContext("/") { exchange ->
             val path = exchange.requestURI.path
             val body = when {
                 path.endsWith("/Plugin/authenticate") -> """{"username":"ada","token":"t"}"""
                 path.endsWith("/ReadingList/items") ->
-                    "[" + serverOrder.mapIndexed { index, chapter ->
+                    "[" + serverOrder().mapIndexed { index, chapter ->
                         """{"id":$chapter,"order":$index,"chapterId":$chapter,"seriesId":1,"volumeId":1,"libraryId":1}"""
                     }.joinToString(",") + "]"
                 path.endsWith("/ReadingList/update-position") -> { moved = true; "true" }
@@ -126,5 +129,27 @@ class ShelfOrderConflictTest {
             listOf(1, 2, 3),
             store.unsent().single().orderBaseline,
         )
+    }
+
+    @Test
+    fun `a second drag in one visit is checked against the order the server took from the first`() = runBlocking {
+        // Task 7.4: a baseline kept from when the screen opened goes stale once the server
+        // takes the first drag, and the second drag was then dropped as a false conflict.
+        var serverOrder = listOf(1, 2, 3)
+        val address = serve { serverOrder }
+        val store = store()
+        var conflicts = 0
+        val first = requireNotNull(ShelfSync.dragged(listOf("1", "2", "3"), from = 0, to = 2))
+        KavitaSync.reorder(store, address, sourceId, 4, first.order, first.baseline, onOrderConflict = { conflicts += 1 })
+        serverOrder = first.order
+        moved = false
+
+        val second = requireNotNull(ShelfSync.dragged(first.order.map(Int::toString), from = 0, to = 1))
+        KavitaSync.reorder(store, address, sourceId, 4, second.order, second.baseline, onOrderConflict = { conflicts += 1 })
+
+        assertEquals("the second drag was dropped as a conflict with the reader's own first drag", 0, conflicts)
+        assertTrue("the second drag was never sent", moved)
+        assertEquals(listOf(1, 2, 3), first.baseline)
+        assertEquals(first.order, second.baseline)
     }
 }
