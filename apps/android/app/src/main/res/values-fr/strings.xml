@@ -59,8 +59,8 @@
     <string name="downloads_paused_by_reader">En pause</string>
     <string name="downloads_paused_waiting_for_wifi">En attente du Wi-Fi</string>
     <string name="downloads_paused_out_of_space">Espace insuffisant sur l\u2019appareil</string>
-    <string name="downloads_attempt_resumed">Reprise</string>
-    <string name="downloads_attempt_restarted">Redémarrée</string>
+    <string name="downloads_attempt_resumed">Repris</string>
+    <string name="downloads_attempt_restarted">Redémarré</string>
     <string name="downloads_move_earlier">Avancer \u00ab\u00a0%1$s\u00a0\u00bb</string>
     <string name="downloads_move_later">Reculer \u00ab\u00a0%1$s\u00a0\u00bb</string>
     <string name="downloads_undo">Annuler</string>
