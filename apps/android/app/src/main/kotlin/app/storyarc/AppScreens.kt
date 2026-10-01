@@ -252,7 +252,15 @@ internal fun HostedScreen(
             // the cover of whatever this app started last.
             val following = PlayingBook.following.collectAsStateWithLifecycle().value
             if (playing == null) {
-                PlayerFinishedScreen(onBack = back)
+                // `collections-and-reading-lists` task 7.2: the end of an audiobook
+                // offers what comes next, read from the book `PlayingBook` kept past
+                // its own teardown.
+                val lastPlayed = PlayingBook.lastPlayed.collectAsStateWithLifecycle().value
+                PlayerFinishedScreen(
+                    onBack = back,
+                    next = lastPlayed?.let { host.library.next(it) },
+                    onOpenNext = { next -> host.library.location(next)?.let { host.open(next, it) } },
+                )
             } else {
                 PlayerScreen(
                     playing = playing,
