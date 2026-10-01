@@ -1,5 +1,6 @@
 package app.storyarc.feature.library
 
+import app.storyarc.core.format.IndexException
 import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
@@ -173,6 +174,52 @@ class ShareOpeningTest {
 
         assertTrue("A publication needing a transfer was not offered at all.", answers.offerMade)
         assertNull("A zero-length entry was offered as a size.", answers.offered)
+    }
+
+    @Test
+    fun `a cb7 on a share is named, not read as an unreachable network`() = runTest {
+        // The indexer already names this from the headers over the share. Sending it to
+        // UNEXPECTED read as "the share could not be reached" for a file the share reached
+        // just fine.
+        val answers = Answers()
+        offerOrOpen(
+            index = { throw IndexException.Unsupported("7-Zip") },
+            length = 10L,
+            onOpen = { found, path -> answers.opened = found to path },
+            onOffer = { bytes -> answers.offerMade = true; answers.offered = bytes },
+            onSay = { said -> answers.said = said },
+        )
+
+        assertEquals(UNSUPPORTED, answers.said)
+    }
+
+    @Test
+    fun `a password-protected archive on a share is named, not read as an unreachable network`() =
+        runTest {
+            val answers = Answers()
+            offerOrOpen(
+                index = { throw IndexException.ArchivePasswordProtected() },
+                length = 10L,
+                onOpen = { found, path -> answers.opened = found to path },
+                onOffer = { bytes -> answers.offerMade = true; answers.offered = bytes },
+                onSay = { said -> answers.said = said },
+            )
+
+            assertEquals(PASSWORD_PROTECTED, answers.said)
+        }
+
+    @Test
+    fun `a damaged archive on a share is named, not read as an unreachable network`() = runTest {
+        val answers = Answers()
+        offerOrOpen(
+            index = { throw IndexException.ArchiveUnreadable() },
+            length = 10L,
+            onOpen = { found, path -> answers.opened = found to path },
+            onOffer = { bytes -> answers.offerMade = true; answers.offered = bytes },
+            onSay = { said -> answers.said = said },
+        )
+
+        assertEquals(DAMAGED, answers.said)
     }
 
     @Test

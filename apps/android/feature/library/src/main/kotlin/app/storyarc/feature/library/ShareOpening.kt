@@ -1,5 +1,6 @@
 package app.storyarc.feature.library
 
+import app.storyarc.core.format.IndexException
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.StreamingOffer
@@ -113,7 +114,23 @@ internal suspend fun offerOrOpen(
                 is StreamingOffer.Refuse -> onSay(CANNOT_OPEN)
             }
         }
-        .onFailure { onSay(UNEXPECTED) }
+        .onFailure { error -> onSay(sentenceForIndexFailure(error)) }
+}
+
+/**
+ * Which sentence an index failure over a share earns.
+ *
+ * The indexer already throws a typed [IndexException] for a `.cb7`, a protected archive or a
+ * damaged one -- headers it read over the share, not a network failure -- and
+ * `offerOrOpen` used to send every one of those to [UNEXPECTED] regardless, which reads as
+ * "the share could not be reached" for a file the share reached just fine. [UNEXPECTED]
+ * stays for an actual network failure (`SmbError` and anything else this did not expect).
+ */
+private fun sentenceForIndexFailure(error: Throwable): Int = when (error) {
+    is IndexException.Unsupported -> UNSUPPORTED
+    is IndexException.ArchivePasswordProtected -> PASSWORD_PROTECTED
+    is IndexException.ArchiveUnreadable -> DAMAGED
+    else -> UNEXPECTED
 }
 
 /**
@@ -159,3 +176,12 @@ internal val CANNOT_OPEN: Int = R.string.detail_refused_body
  * give.
  */
 internal val UNEXPECTED: Int = R.string.smb_error_unexpected
+
+/** Named, the same claim Open-in's refusal makes: the container is recognised and refused. */
+internal val UNSUPPORTED: Int = R.string.smb_error_unsupported
+
+/** No password field here either -- StoryArc does not manage archive passwords. */
+internal val PASSWORD_PROTECTED: Int = R.string.smb_error_password_protected
+
+/** Damaged, not unsupported: the format is one StoryArc reads. */
+internal val DAMAGED: Int = R.string.smb_error_damaged

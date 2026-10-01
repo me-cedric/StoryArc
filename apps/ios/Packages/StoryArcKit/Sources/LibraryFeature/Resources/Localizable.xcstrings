@@ -12271,6 +12271,96 @@
         }
       }
     },
+    "smb.error.unsupported": {
+      "extractionState": "manual",
+      "comment": "Shown in the share browser when indexing finds a container StoryArc recognises and does not read -- a .cb7, say. Mirrors open_in_unsupported's claim without its parameter list.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dies ist ein Format, das StoryArc nicht liest."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is a format StoryArc does not read."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este es un formato que StoryArc no lee."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ceci est un format que StoryArc ne lit pas."
+          }
+        }
+      }
+    },
+    "smb.error.passwordProtected": {
+      "extractionState": "manual",
+      "comment": "Shown in the share browser when indexing finds an archive that asks for a password. No field is offered: StoryArc does not manage archive passwords.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Archiv ist durch ein Passwort geschützt. StoryArc verwaltet keine Archiv-Passwörter, es gibt hier also nichts einzugeben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This archive is protected by a password. StoryArc does not manage archive passwords, so there is nothing to enter here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este archivo está protegido por una contraseña. StoryArc no gestiona contraseñas de archivos, así que aquí no hay nada que introducir."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette archive est protégée par un mot de passe. StoryArc ne gère pas les mots de passe d’archive ; il n’y a rien à saisir ici."
+          }
+        }
+      }
+    },
+    "smb.error.damaged": {
+      "extractionState": "manual",
+      "comment": "Shown in the share browser when indexing finds a format StoryArc reads, damaged beyond recovery. Mirrors open_in_damaged without its filename parameter.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Datei konnte nicht gelesen werden. Sie ist möglicherweise beschädigt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This file could not be read. It may be damaged."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este archivo no se pudo leer. Puede estar dañado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce fichier n’a pas pu être lu. Il est peut-être endommagé."
+          }
+        }
+      }
+    },
     "catalogue.error.redirect": {
       "extractionState": "manual",
       "localizations": {

@@ -1,4 +1,6 @@
 internal import Foundation
+
+internal import Formats
 internal import StoryArcCore
 
 /// What the share browser does about one publication, decided outside the view.
@@ -96,6 +98,21 @@ enum ShareOpening {
         "smb.error.unexpected", bundle: .atURL(Bundle.module.bundleURL)
     )
 
+    /// Named, the same claim Open-in's refusal makes: the container is recognised and refused.
+    static let unsupported = LocalizedStringResource(
+        "smb.error.unsupported", bundle: .atURL(Bundle.module.bundleURL)
+    )
+
+    /// No password field here either — StoryArc does not manage archive passwords.
+    static let passwordProtected = LocalizedStringResource(
+        "smb.error.passwordProtected", bundle: .atURL(Bundle.module.bundleURL)
+    )
+
+    /// Damaged, not unsupported: the format is one StoryArc reads.
+    static let damaged = LocalizedStringResource(
+        "smb.error.damaged", bundle: .atURL(Bundle.module.bundleURL)
+    )
+
     /// Indexes a publication on the share and does what ``StreamingOffer`` says about it.
     ///
     /// Nothing is transferred here: `index` reads headers over the share, which is what lets
@@ -126,7 +143,24 @@ enum ShareOpening {
             case .refuse: onSay(cannotOpen)
             }
         } catch {
-            onSay(unexpected)
+            onSay(sentence(forIndexFailure: error))
+        }
+    }
+
+    /// Which sentence an index failure over a share earns.
+    ///
+    /// The indexer already throws a typed `IndexError` for a `.cb7`, a protected archive or
+    /// a damaged one — headers it read over the share, not a network failure — and this used
+    /// to send every one of those to ``unexpected`` regardless, which reads as "the share
+    /// could not be reached" for a file the share reached just fine. ``unexpected`` stays for
+    /// an actual network failure (`SmbError` and anything else this did not expect).
+    private static func sentence(forIndexFailure error: any Error) -> LocalizedStringResource {
+        guard let indexError = error as? PublicationIndexer.IndexError else { return unexpected }
+        switch indexError {
+        case .unsupported: return unsupported
+        case .archivePasswordProtected: return passwordProtected
+        case .archiveUnreadable: return damaged
+        default: return unexpected
         }
     }
 
