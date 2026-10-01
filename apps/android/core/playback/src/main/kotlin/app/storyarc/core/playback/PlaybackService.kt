@@ -1,6 +1,7 @@
 package app.storyarc.core.playback
 
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.annotation.OptIn
@@ -18,6 +19,8 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionError
 import androidx.media3.session.SessionResult
+import app.storyarc.core.persistence.chosenLanguage
+import app.storyarc.core.persistence.speaking
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -63,6 +66,18 @@ class PlaybackService : MediaLibraryService() {
     private val memory: PlaybackMemory by lazy { PlaybackMemory.open(this) }
 
     private val library: CarLibrary by lazy { CarLibrary.open(this) }
+
+    /**
+     * `localization`: the reader's own language, before anything reads a resource.
+     *
+     * A service is a `Context` of its own with no activity above it, so without this
+     * override the notification, the lock-screen controls and Android Auto's labels all
+     * draw in the system's language. `MainActivity` carries the same three lines for the
+     * same reason.
+     */
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(newBase.speaking(newBase.chosenLanguage()))
+    }
 
     override fun onCreate() {
         super.onCreate()

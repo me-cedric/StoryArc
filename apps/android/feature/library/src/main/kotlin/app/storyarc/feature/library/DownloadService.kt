@@ -10,6 +10,8 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import app.storyarc.core.persistence.chosenLanguage
+import app.storyarc.core.persistence.speaking
 
 /**
  * Keeps the process alive while a download is running.
@@ -25,6 +27,18 @@ import androidx.core.app.NotificationCompat
  * exactly as long as the work does.
  */
 class DownloadService : Service() {
+
+    /**
+     * `localization`: the reader's own language, before anything reads a resource.
+     *
+     * A service is a `Context` of its own with no activity above it, so without this
+     * override the notification channel and title draw in the system's language.
+     * `MainActivity` carries the same three lines for the same reason.
+     */
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(newBase.speaking(newBase.chosenLanguage()))
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

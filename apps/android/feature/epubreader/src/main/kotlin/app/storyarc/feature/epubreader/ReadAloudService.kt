@@ -13,6 +13,8 @@ import android.media.MediaMetadata
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
 import android.os.IBinder
+import app.storyarc.core.persistence.chosenLanguage
+import app.storyarc.core.persistence.speaking
 
 /** What the lock screen and the notification can ask the reader to do. */
 internal interface ReadAloudCommands {
@@ -51,6 +53,17 @@ internal class ReadAloudService : Service() {
      */
     private var location: String? = null
     private var series: String? = null
+
+    /**
+     * `localization`: the reader's own language, before anything reads a resource.
+     *
+     * A service is a `Context` of its own with no activity above it, so without this
+     * override the notification and the lock-screen controls draw in the system's
+     * language. `MainActivity` carries the same three lines for the same reason.
+     */
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(newBase.speaking(newBase.chosenLanguage()))
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
