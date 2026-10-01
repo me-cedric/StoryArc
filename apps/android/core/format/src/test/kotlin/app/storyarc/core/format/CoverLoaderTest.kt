@@ -79,4 +79,16 @@ class CoverLoaderTest {
         // cover is rather than reading it. The record is a path, not an image.
         assertEquals("p1.png", publication("comics/large-page.cbz").first.coverPath)
     }
+
+    @Test
+    fun `a share's own ranged reads give the same cover bytes as the file they read`() = runTest {
+        // `PublicationAccess.anyCover` had no branch for a registered remote scheme and
+        // fell to `File(path)`, which names nothing on the device -- a share's row never
+        // drew a cover. This is the source-level half of that fix: the same bytes, read
+        // through a `RandomAccessSource` instead of a `File`.
+        val (publication, file) = publication("comics/natural-sort.cbz")
+        val fromFile = CoverLoader.coverData(publication, file)
+        val fromSource = CoverLoader.coverData(publication, FileSource(file))
+        assertArrayEquals(fromFile, fromSource)
+    }
 }

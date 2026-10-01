@@ -81,18 +81,28 @@ object PublicationAccess {
             PdfTextReading.open(File(path))
         }
 
-    /** The publication's cover, however it has to be produced. */
+    /**
+     * The publication's cover, however it has to be produced.
+     *
+     * [openArchive] already reads a remote path through its registered scheme, and this
+     * had no matching branch: a share's row fell to the `File(path)` case below, which
+     * constructs a path to nothing on the device and never draws a cover.
+     */
     suspend fun anyCover(
         resolver: ContentResolver,
         publication: Publication,
         path: String,
         maxPixelSize: Int,
-    ): Bitmap =
-        if (isDocument(path)) {
+    ): Bitmap {
+        remote.entries.firstOrNull { path.startsWith(it.key) }?.let { (_, opener) ->
+            return CoverLoader.anyCover(publication, opener(path), maxPixelSize)
+        }
+        return if (isDocument(path)) {
             CoverLoader.anyCover(publication, resolver, path.toUri(), maxPixelSize)
         } else {
             CoverLoader.anyCover(publication, File(path), maxPixelSize)
         }
+    }
 
     // androidx.core's `String.toUri` would do, and this module has no reason to
     // depend on androidx.core for one call.
