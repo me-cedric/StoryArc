@@ -298,9 +298,21 @@ data class KavitaPosition(
     val pageNum: Int,
 )
 
-/** Which chapter to mark, in the shape Kavita's mark endpoints want. */
+/**
+ * Which chapters to mark, in the shape Kavita's `MarkVolumesReadDto` wants.
+ *
+ * `mark-multiple-read` and `mark-multiple-unread`, read from Kavita's own `openapi.json` at
+ * `kavita-routes.md` rather than guessed -- the two single-chapter routes this replaced,
+ * `mark-chapter-read` and `mark-chapter-unread`, sent `{seriesId, chapterId}`, and the
+ * second of those routes does not exist on any published Kavita.
+ */
 @Serializable
-data class KavitaMark(val seriesId: Int, val chapterId: Int)
+data class KavitaMarkMultiple(
+    val seriesId: Int,
+    val volumeIds: List<Int>,
+    val chapterIds: List<Int>,
+    val generateReadingSession: Boolean,
+)
 
 /**
  * A file the server sent, with the type it declared.

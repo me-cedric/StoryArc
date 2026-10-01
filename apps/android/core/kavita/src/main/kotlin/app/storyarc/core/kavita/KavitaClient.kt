@@ -195,15 +195,23 @@ class KavitaClient(val address: KavitaAddress) {
      * `kavita-server` asks for the state to be "reflected in that server's own UI", which a
      * position cannot do on its own: page zero of an unread chapter and page zero of a
      * chapter the reader deliberately unmarked are the same number.
+     *
+     * Through [listing], so a server too old for `mark-multiple-*` answers
+     * [KavitaError.RouteMissing] rather than a plain 404 [KavitaSync] would hold and resend
+     * forever -- decision D2.
      */
-    suspend fun mark(seriesId: Int, chapterId: Int, isRead: Boolean) {
-        val path = if (isRead) "Reader/mark-chapter-read" else "Reader/mark-chapter-unread"
-        request(
-            address.endpoint(path),
-            method = "POST",
-            body = Json.encodeToString(
-                KavitaMark.serializer(),
-                KavitaMark(seriesId = seriesId, chapterId = chapterId),
+    suspend fun mark(seriesId: Int, volumeId: Int, chapterId: Int, isRead: Boolean) {
+        val path = if (isRead) "Reader/mark-multiple-read" else "Reader/mark-multiple-unread"
+        listing(
+            path,
+            Json.encodeToString(
+                KavitaMarkMultiple.serializer(),
+                KavitaMarkMultiple(
+                    seriesId = seriesId,
+                    volumeIds = listOf(volumeId),
+                    chapterIds = listOf(chapterId),
+                    generateReadingSession = false,
+                ),
             ),
         )
     }

@@ -2,6 +2,7 @@ package app.storyarc.feature.library
 
 import app.storyarc.core.kavita.KavitaAddress
 import app.storyarc.core.kavita.KavitaClient
+import app.storyarc.core.kavita.KavitaError
 import app.storyarc.core.kavita.KavitaPosition
 import app.storyarc.core.persistence.KavitaOrigin
 import app.storyarc.core.kavita.KavitaChapter
@@ -221,17 +222,28 @@ object KavitaSync {
         }
     }
 
-    /** Sends one deliberate mark, keeping it for later if the server is not there. */
+    /**
+     * Sends one deliberate mark, keeping it for later if the server is not there.
+     *
+     * D2: a 404 means this server lacks the mark routes, and holding it would resend it
+     * forever to a route that can only ever refuse it. [onRouteMissing] says so instead.
+     */
     suspend fun mark(
         store: KavitaProgressStore,
         address: KavitaAddress?,
         origin: KavitaOrigin,
         isRead: Boolean,
+        onRouteMissing: (suspend () -> Unit)? = null,
     ) {
         val unsent = KavitaUnsent(origin, page = 0, mark = isRead)
         if (address == null) return store.hold(unsent)
-        val sent = runCatching { send(KavitaClient(address), unsent) }
-        if (sent.isFailure) store.hold(unsent)
+        try {
+            send(KavitaClient(address), unsent)
+        } catch (_: KavitaError.RouteMissing) {
+            onRouteMissing?.invoke()
+        } catch (_: Exception) {
+            store.hold(unsent)
+        }
     }
 
     /** Appends a chapter to one of the server's reading lists, holding it if the server is not there. */
@@ -319,13 +331,28 @@ object KavitaSync {
         progress: ProgressStore? = null,
         /** Task 7.4: told of a list id whose held order was dropped as stale, not sent. */
         onOrderConflict: (suspend (listId: Int) -> Unit)? = null,
+        /** D2: told once for each held mark a 404 refused, which then leaves the queue too. */
+        onRouteMissing: (suspend (KavitaUnsent) -> Unit)? = null,
     ): List<KavitaUnsent> {
         val waiting = store.unsent().filter { it.origin.sourceId == sourceId }
         if (waiting.isEmpty()) return emptyList()
 
         val client = KavitaClient(address)
-        val delivered = waiting.filter { held -> runCatching { send(client, held, onOrderConflict) }.isSuccess }
-        store.sent(delivered)
+        val delivered = mutableListOf<KavitaUnsent>()
+        val refused = mutableListOf<KavitaUnsent>()
+        for (held in waiting) {
+            try {
+                send(client, held, onOrderConflict)
+                delivered += held
+            } catch (_: KavitaError.RouteMissing) {
+                refused += held
+            } catch (_: Exception) {
+                continue
+            }
+        }
+        // Both leave the queue: what the server took, and what it can never take.
+        store.sent(delivered + refused)
+        refused.forEach { onRouteMissing?.invoke(it) }
         // A plain position, not a mark or a list write -- the only kind of held item a
         // local record has anything to say about.
         delivered.filter { it.mark == null && it.listId == null }
@@ -346,7 +373,7 @@ object KavitaSync {
                 reorder(client, listId, order, held.orderBaseline, onOrderConflict)
             listId != null ->
                 client.append(listId, held.origin.seriesId, listOf(held.origin.chapterId))
-            mark != null -> client.mark(held.origin.seriesId, held.origin.chapterId, mark)
+            mark != null -> client.mark(held.origin.seriesId, held.origin.volumeId, held.origin.chapterId, mark)
             else -> client.report(position(held.origin, held.page))
         }
     }

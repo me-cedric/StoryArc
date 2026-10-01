@@ -183,4 +183,91 @@ class KavitaSyncQueueTest {
         assertEquals(2, store.unsent().size)
         assertEquals(setOf(3, 7), store.unsent().map { it.page }.toSet())
     }
+
+    /**
+     * A server old enough to lack `mark-multiple-*`, answering 404 to everything but the
+     * token route. Its own instance, started and stopped within the test that needs it, so
+     * the shared server above keeps answering every other test with 200.
+     */
+    private fun routeMissingServer(body: (KavitaAddress) -> Unit) {
+        val missing = HttpServer.create(InetSocketAddress("localhost", 0), 0)
+        missing.createContext("/") { exchange ->
+            val path = exchange.requestURI.path
+            val status: Int
+            val answer = if (path.endsWith("/Plugin/authenticate")) {
+                status = 200
+                """{"username":"ada","token":"t"}"""
+            } else {
+                status = 404
+                """{"message":"no such route"}"""
+            }
+            val bytes = answer.toByteArray()
+            exchange.responseHeaders.add("Content-Type", "application/json")
+            exchange.sendResponseHeaders(status, bytes.size.toLong())
+            exchange.responseBody.use { it.write(bytes) }
+        }
+        missing.start()
+        try {
+            body(KavitaAddress("http://localhost:${missing.address.port}", "key"))
+        } finally {
+            missing.stop(0)
+        }
+    }
+
+    @Test
+    fun `D2 a mark sent now refused with a 404 is not held for a retry that can never land`() {
+        routeMissingServer { address ->
+            runBlocking {
+                val store = store()
+                val origin = origin("mark-missing-server")
+                var toldMissing = false
+
+                KavitaSync.mark(store, address, origin, isRead = true) { toldMissing = true }
+
+                assertTrue(toldMissing)
+                assertTrue(
+                    "a route the server will never grow must not be retried forever",
+                    store.unsent().isEmpty(),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `D2 a held mark a flush finds refused leaves the queue and is reported, not retried`() {
+        routeMissingServer { address ->
+            runBlocking {
+                val store = store()
+                val origin = origin("flush-missing-server")
+                store.hold(KavitaUnsent(origin, page = 0, mark = true))
+                var reported: KavitaUnsent? = null
+
+                KavitaSync.flush(store, origin.sourceId, address, onRouteMissing = { reported = it })
+
+                assertEquals(origin.chapterId, reported?.origin?.chapterId)
+                assertTrue(store.unsent().isEmpty())
+            }
+        }
+    }
+
+    @Test
+    fun `a held mark beside a held position only the mark is refused and only it leaves`() {
+        routeMissingServer { address ->
+            runBlocking {
+                val store = store()
+                val origin = origin("flush-mixed-server")
+                // The same origin for both: a mark and a position key differently on their
+                // own `mark` field, so the two coexist in the queue, and both reach the same
+                // server in the same flush -- which is what proves the mark's 404 is read as
+                // `RouteMissing` specifically, and the position's plain 404 is not.
+                store.hold(KavitaUnsent(origin, page = 0, mark = true))
+                store.hold(KavitaUnsent(origin, page = 5))
+
+                KavitaSync.flush(store, origin.sourceId, address)
+
+                assertEquals(1, store.unsent().size)
+                assertTrue(store.unsent().none { it.mark != null })
+            }
+        }
+    }
 }
