@@ -61,7 +61,6 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.RecentSearches
 import app.storyarc.core.model.SearchRoute
 import app.storyarc.core.model.Source
-import app.storyarc.core.persistence.CertificatePinStore
 import app.storyarc.core.persistence.CredentialStore
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
@@ -81,6 +80,8 @@ internal fun LibrarySearchEntry(
     viewModel: LibraryViewModel,
     query: LibraryQuery,
     recents: RecentSearches,
+    /** The app's one pin set, so a certificate pinned elsewhere is honoured here too. */
+    pins: CertificatePins,
     /**
      * How the app layer reaches a publication's own page.
      *
@@ -107,7 +108,6 @@ internal fun LibrarySearchEntry(
     // Null where the platform keystore refuses to open, which `sources` treats as a library
     // with no secret rather than as a failure — the local half of the search still answers.
     val credentials = remember(context) { CredentialStore.open(context) }
-    val pins = remember(context) { CertificatePins(CertificatePinStore.open(context).pins()) }
 
     val listing by search.listing.collectAsStateWithLifecycle()
     val groups by viewModel.matchGroups.collectAsStateWithLifecycle()

@@ -66,6 +66,7 @@ internal fun Destination(host: AppHost, destination: AppDestination) {
 private fun SearchDestination(host: AppHost) {
     SearchScreen(
         viewModel = host.library,
+        pins = host.dependencies.pins,
         onOpenPage = host.openPage,
         onFollowToSource = { source, term -> host.browse(source, term) },
         // The same three sheets `LibraryDestination` passes, from the same host.
