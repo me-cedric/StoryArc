@@ -13,6 +13,14 @@ struct ScanProgressNotice: View {
     let found: Int
     let cancel: () -> Void
 
+    /// The count the strip draws, or `nil` when it has nothing to say about a scan. Only
+    /// while the shelf has rows: an empty shelf draws ``ScanningView`` in its middle, and a
+    /// second count with a second Cancel beneath it would say the same thing twice.
+    nonisolated static func found(in state: LibraryScanState, shelfHasRows: Bool) -> Int? {
+        guard shelfHasRows, case .scanning(let found) = state else { return nil }
+        return found
+    }
+
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {

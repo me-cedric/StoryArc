@@ -45,7 +45,9 @@ extension LibraryView {
             // Every source, as ``LibraryAway``'s retry does. The reader is asking for the
             // library again, and the one that never answered is the one this line names.
             NeverReachedNotice(names: neverReached, retry: retrySources)
-        } else if case .scanning(let found) = model.scanState {
+        } else if let found = ScanProgressNotice.found(
+            in: model.scanState, shelfHasRows: !model.publications.isEmpty
+        ) {
             // 10.7: ``ScanningView`` draws the same count, but only while the shelf is
             // still empty — a rescan, or a second folder added to a library that already
             // has books, used to report nothing here and offer no way to stop it.
