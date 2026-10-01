@@ -441,7 +441,7 @@ fun ShelvesScreen(
                         stringResource(
                             R.string.shelves_conflict_body,
                             notice.shelfName,
-                            notice.discarded.joinToString(", "),
+                            localizedList(notice.discarded),
                         )
                     },
                 )

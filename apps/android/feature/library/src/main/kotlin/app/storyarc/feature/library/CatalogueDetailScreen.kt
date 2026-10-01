@@ -285,7 +285,7 @@ private fun Headline(entry: OpdsEntry, isDownloaded: Boolean) {
 
         if (entry.authors.isNotEmpty()) {
             Text(
-                text = entry.authors.joinToString(", "),
+                text = localizedList(entry.authors),
                 style = MaterialTheme.typography.bodyMedium,
                 color = palette.textSecondary,
             )
@@ -358,7 +358,7 @@ private fun CatalogueFormatChoice(
                 Text(
                     text = stringResource(
                         R.string.catalogue_entry_unreadable,
-                        unreadable.joinToString(", "),
+                        localizedList(unreadable),
                     ),
                     style = MaterialTheme.typography.labelMedium,
                     color = palette.textSecondary,
