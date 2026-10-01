@@ -182,6 +182,7 @@
     <string name="shelves_create">Erstellen</string>
     <string name="shelves_cancel">Abbrechen</string>
     <string name="shelves_delete">%1$s löschen</string>
+    <string name="shelves_rename">Umbenennen</string>
     <string name="shelves_pin">An Start anheften</string>
     <string name="shelves_unpin">Von Start lösen</string>
     <string name="shelves_delete_confirm">Löschen</string>

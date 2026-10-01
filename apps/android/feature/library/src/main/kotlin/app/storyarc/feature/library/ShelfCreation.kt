@@ -150,3 +150,39 @@ internal fun ShelfCreationDialog(
         },
     )
 }
+
+/** The shelf a reader is renaming, and the name typed so far. Task 7.10. */
+internal data class ShelfRenameTarget(val isList: Boolean, val id: java.util.UUID, val name: String)
+
+/**
+ * Task 7.10: the control `Shelves.renamingCollection` and `Shelves.renamingList` have always
+ * had a model to answer and never a reader-facing way to ask.
+ */
+@Composable
+internal fun ShelfRenameDialog(
+    name: String,
+    onName: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.shelves_rename)) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = onName,
+                label = { Text(stringResource(R.string.shelves_new_field)) },
+                singleLine = true,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm, enabled = name.isNotBlank()) {
+                Text(stringResource(R.string.shelves_rename))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.shelves_cancel)) }
+        },
+    )
+}
