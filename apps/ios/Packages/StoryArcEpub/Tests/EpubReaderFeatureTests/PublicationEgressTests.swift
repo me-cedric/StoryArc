@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import UIKit
 import WebKit
 
 @testable import EpubReaderFeature
@@ -141,7 +142,17 @@ struct PublicationEgressTests {
         let handler = Origin(page: Self.page(ports: ports), opener: Self.openerPage(port: opener.port))
         let configuration = WKWebViewConfiguration()
         configuration.setURLSchemeHandler(handler, forURLScheme: "readium")
-        let webView = WKWebView(frame: .zero, configuration: configuration)
+        // In a window, sized and visible, as the reader's own web view is. A web view with
+        // a zero frame outside any window is one WebKit may never start loading: on the
+        // `macos-26` runner both rendering tests reported nothing served at all, which is
+        // a web view that never asked the scheme handler for its first page. On a laptop
+        // the same windowless view loads, which is why this looked like a slow runner.
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        window.windowScene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        let webView = WKWebView(frame: window.bounds, configuration: configuration)
+        window.addSubview(webView)
+        window.isHidden = false
+        defer { window.isHidden = true }
 
         await PublicationEgress.prepare()
         guard
