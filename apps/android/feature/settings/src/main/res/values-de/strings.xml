@@ -162,6 +162,9 @@
     <string name="downloads_held_waiting_for_wifi_note">Die Downloads werden von selbst fortgesetzt, sobald WLAN zurückkehrt.</string>
     <string name="downloads_held_out_of_space_note">Die Downloads werden von selbst fortgesetzt, sobald das Gerät Platz hat.</string>
     <string name="downloads_held_storage_full_note">Entfernen Sie einen Download oder erhöhen Sie das Limit.</string>
+    <string name="downloads_held_free_space">Speicherplatz freigeben</string>
+    <string name="downloads_removed">„%1$s“ von diesem Gerät entfernt. Ihre Stelle bleibt erhalten.</string>
+    <string name="downloads_undo">Rückgängig</string>
     <string name="settings_sources_none">Noch keine Bibliotheken</string>
     <string name="settings_downloads_none">Nichts heruntergeladen</string>
     <string name="settings_downloads_summary">%1$s heruntergeladen</string>

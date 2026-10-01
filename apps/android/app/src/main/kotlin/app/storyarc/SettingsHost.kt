@@ -11,6 +11,8 @@ import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.SourceAction
 import app.storyarc.feature.library.clearing
 import app.storyarc.feature.library.readProgress
+import app.storyarc.feature.library.removeAfterFinishing
+import app.storyarc.feature.library.restore
 import app.storyarc.feature.settings.SettingsScreen
 import app.storyarc.navigation.AppSheet
 import app.storyarc.navigation.Screen
@@ -98,6 +100,23 @@ internal fun SettingsHost(
             // Through the app-level queue, which also stops what it is running -- dl-core 1.1.
             dependencies.queue.clearing()
             host.downloads.value = dependencies.queue.library.value
+        },
+        // The storage-full hold's own remedy (6.6): takes one finished download off the
+        // device, through the same app-level queue and the same ten-second undo as every
+        // other removal. The sheet keeps its own copy of the undo state, so this leaves
+        // `host.removed` -- the Downloads destination's own snackbar -- untouched.
+        onRemoveFinished = { download ->
+            val taken = dependencies.queue.removeAfterFinishing(download.id)
+            if (taken != null) {
+                host.downloads.value = dependencies.queue.library.value
+                host.library.refreshImports()
+            }
+            taken
+        },
+        onRestoreFinished = { removed ->
+            dependencies.queue.restore(removed)
+            host.downloads.value = dependencies.queue.library.value
+            host.library.refreshImports()
         },
         // Written through on every change rather than on the way out.
         // `settings-and-about` requires an appearance to apply immediately, and the state

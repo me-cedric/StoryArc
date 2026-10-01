@@ -162,6 +162,9 @@
     <string name="downloads_held_waiting_for_wifi_note">Las descargas se reanudan solas cuando vuelve el Wi-Fi.</string>
     <string name="downloads_held_out_of_space_note">Las descargas se reanudan solas cuando el dispositivo tiene espacio.</string>
     <string name="downloads_held_storage_full_note">Elimina una descarga o aumenta el límite.</string>
+    <string name="downloads_held_free_space">Liberar espacio</string>
+    <string name="downloads_removed">«%1$s» eliminado de este dispositivo. Se conserva tu posición.</string>
+    <string name="downloads_undo">Deshacer</string>
     <string name="settings_sources_none">Aún no hay bibliotecas</string>
     <string name="settings_downloads_none">Nada descargado</string>
     <string name="settings_downloads_summary">%1$s descargados</string>
