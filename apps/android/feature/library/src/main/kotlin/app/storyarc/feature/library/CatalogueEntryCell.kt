@@ -194,6 +194,6 @@ private fun subtitle(entry: OpdsEntry, offered: List<OpdsAcquisition>): String {
     return if (types.isEmpty()) {
         stringResource(R.string.catalogue_entry_no_download)
     } else {
-        stringResource(R.string.catalogue_entry_unreadable, types.joinToString(", "))
+        stringResource(R.string.catalogue_entry_unreadable, localizedList(types))
     }
 }

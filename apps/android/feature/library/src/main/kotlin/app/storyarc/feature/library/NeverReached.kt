@@ -83,7 +83,7 @@ internal fun NeverReachedNotice(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = stringResource(R.string.library_source_never_reached, names.joinToString(", ")),
+            text = stringResource(R.string.library_source_never_reached, localizedList(names)),
             style = MaterialTheme.typography.labelLarge,
             color = palette.textSecondary,
             modifier = Modifier.weight(1f),

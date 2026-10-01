@@ -97,7 +97,7 @@ internal fun UnavailableFolders(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = stringResource(R.string.library_folder_unavailable, names.joinToString(", ")),
+            text = stringResource(R.string.library_folder_unavailable, localizedList(names)),
             style = MaterialTheme.typography.labelLarge,
             color = palette.textSecondary,
             modifier = Modifier.weight(1f),
