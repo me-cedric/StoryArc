@@ -101,6 +101,33 @@ struct ShelvesTests {
         #expect(try #require(shelves.collections.first).coverMemberID == nil)
     }
 
+    @Test("A list's own chosen cover round-trips the same way a collection's does")
+    func listCoverChoice() throws {
+        let shelves = self.shelves()
+            .appending(["a", "b"], to: listID)
+        #expect(try #require(shelves.lists.first).coverMemberID == nil)
+
+        let chosen = shelves.settingCover("a", onList: listID)
+        #expect(try #require(chosen.lists.first).coverMemberID == "a")
+    }
+
+    @Test("Choosing an entry the list does not hold is refused")
+    func listCoverMustBeAMember() throws {
+        let shelves = self.shelves()
+            .appending(["a"], to: listID)
+            .settingCover("gone", onList: listID)
+        #expect(try #require(shelves.lists.first).coverMemberID == nil)
+    }
+
+    @Test("Removing the chosen cover's entry clears the list's cover")
+    func listCoverFollowsMembership() throws {
+        let shelves = self.shelves()
+            .appending(["a", "b"], to: listID)
+            .settingCover("a", onList: listID)
+            .removing("a", fromList: listID)
+        #expect(try #require(shelves.lists.first).coverMemberID == nil)
+    }
+
     @Test("A blank name is refused rather than stored")
     func blankNamesAreRefused() throws {
         let shelves = self.shelves()

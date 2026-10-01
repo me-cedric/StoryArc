@@ -265,6 +265,9 @@ public struct Shelves: Sendable, Equatable {
                 guard each.id == id else { return each }
                 var changed = each
                 changed.entries.removeAll { $0 == entry }
+                // A cover that is no longer an entry is no cover, the same correction
+                // ``removing(_:from:)`` makes for a collection -- task 7.13.
+                if changed.coverMemberID == entry { changed.coverMemberID = nil }
                 return changed
             }
         )
