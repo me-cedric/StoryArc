@@ -20,12 +20,14 @@ import app.storyarc.feature.library.CatalogueBrowserScreen
 import app.storyarc.feature.library.CatalogueDetailScreen
 import app.storyarc.feature.library.CataloguePage
 import app.storyarc.feature.library.CollectionDetailScreen
+import app.storyarc.feature.library.enqueueKavitaChapter
 import app.storyarc.feature.library.KavitaBrowserScreen
 import app.storyarc.feature.library.KavitaCollectionScreen
 import app.storyarc.feature.library.KavitaLevel
 import app.storyarc.feature.library.KavitaListScreen
 import app.storyarc.feature.library.SeriesShelfScreen
 import app.storyarc.feature.library.KavitaPage
+import app.storyarc.feature.library.kavitaKeepRoute
 import app.storyarc.feature.library.offeredNext
 import app.storyarc.feature.library.ListPromoter
 import app.storyarc.feature.library.OfflineSourceScreen
@@ -423,11 +425,34 @@ private fun PublicationPage(
         // copy of the page the reader is already on applies here too.
         onOpenPage = host.openPage,
         onMark = { chosen, isRead -> host.mark(chosen, isRead) },
+        // **A third route, for the row neither of the other two reaches.** `kavita-server`'s
+        // *Keeping a chapter on the device*: a library row built from a browse that never
+        // opened or kept it has no location for the route below and no catalogue entry for
+        // this one's own sibling (`page`/`queue`, which answers only for an OPDS source) --
+        // so the page offered nothing at all. `kavitaKeepRoute` is the one question that
+        // decides whether this control exists; `enqueueKavitaChapter` is the one place that
+        // asks the server.
         onCopyFromLocation = if (isRemote && !isDownloaded) {
             {
                 scope.launch {
                     keepForOffline(host.dependencies.queue, host.dependencies.downloads, publication, location)
                     host.downloads.value = host.dependencies.queue.library.value
+                }
+            }
+        } else if (!isDownloaded &&
+            kavitaKeepRoute(publication, registry, dependencies.kavitaProgress, dependencies.credentials) != null
+        ) {
+            {
+                scope.launch {
+                    enqueueKavitaChapter(
+                        host.activity,
+                        publication,
+                        registry,
+                        dependencies.kavitaProgress,
+                        dependencies.credentials,
+                        dependencies.queue,
+                    )
+                    host.downloads.value = dependencies.queue.library.value
                 }
             }
         } else {

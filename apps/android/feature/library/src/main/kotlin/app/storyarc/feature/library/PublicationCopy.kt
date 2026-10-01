@@ -1,5 +1,6 @@
 package app.storyarc.feature.library
 
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -12,10 +13,19 @@ import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.catalogue.OpdsAcquisition
 import app.storyarc.core.catalogue.OpdsClient
 import app.storyarc.core.catalogue.OpdsEntry
+import app.storyarc.core.kavita.KavitaAddress
+import app.storyarc.core.kavita.KavitaChapter
+import app.storyarc.core.kavita.KavitaClient
+import app.storyarc.core.kavita.KavitaSeries
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.SourceRegistry
+import app.storyarc.core.persistence.CredentialStore
+import app.storyarc.core.persistence.KavitaOrigin
+import app.storyarc.core.persistence.KavitaProgressStore
 import java.io.File
+import java.util.UUID
 
 /**
  * The copy a library row can obtain, and how far it has come.
@@ -208,3 +218,83 @@ private suspend fun catalogueEntry(page: CataloguePage, remoteId: String, pins: 
 /** The client [catalogueEntry] reads with. Pulled out so a test can assert which pins reach it. */
 internal fun opdsClient(page: CataloguePage, pins: CertificatePins): OpdsClient =
     OpdsClient(pins = pins, origin = page.origin)
+
+/**
+ * Where a Kavita chapter's own keep would send it, when the library can say now.
+ *
+ * `kavita-server`'s *Keeping a chapter on the device*: a library row built from a browse that
+ * never opened or kept it has neither a location for [PublicationPage]'s share-copy route nor
+ * a catalogue entry for the one above, so the page offered nothing at all. Synchronous and
+ * route-only -- the device holds the origin a browse catalogued, an earlier open, or an
+ * earlier keep recorded, and the registry holds a reachable address for the server that origin
+ * names. Nothing here asks the server anything; [enqueueKavitaChapter] is what does.
+ *
+ * Public rather than `internal`: `AppScreens`, in the app module, is the one place that knows
+ * a row has no other copy route, so it is the one place that has to ask this before it offers
+ * a control at all.
+ */
+fun kavitaKeepRoute(
+    publication: Publication,
+    registry: SourceRegistry,
+    kavita: KavitaProgressStore?,
+    credentials: CredentialStore?,
+): Pair<KavitaOrigin, KavitaAddress>? = kavitaKeepRoute(
+    publication,
+    resolvedOrigin = { kavita?.resolvedOrigin(it) },
+    reachableAddress = { sourceId -> registry[sourceId]?.let { KavitaPage.of(it, credentials) }?.address },
+)
+
+/**
+ * The pure half of the question above: given an origin and a server's address, each already
+ * resolved, is there a route at all. Lifted out so `KavitaKeepRouteTest` can prove the rule —
+ * a chapter row, a resolvable origin, a reachable address, all three or none of the control —
+ * without a `Context`, a keystore or a registry to build either of the other two overload's
+ * closures from.
+ */
+fun kavitaKeepRoute(
+    publication: Publication,
+    resolvedOrigin: (String) -> KavitaOrigin?,
+    reachableAddress: (UUID) -> KavitaAddress?,
+): Pair<KavitaOrigin, KavitaAddress>? {
+    val server = publication.identity.serverIdentifier ?: return null
+    if (!server.remoteId.startsWith("chapter:")) return null
+    val origin = resolvedOrigin(publication.id) ?: return null
+    val address = reachableAddress(server.sourceId) ?: return null
+    return origin to address
+}
+
+/**
+ * Fetches a chapter the library has only ever listed, and keeps it -- [KavitaKeep]'s own
+ * steps, with the chapter and series it wants rebuilt from what the row and its origin already
+ * carry, because nothing here asks the server for a second copy of either. Returns the kept
+ * publication's own id, which is what the caller reconciles the shelf with.
+ */
+suspend fun enqueueKavitaChapter(
+    context: Context,
+    publication: Publication,
+    registry: SourceRegistry,
+    kavita: KavitaProgressStore?,
+    credentials: CredentialStore?,
+    queue: DownloadQueue,
+): String? {
+    val (origin, address) = kavitaKeepRoute(publication, registry, kavita, credentials) ?: return null
+    val sourceId = publication.identity.serverIdentifier?.sourceId
+    val chapter = KavitaChapter(id = origin.chapterId, number = publication.number ?: "", pages = origin.pages)
+    val series = KavitaSeries(
+        id = origin.seriesId,
+        name = publication.series ?: publication.displayTitle,
+        libraryId = origin.libraryId,
+    )
+    val kept = KavitaKeep.keep(
+        context = context,
+        chapter = chapter,
+        series = series,
+        metadata = null,
+        origin = origin,
+        sourceId = sourceId,
+        client = KavitaClient(address),
+        progress = kavita ?: return null,
+        queue = queue,
+    )
+    return kept?.publication?.id
+}
