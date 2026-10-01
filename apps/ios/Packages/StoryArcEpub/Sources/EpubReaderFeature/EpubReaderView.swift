@@ -32,6 +32,7 @@ public struct EpubReaderView: View {
     /// therefore outside every trait collection, so it holds its default and never moves —
     /// which made the whole appearance link inert. See ``linkedPreset(for:in:)``.
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State var model: EpubReaderModel
     @State private var isChromeVisible = true
@@ -109,7 +110,15 @@ public struct EpubReaderView: View {
     }
 
     public var body: some View {
-        ZStack {
+        // Shared below with the keyboard and game-controller modifier, so every input
+        // picks the same turn.
+        let turn: ((Bool) -> Void)? = model.ownsTheTurn ? { forward in
+            Task { await model.turnWithFade(forward: forward) }
+        } : nil
+        let animatedTurn: (Bool) -> Void = { forward in
+            Task { forward ? await model.goForward() : await model.goBackward() }
+        }
+        return ZStack {
             theme.palette.surfaceCanvas.ignoresSafeArea()
 
             if let failure = model.failure {
@@ -117,28 +126,14 @@ public struct EpubReaderView: View {
             } else if let navigator = model.navigator {
                 NavigatorHost(
                     navigator: navigator,
-                    // Nil while Readium owns the turn, which leaves its paginated scroll
-                    // exactly as it was. Only Fast fade takes it over.
-                    turn: model.ownsTheTurn ? { forward in
-                        Task { await model.turnWithFade(forward: forward) }
-                    } : nil,
+                    turn: turn,
+                    animatedTurn: animatedTurn,
                     // The reader's own setting, which this reader used to ignore. On by
                     // default, and by default here too: a reader with no settings at all
                     // is a preview or a test, and the zones are on for them.
-                    tapTurnsPages: settings?.turnPagesByTappingTheEdges ?? true
-                ) {
-                    // `native-experience`, *Opening the sheet*: a tap outside a popover
-                    // dismisses it. `presentationBackgroundInteraction` lets a tap on the
-                    // page reach this closure instead of the system dismissing the sheet
-                    // for us, so the theme sheet has to be the one thing a page tap closes
-                    // while it is up — toggling the chrome behind an open sheet would leave
-                    // the sheet open and unreachable from the tap that was meant to close it.
-                    if isShowingTheme {
-                        isShowingTheme = false
-                    } else {
-                        withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible.toggle() }
-                    }
-                }
+                    tapTurnsPages: settings?.turnPagesByTappingTheEdges ?? true,
+                    onTap: toggleChromeOrCloseTheme
+                )
                 .ignoresSafeArea()
             } else {
                 ProgressView()
@@ -315,6 +310,13 @@ public struct EpubReaderView: View {
         .task { await model.open() }
         .statusBarHidden(!isChromeVisible)
         .toolbar(.hidden, for: .navigationBar)
+        .onChange(of: reduceMotion, initial: true) { _, new in model.reduceMotion = new }
+        // Keyboard, Return and a game controller — see `EpubReaderTurnKeys`.
+        .modifier(EpubReaderTurnKeys(
+            isCoveredBySheet: isShowingMenu || isShowingTheme || isShowingContents || editingNote != nil,
+            onTurn: turn ?? animatedTurn,
+            onToggleChrome: toggleChromeOrCloseTheme
+        ))
         // `comic-reader`'s rule, and it reads the same for a book: a long look at
         // one page is reading, not idling.
         .onAppear {
@@ -341,6 +343,16 @@ public struct EpubReaderView: View {
         // the device switches while the book is open. See ``EpubReaderModel/follow(_:)``.
         .onChange(of: linked) { _, new in
             model.follow(new)
+        }
+    }
+
+    /// A tap outside the theme popover closes it; otherwise this toggles the chrome,
+    /// for a tap or the Return key alike.
+    private func toggleChromeOrCloseTheme() {
+        if isShowingTheme {
+            isShowingTheme = false
+        } else {
+            withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible.toggle() }
         }
     }
 

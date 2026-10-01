@@ -84,4 +84,21 @@ struct ReflowableTapZonesTests {
         #expect(view.contains("tapTurnsPages: settings?.turnPagesByTappingTheEdges ?? true"))
         #expect(host.contains("tapTurnsPages: tapTurnsPages"))
     }
+
+    @Test("A tap turns the page in every mode, not only while Fast fade owns the turn")
+    func theTapIsInstalledAlways() throws {
+        let text = try turnSource()
+
+        #expect(
+            !text.contains("guard shouldOwn else { return }"),
+            """
+            The old guard that skipped installing anything outside Fast fade is back — a \
+            reader who left Slide chosen would have no tap zones again.
+            """
+        )
+        #expect(
+            text.contains("(turn ?? animatedTurn)?(false)") && text.contains("(turn ?? animatedTurn)?(true)"),
+            "Readium's own animated turn no longer backs up Fast fade's for an edge tap."
+        )
+    }
 }

@@ -14,27 +14,23 @@ internal import DesignSystem
 
 /// The navigator, in a SwiftUI hierarchy.
 ///
-/// The tap is registered through Readium's own input observer rather than a
-/// SwiftUI gesture: a gesture layered over the web view swallows the taps the
-/// reader needs to turn pages and follow links.
+/// The tap is registered through ``TurnGestures``, a plain `UIGestureRecognizer`, rather
+/// than a SwiftUI gesture: a gesture layered over the web view swallows the taps the
+/// reader needs to turn pages and follow links, where a recogniser added directly to the
+/// navigator's own view — and set to recognise simultaneously with whatever else is
+/// listening — does not.
 struct NavigatorHost: UIViewControllerRepresentable {
     let navigator: EPUBNavigatorViewController
     /// Non-nil when StoryArc draws the turn. See ``EpubReaderModel/ownsTheTurn``.
     let turn: ((Bool) -> Void)?
+    /// Readium's own, animated turn — what an edge tap and the turn keys fall back to
+    /// outside Fast fade, so Slide and Scroll turn pages too rather than only revealing.
+    let animatedTurn: (Bool) -> Void
     /// Whether an edge tap turns the page. `page-transitions` makes it a reader's setting.
     let tapTurnsPages: Bool
     let onTap: () -> Void
 
-    func makeUIViewController(context: Context) -> EPUBNavigatorViewController {
-        // Readium's own tap, which reveals the chrome. Registered once and left alone:
-        // when StoryArc owns the turn its own recogniser decides whether a tap is a turn
-        // or a reveal, and calls this same closure for a reveal.
-        navigator.addObserver(.tap { _ in
-            onTap()
-            return true
-        })
-        return navigator
-    }
+    func makeUIViewController(context: Context) -> EPUBNavigatorViewController { navigator }
 
     func makeCoordinator() -> TurnGestures { TurnGestures() }
 
@@ -43,10 +39,12 @@ struct NavigatorHost: UIViewControllerRepresentable {
     /// Not `makeUIViewController`: that runs once, when the reader opens, and the reader
     /// picks a page turn afterwards. Installing there meant the gestures were only ever
     /// set up for whatever mode the book happened to open in — so choosing Fast fade did
-    /// nothing at all, which is exactly how this was found.
+    /// nothing at all, which is exactly how this was found. ``TurnGestures`` installs its
+    /// tap recogniser the first time this runs, which covers the book's opening mode too.
     func updateUIViewController(_ controller: EPUBNavigatorViewController, context: Context) {
         context.coordinator.apply(
             turn: turn,
+            animatedTurn: animatedTurn,
             reveal: onTap,
             tapTurnsPages: tapTurnsPages,
             on: controller.view
