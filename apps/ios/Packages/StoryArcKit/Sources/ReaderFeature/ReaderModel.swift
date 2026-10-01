@@ -1,14 +1,11 @@
 public import CoreGraphics
 public import Foundation
-import OSLog
+
 public import SwiftUI
 
 public import Formats
 public import Persistence
 public import StoryArcCore
-
-/// Logs an open failure; `reader.cannotOpen` is the only text a reader sees.
-private let readerOpenLog = Logger(subsystem: "app.storyarc.reader", category: "open")
 
 /// One publication, open for reading.
 ///
