@@ -847,7 +847,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * all decides whether the control appears -- and that is [SpokenSentences]'s answer,
      * which needs the parsed publication.
      */
-    private fun prepareReadAloud(publication: Publication) {
+    private suspend fun prepareReadAloud(publication: Publication) {
         // One book at a time, and one authority answering for both engines. `ebook-reader`:
         // opening a different publication "ends the session at a sentence boundary and the
         // position it reached is recorded before the new publication opens" — and the
