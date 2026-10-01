@@ -59,6 +59,13 @@ extension LibraryModel {
         // take one, so an unreachable one leaves the offer disabled rather than failing after
         // the reader has already confirmed it.
         listCapableServers = fetched.listCapable
+
+        // Task 7.5: "pushed on reconnection" used to mean only the screen that happened to
+        // be open when a server came back. A source answering here is the same
+        // reconnection, so it reconciles its own remembered lists and flushes what is still
+        // owed — including a held reorder on its own, which reconcile's own push skips when
+        // no append is owed.
+        await reconcileAndFlush(fetched.listCapable)
     }
 
     /// Keeps asking, while any source is still away.

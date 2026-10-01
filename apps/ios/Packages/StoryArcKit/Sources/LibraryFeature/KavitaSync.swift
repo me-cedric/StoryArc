@@ -271,7 +271,7 @@ public enum KavitaSync {
         /// still checked against, so a second drag before the first reaches the server does
         /// not quietly widen what counts as unchanged.
         baseline: [Int]? = nil,
-        onOrderConflict: (@Sendable () -> Void)? = nil
+        onOrderConflict: (@Sendable (Int) -> Void)? = nil
     ) async {
         let key = "order:\(sourceId):\(listID)"
         let held = store.unsent().first { $0.key == key }
@@ -324,7 +324,7 @@ public enum KavitaSync {
         progress: ProgressStore? = nil,
         configuration: URLSessionConfiguration? = nil,
         /// Task 7.4: told when a held order was dropped as stale rather than sent.
-        onOrderConflict: (@Sendable () -> Void)? = nil
+        onOrderConflict: (@Sendable (Int) -> Void)? = nil
     ) async -> [KavitaUnsent] {
         let held = store.unsent().filter { $0.origin.sourceId == sourceId }
         guard !held.isEmpty else { return [] }
@@ -347,7 +347,7 @@ public enum KavitaSync {
     private static func send(
         _ client: KavitaClient,
         _ held: KavitaUnsent,
-        onOrderConflict: (@Sendable () -> Void)? = nil
+        onOrderConflict: (@Sendable (Int) -> Void)? = nil
     ) async throws {
         if let listID = held.listID, let order = held.order {
             return try await reorderCheckingBaseline(

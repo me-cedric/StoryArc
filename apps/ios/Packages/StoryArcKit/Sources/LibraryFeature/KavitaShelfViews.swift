@@ -302,7 +302,7 @@ struct KavitaListView: View {
                 in: store,
                 baseline: baseline,
                 // Task 7.4: dropped rather than sent over a server that moved since.
-                onOrderConflict: { KavitaSync.noteOrderConflict(sourceID: server.id, listID: listID, shelfName: title) }
+                onOrderConflict: { listID in KavitaSync.noteOrderConflict(sourceID: server.id, listID: listID, shelfName: title) }
             )
             wanted = KavitaSync.wantedOrder(of: listID, on: server.id, in: store)
         }

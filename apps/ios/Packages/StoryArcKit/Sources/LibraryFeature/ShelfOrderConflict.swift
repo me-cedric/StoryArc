@@ -19,12 +19,12 @@ extension KavitaSync {
         _ listID: Int,
         to order: [Int],
         baseline: [Int]?,
-        onConflict: (@Sendable () -> Void)?,
+        onConflict: (@Sendable (Int) -> Void)?,
         through client: KavitaClient
     ) async throws {
         let items = try await client.readingListItems(listID).sorted { $0.order < $1.order }
         if let baseline, items.map(\.chapterId) != baseline {
-            onConflict?()
+            onConflict?(listID)
             return
         }
         let places = items.map { ShelfSync.Place(item: $0.id, chapter: $0.chapterId) }
@@ -40,6 +40,33 @@ extension KavitaSync {
         let shelf = ShelfKey(sourceID: sourceID, shelfID: listID)
         ShelfEditStore().update {
             $0.noting(ShelfConflictNotice(shelf: shelf, shelfName: shelfName, at: Date(), isOrder: true))
+        }
+    }
+}
+
+/// Task 7.5: the reconnection half of "applied locally, marked pending, and pushed on
+/// reconnection" — split out of `LibrarySourceHealth.swift`, which is at its own line cap.
+extension LibraryModel {
+    /// Reconciles and flushes every server named in `listCapable`, the moment a probe finds
+    /// it reachable — rather than waiting for a reader to open the one screen that used to
+    /// drive this.
+    @MainActor
+    func reconcileAndFlush(_ listCapable: [KavitaPage]) async {
+        guard !listCapable.isEmpty else { return }
+        let editStore = ShelfEditStore()
+        let progressStore = KavitaProgressStore()
+        for page in listCapable {
+            let shelves = serverLists.filter { $0.server.id == page.id }
+            await ShelfSync.reconcile(lists: shelves, store: editStore, progress: progressStore)
+            await KavitaSync.flush(
+                page.id,
+                to: page.address,
+                in: progressStore,
+                onOrderConflict: { listID in
+                    let shelfName = shelves.first { $0.id == listID }?.title ?? ""
+                    KavitaSync.noteOrderConflict(sourceID: page.id, listID: listID, shelfName: shelfName)
+                }
+            )
         }
     }
 }
