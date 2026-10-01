@@ -131,7 +131,7 @@ struct ShelfCoverPicker: View {
             choose(option)
         } label: {
             VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
-                ShelfCover(model: model, tiles: tiles(for: option), width: 140)
+                ShelfCover(model: model, tiles: tiles(for: option), name: collection.name, width: 140)
                     .clipShape(.rect(cornerRadius: StoryArcRadius.sm))
                     .overlay {
                         RoundedRectangle(cornerRadius: StoryArcRadius.sm)

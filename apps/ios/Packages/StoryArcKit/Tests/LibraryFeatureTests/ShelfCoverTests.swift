@@ -62,6 +62,57 @@ struct ShelfCoverTests {
     }
 }
 
+/// Which of the three things ``ShelfComposite`` draws: `collections-and-reading-lists`
+/// D1's own rule, free of the view so it can be asserted without a window.
+@Suite("Shelf composite layout")
+struct ShelfCompositeLayoutTests {
+
+    @Test("No members at all is the placeholder")
+    func noMembers() {
+        #expect(ShelfCompositeLayout.decide(tiles: [], covered: []) == .placeholder)
+    }
+
+    @Test("Members whose covers all failed are the placeholder too, not an empty quadrant")
+    func noneArrived() {
+        #expect(ShelfCompositeLayout.decide(tiles: ["a", "b", "c", "d"], covered: []) == .placeholder)
+        #expect(ShelfCompositeLayout.decide(tiles: ["only"], covered: []) == .placeholder)
+    }
+
+    @Test("Four tiles with at least one cover is the quadrant")
+    func quadrantOnFirstArrival() {
+        #expect(ShelfCompositeLayout.decide(tiles: ["a", "b", "c", "d"], covered: ["a"]) == .quadrant)
+    }
+
+    @Test("One tile with its cover is the single frame")
+    func singleWhenCovered() {
+        #expect(ShelfCompositeLayout.decide(tiles: ["only"], covered: ["only"]) == .single("only"))
+    }
+}
+
+/// D1's other half: which format, if any, the placeholder names for a shelf whose covers
+/// have not arrived.
+@Suite("Shelf cover's first known format")
+struct ShelfCoverFirstKnownFormatTests {
+
+    @Test("The first tile that resolves wins, even when an earlier one does not")
+    func firstResolvedWins() {
+        let known: [String: PublicationFormat] = ["b": .cbz, "c": .epub]
+        let format = ShelfCover.firstKnownFormat(of: ["a", "b", "c"]) { known[$0] }
+        #expect(format == .cbz)
+    }
+
+    @Test("Nothing resolving is the generic placeholder, not a crash")
+    func nothingResolves() {
+        let format = ShelfCover.firstKnownFormat(of: ["a", "b"]) { _ in nil }
+        #expect(format == nil)
+    }
+
+    @Test("No tiles at all resolves to nothing")
+    func noTiles() {
+        #expect(ShelfCover.firstKnownFormat(of: []) { _ in .cbz } == nil)
+    }
+}
+
 /// How far through an ordered shelf the card's rail says the reader is.
 @Suite("Shelf progress")
 struct ShelfProgressTests {

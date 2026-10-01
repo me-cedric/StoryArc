@@ -23,6 +23,10 @@ struct ShelfCover: View {
     let model: LibraryModel
     /// The member identities to draw, in the order they are drawn.
     let tiles: [String]
+    /// The shelf's own name, for the placeholder ``ShelfComposite`` draws when none of
+    /// `tiles`' covers have arrived. Task 7.10's `ShelfCard` already carries this as
+    /// `title`; this just reaches it.
+    let name: String
     /// The widest this will ever be drawn, in points. It sizes the decode and nothing
     /// else — the frame comes from the caller, and asking for pixels the screen will never
     /// show is how ten shelves become ten full-size archive reads.
@@ -32,7 +36,7 @@ struct ShelfCover: View {
     @State private var covers: [String: CGImage] = [:]
 
     var body: some View {
-        ShelfComposite(tiles: tiles, covers: covers)
+        ShelfComposite(tiles: tiles, covers: covers, name: name, firstKnownFormat: firstKnownFormat)
             // Re-asked when the library grows, not only when the tiles change: a shelf
             // opened while the scan is still running has tiles whose publications are not
             // there yet, and a task keyed on the tiles alone would never look a second time.
@@ -40,6 +44,24 @@ struct ShelfCover: View {
     }
 
     private var loadKey: [String] { tiles + ["\(model.publications.count)"] }
+
+    /// `collections-and-reading-lists` D1: the first tile that resolves to a publication on
+    /// this device, in the order they are drawn — a collection of comics still reads as
+    /// comics while its covers are still loading, where a mixed shelf falls back to the
+    /// placeholder's own generic glyph.
+    private var firstKnownFormat: PublicationFormat? {
+        Self.firstKnownFormat(of: tiles) { id in
+            model.publications.first(where: { $0.id == id })?.format
+        }
+    }
+
+    /// Free of the view, and of `model`, so a test can hand it any lookup it likes.
+    static func firstKnownFormat(
+        of tiles: [String],
+        resolving format: (String) -> PublicationFormat?
+    ) -> PublicationFormat? {
+        tiles.lazy.compactMap(format).first
+    }
 
     /// Asks the library for each tile's artwork.
     ///
@@ -57,6 +79,28 @@ struct ShelfCover: View {
     }
 }
 
+/// Which of the three things ``ShelfComposite`` draws.
+///
+/// Out of the view so a test can call it directly, the pattern ``HomeShelfCoverPlan``
+/// already uses for the sibling decision on Home. `collections-and-reading-lists` D1: the
+/// placeholder is drawn whenever none of `tiles`' covers have arrived — whether because
+/// there are no tiles at all or because every one is still loading — never only when
+/// `tiles` is empty.
+enum ShelfCompositeLayout: Equatable {
+    /// Nothing to draw: the shelf borrows the publication's own empty-cover state.
+    case placeholder
+    /// Four members, each in its own quadrant.
+    case quadrant
+    /// One member's cover across the whole frame.
+    case single(String)
+
+    static func decide(tiles: [String], covered: Set<String>) -> ShelfCompositeLayout {
+        guard tiles.contains(where: covered.contains) else { return .placeholder }
+        if tiles.count >= CompositeCover.tileCount { return .quadrant }
+        return tiles.first.map(ShelfCompositeLayout.single) ?? .placeholder
+    }
+}
+
 /// The composite itself: four quadrants, one cover, or a blank in the shape of one.
 ///
 /// Taken out of ``ShelfCover`` rather than copied so a server's shelf is drawn by the same
@@ -68,10 +112,23 @@ struct ShelfComposite: View {
 
     let tiles: [String]
     let covers: [String: CGImage]
+    /// The shelf's own name, for the placeholder below.
+    ///
+    /// `collections-and-reading-lists` asks a shelf with no artwork to show "the same
+    /// placeholder a publication with no cover shows", and that placeholder carries the
+    /// name — D1 of the 2026-09-28 audit, closing the gap Android's own `ShelfComposite`
+    /// had already closed.
+    let name: String
+    /// The format to hand ``CoverlessWell`` when nothing has arrived, or nil for the
+    /// generic glyph. See ``ShelfCover/firstKnownFormat``.
+    var firstKnownFormat: PublicationFormat?
 
     var body: some View {
         Group {
-            if tiles.count >= CompositeCover.tileCount {
+            switch ShelfCompositeLayout.decide(tiles: tiles, covered: Set(covers.keys)) {
+            case .placeholder:
+                CoverlessWell(name: name, format: firstKnownFormat)
+            case .quadrant:
                 VStack(spacing: 0) {
                     HStack(spacing: 0) {
                         tile(tiles[0])
@@ -82,12 +139,8 @@ struct ShelfComposite: View {
                         tile(tiles[3])
                     }
                 }
-            } else if let only = tiles.first {
-                tile(only)
-            } else {
-                // Nothing in it yet. A blank in the shape of a cover, so a shelf whose
-                // first collection is empty still lines up with the ones beside it.
-                theme.palette.surfaceRaised
+            case let .single(id):
+                tile(id)
             }
         }
         .aspectRatio(2.0 / 3.0, contentMode: .fit)
@@ -129,12 +182,15 @@ struct ShelfComposite: View {
 /// decoded again every time this view redraws.
 struct ServerShelfCover: View {
     let tiles: [String]
+    /// The shelf's own name, for the placeholder ``ShelfComposite`` draws when none of
+    /// `tiles`' covers have arrived.
+    let name: String
     let load: (String) async -> CGImage?
 
     @State private var covers: [String: CGImage] = [:]
 
     var body: some View {
-        ShelfComposite(tiles: tiles, covers: covers)
+        ShelfComposite(tiles: tiles, covers: covers, name: name)
             .task(id: tiles) { await fetch() }
     }
 
@@ -178,7 +234,7 @@ struct ShelfCard: View {
                 if let cover {
                     cover
                 } else {
-                    ShelfCover(model: model, tiles: tiles)
+                    ShelfCover(model: model, tiles: tiles, name: title)
                 }
             }
                 .clipShape(.rect(cornerRadius: StoryArcRadius.sm))

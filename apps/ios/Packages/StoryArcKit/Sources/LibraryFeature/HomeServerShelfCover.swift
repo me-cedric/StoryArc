@@ -61,9 +61,12 @@ struct HomeServerShelfCover: View {
         Group {
             switch plan {
             case .blank:
-                NamedCoverlessWell(name: shelf.title)
+                // The caption under the card already states the name. Spoken here as
+                // well would say it twice.
+                CoverlessWell(name: shelf.title, format: nil)
+                    .accessibilityHidden(true)
             case .sole, .composite:
-                ShelfComposite(tiles: tiles, covers: covers)
+                ShelfComposite(tiles: tiles, covers: covers, name: shelf.title)
             }
         }
         .task(id: shelf.id) { await load() }
@@ -147,32 +150,7 @@ struct HomeServerShelfCover: View {
     }
 }
 
-/// The blank a Kavita shelf draws when nothing answered: no locked cover, and no member's
-/// cover fetched either.
-///
-/// `library-browsing`'s D1 ("iOS shelf with no artwork draws a blank frame") asks the blank to
-/// carry the shelf's name rather than an empty frame, the way Android's `ShelfComposite`
-/// already does through `CoverlessWell(title = name, format = null)`. That fix is task 7.11's,
-/// reaching `ShelfComposite` and `CoverlessWell.swift` for every caller of both; this is the
-/// smaller thing this task alone needs, scoped to the one new caller it adds. iOS's shared
-/// `CoverlessWell` still wants a `PublicationFormat` it has none of here — a shelf, not a
-/// publication — so this does not reach for it.
-private struct NamedCoverlessWell: View {
-    @Environment(\.theme) private var theme
-    let name: String
-
-    var body: some View {
-        ZStack {
-            theme.palette.surfaceRaised
-            Text(name)
-                .textRole(.caption)
-                .foregroundStyle(theme.palette.textTertiary)
-                .multilineTextAlignment(.center)
-                .lineLimit(3)
-                .padding(StoryArcSpace.xs)
-        }
-        // The caption under the card already states the name. Spoken here as well would say
-        // it twice.
-        .accessibilityHidden(true)
-    }
-}
+// The blank a Kavita shelf draws when nothing answered — no locked cover, and no member's
+// cover fetched either — is `CoverlessWell(name:format:)`, task 7.11's reach into
+// `ShelfComposite` and `CoverlessWell.swift` for every caller of both. This file no longer
+// carries a well of its own.

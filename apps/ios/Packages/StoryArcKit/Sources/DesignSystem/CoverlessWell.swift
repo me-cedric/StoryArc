@@ -63,28 +63,41 @@ public struct CoverlessWell: View {
     /// largest text size.
     private static let glyphShare: CGFloat = 0.3
 
-    private let format: PublicationFormat
+    private let symbol: String
+    private let text: String
 
     public init(format: PublicationFormat) {
-        self.format = format
+        symbol = coverlessWellSymbol(for: format)
+        text = format.displayName
+    }
+
+    /// `collections-and-reading-lists` D1: a shelf with no artwork of its own, drawn the
+    /// same way a publication with no cover is. A shelf has no format, so this names it
+    /// with `format` when one member's is known (a collection of comics still reads as
+    /// comics) and falls back to a generic glyph when none is. Android's own well takes a
+    /// nullable format for the same reason; it carries the name on every call, where this
+    /// carries the format's own name instead when one is handed to ``init(format:)``.
+    public init(name: String, format: PublicationFormat?) {
+        symbol = coverlessWellSymbol(for: format)
+        text = name
     }
 
     public var body: some View {
         GeometryReader { geometry in
             VStack(spacing: StoryArcSpace.xs) {
                 Spacer(minLength: 0)
-                Image(systemName: coverlessWellSymbol(for: format))
+                Image(systemName: symbol)
                     .resizable()
                     .scaledToFit()
                     .frame(width: Self.glyphSide(in: geometry.size))
                 Spacer(minLength: 0)
-                // The reader's own size, wrapping rather than shrinking. Two lines is what
-                // `Audio folder` needs in a grid cell at an accessibility size; nothing this
-                // app calls a format is longer than that.
-                Text(format.displayName)
+                // The reader's own size, wrapping rather than shrinking. Three lines is what
+                // a shelf's own name can need in a grid cell at an accessibility size, where
+                // two already covered every format name this app has.
+                Text(text)
                     .textRole(.caption)
                     .multilineTextAlignment(.center)
-                    .lineLimit(2)
+                    .lineLimit(3)
             }
             .foregroundStyle(theme.palette.textTertiary)
             .padding(StoryArcSpace.xs)
@@ -128,4 +141,17 @@ public func coverlessWellSymbol(for format: PublicationFormat) -> String {
     case .pdf: "doc.text"
     case .m4b, .mp3, .flac, .ogg, .audioFolder: "headphones"
     }
+}
+
+/// The symbol a shelf's own well draws: the known format's, or a generic one when a shelf
+/// resolved none. `collections-and-reading-lists` D1.
+///
+/// Free and pure for the same reason ``coverlessWellSymbol(for:)`` is — see
+/// `CoverlessWellTests`. A shelf, not a publication, so the fallback is neither of the four
+/// format glyphs above.
+///
+/// - Parameter format: the first member's format a shelf resolved, or nil.
+/// - Returns: the name of the SF Symbol the well draws.
+public func coverlessWellSymbol(for format: PublicationFormat?) -> String {
+    format.map(coverlessWellSymbol(for:)) ?? "books.vertical"
 }
