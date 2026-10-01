@@ -1,6 +1,5 @@
 package app.storyarc.feature.library
 
-import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -40,12 +40,10 @@ import app.storyarc.core.model.SourceRegistry
 internal fun CachedNotice(refreshedAtEpochMillis: Long) {
     val palette = LocalStoryArcPalette.current
     // The platform's own phrasing for "twelve minutes ago", which `localization` requires
-    // rather than a string this app assembles and then has to translate four times.
-    val relative = DateUtils.getRelativeTimeSpanString(
-        refreshedAtEpochMillis,
-        System.currentTimeMillis(),
-        DateUtils.MINUTE_IN_MILLIS,
-    ).toString()
+    // rather than a string this app assembles and then has to translate four times -- in
+    // the composition's own locale, which `DateUtils` does not take.
+    val locale = LocalConfiguration.current.locales[0]
+    val relative = localizedRelativeTime(refreshedAtEpochMillis, System.currentTimeMillis(), locale)
 
     Text(
         text = stringResource(R.string.library_cached, relative),

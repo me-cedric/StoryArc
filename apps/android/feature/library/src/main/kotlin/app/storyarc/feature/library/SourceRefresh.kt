@@ -1,12 +1,13 @@
 package app.storyarc.feature.library
 
-import android.text.format.DateUtils
+import android.icu.text.RelativeDateTimeFormatter
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -201,13 +202,15 @@ internal fun CheckedNotice(checkedAtEpochMillis: Long, modifier: Modifier = Modi
     val text = if (elapsed < JUST_NOW_MILLIS) {
         stringResource(R.string.library_checked_now)
     } else {
+        val locale = LocalConfiguration.current.locales[0]
         stringResource(
             R.string.library_checked,
-            DateUtils.getRelativeTimeSpanString(
+            localizedRelativeTime(
                 checkedAtEpochMillis,
                 System.currentTimeMillis(),
-                DateUtils.SECOND_IN_MILLIS,
-            ).toString(),
+                locale,
+                finestUnit = RelativeDateTimeFormatter.RelativeUnit.SECONDS,
+            ),
         )
     }
 

@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -43,6 +44,7 @@ import app.storyarc.core.model.ReadingContrast
 import app.storyarc.core.model.SUGGESTED_BACKGROUNDS
 import app.storyarc.core.model.SUGGESTED_FOREGROUNDS
 import java.text.NumberFormat
+import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
@@ -83,6 +85,10 @@ internal fun PageColourSection(
     modifier: Modifier = Modifier,
 ) {
     val tokens = LocalStoryArcPalette.current
+    // `LocalConfiguration.current.locales[0]`, not `NumberFormat.getInstance()`'s own
+    // `Locale.getDefault()`: the per-app language override moves the configuration and
+    // never the process default.
+    val locale = LocalConfiguration.current.locales[0]
 
     /** The ratio of the pairing that was last turned down, so it can be stated. */
     var refused by remember { mutableStateOf<Double?>(null) }
@@ -154,7 +160,7 @@ internal fun PageColourSection(
             )
 
             Text(
-                text = stringResource(R.string.theme_page_colour_ratio, ratio(palette.contrast)),
+                text = stringResource(R.string.theme_page_colour_ratio, ratio(palette.contrast, locale)),
                 style = MaterialTheme.typography.labelLarge,
                 color = tokens.textSecondary,
             )
@@ -227,8 +233,8 @@ internal fun PageColourSection(
                 Text(
                     text = stringResource(
                         R.string.theme_page_colour_refused,
-                        ratio(it),
-                        ratio(ReadingContrast.AA),
+                        ratio(it, locale),
+                        ratio(ReadingContrast.AA, locale),
                     ),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.error,
@@ -456,6 +462,6 @@ private fun hexColour(hex: String): Color {
     )
 }
 
-private fun ratio(value: Double): String =
-    NumberFormat.getInstance().apply { maximumFractionDigits = 1; minimumFractionDigits = 1 }
+internal fun ratio(value: Double, locale: Locale): String =
+    NumberFormat.getInstance(locale).apply { maximumFractionDigits = 1; minimumFractionDigits = 1 }
         .format(value)

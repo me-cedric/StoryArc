@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -179,8 +180,14 @@ private const val SPECIMEN_DP = 14
  */
 @Composable
 internal fun spokenValue(value: Double, unit: AxisUnit?): String {
-    val number = remember {
-        NumberFormat.getInstance().apply { maximumFractionDigits = 2 }
+    // `LocalConfiguration.current.locales[0]`, not `NumberFormat.getInstance()`'s own
+    // `Locale.getDefault()`: the per-app language override moves the composition's
+    // configuration and never the process default, the same gap
+    // `CatalogueDetailScreen` already answers for a date. Keyed by the locale so a
+    // language change rebuilds the formatter rather than keeping the old one.
+    val locale = LocalConfiguration.current.locales[0]
+    val number = remember(locale) {
+        NumberFormat.getInstance(locale).apply { maximumFractionDigits = 2 }
     }.format(value)
     return when (unit) {
         AxisUnit.MULTIPLE -> stringResource(R.string.theme_axis_value_multiple, number)
