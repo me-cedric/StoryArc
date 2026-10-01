@@ -129,6 +129,29 @@ struct SourceTombstonePurgeTests {
         #expect(try await progress.progress(for: identity) != nil)
     }
 
+    @Test("An empty shelf while another source remains defers the purge")
+    func emptyShelfDefersThePurge() async throws {
+        let progress = try ProgressStore.inMemory()
+        let model = LibraryModel(progress: progress, sourceStore: sourceStore())
+        let source = catalogue()
+        model.add(source)
+        model.add(catalogue(named: "Manga", locator: "https://other.example/feed"))
+        let identity = PublicationIdentity(normalizedPath: "/Comics/01.cbz")
+        model.publications = [publication(identity, sourceID: source.id)]
+        try await progress.save(
+            ReadingProgress(identity: identity, position: .page(index: 3, of: 10), updatedAt: Date())
+        )
+
+        model.remove(source, credentials: credentialStore())
+        // A launch with no cached shelf: what the other source holds is not known yet.
+        model.publications = []
+
+        await model.purgeExpiredTombstones(at: Date().addingTimeInterval(SourceTombstone.retention + 1))
+
+        #expect(try await progress.progress(for: identity) != nil)
+        #expect(model.registry.tombstones.contains { $0.sourceID == source.id })
+    }
+
     @Test("Purging before the thirty days are up forgets nothing")
     func purgeBeforeRetentionForgetsNothing() async throws {
         let progress = try ProgressStore.inMemory()
