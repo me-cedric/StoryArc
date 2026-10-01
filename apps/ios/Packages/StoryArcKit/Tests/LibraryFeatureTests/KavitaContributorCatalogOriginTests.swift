@@ -35,20 +35,17 @@ struct KavitaContributorCatalogOriginTests {
         KavitaProgressStore(defaults: try #require(UserDefaults(suiteName: UUID().uuidString)))
     }
 
-    private func publicationId(_ chapterId: Int) -> String {
-        KavitaContributor.publication(
-            source: source,
-            series: series,
-            chapter: volume.chapters.first { $0.id == chapterId }!
-        ).id
+    private func publicationId(_ chapterId: Int) throws -> String {
+        let chapter = try #require(volume.chapters.first { $0.id == chapterId })
+        return KavitaContributor.publication(source: source, series: series, chapter: chapter).id
     }
 
     @Test("Every chapter in the volume gets its own origin, keyed by its row")
-    func onePerChapter() {
+    func onePerChapter() throws {
         let origins = KavitaContributor.catalogOrigins(source: source, series: series, volume: volume)
 
         #expect(origins.count == 2)
-        let first = origins[publicationId(3103)]
+        let first = origins[try publicationId(3103)]
         #expect(first?.sourceId == source.uuidString)
         #expect(first?.libraryId == 7)
         #expect(first?.seriesId == 312)
@@ -62,7 +59,7 @@ struct KavitaContributorCatalogOriginTests {
         let store = try store()
         store.rememberCatalog(KavitaContributor.catalogOrigins(source: source, series: series, volume: volume))
 
-        let id = publicationId(3103)
+        let id = try publicationId(3103)
         #expect(store.origin(of: id) == nil)
         #expect(store.catalogOrigin(of: id)?.chapterId == 3103)
         #expect(store.resolvedOrigin(of: id)?.chapterId == 3103)
@@ -74,7 +71,7 @@ struct KavitaContributorCatalogOriginTests {
     @Test("An opened origin outranks a catalogued one")
     func openedOutranksCatalogued() throws {
         let store = try store()
-        let id = publicationId(3103)
+        let id = try publicationId(3103)
         // The catalogued note (from `catalogOrigins` above) carries `pages: 22`. The opened
         // note below deliberately disagrees — `pages: 99` — so the two are distinguishable:
         // a resolver that picked the wrong one would still answer *a* value, and only a
@@ -87,5 +84,30 @@ struct KavitaContributorCatalogOriginTests {
 
         #expect(store.resolvedOrigin(of: id)?.pages == 99)
         #expect(store.publication(forChapter: 3103) == id)
+    }
+
+    @Test("A browse catalogues every chapter it lists, through the page the library reads")
+    func browseCatalogues() async throws {
+        let store = try store()
+        let host = "\(UUID().uuidString).catalogue-browse.test"
+        let configuration = EntryStub.session(host: host) { request in
+            let path = request.url?.path() ?? ""
+            if path.hasSuffix("Plugin/authenticate") {
+                return (200, Data(#"{"username":"ada","token":"t"}"#.utf8))
+            }
+            if path.hasSuffix("Series/recently-added-v2") {
+                return (200, Data(#"[{"id": 312, "name": "Lantern Green", "libraryId": 7}]"#.utf8))
+            }
+            let volumes = #"[{"id": 55, "number": 1, "chapters": [{"id": 3103, "number": "43", "pages": 22}]}]"#
+            return (200, Data(volumes.utf8))
+        }
+        let address = KavitaAddress(base: try #require(URL(string: "http://\(host)")), apiKey: "key")
+        let client = KavitaClient(address: address, configuration: configuration)
+
+        let page = try await KavitaContributor.page(source: source, client: client, page: 1, store: store)
+
+        let id = try #require(page.slice.publications.first?.id)
+        #expect(store.catalogOrigin(of: id)?.volumeId == 55)
+        #expect(store.origin(of: id) == nil)
     }
 }
