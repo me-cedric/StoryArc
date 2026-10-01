@@ -159,7 +159,7 @@ public final class CatalogueConnection {
         // Written now rather than when the source is saved. A reader who accepts a
         // certificate and then abandons the flow has still made that decision, and asking
         // again next time teaches them to tap through the warning.
-        pinStore?.save(pins.all)
+        pinStore?.pin(certificate.fingerprint, for: certificate.host)
         await attempt(url, credential: accepted)
     }
 
