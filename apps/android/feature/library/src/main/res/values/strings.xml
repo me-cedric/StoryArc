@@ -36,7 +36,7 @@
     <string name="library_add_folder">Add a folder</string>
     <string name="library_folder_unavailable">%1$s can no longer be read.</string>
     <string name="library_repick_folder">Choose again</string>
-    <string name="library_skipped">%1$d couldn’t be opened</string>
+    <string name="library_skipped">%1$,d couldn’t be opened</string>
     <string name="library_skipped_one">“%1$s” couldn’t be opened</string>
     <string name="library_skipped_list">What couldn’t be opened</string>
     <string name="library_skipped_dismiss">Dismiss</string>
@@ -182,8 +182,8 @@
     <string name="downloads_retry">Retry</string>
     <string name="downloads_stop">Stop</string>
     <plurals name="downloads_queued">
-        <item quantity="one">%1$d more waiting</item>
-        <item quantity="other">%1$d more waiting</item>
+        <item quantity="one">%1$,d more waiting</item>
+        <item quantity="other">%1$,d more waiting</item>
     </plurals>
     <string name="shelves_title">Shelves</string>
     <string name="shelves_collections">Collections</string>
@@ -216,19 +216,19 @@
     <string name="shelves_collection_empty">Nothing in this collection yet. Add books and comics from your library.</string>
     <string name="shelves_list_empty">Nothing in this list yet. Add books and comics from your library.</string>
     <string name="shelves_list_unavailable">No longer where it used to be</string>
-    <string name="shelves_list_progress">%1$d of %2$d read</string>
+    <string name="shelves_list_progress">%1$,d of %2$,d read</string>
     <!-- collections-and-reading-lists' bulk download wants the item count and total size
          stated before starting; the collection, list and series headers state the same
          question the other way, up front. iOS carries the same key. -->
-    <string name="shelves_on_device">%1$d of %2$d on this device</string>
+    <string name="shelves_on_device">%1$,d of %2$,d on this device</string>
     <string name="shelves_list_order">The list’s order</string>
     <string name="shelves_add_to">Add to…</string>
     <string name="shelves_move_up">Move %1$s up</string>
     <string name="shelves_move_down">Move %1$s down</string>
     <string name="shelves_remove_entry">Remove %1$s from this list</string>
     <plurals name="shelves_count">
-        <item quantity="one">%1$d title</item>
-        <item quantity="other">%1$d titles</item>
+        <item quantity="one">%1$,d title</item>
+        <item quantity="other">%1$,d titles</item>
     </plurals>
     <string name="shelves_promote">Copy to an online library…</string>
     <string name="shelves_promote_named">Copy to %1$s…</string>
@@ -238,19 +238,19 @@
     <string name="shelves_promote_plan">What will happen</string>
     <string name="shelves_promote_copy">Copy</string>
     <plurals name="shelves_promote_entries">
-        <item quantity="one">%1$d of %2$d entry</item>
-        <item quantity="other">%1$d of %2$d entries</item>
+        <item quantity="one">%1$,d of %2$,d entry</item>
+        <item quantity="other">%1$,d of %2$,d entries</item>
     </plurals>
     <string name="shelves_promote_why">%1$s does not hold them, and StoryArc never uploads a file. They stay in the list on this device.</string>
     <string name="shelves_promote_none">%1$s holds none of these entries, so there is nothing to copy.</string>
     <string name="shelves_promote_failed">Nothing was copied. The online library did not take the list.</string>
     <plurals name="shelves_promote_copying">
-        <item quantity="one">%1$d entry will be copied</item>
-        <item quantity="other">%1$d entries will be copied</item>
+        <item quantity="one">%1$,d entry will be copied</item>
+        <item quantity="other">%1$,d entries will be copied</item>
     </plurals>
     <plurals name="shelves_promote_left_behind">
-        <item quantity="one">%1$d entry cannot be copied</item>
-        <item quantity="other">%1$d entries cannot be copied</item>
+        <item quantity="one">%1$,d entry cannot be copied</item>
+        <item quantity="other">%1$,d entries cannot be copied</item>
     </plurals>
     <string name="kavita_title">Kavita library</string>
     <string name="kavita_address_label">Address</string>
@@ -358,8 +358,8 @@
     <string name="downloads_removed_after_finishing">“%1$s” removed from this device. Your place is kept.</string>
     <string name="downloads_channel">Downloads</string>
     <plurals name="downloads_running">
-        <item quantity="one">Downloading %1$d title</item>
-        <item quantity="other">Downloading %1$d titles</item>
+        <item quantity="one">Downloading %1$,d title</item>
+        <item quantity="other">Downloading %1$,d titles</item>
     </plurals>
     <string name="library_select">Select</string>
     <string name="library_select_done">Done</string>
@@ -368,16 +368,16 @@
     <string name="library_bulk_download_none">Every one of them is already on this device.</string>
     <string name="library_bulk_download_size">%1$s will be copied into StoryArc’s own storage.</string>
     <plurals name="library_selected">
-        <item quantity="one">%1$d selected</item>
-        <item quantity="other">%1$d selected</item>
+        <item quantity="one">%1$,d selected</item>
+        <item quantity="other">%1$,d selected</item>
     </plurals>
     <plurals name="library_bulk_changed">
-        <item quantity="one">%1$d title changed</item>
-        <item quantity="other">%1$d titles changed</item>
+        <item quantity="one">%1$,d title changed</item>
+        <item quantity="other">%1$,d titles changed</item>
     </plurals>
     <plurals name="library_bulk_download_title">
-        <item quantity="one">Keep %1$d title on this device?</item>
-        <item quantity="other">Keep %1$d titles on this device?</item>
+        <item quantity="one">Keep %1$,d title on this device?</item>
+        <item quantity="other">Keep %1$,d titles on this device?</item>
     </plurals>
     <string name="shelves_bulk">Whole shelf</string>
     <string name="catalogue_acquire_other">Open as %1$s</string>
@@ -444,8 +444,8 @@
     <string name="home_finished_one">Finished</string>
     <string name="library_open_comic">Open a comic</string>
     <plurals name="home_pages_left">
-        <item quantity="one">%1$d page left</item>
-        <item quantity="other">%1$d pages left</item>
+        <item quantity="one">%1$,d page left</item>
+        <item quantity="other">%1$,d pages left</item>
     </plurals>
     <!-- Publication detail. The one page in the browse path that names where a publication came from. -->
     <string name="detail_back">Back</string>

@@ -40,9 +40,20 @@ class PluralWordingTest {
         val one = french.resources.getQuantityString(R.plurals.shelves_promote_entries, 1, 1, 1)
         val many = french.resources.getQuantityString(R.plurals.shelves_promote_entries, 3, 2, 3)
 
-        assertEquals("1 entrée sur 1", one)
-        assertEquals("2 entrées sur 3", many)
+        assertEquals("1 sur 1 entrée", one)
+        assertEquals("2 sur 3 entrées", many)
         assertNotEquals(one, many)
+    }
+
+    /**
+     * The noun follows the total in all four languages, so the plural selects on the total.
+     * French used to put the noun after the copying count, and "1 entrées sur 5" was wrong.
+     */
+    @Test
+    fun `a promote-entries sentence copying one of several reads the plural noun after the total`() {
+        val oneOfFive = french.resources.getQuantityString(R.plurals.shelves_promote_entries, 5, 1, 5)
+
+        assertEquals("1 sur 5 entrées", oneOfFive)
     }
 
     @Test

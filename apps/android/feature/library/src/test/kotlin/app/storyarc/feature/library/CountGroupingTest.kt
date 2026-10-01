@@ -39,4 +39,14 @@ class CountGroupingTest {
             resources.getQuantityString(R.plurals.library_scanning, 5_000, 5_000),
         )
     }
+
+    @Test
+    fun `a bulk selection's count is grouped in English`() {
+        val resources = application.speaking("en").resources
+
+        assertEquals(
+            "1,200 selected",
+            resources.getQuantityString(R.plurals.library_selected, 1_200, 1_200),
+        )
+    }
 }
