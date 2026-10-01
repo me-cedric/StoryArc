@@ -41,7 +41,7 @@ struct BulkActionBar: View {
 
     /// The last action, until its ten seconds are up.
     @State private var undo: BulkUndo?
-    @State private var refusedServer: String?
+    @State private var refused = BulkRefused()
     /// Set when a download would copy nothing, because it is all here already.
     @State private var isAllOnDevice = false
 
@@ -70,19 +70,7 @@ struct BulkActionBar: View {
             // shows through on both sides of the chrome.
             .padding(.horizontal, StoryArcSpace.gutter)
         }
-        .alert(
-            Text("shelves.serverOnly.title", bundle: .module),
-            isPresented: Binding(
-                get: { refusedServer != nil },
-                set: { if !$0 { refusedServer = nil } }
-            )
-        ) {
-            Button(role: .cancel) { refusedServer = nil } label: {
-                Text("shelves.cancel", bundle: .module)
-            }
-        } message: {
-            Text("shelves.serverOnly.body \(refusedServer ?? "")", bundle: .module)
-        }
+        .refusedBulkByServer($refused, model: model)
         .alert(
             Text("library.bulk.download.none", bundle: .module),
             isPresented: $isAllOnDevice
@@ -290,7 +278,9 @@ struct BulkActionBar: View {
             AddToShelfMenu(
                 model: model,
                 publications: picked,
-                onRefused: { refusedServer = $0 },
+                onRefused: { server, publications in
+                    refused = BulkRefused(server: server, publications: publications)
+                },
                 onChange: { offer($0) }
             )
             download

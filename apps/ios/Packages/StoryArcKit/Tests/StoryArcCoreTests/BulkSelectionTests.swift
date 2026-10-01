@@ -62,4 +62,22 @@ struct BulkSelectionTests {
         #expect(BulkSelection.downloading(["a", "b"], onDevice: ["a"]) == ["b"])
         #expect(BulkSelection.downloading(["a"], onDevice: ["a"]).isEmpty)
     }
+
+    /// `kavita-server` task 12.4: the bulk alert's local-list offer needs exactly the
+    /// publications a server would not hold, not the whole selection and not none of it.
+    @Test("Only a publication from a different server is refused")
+    func refusedByServerIsExactlyTheMismatch() {
+        let refused = BulkSelection.refusedByServer(
+            ["a", "b", "c"],
+            serverID: "attic"
+        ) { ["a": "attic", "b": "loft", "c": nil][$0] ?? nil }
+
+        #expect(refused == ["b", "c"])
+    }
+
+    @Test("Nothing is refused when every one of them is from that server")
+    func refusedByServerIsEmptyWhenAllMatch() {
+        let refused = BulkSelection.refusedByServer(["a", "b"], serverID: "attic") { _ in "attic" }
+        #expect(refused.isEmpty)
+    }
 }

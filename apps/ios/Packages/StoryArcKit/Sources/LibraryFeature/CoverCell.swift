@@ -115,7 +115,7 @@ struct CoverCell: View {
                     model: model,
                     publication: publication,
                     onRemoveFromShelf: onRemoveFromShelf,
-                    onRefused: { refusedServer = $0 },
+                    onRefused: { server, _ in refusedServer = server },
                     onRestart: { restarting = publication }
                 )
             }

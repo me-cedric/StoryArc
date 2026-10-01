@@ -17,9 +17,12 @@ internal import StoryArcCore
 struct AddToShelfMenu: View {
     let model: LibraryModel
     let publications: [Publication]
-    /// Called with the server's name when a list cannot hold what was offered. The alert
-    /// lives in the parent: a context menu cannot present one.
-    let onRefused: (String) -> Void
+    /// Called with the server's name and the publications it refused, when a list cannot
+    /// hold what was offered. The alert lives in the parent: a context menu cannot present
+    /// one. One publication out of a context menu's offer of itself; a bulk offer's own
+    /// subset of its selection, so the fallback it is given can hold exactly what the
+    /// server would not.
+    let onRefused: (String, [Publication]) -> Void
     /// What the action changed, for a caller that offers an undo. Nil for one publication
     /// out of a context menu, which has nothing to undo it with.
     var onChange: ((BulkUndo) -> Void)?
@@ -158,8 +161,12 @@ struct AddToShelfMenu: View {
     private func offer(_ list: ServerShelf) async {
         let progress = KavitaProgressStore()
         let edits = ShelfEditStore()
+        let refused = BulkSelection.refusedByServer(publications, serverID: list.server.id) {
+            progress.resolvedOrigin(of: $0.id)?.sourceId
+        }
+        let refusedIds = Set(refused.map(\.id))
         var accepted = 0
-        for publication in publications {
+        for publication in publications where !refusedIds.contains(publication.id) {
             guard await model.add(publication, toServerList: list) else { continue }
             accepted += 1
             guard let origin = progress.resolvedOrigin(of: publication.id) else { continue }
@@ -173,7 +180,7 @@ struct AddToShelfMenu: View {
         if accepted > 0 {
             await ShelfSync.reconcile(lists: [list], store: edits, progress: progress)
         }
-        if accepted < publications.count { onRefused(list.server.title) }
+        if !refused.isEmpty { onRefused(list.server.title, refused) }
     }
 
     private func report(_ kind: BulkUndo.Kind, _ changed: Set<String>) {

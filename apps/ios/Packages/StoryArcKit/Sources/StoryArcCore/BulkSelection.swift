@@ -54,4 +54,19 @@ public enum BulkSelection {
     ) -> Set<String> {
         selection.subtracting(onDevice)
     }
+
+    /// Which of a selection a server's own list could not hold.
+    ///
+    /// `kavita-server`'s *Mixing sources in one list*: a server list can only hold that
+    /// server's own publications. Lifted beside the view so a bulk refusal's local-list
+    /// offer — task 12.4 — can be proved without a server: `origin` answers each
+    /// publication's own server id, nil for one with none at all, and either reading is a
+    /// refusal when it is not `serverID`.
+    public static func refusedByServer<T>(
+        _ selection: [T],
+        serverID: String,
+        origin: (T) -> String?
+    ) -> [T] {
+        selection.filter { origin($0) != serverID }
+    }
 }

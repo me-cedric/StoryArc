@@ -310,7 +310,7 @@ struct ReadingListDetail: View {
                     model: model,
                     publication: publication,
                     onRemoveFromShelf: { model.remove(entry, fromList: self.id) },
-                    onRefused: { refusedServer = $0 },
+                    onRefused: { server, _ in refusedServer = server },
                     onRestart: { restarting = publication }
                 )
             }

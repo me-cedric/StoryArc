@@ -66,7 +66,7 @@ struct PublicationActionMenu: View {
     /// was not opened from inside a shelf, a collection or a reading list the reader owns —
     /// the library grid and Home have nowhere to remove a publication *from*.
     var onRemoveFromShelf: (() -> Void)?
-    let onRefused: (String) -> Void
+    let onRefused: (String, [Publication]) -> Void
     let onRestart: () -> Void
 
     @State private var isDownloading = false
