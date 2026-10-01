@@ -98,6 +98,8 @@ internal fun LibraryNotices(
     refreshing: SourceRefreshOrigin?,
     registry: SourceRegistry,
     publications: List<Publication>,
+    scanningFound: Int? = null,
+    onCancelScan: () -> Unit = {},
 ) {
     val notice = LibraryNotice.of(
         refreshing = refreshing,
@@ -106,8 +108,10 @@ internal fun LibraryNotices(
         checkedAtEpochMillis = registry.sources
             .mapNotNull { it.lastSuccessfulSyncEpochMillis }
             .maxOrNull(),
+        scanningFound = scanningFound,
     )
     when (notice) {
+        is LibraryNotice.Scanning -> ScanProgressNotice(notice.found, onCancelScan)
         is LibraryNotice.StillBeingRead -> StillBeingReadNotice(registry.sources, publications)
         is LibraryNotice.Cached -> CachedNotice(notice.atEpochMillis)
         LibraryNotice.Refreshing -> RefreshingNotice()

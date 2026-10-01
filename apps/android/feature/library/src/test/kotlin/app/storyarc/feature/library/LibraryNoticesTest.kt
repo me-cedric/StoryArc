@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import android.content.Context
 import app.storyarc.core.designsystem.theme.StoryArcTheme
@@ -12,6 +13,7 @@ import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -57,9 +59,20 @@ class LibraryNoticesTest {
         cachedAt: Long? = null,
         refreshing: SourceRefreshOrigin? = null,
         registry: SourceRegistry = SourceRegistry(),
+        scanningFound: Int? = null,
+        onCancelScan: () -> Unit = {},
     ) {
         compose.setContent {
-            StoryArcTheme { LibraryNotices(cachedAt, refreshing, registry, emptyList()) }
+            StoryArcTheme {
+                LibraryNotices(
+                    cachedAt,
+                    refreshing,
+                    registry,
+                    emptyList(),
+                    scanningFound = scanningFound,
+                    onCancelScan = onCancelScan,
+                )
+            }
         }
     }
 
@@ -100,6 +113,39 @@ class LibraryNoticesTest {
 
         compose.onAllNodesWithText(word(R.string.library_checked), substring = true)
             .assertCountEquals(0)
+        compose.onAllNodesWithText(context.getString(R.string.library_refreshing))
+            .assertCountEquals(0)
+    }
+
+    @Test
+    fun `a running scan states its count, even while the shelf already has rows`() {
+        // 10.7: `Scanning` used to draw only in the empty-shelf branch of LibraryScreen's own
+        // `when`, so a rescan of a library that already had books reported nothing here.
+        show(scanningFound = 3)
+
+        compose.onNodeWithText(context.getString(R.string.library_scanning, 3)).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a running scan's count offers to cancel it`() {
+        var cancelled = false
+        show(scanningFound = 3, onCancelScan = { cancelled = true })
+
+        compose.onNodeWithText(context.getString(R.string.library_scan_cancel)).performClick()
+
+        assertTrue(cancelled)
+    }
+
+    @Test
+    fun `a running scan outranks every other line on the strip`() {
+        show(
+            scanningFound = 3,
+            cachedAt = 1_000L,
+            refreshing = SourceRefreshOrigin.AUTOMATIC,
+            registry = SourceRegistry().adding(server(answeredAt = 1_000L)),
+        )
+
+        compose.onNodeWithText(context.getString(R.string.library_scanning, 3)).assertIsDisplayed()
         compose.onAllNodesWithText(context.getString(R.string.library_refreshing))
             .assertCountEquals(0)
     }

@@ -28,6 +28,7 @@
     <string name="library_cell_unavailable">Needs its library to be reachable</string>
     <string name="library_section_other">Other</string>
     <string name="library_scanning">Adding your comics — %1$d found</string>
+    <string name="library_scan_cancel">Cancel</string>
     <string name="library_add_folder">Add a folder</string>
     <string name="library_folder_unavailable">%1$s can no longer be read.</string>
     <string name="library_repick_folder">Choose again</string>

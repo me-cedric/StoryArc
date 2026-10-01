@@ -298,7 +298,7 @@ extension LibraryView {
                     widen: widening
                 )
             } else if case .scanning = model.scanState {
-                ScanningView(state: model.scanState)
+                ScanningView(state: model.scanState, cancel: model.cancelScan)
             } else if model.registry.sources.isEmpty {
                 EmptyLibraryView(
                     openComic: { picking = .file },

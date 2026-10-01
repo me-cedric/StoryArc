@@ -21,6 +21,9 @@ struct ScanningView: View {
     @Environment(\.theme) private var theme
 
     let state: LibraryScanState
+    /// Stops the running scan. 10.6: nothing did, on either platform — `cancelScan()` had
+    /// one caller, `reset()`, and no control anywhere called it on a reader's behalf.
+    var cancel: () -> Void = {}
 
     var body: some View {
         VStack(spacing: StoryArcSpace.md) {
@@ -30,6 +33,9 @@ struct ScanningView: View {
                     .textRole(.subheadline)
                     .foregroundStyle(theme.palette.textSecondary)
                     .monospacedDigit()
+                Button(action: cancel) {
+                    Text("library.scan.cancel", bundle: .module)
+                }
             }
         }
     }

@@ -510,7 +510,14 @@ fun LibraryScreen(
                     },
                     viewModel = viewModel,
                 )
-                LibraryNotices(cachedAt, refreshing, registry, publications)
+                LibraryNotices(
+                    cachedAt,
+                    refreshing,
+                    registry,
+                    publications,
+                    scanningFound = (scanState as? LibraryScanState.Scanning)?.found,
+                    onCancelScan = { viewModel.cancelScan() },
+                )
             }
 
             // Pull to refresh, and no refresh button. Android was the only platform
@@ -582,7 +589,10 @@ fun LibraryScreen(
                                 },
                             )
 
-                        state is LibraryScanState.Scanning -> Scanning(state.found)
+                        state is LibraryScanState.Scanning -> Scanning(
+                            found = state.found,
+                            onCancel = { viewModel?.cancelScan() },
+                        )
 
                         // The first thing a reader ever sees when they own nothing: one
                         // sentence, one action that opens a comic with nothing to configure

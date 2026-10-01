@@ -47,6 +47,13 @@ enum class SourceRefreshOrigin {
  * the same five branches in the same order.
  */
 sealed interface LibraryNotice {
+    /**
+     * A scan is running. 10.7: this used to have no line here at all -- `Scanning` was drawn
+     * only in the empty-shelf branch of `LibraryScreen`'s own `when`, so a rescan or a second
+     * folder added to a library that already had books reported no count of items found.
+     */
+    data class Scanning(val found: Int) : LibraryNotice
+
     /** A source is still being read and has put nothing on the shelf yet. */
     data class StillBeingRead(val waiting: Int) : LibraryNotice
 
@@ -68,19 +75,22 @@ sealed interface LibraryNotice {
          *
          * The order is the ranking, and each step earns its place:
          *
-         * 1. **A shelf that is incomplete** outranks everything. [sourcesStillBeingRead]
-         *    counts a source that is `Connecting` *and* has contributed nothing, which is
-         *    the silence after a server is added.
-         * 2. **A shelf that is last session's** comes next, and it is why there is no
+         * 1. **A scan is running** outranks everything, 10.7: it is active work with a count
+         *    rising in front of the reader and a Cancel action beside it, which is a more
+         *    useful thing to say than any of the timing lines below it.
+         * 2. **A shelf that is incomplete** comes next. [sourcesStillBeingRead] counts a
+         *    source that is `Connecting` *and* has contributed nothing, which is the silence
+         *    after a server is added.
+         * 3. **A shelf that is last session's** comes next, and it is why there is no
          *    double-statement here: `library_cached` already reads "Showing what was here
          *    … Checking for changes", so a refreshing line above it would say the second
          *    half twice.
-         * 3. **A refresh nobody pulled.** Not a pulled one — see [SourceRefreshOrigin].
-         * 4. **When the sources last answered.** The quietest thing the strip has to say,
+         * 4. **A refresh nobody pulled.** Not a pulled one — see [SourceRefreshOrigin].
+         * 5. **When the sources last answered.** The quietest thing the strip has to say,
          *    and the one that answers "did it work" at any moment rather than for three
          *    seconds after. `sources` asks the indicator to state "when it was last
          *    refreshed"; until this line that was true only for a shelf that was offline.
-         * 5. **Nothing.** A library with no moment to report draws no indicator here, per
+         * 6. **Nothing.** A library with no moment to report draws no indicator here, per
          *    *Nothing to say*. That is a statement about *timing* only: a source that was
          *    asked and never answered is named at the foot of the shelf instead, by
          *    [sourcesNeverReached] and [NeverReachedNotice], because `library-browsing` asks
@@ -91,7 +101,9 @@ sealed interface LibraryNotice {
             waiting: Int,
             cachedAtEpochMillis: Long?,
             checkedAtEpochMillis: Long?,
+            scanningFound: Int? = null,
         ): LibraryNotice = when {
+            scanningFound != null -> Scanning(scanningFound)
             waiting > 0 -> StillBeingRead(waiting)
             cachedAtEpochMillis != null -> Cached(cachedAtEpochMillis)
             refreshing == SourceRefreshOrigin.AUTOMATIC -> Refreshing
