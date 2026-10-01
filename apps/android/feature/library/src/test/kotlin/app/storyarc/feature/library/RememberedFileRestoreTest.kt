@@ -1,8 +1,13 @@
 package app.storyarc.feature.library
 
 import android.app.Application
+import android.content.Intent
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
+import app.storyarc.core.model.MetadataOrigin
+import app.storyarc.core.model.Publication
+import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.persistence.RememberedFiles
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -109,6 +114,52 @@ class RememberedFileRestoreTest {
 
         assertTrue(library.publications.value.isEmpty())
         assertTrue(store.all().none { it == uri })
+    }
+
+    @Test
+    fun `a remembered file's grant is not named as an unavailable folder`() {
+        val library = library()
+        val file = Uri.parse("content://com.example.documents/document/primary%3ADownload%2FComics.cbz")
+        library.resolver.takePersistableUriPermission(file, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+        library.reconcileWatchedFolders()
+
+        assertEquals(emptyList<String>(), library.unavailableFolders.value)
+    }
+
+    @Test
+    fun `a cached row whose file is no longer remembered leaves the shelf`() {
+        val library = library()
+        val gone = missingFile("Dropped.cbz")
+        library._publications.value = listOf(
+            Publication(
+                identity = PublicationIdentity(contentDigest = "dropped"),
+                format = PublicationFormat.CBZ,
+                displayTitle = "Dropped",
+                origin = MetadataOrigin.INFERRED,
+                sourceId = RememberedFiles.SOURCE_ID,
+            ),
+        )
+        library.locations[library._publications.value.single().id] = gone.toString()
+
+        library.restoreRememberedFiles()
+        awaitSettled { library.publications.value.isEmpty() }
+
+        assertTrue(library.publications.value.isEmpty())
+    }
+
+    @Test
+    fun `a remembered file that no longer resolves gives its grant back`() {
+        val uri = missingFile("Revoked.cbz")
+        val store = RememberedFiles.open(application)
+        store.remember(uri)
+        application.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+        val library = library()
+        library.restoreRememberedFiles()
+        awaitSettled { application.contentResolver.persistedUriPermissions.none { it.uri == uri } }
+
+        assertTrue(application.contentResolver.persistedUriPermissions.none { it.uri == uri })
     }
 
     @Test

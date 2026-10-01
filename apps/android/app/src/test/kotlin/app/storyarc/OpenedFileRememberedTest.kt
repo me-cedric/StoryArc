@@ -39,6 +39,21 @@ class OpenedFileRememberedTest {
     }
 
     @Test
+    fun `past the limit, the file that falls off gives its grant back`() {
+        val targets = (0..RememberedFiles.LIMIT).map { uri("Past-$it.cbz") }
+
+        targets.forEach { target ->
+            val intent = Intent(Intent.ACTION_VIEW, target)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+            OpenedFile.rememberIfPersistable(application, intent, target)
+        }
+
+        val held = application.contentResolver.persistedUriPermissions.map { it.uri }
+        assertTrue(targets.first() !in held)
+        assertTrue(targets.drop(1).all { it in held })
+    }
+
+    @Test
     fun `no persistable grant offered, nothing is taken or remembered`() {
         val target = uri("Manga.cbz")
         val intent = Intent(Intent.ACTION_VIEW, target).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
