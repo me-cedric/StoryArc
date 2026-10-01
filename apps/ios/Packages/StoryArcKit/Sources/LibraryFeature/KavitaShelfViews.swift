@@ -100,6 +100,9 @@ struct KavitaListView: View {
     /// same read and land interleaved, leaving the list in an order nobody asked for.
     @State private var pushing: Task<Void, Never>?
 
+    /// Task 7.4: the server's order when this view opened, a drag is checked against.
+    @State private var baseline: [Int] = []
+
     /// The server's entries in the reader's order, with the outstanding ones after them.
     ///
     /// ``ShelfSync`` and ``ShelfMerge`` decide both orders, so a test can assert them without
@@ -170,6 +173,7 @@ struct KavitaListView: View {
             let client = KavitaClient(address: server.address)
             items = ((try? await client.readingListItems(listID)) ?? [])
                 .sorted { $0.order < $1.order }
+            baseline = items.map(\.chapterId)
         }
     }
 
@@ -295,15 +299,17 @@ struct KavitaListView: View {
                 to: order,
                 on: server.id,
                 to: server.address,
-                in: store
+                in: store,
+                baseline: baseline,
+                // Task 7.4: dropped rather than sent over a server that moved since.
+                onOrderConflict: { KavitaSync.noteOrderConflict(sourceID: server.id, listID: listID, shelfName: title) }
             )
             wanted = KavitaSync.wantedOrder(of: listID, on: server.id, in: store)
         }
     }
 
-    /// Internal, not private: a test calls this directly rather than driving a tap through
-    /// the rendered row, the way `KavitaOpenFailureTests` already does for `entryRow`'s own
-    /// fetch. Task 7.3 adds `ServerListContext.opened(_:)` to what this does.
+    /// Internal, not private: a test calls this directly, as `KavitaOpenFailureTests` does
+    /// for `entryRow`'s own fetch. Task 7.3 adds `ServerListContext.opened(_:)` to this.
     func open(_ entry: KavitaReadingListItem) async {
         fetching = entry.chapterId
         defer { fetching = nil }

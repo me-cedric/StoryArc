@@ -84,16 +84,37 @@ public struct ShelfConflictNotice: Sendable, Equatable, Codable, Identifiable {
     /// What the list is called, so the sentence names it.
     public let shelfName: String
     /// The titles that were dropped, so the sentence says what changed rather than that
-    /// something did.
+    /// something did. Empty for ``isOrder``, which has no entries to name — only an order.
     public let discarded: [String]
     public let at: Date
+    /// Whether this is task 7.4's conflict: an order the reader gave the list, dropped
+    /// because the server's own order had already moved. ``discarded`` names nothing for
+    /// one of these, so the sentence it reads from is its own.
+    public let isOrder: Bool
 
-    public init(shelf: ShelfKey, shelfName: String, discarded: [String], at: Date) {
+    public init(shelf: ShelfKey, shelfName: String, discarded: [String] = [], at: Date, isOrder: Bool = false) {
         id = "\(shelf.sourceID)/\(shelf.shelfID)/\(at.timeIntervalSince1970)"
         self.shelf = shelf
         self.shelfName = shelfName
         self.discarded = discarded
         self.at = at
+        self.isOrder = isOrder
+    }
+
+    /// A notice written before task 7.4 has no `isOrder` field, and it means "no" — the
+    /// append conflicts this type has always named.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        shelf = try container.decode(ShelfKey.self, forKey: .shelf)
+        shelfName = try container.decode(String.self, forKey: .shelfName)
+        discarded = try container.decode([String].self, forKey: .discarded)
+        at = try container.decode(Date.self, forKey: .at)
+        isOrder = try container.decodeIfPresent(Bool.self, forKey: .isOrder) ?? false
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, shelf, shelfName, discarded, at, isOrder
     }
 }
 

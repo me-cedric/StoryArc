@@ -149,10 +149,15 @@ public struct ShelvesView: View {
                 Text("shelves.conflict.understood", bundle: .module)
             }
         } message: { notice in
-            Text(
-                "shelves.conflict.body \(notice.shelfName) \(notice.discarded.joined(separator: ", "))",
-                bundle: .module
-            )
+            // Task 7.4: an order has no entries to name, only the order itself.
+            if notice.isOrder {
+                Text("shelves.conflict.body.order \(notice.shelfName)", bundle: .module)
+            } else {
+                Text(
+                    "shelves.conflict.body \(notice.shelfName) \(notice.discarded.joined(separator: ", "))",
+                    bundle: .module
+                )
+            }
         }
         .shelfDeletionConfirmation($deleting, model: model)
     }
