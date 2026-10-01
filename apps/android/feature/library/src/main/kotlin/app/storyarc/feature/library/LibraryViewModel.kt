@@ -137,7 +137,7 @@ class LibraryViewModel(
     /** The reader's collections and reading lists. */
     val shelves: StateFlow<Shelves> = _shelves.asStateFlow()
 
-    private val _publications = MutableStateFlow<List<Publication>>(emptyList())
+    internal val _publications = MutableStateFlow<List<Publication>>(emptyList())
     val publications: StateFlow<List<Publication>> = _publications.asStateFlow()
 
     private val _scanState = MutableStateFlow<LibraryScanState>(LibraryScanState.Idle)
@@ -240,7 +240,7 @@ class LibraryViewModel(
     val matchGroups: StateFlow<List<MatchGroup>> = _matchGroups.asStateFlow()
 
     /** Folders the user picked, in the order they picked them. */
-    private val _folders = MutableStateFlow<List<Uri>>(emptyList())
+    internal val _folders = MutableStateFlow<List<Uri>>(emptyList())
     val folders: StateFlow<List<Uri>> = _folders.asStateFlow()
 
     /**
@@ -484,6 +484,7 @@ class LibraryViewModel(
                 else -> return
             }
         }
+        retireStaleFolderRows(name, locator) // 10.13
         sourceStore?.save(_registry.value)
     }
 
@@ -548,7 +549,8 @@ class LibraryViewModel(
      * Forgets a folder's source, and remembers that it was forgotten.
      *
      * The tombstone is what keeps reading progress for thirty days, per `sources`. It is
-     * left for the registry to collect rather than deleted here.
+     * left for the registry to collect rather than deleted here. 10.11: the rows go too, the
+     * same way [forget] already drops them for every other source kind.
      */
     private fun unregister(tree: Uri) {
         val source = _registry.value.sources.firstOrNull {
@@ -556,6 +558,7 @@ class LibraryViewModel(
         } ?: return
         _registry.update { it.removing(source.id, System.currentTimeMillis()) }
         sourceStore?.save(_registry.value)
+        _publications.update { list -> list.filterNot { it.sourceId == source.id } }
     }
 
     /**
@@ -590,6 +593,10 @@ class LibraryViewModel(
         if (tree != null) {
             removeFolder(tree)
             return
+        }
+        // 10.13: an unreachable folder has no tree in `_folders` either.
+        if (source.kind == SourceKind.LOCAL_FOLDER) {
+            source.locator?.let(Uri::parse)?.let(::releaseFolderGrant)
         }
         forget(source)
     }
@@ -706,12 +713,7 @@ class LibraryViewModel(
     fun removeFolder(tree: Uri) {
         _folders.update { it - tree }
         unregister(tree)
-        runCatching {
-            resolver.releasePersistableUriPermission(
-                tree,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION,
-            )
-        }
+        releaseFolderGrant(tree)
         snapshots.remove(tree.toString())
         rescan()
         startWatching()
