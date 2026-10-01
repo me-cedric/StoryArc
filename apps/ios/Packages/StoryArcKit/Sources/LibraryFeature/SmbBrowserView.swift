@@ -12,6 +12,24 @@ public import StoryArcCore
 /// `PublicationIndexer` takes a `RandomAccessSource`, and ADR-0008 put that interface there
 /// so a remote archive could supply one. The first page of a 400 MB comic costs a few
 /// megabytes, not four hundred.
+/// What a path's own headers already said, or a fresh read of them.
+///
+/// A free function taking the current cached value rather than reaching into the view's own
+/// dictionary, so a test can drive the one thing this screen must get right about the merge —
+/// a row that has already answered is never asked again — without an actor-isolated `inout`
+/// across the `await` that reading one would need. The caller writes the dictionary back on
+/// its own actor, before and after. Android's `cachedOrIndexed` is the same decision, over a
+/// `MutableMap` that can hold the lock the whole time. `SmbBrowserViewTests` mutates this to
+/// prove it can fail.
+@MainActor
+func cachedOrIndexed(
+    cached: Publication?,
+    index: () async throws -> Publication
+) async rethrows -> Publication {
+    if let cached { return cached }
+    return try await index()
+}
+
 public struct SmbBrowserView: View {
     @Environment(\.theme) private var theme
 
@@ -39,6 +57,12 @@ public struct SmbBrowserView: View {
     /// the whole file may come across. See ``TransferAsk``.
     @State private var transferring: TransferAsk?
     @State private var cost = NetworkCost()
+    /// What a row's own headers already said, keyed by its path — filled in as each row
+    /// nears the viewport (below), and read back by a tap so it never re-reads what a row
+    /// already read. `publication-formats` asks the format, the page count, the cover and
+    /// the streaming state to reach the row rather than staying guessed from the filename
+    /// until the reader taps it.
+    @State private var indexed: [String: Publication] = [:]
 
     /// What the reader is being asked to fetch before they can read it.
     ///
@@ -96,8 +120,19 @@ public struct SmbBrowserView: View {
                         }
                     } label: {
                         HStack {
-                            Label(entry.name, systemImage: "book")
-                                .foregroundStyle(theme.palette.textPrimary)
+                            VStack(alignment: .leading) {
+                                Label(entry.name, systemImage: "book")
+                                    .foregroundStyle(theme.palette.textPrimary)
+                                // Named before the tap, not after: a solid archive's
+                                // headers already say so, and `publication-formats`
+                                // asks for that to reach the reader before a transfer
+                                // rather than after one.
+                                if indexed[entry.path]?.isOpenable == false {
+                                    Text("library.cell.cannotOpen", bundle: .module)
+                                        .textRole(.footnote)
+                                        .foregroundStyle(theme.palette.textSecondary)
+                                }
+                            }
                             Spacer(minLength: 0)
                             if opening == entry.path { ProgressView() }
                         }
@@ -105,6 +140,19 @@ public struct SmbBrowserView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(opening != nil)
+                    // Composed only for a row SwiftUI has actually laid out — near the
+                    // viewport, not the whole list — the same lazy trigger `CoverCell`
+                    // already reads a publication's cover with. One ranged read of the
+                    // headers; nothing is transferred.
+                    .task(id: entry.path) {
+                        let found = try? await cachedOrIndexed(
+                            cached: indexed[entry.path],
+                            index: { try await indexedPublication(for: entry) }
+                        )
+                        if let found {
+                            indexed[entry.path] = found
+                        }
+                    }
                 }
             }
         }
@@ -215,21 +263,30 @@ public struct SmbBrowserView: View {
 
         await ShareOpening.offerOrOpen(
             index: {
-                let client = SmbClient(address: address)
                 let remote = SmbLocator.entry(entry.path, of: address)
                     ?? URL(fileURLWithPath: entry.path)
-                let source = try await client.open(entry.path)
-                let catalogued = try await PublicationIndexer.index(
-                    source: source,
-                    name: entry.name,
-                    identity: PublicationIdentity(normalizedPath: remote.absoluteString)
-                )
+                let catalogued = try await cachedOrIndexed(cached: indexed[entry.path]) {
+                    try await indexedPublication(for: entry)
+                }
+                indexed[entry.path] = catalogued
                 return (catalogued, remote)
             },
             length: entry.length,
             onOpen: onOpen,
             onOffer: { bytes in transferring = TransferAsk(entry: entry, bytes: bytes) },
             onSay: { said in notice = said }
+        )
+    }
+
+    /// One ranged read of a row's own headers — a header, not a file.
+    private func indexedPublication(for entry: SmbEntry) async throws -> Publication {
+        let client = SmbClient(address: address)
+        let remote = SmbLocator.entry(entry.path, of: address) ?? URL(fileURLWithPath: entry.path)
+        let source = try await client.open(entry.path)
+        return try await PublicationIndexer.index(
+            source: source,
+            name: entry.name,
+            identity: PublicationIdentity(normalizedPath: remote.absoluteString)
         )
     }
 

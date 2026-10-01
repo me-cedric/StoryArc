@@ -146,6 +146,16 @@ struct SmbTransferWiringTests {
         )
     }
 
+    @Test("A row that cannot be opened says so before the tap")
+    func theRowNamesWhatCannotBeOpened() {
+        // `publication-formats`' range-indexed row: a solid archive's headers are read before
+        // the tap, and the row has to say so rather than let the reader discover it by tapping.
+        #expect(
+            Self.source.contains("indexed[entry.path]?.isOpenable == false"),
+            "The row should show library.cell.cannotOpen once its own headers refuse it."
+        )
+    }
+
     @Test("A share that stated no size has a sentence of its own")
     func theUnstatedSizeIsSaid() {
         // `offline-downloads` asks for an absence rather than a zero, and `formattedBytes`
