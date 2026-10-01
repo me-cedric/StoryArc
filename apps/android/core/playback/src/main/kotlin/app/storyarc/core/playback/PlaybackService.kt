@@ -90,7 +90,11 @@ class PlaybackService : MediaLibraryService() {
             .build()
         player = exo
 
-        session = MediaLibrarySession.Builder(this, exo, LibraryCallback())
+        // Wrapped rather than handed over directly: the session's own `seekToNext` and
+        // `seekToPrevious` are what a car's next-track button sends, and `ChapterSeekingPlayer`
+        // is where those become a chapter move inside one chaptered file. [skip] and every
+        // other read above still goes to [exo] itself, which this does not change.
+        session = MediaLibrarySession.Builder(this, ChapterSeekingPlayer(exo), LibraryCallback())
             .setSessionActivity(openApp())
             // `setMediaButtonPreferences`, **not** `setCustomLayout`. The latter is
             // deprecated at 1.11.0 and it is the wrong shape besides: a custom layout is
@@ -228,20 +232,17 @@ class PlaybackService : MediaLibraryService() {
          * carries the seconds and a car's head unit carries the chapters, and a command
          * left undeclared is a button that does nothing.
          *
-         * **The chapter move is a chapter move for a folder only.** `audio-playback` asks
-         * that a car's next-track control move a chapter rather than a file, and for a
-         * folder it does: `Audiobook.layout` is `FILES` there, so a part *is* a file and the
-         * next media item is the next chapter. For one file carrying chapter marks the
-         * layout is `MARKS`, the timeline holds a single window, and `BasePlayer.seekToNext`
-         * ignores the press. Declaring the command does not change that.
-         *
-         * Making it move needs a `ForwardingPlayer` that overrides `seekToNext` — the method
-         * is `final` on `BasePlayer`, so `ForwardingSimpleBasePlayer` cannot — *and* a
-         * wrapper on every registered `Player.Listener`, because `ForwardingPlayer` hands
-         * `onAvailableCommandsChanged` the wrapped player's set and `MediaSessionImpl`
-         * forwards that argument rather than re-reading this player. Measured against
-         * media3 1.11.0 on 2026-09-07, and left unbuilt because none of it can be shown to
-         * work from a host test.
+         * **The chapter move is a chapter move for a folder for free, and for one chaptered
+         * file through [ChapterSeekingPlayer].** `Audiobook.layout` is `FILES` for a folder,
+         * so a part *is* a file and the next media item is the next chapter —
+         * `BasePlayer.seekToNext` already carries across them. For `PartLayout.MARKS` the
+         * timeline holds a single window and `seekToNext` ignores the press on its own;
+         * [onCreate] builds the session over [ChapterSeekingPlayer] rather than the bare
+         * `ExoPlayer` so the press moves to the next mark instead. See that class for why a
+         * wrapper on every registered `Player.Listener` was the other half this needed:
+         * `ForwardingPlayer` hands `onAvailableCommandsChanged` the wrapped player's raw
+         * set, and a car reads whether the buttons it is drawing do anything from exactly
+         * that set.
          */
         override fun onConnect(
             session: MediaSession,
