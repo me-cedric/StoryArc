@@ -1,7 +1,11 @@
 public import Foundation
+internal import OSLog
 
 public import Formats
 public import StoryArcCore
+
+/// Logs an open failure; `reader.cannotOpen` is the only text a reader sees.
+let readerOpenLog = Logger(subsystem: "app.storyarc.reader", category: "open")
 
 /// How ``ReaderModel`` names a typed archive error, rather than showing its raw case.
 ///
