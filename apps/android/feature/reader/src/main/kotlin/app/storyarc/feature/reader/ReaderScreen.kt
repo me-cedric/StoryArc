@@ -731,11 +731,6 @@ private fun Pager(
         scope.launch { paging.goTo(displayIndex(mark), animate = false) }
     }
 
-    // What the Enter key does too -- "one key" toggles the chrome, the same as a tap.
-    fun toggleChrome() {
-        isChromeVisible = !isChromeVisible
-    }
-
     fun handleTap(point: Offset, size: IntSize) {
         val edge = size.width * EDGE_ZONE_FRACTION
         val target = when {
@@ -748,7 +743,7 @@ private fun Pager(
             else -> null
         }
         if (target == null) {
-            toggleChrome()
+            isChromeVisible = !isChromeVisible
             return
         }
         turn(target)
@@ -793,7 +788,7 @@ private fun Pager(
                 ReaderKeyAction.TurnForward -> turn(paging.current + 1)
                 ReaderKeyAction.PreviousInOrder -> turnInReadingOrder(-1)
                 ReaderKeyAction.NextInOrder -> turnInReadingOrder(1)
-                ReaderKeyAction.ToggleChrome -> toggleChrome()
+                ReaderKeyAction.ToggleChrome -> isChromeVisible = !isChromeVisible
                 null -> return@onKeyEvent false
             }
             true
@@ -1199,7 +1194,6 @@ private fun Pager(
     // Outside the chrome, not inside it: the chrome fades and takes its children with it,
     // and a sheet that vanishes four seconds after it opens is not a sheet.
     if (isAdjusting) {
-        val brightness by viewModel.brightness.collectAsStateWithLifecycle()
         AdjustmentsSheet(
             adjustments = adjustments,
             shelf = viewModel.shelfName,
@@ -1212,7 +1206,7 @@ private fun Pager(
             onDismiss = { isAdjusting = false },
             matte = settings.theme.custom?.background,
             onChooseMatte = viewModel::chooseMatte,
-            brightness = brightness,
+            brightness = viewModel.brightness.collectAsStateWithLifecycle().value,
             onChooseBrightness = viewModel::chooseBrightness,
         )
     }
