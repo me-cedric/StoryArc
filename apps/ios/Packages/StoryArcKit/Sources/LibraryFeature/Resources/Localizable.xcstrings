@@ -8053,6 +8053,36 @@
         }
       }
     },
+    "open.in.unsupported %@ %@ %@": {
+      "comment": "10.8: the same sentence open-in refuses a format with, reused here so an import refusal names the format and the current list too. The first value is the file name, the second the format that was detected, the third the list of formats the app reads. The list is data and stays the same in every language.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ ist eine %2$@-Datei, die StoryArc nicht liest. StoryArc liest %3$@ und andere Hörbücher."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ is a %2$@ file, which StoryArc does not read. It reads %3$@ and other audiobooks."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ es un archivo %2$@, que StoryArc no lee. Lee %3$@ y otros audiolibros."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ est un fichier %2$@, que StoryArc ne lit pas. Il lit les formats %3$@ et d’autres livres audio."
+          }
+        }
+      }
+    },
     "search.empty.subtitle": {
       "comment": "Search screen with nothing to suggest: why, in one sentence.",
       "extractionState": "manual",

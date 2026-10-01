@@ -210,8 +210,8 @@ public final class LibraryModel {
     ///
     /// `local-library` forbids a generic failure elsewhere and there is no reason an import
     /// should be the exception: a reader who picked the wrong file needs to know it was the
-    /// file rather than the app.
-    public var importFailure: String?
+    /// file rather than the app. 10.8: and, when the format is what refused it, which one.
+    public var importFailure: ImportFailure?
 
     public init(
         progress: ProgressStore? = nil,

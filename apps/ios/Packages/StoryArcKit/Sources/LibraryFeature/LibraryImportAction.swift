@@ -103,8 +103,17 @@ extension View {
             Button(role: .cancel) { model.importFailure = nil } label: {
                 Text("library.import.dismiss", bundle: .module)
             }
-        } message: { name in
-            Text("library.import.failed \(name)", bundle: .module)
+        } message: { failure in
+            // 10.8: the same sentence open-in refuses a format with, so both paths name the
+            // format and the current list rather than the import path's own, shorter one.
+            if let detected = failure.detected {
+                Text(
+                    "open.in.unsupported \(failure.name) \(detected) \(ImportFailure.supported)",
+                    bundle: .module
+                )
+            } else {
+                Text("library.import.failed \(failure.name)", bundle: .module)
+            }
         }
     }
 }

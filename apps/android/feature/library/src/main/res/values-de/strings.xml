@@ -339,6 +339,7 @@
     <string name="library_import">Datei öffnen</string>
     <string name="library_import_failed_title">Diese Datei lässt sich nicht öffnen</string>
     <string name="library_import_failed">%1$s konnte nicht in StoryArc kopiert werden. Die App liest CBZ, CBR, CBT, EPUB und PDF.</string>
+    <string name="open_in_unsupported">%1$s ist eine %2$s-Datei, die StoryArc nicht liest. StoryArc liest CBZ, CBR, CBT, EPUB, PDF, M4B und andere Hörbücher.</string>
     <string name="library_import_dismiss">OK</string>
     <string name="source_on_this_device">Auf diesem Gerät</string>
     <string name="sync_conflict_title">An zwei Stellen gelesen</string>

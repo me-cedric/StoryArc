@@ -1157,8 +1157,8 @@ class LibraryViewModel(
      * should be the exception: a reader who picked the wrong file needs to know it was the
      * file rather than the app.
      */
-    private val _importFailure = MutableStateFlow<String?>(null)
-    val importFailure: StateFlow<String?> = _importFailure.asStateFlow()
+    private val _importFailure = MutableStateFlow<ImportFailure?>(null)
+    val importFailure: StateFlow<ImportFailure?> = _importFailure.asStateFlow()
 
     fun dismissImportFailure() {
         _importFailure.value = null
@@ -1175,14 +1175,15 @@ class LibraryViewModel(
     fun importFile(uri: Uri) {
         val store = downloadStore ?: return
         viewModelScope.launch {
-            val copy: ImportedCopy? = withContext(Dispatchers.IO) {
-                runCatching { store.importing(resolver, uri, store.library()) }.getOrNull()
+            val result = withContext(Dispatchers.IO) {
+                runCatching { store.importing(resolver, uri, store.library()) }
             }
+            val copy = result.getOrNull()
             if (copy == null) {
-                // Named, not silent. A reader who picked a file StoryArc cannot read has no
-                // way to tell that from a broken app unless the app says which it is.
+                // Named, not silent, and naming the format when that is why (10.8).
+                val unsupported = result.exceptionOrNull() as? ImportedCopies.ImportException.Unsupported
                 _importFailure.value = withContext(Dispatchers.IO) {
-                    documentNameOf(resolver, uri)
+                    ImportFailure(documentNameOf(resolver, uri), unsupported?.format)
                 }
                 return@launch
             }
