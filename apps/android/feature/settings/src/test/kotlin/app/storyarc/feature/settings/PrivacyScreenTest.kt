@@ -113,14 +113,19 @@ class PrivacyScreenTest {
 
     @Test
     fun `the cache row states how much space clearing it would free`() {
-        fillCache(bytes = 64 * 1024)
+        val bytes = 64 * 1024
+        fillCache(bytes = bytes)
         showPrivacy()
 
         val title = row(string(R.string.privacy_cache, "").trimEnd())
         val size = title.substringAfter(string(R.string.privacy_cache, "").trimEnd()).trim()
         assertTrue("The cache row states no size: \"$title\"", size.isNotEmpty())
         assertTrue("The cache row states \"$size\", which frees nothing.", size.first().isDigit())
-        assertTrue("The cache row states \"$size\" for 64 kB of files.", size.startsWith("64"))
+        // The platform formatter, task 15.3: a hand-rolled "kB" division said "64 kB" for
+        // 65536 bytes. `Formatter.formatShortFileSize` is decimal and says "66 kB" — the
+        // same number every other file size in the app and the OS itself states.
+        val expected = android.text.format.Formatter.formatShortFileSize(context, bytes.toLong())
+        assertEquals("The cache row states \"$size\", not the platform formatter's \"$expected\".", expected, size)
     }
 
     @Test
