@@ -44,7 +44,7 @@ internal class SpokenSentences(private val publication: Publication) {
 
     internal companion object {
         /**
-         * How many elements the walk below will cross looking for the first word, so an
+         * How many resources the walk below crosses looking for the first word, so an
          * image-only publication with a long reading order does not walk it in full.
          */
         private const val RESOURCE_BOUND = 50
@@ -54,21 +54,31 @@ internal class SpokenSentences(private val publication: Publication) {
          *
          * `publication.content() != null` answered too early: Readium installs a content
          * service on every reflowable EPUB (`EpubParser`), so an image-only one answered
-         * yes and the control played nothing when pressed. This walks the iterator instead,
-         * bounded, for the first element [Content.Element.hasWord] accepts.
+         * yes and the control played nothing when pressed. iOS walks the same way, in
+         * `EpubReaderModel.isSpeakable`.
          */
-        suspend fun isSpeakable(publication: Publication): Boolean {
-            val iterator = publication.content()?.iterator() ?: return false
-            repeat(RESOURCE_BOUND) {
-                val element = iterator.nextOrNull() ?: return false
-                if (element.hasWord()) return true
-            }
-            return false
-        }
+        suspend fun isSpeakable(publication: Publication): Boolean =
+            hasWord(publication.content()?.iterator())
 
-        /** Whether this element tokenizes to a sentence with a non-blank word in it. */
-        private fun Content.Element.hasWord(): Boolean =
-            (this as? Content.TextElement)?.segments.orEmpty().any { it.text.isNotBlank() }
+        /**
+         * The walk itself, for the first text element with a non-blank segment, across at
+         * most [RESOURCE_BOUND] resources.
+         *
+         * Text elements only, because they are all `sentences()` below ever says: an
+         * image's caption is not spoken on Android, so it does not keep the control either.
+         */
+        suspend fun hasWord(iterator: Content.Iterator?): Boolean {
+            val walk = iterator ?: return false
+            val resources = mutableSetOf<String>()
+            while (true) {
+                val element = walk.nextOrNull() ?: return false
+                resources += element.locator.href.toString()
+                if (resources.size > RESOURCE_BOUND) return false
+                if ((element as? Content.TextElement)?.segments.orEmpty().any { it.text.isNotBlank() }) {
+                    return true
+                }
+            }
+        }
     }
 
     private val tokenizer = TextContentTokenizer(
