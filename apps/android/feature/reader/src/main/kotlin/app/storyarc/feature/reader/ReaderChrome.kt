@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import app.storyarc.core.designsystem.theme.readerChromeBorder
 import app.storyarc.core.designsystem.theme.readerChromeColours
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 
@@ -73,7 +74,8 @@ internal fun ReaderChrome(
             colors = readerChromeColours(),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(StoryArcSpace.md),
+                .padding(StoryArcSpace.md)
+                .then(readerChromeBorder()),
         ) {
             IconButton(onClick = onClose) {
                 Icon(
