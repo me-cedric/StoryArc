@@ -508,7 +508,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                         var excerpt by remember { mutableStateOf("") }
                         LaunchedEffect(Unit) { excerpt = model.previewExcerpt() }
 
-                        ThemeBottomSheet(
+                        ThemeSurface(
                             theme = theme,
                             values = values,
                             customPalette = customPalette,

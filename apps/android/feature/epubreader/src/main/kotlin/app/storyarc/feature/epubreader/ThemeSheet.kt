@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
@@ -17,42 +19,42 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.TextDecrease
-import androidx.compose.material.icons.filled.TextIncrease
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material3.SheetState
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
-import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.TextDecrease
+import androidx.compose.material.icons.filled.TextIncrease
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -73,6 +75,7 @@ import app.storyarc.core.model.unit
 import app.storyarc.core.model.value
 import app.storyarc.core.model.values
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 /**
  * The reading-theme sheet.
@@ -249,6 +252,88 @@ internal fun ThemeBottomSheet(
         )
     }
 }
+
+/**
+ * The theme sheet, as a non-modal surface anchored near the control that opened it.
+ *
+ * `native-experience`, *Theme sheet on a large screen*: "it presents as a popover anchored
+ * to its control rather than a full-width sheet, and the reader stays visible beside it".
+ * D22 reads that for Android, where Material has no popover: an anchored [Popup] carrying
+ * Material elevation and shape, at medium width and wider. [EpubReaderActivity] is where the
+ * width is read and the choice between this and [ThemeBottomSheet] is made.
+ *
+ * A [Popup] rather than a `Box` placed beside the reader's own content: nothing here needs a
+ * shared parent to position against, which a `Box` would, and every other transient surface
+ * in this screen — the menu sheet, the contents sheet, the bottom sheet this sits beside —
+ * already opens the same way, each a sibling `if` with no shared container. `SelectionMenu`
+ * is the one plain `Surface` in this feature, and it is unwired for the same reason: nothing
+ * places it.
+ *
+ * Non-modal rather than a dialog with a scrim: `PopupProperties.dismissOnClickOutside`
+ * closes it on an outside tap, the same contract `EpubReaderView.swift`'s popover gets from
+ * the platform for free, but nothing here draws a scrim over the page — "the reader stays
+ * visible beside it" is a visual promise as well as a structural one.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun ThemePopover(
+    theme: ReadingTheme,
+    values: ThemeValues,
+    customPalette: ReaderPalette? = null,
+    onAdopt: (ThemePreset) -> Unit,
+    onAdoptColours: (ReaderPalette) -> Boolean,
+    onCustomise: () -> Unit,
+    onDismiss: () -> Unit,
+    chapter: String? = null,
+    excerpt: String = "",
+) {
+    val palette = LocalStoryArcPalette.current
+    val topOffsetPx = with(LocalDensity.current) { POPOVER_TOP_OFFSET.roundToPx() }
+
+    // `focusable = true` is what makes `dismissOnClickOutside` -- true by default, and left
+    // that way here -- actually dismiss: an unfocusable popup never learns about a touch
+    // outside itself. The same flag gives the sheet's own sliders and the "Customise"
+    // button the keyboard and accessibility focus a bottom sheet gets from its dialog.
+    Popup(
+        alignment = Alignment.TopCenter,
+        offset = IntOffset(0, topOffsetPx),
+        onDismissRequest = onDismiss,
+        properties = PopupProperties(focusable = true),
+    ) {
+        Surface(
+            modifier = Modifier
+                .width(POPOVER_WIDTH)
+                .heightIn(max = POPOVER_MAX_HEIGHT),
+            shape = RoundedCornerShape(StoryArcRadius.lg),
+            color = palette.surfaceRaised,
+            tonalElevation = 3.dp,
+        ) {
+            ThemeSheet(
+                onDismiss = onDismiss,
+                theme = theme,
+                values = values,
+                customPalette = customPalette,
+                onAdopt = onAdopt,
+                onAdoptColours = onAdoptColours,
+                onCustomise = onCustomise,
+                chapter = chapter,
+                excerpt = excerpt,
+            )
+        }
+    }
+}
+
+/** How far below the top of the window the popover's card sits, clear of the status bar. */
+private val POPOVER_TOP_OFFSET = 72.dp
+
+/**
+ * The popover's width. `StoryArcWindowClass.MEDIUM`, Material's own breakpoint for this
+ * layout, starts at 600dp -- so this leaves at least 180dp of the reader visible beside the
+ * card at the width the popover first appears, and the card itself keeps the grid and the
+ * live preview both readable rather than stretching to fill a desktop window.
+ */
+private val POPOVER_WIDTH = 420.dp
+private val POPOVER_MAX_HEIGHT = 560.dp
 
 /**
  * The sheet's name, and the single-pointer way to change its height.
