@@ -461,8 +461,10 @@ object PublicationIndexer {
             number = info?.number ?: fallback.number,
             volume = info?.volume ?: fallback.volume,
             authors = info?.writers ?: emptyList(),
+            pencillers = info?.pencillers ?: emptyList(),
             publisher = info?.publisher,
             year = info?.year ?: fallback.year,
+            releaseDateEpochMillis = releaseDateEpochMillis(info),
             language = info?.language,
             summary = info?.summary,
             genres = info?.genres.orEmpty(),
@@ -576,6 +578,23 @@ object PublicationIndexer {
         } else {
             StreamingCapability.DOWNLOAD_ONLY
         }
+    }
+
+    /**
+     * `ComicInfo.xml`'s full publication date, when it names a month and a day as well
+     * as a year -- null for a year alone, which [Publication.year] already carries.
+     *
+     * Midnight UTC: there is no time of day to a publication date, and UTC is what
+     * keeps it the same date on every device regardless of where the reader is.
+     */
+    private fun releaseDateEpochMillis(info: ComicInfo?): Long? {
+        val year = info?.year ?: return null
+        val month = info.month ?: return null
+        val day = info.day ?: return null
+        val calendar = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
+        calendar.clear()
+        calendar.set(year, month - 1, day)
+        return calendar.timeInMillis
     }
 
     /**

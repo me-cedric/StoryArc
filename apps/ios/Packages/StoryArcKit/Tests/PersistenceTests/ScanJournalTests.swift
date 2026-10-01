@@ -24,6 +24,8 @@ struct ScanJournalTests {
             series: series,
             number: "1",
             authors: ["Jeff Smith"],
+            pencillers: ["Jeff Smith"],
+            releaseDate: Date(timeIntervalSince1970: 1_768_435_200), // 2026-01-15T00:00:00Z
             origin: .embedded,
             pageCount: 24,
             coverPath: "001.png",
@@ -52,6 +54,8 @@ struct ScanJournalTests {
         #expect(read.series == "Bone")
         #expect(read.number == "1")
         #expect(read.authors == ["Jeff Smith"])
+        #expect(read.pencillers == ["Jeff Smith"])
+        #expect(read.releaseDate == Date(timeIntervalSince1970: 1_768_435_200))
         #expect(read.pageCount == 24)
         #expect(read.coverPath == "001.png")
         #expect(read.readingDirection == .rightToLeft)

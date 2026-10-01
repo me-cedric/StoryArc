@@ -231,8 +231,17 @@ data class Publication(
     val number: String? = null,
     val volume: Int? = null,
     val authors: List<String> = emptyList(),
+    /** `ComicInfo.xml`'s `Penciller` credit, kept apart from [authors]' `Writer`. */
+    val pencillers: List<String> = emptyList(),
     val publisher: String? = null,
     val year: Int? = null,
+    /**
+     * The full publication date, when `ComicInfo.xml` names a month and a day as well
+     * as a year. Midnight UTC on that date -- there is no time of day to a publication
+     * date, and UTC is what keeps it the same date on every device regardless of
+     * where the reader is.
+     */
+    val releaseDateEpochMillis: Long? = null,
     val language: String? = null,
     val summary: String? = null,
     /**
