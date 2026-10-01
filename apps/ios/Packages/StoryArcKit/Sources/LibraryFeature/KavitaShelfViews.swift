@@ -100,9 +100,6 @@ struct KavitaListView: View {
     /// same read and land interleaved, leaving the list in an order nobody asked for.
     @State private var pushing: Task<Void, Never>?
 
-    /// Task 7.4: the server's order when this view opened, a drag is checked against.
-    @State private var baseline: [Int] = []
-
     /// The server's entries in the reader's order, with the outstanding ones after them.
     ///
     /// ``ShelfSync`` and ``ShelfMerge`` decide both orders, so a test can assert them without
@@ -173,7 +170,6 @@ struct KavitaListView: View {
             let client = KavitaClient(address: server.address)
             items = ((try? await client.readingListItems(listID)) ?? [])
                 .sorted { $0.order < $1.order }
-            baseline = items.map(\.chapterId)
         }
     }
 
@@ -281,12 +277,11 @@ struct KavitaListView: View {
     /// down before it tries, so a refused send is a queue entry rather than a lost order.
     private func reorder(_ offsets: IndexSet, to destination: Int) {
         let held = rows.filter { !$0.isPending }.map(\.id)
-        guard let from = offsets.first, from < held.count, destination <= held.count else {
+        // Task 7.4: checked against the order the reader saw before this drag.
+        guard let from = offsets.first, let drag = KavitaSync.dragged(held, from: from, to: destination) else {
             return
         }
-        var next = held
-        next.insert(next.remove(at: from), at: destination > from ? destination - 1 : destination)
-        let order = next.compactMap(Int.init)
+        let order = drag.order
         items = order.compactMap { id in items.first { $0.chapterId == id } }
             + items.filter { !order.contains($0.chapterId) }
 
@@ -300,11 +295,15 @@ struct KavitaListView: View {
                 on: server.id,
                 to: server.address,
                 in: store,
-                baseline: baseline,
+                baseline: drag.baseline,
                 // Task 7.4: dropped rather than sent over a server that moved since.
-                onOrderConflict: { listID in KavitaSync.noteOrderConflict(sourceID: server.id, listID: listID, shelfName: title) }
+                onOrderConflict: { KavitaSync.noteOrderConflict(sourceID: server.id, listID: $0, shelfName: title) }
             )
             wanted = KavitaSync.wantedOrder(of: listID, on: server.id, in: store)
+            guard wanted.isEmpty else { return }
+            // A stale drag was dropped, so the server's order wins and the rows show it again.
+            let client = KavitaClient(address: server.address)
+            if let kept = await KavitaSync.settledRows(listID, sent: order, through: client) { items = kept }
         }
     }
 
