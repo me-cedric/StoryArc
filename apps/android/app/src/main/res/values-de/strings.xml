@@ -58,6 +58,8 @@
     <string name="downloads_paused_by_reader">Angehalten</string>
     <string name="downloads_paused_waiting_for_wifi">Wartet auf WLAN</string>
     <string name="downloads_paused_out_of_space">Zu wenig Speicher auf dem Ger\u00e4t</string>
+    <string name="downloads_attempt_resumed">Fortgesetzt</string>
+    <string name="downloads_attempt_restarted">Neu gestartet</string>
     <string name="downloads_move_earlier">\u201e%1$s\u201c nach vorn</string>
     <string name="downloads_move_later">\u201e%1$s\u201c nach hinten</string>
     <string name="downloads_undo">R\u00fcckg\u00e4ngig</string>

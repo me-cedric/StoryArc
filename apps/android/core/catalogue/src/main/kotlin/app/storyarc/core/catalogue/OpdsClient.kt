@@ -1,5 +1,6 @@
 package app.storyarc.core.catalogue
 
+import app.storyarc.core.model.Download
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -153,6 +154,11 @@ class OpdsClient(
      *   body is not read at all: the partial is dropped and the file is asked for again with
      *   no `Range`, which is a first attempt and is checked as one. A 416 says the same
      *   thing in its own words and takes the same path.
+     *
+     * Returns which of the two just happened, so the caller can record it on the download
+     * for `offline-downloads`' own ask: a resumed or restarted download used to look the
+     * same on the row. Null for a first attempt -- one that never asked the server to carry
+     * anything on is neither.
      */
     suspend fun download(
         url: String,
@@ -167,16 +173,22 @@ class OpdsClient(
          * needs to redraw at.
          */
         onProgress: ((Long) -> Unit)? = null,
-    ) {
-        try {
+    ): Download.LastAttempt? {
+        // Read once: the file this answers from does not change between the two attempts
+        // below, and the second one asks for nothing to resume regardless of what is here.
+        val hadSomethingToResume = resumable(into) != null
+        val attempt = try {
             fetch(url, credential, into, resuming = resumable(into), onProgress = onProgress)
+            Download.LastAttempt.of(hadSomethingToResume, resumed = true)
         } catch (restart: Restart) {
             fetch(url, credential, into, resuming = null, onProgress = onProgress)
+            Download.LastAttempt.of(hadSomethingToResume, resumed = false)
         }
         // A cancelled copy stops mid-body and leaves the bytes it wrote, which is the point:
         // the next attempt asks for the rest of them. It is not a completed download, so the
         // caller has to be told cancellation rather than handed a short file to index.
         coroutineContext.ensureActive()
+        return attempt
     }
 
     /**

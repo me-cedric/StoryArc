@@ -2,6 +2,7 @@ package app.storyarc.feature.library
 
 import app.storyarc.core.catalogue.OpdsClient
 import app.storyarc.core.format.PublicationIndexer
+import app.storyarc.core.model.Download
 import app.storyarc.core.model.PublicationFormat
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
@@ -11,6 +12,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -130,10 +132,25 @@ class DownloadResumeTest {
     fun `a resumed download indexes as the publication it is`() = runBlocking {
         val file = interrupted()
 
-        OpdsClient().download(base, into = file)
+        val attempt = OpdsClient().download(base, into = file)
 
         assertArrayEquals("A resumed download is not the file the server holds.", comic, file.readBytes())
         assertEquals(PublicationFormat.CBZ, PublicationIndexer.index(file).format)
+        // `offline-downloads`' *Resuming after interruption*: the reader is told which of
+        // the two happened. This one honoured the Range, so it is a resume.
+        assertEquals(Download.LastAttempt.RESUMED, attempt)
+    }
+
+    @Test
+    fun `a first attempt, never interrupted, is neither a resume nor a restart`() = runBlocking {
+        // The other half of the claim above: a download that has nothing to carry on from
+        // is not a restart either, and saying so would be noise on every ordinary download.
+        val into = File(folder.root, "natural-sort.cbz.part")
+
+        val attempt = OpdsClient().download(base, into = into)
+
+        assertArrayEquals(comic, into.readBytes())
+        assertNull(attempt)
     }
 
     @Test
@@ -142,7 +159,7 @@ class DownloadResumeTest {
             val file = interrupted()
             answer = Answer.IGNORE
 
-            OpdsClient().download(base, into = file)
+            val attempt = OpdsClient().download(base, into = file)
 
             assertEquals(
                 "The partial bytes were kept, so the file is longer than the publication.",
@@ -151,6 +168,9 @@ class DownloadResumeTest {
             )
             assertArrayEquals(comic, file.readBytes())
             assertEquals(PublicationFormat.CBZ, PublicationIndexer.index(file).format)
+            // The server would not continue the file, so the attempt that landed it
+            // started over -- whatever the first one asked for.
+            assertEquals(Download.LastAttempt.RESTARTED, attempt)
         }
 
     @Test
@@ -163,7 +183,7 @@ class DownloadResumeTest {
             val file = interrupted()
             answer = Answer.SLICE
 
-            OpdsClient().download(base, into = file)
+            val attempt = OpdsClient().download(base, into = file)
 
             assertEquals(
                 "A window was taken for the whole file, so the publication is missing its front.",
@@ -172,6 +192,7 @@ class DownloadResumeTest {
             )
             assertArrayEquals(comic, file.readBytes())
             assertEquals(PublicationFormat.CBZ, PublicationIndexer.index(file).format)
+            assertEquals(Download.LastAttempt.RESTARTED, attempt)
         }
 
     private companion object {

@@ -333,8 +333,36 @@ internal fun DownloadQueueRow(
                 DownloadProgressLine(download)
             }
         }
+
+        DownloadAttemptLine(download)
     }
 }
+
+/**
+ * Whether the last attempt at this download carried a transfer on or started it over.
+ *
+ * `offline-downloads`' *Resuming after interruption* builds both outcomes and states
+ * neither on the row -- `OpdsClient.download` and `DownloadQueue` already do the resuming;
+ * this is only what a reader is told about it. Drawn only once there has been an attempt to
+ * say something about: a download still on its first try is neither, and saying so would be
+ * the noise every other conditional line on this row avoids. iOS's `DownloadQueueSection`
+ * states the same line.
+ */
+@Composable
+private fun DownloadAttemptLine(download: Download) {
+    val attempt = download.lastAttempt ?: return
+    Text(
+        text = stringResource(attempt.rowRes),
+        style = MaterialTheme.typography.bodySmall,
+        color = LocalStoryArcPalette.current.textSecondary,
+    )
+}
+
+private val Download.LastAttempt.rowRes: Int
+    get() = when (this) {
+        Download.LastAttempt.RESUMED -> R.string.downloads_attempt_resumed
+        Download.LastAttempt.RESTARTED -> R.string.downloads_attempt_restarted
+    }
 
 /**
  * How far through, and how much of what — the half of `offline-downloads` the bar alone

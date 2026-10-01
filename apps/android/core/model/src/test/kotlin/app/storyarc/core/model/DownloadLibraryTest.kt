@@ -184,4 +184,55 @@ class DownloadLibraryTest {
         assertTrue(library.largestFirst.isEmpty())
         assertTrue(library.bytesBySource.isEmpty())
     }
+
+    @Test
+    fun recordingAttemptWritesOnlyItsOwnRecord() {
+        val library = DownloadLibrary(listOf(download("one"), download("two")))
+            .recordingAttempt("one", Download.LastAttempt.RESUMED)
+        assertEquals(Download.LastAttempt.RESUMED, library["one"]?.lastAttempt)
+        assertNull(library["two"]?.lastAttempt)
+    }
+
+    @Test
+    fun recordingNullClearsTheAttempt() {
+        val library = DownloadLibrary(listOf(download("one")))
+            .recordingAttempt("one", Download.LastAttempt.RESTARTED)
+            .recordingAttempt("one", null)
+        assertNull(library["one"]?.lastAttempt)
+    }
+}
+
+/**
+ * What a download's last attempt was, from whether there was something to resume and what
+ * the server actually did with it.
+ *
+ * `offline-downloads`' *Resuming after interruption* builds both outcomes and states
+ * neither -- `Download.LastAttempt.of` is the rule a row reads to tell them apart, lifted
+ * out of `feature:library`'s `DownloadQueue` so a test can reach it without a real server.
+ * `DownloadResumeTest` proves the same three claims against one.
+ */
+class DownloadLastAttemptTest {
+    @Test
+    fun aFirstAttemptIsNeitherAResumeNorARestart() {
+        assertNull(Download.LastAttempt.of(hadSomethingToResume = false, resumed = false))
+        // Even a server that happens to answer 206 to a request that asked for nothing to
+        // resume is not what this field means: there was nothing here to carry on.
+        assertNull(Download.LastAttempt.of(hadSomethingToResume = false, resumed = true))
+    }
+
+    @Test
+    fun somethingToResumeHonouredIsAResume() {
+        assertEquals(
+            Download.LastAttempt.RESUMED,
+            Download.LastAttempt.of(hadSomethingToResume = true, resumed = true),
+        )
+    }
+
+    @Test
+    fun somethingToResumeRefusedIsARestart() {
+        assertEquals(
+            Download.LastAttempt.RESTARTED,
+            Download.LastAttempt.of(hadSomethingToResume = true, resumed = false),
+        )
+    }
 }

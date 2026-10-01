@@ -52,6 +52,16 @@ data class Download(
      * between the first corrupt download and the second.
      */
     val verificationFailures: Int = 0,
+    /**
+     * Whether the transfer that produced what is on disk now carried on from an earlier
+     * one, or started over.
+     *
+     * `offline-downloads`' *Resuming after interruption* builds both outcomes and says
+     * neither: the reader is never told which one happened. Null is a transfer that has
+     * never been interrupted -- a first attempt is neither a resume nor a restart, and
+     * saying so would be the noise every other conditional row in this app avoids.
+     */
+    val lastAttempt: LastAttempt? = null,
 ) {
     /** Where a download is in its life. */
     sealed interface State {
@@ -91,6 +101,39 @@ data class Download(
          * says the app "never deletes a download without asking".
          */
         OUT_OF_SPACE,
+    }
+
+    /**
+     * What the last attempt at this download did, for the row to state in the reader's own
+     * words rather than the network's.
+     */
+    enum class LastAttempt {
+        /** Carried on from where an earlier attempt stopped. */
+        RESUMED,
+
+        /**
+         * Started over, whether because nothing was left to carry on from or because the
+         * server would not continue what was already on disk.
+         */
+        RESTARTED,
+        ;
+
+        companion object {
+            /**
+             * What the last attempt was, from whether there was something to try carrying
+             * on from and what actually happened to it.
+             *
+             * Lifted out of `feature:library`'s `DownloadQueue` so it is testable on its
+             * own, against the three claims `OpdsClient`'s own resume tests already prove.
+             *
+             * Null for a first attempt -- one that never asked for anything to carry on has
+             * nothing to call either a resume or a restart.
+             */
+            fun of(hadSomethingToResume: Boolean, resumed: Boolean): LastAttempt? {
+                if (!hadSomethingToResume) return null
+                return if (resumed) RESUMED else RESTARTED
+            }
+        }
     }
 
     /**
@@ -160,6 +203,15 @@ data class DownloadLibrary(val downloads: List<Download> = emptyList()) {
                 it.copy(downloadedBytes = downloaded, expectedBytes = expected ?: it.expectedBytes)
             }
         },
+    )
+
+    /**
+     * Records whether the attempt that just ended carried a transfer on or started it over.
+     * `offline-downloads`' *Resuming after interruption*: a resumed or restarted download
+     * used to look the same on the row, and this is what a row reads to tell them apart.
+     */
+    fun recordingAttempt(id: String, attempt: Download.LastAttempt?): DownloadLibrary = copy(
+        downloads = downloads.map { if (it.id == id) it.copy(lastAttempt = attempt) else it },
     )
 
     /**
