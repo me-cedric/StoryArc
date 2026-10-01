@@ -230,8 +230,15 @@ object PlaybackHost : SpokenAudio.Speaker {
      *
      * @param book what the service already resolved the car's choice to — [PlaybackMemory]'s
      *   own record, or a shelf row — so the position matches exactly what the car was handed.
+     * @param partTime a shelf row's position, which states a time into a part rather than
+     *   into the item. See [AudiobookSource.attach].
      */
-    internal fun attachCarStart(context: Context, book: PlayedBook, player: Player) {
+    internal fun attachCarStart(
+        context: Context,
+        book: PlayedBook,
+        player: Player,
+        partTime: PlaybackPosition? = null,
+    ) {
         val audiobook = Audiobook(
             id = book.id,
             title = book.title,
@@ -249,7 +256,7 @@ object PlaybackHost : SpokenAudio.Speaker {
         }
         val source = AudiobookSource(audiobook, player)
         current = source
-        source.attach()
+        source.attach(from = partTime)
         centre.attach(source)
     }
 

@@ -223,9 +223,15 @@ class AudiobookSource(
      * [PlaybackCentre.attach] does not read it as a session that has already ended, and the
      * listener [prepare] would have added is the one that catches the rest up as the car's
      * own commands reach the player.
+     *
+     * @param from a time into a part that the items alone cannot place: a later chapter of
+     *   one file, given as [prepare] takes it. [adoptChapters] seeks there once the marks
+     *   arrive, exactly as it does for [prepare]. Null when the car's items already start at
+     *   the right time in the item.
      */
-    fun attach() {
+    fun attach(from: PlaybackPosition? = null) {
         player.addListener(listener)
+        pending = from?.takeIf { book.layout == PartLayout.MARKS && it.partIndex > 0 }
         session = session.started()
         onChange?.invoke()
     }

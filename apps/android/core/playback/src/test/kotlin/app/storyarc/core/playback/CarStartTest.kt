@@ -83,6 +83,30 @@ class CarStartTest {
     }
 
     /**
+     * A shelf row of one chaptered file, resumed in its second chapter.
+     *
+     * The row states a time into the chapter, and the car's items can only start at a time
+     * into the file. Without the marks those are the same number, so the audio would start
+     * thirty seconds into the first chapter. The marks arrive with the audio, and the source
+     * then moves to where the row said.
+     */
+    @Test
+    fun `a later chapter of one file is reached once the marks arrive`() {
+        val player = FakePlayer()
+        val source = AudiobookSource(book(), player)
+        source.attach(from = PlaybackPosition(1, 30_000))
+
+        player.measureFile(420_000)
+        player.describeChapters(
+            Triple("The Harbour", 0L, 120_000L),
+            Triple("The Crossing", 120_000L, 420_000L),
+        )
+
+        assertEquals(150_000L, player.currentPosition)
+        assertEquals(PlaybackPosition(1, 30_000), source.position)
+    }
+
+    /**
      * The point of the whole fix: once attached, the car's own commands — reaching the
      * player directly, never through this centre — still move the surface every other
      * screen reads.
