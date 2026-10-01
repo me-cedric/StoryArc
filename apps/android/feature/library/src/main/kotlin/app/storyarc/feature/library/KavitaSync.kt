@@ -432,7 +432,7 @@ object KavitaSync {
                 reorder(client, listId, order, held.orderBaseline, onOrderConflict)
             listId != null ->
                 client.append(listId, held.origin.seriesId, listOf(held.origin.chapterId))
-            mark != null -> client.mark(held.origin.seriesId, held.origin.volumeId, held.origin.chapterId, mark)
+            mark != null -> client.mark(held.origin.seriesId, held.origin.chapterId, mark)
             else -> client.report(position(held.origin, held.page))
         }
     }

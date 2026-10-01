@@ -199,8 +199,11 @@ class KavitaClient(val address: KavitaAddress) {
      * Through [listing], so a server too old for `mark-multiple-*` answers
      * [KavitaError.RouteMissing] rather than a plain 404 [KavitaSync] would hold and resend
      * forever -- decision D2.
+     *
+     * `volumeIds` stays empty. Kavita marks every chapter of each volume named there, so a
+     * volume id here would mark the whole volume for a mark on one chapter.
      */
-    suspend fun mark(seriesId: Int, volumeId: Int, chapterId: Int, isRead: Boolean) {
+    suspend fun mark(seriesId: Int, chapterId: Int, isRead: Boolean) {
         val path = if (isRead) "Reader/mark-multiple-read" else "Reader/mark-multiple-unread"
         listing(
             path,
@@ -208,7 +211,7 @@ class KavitaClient(val address: KavitaAddress) {
                 KavitaMarkMultiple.serializer(),
                 KavitaMarkMultiple(
                     seriesId = seriesId,
-                    volumeIds = listOf(volumeId),
+                    volumeIds = emptyList(),
                     chapterIds = listOf(chapterId),
                     generateReadingSession = false,
                 ),

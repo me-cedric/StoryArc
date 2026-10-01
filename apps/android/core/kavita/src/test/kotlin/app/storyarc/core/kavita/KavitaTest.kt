@@ -435,14 +435,14 @@ class KavitaClientTest {
     }
 
     @Test
-    fun markingAChapterNamesTheSeriesTheVolumeAndTheChapter() = runBlocking {
-        client().mark(11, 1100, 12, isRead = false)
+    fun markingAChapterNamesTheSeriesAndTheChapterAndNoWholeVolume() = runBlocking {
+        client().mark(11, 12, isRead = false)
 
         // D2: `mark-multiple-unread`, not `mark-chapter-unread` -- the single-chapter unread
         // route does not exist on any published Kavita.
         assertEquals("/api/Reader/mark-multiple-unread", sentTo)
         assertTrue("\"seriesId\":11" in sentBody.orEmpty())
-        assertTrue("\"volumeIds\":[1100]" in sentBody.orEmpty())
+        assertTrue("\"volumeIds\":[]" in sentBody.orEmpty())
         assertTrue("\"chapterIds\":[12]" in sentBody.orEmpty())
     }
 
@@ -451,7 +451,7 @@ class KavitaClientTest {
         markRouteIsMissing = true
 
         assertThrows(KavitaError.RouteMissing::class.java) {
-            runBlocking { client().mark(11, 1100, 12, isRead = true) }
+            runBlocking { client().mark(11, 12, isRead = true) }
         }
     }
 

@@ -506,9 +506,9 @@ const server = createServer((request, response) => {
   }
 
   // D2: `MarkVolumesReadDto` -- a series, the volumes, and the chapters, any of which may be
-  // empty. Only `chapterIds` is answered: neither client sends a bare volume or series mark
-  // today, and a route that silently ignored the other two fields would be as misleading as
-  // one that was never measured at all.
+  // empty. Kavita marks every chapter of each volume in `volumeIds`, and then each chapter in
+  // `chapterIds` (`ReaderController.MarkMultipleAsRead`). This mock does the same, so a
+  // client that names the volume of the one chapter it marks marks the whole volume here too.
   const markingMultiple = url.pathname === '/api/Reader/mark-multiple-read' ||
     url.pathname === '/api/Reader/mark-multiple-unread'
   if (markingMultiple && request.method === 'POST') {
@@ -516,8 +516,10 @@ const server = createServer((request, response) => {
     request.on('data', (chunk) => { body += chunk })
     request.on('end', () => {
       const posted = JSON.parse(body || '{}')
+      const volumeIds = new Set(posted.volumeIds || [])
       const wanted = new Set(posted.chapterIds || [])
-      const matched = series.flatMap((each) => each.chapters).filter((each) => wanted.has(each.id))
+      const matched = series.flatMap((each) => each.chapters
+        .filter((chapter) => volumeIds.has(each.id * 100) || wanted.has(chapter.id)))
       if (matched.length === 0) return send(response, 404, { message: 'no such chapter' })
       const unread = url.pathname.endsWith('unread')
       for (const chapter of matched) chapter.pagesRead = unread ? 0 : chapter.pages
@@ -927,6 +929,18 @@ const drive = async () => {
   }, token)
   const marked = (await volumes(first.id))[0].chapters[0]
   check('marking a chapter read reads all of it', marked.pagesRead === marked.pages, marked.pagesRead)
+  if (first.chapters.length > 1) {
+    const sibling = (await volumes(first.id))[0].chapters[1]
+    check('marking one chapter leaves the rest of its volume alone', sibling.pagesRead === 0,
+      sibling.pagesRead)
+    const kept = first.chapters.map((each) => each.pagesRead)
+    await post('/api/Reader/mark-multiple-read', {
+      seriesId: first.id, volumeIds: [first.id * 100], chapterIds: [], generateReadingSession: false,
+    }, token)
+    const whole = (await volumes(first.id))[0].chapters
+    check('marking a volume marks every chapter in it', whole.every((each) => each.pagesRead === each.pages))
+    first.chapters.forEach((each, index) => { each.pagesRead = kept[index] })
+  }
 
   // And a series' own row adds its chapters up, which is what a library shelf shows.
   const listed = await (await get(`/api/Series/${first.id}`, token)).json()

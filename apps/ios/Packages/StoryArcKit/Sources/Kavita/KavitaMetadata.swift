@@ -227,7 +227,10 @@ extension KavitaClient {
     /// Through ``sendVersioned(_:path:)``, so a server too old for `mark-multiple-*` answers
     /// ``KavitaError/routeMissing(path:)`` rather than a 404 ``KavitaSync`` would hold and
     /// resend forever — decision D2.
-    public func mark(seriesId: Int, volumeId: Int, chapterId: Int, isRead: Bool) async throws {
+    ///
+    /// `volumeIds` stays empty. Kavita marks every chapter of each volume named there, so a
+    /// volume id here would mark the whole volume for a mark on one chapter.
+    public func mark(seriesId: Int, chapterId: Int, isRead: Bool) async throws {
         let path = isRead ? "Reader/mark-multiple-read" : "Reader/mark-multiple-unread"
         guard let url = address.endpoint(path) else { throw KavitaError.badAddress }
         var request = URLRequest(url: url)
@@ -236,7 +239,7 @@ extension KavitaClient {
         request.httpBody = try JSONEncoder().encode(
             KavitaMarkMultiple(
                 seriesId: seriesId,
-                volumeIds: [volumeId],
+                volumeIds: [],
                 chapterIds: [chapterId],
                 generateReadingSession: false
             )
