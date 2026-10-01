@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import android.graphics.Bitmap
+import android.text.format.Formatter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -495,6 +497,7 @@ internal fun DetailMainPane(
                 action = action,
                 accent = accent,
                 resumeChapter = resumeChapterTitle(parts, stoppedIn),
+                fileSize = publication.fileSize,
                 onRead = onRead,
                 onDownload = onDownload,
             )
@@ -576,12 +579,45 @@ internal fun DetailMainPane(
  * @param resumeChapter the chapter a resume lands inside, which `audio-playback` asks the
  *   action to name. Null where naming one would say nothing: a book never started, a book
  *   with one part, and everything that is not an audiobook.
+ * @param fileSize what the source says the publication weighs, which `publication-formats`
+ *   asks the download offer to state rather than leaving the reader guessing. Null or zero
+ *   is an honest absence, not a size to show.
  */
+/**
+ * Which string resource the explanation draws, and the size to fill it with when it is the
+ * one that takes a size.
+ *
+ * `publication-formats` asks a download offer to state the size, and the share browser
+ * already does -- `SmbBrowserScreen.kt` draws it the same way, with the same formatter. A
+ * plain function rather than a `@Composable`, so a unit test can assert the decision without
+ * a Compose host.
+ */
+internal fun explanationResource(action: PrimaryAction, fileSize: Long?): Pair<Int, Long?>? {
+    val resource = action.explanation() ?: return null
+    return if (action == PrimaryAction.NEEDS_DOWNLOAD && fileSize != null && fileSize > 0L) {
+        R.string.detail_needs_download_sized to fileSize
+    } else {
+        resource to null
+    }
+}
+
+/** The resolved sentence, or null for the one state that draws none. */
+@Composable
+private fun explanationText(action: PrimaryAction, fileSize: Long?): String? {
+    val (resource, sizedBytes) = explanationResource(action, fileSize) ?: return null
+    return if (sizedBytes != null) {
+        stringResource(resource, Formatter.formatShortFileSize(LocalContext.current, sizedBytes))
+    } else {
+        stringResource(resource)
+    }
+}
+
 @Composable
 private fun DetailPrimaryAction(
     action: PrimaryAction,
     accent: DetailAccent?,
     resumeChapter: String?,
+    fileSize: Long?,
     onRead: () -> Unit,
     onDownload: (() -> Unit)?,
 ) {
@@ -629,9 +665,9 @@ private fun DetailPrimaryAction(
                 )
             }
         }
-        action.explanation()?.let { explanation ->
+        explanationText(action, fileSize)?.let { explanation ->
             Text(
-                text = stringResource(explanation),
+                text = explanation,
                 style = MaterialTheme.typography.bodySmall,
                 color = palette.textSecondary,
             )

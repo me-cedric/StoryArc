@@ -51,6 +51,26 @@ class SmbContributorTest {
     }
 
     @Test
+    fun `a row states the size the share already stated, for free`() {
+        // `publication-formats` asks the download offer on the publication page to state
+        // the size, and a directory entry already carries its own length -- so the share
+        // walk hands it over rather than leaving the reader to guess.
+        val publication = SmbContributor.publication(
+            source,
+            SmbEntry(
+                name = "Lantern Green 043.cbz",
+                path = "comics/Lantern Green/Lantern Green 043.cbz",
+                isDirectory = false,
+                length = 400_000_000L,
+            ),
+            address,
+            folder = "comics/Lantern Green",
+        )!!
+
+        assertEquals(400_000_000L, publication.fileSize)
+    }
+
+    @Test
     fun `a row under a configured root opens through the reader's own reading of its address`() {
         // `entry.path` is relative to the share and so repeats the root the reader picked.
         // The opener strips the source's address, root and all, and hands the share the

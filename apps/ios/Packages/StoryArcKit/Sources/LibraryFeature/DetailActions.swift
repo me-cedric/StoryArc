@@ -1,6 +1,7 @@
 internal import SwiftUI
 
 internal import DesignSystem
+internal import Persistence
 internal import StoryArcCore
 
 /// One primary action, and everything else out of its way.
@@ -77,8 +78,10 @@ struct DetailActions: View {
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textSecondary)
             } else if address == nil {
-                // The primary action states what it needs rather than failing when taken.
-                Text("detail.unavailable", bundle: .module)
+                // The primary action states what it needs rather than failing when taken,
+                // and `publication-formats` asks the download offer to state the size the
+                // share browser already states for the same file.
+                unavailableText
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -98,6 +101,16 @@ struct DetailActions: View {
         } message: {
             Text("library.restart.body", bundle: .module)
         }
+    }
+
+    /// The sentence under the primary action when nothing can open this publication yet,
+    /// with the size stated when the source stated one — the same formatter and the same
+    /// rule `SmbBrowserView` already draws its own download offer with.
+    private var unavailableText: Text {
+        guard let fileSize = publication.fileSize, fileSize > 0 else {
+            return Text("detail.unavailable", bundle: .module)
+        }
+        return Text("detail.unavailable.sized \(formattedBytes(fileSize))", bundle: .module)
     }
 
     // MARK: - The one that matters
