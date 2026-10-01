@@ -57,8 +57,8 @@ struct ReaderModelFailureTests {
 
     @Test("An open failure outside the archive errors shows the fixed sentence, never the raw Swift error")
     func openFailureHidesTheRawError() async {
-        InterfaceLanguage.choose("en")
-        defer { InterfaceLanguage.choose(nil) }
+        // No `InterfaceLanguage.choose` here: this case suspends, and a choice held across a
+        // suspension is the leak `ChosenLanguageFormattingTests` describes.
         // Not a PDF, so PdfPageRenderer throws an error that is not a ComicArchiveError.
         let location = url("comics/refused.cb7")
         let model = ReaderModel(publication: publication(.pdf, at: location), url: location)
