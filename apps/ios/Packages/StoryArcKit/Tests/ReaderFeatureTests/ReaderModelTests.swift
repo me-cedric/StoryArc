@@ -345,4 +345,39 @@ struct ReaderModelTests {
 
         #expect(model.takeScrollRestore(forPage: 0) == nil)
     }
+
+    // `ebook-reader`, *Fixed-layout EPUB*: background colour "remain[s] available" from the
+    // reader itself. D34 is what notices the comic reader could set one nowhere but Settings.
+
+    @Test("A chosen matte comes back to a fresh model, for the same series")
+    func chooseMatteRoundTrips() async throws {
+        let location = url("comics/natural-sort.cbz")
+        let defaults = try #require(UserDefaults(suiteName: "test-\(UUID().uuidString)"))
+        let preferences = ReaderPreferences(defaults: defaults)
+        let publication = publication(.cbz, at: location)
+
+        let first = ReaderModel(publication: publication, url: location, preferences: preferences)
+        first.chooseMatte("#E8EFE6")
+
+        let second = ReaderModel(publication: publication, url: location, preferences: preferences)
+        #expect(
+            second.settings.theme.custom?.background == "#E8EFE6",
+            "A matte chosen in the reader did not reach a fresh model for the same series."
+        )
+    }
+
+    @Test("Clearing the matte removes it for a fresh model too")
+    func clearingMatteRoundTrips() async throws {
+        let location = url("comics/natural-sort.cbz")
+        let defaults = try #require(UserDefaults(suiteName: "test-\(UUID().uuidString)"))
+        let preferences = ReaderPreferences(defaults: defaults)
+        let publication = publication(.cbz, at: location)
+
+        let first = ReaderModel(publication: publication, url: location, preferences: preferences)
+        first.chooseMatte("#E8EFE6")
+        first.chooseMatte(nil)
+
+        let second = ReaderModel(publication: publication, url: location, preferences: preferences)
+        #expect(second.settings.theme.custom == nil, "Clearing the matte left a colour behind.")
+    }
 }

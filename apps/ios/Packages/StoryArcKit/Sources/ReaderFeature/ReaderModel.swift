@@ -173,6 +173,10 @@ public final class ReaderModel {
         return Color(readerHex: hex) ?? .black
     }
 
+    /// Reader-local screen brightness, 0…1, or `nil` for the device's own. See
+    /// `ReaderBrightness.swift` for why each boundary of the session needs its own moment.
+    public var brightness: Double?
+
     /// Chooses a transition, for this shelf, from now on.
     public func choose(_ transition: PageTransition) {
         remember(settings.settingTransition(transition))
@@ -211,7 +215,9 @@ public final class ReaderModel {
         remember(settings.settingFit(fit))
     }
 
-    private func remember(_ new: ShelfSettings) {
+    // Internal rather than private: ``chooseMatte(_:)`` lives in `ReaderMatte.swift`,
+    // beside the matte logic it shares with `ReadingDefaults` — this file is at its line cap.
+    func remember(_ new: ShelfSettings) {
         settings = new
         guard let preferences else { return }
         preferences.save(
