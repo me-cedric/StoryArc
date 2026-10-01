@@ -74,6 +74,11 @@ class SourceRetryWiringTest {
                 " held reorder with nothing else queued would wait for a screen to open.",
             probeEverySource.contains("KavitaSync.flush("),
         )
+        assertTrue(
+            "the flush on reconnection no longer stamps a delivered position as synced, so the" +
+                " next pull reads it as a change made on this device.",
+            probeEverySource.contains("progress = progressStore,"),
+        )
         val reconcile = probeEverySource.indexOf("ShelfSync.reconcile(")
         val flush = probeEverySource.indexOf("KavitaSync.flush(")
         assertTrue(

@@ -191,16 +191,19 @@ private suspend fun LibraryViewModel.probeEverySource(
     // a held reorder on its own, which `reconcile`'s own push skips when no append is owed.
     if (answered.isNotEmpty()) {
         val editStore = ShelfEditStore.open(application)
-        val progressStore = KavitaProgressStore.open(application)
+        val queue = KavitaProgressStore.open(application)
         for (page in answered) {
             val shelves = _serverLists.value
                 .filter { it.server.id == page.id }
                 .map { ServerShelf(it.server, it.id, it.title, isList = true) }
-            ShelfSync.reconcile(shelves, editStore, progressStore)
+            ShelfSync.reconcile(shelves, editStore, queue)
             KavitaSync.flush(
-                progressStore,
+                queue,
                 page.id,
                 page.address,
+                // A position delivered here is stamped as synced, as the browser's own flush
+                // stamps it, so the next pull does not read it as changed on this device.
+                progress = progressStore,
                 onOrderConflict = { listId ->
                     val shelfName = shelves.firstOrNull { it.id == listId }?.title.orEmpty()
                     editStore.update {
