@@ -150,6 +150,7 @@ internal fun AppShell(
                     // waiting to be browsed to. See LibraryViewModel.readServers.
                     dependencies.credentials,
                     downloadQueue = dependencies.queue,
+                    pins = dependencies.pins,
                 )
             }
         },
