@@ -70,11 +70,21 @@ public actor OpdsClient {
     /// about an address the reader typed and there is nothing else to compare it against.
     private let home: OpdsOrigin?
 
+    /// The pin set this client trusts, by reference.
+    ///
+    /// `nonisolated` because it is an immutable `Sendable` value set once at `init` — a test
+    /// can read it with no `await`. 11.3's regression tests compare it by identity to the
+    /// app's shared set, so a call site that silently falls back to a fresh, empty
+    /// `CertificatePins()` fails a test rather than only a catalogue behind a pinned
+    /// certificate.
+    public nonisolated let pins: CertificatePins
+
     public init(
         pins: CertificatePins = CertificatePins(),
         origin: OpdsOrigin? = nil,
         configuration: URLSessionConfiguration? = nil
     ) {
+        self.pins = pins
         home = origin
         let delegate = OpdsTrustDelegate(pins: pins)
         let configured = configuration ?? {

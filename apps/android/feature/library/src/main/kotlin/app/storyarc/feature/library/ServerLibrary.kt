@@ -2,6 +2,7 @@ package app.storyarc.feature.library
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.smb.SmbClient
 import app.storyarc.core.model.Publication
@@ -57,11 +58,12 @@ internal object ServerLibrary {
     suspend fun read(
         registry: MutableStateFlow<SourceRegistry>,
         credentials: CredentialStore?,
+        pins: CertificatePins,
         progress: ProgressStore? = null,
         kavita: KavitaProgressStore? = null,
     ): Reading = withContext(Dispatchers.IO) {
         val slices = registry.value.sources.map { source ->
-            val read = runCatching { slice(source, credentials, progress, kavita) }.getOrNull()
+            val read = runCatching { slice(source, credentials, pins, progress, kavita) }.getOrNull()
             // **A source that just answered is answering, and the registry says so.**
             //
             // The registry rather than a list, because this read is where the answer is
@@ -92,6 +94,7 @@ internal object ServerLibrary {
     private suspend fun slice(
         source: Source,
         credentials: CredentialStore?,
+        pins: CertificatePins,
         progress: ProgressStore?,
         kavita: KavitaProgressStore?,
     ): SourceSlice? =
@@ -110,7 +113,7 @@ internal object ServerLibrary {
             }
 
             SourceKind.OPDS_CATALOG -> CataloguePage.of(source, credentials)
-                ?.let { OpdsContributor.publications(source.id, it) }
+                ?.let { OpdsContributor.publications(source.id, it, pins) }
 
             SourceKind.NETWORK_SHARE -> SmbPage.of(source, credentials)?.let { page ->
                 SmbContributor.publications(

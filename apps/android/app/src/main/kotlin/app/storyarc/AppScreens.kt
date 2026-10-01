@@ -399,6 +399,7 @@ private fun PublicationPage(
         transfer = record,
         page = catalogue,
         queue = catalogue?.let { dependencies.queue },
+        pins = dependencies.pins,
         chapters = chapters,
         stoppedIn = place.partIndex,
         offsetMillis = place.offsetInChapterMillis,

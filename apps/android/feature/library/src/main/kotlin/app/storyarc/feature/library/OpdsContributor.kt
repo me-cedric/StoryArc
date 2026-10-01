@@ -1,5 +1,6 @@
 package app.storyarc.feature.library
 
+import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.catalogue.OpdsClient
 import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.model.MetadataOrigin
@@ -29,14 +30,25 @@ import java.util.UUID
 internal object OpdsContributor {
 
     /** The entries of the feed a reader saved, as publications. */
-    suspend fun publications(sourceId: UUID, page: CataloguePage): SourceSlice {
-        val feed = OpdsClient(origin = page.origin).feed(page.url, page.credential)
+    suspend fun publications(sourceId: UUID, page: CataloguePage, pins: CertificatePins): SourceSlice {
+        val feed = client(page, pins).feed(page.url, page.credential)
         val publications = feed.publications.mapNotNull { entry -> publication(sourceId, entry) }
         // The feed says so itself. A `next` link is the catalogue's own statement that this
         // page is not the whole of it, which is a better answer than counting entries
         // against a limit this side invented.
         return SourceSlice(publications, holdsMore = feed.next != null)
     }
+
+    /**
+     * The client the library read fetches with.
+     *
+     * 11.3: pulled out so a test can assert which `pins` reach it without a live catalogue.
+     * Built with no pins before, which silently failed every catalogue behind a certificate
+     * the reader had already pinned -- the client refused the handshake and [publications]'
+     * caller saw an empty slice, never an error.
+     */
+    internal fun client(page: CataloguePage, pins: CertificatePins): OpdsClient =
+        OpdsClient(pins = pins, origin = page.origin)
 
     /**
      * One entry as a row, or null for an entry that is not a publication.

@@ -47,6 +47,7 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -151,6 +152,12 @@ fun PublicationDetailScreen(
     /** The app's one download queue. Null where this publication has no copy to obtain. */
     queue: DownloadQueue? = null,
     /**
+     * The app's one pin set. 11.3: without it, [PublicationCopy]'s own catalogue read built
+     * an unpinned client and could never offer a copy for a publication behind a certificate
+     * the reader had already trusted elsewhere.
+     */
+    pins: CertificatePins = CertificatePins(),
+    /**
      * The parts an audiobook plays in, as `AudiobookChapters.parts` reports them.
      *
      * Empty for everything that is not an audiobook, and empty until the container has been
@@ -229,7 +236,7 @@ fun PublicationDetailScreen(
 
     // The copy route, and the mobile-data question it has to ask. Before the action, because
     // a copy that lands while the page is open changes what the action *is*.
-    val copy = rememberPublicationCopy(publication, page, queue)
+    val copy = rememberPublicationCopy(publication, page, queue, pins)
 
     // **A copy the queue finished is on the device, whatever the library's table says.**
     // `adoptDownloads` folds a finished download onto a library row by identity, and an OPDS
