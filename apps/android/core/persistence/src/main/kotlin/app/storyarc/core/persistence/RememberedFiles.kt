@@ -52,10 +52,14 @@ class RememberedFiles(private val preferences: SharedPreferences) {
      * Remembers a file. Already remembered, it moves to the front rather than duplicating;
      * past [LIMIT], the file remembered longest ago falls off -- nothing in the app ever
      * asks the reader whether they meant to keep one, so the list has to end somewhere.
+     *
+     * Returns the files that fell off, so the caller can give their grants back.
      */
-    fun remember(uri: Uri) {
-        val kept = (listOf(uri) + all().filterNot { it == uri }).take(LIMIT)
+    fun remember(uri: Uri): List<Uri> {
+        val before = all()
+        val kept = (listOf(uri) + before.filterNot { it == uri }).take(LIMIT)
         write(kept)
+        return before - kept.toSet()
     }
 
     fun forget(uri: Uri) {

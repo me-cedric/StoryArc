@@ -146,7 +146,14 @@ internal object OpenedFile {
             context.contentResolver
                 .takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }.onSuccess {
-            RememberedFiles.open(context).remember(uri)
+            // A file past the twenty gives its grant back. The system caps an app's grants and
+            // drops the oldest itself, which can be a folder the reader picked.
+            RememberedFiles.open(context).remember(uri).forEach { dropped ->
+                runCatching {
+                    context.contentResolver
+                        .releasePersistableUriPermission(dropped, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+            }
         }
     }
 

@@ -61,7 +61,9 @@ object SafTree {
      */
     fun persistedTrees(resolver: ContentResolver): List<Uri> =
         resolver.persistedUriPermissions
-            .filter { it.isReadPermission }
+            // A single file another app handed over holds a grant too (10.10), and it is
+            // no folder: read as one, it was named as an unavailable folder at every launch.
+            .filter { it.isReadPermission && DocumentsContract.isTreeUri(it.uri) }
             .sortedBy { it.persistedTime }
             .map { it.uri }
 
