@@ -36,14 +36,29 @@ enum PaginatedScroll {
     }
 }
 
-/// The gestures Readium is no longer handling.
+extension EpubReaderModel {
+    /// Whether StoryArc draws the turn rather than Readium. True for Fast fade itself,
+    /// and for Slide once Reduce Motion has substituted it — `effective`, not `transition`,
+    /// which left Slide animating under Readium even with Reduce Motion on.
+    var ownsTheTurn: Bool { transitions(reduceMotion: reduceMotion).effective == .fastFade }
+}
+
+/// The gestures Readium is no longer handling, plus the edge-tap turn Readium never had.
 ///
-/// Installed only while StoryArc owns the turn. A horizontal pan and an edge tap, because
-/// disabling Readium's scroll takes the swipe away and a reader who chose Fast fade should
-/// not also lose swiping.
+/// The tap recogniser is installed always, in every page-turn mode. `page-transitions`
+/// makes edge-third taps a reader setting, not something Fast fade alone offers — before
+/// this, a reader who left the default Slide chosen had no tap zones at all, because this
+/// type installed nothing until Fast fade owned the turn. The pan recogniser stays scoped
+/// to that one mode: disabling Readium's scroll takes the swipe away, and a reader who
+/// chose Fast fade should not also lose swiping, but Slide and Scroll still need
+/// Readium's own scroll view for their own gesture.
 @MainActor
 final class TurnGestures: NSObject {
+    /// Non-nil only while Fast fade owns the turn. See ``EpubReaderModel/ownsTheTurn``.
     private var turn: ((Bool) -> Void)?
+    /// Readium's own, animated turn — used for an edge tap wherever Fast fade is not
+    /// chosen, so Slide and Scroll answer a tap the same way the comic reader answers one.
+    private var animatedTurn: ((Bool) -> Void)?
     private var reveal: (() -> Void)?
     /// Whether a tap in an edge band turns the page at all.
     ///
@@ -63,47 +78,61 @@ final class TurnGestures: NSObject {
     /// Enough travel to mean a turn rather than a stray finger.
     private static let panThreshold: CGFloat = 40
 
-    private var installed: [UIGestureRecognizer] = []
+    private var tapRecogniser: UITapGestureRecognizer?
+    private var panRecogniser: UIPanGestureRecognizer?
     private weak var host: UIView?
+    /// Whether the pan is currently installed and Readium's own scroll currently stopped.
+    private var ownsTurn = false
 
-    /// Takes the turn over, or hands it back.
+    /// Takes the turn over, or hands it back. Installs the tap once, on the first host.
     ///
     /// Called on every update rather than once at creation, because a reader chooses a
     /// page turn *after* the book is open. Idempotent: the same mode twice changes
-    /// nothing, and switching back to Slide gives Readium its scroll and its swipe.
+    /// nothing, and switching back to Slide gives Readium its scroll and its swipe — the
+    /// tap stays either way, because Slide has tap zones of its own now.
     func apply(
         turn: ((Bool) -> Void)?,
+        animatedTurn: @escaping (Bool) -> Void,
         reveal: @escaping () -> Void,
         tapTurnsPages: Bool,
         on view: UIView
     ) {
-        self.tapTurnsPages = tapTurnsPages
-        let shouldOwn = turn != nil
-        guard shouldOwn != !installed.isEmpty || host !== view else {
-            self.turn = turn
-            self.reveal = reveal
-            return
-        }
         self.turn = turn
+        self.animatedTurn = animatedTurn
         self.reveal = reveal
-        host = view
+        self.tapTurnsPages = tapTurnsPages
 
-        for recogniser in installed { view.removeGestureRecognizer(recogniser) }
-        installed = []
+        if host !== view {
+            if let tapRecogniser, let host { host.removeGestureRecognizer(tapRecogniser) }
+            if let panRecogniser, let host { host.removeGestureRecognizer(panRecogniser) }
+            panRecogniser = nil
+            ownsTurn = false
+            host = view
+
+            let tap = UITapGestureRecognizer(target: self, action: #selector(tapped))
+            tap.delegate = self
+            view.addGestureRecognizer(tap)
+            tapRecogniser = tap
+        }
+
+        let shouldOwn = turn != nil
+        guard shouldOwn != ownsTurn else { return }
+        ownsTurn = shouldOwn
 
         // Readium's paginated scroll is what animates a Slide, so it has to stop for a
         // transition StoryArc draws — otherwise both run and the page slides *and* fades.
         // If it cannot be found, Readium keeps the turn and the reader gets a Slide, which
         // is a lost transition rather than a reader who cannot turn a page.
         PaginatedScroll.find(in: view)?.isScrollEnabled = !shouldOwn
-        guard shouldOwn else { return }
 
-        let tap = UITapGestureRecognizer(target: self, action: #selector(tapped))
-        let pan = UIPanGestureRecognizer(target: self, action: #selector(panned))
-        for recogniser in [tap, pan] as [UIGestureRecognizer] {
-            recogniser.delegate = self
-            view.addGestureRecognizer(recogniser)
-            installed.append(recogniser)
+        if shouldOwn {
+            let pan = UIPanGestureRecognizer(target: self, action: #selector(panned))
+            pan.delegate = self
+            view.addGestureRecognizer(pan)
+            panRecogniser = pan
+        } else if let panRecogniser {
+            view.removeGestureRecognizer(panRecogniser)
+            self.panRecogniser = nil
         }
     }
 
@@ -113,11 +142,12 @@ final class TurnGestures: NSObject {
         let band = view.bounds.width * Self.edgeFraction
         // `page-transitions`: with the zones off "a tap anywhere toggles the chrome, and
         // no tap turns a page". Not "no tap does anything" — the way back to the menu is
-        // the one thing a reader still needs from a tap.
+        // the one thing a reader still needs from a tap. Fast fade's own turn wins over
+        // Readium's animated one where both exist; outside Fast fade only the latter does.
         if tapTurnsPages, point.x < band {
-            turn?(false)
+            (turn ?? animatedTurn)?(false)
         } else if tapTurnsPages, point.x > view.bounds.width - band {
-            turn?(true)
+            (turn ?? animatedTurn)?(true)
         } else {
             reveal?()
         }

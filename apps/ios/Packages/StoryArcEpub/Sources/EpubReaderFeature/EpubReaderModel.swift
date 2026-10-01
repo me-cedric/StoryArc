@@ -243,11 +243,9 @@ public final class EpubReaderModel {
     /// How a page becomes the next page. Paginated or scrolling, for an EPUB.
     public internal(set) var transition: PageTransition = .slide
 
-    /// Whether StoryArc draws the turn rather than Readium.
-    ///
-    /// True only for the modes that need a picture of the page. Everything else stays with
-    /// Readium's own paginated scroll, which is what Slide *is*.
-    var ownsTheTurn: Bool { transition == .fastFade }
+    /// The system's Reduce Motion, mirrored from the environment by the view. See
+    /// ``ownsTheTurn`` in `ReflowableTurn.swift`.
+    var reduceMotion = false
 
     /// Always reflowable. See the note in `init`.
     static let scope = ThemeScope.reflowable
@@ -383,7 +381,9 @@ public final class EpubReaderModel {
         // inside the same chapter. Going to the stored locator afterwards puts them
         // where the text was.
         let locator = navigator.currentLocation
-        navigator.submitPreferences(theme.preferences(values: values, transition: transition))
+        navigator.submitPreferences(
+            theme.preferences(values: values, transition: transitions(reduceMotion: reduceMotion).effective)
+        )
 
         guard let locator else { return }
         // ponytail: after the reflow, not during it. `submitPreferences` has no

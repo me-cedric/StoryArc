@@ -82,8 +82,12 @@ extension EpubReaderModel {
             navigator.delegate = observer
             self.navigator = navigator
             // Submitted rather than passed at construction: the same call applies a
-            // later change, so there is one path into Readium instead of two.
-            navigator.submitPreferences(theme.preferences(values: values, transition: transition))
+            // later change, so there is one path into Readium instead of two. `effective`,
+            // not the chosen mode — a book that opens with Reduce Motion already on and
+            // Slide chosen has to open in Fast fade's own turn, not Readium's animated one.
+            navigator.submitPreferences(
+                theme.preferences(values: values, transition: transitions(reduceMotion: reduceMotion).effective)
+            )
             locator = resumed
             readingOrder = opened.readingOrder.map(\.href)
             progression = resumed.map(totalProgression(of:)) ?? 0
@@ -147,13 +151,18 @@ extension EpubReaderModel {
         )
     }
 
-    /// Moves on a tap or a key, for the chrome to drive.
+    /// Moves on an edge tap or a turn key, wherever Fast fade is not the mode drawing it.
+    ///
+    /// `animated: !reduceMotion` for the same reason ``ownsTheTurn`` reads `effective`
+    /// rather than `transition`: a reader with Reduce Motion on who is in Scroll mode —
+    /// the one case this reaches, since Slide becomes Fast fade's own turn under Reduce
+    /// Motion and never calls here — should not get an animated jump either.
     public func goForward() async {
-        _ = await navigator?.goForward(options: NavigatorGoOptions(animated: true))
+        _ = await navigator?.goForward(options: NavigatorGoOptions(animated: !reduceMotion))
     }
 
     public func goBackward() async {
-        _ = await navigator?.goBackward(options: NavigatorGoOptions(animated: true))
+        _ = await navigator?.goBackward(options: NavigatorGoOptions(animated: !reduceMotion))
     }
 
     /// Turns a page with a transition StoryArc draws rather than one Readium draws.
