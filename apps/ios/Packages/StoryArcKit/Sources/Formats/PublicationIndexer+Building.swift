@@ -147,8 +147,10 @@ extension PublicationIndexer {
             number: number,
             volume: info?.volume ?? fallback.volume,
             authors: info?.writers ?? [],
+            pencillers: info?.pencillers ?? [],
             publisher: info?.publisher,
             year: info?.year ?? fallback.year,
+            releaseDate: Self.releaseDate(from: info),
             language: info?.language,
             summary: info?.summary,
             genres: info?.genres ?? [],
@@ -251,6 +253,22 @@ extension PublicationIndexer {
         // its headers alone, with a compressed page and no file yet, is just as
         // download-only even though it is not solid.
         return (rar.isStreamable && !rar.isDownloadOnly) ? .streams : .downloadOnly
+    }
+
+    /// `ComicInfo.xml`'s full publication date, when it names a month and a day as well
+    /// as a year — `nil` for a year alone, which `Publication.year` already carries.
+    ///
+    /// Midnight UTC: there is no time of day to a publication date, and UTC is what
+    /// keeps it the same date on every device regardless of where the reader is.
+    static func releaseDate(from info: ComicInfo?) -> Date? {
+        guard let info, let year = info.year, let month = info.month, let day = info.day
+        else { return nil }
+        var components = DateComponents()
+        components.year = year
+        components.month = month
+        components.day = day
+        components.timeZone = TimeZone(identifier: "UTC")
+        return Calendar(identifier: .gregorian).date(from: components)
     }
 
     /// A spine's own `page-progression-direction`, as `ReadingDirection.inferred` wants it.

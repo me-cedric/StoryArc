@@ -60,6 +60,23 @@ struct PublicationIndexerTests {
         #expect(publication.origin == .embedded)
     }
 
+    @Test("A penciller credit and the full release date reach the library")
+    func pencillerAndReleaseDate() async throws {
+        // Parsed by ComicInfo already, and dropped here: neither reached the
+        // Publication model, so neither survived the scan journal. The fixture
+        // declares Year 2026, Month 1, Day 15 — 2026-01-15T00:00:00Z.
+        let publication = try await index("comics/manga-metadata.cbz")
+        #expect(publication.pencillers == ["A Penciller"])
+        #expect(publication.releaseDate == Date(timeIntervalSince1970: 1_768_435_200))
+    }
+
+    @Test("A year with no month or day names no release date")
+    func releaseDateNeedsTheWholeDate() async throws {
+        // `natural-sort.cbz` carries no ComicInfo at all, so there is nothing to
+        // turn into a date — a bare year must not become January 1st.
+        #expect(try await index("comics/natural-sort.cbz").releaseDate == nil)
+    }
+
     @Test("A file with no embedded metadata falls back to its filename, and says so")
     func inferredFallback() async throws {
         let publication = try await index("comics/natural-sort.cbz")

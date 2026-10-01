@@ -70,6 +70,23 @@ class PublicationIndexerTest {
     }
 
     @Test
+    fun `a penciller credit and the full release date reach the library`() = runTest {
+        // Parsed by ComicInfo already, and dropped here: neither reached the
+        // Publication model, so neither survived the scan journal.
+        val publication = index("comics/manga-metadata.cbz")
+        assertEquals(listOf("A Penciller"), publication.pencillers)
+        // 2026-01-15T00:00:00Z
+        assertEquals(1_768_435_200_000L, publication.releaseDateEpochMillis)
+    }
+
+    @Test
+    fun `a year with no month or day names no release date`() = runTest {
+        // `natural-sort.cbz` carries no ComicInfo at all, so there is nothing to
+        // turn into a date -- a bare year must not become January 1st.
+        assertNull(index("comics/natural-sort.cbz").releaseDateEpochMillis)
+    }
+
+    @Test
     fun `a file with no embedded metadata falls back to its filename, and says so`() = runTest {
         val publication = index("comics/natural-sort.cbz")
         assertEquals(MetadataOrigin.INFERRED, publication.origin)

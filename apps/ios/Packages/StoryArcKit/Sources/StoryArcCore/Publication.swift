@@ -89,8 +89,15 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
     public let number: String?
     public let volume: Int?
     public let authors: [String]
+    /// `ComicInfo.xml`'s `Penciller` credit, kept apart from ``authors``' `Writer`.
+    public let pencillers: [String]
     public let publisher: String?
     public let year: Int?
+    /// The full publication date, when `ComicInfo.xml` names a month and a day as
+    /// well as a year. Midnight UTC on that date — there is no time of day to a
+    /// publication date, and UTC is what keeps it the same date on every device
+    /// regardless of where the reader is.
+    public let releaseDate: Date?
     public let language: String?
     public let summary: String?
 
@@ -176,8 +183,10 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
         number: String? = nil,
         volume: Int? = nil,
         authors: [String] = [],
+        pencillers: [String] = [],
         publisher: String? = nil,
         year: Int? = nil,
+        releaseDate: Date? = nil,
         language: String? = nil,
         summary: String? = nil,
         genres: [String] = [],
@@ -205,8 +214,10 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
         self.number = number
         self.volume = volume
         self.authors = authors
+        self.pencillers = pencillers
         self.publisher = publisher
         self.year = year
+        self.releaseDate = releaseDate
         self.language = language
         self.summary = summary
         self.genres = genres

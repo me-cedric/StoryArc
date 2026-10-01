@@ -81,8 +81,10 @@ private struct StoredPublication: Codable {
     let number: String?
     let volume: Int?
     let authors: [String]
+    let pencillers: [String]
     let publisher: String?
     let year: Int?
+    let releaseDate: Date?
     let language: String?
     let summary: String?
     let origin: String
@@ -102,8 +104,10 @@ private struct StoredPublication: Codable {
         number = publication.number
         volume = publication.volume
         authors = publication.authors
+        pencillers = publication.pencillers
         publisher = publication.publisher
         year = publication.year
+        releaseDate = publication.releaseDate
         language = publication.language
         summary = publication.summary
         origin = publication.origin.rawValue
@@ -137,8 +141,10 @@ private struct StoredPublication: Codable {
             number: number,
             volume: volume,
             authors: authors,
+            pencillers: pencillers,
             publisher: publisher,
             year: year,
+            releaseDate: releaseDate,
             language: language,
             summary: summary,
             origin: MetadataOrigin(rawValue: origin) ?? .inferred,

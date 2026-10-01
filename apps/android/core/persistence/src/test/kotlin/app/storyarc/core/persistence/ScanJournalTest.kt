@@ -28,6 +28,8 @@ class ScanJournalTest {
         series = series,
         number = "1",
         authors = listOf("Jeff Smith"),
+        pencillers = listOf("Jeff Smith"),
+        releaseDateEpochMillis = 1_768_435_200_000L, // 2026-01-15T00:00:00Z
         origin = MetadataOrigin.EMBEDDED,
         pageCount = 24,
         coverPath = "001.png",
@@ -52,6 +54,8 @@ class ScanJournalTest {
         assertEquals("Bone", read.series)
         assertEquals("1", read.number)
         assertEquals(listOf("Jeff Smith"), read.authors)
+        assertEquals(listOf("Jeff Smith"), read.pencillers)
+        assertEquals(1_768_435_200_000L, read.releaseDateEpochMillis)
         assertEquals(24, read.pageCount)
         assertEquals("001.png", read.coverPath)
         assertEquals(ReadingDirection.RIGHT_TO_LEFT, read.readingDirection)
