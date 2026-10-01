@@ -1,5 +1,6 @@
 import Foundation
 import Kavita
+internal import Persistence
 import StoryArcCore
 
 /// What a Kavita server puts in the library.
@@ -51,17 +52,29 @@ enum KavitaContributor {
         let chapters: [KavitaChapter]
     }
 
-    static func page(source: UUID, client: KavitaClient, page: Int) async throws -> Page {
+    static func page(
+        source: UUID,
+        client: KavitaClient,
+        page: Int,
+        store: KavitaProgressStore = KavitaProgressStore()
+    ) async throws -> Page {
         let series = try await client.recentSeries(page: page, size: firstSlice)
         var found: [Publication] = []
         var chapters: [KavitaChapter] = []
+        // Every chapter this read sees, so a reading list or a mark reaches Kavita for a
+        // row the reader has only ever seen on a shelf — see ``KavitaProgressStore/rememberCatalog(_:)``.
+        var origins: [String: KavitaOrigin] = [:]
         for each in series {
             let volumes = (try? await client.volumes(ofSeries: each.id)) ?? []
-            for chapter in volumes.flatMap(\.chapters) {
-                found.append(publication(source: source, series: each, chapter: chapter))
-                chapters.append(chapter)
+            for volume in volumes {
+                for chapter in volume.chapters {
+                    found.append(publication(source: source, series: each, chapter: chapter))
+                    chapters.append(chapter)
+                }
+                origins.merge(catalogOrigins(source: source, series: each, volume: volume)) { _, new in new }
             }
         }
+        store.rememberCatalog(origins)
         // A full page is the only evidence a server has more, and it is evidence rather
         // than proof: a library of exactly sixty series reads as partial once, and says so
         // until the page comes back short. Overstating what is held back is the safe way
@@ -74,8 +87,12 @@ enum KavitaContributor {
     }
 
     /// The chapters of a server's most recently added series, as publications.
-    static func publications(source: UUID, client: KavitaClient) async throws -> Page {
-        try await page(source: source, client: client, page: 1)
+    static func publications(
+        source: UUID,
+        client: KavitaClient,
+        store: KavitaProgressStore = KavitaProgressStore()
+    ) async throws -> Page {
+        try await page(source: source, client: client, page: 1, store: store)
     }
 
     /// One chapter as a row in the library.
@@ -99,6 +116,33 @@ enum KavitaContributor {
             pageCount: chapter.pages > 0 ? chapter.pages : nil,
             sourceID: source
         )
+    }
+
+    /// Where each of a volume's chapters sits on the server, keyed by the row it becomes.
+    ///
+    /// The rule ``page(source:client:page:store:)`` needs and a test can reach without a
+    /// server: given a series and one of its volumes, which is what a browse already holds
+    /// by the time it has either, this is every chapter's full address — library, series,
+    /// volume, chapter — filed under the same key ``Publication/id`` gives the row. Lifted
+    /// out so ``KavitaContributorCatalogOriginTests`` can prove it without a stub.
+    static func catalogOrigins(
+        source: UUID,
+        series: KavitaSeries,
+        volume: KavitaVolume
+    ) -> [String: KavitaOrigin] {
+        var result: [String: KavitaOrigin] = [:]
+        for chapter in volume.chapters {
+            let row = publication(source: source, series: series, chapter: chapter)
+            result[row.id] = KavitaOrigin(
+                sourceId: source.uuidString,
+                libraryId: series.libraryId,
+                seriesId: series.id,
+                volumeId: volume.id,
+                chapterId: chapter.id,
+                pages: chapter.pages
+            )
+        }
+        return result
     }
 
     /// What to call one chapter.

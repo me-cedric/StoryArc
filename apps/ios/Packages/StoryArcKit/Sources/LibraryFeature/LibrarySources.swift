@@ -385,7 +385,7 @@ extension LibraryModel {
         try? await progressStore?.mark(publication.identity, finished: isRead)
         await refreshProgress()
 
-        guard let origin = kavita.origin(of: publication.id) else { return }
+        guard let origin = kavita.resolvedOrigin(of: publication.id) else { return }
         let address = registry.sources
             .first { $0.id.uuidString == origin.sourceId }
             .flatMap { KavitaPage(source: $0, credentials: credentials)?.address }

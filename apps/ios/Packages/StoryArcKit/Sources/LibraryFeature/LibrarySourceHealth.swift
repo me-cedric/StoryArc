@@ -139,7 +139,7 @@ extension LibraryModel {
     @discardableResult
     func add(_ publication: Publication, toServerList list: ServerShelf) async -> Bool {
         let kavita = KavitaProgressStore()
-        guard let origin = kavita.origin(of: publication.id),
+        guard let origin = kavita.resolvedOrigin(of: publication.id),
               origin.sourceId == list.server.id
         else { return false }
 

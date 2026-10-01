@@ -3,10 +3,13 @@ package app.storyarc.feature.library
 import app.storyarc.core.kavita.KavitaChapter
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.kavita.KavitaSeries
+import app.storyarc.core.kavita.KavitaVolume
 import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.persistence.KavitaOrigin
+import app.storyarc.core.persistence.KavitaProgressStore
 import java.util.UUID
 
 /**
@@ -80,14 +83,29 @@ internal object KavitaContributor {
         val chapters: List<KavitaChapter>,
     )
 
-    suspend fun page(sourceId: UUID, client: KavitaClient, page: Int): Page {
+    /**
+     * @param store Where every chapter this read sees is catalogued, so a reading list or a
+     *   mark can reach Kavita for a row the reader has only ever seen on a shelf, never
+     *   opened or kept. Null skips the catalogue, for a caller with no progress store at all.
+     */
+    suspend fun page(
+        sourceId: UUID,
+        client: KavitaClient,
+        page: Int,
+        store: KavitaProgressStore? = null,
+    ): Page {
         val series = client.recentSeries(page = page, size = FIRST_SLICE)
         val chapters = mutableListOf<KavitaChapter>()
+        val origins = mutableMapOf<String, KavitaOrigin>()
         val publications = series.flatMap { each ->
-            val read = retriedOnce { chapters(client, each) }
-            chapters += read
-            read.map { chapter -> publication(sourceId, each, chapter) }
+            val volumes = retriedOnce { client.volumes(each.id) }
+            volumes.flatMap { volume ->
+                chapters += volume.chapters
+                origins += catalogOrigins(sourceId, each, volume)
+                volume.chapters.map { chapter -> publication(sourceId, each, chapter) }
+            }
         }
+        store?.rememberCatalog(origins)
         // A full page is the only evidence a server has more, and it is evidence rather
         // than proof: a library of exactly sixty series reads as partial once, and says so
         // until the page comes back short. Overstating what is held back is the safe way
@@ -99,8 +117,26 @@ internal object KavitaContributor {
         )
     }
 
-    private suspend fun chapters(client: KavitaClient, series: KavitaSeries): List<KavitaChapter> =
-        client.volumes(series.id).flatMap { it.chapters }
+    /**
+     * Where each of a volume's chapters sits on the server, keyed by the row it becomes.
+     *
+     * Lifted beside [publication] so `KavitaContributorCatalogOriginTest` can prove it
+     * without a server -- the twin of iOS's `KavitaContributor.catalogOrigins`.
+     */
+    internal fun catalogOrigins(
+        sourceId: UUID,
+        series: KavitaSeries,
+        volume: KavitaVolume,
+    ): Map<String, KavitaOrigin> = volume.chapters.associate { chapter ->
+        publication(sourceId, series, chapter).id to KavitaOrigin(
+            sourceId = sourceId.toString(),
+            libraryId = series.libraryId,
+            seriesId = series.id,
+            volumeId = volume.id,
+            chapterId = chapter.id,
+            pages = chapter.pages,
+        )
+    }
 
     /**
      * [fetch], retried once on failure before it is treated as empty.

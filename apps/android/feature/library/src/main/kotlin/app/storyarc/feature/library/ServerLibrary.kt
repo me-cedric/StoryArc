@@ -100,7 +100,7 @@ internal object ServerLibrary {
     ): SourceSlice? =
         when (source.kind) {
             SourceKind.KAVITA_SERVER -> KavitaPage.of(source, credentials)?.address?.let { address ->
-                val fetched = KavitaContributor.page(source.id, KavitaClient(address), 1)
+                val fetched = KavitaContributor.page(source.id, KavitaClient(address), 1, kavita)
                 // `reading-progress`: "when a synchronising source refreshes, progress
                 // recorded on other devices is merged into the local store". This refresh
                 // is that moment for every Kavita source, not only the one whose browser

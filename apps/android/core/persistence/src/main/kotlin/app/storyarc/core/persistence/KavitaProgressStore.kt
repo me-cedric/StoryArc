@@ -126,6 +126,7 @@ class KavitaProgressStore internal constructor(
         private const val NAME = "app.storyarc.kavita.progress"
         private const val ORIGINS = "origins"
         private const val UNSENT = "unsent"
+        private const val CATALOG_ORIGINS = "catalogOrigins"
 
         fun open(context: Context): KavitaProgressStore =
             KavitaProgressStore(context.getSharedPreferences(NAME, Context.MODE_PRIVATE))
@@ -156,6 +157,33 @@ class KavitaProgressStore internal constructor(
      */
     fun publicationForChapter(chapterId: Int): String? =
         origins().entries.firstOrNull { it.value.chapterId == chapterId }?.key
+
+    /**
+     * Notes where a library row came from, without claiming the reader has opened it.
+     *
+     * A separate map from [remember], on purpose: that one is read by [publicationForChapter]
+     * to answer "has this device opened this chapter", and a catalog note would answer yes
+     * for every chapter a browse merely lists. Batched per call rather than per chapter — a
+     * library refresh catalogues hundreds of them at once.
+     */
+    fun rememberCatalog(found: Map<String, KavitaOrigin>) {
+        if (found.isEmpty()) return
+        val all = catalogOrigins() + found
+        preferences.edit().putString(CATALOG_ORIGINS, encode(all)).apply()
+    }
+
+    /** Where a library row came from, catalogued by a browse that never opened it. */
+    fun catalogOrigin(publicationId: String): KavitaOrigin? = catalogOrigins()[publicationId]
+
+    /**
+     * The origin a write needs, for a row this device may only have seen in the library.
+     *
+     * Prefers what an open or a keep recorded — it alone carries the chapter's real page
+     * count — and falls back to what a browse catalogued, which is enough to join a reading
+     * list or send a mark even for a chapter nobody has opened yet.
+     */
+    fun resolvedOrigin(publicationId: String): KavitaOrigin? =
+        origin(publicationId) ?: catalogOrigin(publicationId)
 
     /** Keeps a position that could not be sent. One per chapter: the latest page wins. */
     fun hold(unsent: KavitaUnsent) {
@@ -195,6 +223,13 @@ class KavitaProgressStore internal constructor(
 
     private fun origins(): Map<String, KavitaOrigin> =
         preferences.getString(ORIGINS, null)
+            ?.let {
+                runCatching { json.decodeFromString<Map<String, KavitaOrigin>>(it) }.getOrNull()
+            }
+            ?: emptyMap()
+
+    private fun catalogOrigins(): Map<String, KavitaOrigin> =
+        preferences.getString(CATALOG_ORIGINS, null)
             ?.let {
                 runCatching { json.decodeFromString<Map<String, KavitaOrigin>>(it) }.getOrNull()
             }

@@ -274,7 +274,7 @@ fun AddToShelfSheet(
                             for (publication in publications) {
                                 if (!onAddToServerList(publication, list)) continue
                                 accepted += 1
-                                val chapter = progress.origin(publication.id)?.chapterId
+                                val chapter = progress.resolvedOrigin(publication.id)?.chapterId
                                     ?: continue
                                 ShelfSync.note(
                                     entry = chapter,

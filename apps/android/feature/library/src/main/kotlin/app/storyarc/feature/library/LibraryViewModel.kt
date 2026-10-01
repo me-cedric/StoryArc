@@ -315,7 +315,7 @@ class LibraryViewModel(
             progressStore?.mark(publication.identity, isRead)
             refreshProgress()
 
-            val origin = kavita?.origin(publication.id) ?: return@launch
+            val origin = kavita?.resolvedOrigin(publication.id) ?: return@launch
             KavitaSync.mark(
                 kavita,
                 _registry.value.sources
@@ -366,7 +366,7 @@ class LibraryViewModel(
         kavita: KavitaProgressStore?,
         credentials: CredentialStore?,
     ): Boolean {
-        val origin = kavita?.origin(publication.id) ?: return false
+        val origin = kavita?.resolvedOrigin(publication.id) ?: return false
         if (origin.sourceId != list.server.id) return false
 
         KavitaSync.append(

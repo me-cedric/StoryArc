@@ -193,6 +193,7 @@ public struct KavitaProgressStore: @unchecked Sendable {
     private let defaults: UserDefaults
     private let origins = "app.storyarc.kavita.origins"
     private let waiting = "app.storyarc.kavita.unsent"
+    private let catalogOrigins = "app.storyarc.kavita.catalogOrigins"
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -208,6 +209,42 @@ public struct KavitaProgressStore: @unchecked Sendable {
 
     /// Where a publication came from, or nil when it did not come from a Kavita server.
     public func origin(of publicationId: String) -> KavitaOrigin? { links()[publicationId] }
+
+    /// Notes where a library row came from, without claiming the reader has opened it.
+    ///
+    /// A separate dictionary from ``remember(_:for:)``, on purpose. That one is read by
+    /// ``publication(forChapter:)`` to answer "has this device opened this chapter", and a
+    /// catalog note would answer yes for every chapter a browse merely lists — which is a
+    /// library-held row for every series on the server, not only the ones a reader has read.
+    ///
+    /// Batched per call rather than per chapter: a library refresh catalogues hundreds of
+    /// chapters at once, and a dictionary re-encoded that many times is the kind of slowdown
+    /// that only shows up against a real server.
+    public func rememberCatalog(_ found: [String: KavitaOrigin]) {
+        guard !found.isEmpty else { return }
+        var all = catalogLinks()
+        all.merge(found) { _, new in new }
+        guard let data = try? JSONEncoder().encode(all) else { return }
+        defaults.set(data, forKey: catalogOrigins)
+    }
+
+    /// Where a library row came from, catalogued by a browse that never opened it.
+    ///
+    /// Nil for a chapter nothing has ever listed. See ``rememberCatalog(_:)`` for why this
+    /// is not the same dictionary ``origin(of:)`` reads.
+    public func catalogOrigin(of publicationId: String) -> KavitaOrigin? {
+        catalogLinks()[publicationId]
+    }
+
+    /// The origin a write needs, for a row this device may only have seen in the library.
+    ///
+    /// Prefers what an open or a keep recorded — it alone carries the chapter's real page
+    /// count, which a reflowable position needs to report a page number at all — and falls
+    /// back to what a browse catalogued, which is enough to join a reading list or send a
+    /// mark even for a chapter nobody has opened yet.
+    public func resolvedOrigin(of publicationId: String) -> KavitaOrigin? {
+        origin(of: publicationId) ?? catalogOrigin(of: publicationId)
+    }
 
     /// The publication one chapter was read as, if this device has ever opened it.
     ///
@@ -256,6 +293,13 @@ public struct KavitaProgressStore: @unchecked Sendable {
 
     private func links() -> [String: KavitaOrigin] {
         guard let data = defaults.data(forKey: origins),
+              let stored = try? JSONDecoder().decode([String: KavitaOrigin].self, from: data)
+        else { return [:] }
+        return stored
+    }
+
+    private func catalogLinks() -> [String: KavitaOrigin] {
+        guard let data = defaults.data(forKey: catalogOrigins),
               let stored = try? JSONDecoder().decode([String: KavitaOrigin].self, from: data)
         else { return [:] }
         return stored
