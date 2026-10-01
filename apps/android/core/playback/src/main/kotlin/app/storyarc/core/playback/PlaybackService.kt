@@ -400,6 +400,16 @@ class PlaybackService : MediaLibraryService() {
          *
          * A shelf row the listener has never played has no offset to carry on from, so it
          * starts at the beginning. That is the only difference between the two stores here.
+         *
+         * **A controller outside the app attaches the service player to [PlaybackHost]'s own
+         * session.** Before this, a car's choice reached the decoder with no
+         * [app.storyarc.core.playback.PlayerSource] over it at all — no `reading-progress`
+         * write, no [PlaybackMemory] kept current, and [PlaybackHost.recordReached]'s own
+         * writer never called because nothing had told it this book was playing.
+         * [PlaybackHost.attachCarStart] is that attach. The app's own controller reaches this
+         * callback too, through its own `setMediaItems` call, and is left alone: it is
+         * already the session [PlaybackHost.start] built, and attaching a second source over
+         * the same player would displace the one just started.
          */
         override fun onSetMediaItems(
             mediaSession: MediaSession,
@@ -418,6 +428,9 @@ class PlaybackService : MediaLibraryService() {
                     startIndex,
                     startPositionMs,
                 )
+            if (controller.packageName != packageName) {
+                player?.let { PlaybackHost.attachCarStart(this@PlaybackService, book, it) }
+            }
             return Futures.immediateFuture(resumptionOf(book).let {
                 MediaSession.MediaItemsWithStartPosition(it.items, it.startIndex, it.startPositionMs)
             })

@@ -212,6 +212,24 @@ class AudiobookSource(
         onChange?.invoke()
     }
 
+    /**
+     * Starts watching a player something else has already been handed items for, instead of
+     * loading and starting it the way [play] does.
+     *
+     * For [PlaybackService.LibraryCallback.onSetMediaItems]: a car's own
+     * `setMediaItems`/`prepare`/`play` chain is what loads and starts this audio, and calling
+     * [play] there would call [prepare] a second time over items the service has already
+     * resolved. This is everything [play] does except that — the session starts active, so
+     * [PlaybackCentre.attach] does not read it as a session that has already ended, and the
+     * listener [prepare] would have added is the one that catches the rest up as the car's
+     * own commands reach the player.
+     */
+    fun attach() {
+        player.addListener(listener)
+        session = session.started()
+        onChange?.invoke()
+    }
+
     override fun pause() {
         player.pause()
         session = session.pausedByListener()

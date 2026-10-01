@@ -45,12 +45,33 @@ class PlaybackCentre(
      * started would be a position written against the wrong book.
      */
     fun start(source: PlayerSource) {
+        hold(source)
+        source.play()
+        publish()
+    }
+
+    /**
+     * Adopts a source something else has already started, instead of starting one of this
+     * centre's own through [start].
+     *
+     * [PlaybackService.LibraryCallback.onSetMediaItems] is the one caller: a car choosing a
+     * book from the shelf hands it straight to the service player, with no [PlayerSource]
+     * attached and nothing writing `reading-progress` for it. This is [start] without the
+     * `source.play()` — the car's own session commands are what load and start the audio —
+     * so a car-started book becomes the one session every other surface reads, instead of
+     * sound this centre knows nothing about.
+     */
+    fun attach(source: PlayerSource) {
+        hold(source)
+        publish()
+    }
+
+    /** What [start] and [attach] share: displace whatever was playing, and hold the new one. */
+    private fun hold(source: PlayerSource) {
         displace()
         this.source = source
         source.onChange = { publish() }
         source.onInterruptionEnd = { mayResume -> endInterruption(mayResume) }
-        source.play()
-        publish()
     }
 
     /**

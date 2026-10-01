@@ -15,6 +15,9 @@ data class CarBook(
     val durationMillis: Long? = null,
     val artworkUri: String? = null,
     val uris: List<String>,
+    /** Where the listener left off, as `reading-progress` has it. Zero for a book nobody has started. */
+    val partIndex: Int = 0,
+    val offsetMillis: Long = 0,
 )
 
 /**
@@ -42,6 +45,8 @@ internal class CarLibrary(private val preferences: SharedPreferences) {
         private const val DURATION = "duration."
         private const val ARTWORK = "artwork."
         private const val URIS = "uris."
+        private const val PART_INDEX = "partIndex."
+        private const val OFFSET_MILLIS = "offsetMillis."
 
         private const val SEPARATOR = "\n"
 
@@ -61,6 +66,8 @@ internal class CarLibrary(private val preferences: SharedPreferences) {
                 putLong(DURATION + index, book.durationMillis ?: NO_DURATION)
                 putString(ARTWORK + index, book.artworkUri)
                 putString(URIS + index, book.uris.joinToString(SEPARATOR))
+                putInt(PART_INDEX + index, book.partIndex)
+                putLong(OFFSET_MILLIS + index, book.offsetMillis)
             }
         }.apply()
     }
@@ -76,6 +83,8 @@ internal class CarLibrary(private val preferences: SharedPreferences) {
                 .takeIf { it != NO_DURATION },
             artworkUri = preferences.getString(ARTWORK + index, null),
             uris = uris,
+            partIndex = preferences.getInt(PART_INDEX + index, 0),
+            offsetMillis = preferences.getLong(OFFSET_MILLIS + index, 0),
         )
     }
 }
@@ -119,7 +128,7 @@ internal fun CarBook.asPlayed(): PlayedBook = PlayedBook(
     artworkUri = artworkUri,
     uris = uris,
     partTitles = uris.map { "" },
-    partIndex = 0,
-    offsetMillis = 0,
+    partIndex = partIndex,
+    offsetMillis = offsetMillis,
     durationMillis = durationMillis,
 )
