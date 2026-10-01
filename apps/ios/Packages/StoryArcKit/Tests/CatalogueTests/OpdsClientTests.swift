@@ -211,9 +211,10 @@ struct OpdsClientTests {
     }
 
     @Test func aRedirectLoopNamesARedirectRatherThanARawTransportError() async throws {
-        let client = client { request in .redirect(to: request.url!) }
+        let start = try #require(URL(string: "https://library.example/opds/"))
+        let client = client { _ in .redirect(to: start) }
         await #expect(throws: OpdsError.redirect) {
-            try await client.feed(at: try #require(URL(string: "https://library.example/opds/")))
+            try await client.feed(at: start)
         }
     }
 

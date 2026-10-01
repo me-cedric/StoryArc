@@ -77,7 +77,7 @@ public actor OpdsClient {
     /// app's shared set, so a call site that silently falls back to a fresh, empty
     /// `CertificatePins()` fails a test rather than only a catalogue behind a pinned
     /// certificate.
-    public nonisolated let pins: CertificatePins
+    nonisolated public let pins: CertificatePins
 
     public init(
         pins: CertificatePins = CertificatePins(),
@@ -172,18 +172,7 @@ public actor OpdsClient {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            // A cancelled challenge arrives here. If it was the trust delegate that
-            // cancelled, the certificate is the story and the `URLError` is not.
-            if let refused = trust.takeRefusal() {
-                throw OpdsRefusal.untrusted(refused)
-            }
-            // 11.8: a redirect loop is `URLSession` giving up on the chain itself, not a
-            // decision this client made — `.refusedAddress` would have told the reader the
-            // app declined an address it understood, which is not what happened here.
-            if (error as? URLError)?.code == .httpTooManyRedirects {
-                throw OpdsError.redirect
-            }
-            throw error
+            throw transportFailure(error)
         }
 
         guard let http = response as? HTTPURLResponse else { throw OpdsError.empty }
@@ -209,6 +198,22 @@ public actor OpdsClient {
         default:
             throw OpdsError.http(status: http.statusCode)
         }
+    }
+
+    /// What a request that never produced a response surfaces as.
+    private func transportFailure(_ error: any Error) -> any Error {
+        // A cancelled challenge arrives here. If it was the trust delegate that
+        // cancelled, the certificate is the story and the `URLError` is not.
+        if let refused = trust.takeRefusal() {
+            return OpdsRefusal.untrusted(refused)
+        }
+        // 11.8: a redirect loop is `URLSession` giving up on the chain itself, not a
+        // decision this client made — `.refusedAddress` would have told the reader the
+        // app declined an address it understood, which is not what happened here.
+        if (error as? URLError)?.code == .httpTooManyRedirects {
+            return OpdsError.redirect
+        }
+        return error
     }
 }
 

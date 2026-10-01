@@ -244,36 +244,36 @@ struct OpdsCoverTests {
     private final class Captured: @unchecked Sendable {
         var value: Bool?
     }
+}
 
-    /// A transport that answers from a closure. iOS's `OpdsClientTests` carries the same
-    /// shape under the same name, in a different module — each suite's stub answers only
-    /// that suite's own client.
-    private final class Stub: URLProtocol, @unchecked Sendable {
-        enum Answer {
-            case response(status: Int, headers: [String: String], body: Data)
-        }
-
-        nonisolated(unsafe) static var answer: (@Sendable (URLRequest) -> Answer)?
-
-        override static func canInit(with request: URLRequest) -> Bool { true }
-        override static func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-
-        override func startLoading() {
-            guard let answered = Self.answer?(request),
-                  case let .response(status, headers, body) = answered,
-                  let url = request.url,
-                  let response = HTTPURLResponse(
-                      url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers
-                  )
-            else {
-                client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
-                return
-            }
-            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            client?.urlProtocol(self, didLoad: body)
-            client?.urlProtocolDidFinishLoading(self)
-        }
-
-        override func stopLoading() {}
+/// A transport that answers from a closure. iOS's `OpdsClientTests` carries the same
+/// shape under the same name, in a different module — each suite's stub answers only
+/// that suite's own client.
+private final class Stub: URLProtocol, @unchecked Sendable {
+    enum Answer {
+        case response(status: Int, headers: [String: String], body: Data)
     }
+
+    nonisolated(unsafe) static var answer: (@Sendable (URLRequest) -> Answer)?
+
+    override static func canInit(with request: URLRequest) -> Bool { true }
+    override static func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        guard let answered = Self.answer?(request),
+              case let .response(status, headers, body) = answered,
+              let url = request.url,
+              let response = HTTPURLResponse(
+                  url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers
+              )
+        else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
+            return
+        }
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: body)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
 }
