@@ -59,6 +59,8 @@
     <string name="downloads_paused_by_reader">En pausa</string>
     <string name="downloads_paused_waiting_for_wifi">Esperando Wi-Fi</string>
     <string name="downloads_paused_out_of_space">No hay espacio suficiente en el dispositivo</string>
+    <string name="downloads_attempt_resumed">Reanudado</string>
+    <string name="downloads_attempt_restarted">Reiniciado</string>
     <string name="downloads_move_earlier">Adelantar \u00ab%1$s\u00bb</string>
     <string name="downloads_move_later">Retrasar \u00ab%1$s\u00bb</string>
     <string name="downloads_undo">Deshacer</string>

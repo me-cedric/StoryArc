@@ -603,11 +603,12 @@ class DownloadQueue(
         val file = store.location(download)
         withContext(Dispatchers.IO) {
             store.prepare(file)
-            client.download(download.remote, credential, store.partial(download)) { written ->
+            val attempt = client.download(download.remote, credential, store.partial(download)) { written ->
                 // `offline-downloads` wants a reader to see a transfer move, not every
                 // packet relayed to them -- [OpdsClient] already throttles this call.
                 _library.value = _library.value.advancing(download.id, written)
             }
+            _library.value = _library.value.recordingAttempt(download.id, attempt)
             Files.move(
                 store.partial(download).toPath(),
                 file.toPath(),

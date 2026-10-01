@@ -135,6 +135,8 @@
     <string name="downloads_paused_by_reader">Paused</string>
     <string name="downloads_paused_waiting_for_wifi">Waiting for Wi-Fi</string>
     <string name="downloads_paused_out_of_space">Not enough space on the device</string>
+    <string name="downloads_attempt_resumed">Resumed</string>
+    <string name="downloads_attempt_restarted">Restarted</string>
     <string name="downloads_move_earlier">Move \u201c%1$s\u201d earlier</string>
     <string name="downloads_move_later">Move \u201c%1$s\u201d later</string>
     <string name="downloads_undo">Undo</string>

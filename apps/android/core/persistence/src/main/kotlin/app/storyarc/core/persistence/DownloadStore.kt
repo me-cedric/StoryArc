@@ -309,6 +309,14 @@ private data class StoredDownload(
      * field existed has none.
      */
     val pause: String? = null,
+    /**
+     * `offline-downloads`' *Resuming after interruption*: whether the transfer that produced
+     * what is on disk carried on or started over. The enum's own `name`, for the reason
+     * [pause]'s is. Defaulted for the same reason [pause]'s is: a record written before this
+     * field existed has none, which is also the honest answer for a download that has never
+     * been interrupted.
+     */
+    val lastAttempt: String? = null,
 ) {
     constructor(download: Download) : this(
         id = download.id,
@@ -324,6 +332,7 @@ private data class StoredDownload(
         attempts = (download.state as? Download.State.Failed)?.attempts ?: 0,
         verificationFailures = download.verificationFailures,
         pause = (download.state as? Download.State.Paused)?.reason?.name,
+        lastAttempt = download.lastAttempt?.name,
     )
 
     fun download(): Download {
@@ -347,6 +356,7 @@ private data class StoredDownload(
             downloadedBytes = downloadedBytes,
             completedAt = completedAt?.let(::Date),
             verificationFailures = verificationFailures,
+            lastAttempt = lastAttempt?.let { runCatching { Download.LastAttempt.valueOf(it) }.getOrNull() },
         )
     }
 }
