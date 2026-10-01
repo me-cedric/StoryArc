@@ -62,9 +62,13 @@ extension StoryArcApp {
 
     /// Through the shared queue, which is the only writer of the download store. A removal
     /// written to the store directly comes back at the queue's next save.
-    private func remove(_ id: Download.ID) {
+    ///
+    /// Returns what it took, which the sweep ignores and ``removeFinished(_:)`` — the
+    /// storage-full hold's own remedy — hands back to the free-space sheet.
+    @discardableResult
+    private func remove(_ id: Download.ID) -> RemovedDownload? {
         let queue = DownloadQueue.shared()
-        guard let taken = queue.removeAfterFinishing(id) else { return }
+        guard let taken = queue.removeAfterFinishing(id) else { return nil }
 
         downloads = queue.library
         removedDownload?.settle()
@@ -76,5 +80,19 @@ extension StoryArcApp {
             taken.settle()
             removedDownload = nil
         }
+        return taken
+    }
+
+    /// Lets the storage-full hold's own sheet take a finished download off the device,
+    /// through the same queue and the same ten-second undo as every other removal.
+    func removeFinished(_ download: Download) -> RemovedDownload? {
+        remove(download.id)
+    }
+
+    /// Puts a download ``removeFinished(_:)`` took back, undoing it.
+    func restoreFinished(_ removed: RemovedDownload) {
+        DownloadQueue.shared().restore(removed)
+        downloads = DownloadQueue.shared().library
+        if removedDownload?.download.id == removed.download.id { removedDownload = nil }
     }
 }

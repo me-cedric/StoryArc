@@ -988,6 +988,36 @@
         }
       }
     },
+    "downloads.held.freeSpace": {
+      "comment": "Title of the sheet listing finished downloads largest first, reached from the storage-full hold.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speicherplatz freigeben"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free up space"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liberar espacio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Libérer de l’espace"
+          }
+        }
+      }
+    },
     "downloads.held.outOfSpace.note": {
       "extractionState": "manual",
       "localizations": {
@@ -1656,6 +1686,36 @@
         }
       }
     },
+    "downloads.removed %@": {
+      "comment": "The ten-second undo after a download is removed, inside the free-space sheet.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ von diesem Gerät entfernt. Ihre Stelle bleibt erhalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” removed from this device. Your place is kept."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» eliminado de este dispositivo. Se conserva tu posición."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %@ » supprimé de cet appareil. Votre place est conservée."
+          }
+        }
+      }
+    },
     "downloads.total": {
       "extractionState": "manual",
       "localizations": {
@@ -1681,6 +1741,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Espace utilisé par les téléchargements"
+          }
+        }
+      }
+    },
+    "downloads.undo": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rückgängig"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Undo"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deshacer"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annuler"
           }
         }
       }

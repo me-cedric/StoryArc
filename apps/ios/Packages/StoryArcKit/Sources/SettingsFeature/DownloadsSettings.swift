@@ -52,6 +52,17 @@ struct DownloadsSettings: View {
     /// The row a search result pointed at, if the reader arrived through one.
     var highlight: SettingsAnchor?
 
+    /// Takes a finished download off the device, reversibly — the storage-full hold's own
+    /// remedy. `nil` when there was nothing to take. A feature module holds no queue of its
+    /// own, so the app layer supplies this the same way it supplies ``onClearDownloads``.
+    var onRemoveFinished: (Download) -> RemovedDownload? = { _ in nil }
+
+    /// Puts a download ``onRemoveFinished`` took back, undoing it.
+    var onRestoreFinished: (RemovedDownload) -> Void = { _ in }
+
+    /// Whether the free-space sheet is open.
+    @State private var isFreeingSpace = false
+
     var body: some View {
         HighlightingList(highlight: highlight) {
             waiting
@@ -86,6 +97,9 @@ struct DownloadsSettings: View {
             }
         }
         .navigationTitle(Text("settings.downloads", bundle: .module))
+        .sheet(isPresented: $isFreeingSpace) {
+            FreeSpaceSheet(downloads: downloads, onRemove: onRemoveFinished, onRestore: onRestoreFinished)
+        }
     }
 }
 
@@ -117,6 +131,15 @@ extension DownloadsSettings {
                     Text(hold.remedyKey, bundle: .module)
                         .textRole(.footnote)
                         .foregroundStyle(theme.palette.textTertiary)
+                }
+
+                // The one hold the reader can act on directly. `DownloadLibrary.isAtLimit`
+                // sums only finished bytes, so this hold cannot occur with nothing finished
+                // to show.
+                if hold == .storageFull {
+                    Button { isFreeingSpace = true } label: {
+                        Text("downloads.held.freeSpace", bundle: .module)
+                    }
                 }
             }
         }
