@@ -97,7 +97,7 @@ struct SearchScopeTests {
     @Test("The two scopes are the axis the shelf already has, not a second vocabulary")
     func scopeReusesTheAvailabilityAxis() {
         // `LibraryAvailability` already means exactly this, already says it in four
-        // languages, and already answers `keeps(_:)` the way `LibrarySurface.onDevice`
+        // languages, and already answers `keeps(_:)` the way the Downloads destination
         // answers it. A `SearchScope` enum beside it would be two names for one idea, and
         // the two would drift on the day one of them gained a third case.
         #expect(LibraryAvailability.allCases == [.everywhere, .onThisDevice])

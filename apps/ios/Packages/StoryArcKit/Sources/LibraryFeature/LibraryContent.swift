@@ -37,11 +37,6 @@ extension LibraryView {
     /// a reader on a plane does not care which of the two put the file there.
     var shown: [Publication] {
         switch surface {
-        // Left alone by both of the narrowings below. This destination *is* a predicate —
-        // `offline-downloads` promises it "is complete and fully functional" with no network
-        // — and a library filter that emptied it would break the one promise it makes.
-        case .onDevice:
-            LibraryAvailability.onThisDevice.narrowing(model.visible, location: model.location(of:))
         // The shelf's primary axis, applied here rather than inside the query: it narrows
         // what this surface lists and nothing else, which is what keeps it from becoming the
         // mode `library-browsing` removed origin for being.
@@ -293,12 +288,6 @@ extension LibraryView {
                     isPartial: model.isPartial,
                     onBrowse: { browsing = $0.id }
                 )
-            } else if surface == .onDevice {
-                // Nothing to narrow and nothing to scan: this destination holds what the
-                // device holds, so the only honest thing to say is that it holds nothing
-                // yet. `navigation-shell` requires it to stay present and selectable
-                // whatever the sources are doing, so there is no error branch here.
-                OnDeviceEmpty()
             } else if !model.publications.isEmpty {
                 // A library that is not empty but looks it. `library-browsing`
                 // forbids showing that silently: say what is narrowing it and
@@ -350,21 +339,5 @@ extension LibraryView {
         // passes under this app's chrome is artwork — a hard cut across a cover looks
         // like a rendering fault, and a soft one reads as depth.
         .scrollEdgeEffectStyle(.soft, for: .all)
-    }
-}
-
-/// Nothing is on this device yet.
-///
-/// Its own small view rather than a bare `Text` so the destination has a centred, quiet
-/// state at the weight the rest of the empty states use, and so the slice that turns this
-/// destination into the full offline shelf has one place to grow it from.
-struct OnDeviceEmpty: View {
-    @Environment(\.theme) private var theme
-
-    var body: some View {
-        Text("library.empty.title", bundle: .module)
-            .textRole(.title3)
-            .foregroundStyle(theme.palette.textSecondary)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

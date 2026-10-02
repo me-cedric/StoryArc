@@ -80,15 +80,17 @@ public enum LibraryDestination: Hashable, Sendable, CaseIterable, Identifiable {
 
 /// Which face of the library one ``LibraryView`` is showing.
 ///
-/// Three of the four destinations are the same screen over a different set — the shelf and
-/// the on-device shelf draw the same grid, the same cells and the same reader — and
-/// search is that screen with the field at the top of its own page. One view rather than
-/// three copies of a branch, which is how one copy ends up showing the wrong thing.
+/// The shelf and search are the same screen over a different set — search is that screen
+/// with the field at the top of its own page. One view rather than two copies of a branch,
+/// which is how one copy ends up showing the wrong thing.
+///
+/// A third case, `onDevice`, drew the Downloads tab through this same view until 17.11: the
+/// tab builds its own view now (`AppShell`'s `library(.shelf)` / `.search` construction
+/// sites and its separate Downloads case), so the shared-grid argument above no longer
+/// covers it, and nothing constructs it any more.
 public enum LibrarySurface: Hashable, Sendable {
     /// Everything the app holds metadata for, from every source.
     case shelf
-    /// Only what this device can open with no network at all.
-    case onDevice
     /// The same shelf, narrowed by what the reader typed.
     case search
 }
