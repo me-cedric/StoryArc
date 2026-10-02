@@ -112,19 +112,26 @@ internal fun AppIntents(
 
     // Waiting rather than looking, because a quick action lands on a cold start: the shelf
     // is still empty at the moment the request arrives. Giving up is part of the behaviour
-    // rather than a failure of it — the reader lands where they would have landed anyway.
+    // rather than a failure of it — the reader lands on the library, which is where they
+    // would have landed anyway.
     LaunchedEffect(wanted) {
         val id = wanted ?: return@LaunchedEffect
         repeat(RESOLVE_ATTEMPTS) {
             val publication = host.library.publications.value.firstOrNull { it.id == id }
             if (publication != null) {
                 wanted = null
-                host.library.location(publication)?.let { host.open(publication, it) }
+                val location = host.library.location(publication)
+                if (location != null) {
+                    host.open(publication, location)
+                } else {
+                    host.navigate { open(AppDestination.LIBRARY) }
+                }
                 return@LaunchedEffect
             }
             delay(RESOLVE_INTERVAL_MILLIS)
         }
         wanted = null
+        host.navigate { open(AppDestination.LIBRARY) }
     }
 
     ForgetFinishedDownloads(host = host, settings = settings, isReading = isReading)

@@ -152,6 +152,7 @@ struct ReadingContinuity: ViewModifier {
             }
         }
         wanted = nil
+        onShow(.library)
     }
 }
 
