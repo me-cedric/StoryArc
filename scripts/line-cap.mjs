@@ -74,6 +74,14 @@ const ALLOWED = {
     'apps/android/feature/reader/src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt': 1893,
     'apps/android/feature/library/src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt': 1696,
     'apps/android/feature/epubreader/src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt': 1051,
+    // 19.7 added the tinted/dark icon render and crossed the cap by 26 lines. `swift
+    // scripts/brand-mark.swift` is script-mode, which compiles and runs exactly the one file
+    // it is given — a second file passed alongside it is parsed as an *argument* to the
+    // first, not a second source file (`--out`, `.` and `--check` arrive the same way), so
+    // the usual split means rebuilding this generator as a compiled target, a far larger
+    // change than the one task asked for. Trimmed where trimming cost nothing; recorded here
+    // rather than past that.
+    'scripts/brand-mark.swift': 826,
 }
 
 /** Source this project writes. Generated files and dependencies are nobody's to split. */
