@@ -3,7 +3,7 @@
 `docs/delivery/remaining-work-2026-09-28.md` lists 225 build items across the
 seventeen main capabilities and four open changes. 35 of them waited on an
 owner decision; the owner's rulings are recorded whole in this repo's
-scratchpad decisions file and reproduced here as D1–D35 and LL, each with the
+scratchpad decisions file and reproduced here as D1–D38 and LL, each with the
 concrete approach per platform. The owner's rule for every decision: take the
 choice with the most features that stays true to the Apple Human Interface
 Guidelines, Material 3 and each platform's own best practice — difficulty and
@@ -377,6 +377,34 @@ through the same reset path, each announced to VoiceOver
 (`AccessibilityManager`/live-region announcement). Add
 `onDoubleTap`/`TapGesture(count: 2)` alongside the existing long-press
 detector. Spec impact: none.
+
+### D36 — Publication status filter (`library-browsing`)
+
+This decision closes the Open Question "Publication status has no source". The
+filter uses the status that the source reports. Kavita reports
+`publicationStatus`, and the row carries it. A reader can set a status by hand
+on a series whose source reports none, such as a local folder, a share or an
+OPDS catalogue. The filter menu has one status group for both. The group states
+that it covers only the series that have a status. A status from the server is
+not editable. Spec impact: a delta on library-browsing "Filtering" closes the
+Open Question.
+
+### D37 — Where a library is added (`one-library-three-destinations`)
+
+Settings › Your libraries gets its own add-a-library control, and the Library
+toolbar loses `AddSourceMenu`. An empty library keeps its "Add a library" call
+to action, so a first run still has a way in. The "Added from your library for
+now" strings change in four languages. Spec impact: none, because task 1.2 of
+that change already states this end state.
+
+### D38 — The device voice on the publication page (`audiobooks-and-playback`)
+
+A publication that the device can read aloud shows one line on its page. The
+line names the voice: "Read aloud by %@". On iOS, %@ is the voice name. On
+Android, voice ids are not names, so %@ is the engine label and the language. When no
+voice on the device reads the publication's language, the line says so: "No
+voice on this device reads %@", with the language name. Both lines exist in
+four languages. Spec impact: none.
 
 ### LL — local-library "unauthorized" vs "unreachable" (`local-library`)
 
