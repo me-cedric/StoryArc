@@ -42,7 +42,6 @@ struct SettingsStoreTests {
             AppSettings(
                 appearance: .oledDark,
                 language: "fr",
-                turnPagesWithVolumeButtons: true,
                 turnPagesByTappingTheEdges: false,
                 linkReadingThemeToAppearance: true,
                 lightReadingTheme: .bold,
@@ -53,7 +52,6 @@ struct SettingsStoreTests {
         let restored = suite.settings.settings()
         #expect(restored.appearance == .oledDark)
         #expect(restored.language == "fr")
-        #expect(restored.turnPagesWithVolumeButtons)
         #expect(!restored.turnPagesByTappingTheEdges)
         #expect(restored.linkReadingThemeToAppearance)
         // `ebook-reader` / *Theme follows appearance*: the pair is "the light and dark
@@ -73,7 +71,6 @@ struct SettingsStoreTests {
         // `nil` rather than the current system language: the difference between "has
         // not chosen" and "chose whatever the system happened to be set to".
         #expect(settings.language == nil)
-        #expect(!settings.turnPagesWithVolumeButtons)
         // Off, because `settings-and-about` says the two are separate and this is the
         // opt-in it then allows.
         #expect(!settings.linkReadingThemeToAppearance)
@@ -93,12 +90,16 @@ struct SettingsStoreTests {
         // Swift's synthesised decoder fails on a missing key even where the property
         // has a default, so a build that adds a setting could not read what an earlier
         // build wrote. Losing a reader's settings is a poor trade for a stricter
-        // decoder.
-        suite.defaults.set(Data(#"{"appearance":"dark"}"#.utf8), forKey: "app.storyarc.settings")
+        // decoder. `turnPagesWithVolumeButtons` is the opposite direction, a key an
+        // earlier build wrote and this one no longer declares — a keyed container
+        // ignores a key nothing asks it for, so this one is tolerated the same way.
+        suite.defaults.set(
+            Data(#"{"appearance":"dark","turnPagesWithVolumeButtons":true}"#.utf8),
+            forKey: "app.storyarc.settings"
+        )
 
         let settings = suite.settings.settings()
         #expect(settings.appearance == .dark)
-        #expect(!settings.turnPagesWithVolumeButtons)
         // The field this build added, missing from what the earlier one wrote.
         #expect(settings.turnPagesByTappingTheEdges)
         // The pair this build added. A blob written before it existed defaults to the
@@ -135,7 +136,7 @@ struct SettingsStoreTests {
         // them, and this asserts the neighbouring store survives.
         let calm = ShelfSettings(theme: ReadingTheme(preset: .calm)).settingFit(.width)
         suite.reader.save(ShelfMemory().remembering(calm, for: .fixedLayout, shelf: "Bone"))
-        suite.settings.save(AppSettings(appearance: .light, turnPagesWithVolumeButtons: true))
+        suite.settings.save(AppSettings(appearance: .light))
 
         suite.settings.reset()
 
