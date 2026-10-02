@@ -308,7 +308,14 @@ struct ListRow: View {
     @ViewBuilder
     private var thumbnail: some View {
         if let cover {
-            Image(decorative: cover, scale: 1).resizable().scaledToFill()
+            // Letterboxed, not cropped -- the same rule `CoverCell` draws the grid's cell by:
+            // `.scaledToFill()` cut the edges off every cover whose proportion was not the
+            // comic trim, and the row's cell is no less a cell for being read rather than
+            // browsed.
+            ZStack {
+                theme.palette.surfaceSunken
+                Image(decorative: cover, scale: 1).resizable().scaledToFit()
+            }
         } else {
             theme.palette.surfaceRaised
         }
