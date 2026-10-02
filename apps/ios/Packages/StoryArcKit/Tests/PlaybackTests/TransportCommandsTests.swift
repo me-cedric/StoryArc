@@ -71,4 +71,11 @@ struct TransportCommandsTests {
         #expect(offered.scrub)
         #expect(!offered.skipBySentence)
     }
+
+    @Test("Next-track and previous-track are never present and refusing, either source")
+    func nextAndPreviousTrackAreAlwaysOffered() {
+        for kind in SourceKind.allCases {
+            #expect(offered(kind).nextPreviousTrack, "\(kind) leaves next/previous track disabled")
+        }
+    }
 }

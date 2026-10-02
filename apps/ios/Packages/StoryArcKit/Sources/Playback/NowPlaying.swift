@@ -166,11 +166,8 @@ public final class NowPlaying {
         commands.skipForwardCommand.isEnabled = offered.skipByTime
         commands.skipBackwardCommand.preferredIntervals = [NSNumber(value: SkipIntervals.back)]
         commands.skipForwardCommand.preferredIntervals = [NSNumber(value: SkipIntervals.forward)]
-        // Sentence skip, in the buttons the platform gives an audio app for it. A voice has
-        // no tracks, so these are the only two controls a lock screen offers that mean
-        // "move by one unit of the thing being played".
-        commands.nextTrackCommand.isEnabled = offered.skipBySentence
-        commands.previousTrackCommand.isEnabled = offered.skipBySentence
+        commands.nextTrackCommand.isEnabled = offered.nextPreviousTrack
+        commands.previousTrackCommand.isEnabled = offered.nextPreviousTrack
         commands.changePlaybackPositionCommand.isEnabled = offered.scrub
     }
 
@@ -200,12 +197,26 @@ public final class NowPlaying {
         for (command, direction) in [
             (commands.skipBackwardCommand, SkipDirection.back),
             (commands.skipForwardCommand, SkipDirection.forward),
+        ] {
+            command.addTarget { [weak self] _ in
+                guard let centre = self?.centre else { return .commandFailed }
+                centre.skip(direction)
+                return .success
+            }
+        }
+        // The chapter move for a narrated book; the sentence move for a voice, same as the
+        // seconds buttons above. See ``PlayerCentre/moveToAdjacentPart(_:)``.
+        for (command, direction) in [
             (commands.previousTrackCommand, SkipDirection.back),
             (commands.nextTrackCommand, SkipDirection.forward),
         ] {
             command.addTarget { [weak self] _ in
                 guard let centre = self?.centre else { return .commandFailed }
-                centre.skip(direction)
+                if centre.skipUnit == .time {
+                    centre.moveToAdjacentPart(direction)
+                } else {
+                    centre.skip(direction)
+                }
                 return .success
             }
         }
@@ -249,6 +260,13 @@ struct TransportCommands {
     /// Skip by one sentence, in the previous-track and next-track buttons.
     let skipBySentence: Bool
 
+    /// The previous-track and next-track buttons, always — a chapter move for a narrated
+    /// file (``PlayerCentre/moveToAdjacentPart(_:)``), a sentence move for a voice
+    /// (``skipBySentence``'s own ``PlayerCentre/skip(_:)``). `NowPlaying.addTargets()` is
+    /// what picks between the two at the press; this only says the buttons are never the
+    /// "present and refusing" control `audio-playback` forbids.
+    let nextPreviousTrack: Bool
+
     /// The lock screen's scrubber, which needs a total to scrub through.
     let scrub: Bool
 
@@ -260,6 +278,7 @@ struct TransportCommands {
             togglePlayPause: true,
             skipByTime: skipUnit == .time,
             skipBySentence: skipUnit == .sentence,
+            nextPreviousTrack: true,
             scrub: isScrubbable
         )
     }
