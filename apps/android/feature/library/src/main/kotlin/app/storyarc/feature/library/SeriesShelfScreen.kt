@@ -21,6 +21,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.LibraryIndex
+import app.storyarc.core.model.LibraryQuery
+import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.Publication
 
 /**
@@ -38,6 +41,20 @@ import app.storyarc.core.model.Publication
  * The members are read from the library rather than passed in, so a series opened before a
  * source finished answering fills in as the rest arrives.
  */
+
+/**
+ * A series' own publications, in the library's `SERIES` order.
+ *
+ * Lifted beside the screen so the ordering rule is testable on its own: `library-browsing`
+ * says an opened series lists its issues "in their own order", and that order is the
+ * library's `SERIES` comparison (number, then natural filename), not adoption order.
+ */
+fun seriesShelfMembers(name: String, publications: List<Publication>): List<Publication> =
+    LibraryIndex.arrange(
+        publications.filter { it.series == name },
+        LibraryQuery(sort = LibrarySort.SERIES),
+    )
+
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun SeriesShelfScreen(
@@ -48,7 +65,7 @@ fun SeriesShelfScreen(
 ) {
     val palette = LocalStoryArcPalette.current
     val publications by viewModel.publications.collectAsStateWithLifecycle()
-    val members = publications.filter { it.series == name }
+    val members = seriesShelfMembers(name, publications)
 
     Scaffold(
         containerColor = palette.surfaceCanvas,
