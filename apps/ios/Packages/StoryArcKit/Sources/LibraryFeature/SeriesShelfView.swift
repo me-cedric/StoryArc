@@ -24,7 +24,7 @@ struct SeriesShelfView: View {
     @Environment(\.theme) private var theme
 
     private var members: [Publication] {
-        model.publications.filter { $0.series == name }
+        seriesShelfMembers(named: name, in: model.publications)
     }
 
     var body: some View {
@@ -43,4 +43,17 @@ struct SeriesShelfView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
     }
+}
+
+/// A series' own publications, in the library's `SERIES` order.
+///
+/// A free function beside the view rather than a method on it, so the ordering rule is
+/// testable on its own: `library-browsing` says an opened series lists its issues "in their
+/// own order", and that order is the library's `SERIES` comparison (number, then natural
+/// filename), not adoption order. Android's `seriesShelfMembers` is its twin.
+func seriesShelfMembers(named name: String, in publications: [Publication]) -> [Publication] {
+    LibraryIndex.arrange(
+        publications.filter { $0.series == name },
+        query: LibraryQuery(sort: .series)
+    )
 }
