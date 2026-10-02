@@ -378,12 +378,17 @@ private fun ListRow(
                     CoverListLayer.COVER -> {
                         val bitmap = cover
                         if (bitmap != null) {
-                            Image(
-                                bitmap = bitmap.asImageBitmap(),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize(),
-                            )
+                            // Letterboxed, not cropped -- the same rule `CoverGrid` draws its
+                            // cell by: `ContentScale.Crop` cut the edges off every cover whose
+                            // proportion was not the comic trim.
+                            Box(modifier = Modifier.fillMaxSize().background(palette.surfaceSunken)) {
+                                Image(
+                                    bitmap = bitmap.asImageBitmap(),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
                         } else {
                             // A tinted rectangle rather than nothing: a row whose thumbnail is
                             // absent should still look like a row with a thumbnail, or the
