@@ -1,6 +1,6 @@
 internal import SwiftUI
 
-/// What the navigation bar calls the library, on each of its three surfaces and while a
+/// What the navigation bar calls the library, on each of its two surfaces and while a
 /// selection is running.
 ///
 /// Lifted out of `LibraryView.swift` when that file reached the length the linter allows and
@@ -12,7 +12,6 @@ extension LibraryView {
     var title: Text {
         switch surface {
         case .shelf: Text("library.title", bundle: .module)
-        case .onDevice: Text("library.downloads.title", bundle: .module)
         case .search: Text("library.search.prompt", bundle: .module)
         }
     }

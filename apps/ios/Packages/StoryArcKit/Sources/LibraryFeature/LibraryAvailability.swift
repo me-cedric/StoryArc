@@ -37,7 +37,7 @@ enum LibraryAvailability: String, CaseIterable, Sendable {
 
     /// Whether a publication at this location survives the narrowing.
     ///
-    /// The same question ``LibrarySurface/onDevice`` asks, deliberately: everything the app
+    /// The same question the Downloads destination asks, deliberately: everything the app
     /// can open from a file URL qualifies — a folder the reader picked as much as a
     /// download the app fetched — because a reader with no network does not care which of
     /// the two put the file there.
