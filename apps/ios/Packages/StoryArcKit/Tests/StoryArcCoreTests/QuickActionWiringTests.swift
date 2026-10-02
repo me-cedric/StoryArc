@@ -257,6 +257,24 @@ struct QuickActionWiringTests {
         )
     }
 
+    /// Giving up still has to land the reader somewhere, and 19.4 is what the library gets
+    /// that landing: before this, the wait simply ended and the reader stayed on whichever
+    /// tab the app opened to.
+    @Test("A publication that cannot be placed lands the reader on the library")
+    func anUnplaceablePublicationLandsOnTheLibrary() throws {
+        let continuity = try source("App/ReadingContinuity.swift")
+        let opened = try #require(
+            continuity.range(of: "private func settle() async {"),
+            "`settle()` is gone — this is where the wait for the library lives"
+        )
+        let settle = String(continuity[opened.upperBound...]).components(separatedBy: "\n    }")[0]
+
+        #expect(
+            settle.contains("onShow(.library)"),
+            "the wait giving up no longer lands the reader on the library"
+        )
+    }
+
     // MARK: The app's own string catalogue
 
     private static var appCatalogue: [String: Any] {
