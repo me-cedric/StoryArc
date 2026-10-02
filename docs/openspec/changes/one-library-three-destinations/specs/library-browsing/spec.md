@@ -135,6 +135,12 @@ The app SHALL filter by read state, format, language, genre, tag, publisher,
 publication status, year range, and by the library a publication came from —
 availability being the separate primary axis described under *Unified library*.
 
+> **The two closing scenarios below are merged in from `close-the-audited-gaps`
+> (decision D36), which also holds this requirement.** A MODIFIED requirement replaces the
+> whole block on archive, so two changes holding disjoint blocks on one requirement means
+> whichever syncs second deletes the other's scenarios — `pnpm delta:drop` refused exactly
+> that pair until this merge. Keep both copies word for word.
+
 #### Scenario: Combining filters
 - **WHEN** a reader applies several filters
 - **THEN** they combine with AND, the active count is visible on the filter control, and a single action clears them all
@@ -160,6 +166,16 @@ availability being the separate primary axis described under *Unified library*.
 - **WHEN** filters are applied while a source cannot be reached
 - **THEN** its publications are still filtered and still listed, dimmed
 - **AND** no filter result changes because a source went down
+
+#### Scenario: Filtering by a source's own publication status
+- **WHEN** a source reports a publication status for a series — Kavita's `publicationStatus`, among the sources this app reads
+- **THEN** the status is carried onto the row and offered as one status group in the filter menu
+- **AND** the group states that it covers only the series whose source reports a status
+
+#### Scenario: Setting a status by hand where a source reports none
+- **WHEN** a series' source reports no publication status at all — a folder or a share carries no such field
+- **THEN** a reader may set a status for that series by hand, and the filter narrows to it the same way it narrows to a reported one
+- **AND** a status a source reports is not editable by the reader — only a series with no reported status takes one set by hand
 
 ### Requirement: Presentation
 
