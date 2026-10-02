@@ -34,6 +34,34 @@ public import StoryArcCore
 /// not steal focus when it appears, because a listener who started a book and moved on did
 /// not ask to be taken back" — so there is deliberately no `accessibilityFocused` and no
 /// screen-changed announcement in this file. The absence is the feature.
+/// What a tap on the compact bar's own row does.
+enum PlayerDockRowAction: Equatable {
+    /// Open the full player, over whatever is behind it.
+    case openPlayer
+    /// Reopen the publication at the sentence the voice is on.
+    case returnToPublication
+}
+
+/// Where a tap on the row goes. Lifted out of ``PlayerDock/wayIn(_:)`` so
+/// `PlayerDockRowActionTests` can assert it directly — the view itself cannot be driven in a
+/// host-only test, and this is the one branch D17 narrowed.
+///
+/// **D17.** The inline placement has no room for the chevron beside the row (see
+/// ``PlayerDock/controls(_:)``), so a publication being read aloud there would otherwise reach
+/// the full player, and its sentence skip, only through the book. The full player is presented
+/// as a sheet over whatever is already on screen, so opening it from the inline row still
+/// leaves the book one dismiss away — neither clause of ``PlayerWayBack`` is traded away, the
+/// chevron's one-tap convenience is. Outside the inline placement the chevron already carries
+/// that trip, so the row keeps going straight to the book there.
+func playerDockRowAction(wayBack: PlayerWayBack, isInline: Bool) -> PlayerDockRowAction {
+    switch wayBack {
+    case .fullPlayer:
+        return .openPlayer
+    case .publication:
+        return isInline ? .openPlayer : .returnToPublication
+    }
+}
+
 public struct PlayerDock: View {
     @Environment(\.theme) private var theme
     /// Full size above the tab bar, or inline in the bar once it has minimised on scroll.
@@ -104,9 +132,9 @@ public struct PlayerDock: View {
     /// reader that adopts the session rather than starting a second one on the same book.
     private func wayIn(_ bar: CompactPlayer) -> some View {
         Button {
-            switch bar.wayBack {
-            case .fullPlayer: isShowingPlayer = true
-            case .publication: onReturn(bar.book.publication, bar.book.url)
+            switch playerDockRowAction(wayBack: bar.wayBack, isInline: isInline) {
+            case .openPlayer: isShowingPlayer = true
+            case .returnToPublication: onReturn(bar.book.publication, bar.book.url)
             }
         } label: {
             VStack(alignment: .leading, spacing: 0) {
@@ -137,7 +165,7 @@ public struct PlayerDock: View {
         // The name says where it goes, because a screen-reader user learns the outcome
         // before taking the action rather than after.
         .accessibilityLabel(
-            bar.wayBack == .publication
+            playerDockRowAction(wayBack: bar.wayBack, isInline: isInline) == .returnToPublication
                 ? Text("player.back", bundle: .module)
                 : Text("player.open", bundle: .module)
         )
