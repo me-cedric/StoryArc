@@ -221,6 +221,8 @@ public enum LibraryIndex {
         if has(publication.series) { return 2 }
         if publication.authors.contains(where: { has($0) }) { return 3 }
         if has(publication.publisher) { return 4 }
+        if publication.genres.contains(where: { has($0) }) { return 4 }
+        if publication.tags.contains(where: { has($0) }) { return 4 }
         return nil
     }
 
