@@ -57,6 +57,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -138,6 +141,8 @@ import app.storyarc.core.model.ScrollAxis
 import app.storyarc.core.model.SearchMatch
 import app.storyarc.core.model.SpreadLayout
 import app.storyarc.core.model.scrollAxis
+import app.storyarc.core.playback.SpokenAudio
+import app.storyarc.core.playback.sentence
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -261,6 +266,35 @@ fun ReaderScreen(
             onLeave = onClose,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
+
+        // D18: the word owed for a voice opening this comic or PDF stopped — the same
+        // `SpokenAudio.voiceStopped` the EPUB reader and the player each take their own copy
+        // of, because a feature module cannot share a composable with another without one
+        // depending on it. Top, not the foot the network notice and the download offer sit
+        // above: it is about what just happened on another book, not about this page.
+        val voiceStoppedHost = remember { SnackbarHostState() }
+        VoiceStoppedWord(voiceStoppedHost)
+        SnackbarHost(voiceStoppedHost, modifier = Modifier.align(Alignment.TopCenter))
+    }
+}
+
+/**
+ * Shows the word a displaced voice owes, once, as a snackbar — and takes it by showing it.
+ *
+ * Mirrors `EpubReaderOverlays.VoiceStoppedWord` and `PlayerScreen`'s own copy: `SpokenAudio` is
+ * the one authority both engines answer to, but the three screens that may need to say so
+ * cannot share a composable without one of them depending on another. See `SpokenAudio`'s own
+ * header for why the authority is still one object.
+ */
+@Composable
+private fun VoiceStoppedWord(snackbars: SnackbarHostState) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val owed by SpokenAudio.shared.voiceStopped.collectAsStateWithLifecycle()
+    LaunchedEffect(owed) {
+        if (!owed.isPending) return@LaunchedEffect
+        val sentence = SpokenAudio.shared.takeVoiceStopped().sentence(context) ?: return@LaunchedEffect
+        scope.launch { snackbars.showSnackbar(sentence, duration = SnackbarDuration.Long) }
     }
 }
 
