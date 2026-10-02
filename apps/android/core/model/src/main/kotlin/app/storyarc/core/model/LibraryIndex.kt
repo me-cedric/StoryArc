@@ -242,6 +242,8 @@ object LibraryIndex {
             has(publication.series) -> 2
             publication.authors.any { has(it) } -> 3
             has(publication.publisher) -> 4
+            publication.genres.any { has(it) } -> 4
+            publication.tags.any { has(it) } -> 4
             else -> null
         }
     }

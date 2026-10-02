@@ -22,14 +22,7 @@ enum class MatchKind {
     /** The query is in an author's name. */
     PERSON,
 
-    /**
-     * The query is in a tag-like value.
-     *
-     * Today that means the publisher and nothing else: a publication carries no tags and no
-     * genres yet, so this group holds publisher matches. Named for what the requirement asks
-     * for rather than for what is indexed, because the group is right and the corpus is what
-     * will grow.
-     */
+    /** The query is in a tag-like value: the publisher, a genre or a tag. */
     TAG,
 }
 

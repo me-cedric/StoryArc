@@ -206,6 +206,17 @@ class LibraryIndexTest {
         assertEquals(emptyList<String>(), titles(LibraryIndex.arrange(library, LibraryQuery(search = "zzz"))))
     }
 
+    @Test
+    fun `a genre or a tag match surfaces a publication that the title, series and author do not`() {
+        val library = listOf(
+            publication("Watchmen", genres = listOf("Noir")),
+            publication("Akira", tags = listOf("Cyberpunk")),
+            publication("Bone"),
+        )
+        assertEquals(listOf("Watchmen"), titles(LibraryIndex.arrange(library, LibraryQuery(search = "noir"))))
+        assertEquals(listOf("Akira"), titles(LibraryIndex.arrange(library, LibraryQuery(search = "cyberpunk"))))
+    }
+
     // Filters.
 
     @Test
@@ -635,6 +646,17 @@ class LibraryIndexTest {
         assertEquals(listOf("Sandman Mystery Theatre"), titles(groups[0].publications))
         assertEquals(listOf("Preludes"), titles(groups[1].publications))
         assertEquals(listOf("Endless Nights"), titles(groups[2].publications))
+    }
+
+    @Test
+    fun `a tag or a genre match groups with the publisher match, not with the title`() {
+        val library = listOf(
+            publication("Watchmen", publisher = "Noir Press"),
+            publication("Akira", tags = listOf("Noir")),
+        )
+        val groups = LibraryIndex.grouped(library, LibraryQuery(search = "noir"), Locale.ENGLISH)
+        assertEquals(listOf(MatchKind.TAG), groups.map { it.kind })
+        assertEquals(setOf("Watchmen", "Akira"), titles(groups[0].publications).toSet())
     }
 
     @Test
