@@ -164,7 +164,7 @@ extension XCTestCase {
     private func settingsJSON(_ appearance: String, _ language: String?) -> String {
         let tag = language.map { ",\"language\":\"\($0)\"" } ?? ""
         return """
-        {"appearance":"\(appearance)","turnPagesWithVolumeButtons":false,\
+        {"appearance":"\(appearance)",\
         "linkReadingThemeToAppearance":false,"downloadOverWifiOnly":false,\
         "removeDownloadsAfterFinishing":false\(tag)}
         """

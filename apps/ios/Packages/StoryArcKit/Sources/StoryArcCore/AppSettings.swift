@@ -22,13 +22,6 @@ public struct AppSettings: Sendable, Equatable, Codable {
     /// reader chose the language the system happens to be set to today".
     public var language: String?
 
-    /// Whether the volume buttons turn pages.
-    ///
-    /// Off by default, and `page-transitions` is the reason it is a setting at all:
-    /// volume keys that silently stop changing the volume are a defect rather than a
-    /// feature, so this is opt-in and stays opt-in.
-    public var turnPagesWithVolumeButtons: Bool
-
     /// Whether tapping the side of a page turns it.
     ///
     /// `page-transitions`: each zone is a third of the width, and with this off "a tap
@@ -78,7 +71,6 @@ public struct AppSettings: Sendable, Equatable, Codable {
     public init(
         appearance: AppearanceMode = .system,
         language: String? = nil,
-        turnPagesWithVolumeButtons: Bool = false,
         turnPagesByTappingTheEdges: Bool = true,
         linkReadingThemeToAppearance: Bool = false,
         lightReadingTheme: ThemePreset = .paper,
@@ -89,7 +81,6 @@ public struct AppSettings: Sendable, Equatable, Codable {
     ) {
         self.appearance = appearance
         self.language = language
-        self.turnPagesWithVolumeButtons = turnPagesWithVolumeButtons
         self.turnPagesByTappingTheEdges = turnPagesByTappingTheEdges
         self.linkReadingThemeToAppearance = linkReadingThemeToAppearance
         self.lightReadingTheme = lightReadingTheme
@@ -110,9 +101,6 @@ public struct AppSettings: Sendable, Equatable, Codable {
             appearance: try container.decodeIfPresent(AppearanceMode.self, forKey: .appearance)
                 ?? .system,
             language: try container.decodeIfPresent(String.self, forKey: .language),
-            turnPagesWithVolumeButtons: try container.decodeIfPresent(
-                Bool.self, forKey: .turnPagesWithVolumeButtons
-            ) ?? false,
             turnPagesByTappingTheEdges: try container.decodeIfPresent(
                 Bool.self, forKey: .turnPagesByTappingTheEdges
             ) ?? true,
