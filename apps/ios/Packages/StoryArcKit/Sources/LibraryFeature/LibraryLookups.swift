@@ -3,6 +3,7 @@ public import Foundation
 
 internal import Catalogue
 public import Formats
+internal import Kavita
 internal import Persistence
 public import StoryArcCore
 
@@ -95,8 +96,14 @@ extension LibraryModel {
 
         guard let url = locations[publication.id] else {
             // 11.7 / D29: an OPDS row has no local file to decode a cover out of at all —
-            // its artwork is fetched from the catalogue instead.
-            guard let image = await opdsCover(for: publication, maxPixelSize: maxPixelSize) else {
+            // its artwork is fetched from the catalogue instead. 17.4: a Kavita chapter row
+            // has no file either, for the same reason, and its artwork comes from the
+            // server's own chapter-cover route instead.
+            if let image = await opdsCover(for: publication, maxPixelSize: maxPixelSize) {
+                covers[publication.id] = image
+                return image
+            }
+            guard let image = await kavitaCover(for: publication, maxPixelSize: maxPixelSize) else {
                 return nil
             }
             covers[publication.id] = image
@@ -150,6 +157,35 @@ extension LibraryModel {
                   let url = Self.artworkURL(forRemoteID: identifier.remoteID, in: feed.publications)
             else { throw OpdsArtworkNotFound() }
             return try await client.data(at: url, credential: page.credential)
+        }
+    }
+
+    /// A Kavita chapter row's artwork, fetched through the server it came from and cached
+    /// by the server and the chapter's own id — the same scoping
+    /// ``HomeServerShelfCover/lockedCoverID(server:shelf:)`` uses, so a shelf card and a
+    /// library row that name the same chapter share one cache entry rather than decoding
+    /// the same bytes twice.
+    ///
+    /// 17.4: `KavitaContributor` makes a chapter row with no file location at all — the
+    /// shelf path falls to Android's `ServerLibrary.cachedCover`, and this is iOS's twin of
+    /// that fetch, reached from ``cover(for:maxPixelSize:)`` the same way ``opdsCover(for:maxPixelSize:client:)``
+    /// is.
+    func kavitaCover(
+        for publication: Publication,
+        maxPixelSize: Int,
+        client overridden: KavitaClient? = nil,
+        credentials: CredentialStore? = CredentialStore()
+    ) async -> CGImage? {
+        guard let identifier = publication.identity.serverIdentifier,
+              identifier.remoteID.hasPrefix("chapter:"),
+              let chapterID = Int(identifier.remoteID.dropFirst("chapter:".count)),
+              let source = registry.sources.first(where: { $0.id == identifier.sourceID }),
+              let page = KavitaPage(source: source, credentials: credentials)
+        else { return nil }
+
+        let client = overridden ?? KavitaClient(address: page.address)
+        return await serverCover(for: "srv:\(page.id):chapter:\(chapterID)", maxPixelSize: maxPixelSize) {
+            try await client.chapterCover(chapterID)
         }
     }
 
