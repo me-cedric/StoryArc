@@ -1,3 +1,4 @@
+import DesignSystem
 import Formats
 import LibraryFeature
 import Persistence
@@ -334,10 +335,14 @@ extension StoryArcApp {
     /// Returns both stores to what a fresh install has, and nothing more.
     ///
     /// Two stores, and only what each one calls a setting. The reading *defaults* are
-    /// settings; a theme chosen while reading is not, and neither is progress.
+    /// settings; a theme chosen while reading is not, and neither is progress. Natural
+    /// lives under its own key (`NaturalTheme.storageKey`), outside both stores, so a
+    /// reset has to remove it explicitly or Appearance does not "go back to how it
+    /// started".
     func resetSettings() {
         settingsStore.reset()
         settings = settingsStore.settings()
+        UserDefaults.standard.removeObject(forKey: NaturalTheme.storageKey)
         let reader = ReaderPreferences()
         reader.save(reader.themes().clearingDefaults())
     }

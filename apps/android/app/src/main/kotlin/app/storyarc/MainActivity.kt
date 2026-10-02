@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import app.storyarc.core.designsystem.theme.LocalTapTurnsPages
 import app.storyarc.core.designsystem.theme.LocalVolumeTurns
+import app.storyarc.core.designsystem.theme.NaturalTheme
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.designsystem.theme.VolumeTurns
 import app.storyarc.core.model.QuickActionRequest
@@ -188,9 +189,13 @@ class MainActivity : ComponentActivity() {
                         onResetSettings = {
                             // Both stores, and only what each one calls a setting. The
                             // reading *defaults* are settings; a theme chosen while reading
-                            // is not, and neither is progress.
+                            // is not, and neither is progress. Natural lives in its own
+                            // preferences file (`NaturalTheme`), outside both stores, so a
+                            // reset has to clear it explicitly or Appearance does not "go
+                            // back to how it started".
                             dependencies.settings.reset()
                             settings = dependencies.settings.settings()
+                            NaturalTheme.set(this@MainActivity, false)
                             dependencies.readerPreferences.save(
                                 dependencies.readerPreferences.themes().clearingDefaults(),
                             )

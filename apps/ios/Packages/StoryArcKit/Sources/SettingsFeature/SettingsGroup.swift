@@ -42,31 +42,32 @@ enum SettingsGroup: String, CaseIterable, Identifiable {
         }
     }
 
-    /// What a group that cannot be entered yet says instead of opening onto nothing.
-    var pendingKey: LocalizedStringKey {
-        switch self {
-        case .sources: "settings.sources.pending"
-        case .downloads: "settings.downloads.pending"
-        default: "settings.pending"
-        }
-    }
-
     /// The group's current value, in one line.
     ///
     /// `settings-and-about`: each summary row "states its current value, so a setting can
     /// be checked without entering the group". A group with nothing to state yet says
     /// what it will hold — which is a value too, and a more honest one than silence.
-    func summaryKey(for settings: AppSettings, _ library: LibrarySummary = LibrarySummary()) -> LocalizedStringKey {
+    ///
+    /// - Parameter readingDefaults: the stored reading defaults, for the Reading row. Not
+    ///   the volume setting: iOS cannot honour it, so a summary claiming it would be a
+    ///   summary of something that does not happen. The two scopes it does state are what
+    ///   a reader can check against the screen this row opens onto.
+    func summaryKey(
+        for settings: AppSettings,
+        _ library: LibrarySummary = LibrarySummary(),
+        readingDefaults: ShelfMemory = ShelfMemory()
+    ) -> LocalizedStringKey {
         switch self {
         case .appearance: settings.appearance.localizedNameKey
-        // Not the volume setting: iOS cannot honour it, so a summary claiming it would be
-        // a summary of something that does not happen.
-        case .reading: "settings.reading.summary"
+        case .reading: Self.readingSummaryKey(for: readingDefaults)
         case .language:
             settings.language.map { LocalizedStringKey(InterfaceLanguage.name(of: $0)) }
                 ?? "settings.language.system"
         case .privacy: "settings.privacy.summary"
-        case .about: "settings.about.summary"
+        // States the version, which is a current value too, and the one About actually
+        // varies release to release. The key is the same one the About screen itself
+        // already draws, so the row and the screen behind it cannot disagree.
+        case .about: "about.version \(BuildInfo.version) \(BuildInfo.build)"
         // Both of these are built now, so both state a value. A summary that still said
         // "not built yet" would be the one line on this screen a reader could check
         // against the group behind it and find wrong.
@@ -82,6 +83,29 @@ enum SettingsGroup: String, CaseIterable, Identifiable {
                 ? "settings.downloads.none"
                 : "settings.downloads.summary \(library.formattedBytes)"
         }
+    }
+
+    /// The Reading row's current value: the stored default for each scope, resolved and
+    /// formatted into one sentence.
+    ///
+    /// A function of its own rather than a branch of ``summaryKey(for:_:readingDefaults:)``,
+    /// because resolving two localisations first and formatting them second is two
+    /// statements, and a `switch` used as that function's implicit return needs every
+    /// branch to be the one expression it yields.
+    private static func readingSummaryKey(for readingDefaults: ShelfMemory) -> LocalizedStringKey {
+        let books = String(
+            localized: String.LocalizationValue(
+                readingDefaults.default(for: .reflowable).theme.preset.settingsTitleStringKey
+            ),
+            bundle: .module, locale: .storyArc
+        )
+        let comics = String(
+            localized: String.LocalizationValue(
+                matteSummaryKey(for: readingDefaults.default(for: .fixedLayout).theme.custom?.background)
+            ),
+            bundle: .module, locale: .storyArc
+        )
+        return "settings.reading.summary.values \(books) \(comics)"
     }
 }
 

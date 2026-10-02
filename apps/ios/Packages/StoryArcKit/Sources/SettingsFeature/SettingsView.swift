@@ -150,7 +150,9 @@ public struct SettingsView: View {
                                 // know it lives under Reading.
                                 Text(
                                     match.anchor == nil
-                                        ? match.group.summaryKey(for: settings, summary)
+                                        ? match.group.summaryKey(
+                                            for: settings, summary, readingDefaults: readerStore.themes()
+                                        )
                                         : match.group.titleKey,
                                     bundle: .module
                                 )

@@ -194,6 +194,7 @@ fun SettingsScreen(
                 null -> GroupList(
                     settings = settings,
                     summary = LibrarySummary(sources.size, bytesOnDisk),
+                    readerStore = readerStore,
                     onOpen = { open = it },
                     onReset = onReset,
                     onClose = onClose,
@@ -231,6 +232,7 @@ fun SettingsScreen(
 private fun GroupList(
     settings: AppSettings,
     summary: LibrarySummary,
+    readerStore: ReaderPreferences,
     onOpen: (SettingMatch) -> Unit,
     onReset: () -> Unit,
     onClose: () -> Unit,
@@ -303,7 +305,7 @@ private fun GroupList(
                     supportingContent = {
                         Text(
                             if (match.anchor == null) {
-                                match.group.summary(settings, summary)
+                                match.group.summary(settings, summary, readerStore.themes())
                             } else {
                                 stringResource(match.group.titleRes)
                             },
