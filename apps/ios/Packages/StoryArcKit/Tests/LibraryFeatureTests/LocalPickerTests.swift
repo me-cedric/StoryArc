@@ -142,4 +142,15 @@ struct LocalPickerTests {
         let shared = Set(LocalPick.folder.contentTypes).intersection(LocalPick.file.contentTypes)
         #expect(shared.isEmpty)
     }
+
+    /// Task 16.11: an audiobook — a single file or an M4B — can be imported and opened from
+    /// another app, the way a comic, an EPUB and a PDF already could.
+    @Test("Picking a file also offers an audiobook")
+    func fileOffersAudiobooks() throws {
+        let offered = ImportableTypes.all
+        #expect(offered.contains(.mpeg4Audio))
+        #expect(offered.contains(.mp3))
+        #expect(offered.contains(.audio))
+        #expect(offered.contains(try #require(UTType(filenameExtension: "m4b"))))
+    }
 }

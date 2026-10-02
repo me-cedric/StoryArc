@@ -132,6 +132,14 @@ enum ImportableTypes {
         // CB7 is absent on purpose: `publication-formats` leaves 7-Zip undecoded, and
         // offering to import a file the reader could not then open would be a promise the
         // app cannot keep.
-        return declared + [.epub, .pdf]
+        //
+        // Task 16.11: a single audio file and an M4B audiobook, so `local-library`'s open-in
+        // and import reach an audiobook the way they already reach a comic, an EPUB and a
+        // PDF. M4B has no named `UTType` static and no memorable identifier — the system's
+        // own is `com.apple.protected-mpeg-4-audio-b`, unrelated to DRM despite the name —
+        // so it is asked for by the extension it actually opens, the one fact unlikely to
+        // change under this code.
+        let m4b = UTType(filenameExtension: "m4b").map { [$0] } ?? []
+        return declared + [.epub, .pdf, .mpeg4Audio, .mp3, .audio] + m4b
     }()
 }
