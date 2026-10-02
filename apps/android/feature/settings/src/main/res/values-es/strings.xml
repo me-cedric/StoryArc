@@ -10,12 +10,11 @@
     <string name="settings_language">Idioma</string>
     <string name="settings_privacy">Privacidad</string>
     <string name="settings_about">Acerca de</string>
-    <string name="settings_pending">Aún no desarrollado.</string>
-    <string name="settings_sources_pending">Carpetas, carpetas compartidas y bibliotecas en línea. Por ahora se añaden desde tu biblioteca.</string>
-    <string name="settings_downloads_pending">Todavía no se descarga nada, así que no hay nada que gestionar.</string>
     <string name="settings_language_system">Sistema</string>
     <string name="settings_reading_summary">Cambios de página y ajustes por defecto</string>
     <string name="settings_reading_summary_volume">Los botones de volumen cambian de página</string>
+    <string name="settings_reading_summary_values">%1$s para libros, %2$s para cómics</string>
+    <string name="settings_reading_summary_volume_values">Los botones de volumen cambian de página · %1$s para libros, %2$s para cómics</string>
     <string name="settings_privacy_summary">Sin cuenta, sin backend, sin analítica</string>
     <string name="settings_about_summary">Versión, licencia y agradecimientos</string>
     <string name="appearance_system">Sistema</string>
@@ -38,7 +37,6 @@
     <string name="reading_volume_buttons_note">Desactivado por defecto: al leer, los botones de volumen dejarían de ajustar el volumen.</string>
     <string name="reading_tap_zones">Tocar la página la pasa</string>
     <string name="reading_tap_zones_note">Activado por defecto: toque el tercio izquierdo o derecho de la página para pasarla, y el tercio central para mostrar los controles.</string>
-    <string name="reading_defaults_pending">Los ajustes de lectura por defecto aún no están aquí. Un tema elegido al leer ya se aplica a toda la serie.</string>
     <string name="privacy_statement">StoryArc no tiene cuenta, ni backend, ni analítica, ni informes de errores.</string>
     <string name="privacy_sources">Los datos solo salen de este dispositivo hacia las bibliotecas que tú mismo configuraste.</string>
     <string name="about_version">StoryArc %1$s (%2$s)</string>

@@ -20,6 +20,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.model.AppSettings
+import app.storyarc.core.model.ShelfMemory
+import app.storyarc.core.model.ThemeScope
 
 /**
  * The seven groups `settings-and-about` names, in the order it names them.
@@ -50,14 +52,6 @@ enum class SettingsGroup {
             ABOUT -> R.string.settings_about
         }
 
-    /** What a group that cannot be entered yet says instead of opening onto nothing. */
-    val pendingRes: Int
-        get() = when (this) {
-            SOURCES -> R.string.settings_sources_pending
-            DOWNLOADS -> R.string.settings_downloads_pending
-            else -> R.string.settings_pending
-        }
-
     val icon: ImageVector
         get() = when (this) {
             SOURCES -> Icons.Filled.Folder
@@ -75,23 +69,37 @@ enum class SettingsGroup {
      * `settings-and-about`: each summary row "states its current value, so a setting can
      * be checked without entering the group". A group with nothing to state yet says
      * what it will hold — which is a value too, and a more honest one than silence.
+     *
+     * @param readingDefaults the stored reading defaults, for the Reading row. Android
+     *   honours the volume setting, so that stays its own leading clause; the two scopes
+     *   below it are what a reader can check against the screen this row opens onto.
      */
     @Composable
-    fun summary(settings: AppSettings, library: LibrarySummary = LibrarySummary()): String = when (this) {
+    fun summary(
+        settings: AppSettings,
+        library: LibrarySummary = LibrarySummary(),
+        readingDefaults: ShelfMemory = ShelfMemory(),
+    ): String = when (this) {
         APPEARANCE -> stringResource(settings.appearance.labelRes)
-        READING -> stringResource(
+        READING -> {
+            val books = stringResource(readingDefaults.default(ThemeScope.REFLOWABLE).theme.preset.labelRes)
+            val matte = readingDefaults.default(ThemeScope.FIXED_LAYOUT).theme.custom?.background
+            val comics = stringResource(matte?.let { matteNameRes(it) } ?: R.string.reading_matte_none)
             if (settings.turnPagesWithVolumeButtons) {
-                R.string.settings_reading_summary_volume
+                stringResource(R.string.settings_reading_summary_volume_values, books, comics)
             } else {
-                R.string.settings_reading_summary
-            },
-        )
+                stringResource(R.string.settings_reading_summary_values, books, comics)
+            }
+        }
         LANGUAGE -> settings.language?.let { tag ->
             val locale = java.util.Locale.forLanguageTag(tag)
             locale.getDisplayLanguage(locale).replaceFirstChar { it.titlecase(locale) }
         } ?: stringResource(R.string.settings_language_system)
         PRIVACY -> stringResource(R.string.settings_privacy_summary)
-        ABOUT -> stringResource(R.string.settings_about_summary)
+        // States the version, which is a current value too, and the one About actually
+        // varies release to release. The same resource the About screen itself draws, so
+        // the row and the screen behind it cannot disagree.
+        ABOUT -> stringResource(R.string.about_version, BuildInfo.version, BuildInfo.build)
         // Both of these are built now, so both state a value. A summary that still said
         // "not built yet" would be the one line on this screen a reader could check
         // against the group behind it and find wrong.

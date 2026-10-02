@@ -2673,35 +2673,6 @@
         }
       }
     },
-    "reading.defaults.pending": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lesevorgaben für neue Serien fehlen noch. Ein beim Lesen gewähltes Thema gilt bereits für die ganze Serie."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reading defaults for new series are not here yet. A theme you set while reading already applies to the whole series."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Los ajustes de lectura por defecto aún no están aquí. Un tema elegido al leer ya se aplica a toda la serie."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les réglages de lecture par défaut ne sont pas encore ici. Un thème choisi pendant la lecture s’applique déjà à toute la série."
-          }
-        }
-      }
-    },
     "reading.defaults.reflowable": {
       "extractionState": "manual",
       "localizations": {
@@ -3398,35 +3369,6 @@
         }
       }
     },
-    "settings.downloads.pending": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Es wird noch nichts heruntergeladen, also gibt es nichts zu verwalten."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nothing downloads yet, so there is nothing to manage."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Todavía no se descarga nada, así que no hay nada que gestionar."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rien ne se télécharge encore, il n’y a donc rien à gérer."
-          }
-        }
-      }
-    },
     "settings.downloads.summary %@": {
       "extractionState": "manual",
       "localizations": {
@@ -3543,35 +3485,6 @@
         }
       }
     },
-    "settings.pending": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Noch nicht gebaut."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not built yet."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aún no desarrollado."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pas encore développé."
-          }
-        }
-      }
-    },
     "settings.privacy": {
       "extractionState": "manual",
       "localizations": {
@@ -3684,6 +3597,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tournes de page et réglages par défaut"
+          }
+        }
+      }
+    },
+    "settings.reading.summary.values %@ %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ für Bücher, %2$@ für Comics"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ for books, %2$@ for comics"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ para libros, %2$@ para cómics"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ pour les livres, %2$@ pour les BD"
           }
         }
       }
@@ -3916,35 +3858,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aucune bibliothèque"
-          }
-        }
-      }
-    },
-    "settings.sources.pending": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ordner, geteilte Ordner und Online-Bibliotheken. Vorerst über Ihre Bibliothek hinzuzufügen."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Folders, shared folders and online libraries. Added from your library for now."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Carpetas, carpetas compartidas y bibliotecas en línea. Por ahora se añaden desde tu biblioteca."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dossiers, dossiers partagés et bibliothèques en ligne. Ajoutés depuis votre bibliothèque pour l’instant."
           }
         }
       }

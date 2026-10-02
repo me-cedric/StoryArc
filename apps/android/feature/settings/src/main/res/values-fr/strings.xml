@@ -10,12 +10,11 @@
     <string name="settings_language">Langue</string>
     <string name="settings_privacy">Confidentialité</string>
     <string name="settings_about">À propos</string>
-    <string name="settings_pending">Pas encore développé.</string>
-    <string name="settings_sources_pending">Dossiers, dossiers partagés et bibliothèques en ligne. Ajoutés depuis votre bibliothèque pour l’instant.</string>
-    <string name="settings_downloads_pending">Rien ne se télécharge encore, il n’y a donc rien à gérer.</string>
     <string name="settings_language_system">Système</string>
     <string name="settings_reading_summary">Tournes de page et réglages par défaut</string>
     <string name="settings_reading_summary_volume">Les touches de volume tournent les pages</string>
+    <string name="settings_reading_summary_values">%1$s pour les livres, %2$s pour les BD</string>
+    <string name="settings_reading_summary_volume_values">Les touches de volume tournent les pages · %1$s pour les livres, %2$s pour les BD</string>
     <string name="settings_privacy_summary">Aucun compte, aucun serveur, aucune analyse</string>
     <string name="settings_about_summary">Version, licence et remerciements</string>
     <string name="appearance_system">Système</string>
@@ -38,7 +37,6 @@
     <string name="reading_volume_buttons_note">Désactivé par défaut : pendant la lecture, les touches de volume ne régleraient plus le volume.</string>
     <string name="reading_tap_zones">Toucher la page la tourne</string>
     <string name="reading_tap_zones_note">Activé par défaut : touchez le tiers gauche ou droit de la page pour la tourner, et le tiers central pour afficher les commandes.</string>
-    <string name="reading_defaults_pending">Les réglages de lecture par défaut ne sont pas encore ici. Un thème choisi pendant la lecture s’applique déjà à toute la série.</string>
     <string name="privacy_statement">StoryArc n’a aucun compte, aucun serveur, aucune analyse et aucun rapport de plantage.</string>
     <string name="privacy_sources">Les données ne quittent cet appareil que vers les bibliothèques que vous avez ajoutées vous-même.</string>
     <string name="about_version">StoryArc %1$s (%2$s)</string>

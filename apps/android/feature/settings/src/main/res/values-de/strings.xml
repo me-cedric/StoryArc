@@ -10,12 +10,11 @@
     <string name="settings_language">Sprache</string>
     <string name="settings_privacy">Datenschutz</string>
     <string name="settings_about">Über</string>
-    <string name="settings_pending">Noch nicht gebaut.</string>
-    <string name="settings_sources_pending">Ordner, geteilte Ordner und Online-Bibliotheken. Vorerst über Ihre Bibliothek hinzuzufügen.</string>
-    <string name="settings_downloads_pending">Es wird noch nichts heruntergeladen, also gibt es nichts zu verwalten.</string>
     <string name="settings_language_system">System</string>
     <string name="settings_reading_summary">Seitenwechsel und Lesevorgaben</string>
     <string name="settings_reading_summary_volume">Lautstärketasten blättern</string>
+    <string name="settings_reading_summary_values">%1$s für Bücher, %2$s für Comics</string>
+    <string name="settings_reading_summary_volume_values">Lautstärketasten blättern · %1$s für Bücher, %2$s für Comics</string>
     <string name="settings_privacy_summary">Kein Konto, kein Backend, keine Analyse</string>
     <string name="settings_about_summary">Version, Lizenz und Danksagungen</string>
     <string name="appearance_system">System</string>
@@ -38,7 +37,6 @@
     <string name="reading_volume_buttons_note">Standardmäßig aus: beim Lesen würden die Lautstärketasten die Lautstärke nicht mehr ändern.</string>
     <string name="reading_tap_zones">Tippen auf die Seite blättert um</string>
     <string name="reading_tap_zones_note">Standardmäßig an: Tippen Sie auf das linke oder rechte Drittel der Seite, um umzublättern, und auf das mittlere Drittel, um die Bedienelemente zu zeigen.</string>
-    <string name="reading_defaults_pending">Lesevorgaben für neue Serien fehlen noch. Ein beim Lesen gewähltes Thema gilt bereits für die ganze Serie.</string>
     <string name="privacy_statement">StoryArc hat kein Konto, kein Backend, keine Analyse und keine Absturzberichte.</string>
     <string name="privacy_sources">Daten verlassen dieses Gerät nur zu den Bibliotheken, die Sie selbst eingerichtet haben.</string>
     <string name="about_version">StoryArc %1$s (%2$s)</string>

@@ -10,12 +10,11 @@
     <string name="settings_language">Language</string>
     <string name="settings_privacy">Privacy</string>
     <string name="settings_about">About</string>
-    <string name="settings_pending">Not built yet.</string>
-    <string name="settings_sources_pending">Folders, shared folders and online libraries. Added from your library for now.</string>
-    <string name="settings_downloads_pending">Nothing downloads yet, so there is nothing to manage.</string>
     <string name="settings_language_system">System</string>
     <string name="settings_reading_summary">Page turns and reading defaults</string>
     <string name="settings_reading_summary_volume">Volume buttons turn pages</string>
+    <string name="settings_reading_summary_values">%1$s for books, %2$s for comics</string>
+    <string name="settings_reading_summary_volume_values">Volume buttons turn pages · %1$s for books, %2$s for comics</string>
     <string name="settings_privacy_summary">No account, no backend, no analytics</string>
     <string name="settings_about_summary">Version, licence and acknowledgements</string>
     <string name="appearance_system">System</string>
@@ -38,7 +37,6 @@
     <string name="reading_volume_buttons_note">Off by default: while reading, the volume buttons would stop changing the volume.</string>
     <string name="reading_tap_zones">Tapping the page turns it</string>
     <string name="reading_tap_zones_note">On by default: tap the left or right third of the page to turn it, and the middle third to show the controls.</string>
-    <string name="reading_defaults_pending">Reading defaults for new series are not here yet. A theme you set while reading already applies to the whole series.</string>
     <string name="privacy_statement">StoryArc has no account, no backend, no analytics and no crash reporting.</string>
     <string name="privacy_sources">Data leaves this device only to the libraries you set up yourself.</string>
     <string name="about_version">StoryArc %1$s (%2$s)</string>

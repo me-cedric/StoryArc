@@ -202,12 +202,10 @@ extension ThemeScope {
 }
 
 extension ThemePreset {
-    /// How the six presets are named here.
-    ///
-    /// A second copy of the reader's list. The alternative is a shared localisation target
-    /// for six words, and `reading-themes` names them in the spec rather than in code — so
-    /// the duplication is of a translation, not of a decision.
-    var settingsTitleKey: LocalizedStringKey {
+    /// The bare localisation key behind ``settingsTitleKey``, for a caller that needs a
+    /// `String` rather than a `Text` — the Reading summary row resolves it through
+    /// `String(localized:)` rather than drawing it, so one switch serves both.
+    var settingsTitleStringKey: String {
         switch self {
         case .original: "preset.original"
         case .quiet: "preset.quiet"
@@ -217,4 +215,23 @@ extension ThemePreset {
         case .focus: "preset.focus"
         }
     }
+
+    /// How the six presets are named here.
+    ///
+    /// A second copy of the reader's list. The alternative is a shared localisation target
+    /// for six words, and `reading-themes` names them in the spec rather than in code — so
+    /// the duplication is of a translation, not of a decision.
+    var settingsTitleKey: LocalizedStringKey { LocalizedStringKey(settingsTitleStringKey) }
+}
+
+/// The comic matte's bare localisation key, or the stored hex when it names none of the
+/// suggested backgrounds.
+///
+/// A free function rather than a method on ``ReadingDefaults``, so ``SettingsGroup``'s
+/// Reading summary can resolve the same value this screen draws without depending on a
+/// view's private method.
+func matteSummaryKey(for hex: String?) -> String {
+    guard let hex else { return "reading.matte.none" }
+    guard let key = ReaderPalette.suggestedBackgroundNames[hex.uppercased()] else { return hex }
+    return "reading.matte.\(key)"
 }
