@@ -240,6 +240,25 @@ private val THUMBNAIL_WIDTH = 44.dp
 internal fun listThumbnailWidth(fontScale: Float): Dp =
     THUMBNAIL_WIDTH.steppedForFontScale(fontScale)
 
+/** One layer of a list row's thumbnail, back to front. */
+internal enum class CoverListLayer { COVER, ON_DEVICE_MARK, FINISHED_MARK }
+
+/**
+ * The thumbnail's layers, in paint order.
+ *
+ * A layer painted first is painted over by whichever comes after it in the same `Box`, so the
+ * cover (or its placeholder) has to come before either mark -- otherwise the on-device or
+ * finished badge disappears under it the moment a cover image arrives. Pure, so the order is
+ * asserted directly rather than read off a screenshot. Android's grid draws both marks after
+ * its cover for the same reason.
+ */
+internal fun coverListLayerOrder(isKept: Boolean, showsFinished: Boolean): List<CoverListLayer> =
+    listOfNotNull(
+        CoverListLayer.COVER,
+        CoverListLayer.ON_DEVICE_MARK.takeIf { isKept },
+        CoverListLayer.FINISHED_MARK.takeIf { showsFinished },
+    )
+
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
 private fun ListRow(
@@ -352,32 +371,40 @@ private fun ListRow(
                 .alpha(dim),
             contentAlignment = Alignment.Center,
         ) {
-            if (isKept) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
-                    OnDeviceMark()
+            // `coverListLayerOrder` decides the paint order, not the order written here --
+            // see its own doc for why a mark has to come after the cover.
+            for (layer in coverListLayerOrder(isKept = isKept, showsFinished = showsFinished)) {
+                when (layer) {
+                    CoverListLayer.COVER -> {
+                        val bitmap = cover
+                        if (bitmap != null) {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        } else {
+                            // A tinted rectangle rather than nothing: a row whose thumbnail is
+                            // absent should still look like a row with a thumbnail, or the
+                            // list gains a ragged left edge wherever a cover is missing.
+                            Box(modifier = Modifier.fillMaxSize().background(palette.surfaceRaised))
+                        }
+                    }
+
+                    CoverListLayer.ON_DEVICE_MARK ->
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
+                            OnDeviceMark()
+                        }
+
+                    // `library-browsing`'s *The finished mark*, "same on list rows": the corner
+                    // a thumbnail this size still has room for. Android's grid draws the same
+                    // badge in the same corner -- see `CoverGrid.kt`.
+                    CoverListLayer.FINISHED_MARK ->
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopStart) {
+                            FinishedMark()
+                        }
                 }
-            }
-            // `library-browsing`'s *The finished mark*, "same on list rows": the corner a
-            // thumbnail this size still has room for. Android's grid draws the same badge
-            // in the same corner — see `CoverGrid.kt`.
-            if (showsFinished) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopStart) {
-                    FinishedMark()
-                }
-            }
-            val bitmap = cover
-            if (bitmap != null) {
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                // A tinted rectangle rather than nothing: a row whose thumbnail is
-                // absent should still look like a row with a thumbnail, or the
-                // list gains a ragged left edge wherever a cover is missing.
-                Box(modifier = Modifier.fillMaxSize().background(palette.surfaceRaised))
             }
         }
 
