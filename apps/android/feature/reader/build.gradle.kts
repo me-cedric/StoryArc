@@ -52,6 +52,10 @@ dependencies {
     implementation(project(":core:persistence"))
     implementation(project(":core:format"))
     implementation(project(":core:smb"))
+    // D18: opening a comic or a PDF has to silence a voice already speaking, through the one
+    // authority both engines answer to. `:feature:epubreader` already depends on this module
+    // and never the reverse — see `SpokenAudio`'s own header.
+    implementation(project(":core:playback"))
 
     // `LocalActivity`, to hold the screen at one orientation. `comic-reader`'s lock is
     // an activity-level request and there is nowhere else in Compose to make it.

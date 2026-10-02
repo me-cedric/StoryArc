@@ -5,6 +5,7 @@ public import SwiftUI
 
 public import Formats
 public import Persistence
+public import Playback
 public import StoryArcCore
 
 /// One publication, open for reading.
@@ -25,6 +26,10 @@ public final class ReaderModel {
     public internal(set) var currentIndex = 0
     /// Set when the publication could not be opened at all.
     public private(set) var failure: String?
+
+    /// The word owed for a voice this reader's opening stopped. D18. See ``ReaderVoiceHandover``,
+    /// which arms it from ``open(maxPixelSize:)``; the view takes it.
+    public var voiceStopped: VoiceStoppedNotice = .none
 
     /// Entries that looked like pages and could not be read at all.
     ///
@@ -104,13 +109,16 @@ public final class ReaderModel {
         url: URL,
         progress: ProgressStore? = nil,
         preferences: ReaderPreferences? = nil,
-        canCurl: Bool = true
+        canCurl: Bool = true,
+        // Injectable for `ReaderVoiceHandoverTests`. See ``ReaderVoiceHandover``.
+        centre: PlayerCentre = .shared
     ) {
         self.publication = publication
         self.url = url
         self.progress = progress
         self.preferences = preferences
         self.canCurl = canCurl
+        self.centre = centre
         self.shelf = ShelfMemory.shelf(series: publication.series, identity: publication.id)
         self.settings = preferences?.themes().theme(for: .fixedLayout, shelf: shelf)
             ?? ShelfSettings()
@@ -123,6 +131,7 @@ public final class ReaderModel {
     @ObservationIgnored lazy var pendingScrollRestore = preferences?.scrollOffsets().entry(for: publication.identity)
     @ObservationIgnored private let canCurl: Bool
     @ObservationIgnored private let shelf: String
+    @ObservationIgnored private let centre: PlayerCentre
 
     /// Whether the earliest decoded pages read as a webtoon. See `EarlyPageTallness`.
     @ObservationIgnored private var earlyTallness = EarlyPageTallness()
@@ -177,45 +186,8 @@ public final class ReaderModel {
     /// `ReaderBrightness.swift` for why each boundary of the session needs its own moment.
     public var brightness: Double?
 
-    /// Chooses a transition, for this shelf, from now on.
-    public func choose(_ transition: PageTransition) {
-        remember(settings.settingTransition(transition))
-    }
-
-    /// Overrides the scroll axis, which `page-transitions` requires to be possible.
-    public func choose(_ axis: ScrollAxis) {
-        remember(settings.settingScrollAxis(axis))
-    }
-
-    /// Reads this shelf the other way round, from now on.
-    public func choose(_ direction: ReadingDirection) {
-        remember(settings.settingReadingDirection(direction))
-    }
-
-    /// Shifts the spread pairing by one, or puts it back, for this shelf from now on.
-    ///
-    /// `comic-reader` asks for the offset "for publications whose cover throws the
-    /// pairing off", and that is a fact about the series rather than about the reader —
-    /// so it is remembered where the reading mode is, and issue two opens paired right.
-    public func chooseSpreadOffset(_ isOffset: Bool) {
-        remember(settings.settingSpreadOffset(isOffset))
-    }
-
-    /// Shows or hides the line between pages in a continuous scroll.
-    public func choosePageSeparator(_ isShown: Bool) {
-        remember(settings.settingPageSeparator(isShown))
-    }
-
-    /// Sizes the page a different way, for this shelf from now on.
-    ///
-    /// `comic-reader` requires the fit to persist "per series". It used to be one value
-    /// for the whole library, so fit-to-width chosen for a manga changed how every other
-    /// comic opened; it is now kept where the other six per-series reader choices are.
-    public func choose(_ fit: PageFit) {
-        remember(settings.settingFit(fit))
-    }
-
-    // Internal rather than private: ``chooseMatte(_:)`` lives in `ReaderMatte.swift`,
+    // Internal rather than private: ``chooseMatte(_:)`` lives in `ReaderMatte.swift`, and the
+    // rest of the per-series `choose` family now lives in `ReaderModel+ChosenSettings.swift`,
     // beside the matte logic it shares with `ReadingDefaults` — this file is at its line cap.
     func remember(_ new: ShelfSettings) {
         settings = new
@@ -265,6 +237,11 @@ public final class ReaderModel {
     /// only way back to the library was to force-quit the app.
     public func open(maxPixelSize: Int) async {
         self.maxPixelSize = maxPixelSize
+        // D18. Asked before anything else opens, so a session already speaking is ended and
+        // its position written before this one draws a page. See ``ReaderVoiceHandover``.
+        if let notice = ReaderVoiceHandover.displaceIfNeeded(opening: publication.id, centre: centre) {
+            voiceStopped = notice
+        }
         if publication.format == .pdf {
             await openPDF()
             noteIfEmpty()

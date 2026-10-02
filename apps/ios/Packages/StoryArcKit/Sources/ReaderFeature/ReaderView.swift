@@ -359,6 +359,8 @@ public struct ReaderView: View {
         // Reached from the menu's contents row, on a surface of its own now that there is no
         // bottom bar for it to sit above.
         .sheet(isPresented: $isBrowsingThumbnails) { thumbnailSheet }
+        // D18, top rather than the foot below: see ``voiceStoppedOverlay``.
+        .overlay(alignment: .top) { voiceStoppedOverlay }
         // Armed by a jump, not by the centre tap — see ``returnOffer``.
         .overlay(alignment: .bottom) { returnOffer }
         // Over the page rather than in place of it: `network-share` requires pages already

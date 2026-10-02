@@ -99,7 +99,11 @@ let package = Package(
         // (docs/architecture): the library opens the reader through the app layer.
         .target(
             name: "ReaderFeature",
-            dependencies: ["DesignSystem", "StoryArcCore", "Formats", "Persistence"],
+            // `Playback`, not a feature: it is the same shared session layer `PlayerFeature`
+            // and `StoryArcEpub`'s `EpubReaderFeature` already sit on, needed here so opening
+            // a comic or a PDF can ask ``PlayerCentre/handover(opening:)`` and displace a
+            // voice already speaking. D18.
+            dependencies: ["DesignSystem", "StoryArcCore", "Formats", "Persistence", "Playback"],
             resources: [.process("Resources")]
         ),
         // The player's model, with no engine in it. Here rather than beside the
@@ -163,7 +167,9 @@ let package = Package(
         .testTarget(name: "PersistenceTests", dependencies: ["Persistence"]),
         .testTarget(name: "CatalogueTests", dependencies: ["Catalogue"]),
         .testTarget(name: "KavitaTests", dependencies: ["Kavita"]),
-        .testTarget(name: "ReaderFeatureTests", dependencies: ["ReaderFeature"]),
+        // `Playback`, for `ReaderVoiceHandoverTests`: D18 needs a `PlaybackSource` double and
+        // a `PlayerCentre` of the suite's own to assert the comic and PDF reader's handover.
+        .testTarget(name: "ReaderFeatureTests", dependencies: ["ReaderFeature", "Playback"]),
         // `Persistence` is explicit rather than left to transitive visibility:
         // `SourceProgressNoteTests` names `ImportedCopies.sourceID`, which is the source the
         // detail screen has to *not* say "kept on this device only" about.

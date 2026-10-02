@@ -38,6 +38,7 @@ import app.storyarc.core.model.canCurlOn
 import app.storyarc.core.model.scrollAlong
 import app.storyarc.core.persistence.AnnotationStore
 import app.storyarc.core.persistence.ReaderPreferences
+import app.storyarc.core.playback.SpokenAudio
 import app.storyarc.core.model.ReadingDirection
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
@@ -109,6 +110,13 @@ class ReaderViewModel(
      * means by "listed in one place".
      */
     internal val annotationStore: AnnotationStore? = null,
+    /**
+     * The authority that silences a voice already speaking when this reader opens. The app's
+     * one, except in a test — and a parameter here rather than a read of the singleton inside,
+     * so a test can arm it and assert the silence without another suite's session bleeding in.
+     * D18.
+     */
+    private val speaker: SpokenAudio = SpokenAudio.shared,
 ) : ViewModel() {
 
     /** The shelf this publication's reading mode is remembered under. */
@@ -446,6 +454,13 @@ class ReaderViewModel(
 
     suspend fun open(maxPixelSize: Int) {
         this.maxPixelSize = maxPixelSize
+        // D18: a comic or a PDF is a different publication, whether a voice is a narrated
+        // audiobook or an EPUB being read aloud. Asked before anything else opens, so a
+        // session already running is ended and its position written before this one draws a
+        // page. Nothing here can ever be the publication speaking — a comic and a PDF cannot
+        // be read aloud — so this is a silence, not a claim: see `EpubReaderActivity`'s own
+        // `claim`, which is the call a surface that *might* be the one still speaking needs.
+        speaker.silence(toSpeak = publication.identity.stableId)
         if (publication.format == PublicationFormat.PDF) {
             openPdf()
             return
