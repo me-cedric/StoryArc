@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import android.content.Context
+import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.storyarc.core.kavita.KavitaAddress
@@ -88,6 +89,14 @@ class KavitaConnection(
             ?: KavitaAddress.from(address.value, apiKey.value)
         if (target == null) {
             _step.value = Step.Failed(context.getString(R.string.kavita_error_not_an_address))
+            return
+        }
+        // D25 / `network-share` "Local network permission denied": a Kavita server on a LAN
+        // address is blocked the same way a share is, from SDK 37. Checked before the
+        // request starts -- the one case a blocked TCP connect times out instead of
+        // failing at once.
+        if (LocalNetworkPermission.blocks(Build.VERSION.SDK_INT, LocalNetworkPermission.isGranted(context))) {
+            _step.value = Step.Failed(context.getString(R.string.kavita_error_local_network_denied))
             return
         }
 
