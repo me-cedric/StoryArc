@@ -134,10 +134,10 @@ enum HomeShelfIndex {
                 HomeShelfSummary(
                     kind: shelf.kind,
                     name: shelf.title,
-                    count: nil,
+                    count: shelf.count,
                     sourceName: openableSources[shelf.sourceID],
                     tiles: [],
-                    finished: nil,
+                    finished: shelf.finished,
                     destination: .onServer(shelf)
                 )
             }

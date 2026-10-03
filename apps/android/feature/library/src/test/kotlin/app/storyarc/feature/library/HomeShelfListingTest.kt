@@ -153,6 +153,24 @@ class HomeShelfListingTest {
     }
 
     @Test
+    fun `a remembered shelf draws the count and finished position it has cached`() {
+        val listing = HomeShelfIndex.assemble(
+            shelves = Shelves(),
+            publications = library,
+            remembered = listOf(
+                RememberedShelf(
+                    RememberedShelfKind.READING_LIST, serverId, 9, "Crisis, in order",
+                    count = 12, finished = 5,
+                ),
+            ),
+            openableSources = mapOf(serverId to "Kavita at home"),
+        )
+
+        assertEquals(12, listing.lists.single().count)
+        assertEquals(5, listing.lists.single().finished)
+    }
+
+    @Test
     fun `a remembered shelf whose source has gone is left out`() {
         val listing = HomeShelfIndex.assemble(
             shelves = Shelves(collections = listOf(collection("Mine"))),

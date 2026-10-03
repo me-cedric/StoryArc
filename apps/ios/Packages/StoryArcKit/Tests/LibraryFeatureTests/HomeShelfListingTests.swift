@@ -147,6 +147,24 @@ struct HomeShelfListingTests {
         #expect(listing.collections[0].count == nil)
     }
 
+    @Test("A remembered shelf draws the count and finished position it has cached")
+    func cachedCountAndFinishedAreDrawn() {
+        let listing = HomeShelfIndex.assemble(
+            shelves: Shelves(),
+            publications: library,
+            remembered: [
+                RememberedShelf(
+                    kind: .readingList, sourceID: serverID, serverID: 9, title: "Crisis, in order",
+                    count: 12, finished: 5
+                )
+            ],
+            openableSources: [serverID: "Kavita at home"]
+        )
+
+        #expect(listing.lists[0].count == 12)
+        #expect(listing.lists[0].finished == 5)
+    }
+
     @Test("A remembered shelf whose source has gone is left out")
     func aSourceThatWasRemoved() {
         let listing = HomeShelfIndex.assemble(

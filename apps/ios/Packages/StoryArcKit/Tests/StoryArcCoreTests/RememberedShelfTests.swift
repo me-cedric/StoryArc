@@ -78,6 +78,40 @@ struct RememberedShelfTests {
         #expect(RememberedShelf.stored([alpha, beta]) == RememberedShelf.stored([beta, alpha]))
     }
 
+    @Test("A cached count and finished position round-trip with the shelf")
+    func countAndFinishedRoundTrip() {
+        let one = RememberedShelf(
+            kind: .readingList, sourceID: source, serverID: 9, title: "Crisis, in order",
+            count: 12, finished: 5
+        )
+        let read = RememberedShelf(token: one.token)
+        #expect(read == one)
+        #expect(read?.count == 12)
+        #expect(read?.finished == 5)
+    }
+
+    @Test("A token from before the count and finished position existed still reads")
+    func anOldTokenStillReads() {
+        // Written by a version of this type that only ever had four colon-delimited fields.
+        let old = "collection:\(source.uuidString):4:Marvel"
+        let read = RememberedShelf(token: old)
+        #expect(read?.title == "Marvel")
+        #expect(read?.count == nil)
+        #expect(read?.finished == nil)
+    }
+
+    @Test("Only a count, with no finished position, still round-trips")
+    func onlyACountRoundTrips() {
+        let one = shelf(title: "Marvel")
+        let withCount = RememberedShelf(
+            kind: one.kind, sourceID: one.sourceID, serverID: one.serverID, title: one.title,
+            count: 30
+        )
+        let read = RememberedShelf(token: withCount.token)
+        #expect(read?.count == 30)
+        #expect(read?.finished == nil)
+    }
+
     @Test("Every shelf written survives the trip back")
     func everyShelfSurvives() {
         let shelves = [

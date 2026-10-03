@@ -30,6 +30,16 @@ data class RememberedShelf(
     /** The server's own numbering for it, which is what opens it again. */
     val serverId: Int,
     val title: String,
+    /**
+     * How many members the source last reported, or `null` before the home card has asked.
+     *
+     * `collections-and-reading-lists`: fetched lazily, by the card itself when it first
+     * appears, and cached here rather than by a bulk probe at Home's own load -- "do not
+     * block the Home load on a bulk probe".
+     */
+    val count: Int? = null,
+    /** How many of a list's entries are finished, or `null` for a collection. */
+    val finished: Int? = null,
 ) {
 
     /**
@@ -39,9 +49,19 @@ data class RememberedShelf(
      * preferences file, and immune to a declaration being reordered. **The title is last**, so
      * a title holding a colon survives a parse that splits at most three times -- and
      * "Batman: Year One" is the ordinary case rather than the awkward one.
+     *
+     * **The count and the finished position ride after a tab, not a colon.** The colon-based
+     * prefix is fixed at three fields precisely so a title's own colons stay intact; a wider
+     * split would cut an *old* token's title apart, written before these two fields existed. A
+     * tab is not a character a server-supplied title has had in it, and splitting on it first,
+     * before the colon parse ever runs, costs the old format nothing.
      */
     val token: String
-        get() = "${kind.word}:$sourceId:$serverId:$title"
+        get() {
+            val base = "${kind.word}:$sourceId:$serverId:$title"
+            if (count == null && finished == null) return base
+            return "$base\t${count?.toString().orEmpty()}\t${finished?.toString().orEmpty()}"
+        }
 
     companion object {
 
@@ -53,13 +73,16 @@ data class RememberedShelf(
          * guessed one would point at whatever the server now numbers that way.
          */
         fun of(token: String): RememberedShelf? {
-            val parts = token.split(":", limit = 4)
+            val sections = token.split("\t")
+            val parts = sections[0].split(":", limit = 4)
             if (parts.size != 4) return null
             val kind = RememberedShelfKind.entries.firstOrNull { it.word == parts[0] } ?: return null
             val sourceId = runCatching { UUID.fromString(parts[1]) }.getOrNull() ?: return null
             val serverId = parts[2].toIntOrNull() ?: return null
             if (parts[3].isEmpty()) return null
-            return RememberedShelf(kind, sourceId, serverId, parts[3])
+            val count = sections.getOrNull(1)?.toIntOrNull()
+            val finished = sections.getOrNull(2)?.toIntOrNull()
+            return RememberedShelf(kind, sourceId, serverId, parts[3], count, finished)
         }
 
         /** Every shelf a stored record holds, dropping any token this version cannot read. */

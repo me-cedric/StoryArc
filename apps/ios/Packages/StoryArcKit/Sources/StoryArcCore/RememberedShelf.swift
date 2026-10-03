@@ -31,12 +31,32 @@ public struct RememberedShelf: Sendable, Hashable, Identifiable {
     /// The server's own numbering for it, which is what opens it again.
     public let serverID: Int
     public let title: String
+    /// How many members the source last reported, or `nil` before the home card has asked.
+    ///
+    /// `collections-and-reading-lists`: fetched lazily, by the card itself when it first
+    /// appears, and cached here rather than by a bulk probe at Home's own load — "do not
+    /// block the Home load on a bulk probe". A stale count from a source that has since
+    /// changed is corrected the next time the card appears, the same way a local shelf's
+    /// own count is read fresh every time.
+    public let count: Int?
+    /// How many of a list's entries are finished, or `nil` for a collection, which has no
+    /// order to be part-way through — the same reason ``HomeShelfSummary/finished`` is.
+    public let finished: Int?
 
-    public init(kind: RememberedShelfKind, sourceID: UUID, serverID: Int, title: String) {
+    public init(
+        kind: RememberedShelfKind,
+        sourceID: UUID,
+        serverID: Int,
+        title: String,
+        count: Int? = nil,
+        finished: Int? = nil
+    ) {
         self.kind = kind
         self.sourceID = sourceID
         self.serverID = serverID
         self.title = title
+        self.count = count
+        self.finished = finished
     }
 
     public var id: String { token }
@@ -47,8 +67,19 @@ public struct RememberedShelf: Sendable, Hashable, Identifiable {
     /// a preferences file, and immune to a case being reordered. **The title is last**, so a
     /// title holding a colon survives a parse that splits at most three times — and
     /// "Batman: Year One" is the ordinary case rather than the awkward one.
+    ///
+    /// **The count and the finished position ride after a tab, not a colon.** The colon-based
+    /// prefix is fixed at three fields precisely so a title's own colons stay intact; adding
+    /// two more colon-delimited fields ahead of the title would need a fourth and a fifth
+    /// split, and an *old* token's title — written before this existed — can itself hold any
+    /// number of colons, so a wider split would cut an old title apart rather than leave it
+    /// alone. A tab is not a character a server-supplied title has had in it, and splitting on
+    /// it first, before the colon parse ever runs, costs the old format nothing: a token with
+    /// no tab parses exactly as it always did.
     public var token: String {
-        "\(kind.rawValue):\(sourceID.uuidString):\(serverID):\(title)"
+        let base = "\(kind.rawValue):\(sourceID.uuidString):\(serverID):\(title)"
+        guard count != nil || finished != nil else { return base }
+        return "\(base)\t\(count.map(String.init) ?? "")\t\(finished.map(String.init) ?? "")"
     }
 
     /// A token read back, or `nil` for anything this version cannot read.
@@ -57,14 +88,20 @@ public struct RememberedShelf: Sendable, Hashable, Identifiable {
     /// missing from the home surface reappears the next time the shelves screen asks a server,
     /// where a guessed one would point at whatever the server now numbers that way.
     public init?(token: String) {
-        let parts = token.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false)
+        let sections = token.split(separator: "\t", omittingEmptySubsequences: false)
+        let parts = sections[0].split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false)
         guard parts.count == 4,
               let kind = RememberedShelfKind(rawValue: String(parts[0])),
               let sourceID = UUID(uuidString: String(parts[1])),
               let serverID = Int(parts[2]),
               !parts[3].isEmpty
         else { return nil }
-        self.init(kind: kind, sourceID: sourceID, serverID: serverID, title: String(parts[3]))
+        let count = sections.count > 1 ? Int(sections[1]) : nil
+        let finished = sections.count > 2 ? Int(sections[2]) : nil
+        self.init(
+            kind: kind, sourceID: sourceID, serverID: serverID, title: String(parts[3]),
+            count: count, finished: finished
+        )
     }
 
     /// Every shelf a stored record holds, dropping any token this version cannot read.
