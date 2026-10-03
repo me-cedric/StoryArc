@@ -34,6 +34,11 @@ enum ServerLibrary {
         /// record) but never told the reader one had happened, which is the one part of D3
         /// a background refresh could not skip.
         var conflicts: [KavitaConflict] = []
+        /// The `next` link this read's own first page found, for every catalogue that
+        /// turned out partial. 22.1: `continueReadingCatalogues` has nothing else to ask
+        /// for — a catalogue is a chain of links the server hands forward, with no page
+        /// number or offset of this side's own invention.
+        var opdsNext: [UUID: URL] = [:]
     }
 
     static func read(
@@ -44,7 +49,8 @@ enum ServerLibrary {
         var reading = Reading()
         for source in sources {
             let slice = await publications(
-                of: source, credentials: credentials, progress: progress, conflicts: &reading.conflicts
+                of: source, credentials: credentials, progress: progress,
+                conflicts: &reading.conflicts, opdsNext: &reading.opdsNext
             )
             reading.rows.append(contentsOf: slice.publications.map { ($0, source.id) })
             if slice.holdsMore { reading.partial.insert(source.id) }
@@ -56,7 +62,8 @@ enum ServerLibrary {
         of source: Source,
         credentials: CredentialStore?,
         progress: ProgressStore?,
-        conflicts: inout [KavitaConflict]
+        conflicts: inout [KavitaConflict],
+        opdsNext: inout [UUID: URL]
     ) async -> SourceSlice {
         switch source.kind {
         case .kavitaServer:
@@ -85,15 +92,12 @@ enum ServerLibrary {
             guard let page = CataloguePage(source: source, credentials: credentials) else {
                 return .none
             }
-            let feed = try? await client(for: page).feed(at: page.url, credential: page.credential)
-            guard let feed else { return .none }
-            // The feed says so itself. A `next` link is the catalogue's own statement that
-            // this page is not the whole of it.
-            return SourceSlice(
-                publications: feed.publications
-                    .compactMap { OpdsContributor.publication(source: source.id, entry: $0) },
-                holdsMore: feed.next != nil
-            )
+            guard let fetched = try? await OpdsContributor.page(source: source.id, page: page, url: page.url)
+            else { return .none }
+            // Learned here, where the first page is read, so a continuation started from
+            // this read's own answer has a link to ask for rather than nothing.
+            opdsNext[source.id] = fetched.next
+            return fetched.slice
 
         case .networkShare:
             guard let page = SmbPage(source: source, credentials: credentials) else { return .none }
@@ -147,14 +151,17 @@ extension LibraryModel {
             case .kavitaServer: firstSliceRead = KavitaContributor.firstSlice
             case .networkShare: firstSliceRead = SmbContributor.firstSlice
             // A catalogue's first slice is one feed page, whatever size the server chose —
-            // nothing here names that number, and nothing yet continues an OPDS read past
-            // it, so there is no total to divide it into either.
+            // nothing here names that number, so there is no total to divide it into either.
             case .opdsCatalog, .localFolder, nil: firstSliceRead = 0
             }
             partialSources[sourceID] = .started(firstSliceRead: firstSliceRead)
+            if let next = reading.opdsNext[sourceID] { opdsNext[sourceID] = next }
         }
         for sourceID in partialSources.keys where !reading.partial.contains(sourceID) {
             partialSources.removeValue(forKey: sourceID)
+        }
+        for sourceID in opdsNext.keys where !reading.partial.contains(sourceID) {
+            opdsNext.removeValue(forKey: sourceID)
         }
         RefreshConflicts.shared.report(reading.conflicts)
         for (publication, sourceID) in reading.rows {
@@ -173,20 +180,22 @@ extension LibraryModel {
         cacheLibrary(claimsFreshness: false)
     }
 
-    /// Starts one background reader per Kavita source that is still partial.
+    /// Starts one background reader per source that is still partial: a Kavita server, a
+    /// network share or an OPDS catalogue.
     ///
     /// `sources`' *More from a source than the library holds*: the first slice is what
     /// ``readServers()`` above already reads; this is the rest of it, page by page, so the
     /// first screen paints from the slice and the library keeps growing underneath it
-    /// rather than the reader waiting on a server with forty thousand series.
-    ///
-    /// SMB and OPDS are not here yet — `docs/delivery` names both as still to build.
+    /// rather than the reader waiting on a server with forty thousand series, a share with
+    /// a hundred thousand files, or a catalogue a thousand pages deep.
     func continueReadingServers() {
         for source in registry.sources where source.kind == .kavitaServer {
             guard partialSources[source.id] != nil else { continue }
             guard let page = KavitaPage(source: source, credentials: CredentialStore()) else { continue }
             Task { await continueReadingKavita(source: source, client: KavitaClient(address: page.address)) }
         }
+        continueReadingShares()
+        continueReadingCatalogues()
     }
 
     /// Reads one Kavita source's continuation until it finishes or a page refuses.
