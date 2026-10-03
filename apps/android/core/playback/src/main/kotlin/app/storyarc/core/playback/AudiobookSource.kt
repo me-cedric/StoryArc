@@ -3,6 +3,7 @@ package app.storyarc.core.playback
 import android.net.Uri
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.Tracks
@@ -33,7 +34,10 @@ class AudiobookSource(
 
     override val publicationId: String get() = book.id
     override val title: String get() = book.title
-    override val skippedPartCount: Int get() = book.skippedPartCount
+
+    /** The index-time count, plus a part this session itself could not decode. Task 16.5. */
+    override val skippedPartCount: Int get() = book.skippedPartCount + failedPartCount
+    private var failedPartCount = 0
 
     override var onChange: (() -> Unit)? = null
 
@@ -164,6 +168,26 @@ class AudiobookSource(
 
         override fun onTracksChanged(tracks: Tracks) {
             adoptChapters(tracks)
+        }
+
+        /**
+         * A part could not be decoded. Task 16.5, `publication-formats`: a damaged
+         * audiobook "plays what it can and states how much it could not", by the same rule
+         * that opens a comic missing pages.
+         *
+         * media3 drops to `STATE_IDLE` on a fatal error, which is why this re-[prepare]s
+         * rather than only seeking — a plain seek on an idle player moves nothing.
+         */
+        override fun onPlayerError(error: PlaybackException) {
+            failedPartCount += 1
+            val next = afterDecodeFailure(book.layout, player.currentMediaItemIndex, book.sources.size)
+            if (next != null) {
+                player.seekTo(next, 0)
+                player.prepare()
+            } else {
+                session = session.stopped()
+            }
+            onChange?.invoke()
         }
 
         /**
@@ -477,4 +501,20 @@ class AudiobookSource(
         parts = measured
         onChange?.invoke()
     }
+}
+
+/**
+ * Where playback continues after the part at [index] fails to decode mid-playback, or
+ * `null` when there is none to move to.
+ *
+ * Task 16.5. Pure, so it is asserted without a real `Player` behind it — [AudiobookSource]
+ * is the engine a test cannot reach. Only [PartLayout.FILES] has a next part to move to: a
+ * [PartLayout.MARKS] book is one file, and a decode failure there is a failure of the whole
+ * of it, not of one chapter inside it — the same reason iOS's `NarratedSource` ends a
+ * chaptered file's book rather than seeking within the file that just failed.
+ */
+internal fun afterDecodeFailure(layout: PartLayout, index: Int, partCount: Int): Int? {
+    if (layout != PartLayout.FILES) return null
+    val next = index + 1
+    return next.takeIf { it < partCount }
 }
