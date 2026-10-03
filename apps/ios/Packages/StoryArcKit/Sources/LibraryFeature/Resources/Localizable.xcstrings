@@ -2496,7 +2496,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucune voix sur cet appareil ne lit le %@"
+            "value": "Aucune voix de cet appareil ne lit cette langue : %@"
           }
         }
       },
