@@ -22,6 +22,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.adaptive.separatingVerticalHingeBounds
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -31,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
@@ -39,6 +42,7 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.commitNow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import app.storyarc.core.designsystem.navigation.hingeSpreadSplit
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.designsystem.theme.resolved
 import app.storyarc.core.designsystem.theme.swatch
@@ -413,6 +417,26 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     // Level two of the theme surface, which on this platform is a
                     // destination rather than a second sheet. See `ThemeAxesScreen.kt`.
                     var isCustomisingTheme by remember { mutableStateOf(false) }
+
+                    // `native-experience` 19.5: a window folded open across a vertical
+                    // hinge. `container` fills the window, at the window's own origin --
+                    // nothing between it and `root` ever offsets it -- so the window's own
+                    // width and the hinge's own bounds are already in `container`'s local
+                    // space, with no `onGloballyPositioned` round trip to find out. See
+                    // `EpubHingeLayout.kt` for why the navigator moves and Readium's own
+                    // page does not.
+                    val windowHinge = currentWindowAdaptiveInfoV2().windowPosture
+                        .separatingVerticalHingeBounds.firstOrNull()
+                    val containerWidth = LocalWindowInfo.current.containerSize.width
+                    LaunchedEffect(windowHinge, containerWidth) {
+                        val split = hingeSpreadSplit(
+                            containerWidth = containerWidth.toFloat(),
+                            hingeStart = windowHinge?.left,
+                            hingeEnd = windowHinge?.right,
+                        )
+                        container.layoutParams = epubHingeLayout(split).asLayoutParams()
+                        container.requestLayout()
+                    }
 
                     // `reading-themes`: reader-local. A window attribute rather than
                     // the system setting, so it reverts when this screen goes away.

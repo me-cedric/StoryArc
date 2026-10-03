@@ -79,7 +79,11 @@ const ALLOWED = {
     // length by 58 lines.
     'apps/android/feature/reader/src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt': 1951,
     'apps/android/feature/library/src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt': 1696,
-    'apps/android/feature/epubreader/src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt': 1051,
+    // 19.5 taught the activity to read the window's own separating vertical hinge and keep
+    // the Readium navigator's `FragmentContainerView` off it, through `EpubHingeLayout.kt`'s
+    // pure split; the effect that reads the hinge and re-sets `container`'s own layout
+    // params is the activity's own wiring and grew it past its recorded length by 21 lines.
+    'apps/android/feature/epubreader/src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt': 1072,
     // 19.7 added the tinted/dark icon render and crossed the cap by 26 lines. `swift
     // scripts/brand-mark.swift` is script-mode, which compiles and runs exactly the one file
     // it is given — a second file passed alongside it is parsed as an *argument* to the
