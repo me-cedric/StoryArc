@@ -1,9 +1,11 @@
 package app.storyarc.feature.reader
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -26,7 +28,13 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -37,6 +45,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.control.StoryArcSliderTrack
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -140,6 +149,8 @@ internal fun ReaderMenuSheet(
                     viewModel = viewModel,
                     pageCount = facts.pageCount,
                     currentIndex = facts.pageIndex,
+                    scrubbing = scrubbing,
+                    isRightToLeft = facts.direction == ReadingDirection.RIGHT_TO_LEFT,
                     onSelect = { index ->
                         // A jump, like the slider's: it leaves the same mark, so the way back
                         // from a mis-tap in a three-hundred-page strip is one control.
@@ -324,7 +335,13 @@ private fun PageSlider(
                 // The handle stands on the rail rather than beside it. See
                 // `StoryArcSliderTrack`: at page one there is no active half to separate
                 // it from, and the sweep read the result as a rendering fault.
-                track = { state -> StoryArcSliderTrack(state) },
+                // `page-browser-carousel` §4: a tick at each chapter start, in this slot.
+                track = { state ->
+                    Box {
+                        StoryArcSliderTrack(state)
+                        ChapterTickMarks(viewModel = viewModel, pageCount = count)
+                    }
+                },
                 // Named, and reading the page rather than the range percent Compose
                 // announces by default.
                 modifier = Modifier.fillMaxWidth().semantics {
@@ -453,3 +470,42 @@ private val ReaderMenuEntry.labelRes: Int
 
 /** A whole list row as the target, which is well past the platform's minimum touch size. */
 private fun Modifier.clickableRow(onClick: () -> Unit): Modifier = this.clickable(onClick = onClick)
+
+/**
+ * A tick at each chapter start, drawn over the slider's own track.
+ *
+ * `page-browser-carousel` §4: "M3 `Slider` with its `track` slot. Draw the ticks in the
+ * track with a `Canvas`, at each chapter start. The built-in `steps` cannot mark
+ * chapters, because they are evenly spaced."
+ *
+ * Decorative to accessibility: the slider's own value already states the page, and the
+ * chapter name above the carousel is what names the chapter — `comic-reader`'s "the
+ * ticks and the badges are never the only indication".
+ */
+@Composable
+private fun ChapterTickMarks(viewModel: ReaderViewModel, pageCount: Int) {
+    val palette = LocalStoryArcPalette.current
+    var markers by remember { mutableStateOf<List<ChapterMarker>>(emptyList()) }
+    LaunchedEffect(viewModel) { markers = viewModel.chapterMarkers() }
+    val fractions = ChapterBrowser.tickFractions(markers, pageCount)
+    // `Canvas` draws in absolute pixels, so the mirror the rest of the slider gets from
+    // `LocalLayoutDirection` has to be applied here by hand.
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+
+    Canvas(
+        Modifier
+            .fillMaxWidth()
+            .height(8.dp)
+            .clearAndSetSemantics {},
+    ) {
+        for (fraction in fractions) {
+            val x = if (isRtl) size.width * (1f - fraction) else size.width * fraction
+            drawLine(
+                color = palette.accent,
+                start = Offset(x, 0f),
+                end = Offset(x, size.height),
+                strokeWidth = 2.dp.toPx(),
+            )
+        }
+    }
+}

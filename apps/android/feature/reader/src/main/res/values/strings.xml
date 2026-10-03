@@ -104,6 +104,9 @@
     <string name="reader_brightness">Screen brightness</string>
     <string name="reader_chapter_previous">Previous chapter</string>
     <string name="reader_chapter_next">Next chapter</string>
+    <!-- page-browser-carousel: the carousel's chapter name when its marker gives no
+         title, as the chapter's position among the chapters, 1-based. -->
+    <string name="reader_chapter_number">Chapter %1$d</string>
     <string name="reader_return">Back to page %1$d</string>
     <string name="reader_spreads_offset">Line up the two-page view differently</string>
     <string name="reader_separator">Show page separator</string>
