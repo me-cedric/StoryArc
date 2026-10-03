@@ -17,45 +17,47 @@ import org.junit.Test
  */
 class EpubHingeWiringTest {
 
-    private val source: String by lazy {
-        val module = System.getProperty(MODULE_DIRECTORY)?.let(::File)
+    private val module: File by lazy {
+        System.getProperty(MODULE_DIRECTORY)?.let(::File)
             ?: error(
                 "$MODULE_DIRECTORY is unset. This test reads the module's own source and" +
                     " will not go looking for it elsewhere — run it through Gradle" +
                     " (`pnpm gradle :feature:epubreader:testDebugUnitTest`), which sets the" +
                     " property from the module directory.",
             )
+    }
+
+    private val source: String by lazy {
         val file = File(module, ACTIVITY_SOURCE)
         if (!file.isFile) error("$ACTIVITY_SOURCE is not under ${module.absolutePath} — has it moved?")
         file.readText()
     }
 
     @Test
-    fun `the activity reads the window's own separating vertical hinge`() {
+    fun `the activity keeps its navigator off the hinge`() {
         assertTrue(
-            "EpubReaderActivity no longer reads windowPosture.separatingVerticalHingeBounds" +
-                " — a folded window has nothing to avoid the hinge with.",
-            source.contains("separatingVerticalHingeBounds.firstOrNull()"),
+            "EpubReaderActivity no longer calls KeepOffHinge(container) — the navigator stays" +
+                " match-parent across a hinge it should have moved clear of.",
+            source.contains("KeepOffHinge(container)"),
         )
     }
 
     @Test
-    fun `the navigator's own layout params are replaced from the hinge split`() {
+    fun `KeepOffHinge re-sets the navigator's layout params from the window's hinge`() {
+        val layout = File(module, LAYOUT_SOURCE).readText()
         assertTrue(
-            "EpubReaderActivity no longer sets container.layoutParams from" +
-                " epubHingeLayout(split).asLayoutParams() — the navigator stays" +
-                " match-parent across a hinge it should have moved clear of.",
-            source.contains("container.layoutParams = epubHingeLayout(split).asLayoutParams()"),
+            "KeepOffHinge no longer reads windowPosture.separatingVerticalHingeBounds.",
+            layout.contains("separatingVerticalHingeBounds.firstOrNull()"),
         )
         assertTrue(
-            "The navigator's container is no longer asked to re-measure after its layout" +
-                " params change, so a later fold would never move it.",
-            source.contains("container.requestLayout()"),
+            "KeepOffHinge no longer sets the container's layout params from epubHingeLayout.",
+            layout.contains("container.layoutParams = epubHingeLayout(") && layout.contains("container.requestLayout()"),
         )
     }
 
     private companion object {
         const val MODULE_DIRECTORY = "storyarc.epubreader.projectDir"
         const val ACTIVITY_SOURCE = "src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt"
+        const val LAYOUT_SOURCE = "src/main/kotlin/app/storyarc/feature/epubreader/EpubHingeLayout.kt"
     }
 }

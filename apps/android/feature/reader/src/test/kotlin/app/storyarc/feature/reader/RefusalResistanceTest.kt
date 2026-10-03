@@ -60,7 +60,7 @@ class RefusalResistanceTest {
         )
         assertTrue(
             "The page surface no longer draws where the resistance puts it.",
-            screen.contains("Box(Modifier.fillMaxSize().then(resistance.modifier), contentAlignment = Alignment.Center)"),
+            screen.contains("Modifier.fillMaxSize().then(hingeSurface.modifier).then(resistance.modifier)"),
         )
     }
 
