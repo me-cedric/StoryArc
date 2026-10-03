@@ -91,8 +91,7 @@ public final class LibraryModel {
     /// In-progress publications, most recently read first. Empty means the row is
     /// not drawn at all, which is what `library-browsing` asks for.
     public private(set) var continueReading: [Publication] = []
-    // `internal(set)`, not `private(set)`: the scanning half of this type lives in
-    // another file, and `private` is file-scoped.
+    // `internal(set)`, not `private(set)`: the scanning half of this type is in another file.
     public internal(set) var scanState: LibraryScanState = .idle
     /// What the library could not open, and whether the reader has been told.
     ///
@@ -168,6 +167,8 @@ public final class LibraryModel {
 
     /// The reading lists every known Kavita server holds, once they have been asked.
     var serverLists: [ServerShelf] = []
+    /// Series statuses the reader set by hand (D36), observed so the menus that list them redraw.
+    var seriesStatuses = SeriesStatusStore().all()
     /// The servers that answered that question: reachable, and able to hold a list.
     var listCapableServers: [KavitaPage] = []
     // Internal, not private: the shelves half of this type lives in another file.
@@ -357,8 +358,7 @@ public final class LibraryModel {
     // Internal, not private: the scanning half of this type lives in another file.
     let rebuildEvery = 24
 
-    // Internal, not private: private is file-scoped, and the callers now sit in the other half.
-    /// Recomputes what is on screen from the library and the query.
+    /// Recomputes what is on screen from the library and the query. Internal: callers sit in other files.
     func rebuild() {
         // The reader's language, not the device's. `localization` moves the interface to the
         // chosen language, and collation is part of the interface: Spanish files *ñ* after *n*
@@ -368,7 +368,7 @@ public final class LibraryModel {
         // is the answer that does, and it falls back to the process locale when nothing is
         // chosen.
         let locale = Locale.storyArc
-        let shown = withManualStatuses(publications, overrides: seriesStatusOverrides())
+        let shown = withManualStatuses(publications, overrides: seriesStatuses)
         visible = LibraryIndex.arrange(shown, query: query, locale: locale) { self.state(of: $0) }
         matchGroups = LibraryIndex.grouped(shown, query: query, locale: locale) { self.state(of: $0) }
         // The whole library, narrowed by nothing. This used to apply `query.scope`, on the

@@ -6,28 +6,21 @@ public import StoryArcCore
 /// Setting a status by hand, for a series whose source reports none.
 ///
 /// `library-browsing` (D36): the reported half of a status is carried onto ``Publication``
-/// itself at index time; this is the other half, read fresh from ``SeriesStatusStore`` rather
-/// than held on ``LibraryModel``, so adding it cost that file not one stored property — it
-/// sits exactly at the 400-line cap `.swiftlint.yml` enforces as an error under `--strict`,
-/// and a constructor-injected store would have added an `init` parameter, a stored property
-/// and an assignment, none of which fit. A test that needs an isolated store passes one of
-/// its own to any function here; every one of them defaults to `SeriesStatusStore()`, the
-/// same default the store's own initialiser gives for production. Android's
-/// `SeriesStatusActions.kt` mirrors this file, for the matching reason given there:
-/// `LibraryViewModel.kt` is a recorded ratchet file and must not grow either.
+/// itself at index time; this is the other half. ``SeriesStatusStore`` persists it, and
+/// ``LibraryModel/seriesStatuses`` holds the copy the screens observe, so the series menu and
+/// the filter menu redraw when a status is set or cleared. `LibraryModel.swift` sits at the
+/// 400-line cap `.swiftlint.yml` enforces as an error under `--strict`, which is why these
+/// actions live here. A test that needs an isolated store passes one of its own; each action
+/// defaults to `SeriesStatusStore()`, the store the model loads from at launch. Android's
+/// `SeriesStatusActions.kt` mirrors this file.
 extension LibraryModel {
-    /// Every status a reader has set by hand, keyed by series name.
-    func seriesStatusOverrides(store: SeriesStatusStore = SeriesStatusStore()) -> [String: PublicationStatus] {
-        store.all()
-    }
-
     /// The statuses actually present in the library, reported or set by hand, in
     /// ``PublicationStatus``'s own declared order.
     ///
     /// `library-browsing`: the filter menu "never offers a value that would empty the
     /// shelf", the rule every other facet in `LibraryFacets.swift` already follows.
-    public func availableStatuses(store: SeriesStatusStore = SeriesStatusStore()) -> [PublicationStatus] {
-        let shown = withManualStatuses(publications, overrides: seriesStatusOverrides(store: store))
+    public func availableStatuses() -> [PublicationStatus] {
+        let shown = withManualStatuses(publications, overrides: seriesStatuses)
         let present = Set(shown.compactMap(\.status))
         return PublicationStatus.allCases.filter(present.contains)
     }
@@ -49,12 +42,14 @@ extension LibraryModel {
         store: SeriesStatusStore = SeriesStatusStore()
     ) {
         store.set(status, for: series)
+        seriesStatuses = store.all()
         rebuild()
     }
 
     /// Clears a status the reader had set, leaving the series unset again.
     public func clearSeriesStatus(_ series: String, store: SeriesStatusStore = SeriesStatusStore()) {
         store.clear(series)
+        seriesStatuses = store.all()
         rebuild()
     }
 }

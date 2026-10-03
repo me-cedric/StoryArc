@@ -36,7 +36,7 @@ struct SeriesStatusActionsTests {
         model.publications = [publication("Tidal Reach #1", series: "Tidal Reach")]
         let store = try store()
         model.setSeriesStatus(.completed, for: "Tidal Reach", store: store)
-        #expect(model.availableStatuses(store: store) == [.completed])
+        #expect(model.availableStatuses() == [.completed])
     }
 
     @Test("A series with a reported status is not hand-editable")
@@ -55,18 +55,13 @@ struct SeriesStatusActionsTests {
 
     @Test("Setting a status by hand reaches what the shelf actually filters to")
     func handSetStatusReachesTheShelf() throws {
-        // `rebuild()` cannot take a store of its own — see this file's own doc comment on
-        // why `LibraryModel` holds no stored property for one — so it always reads the
-        // default `SeriesStatusStore()`. Proving the override actually reaches `visible`
-        // means going through that same default, with the one series this test touches
-        // cleared afterward.
-        defer { SeriesStatusStore().clear("Tidal Reach") }
         let model = LibraryModel()
         model.publications = [
             publication("Tidal Reach #1", series: "Tidal Reach"),
             publication("Maus #1", series: "Maus"),
         ]
-        model.setSeriesStatus(.completed, for: "Tidal Reach")
+        let store = try store()
+        model.setSeriesStatus(.completed, for: "Tidal Reach", store: store)
         model.query.statuses = [.completed]
         #expect(model.visible.map(\.displayTitle) == ["Tidal Reach #1"])
     }
@@ -78,6 +73,16 @@ struct SeriesStatusActionsTests {
         let store = try store()
         model.setSeriesStatus(.completed, for: "Maus", store: store)
         model.clearSeriesStatus("Maus", store: store)
-        #expect(model.availableStatuses(store: store).isEmpty)
+        #expect(model.availableStatuses().isEmpty)
+    }
+
+    @Test("The series menu and the filter read the status the model observes")
+    func observedStatusFollowsTheStore() throws {
+        let model = LibraryModel()
+        let store = try store()
+        model.setSeriesStatus(.hiatus, for: "Maus", store: store)
+        #expect(model.seriesStatuses["Maus"] == .hiatus)
+        model.clearSeriesStatus("Maus", store: store)
+        #expect(model.seriesStatuses["Maus"] == nil)
     }
 }
