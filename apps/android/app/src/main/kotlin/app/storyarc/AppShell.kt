@@ -59,6 +59,7 @@ import app.storyarc.navigation.AppDestination
 import app.storyarc.navigation.AppNavigation
 import app.storyarc.navigation.AppSheet
 import app.storyarc.navigation.Screen
+import kotlinx.coroutines.launch
 
 /**
  * The frame the whole app draws inside.
@@ -159,13 +160,23 @@ internal fun AppShell(
 
     // The car shelf, kept level with the library. A scan, a finished download and a deletion
     // all move this list, and a head unit reads what was last written — see [CarShelf].
+    //
+    // 13.3: a second effect, not a second screen. `CarShelf.follow` never returns, so it owns
+    // this `LaunchedEffect`'s own coroutine; `PlayingBook.watchCarStarts` is what notices a
+    // car started a book through `PlaybackHost.attachCarStart` rather than through `play`
+    // below, and gets its own so the first one still runs.
     LaunchedEffect(library) {
-        CarShelf.follow(
-            context = activity.applicationContext,
-            publications = library.publications,
-            locate = library::location,
-            progress = dependencies.progress,
-        )
+        launch {
+            CarShelf.follow(
+                context = activity.applicationContext,
+                publications = library.publications,
+                locate = library::location,
+                progress = dependencies.progress,
+            )
+        }
+        launch {
+            PlayingBook.watchCarStarts(library.publications, dependencies.progress)
+        }
     }
 
     // Holds the launcher below until it exists — `host.open` is defined before the
