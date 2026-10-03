@@ -64,11 +64,12 @@ struct LibraryGroupingWiringTests {
 
     /// The second parity this file guards. The shelf divided in the grid and in no other
     /// layout, at any length, and `library-browsing`'s *Sectioning a long library* divides
-    /// "the library" rather than the grid. The layout decides the column count and nothing
-    /// else: three in the grid, one in the list, where a heading costs a single row.
+    /// "the library" rather than the grid. The drawn layout decides the column count and
+    /// nothing else: three in the grid, one in the list, where a heading costs a single row.
+    /// Drawn, not stored: the list fallback at an accessibility text size cuts at one too.
     @Test("The compact list is handed the same headings, divided at one column")
     func listTakesTheSections() {
-        #expect(content.contains("columns: model.layout == .list ? 1 : LibrarySections.coversPerRow"))
+        #expect(content.contains("columns: libraryFallsBackToList(stored: model.layout, textSize: textSize)"))
         #expect(
             content.components(separatedBy: "sections: sections,").count == 3,
             "the sectioned grid and the list both, and nothing else"
