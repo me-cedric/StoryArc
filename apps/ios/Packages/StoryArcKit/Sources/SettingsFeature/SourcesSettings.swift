@@ -33,11 +33,9 @@ struct SourcesSettings: View {
     let onRemove: (Source) -> Void
     let onRename: (Source, String) -> Void
 
-    /**
-     * The five ways to add a source, moved here from the library toolbar (task 17.9, task
-     * 1.2's own direction for where it belongs). Handed in for the same reason the sources
-     * themselves are: adding one is the library's doing.
-     */
+    /// The five ways to add a source, moved here from the library toolbar (task 17.9, task
+    /// 1.2's own direction for where it belongs). Handed in for the same reason the sources
+    /// themselves are: adding one is the library's doing.
     var onAddFolder: () -> Void = {}
     var onImportSource: () -> Void = {}
     var onAddCatalogue: () -> Void = {}
