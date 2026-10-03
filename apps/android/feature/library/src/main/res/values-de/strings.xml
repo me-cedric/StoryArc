@@ -441,6 +441,9 @@
     <string name="detail_chapter_left">%1$s · %2$s übrig</string>
     <string name="detail_series_heading">Weitere Ausgaben dieser Reihe</string>
     <string name="detail_downloading">Wird heruntergeladen</string>
+    <string name="detail_readaloud_voice">Vorgelesen von %1$s (%2$s)</string>
+    <string name="detail_readaloud_noVoice">Keine Stimme auf diesem Gerät liest %1$s</string>
+    <string name="detail_readaloud_defaultEngine">die Stimme dieses Geräts</string>
     <!-- What a stopped transfer on a publication page is waiting for. The downloads
          view’s own three keys, copied rather than reworded. -->
     <string name="downloads_paused_by_reader">Angehalten</string>

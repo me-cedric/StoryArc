@@ -237,6 +237,10 @@ fun PublicationDetailScreen(
     }
     val accent = rememberDetailAccent(cover)
 
+    // Task 16.7 / D38: the device's own read-aloud voice for this publication's language, or
+    // that none is installed. See `rememberReadAloudVoiceFact`.
+    val readAloudVoice = rememberReadAloudVoiceFact(publication)
+
     // The copy route, and the mobile-data question it has to ask. Before the action, because
     // a copy that lands while the page is open changes what the action *is*.
     val copy = rememberPublicationCopy(publication, page, queue, pins)
@@ -378,6 +382,7 @@ fun PublicationDetailScreen(
                 hero = hero,
                 action = action,
                 provenance = provenance,
+                readAloudVoice = readAloudVoice,
                 transfer = transfer,
                 chapters = chapters,
                 stoppedIn = stoppedIn,
@@ -473,6 +478,9 @@ internal fun DetailMainPane(
     hero: DetailHeroLayout = DetailHeroLayout(isSideBySide = false, coverHeight = 360.dp),
     action: PrimaryAction,
     provenance: Provenance,
+    /** Task 16.7 / D38: the device's own read-aloud voice fact, once resolved. Null while it
+     *  is still resolving, and for every publication this cannot be true of. */
+    readAloudVoice: ReadAloudVoiceFact? = null,
     transfer: Download? = null,
     chapters: List<AudiobookPart> = emptyList(),
     stoppedIn: Int? = null,
@@ -550,6 +558,8 @@ internal fun DetailMainPane(
                 color = palette.textSecondary,
             )
         }
+
+        readAloudVoice?.let { fact -> ReadAloudVoiceLineText(fact) }
 
         // Under the summary and above the provenance line, which stays last. A listener
         // choosing what to hear next reads what the book is, then what is in it.

@@ -431,9 +431,11 @@ private fun <T> toggled(current: Set<T>, value: T): Set<T> =
  * A language code as its own speakers write it.
  *
  * The same rule Settings follows, duplicated rather than shared: a feature module
- * never depends on another feature module, and this is four lines.
+ * never depends on another feature module, and this is four lines. `internal` rather
+ * than `private`: `ReadAloudVoiceLine` is this same module's own file and names the
+ * publication's language the identical way.
  */
-private fun languageName(code: String): String {
+internal fun languageName(code: String): String {
     val locale = Locale.forLanguageTag(code)
     return locale.getDisplayLanguage(locale)
         .ifEmpty { code }
