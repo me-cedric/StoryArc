@@ -191,11 +191,14 @@ private struct ScrubThumbnail: View {
 
 /// A tick at each chapter start, drawn over the slider's own track.
 ///
-/// `page-browser-carousel` §4: "iOS `Slider` tick marks … if the tick API cannot place a
-/// tick at an arbitrary value, draw the ticks in an overlay aligned to the track, under
-/// the thumb." A plain `Slider` has no track slot to draw into (unlike Android's M3
-/// `Slider`), so this is that overlay — a thin mark per fraction, placed by a
-/// `GeometryReader` the same width as the track it sits on.
+/// `page-browser-carousel` §4 prefers the iOS 26 `SliderTick`, and names this overlay as
+/// the fallback. The fallback is the one that works here: the only `Slider` initializer
+/// that takes ticks takes no `step`, and UIKit's tick track lets the thumb rest only on a
+/// tick by default (`UISliderTrackConfiguration.allowsTickValuesOnly`). Chapter ticks
+/// there would stop the slider on chapter starts and nowhere else.
+///
+/// Each tick sits where the thumb's centre sits at that page, which is inset from the
+/// track's ends by half the thumb — see ``ChapterBrowser/tickOffset(fraction:trackWidth:thumbWidth:)``.
 ///
 /// Decorative to accessibility: the slider's own value already states the page, and the
 /// chapter name above the carousel is what names the chapter — `comic-reader`'s "the
@@ -208,13 +211,22 @@ private struct ChapterTickMarks: View {
 
     @State private var markers: [ChapterMarker] = []
 
+    /// ponytail: the width of `UISlider`'s thumb on iOS 26.2, from
+    /// `thumbRect(forBounds:trackRect:value:)`. A new slider design changes it; measure again.
+    private let thumbWidth: Double = 37
+
     var body: some View {
         GeometryReader { geometry in
             ForEach(Array(fractions.enumerated()), id: \.offset) { _, fraction in
+                let x = ChapterBrowser.tickOffset(
+                    fraction: fraction,
+                    trackWidth: geometry.size.width,
+                    thumbWidth: thumbWidth
+                )
                 Capsule()
                     .fill(theme.accent)
                     .frame(width: 2, height: 8)
-                    .position(x: geometry.size.width * CGFloat(fraction), y: geometry.size.height / 2)
+                    .position(x: x, y: geometry.size.height / 2)
             }
         }
         .allowsHitTesting(false)

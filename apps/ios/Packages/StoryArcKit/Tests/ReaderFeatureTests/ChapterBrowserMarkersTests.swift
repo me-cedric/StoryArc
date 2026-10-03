@@ -67,6 +67,13 @@ struct ChapterBrowserMarkersTests {
         #expect(ChapterBrowser.tickFractions(markers: markers, pageCount: 0) == [])
     }
 
+    @Test("A tick sits where the thumb's centre sits, inset by half the thumb at each end")
+    func tickOffsetFollowsTheThumbCentre() {
+        #expect(ChapterBrowser.tickOffset(fraction: 0, trackWidth: 300, thumbWidth: 37) == 18.5)
+        #expect(ChapterBrowser.tickOffset(fraction: 0.5, trackWidth: 300, thumbWidth: 37) == 150)
+        #expect(ChapterBrowser.tickOffset(fraction: 1, trackWidth: 300, thumbWidth: 37) == 281.5)
+    }
+
     @Test("Comic markers come from the archive's declared starts and titles, sorted")
     func comicMarkersAreSortedWithTheirTitles() {
         let built = ChapterBrowser.markers(comicStarts: [40, 0], titles: [0: "Prologue"])

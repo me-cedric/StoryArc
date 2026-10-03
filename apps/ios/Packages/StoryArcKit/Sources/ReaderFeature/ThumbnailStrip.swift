@@ -30,7 +30,7 @@ struct ThumbnailStrip: View {
 
     private let cellWidth: CGFloat = 64
     // design.md §1: "about 1.6 times as wide as its neighbours".
-    private let centredCellWidth: CGFloat = 64 * 1.6
+    nonisolated static let centredCellWidth: CGFloat = 64 * 1.6
     /// The page number's own row, below the tallest (centred) cell.
     private let pageNumberRowHeight: CGFloat = 28
 
@@ -45,10 +45,7 @@ struct ThumbnailStrip: View {
             chapterNameHeader
 
             GeometryReader { geometry in
-                // Centres the first and last pages: a `.viewAligned` item snaps to the
-                // leading content margin otherwise, which is the publication's own first
-                // and last page needing it most.
-                let sideMargin = max(0, (geometry.size.width - cellWidth) / 2)
+                let sideMargin = Self.contentMargin(viewportWidth: geometry.size.width)
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: StoryArcSpace.sm) {
@@ -66,10 +63,23 @@ struct ThumbnailStrip: View {
                 // scoped to the slider alone: the header text keeps its own direction.
                 .environment(\.layoutDirection, sliderLayoutDirection(isRightToLeft: isRightToLeft))
             }
-            .frame(height: centredCellWidth * 1.5 + StoryArcSpace.sm * 2 + pageNumberRowHeight)
+            .frame(height: Self.centredCellWidth * 1.5 + StoryArcSpace.sm * 2 + pageNumberRowHeight)
         }
         .task(id: model.publication.id) { markers = await model.chapterMarkers() }
         .onAppear { if centredIndex == nil { centredIndex = currentIndex } }
+        // A page turned while the carousel is open (behind the half-height menu, or by a
+        // VoiceOver step on the slider) moves the preview to it.
+        .onChange(of: currentIndex) { _, new in centredIndex = new }
+    }
+
+    /// The margin on each side of the carousel's content.
+    ///
+    /// `.viewAligned` snaps a cell's leading edge to this margin, and the cell that lands
+    /// there becomes the centred one, at ``centredCellWidth``. So the margin leaves room
+    /// for that wide cell, not for a neighbour, or the centred page sits off the middle.
+    /// The same margin is what lets the first and the last page reach the centre.
+    nonisolated static func contentMargin(viewportWidth: CGFloat) -> CGFloat {
+        max(0, (viewportWidth - centredCellWidth) / 2)
     }
 
     /// The name above the carousel, for the chapter the centred page is in.
@@ -112,7 +122,7 @@ struct ThumbnailStrip: View {
     private func cell(at index: Int) -> some View {
         let badgeText = ChapterBrowser.badgeText(at: index, markers: markers)
         let chapterName = chapterCellLabel(at: index)
-        let width = index == effectiveCentredIndex ? centredCellWidth : cellWidth
+        let width = index == effectiveCentredIndex ? Self.centredCellWidth : cellWidth
         return ThumbnailCell(
             model: model,
             index: index,
