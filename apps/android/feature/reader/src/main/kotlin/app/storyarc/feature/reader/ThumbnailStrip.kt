@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -88,6 +89,7 @@ internal fun ThumbnailStrip(
     modifier: Modifier = Modifier,
 ) {
     val cellWidth = 64.dp
+    val palette = LocalStoryArcPalette.current
     var markers by remember { mutableStateOf<List<ChapterMarker>>(emptyList()) }
     LaunchedEffect(viewModel) { markers = viewModel.chapterMarkers() }
     val reduceMotion by viewModel.reduceMotionFlow.collectAsStateWithLifecycle()
@@ -137,12 +139,17 @@ internal fun ThumbnailStrip(
                         badgeText = ChapterBrowser.badgeText(index, markers),
                         chapterName = chapterCellLabel(index, markers),
                         onSelect = onSelect,
-                        modifier = Modifier.graphicsLayer {
+                        // The page shrinks onto its number, and the number keeps its size:
+                        // scaled with the page, a neighbour's number fell to 62.5%.
+                        imageModifier = Modifier.graphicsLayer {
                             val scale = pageScale(pagerState.currentPage, page, pagerState.currentPageOffsetFraction)
                             scaleX = if (reduceMotion) 1f else scale
                             scaleY = if (reduceMotion) 1f else scale
+                            transformOrigin = TransformOrigin(0.5f, 1f)
                         },
                         isCentredOutline = reduceMotion && page == pagerState.currentPage,
+                        // The sheet's own ground, not the dark one `ThumbnailColumn` draws.
+                        numberColor = palette.textTertiary,
                     )
                 }
             }
@@ -153,8 +160,10 @@ internal fun ThumbnailStrip(
 /**
  * The scale a cell draws at: 1 at the centre, smaller the further `page` is from it.
  *
- * The same formula Compose's own pager samples use for this effect. Held outside the
- * composable so `ThumbnailScaleTest` can reach it without composing a pager.
+ * The same formula Compose's own pager samples use for this effect: 1 for the centred
+ * page and 0.625 one page away, so the centred page is 1.6 times as wide as its
+ * neighbours. Held outside the composable so `ThumbnailScaleTest` can reach it without
+ * composing a pager.
  */
 internal fun pageScale(currentPage: Int, page: Int, currentPageOffsetFraction: Float): Float {
     val distance = ((currentPage - page) + currentPageOffsetFraction).absoluteValue
@@ -309,6 +318,8 @@ private fun ThumbnailCell(
     badgeText: String? = null,
     chapterName: String? = null,
     isCentredOutline: Boolean = false,
+    imageModifier: Modifier = Modifier,
+    numberColor: Color = Color.White.copy(alpha = 0.7f),
 ) {
     val palette = LocalStoryArcPalette.current
     var bitmap by remember(index) { mutableStateOf<Bitmap?>(null) }
@@ -332,7 +343,7 @@ private fun ThumbnailCell(
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair),
     ) {
         Box(
-            modifier = Modifier
+            modifier = imageModifier
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
                 .clip(RoundedCornerShape(StoryArcRadius.sm))
@@ -379,7 +390,7 @@ private fun ThumbnailCell(
             // The number's weight, not only the border: `native-experience` forbids
             // colour as the only signal, and a border is only colour.
             fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isCurrent) palette.accent else Color.White.copy(alpha = 0.7f),
+            color = if (isCurrent) palette.accent else numberColor,
         )
     }
 }

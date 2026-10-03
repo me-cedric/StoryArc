@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -337,7 +338,8 @@ private fun PageSlider(
                 // it from, and the sweep read the result as a rendering fault.
                 // `page-browser-carousel` §4: a tick at each chapter start, in this slot.
                 track = { state ->
-                    Box {
+                    // Centred on the track, which is taller than the ticks.
+                    Box(contentAlignment = Alignment.Center) {
                         StoryArcSliderTrack(state)
                         ChapterTickMarks(viewModel = viewModel, pageCount = count)
                     }
