@@ -75,10 +75,10 @@ class ReaderPagesStayLtrTest {
     }
 
     @Test
-    fun `the thumbnail strip is wrapped in Ltr`() {
+    fun `the thumbnail carousel is wrapped in Ltr`() {
         assertTrue(
-            "ThumbnailStrip's LazyRow is not wrapped in Ltr.",
-            isWrapped(code(STRIP_SOURCE), "LazyRow("),
+            "ThumbnailStrip's HorizontalPager is not wrapped in Ltr.",
+            isWrapped(code(STRIP_SOURCE), "HorizontalPager("),
         )
     }
 

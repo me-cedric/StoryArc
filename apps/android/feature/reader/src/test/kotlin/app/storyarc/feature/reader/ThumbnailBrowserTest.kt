@@ -113,6 +113,27 @@ class ThumbnailBrowserTest {
         )
     }
 
+    @Test
+    fun `the carousel mirrors for a right-to-left publication`() {
+        assertTrue(
+            "The carousel no longer converts between the publication's numbering and its own" +
+                " display slot. `page-browser-carousel`: \"the carousel runs right to left," +
+                " with page one at the right end\".",
+            code(STRIP_SOURCE).contains("ChapterBrowser.displayIndex("),
+        )
+    }
+
+    @Test
+    fun `a drag on the slider centres the carousel, with no animation`() {
+        assertTrue(
+            "A slider drag no longer scrolls the carousel to the target page." +
+                " `page-browser-carousel` §3: \"the slider's value sets the carousel's" +
+                " centred page with no animation\" — `scrollToPage` jumps rather than" +
+                " animating.",
+            code(STRIP_SOURCE).contains("pagerState.scrollToPage(slot)"),
+        )
+    }
+
     private companion object {
         const val MODULE_DIRECTORY = "storyarc.reader.projectDir"
 
