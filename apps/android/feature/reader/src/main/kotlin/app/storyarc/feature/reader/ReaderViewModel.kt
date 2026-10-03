@@ -766,8 +766,15 @@ class ReaderViewModel(
     val pageBlockedSince: Long? get() = pageFailingSince ?: pageWaitStarted
 
     private companion object {
-        /** Enough to recognise a page by its composition, not to read it. */
-        const val THUMBNAIL_PIXEL_SIZE = 160
+        /**
+         * Enough to recognise a page by its composition, not to read it.
+         *
+         * `page-browser-carousel` §1: "decode thumbnails at the [carousel's] centred
+         * size, and draw the neighbours from the same image, scaled down" — sized for
+         * the carousel's centred cell rather than a neighbour, so every smaller cell
+         * downsamples the one decode instead of asking for one of its own.
+         */
+        const val THUMBNAIL_PIXEL_SIZE = 256
 
         /**
          * How many thumbnails to keep. A 300-page comic's worth would be tens of

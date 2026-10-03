@@ -181,6 +181,7 @@ class ComicInfoTest {
             """,
         )
         assertEquals(listOf(12, 30), info?.chapterStartIndices)
+        assertEquals(mapOf(12 to "Chapter Two", 30 to "Chapter Three"), info?.chapterTitles)
     }
 
     @Test

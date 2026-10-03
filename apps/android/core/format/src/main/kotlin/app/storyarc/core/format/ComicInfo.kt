@@ -84,6 +84,15 @@ data class ComicInfo(
      * way [doublePageIndices] is: a cataloguer's own mark, not a guess.
      */
     val chapterStartIndices: List<Int>,
+    /**
+     * The `Bookmark` attribute's own text, by the page it marks.
+     *
+     * `page-browser-carousel` names the chapter above the carousel from "the marker's
+     * title" — whatever the cataloguer wrote in `Bookmark="…"`. A page in
+     * [chapterStartIndices] with no entry here had a `Bookmark` attribute that was
+     * present but blank, which is already excluded there.
+     */
+    val chapterTitles: Map<Int, String> = emptyMap(),
 ) {
     /**
      * The direction the reader should open in.
@@ -117,11 +126,16 @@ data class ComicInfo(
             var cover: Int? = null
             val spreads = mutableListOf<Int>()
             val chapters = mutableListOf<Int>()
+            val titles = mutableMapOf<Int, String>()
             for (attributes in pageElements(text)) {
                 val index = attributes["Image"]?.toIntOrNull() ?: continue
                 if (attributes["Type"] == "FrontCover" && cover == null) cover = index
                 if (attributes["DoublePage"]?.lowercase() == "true") spreads += index
-                if (attributes["Bookmark"]?.trim().isNullOrEmpty().not()) chapters += index
+                val bookmark = attributes["Bookmark"]?.trim()
+                if (!bookmark.isNullOrEmpty()) {
+                    chapters += index
+                    titles[index] = bookmark
+                }
             }
 
             return ComicInfo(
@@ -151,6 +165,7 @@ data class ComicInfo(
                 coverPageIndex = cover?.takeIf { it != 0 },
                 doublePageIndices = spreads.sorted(),
                 chapterStartIndices = chapters.sorted(),
+                chapterTitles = titles,
             )
         }
 
