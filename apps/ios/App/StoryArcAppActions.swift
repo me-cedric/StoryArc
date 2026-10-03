@@ -178,21 +178,16 @@ extension StoryArcApp {
     /// nobody has listened to yet. Task 16.4, for ``CarScene/lastListened``.
     ///
     /// `progress.recent` is already ordered newest first, so the first unfinished listening
-    /// position whose publication is both an audiobook and still on this device is the
-    /// answer — the same two guards ``resumePlace(of:)`` applies to one book, applied here
-    /// across all of them. Still on the device matters more here than it does there: a
-    /// publication page only asks `resumePlace` about a book the reader is looking at,
-    /// which could not be open if it were not reachable, where this walks the whole store
-    /// and the most recent entry may be a download since removed.
+    /// position whose publication a car can start (``CarShelf/playable(_:at:)``) is the
+    /// answer. The most recent entry may be a download since removed, which has no file.
     func lastListenedBook() async -> SpokenBook? {
         guard let progress, let recent = try? await progress.recent(limit: 50) else { return nil }
         for entry in recent {
-            guard case .listening = entry.position, !entry.isFinished else { continue }
-            guard let publication = library.publications.first(where: { $0.id == entry.identity.stableID }),
-                  publication.format.isAudio
+            guard case .listening = entry.position, !entry.isFinished,
+                  let publication = library.publications.first(where: { $0.id == entry.identity.stableID }),
+                  let book = CarShelf.playable(publication, at: library.location(of: publication))
             else { continue }
-            guard let url = library.location(of: publication) else { continue }
-            return SpokenBook(publication: publication, url: url)
+            return book
         }
         return nil
     }

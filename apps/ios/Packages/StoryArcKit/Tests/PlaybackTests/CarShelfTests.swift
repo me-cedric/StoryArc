@@ -1,6 +1,8 @@
+import Foundation
 import Testing
 
 @testable import Playback
+import StoryArcCore
 
 /// The car's list, as a value.
 ///
@@ -84,5 +86,26 @@ struct CarShelfTests {
 
         #expect(rows.first?.label.title == "Sea Room")
         #expect(rows.first?.label.detail == nil, "a stub carries no author, and no detail is invented")
+    }
+
+    // MARK: - Which library publications a car can start (16.4)
+
+    @Test("An audiobook with a file on this device is a row, wherever the file came from")
+    func anAudiobookWithAFileIsARow() {
+        let book = Publication.stub(id: "sea-room", title: "Sea Room", format: .m4b)
+        let picked = URL(fileURLWithPath: "/picked/folder/Sea Room.m4b")
+
+        #expect(CarShelf.playable(book, at: picked)?.url == picked)
+    }
+
+    @Test("A book on a server, a book with no location, and a comic are not rows")
+    func onlyAPlayableFileIsARow() throws {
+        let book = Publication.stub(id: "sea-room", title: "Sea Room", format: .m4b)
+        let comic = Publication.stub(id: "arc", title: "Arc", format: .cbz)
+        let remote = try #require(URL(string: "https://kavita.example/api/sea-room.m4b"))
+
+        #expect(CarShelf.playable(book, at: remote) == nil)
+        #expect(CarShelf.playable(book, at: nil) == nil)
+        #expect(CarShelf.playable(comic, at: URL(fileURLWithPath: "/picked/Arc.cbz")) == nil)
     }
 }

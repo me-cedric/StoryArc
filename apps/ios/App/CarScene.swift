@@ -21,6 +21,11 @@ import StoryArcCore
 /// and the scene itself cannot activate without `com.apple.developer.carplay-audio` — which
 /// needs an Apple development team this project does not have, ADR-0011. That is the one
 /// step left of `design.md`'s "The day an Apple team exists", and it is the owner's.
+///
+/// **A cold start from a car is not covered yet.** The seams are installed by a `.task` on the
+/// `WindowGroup` content, and `restoreFolders()` fills the library from `AppShell`. A car that
+/// launches the app with no phone scene runs neither, so the list is empty. Move both into
+/// `StoryArcApp.init` when the entitlement lands and the scene can be tested in a car.
 @MainActor
 enum CarScene {
 

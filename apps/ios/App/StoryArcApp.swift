@@ -288,11 +288,7 @@ struct StoryArcApp: App {
             // — a car scene is not SwiftUI's scene, so it has no environment to read.
             .task {
                 CarScene.onDevice = {
-                    library.publications
-                        .filter { $0.format.isAudio && library.isOnDevice($0) }
-                        .compactMap { publication in
-                            library.location(of: publication).map { SpokenBook(publication: publication, url: $0) }
-                        }
+                    library.publications.compactMap { CarShelf.playable($0, at: library.location(of: $0)) }
                 }
                 CarScene.onListen = { book in listen(to: book.publication, at: book.url) }
                 CarScene.lastListened = { await lastListenedBook() }
