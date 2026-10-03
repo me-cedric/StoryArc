@@ -383,12 +383,11 @@ class LibraryViewModel(
     /** Every server's publications, adopted as a scanned file is. See [ServerLibrary]. */
     internal fun readServers(pins: CertificatePins) = viewModelScope.launch {
         val reading = ServerLibrary.read(
-            _registry,
-            credentials, pins,
-            progressStore,
+            _registry, credentials, pins, progressStore,
             progressStore?.let { KavitaProgressStore.open(getApplication()) },
         )
         adoptPartialSources(reading.partial)
+        RefreshConflicts.report(reading.conflicts)
         reading.rows.forEach { (publication, sourceId) -> adopt(publication, sourceId) }
         if (reading.rows.isEmpty()) return@launch
         rebuild()

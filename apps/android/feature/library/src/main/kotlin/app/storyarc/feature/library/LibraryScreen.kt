@@ -365,6 +365,10 @@ fun LibraryScreen(
     val groups by (viewModel?.matchGroups ?: MutableStateFlow(emptyList<MatchGroup>()))
         .collectAsStateWithLifecycle()
 
+    // Task 2.9: a conflict a background refresh found, same notice the series screen shows
+    // for its own pull.
+    RefreshConflictNotice(viewModel)
+
     // The shelf as the primary axis and the download group leave it. One pass each over an
     // already-sorted list, so narrowing and widening never re-orders what the reader is
     // looking at.
