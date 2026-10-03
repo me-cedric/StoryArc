@@ -102,8 +102,10 @@ struct ReaderGlassButtonFallbackTests {
             body.contains("reduceTransparency || contrast == .increased"),
             "The fallback must fire for Increase Contrast too — `native-experience` names both in one breath."
         )
-        #expect(body.contains(".background(theme.palette.surfaceOverlay"), "The fallback must be surfaceOverlay.")
-        #expect(body.contains("theme.palette.borderStrong"), "The fallback must strengthen the border.")
-        #expect(body.contains("minWidth: 44") && body.contains("minHeight: 44"), "The HIG's minimum tap target.")
+        #expect(body.contains(".background(palette.surfaceOverlay"), "The fallback must be surfaceOverlay.")
+        #expect(body.contains("palette.borderStrong"), "The fallback must strengthen the border.")
+        // The size itself is measured in `OpaqueChromeButtonStyleTests`. This line checks
+        // that the measured frame is also the area a tap hits.
+        #expect(body.contains(".contentShape(shape)"), "The 44 pt frame must be the tap target too.")
     }
 }
