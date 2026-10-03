@@ -1377,7 +1377,7 @@ class LibraryViewModel(
 
     /** Recomputes what is on screen from the library and the query. */
     internal fun rebuild() {
-        val all = _publications.value
+        val all = withSeriesStatuses(_publications.value)
         // The reader's language, not the device's. `localization` moves the interface to the
         // chosen language, and collation is part of the interface.
         val locale = readerLocale()
