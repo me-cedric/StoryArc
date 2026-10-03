@@ -6,8 +6,6 @@ import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibraryScope
 import app.storyarc.core.model.LibrarySort
-import app.storyarc.core.model.PublicationFormat
-import app.storyarc.core.model.ReadState
 import app.storyarc.core.model.RecentSearches
 import app.storyarc.core.model.YearRange
 
@@ -43,6 +41,7 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
         private const val PUBLISHERS = "publishers"
         private const val GENRES = "genres"
         private const val TAGS = "tags"
+        private const val STATUSES = "statuses"
         private const val YEAR_FROM = "yearFrom"
         private const val YEAR_TO = "yearTo"
         private const val LAYOUT = "layout"
@@ -73,12 +72,13 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
      * library narrowed by a word typed yesterday reads as a bug.
      */
     fun query(): LibraryQuery = LibraryQuery(
-        readStates = readStates(),
-        formats = formats(),
+        readStates = enums(READ_STATES),
+        formats = enums(FORMATS),
         languages = strings(LANGUAGES),
         publishers = strings(PUBLISHERS),
         genres = strings(GENRES),
         tags = strings(TAGS),
+        statuses = enums(STATUSES),
         years = YearRange(from = year(YEAR_FROM), to = year(YEAR_TO)),
         sort = enumOrNull<LibrarySort>(preferences.getString(SORT, null)) ?: LibrarySort.TITLE,
         ascending = preferences.getBoolean(ASCENDING, true),
@@ -97,6 +97,7 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
             .putStringSet(PUBLISHERS, query.publishers)
             .putStringSet(GENRES, query.genres)
             .putStringSet(TAGS, query.tags)
+            .putStringSet(STATUSES, query.statuses.map { it.name }.toSet())
             .putString(SCOPE, query.scope.storageKey)
         // Removed rather than written as a sentinel. An absent bound is one of the
         // three states a range has, and a stored -1 would come back as a filter the
@@ -284,14 +285,9 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
     /** One key per scope, so a source's layout leaves with the source. */
     private fun key(scope: LibraryScope): String = "$LAYOUT.${scope.storageKey}"
 
-    private fun readStates(): Set<ReadState> =
-        preferences.getStringSet(READ_STATES, emptySet()).orEmpty()
-            .mapNotNull { enumOrNull<ReadState>(it) }
-            .toSet()
-
-    private fun formats(): Set<PublicationFormat> =
-        preferences.getStringSet(FORMATS, emptySet()).orEmpty()
-            .mapNotNull { enumOrNull<PublicationFormat>(it) }
+    private inline fun <reified T : Enum<T>> enums(key: String): Set<T> =
+        preferences.getStringSet(key, emptySet()).orEmpty()
+            .mapNotNull { enumOrNull<T>(it) }
             .toSet()
 
     /**

@@ -76,6 +76,7 @@ struct LibraryPreferencesTests {
                 publishers: ["Fixture Press"],
                 genres: ["Superhero"],
                 tags: ["reprint"],
+                statuses: [.hiatus],
                 years: YearRange(from: 1986, to: 1999)
             )
         )
@@ -85,8 +86,9 @@ struct LibraryPreferencesTests {
         #expect(restored.publishers == ["Fixture Press"])
         #expect(restored.genres == ["Superhero"])
         #expect(restored.tags == ["reprint"])
+        #expect(restored.statuses == [.hiatus])
         #expect(restored.years == YearRange(from: 1986, to: 1999))
-        #expect(restored.activeFilterCount == 7)
+        #expect(restored.activeFilterCount == 8)
     }
 
     @Test("A query stored before the new facets existed still restores its filters")
