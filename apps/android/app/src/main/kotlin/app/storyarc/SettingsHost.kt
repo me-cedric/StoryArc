@@ -1,11 +1,15 @@
 package app.storyarc
 
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.SourceAction
@@ -37,6 +41,30 @@ internal fun SettingsHost(
     onClose: () -> Unit,
 ) {
     val dependencies = host.dependencies
+    val context = LocalContext.current
+
+    // Task 17.9: the add-a-source flows the library toolbar used to be the only way to
+    // reach. The folder picker and the import picker are each this screen's own launcher,
+    // because a launcher is registered where it is used; the three server-backed kinds are
+    // already app-level sheets (`AppSheet`), reachable from here exactly as `LibraryDestination`
+    // reaches them.
+    val pickFolder = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { tree ->
+        if (tree != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    tree,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            host.library.addFolder(tree)
+        }
+    }
+    val importSource = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { file -> if (file != null) host.library.importFile(file) }
+
     val store = dependencies.downloads
     val registry by host.library.registry.collectAsStateWithLifecycle()
     // The imported share of the downloads total. Read from the library rather than from the
@@ -66,6 +94,11 @@ internal fun SettingsHost(
         },
         onRenameSource = { source, name -> host.library.renameSource(source, name) },
         onReorderSource = { source, later -> host.library.reorderSource(source, later) },
+        onAddFolder = { pickFolder.launch(null) },
+        onImportSource = { importSource.launch(arrayOf("*/*")) },
+        onAddCatalogue = { host.sheet(AppSheet.AddOnlineLibrary) },
+        onAddKavita = { host.sheet(AppSheet.AddKavita) },
+        onAddShare = { host.sheet(AppSheet.AddSharedFolder) },
         onSourceAction = { source, action ->
             when (action) {
                 // Presented rather than run: the answer arrives when the reader has

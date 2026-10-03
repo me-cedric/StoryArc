@@ -10,6 +10,12 @@
     <string name="settings_language">Idioma</string>
     <string name="settings_privacy">Privacidad</string>
     <string name="settings_about">Acerca de</string>
+    <string name="sources_add">Añadir biblioteca</string>
+    <string name="sources_add_folder">Archivos y carpetas</string>
+    <string name="sources_add_import">Abrir un archivo</string>
+    <string name="sources_add_catalogue">Biblioteca en línea</string>
+    <string name="sources_add_kavita">Biblioteca Kavita</string>
+    <string name="sources_add_share">Un ordenador en tu red</string>
     <string name="settings_language_system">Sistema</string>
     <string name="settings_reading_summary_values">%1$s para libros, %2$s para cómics</string>
     <string name="settings_reading_summary_volume_values">Los botones de volumen cambian de página · %1$s para libros, %2$s para cómics</string>
@@ -92,7 +98,7 @@
     <string name="privacy_diagnostic_show">Mostrar</string>
     <string name="privacy_diagnostic_hide">Ocultar</string>
     <string name="privacy_diagnostic_share">Compartir</string>
-    <string name="sources_none">Aún no hay bibliotecas. Añade una carpeta desde tu biblioteca para empezar.</string>
+    <string name="sources_none">Aún no hay bibliotecas.</string>
     <string name="sources_remove">Quitar</string>
     <string name="sources_remove_action">Quitar %1$s</string>
     <string name="sources_move_earlier">Subir «%1$s»</string>

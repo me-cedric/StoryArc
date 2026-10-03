@@ -19,7 +19,6 @@ import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibrarySort
-import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -74,11 +73,6 @@ class LibraryControlsAreNamedTest {
     ) {
         LibraryTopBar(
             scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(),
-            onAddFolder = {},
-            onAddCatalogue = {},
-            onAddKavita = {},
-            onAddShare = {},
-            onImport = {},
             onSelect = onSelect,
             onOpenShelves = onOpenShelves,
             onOpenSettings = onOpenSettings,
@@ -136,16 +130,16 @@ class LibraryControlsAreNamedTest {
     }
 
     @Test
-    fun `the two controls that stand alone in the bar both say what they are`() {
+    fun `the one control that stands alone in the bar says what it is`() {
         compose.setContent { StoryArcTheme { Bar() } }
 
-        compose.onNodeWithContentDescription(string(R.string.library_add_source)).assertHasClickAction()
         compose.onNodeWithContentDescription(string(R.string.library_more)).assertHasClickAction()
 
-        // Two, and named. More than two is the row of icons coming back; a nameless one is a
-        // control a reader has to press to identify.
+        // One, and named. More than one is the row of icons coming back; a nameless one is a
+        // control a reader has to press to identify. Task 17.9 took the add-a-source button
+        // out of this count: it moved to Settings' "Your libraries" screen.
         val (count, nameless) = pressable()
-        assertEquals("the bar holds more standalone controls than the two it is allowed", 2, count)
+        assertEquals("the bar holds more standalone controls than the one it is allowed", 1, count)
         assertTrue("controls in the bar say nothing about themselves: $nameless", nameless.isEmpty())
     }
 
@@ -168,35 +162,26 @@ class LibraryControlsAreNamedTest {
         compose.onNodeWithText(shelves).assertIsDisplayed().assertHasClickAction()
         compose.onNodeWithText(settings).assertIsDisplayed().assertHasClickAction()
         val (count, nameless) = pressable()
-        assertEquals("the open menu holds something other than its three rows", 2 + 3, count)
+        assertEquals("the open menu holds something other than its three rows", 1 + 3, count)
         assertTrue("a menu row says nothing about itself: $nameless", nameless.isEmpty())
     }
 
-    @Test
-    fun `the ways to add a source share one button and are named inside it`() {
-        compose.setContent { StoryArcTheme { Bar() } }
-        // The four kinds name themselves, and the import keeps its own words beside them.
-        // `SourceKindsAreNamedTest` holds the one-line explanation each kind also carries.
-        val kinds = SourceKind.entries.map { string(it.titleRes) } + string(R.string.library_import)
-
-        kinds.forEach { compose.onNodeWithText(it).assertDoesNotExist() }
-        compose.onNodeWithContentDescription(string(R.string.library_add_source)).performClick()
-        kinds.forEach { compose.onNodeWithText(it).assertIsDisplayed().assertHasClickAction() }
-
-        val (_, nameless) = pressable()
-        assertTrue("a way to add a source says nothing about itself: $nameless", nameless.isEmpty())
-    }
+    // "The ways to add a source share one button and are named inside it" tested the
+    // toolbar's own `AddSourceMenu`. Task 17.9 moved that button to Settings' "Your
+    // libraries" screen, per task 1.2's own direction for where it belongs; the equivalent
+    // claim for its new home is `:feature:settings`' `AddSourceButtonTest`.
 
     @Test
-    fun `a bar with nothing occasional to offer draws no menu button`() {
+    fun `a bar with nothing occasional to offer draws no menu button at all`() {
         compose.setContent {
             StoryArcTheme { Bar(onSelect = null, onOpenShelves = null, onOpenSettings = null) }
         }
 
-        // Absent rather than empty: a `⋮` that opens nothing is worse than no `⋮`.
+        // Absent rather than empty: a `⋮` that opens nothing is worse than no `⋮`. Task 17.9
+        // took the only other standalone control out of the bar, so nothing stands alone in
+        // it at all once the occasional ones are withheld.
         compose.onNodeWithContentDescription(string(R.string.library_more)).assertDoesNotExist()
-        compose.onNodeWithContentDescription(string(R.string.library_add_source)).assertHasClickAction()
-        assertEquals(1, pressable().first)
+        assertEquals(0, pressable().first)
     }
 
     @Test

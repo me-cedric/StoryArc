@@ -100,6 +100,15 @@ fun SettingsScreen(
     /** Moves a source one place, up or down. `sources`: the order persists and decides precedence. */
     onReorderSource: (Source, Boolean) -> Unit = { _, _ -> },
     /**
+     * The five ways to add a source, moved here from the library toolbar (task 17.9). Handed
+     * in for the same reason the sources themselves are: adding one is the library's doing.
+     */
+    onAddFolder: () -> Unit = {},
+    onImportSource: () -> Unit = {},
+    onAddCatalogue: () -> Unit = {},
+    onAddKavita: () -> Unit = {},
+    onAddShare: () -> Unit = {},
+    /**
      * Runs one of the five actions a source's detail screen offers. `sources` names all
      * five; four of them had nowhere to be pressed.
      */
@@ -216,6 +225,11 @@ fun SettingsScreen(
                     onRenameSource = onRenameSource,
                     onReorderSource = onReorderSource,
                     onOpenSource = { openSource = it.id },
+                    onAddFolder = onAddFolder,
+                    onImportSource = onImportSource,
+                    onAddCatalogue = onAddCatalogue,
+                    onAddKavita = onAddKavita,
+                    onAddShare = onAddShare,
                     downloads = downloads,
                     bytesOnDisk = bytesOnDisk,
                     importedBytes = importedBytes,
@@ -398,6 +412,11 @@ private fun GroupDetail(
     onRenameSource: (Source, String) -> Unit,
     onReorderSource: (Source, Boolean) -> Unit,
     onOpenSource: (Source) -> Unit,
+    onAddFolder: () -> Unit,
+    onImportSource: () -> Unit,
+    onAddCatalogue: () -> Unit,
+    onAddKavita: () -> Unit,
+    onAddShare: () -> Unit,
     downloads: DownloadLibrary,
     bytesOnDisk: Long,
     importedBytes: Long,
@@ -452,6 +471,11 @@ private fun GroupDetail(
                         onRename = onRenameSource,
                         onOpen = onOpenSource,
                         onReorder = onReorderSource,
+                        onAddFolder = onAddFolder,
+                        onImport = onImportSource,
+                        onAddCatalogue = onAddCatalogue,
+                        onAddKavita = onAddKavita,
+                        onAddShare = onAddShare,
                     )
                 SettingsGroup.DOWNLOADS -> DownloadsGroup(
                     bytesOnDisk = bytesOnDisk,

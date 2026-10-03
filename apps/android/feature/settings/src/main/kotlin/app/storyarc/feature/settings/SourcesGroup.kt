@@ -2,20 +2,28 @@ package app.storyarc.feature.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.RssFeed
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -57,6 +65,11 @@ import app.storyarc.core.model.SourceRemovalWording
  * The icon and the state wording are mapped here rather than shared with the library's
  * own mapping, for the reason that file gives: the domain enums live in `:core:model` and
  * carry no resources, so each feature names them in its own strings.
+ *
+ * `onAddFolder`/`onImport`/`onAddCatalogue`/`onAddKavita`/`onAddShare`: task 17.9 moves the
+ * add-a-source control here from the library toolbar, task 1.2's own direction for where it
+ * belongs. The five actions are the library's `AddSourceMenu` ones, under this feature's own
+ * button and its own strings, for the same reason the icon and the state wording above are.
  */
 @Composable
 internal fun SourcesGroup(
@@ -81,6 +94,11 @@ internal fun SourcesGroup(
      * thing they will press.
      */
     onOpen: (Source) -> Unit = {},
+    onAddFolder: () -> Unit = {},
+    onImport: () -> Unit = {},
+    onAddCatalogue: () -> Unit = {},
+    onAddKavita: () -> Unit = {},
+    onAddShare: () -> Unit = {},
     modifier: Modifier = Modifier,
     /**
      * Moves a source one place, up or down.
@@ -158,10 +176,19 @@ internal fun SourcesGroup(
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md)) {
+        // Task 17.9: this is now the way in, moved here from the library toolbar per task
+        // 1.2's own direction for where it belongs. The empty library keeps its own "Add a
+        // library" call to action besides this one -- a reader who has never opened Settings
+        // still has a way in.
+        AddSourceButton(
+            onAddFolder = onAddFolder,
+            onImport = onImport,
+            onAddCatalogue = onAddCatalogue,
+            onAddKavita = onAddKavita,
+            onAddShare = onAddShare,
+        )
+
         if (sources.isEmpty()) {
-            // A reader with no source is not looking at a broken screen. `sources` wants the
-            // app usable "in under ten seconds", and the library's empty state is where a
-            // folder gets picked — so this points there rather than duplicating the picker.
             Text(
                 text = stringResource(R.string.sources_none),
                 style = MaterialTheme.typography.bodyMedium,
@@ -329,6 +356,52 @@ private fun icon(kind: SourceKind): ImageVector = when (kind) {
     SourceKind.NETWORK_SHARE -> Icons.Filled.Storage
     SourceKind.OPDS_CATALOG -> Icons.Filled.RssFeed
     SourceKind.KAVITA_SERVER -> Icons.Filled.Dns
+}
+
+/**
+ * The way in, task 17.9 moves here from the library toolbar.
+ *
+ * A text button rather than an icon: this screen names every other action it offers
+ * (`sources.remove`, `sources.rename`), and the add control is the first thing a reader who
+ * has never configured a source presses.
+ */
+@Composable
+private fun AddSourceButton(
+    onAddFolder: () -> Unit,
+    onImport: () -> Unit,
+    onAddCatalogue: () -> Unit,
+    onAddKavita: () -> Unit,
+    onAddShare: () -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+
+    Box {
+        TextButton(onClick = { open = true }) {
+            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(StoryArcSpace.xs))
+            Text(stringResource(R.string.sources_add))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            AddSourceItem(SourceKind.LOCAL_FOLDER, R.string.sources_add_folder, onAddFolder) { open = false }
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.sources_add_import)) },
+                leadingIcon = { Icon(Icons.Filled.FileDownload, contentDescription = null) },
+                onClick = { open = false; onImport() },
+            )
+            AddSourceItem(SourceKind.OPDS_CATALOG, R.string.sources_add_catalogue, onAddCatalogue) { open = false }
+            AddSourceItem(SourceKind.KAVITA_SERVER, R.string.sources_add_kavita, onAddKavita) { open = false }
+            AddSourceItem(SourceKind.NETWORK_SHARE, R.string.sources_add_share, onAddShare) { open = false }
+        }
+    }
+}
+
+@Composable
+private fun AddSourceItem(kind: SourceKind, labelRes: Int, onClick: () -> Unit, onChosen: () -> Unit) {
+    DropdownMenuItem(
+        text = { Text(stringResource(labelRes)) },
+        leadingIcon = { Icon(icon(kind), contentDescription = null) },
+        onClick = { onChosen(); onClick() },
+    )
 }
 
 private fun status(state: SourceConnectionState): Int = when (state) {

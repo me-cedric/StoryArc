@@ -10,6 +10,12 @@
     <string name="settings_language">Language</string>
     <string name="settings_privacy">Privacy</string>
     <string name="settings_about">About</string>
+    <string name="sources_add">Add a library</string>
+    <string name="sources_add_folder">Files and folders</string>
+    <string name="sources_add_import">Open a file</string>
+    <string name="sources_add_catalogue">Online library</string>
+    <string name="sources_add_kavita">Kavita library</string>
+    <string name="sources_add_share">A computer on your network</string>
     <string name="settings_language_system">System</string>
     <string name="settings_reading_summary_values">%1$s for books, %2$s for comics</string>
     <string name="settings_reading_summary_volume_values">Volume buttons turn pages · %1$s for books, %2$s for comics</string>
@@ -97,7 +103,7 @@
     <string name="privacy_diagnostic_show">Show</string>
     <string name="privacy_diagnostic_hide">Hide</string>
     <string name="privacy_diagnostic_share">Share</string>
-    <string name="sources_none">No libraries yet. Add a folder from your library to get started.</string>
+    <string name="sources_none">No libraries yet.</string>
     <string name="sources_remove">Remove</string>
     <string name="sources_remove_action">Remove %1$s</string>
     <string name="sources_move_earlier">Move “%1$s” earlier</string>

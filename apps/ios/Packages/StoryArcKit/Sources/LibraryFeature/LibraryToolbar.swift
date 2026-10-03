@@ -30,11 +30,10 @@ internal import SwiftUI
 // choices is how a reader goes looking for a sort and comes back holding a checklist, which
 // is why `library-browsing` allows exactly this kind of control to stand alone.
 //
-// **Add-books stays too, and for a different reason again**: it is not a view choice at all.
-// It is the only way to add somewhere to read from on iOS, and the two places the design
-// direction moves it to — the rebuilt empty state and Settings' connected-libraries screen —
-// are later slices. Moving it before they exist would leave a reader with a populated library
-// no way to add a second one.
+// **Add-books left, to Settings' connected-libraries screen** (task 17.9, task 1.2's own
+// direction for where it belongs). It was not a view choice at all, and the empty state
+// already offers the same five ways in — `EmptyLibraryView` — so a reader with a populated
+// library and no second source yet still has a way to add one.
 //
 // **While a selection is running the bar holds one item: the way out.** *Select* used to
 // stay mounted-and-disabled through the mode, on the argument that a control should not move
@@ -93,21 +92,6 @@ extension LibraryView {
                 ToolbarItem(placement: .primaryAction) {
                     FilterMenu(model: model, downloads: $downloads, availability: $availability)
                 }
-
-                ToolbarSpacer(.fixed, placement: .primaryAction)
-            }
-
-            // `AddSourceMenu` rather than a menu hand-built here. There were two of them,
-            // and the one mounted was a row short: it omitted the import, so the only way a
-            // file reached StoryArc on iOS was the system's own Open-in handler.
-            ToolbarItem(placement: .primaryAction) {
-                AddSourceMenu(
-                    addFolder: { picking = .folder },
-                    importFile: { picking = .file },
-                    addCatalogue: { addingSource = .catalogue },
-                    addKavita: { addingSource = .kavita },
-                    addShare: { addingSource = .share }
-                )
             }
         }
     }

@@ -33,6 +33,17 @@ struct SourcesSettings: View {
     let onRemove: (Source) -> Void
     let onRename: (Source, String) -> Void
 
+    /**
+     * The five ways to add a source, moved here from the library toolbar (task 17.9, task
+     * 1.2's own direction for where it belongs). Handed in for the same reason the sources
+     * themselves are: adding one is the library's doing.
+     */
+    var onAddFolder: () -> Void = {}
+    var onImportSource: () -> Void = {}
+    var onAddCatalogue: () -> Void = {}
+    var onAddKavita: () -> Void = {}
+    var onAddShare: () -> Void = {}
+
     /// What is on disk, so a source's own screen can say what its downloads weigh and
     /// whether there is anything there to offer to delete.
     var downloads: DownloadLibrary = DownloadLibrary()
@@ -62,11 +73,21 @@ struct SourcesSettings: View {
 
     var body: some View {
         List {
+            // Task 17.9: this is now the way in, moved here from the library toolbar per
+            // task 1.2's own direction for where it belongs. The empty library keeps its own
+            // "Add a library" call to action besides this one — a reader who has never
+            // opened Settings still has a way in.
+            Section {
+                AddSourceButton(
+                    onAddFolder: onAddFolder,
+                    onImport: onImportSource,
+                    onAddCatalogue: onAddCatalogue,
+                    onAddKavita: onAddKavita,
+                    onAddShare: onAddShare
+                )
+            }
+
             if sources.isEmpty {
-                // A reader with no source is not looking at a broken screen. `sources`
-                // wants the app usable "in under ten seconds", and the library's own empty
-                // state is where a folder gets picked — so this points there rather than
-                // duplicating the picker.
                 Text("sources.none", bundle: .module)
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textSecondary)
@@ -280,5 +301,68 @@ struct SourcesSettings: View {
             readCount: readCount(source.id),
             readTotal: readTotal(source.id)
         )
+    }
+}
+
+/// The way in, task 17.9 moves here from the library toolbar.
+///
+/// Its own kind labels rather than the library's `SourceKind.titleKey`/`explanationKey`:
+/// `SourcesSettings`' own doc comment gives the reason already, for the icon and the state
+/// wording — a feature module never depends on another, so each names a shared domain enum
+/// in its own catalogue.
+struct AddSourceButton: View {
+    let onAddFolder: () -> Void
+    let onImport: () -> Void
+    let onAddCatalogue: () -> Void
+    let onAddKavita: () -> Void
+    let onAddShare: () -> Void
+
+    var body: some View {
+        Menu {
+            item(.localFolder, onAddFolder)
+            Button(action: onImport) {
+                Text("sources.add.import", bundle: .module)
+                Image(systemName: "square.and.arrow.down")
+            }
+            item(.opdsCatalog, onAddCatalogue)
+            item(.kavitaServer, onAddKavita)
+            item(.networkShare, onAddShare)
+        } label: {
+            Text("sources.add", bundle: .module)
+        }
+    }
+
+    @ViewBuilder
+    private func item(_ kind: SourceKind, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(kind.addLabelKey, bundle: .module)
+            Image(systemName: kind.addSymbolName)
+        }
+    }
+}
+
+/// How the four source kinds are named and drawn on this screen's own add button.
+///
+/// `SourceKind` lives in `StoryArcCore` and carries no resources, and a feature module never
+/// depends on another: `SourcesSettings.symbol(for:)` maps the same four icons for its own
+/// row and is `private` to that type, so this is its own copy rather than a shared one —
+/// SF Symbols only, matching DESIGN.md §8, the same rule that function's own doc states.
+private extension SourceKind {
+    var addSymbolName: String {
+        switch self {
+        case .localFolder: "folder"
+        case .networkShare: "externaldrive.connected.to.line.below"
+        case .opdsCatalog: "dot.radiowaves.up.forward"
+        case .kavitaServer: "server.rack"
+        }
+    }
+
+    var addLabelKey: LocalizedStringKey {
+        switch self {
+        case .localFolder: "sources.add.folder"
+        case .networkShare: "sources.add.share"
+        case .opdsCatalog: "sources.add.catalogue"
+        case .kavitaServer: "sources.add.kavita"
+        }
     }
 }

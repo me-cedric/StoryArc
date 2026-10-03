@@ -10,6 +10,12 @@
     <string name="settings_language">Langue</string>
     <string name="settings_privacy">Confidentialité</string>
     <string name="settings_about">À propos</string>
+    <string name="sources_add">Ajouter une bibliothèque</string>
+    <string name="sources_add_folder">Fichiers et dossiers</string>
+    <string name="sources_add_import">Ouvrir un fichier</string>
+    <string name="sources_add_catalogue">Bibliothèque en ligne</string>
+    <string name="sources_add_kavita">Bibliothèque Kavita</string>
+    <string name="sources_add_share">Un ordinateur sur votre réseau</string>
     <string name="settings_language_system">Système</string>
     <string name="settings_reading_summary_values">%1$s pour les livres, %2$s pour les BD</string>
     <string name="settings_reading_summary_volume_values">Les touches de volume tournent les pages · %1$s pour les livres, %2$s pour les BD</string>
@@ -92,7 +98,7 @@
     <string name="privacy_diagnostic_show">Afficher</string>
     <string name="privacy_diagnostic_hide">Masquer</string>
     <string name="privacy_diagnostic_share">Partager</string>
-    <string name="sources_none">Aucune bibliothèque. Ajoutez un dossier depuis votre bibliothèque pour commencer.</string>
+    <string name="sources_none">Aucune bibliothèque.</string>
     <string name="sources_remove">Retirer</string>
     <string name="sources_remove_action">Retirer %1$s</string>
     <string name="sources_move_earlier">Déplacer « %1$s » vers le haut</string>

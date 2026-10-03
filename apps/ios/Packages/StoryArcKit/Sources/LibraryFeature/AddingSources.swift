@@ -1,6 +1,6 @@
-internal import SwiftUI
+public import SwiftUI
 
-internal import Catalogue
+public import Catalogue
 internal import Persistence
 internal import StoryArcCore
 
@@ -8,7 +8,10 @@ internal import StoryArcCore
 ///
 /// One optional rather than the three booleans this replaced, for ``LocalPick``'s reason:
 /// three booleans can express "two sheets at once", which is not a state either screen has.
-enum AddedSource: String, Identifiable, CaseIterable {
+///
+/// Public, task 17.9: the app layer needs it to drive the same sheets from Settings' own add
+/// button that the library toolbar used to be the only way to reach.
+public enum AddedSource: String, Identifiable, CaseIterable, Sendable {
     /// An OPDS catalogue.
     case catalogue
     /// A Kavita server.
@@ -16,7 +19,7 @@ enum AddedSource: String, Identifiable, CaseIterable {
     /// An SMB share.
     case share
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 }
 
 /// The sheets that add a configured source, and the connections behind them.
@@ -63,12 +66,15 @@ private struct AddingSources: ViewModifier {
     }
 }
 
-extension View {
+public extension View {
     /// Presents whichever source sheet the reader asked for.
     ///
     /// The pin set is passed in rather than loaded here because one object has to serve both
     /// halves: a certificate accepted while adding a catalogue must still be accepted when
     /// that catalogue's covers load.
+    ///
+    /// Public, task 17.9: Settings' own add button drives the same three sheets, from the
+    /// app layer rather than from inside this module.
     func addingSources(
         to model: LibraryModel,
         pins: CertificatePins,

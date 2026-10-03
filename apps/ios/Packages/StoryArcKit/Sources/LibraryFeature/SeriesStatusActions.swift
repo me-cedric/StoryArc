@@ -27,7 +27,8 @@ extension LibraryModel {
     /// `library-browsing`: the filter menu "never offers a value that would empty the
     /// shelf", the rule every other facet in `LibraryFacets.swift` already follows.
     public func availableStatuses(store: SeriesStatusStore = SeriesStatusStore()) -> [PublicationStatus] {
-        let present = Set(withManualStatuses(publications, overrides: seriesStatusOverrides(store: store)).compactMap(\.status))
+        let shown = withManualStatuses(publications, overrides: seriesStatusOverrides(store: store))
+        let present = Set(shown.compactMap(\.status))
         return PublicationStatus.allCases.filter(present.contains)
     }
 

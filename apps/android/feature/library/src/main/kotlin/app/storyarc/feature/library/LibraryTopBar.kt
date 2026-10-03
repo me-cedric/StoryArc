@@ -49,11 +49,6 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 @Composable
 internal fun LibraryTopBar(
     scrollBehavior: TopAppBarScrollBehavior,
-    onAddFolder: () -> Unit,
-    onAddCatalogue: () -> Unit,
-    onAddKavita: () -> Unit,
-    onAddShare: () -> Unit,
-    onImport: () -> Unit,
     /** Begins a bulk selection. Null while there is nothing to select, or already selecting. */
     onSelect: (() -> Unit)?,
     /** Null on a window wide enough that the navigation rail already carries collections. */
@@ -78,16 +73,10 @@ internal fun LibraryTopBar(
         ),
         scrollBehavior = scrollBehavior,
         actions = {
-            // Adding stays a button of its own rather than an item in the overflow: it is
-            // the one thing an almost-empty library is for, and a reader who has just
-            // installed the app should not have to find it behind a menu.
-            AddSourceMenu(
-                onAddFolder = onAddFolder,
-                onAddCatalogue = onAddCatalogue,
-                onAddKavita = onAddKavita,
-                onAddShare = onAddShare,
-                onImport = onImport,
-            )
+            // Task 17.9: adding used to be a button of its own here. It moved to Settings'
+            // "Your libraries" screen, task 1.2's own direction for where it belongs -- an
+            // almost-empty library still has its own "Add a library" call to action on the
+            // shelf itself, drawn by `EmptyLibrary`.
             LibraryOverflowMenu(
                 onSelect = onSelect,
                 onOpenShelves = onOpenShelves,
