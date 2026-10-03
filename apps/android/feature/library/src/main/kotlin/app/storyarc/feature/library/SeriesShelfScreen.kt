@@ -36,6 +36,19 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationStatus
 
 /**
+ * A series' own publications, in the library's `SERIES` order.
+ *
+ * Lifted beside the screen so the ordering rule is testable on its own: `library-browsing`
+ * says an opened series lists its issues "in their own order", and that order is the
+ * library's `SERIES` comparison (number, then natural filename), not adoption order.
+ */
+fun seriesShelfMembers(name: String, publications: List<Publication>): List<Publication> =
+    LibraryIndex.arrange(
+        publications.filter { it.series == name },
+        LibraryQuery(sort = LibrarySort.SERIES),
+    )
+
+/**
  * One series, and the publications inside it.
  *
  * `library-browsing`: "when a reader opens a series, then its publications are listed in
@@ -50,20 +63,6 @@ import app.storyarc.core.model.PublicationStatus
  * The members are read from the library rather than passed in, so a series opened before a
  * source finished answering fills in as the rest arrives.
  */
-
-/**
- * A series' own publications, in the library's `SERIES` order.
- *
- * Lifted beside the screen so the ordering rule is testable on its own: `library-browsing`
- * says an opened series lists its issues "in their own order", and that order is the
- * library's `SERIES` comparison (number, then natural filename), not adoption order.
- */
-fun seriesShelfMembers(name: String, publications: List<Publication>): List<Publication> =
-    LibraryIndex.arrange(
-        publications.filter { it.series == name },
-        LibraryQuery(sort = LibrarySort.SERIES),
-    )
-
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun SeriesShelfScreen(
