@@ -19,7 +19,15 @@ import kotlinx.coroutines.launch
 internal fun LibraryViewModel.watchSourceReachability() {
     viewModelScope.launch {
         SourceReachabilityEvents.unreachable.collect { sourceId ->
-            _registry.update { it.marking(sourceId, SourceConnectionState.Unreachable(System.currentTimeMillis())) }
+            // The reader asks again every few seconds while the share is away. The first
+            // report is when it went, so a later one leaves that moment alone.
+            _registry.update { registry ->
+                if (registry[sourceId]?.state is SourceConnectionState.Unreachable) {
+                    registry
+                } else {
+                    registry.marking(sourceId, SourceConnectionState.Unreachable(System.currentTimeMillis()))
+                }
+            }
         }
     }
 }
