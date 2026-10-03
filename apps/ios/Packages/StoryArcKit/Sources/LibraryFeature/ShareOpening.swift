@@ -124,8 +124,8 @@ enum ShareOpening {
     /// whether or not the bytes are local, and a solid RAR4 on a share is refused before the
     /// whole file is transferred.
     static func offerOrOpen(
+        file: (name: String, length: Int64),
         index: () async throws -> (Publication, URL),
-        length: Int64,
         onOpen: (Publication, URL) -> Void,
         onOffer: (Int64?) -> Void,
         onSay: (LocalizedStringResource) -> Void
@@ -136,14 +136,14 @@ enum ShareOpening {
                 streaming: publication.streaming,
                 isLocal: false,
                 readsWhereItLies: !needsLocalFile(publication.format),
-                bytes: statedLength(length)
+                bytes: statedLength(file.length)
             ) {
             case .open: onOpen(publication, remote)
             case .download(let bytes): onOffer(bytes)
             case .refuse: onSay(cannotOpen)
             }
         } catch {
-            onSay(sentence(forIndexFailure: error))
+            onSay(sentence(forIndexFailure: error, name: file.name))
         }
     }
 
@@ -154,12 +154,26 @@ enum ShareOpening {
     /// to send every one of those to ``unexpected`` regardless, which reads as "the share
     /// could not be reached" for a file the share reached just fine. ``unexpected`` stays for
     /// an actual network failure (`SmbError` and anything else this did not expect).
-    private static func sentence(forIndexFailure error: any Error) -> LocalizedStringResource {
+    ///
+    /// `14.16`: named the same way Open-in names a refusal — the file and, for an unsupported
+    /// container, the format it detected — rather than the unnamed `smb.error.*` sentence,
+    /// which said nothing about which file or which format.
+    private static func sentence(forIndexFailure error: any Error, name: String) -> LocalizedStringResource {
         guard let indexError = error as? PublicationIndexer.IndexError else { return unexpected }
         switch indexError {
-        case .unsupported: return unsupported
-        case .archivePasswordProtected: return passwordProtected
-        case .archiveUnreadable: return damaged
+        case .unsupported(let format):
+            return LocalizedStringResource(
+                "open.in.unsupported \(name) \(format) \(ImportFailure.supported)",
+                bundle: .atURL(Bundle.module.bundleURL)
+            )
+        case .archivePasswordProtected:
+            return LocalizedStringResource(
+                "open.in.passwordProtected \(name)", bundle: .atURL(Bundle.module.bundleURL)
+            )
+        case .archiveUnreadable:
+            return LocalizedStringResource(
+                "open.in.damaged \(name)", bundle: .atURL(Bundle.module.bundleURL)
+            )
         default: return unexpected
         }
     }

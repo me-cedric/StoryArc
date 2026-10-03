@@ -48,12 +48,13 @@ struct ShareOpeningTests {
 
     private func openingFromShare(
         _ publication: Publication,
-        length: Int64 = 400_000_000
+        length: Int64 = 400_000_000,
+        name: String = "Solid.cbr"
     ) async -> Answers {
         let answers = Answers()
         await ShareOpening.offerOrOpen(
+            file: (name, length),
             index: { (publication, Self.remote) },
-            length: length,
             onOpen: { found, url in answers.opened = (found, url) },
             onOffer: { bytes in answers.offerMade = true; answers.offered = bytes },
             onSay: { said in answers.said = said }
@@ -160,57 +161,62 @@ struct ShareOpeningTests {
         #expect(answers.offered == nil, "A zero-length entry was offered as a size.")
     }
 
-    @Test("A .cb7 on a share is named, not read as an unreachable network")
+    @Test("A .cb7 on a share is named with its file and its format, not read as an unreachable network")
     func unsupportedIndexFailureIsNamed() async {
         // The indexer already names this from the headers over the share. Sending it to
         // `unexpected` read as "the share could not be reached" for a file the share
-        // reached just fine.
+        // reached just fine, and `smb.error.unsupported` named neither the file nor the
+        // format `14.16` asks for -- the same wording Open-in already shows does both.
         let answers = Answers()
         await ShareOpening.offerOrOpen(
+            file: ("Lantern Green 043.cb7", 10),
             index: { throw PublicationIndexer.IndexError.unsupported(format: "7-Zip") },
-            length: 10,
             onOpen: { found, url in answers.opened = (found, url) },
             onOffer: { bytes in answers.offerMade = true; answers.offered = bytes },
             onSay: { said in answers.said = said }
         )
 
-        #expect(answers.said == ShareOpening.unsupported)
+        let sentence = answers.said.map { String(localized: $0) }
+        #expect(sentence?.contains("Lantern Green 043.cb7") == true, "\(sentence ?? "nil") does not name the file.")
+        #expect(sentence?.contains("7-Zip") == true, "\(sentence ?? "nil") does not name the format.")
     }
 
-    @Test("A password-protected archive on a share is named, not read as an unreachable network")
+    @Test("A password-protected archive on a share is named with its file, not read as an unreachable network")
     func passwordProtectedIndexFailureIsNamed() async {
         let answers = Answers()
         await ShareOpening.offerOrOpen(
+            file: ("Solid.cbr", 10),
             index: { throw PublicationIndexer.IndexError.archivePasswordProtected },
-            length: 10,
             onOpen: { found, url in answers.opened = (found, url) },
             onOffer: { bytes in answers.offerMade = true; answers.offered = bytes },
             onSay: { said in answers.said = said }
         )
 
-        #expect(answers.said == ShareOpening.passwordProtected)
+        let sentence = answers.said.map { String(localized: $0) }
+        #expect(sentence?.contains("Solid.cbr") == true, "\(sentence ?? "nil") does not name the file.")
     }
 
-    @Test("A damaged archive on a share is named, not read as an unreachable network")
+    @Test("A damaged archive on a share is named with its file, not read as an unreachable network")
     func damagedIndexFailureIsNamed() async {
         let answers = Answers()
         await ShareOpening.offerOrOpen(
+            file: ("Solid.cbr", 10),
             index: { throw PublicationIndexer.IndexError.archiveUnreadable },
-            length: 10,
             onOpen: { found, url in answers.opened = (found, url) },
             onOffer: { bytes in answers.offerMade = true; answers.offered = bytes },
             onSay: { said in answers.said = said }
         )
 
-        #expect(answers.said == ShareOpening.damaged)
+        let sentence = answers.said.map { String(localized: $0) }
+        #expect(sentence?.contains("Solid.cbr") == true, "\(sentence ?? "nil") does not name the file.")
     }
 
     @Test("An index that failed over the share is named rather than swallowed")
     func failedIndexIsNamed() async {
         let answers = Answers()
         await ShareOpening.offerOrOpen(
+            file: ("Solid.cbr", 10),
             index: { throw CancellationError() },
-            length: 10,
             onOpen: { found, url in answers.opened = (found, url) },
             onOffer: { bytes in answers.offerMade = true; answers.offered = bytes },
             onSay: { said in answers.said = said }

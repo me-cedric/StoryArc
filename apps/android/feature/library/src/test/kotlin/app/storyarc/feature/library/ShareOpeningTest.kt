@@ -33,15 +33,17 @@ class ShareOpeningTest {
         var opened: Pair<Publication, String>? = null
         var offered: Long? = null
         var offerMade = false
-        var said: Int? = null
+        var said: ShareNotice? = null
     }
 
     private suspend fun openingFromShare(
         publication: Publication,
         length: Long = 400_000_000L,
+        name: String = "Solid.cbr",
     ): Answers {
         val answers = Answers()
         offerOrOpen(
+            name = name,
             index = { publication to REMOTE_PATH },
             length = length,
             onOpen = { found, path -> answers.opened = found to path },
@@ -78,7 +80,7 @@ class ShareOpeningTest {
         )
         assertEquals(
             "The refusal `publication-formats` asks to be named was not the sentence shown.",
-            CANNOT_OPEN,
+            ShareNotice(CANNOT_OPEN),
             answers.said,
         )
     }
@@ -105,7 +107,7 @@ class ShareOpeningTest {
             onSay = { said -> answers.said = said },
         )
 
-        assertEquals(UNEXPECTED, answers.said)
+        assertEquals(ShareNotice(UNEXPECTED), answers.said)
         assertNull(answers.opened)
     }
 
@@ -177,27 +179,35 @@ class ShareOpeningTest {
     }
 
     @Test
-    fun `a cb7 on a share is named, not read as an unreachable network`() = runTest {
-        // The indexer already names this from the headers over the share. Sending it to
-        // UNEXPECTED read as "the share could not be reached" for a file the share reached
-        // just fine.
-        val answers = Answers()
-        offerOrOpen(
-            index = { throw IndexException.Unsupported("7-Zip") },
-            length = 10L,
-            onOpen = { found, path -> answers.opened = found to path },
-            onOffer = { bytes -> answers.offerMade = true; answers.offered = bytes },
-            onSay = { said -> answers.said = said },
-        )
+    fun `a cb7 on a share is named with its file and its format, not read as an unreachable network`() =
+        runTest {
+            // The indexer already names this from the headers over the share. Sending it to
+            // UNEXPECTED read as "the share could not be reached" for a file the share reached
+            // just fine, and the unnamed `smb_error_unsupported` named neither the file nor the
+            // format -- `14.16` asks for the same file-and-format sentence Open-in already
+            // shows.
+            val answers = Answers()
+            offerOrOpen(
+                name = "Lantern Green 043.cb7",
+                index = { throw IndexException.Unsupported("7-Zip") },
+                length = 10L,
+                onOpen = { found, path -> answers.opened = found to path },
+                onOffer = { bytes -> answers.offerMade = true; answers.offered = bytes },
+                onSay = { said -> answers.said = said },
+            )
 
-        assertEquals(UNSUPPORTED, answers.said)
-    }
+            assertEquals(
+                ShareNotice(UNSUPPORTED, listOf("Lantern Green 043.cb7", "7-Zip")),
+                answers.said,
+            )
+        }
 
     @Test
-    fun `a password-protected archive on a share is named, not read as an unreachable network`() =
+    fun `a password-protected archive on a share is named with its file, not read as an unreachable network`() =
         runTest {
             val answers = Answers()
             offerOrOpen(
+                name = "Solid.cbr",
                 index = { throw IndexException.ArchivePasswordProtected() },
                 length = 10L,
                 onOpen = { found, path -> answers.opened = found to path },
@@ -205,27 +215,30 @@ class ShareOpeningTest {
                 onSay = { said -> answers.said = said },
             )
 
-            assertEquals(PASSWORD_PROTECTED, answers.said)
+            assertEquals(ShareNotice(PASSWORD_PROTECTED, listOf("Solid.cbr")), answers.said)
         }
 
     @Test
-    fun `a damaged archive on a share is named, not read as an unreachable network`() = runTest {
-        val answers = Answers()
-        offerOrOpen(
-            index = { throw IndexException.ArchiveUnreadable() },
-            length = 10L,
-            onOpen = { found, path -> answers.opened = found to path },
-            onOffer = { bytes -> answers.offerMade = true; answers.offered = bytes },
-            onSay = { said -> answers.said = said },
-        )
+    fun `a damaged archive on a share is named with its file, not read as an unreachable network`() =
+        runTest {
+            val answers = Answers()
+            offerOrOpen(
+                name = "Solid.cbr",
+                index = { throw IndexException.ArchiveUnreadable() },
+                length = 10L,
+                onOpen = { found, path -> answers.opened = found to path },
+                onOffer = { bytes -> answers.offerMade = true; answers.offered = bytes },
+                onSay = { said -> answers.said = said },
+            )
 
-        assertEquals(DAMAGED, answers.said)
-    }
+            assertEquals(ShareNotice(DAMAGED, listOf("Solid.cbr")), answers.said)
+        }
 
     @Test
     fun `an index that failed over the share is named rather than swallowed`() = runTest {
         val answers = Answers()
         offerOrOpen(
+            name = "Solid.cbr",
             index = { error("the share dropped the connection") },
             length = 10L,
             onOpen = { found, path -> answers.opened = found to path },
@@ -233,7 +246,7 @@ class ShareOpeningTest {
             onSay = { said -> answers.said = said },
         )
 
-        assertEquals(UNEXPECTED, answers.said)
+        assertEquals(ShareNotice(UNEXPECTED), answers.said)
         assertTrue("A failed index still offered a transfer.", !answers.offerMade)
     }
 
@@ -251,7 +264,7 @@ class ShareOpeningTest {
             "A solid RAR4 on a share was offered a transfer instead of being refused.",
             !answers.offerMade,
         )
-        assertEquals(CANNOT_OPEN, answers.said)
+        assertEquals(ShareNotice(CANNOT_OPEN), answers.said)
     }
 
     // --- The fact the rule is fed ---------------------------------------------------------

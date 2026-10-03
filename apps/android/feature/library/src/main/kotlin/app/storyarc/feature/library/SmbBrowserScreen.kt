@@ -100,7 +100,7 @@ fun SmbBrowserScreen(
     // `LazyColumn` is not an announcement. After a four-hundred-megabyte transfer that ends
     // in a refusal, that was the whole of the feedback.
     var failure by remember(path) { mutableStateOf<Int?>(null) }
-    var notice by remember(path) { mutableStateOf<Int?>(null) }
+    var notice by remember(path) { mutableStateOf<ShareNotice?>(null) }
     var opening by remember(path) { mutableStateOf<String?>(null) }
     // `network-share`: on a metered connection the reader confirms before the app spends
     // their data. Held rather than acted on, because the answer is theirs to give.
@@ -126,6 +126,7 @@ fun SmbBrowserScreen(
         scope.launch {
             opening = entry.path
             offerOrOpen(
+                name = entry.name,
                 index = {
                     val remotePath = SmbLocator.entry(entry.path, address)
                     val publication = cachedOrIndexed(indexed, entry.path) {
@@ -250,7 +251,7 @@ fun SmbBrowserScreen(
     notice?.let { message ->
         AlertDialog(
             onDismissRequest = { notice = null },
-            text = { Text(stringResource(message)) },
+            text = { Text(stringResource(message.textRes, *message.args.toTypedArray())) },
             confirmButton = {
                 TextButton(onClick = { notice = null }) {
                     Text(stringResource(R.string.library_import_dismiss))

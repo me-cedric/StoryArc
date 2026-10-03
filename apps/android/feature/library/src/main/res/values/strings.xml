@@ -391,6 +391,8 @@
     <string name="library_import_failed_title">Cannot open this file</string>
     <string name="library_import_failed">%1$s could not be copied into StoryArc. It reads CBZ, CBR, CBT, EPUB, PDF, M4B and other audiobooks.</string>
     <string name="open_in_unsupported">%1$s is a %2$s file, which StoryArc does not read. It reads CBZ, CBR, CBT, EPUB, PDF, M4B and other audiobooks.</string>
+    <string name="open_in_password_protected">%1$s is protected by a password. StoryArc does not manage archive passwords, so there is nothing to enter here.</string>
+    <string name="open_in_damaged">%1$s could not be read. It may be damaged.</string>
     <string name="library_import_dismiss">OK</string>
     <string name="source_on_this_device">On this device</string>
     <string name="sync_conflict_title">Read in two places</string>

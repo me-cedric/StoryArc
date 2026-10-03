@@ -94,11 +94,12 @@ internal fun statedLength(length: Long): Long? = length.takeIf { it > 0L }
  * local, and a solid RAR4 on a share is refused before the whole file is transferred.
  */
 internal suspend fun offerOrOpen(
+    name: String,
     index: suspend () -> Pair<Publication, String>,
     length: Long,
     onOpen: (Publication, String) -> Unit,
     onOffer: (Long?) -> Unit,
-    onSay: (Int) -> Unit,
+    onSay: (ShareNotice) -> Unit,
 ) {
     runCatching { index() }
         .onSuccess { (publication, remotePath) ->
@@ -111,26 +112,31 @@ internal suspend fun offerOrOpen(
             when (offer) {
                 is StreamingOffer.Open -> onOpen(publication, remotePath)
                 is StreamingOffer.Download -> onOffer(offer.bytes)
-                is StreamingOffer.Refuse -> onSay(CANNOT_OPEN)
+                is StreamingOffer.Refuse -> onSay(ShareNotice(CANNOT_OPEN))
             }
         }
-        .onFailure { error -> onSay(sentenceForIndexFailure(error)) }
+        .onFailure { error -> onSay(sentenceForIndexFailure(error, name)) }
 }
 
 /**
- * Which sentence an index failure over a share earns.
+ * Which sentence an index failure over a share earns, and the file name an unsupported,
+ * protected or damaged container names it with.
  *
  * The indexer already throws a typed [IndexException] for a `.cb7`, a protected archive or a
  * damaged one -- headers it read over the share, not a network failure -- and
  * `offerOrOpen` used to send every one of those to [UNEXPECTED] regardless, which reads as
  * "the share could not be reached" for a file the share reached just fine. [UNEXPECTED]
  * stays for an actual network failure (`SmbError` and anything else this did not expect).
+ *
+ * `14.16`: named with Open-in's own sentences (`open_in_*`), not the unnamed `smb_error_*`
+ * ones, so a share row says which file and -- for an unsupported container -- which format,
+ * exactly as Open-in already does.
  */
-private fun sentenceForIndexFailure(error: Throwable): Int = when (error) {
-    is IndexException.Unsupported -> UNSUPPORTED
-    is IndexException.ArchivePasswordProtected -> PASSWORD_PROTECTED
-    is IndexException.ArchiveUnreadable -> DAMAGED
-    else -> UNEXPECTED
+private fun sentenceForIndexFailure(error: Throwable, name: String): ShareNotice = when (error) {
+    is IndexException.Unsupported -> ShareNotice(UNSUPPORTED, listOf(name, error.format))
+    is IndexException.ArchivePasswordProtected -> ShareNotice(PASSWORD_PROTECTED, listOf(name))
+    is IndexException.ArchiveUnreadable -> ShareNotice(DAMAGED, listOf(name))
+    else -> ShareNotice(UNEXPECTED)
 }
 
 /**
@@ -147,7 +153,7 @@ private fun sentenceForIndexFailure(error: Throwable): Int = when (error) {
 internal suspend fun openWhatArrived(
     fetch: suspend () -> Pair<Publication, String>,
     onOpen: (Publication, String) -> Unit,
-    onSay: (Int) -> Unit,
+    onSay: (ShareNotice) -> Unit,
 ) {
     runCatching { fetch() }
         .onSuccess { (publication, local) ->
@@ -157,10 +163,19 @@ internal suspend fun openWhatArrived(
                 readsWhereItLies = true,
                 bytes = null,
             )
-            if (offer is StreamingOffer.Refuse) onSay(CANNOT_OPEN) else onOpen(publication, local)
+            if (offer is StreamingOffer.Refuse) onSay(ShareNotice(CANNOT_OPEN)) else onOpen(publication, local)
         }
-        .onFailure { onSay(UNEXPECTED) }
+        .onFailure { onSay(ShareNotice(UNEXPECTED)) }
 }
+
+/**
+ * A sentence the share browser owes the reader, and the arguments it fills in.
+ *
+ * Carries [args] rather than a resolved `String` so the composable resolves the sentence in
+ * the device's current configuration, exactly as every `stringResource` call already does --
+ * see `app.storyarc.ImportFailure` for the same shape applied to an imported file.
+ */
+internal data class ShareNotice(val textRes: Int, val args: List<String> = emptyList())
 
 /**
  * The refusal `publication-formats` requires to be named rather than retried.
@@ -177,11 +192,14 @@ internal val CANNOT_OPEN: Int = R.string.detail_refused_body
  */
 internal val UNEXPECTED: Int = R.string.smb_error_unexpected
 
-/** Named, the same claim Open-in's refusal makes: the container is recognised and refused. */
-internal val UNSUPPORTED: Int = R.string.smb_error_unsupported
+/**
+ * Named, the same sentence Open-in's refusal uses: the file, the format detected, and which
+ * formats the app reads.
+ */
+internal val UNSUPPORTED: Int = R.string.open_in_unsupported
 
 /** No password field here either -- StoryArc does not manage archive passwords. */
-internal val PASSWORD_PROTECTED: Int = R.string.smb_error_password_protected
+internal val PASSWORD_PROTECTED: Int = R.string.open_in_password_protected
 
 /** Damaged, not unsupported: the format is one StoryArc reads. */
-internal val DAMAGED: Int = R.string.smb_error_damaged
+internal val DAMAGED: Int = R.string.open_in_damaged
