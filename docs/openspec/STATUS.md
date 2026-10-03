@@ -94,7 +94,20 @@ solid archive, and the size of a share download (11 tasks). Localization: no raw
 in the reader, dates, lists and numbers in the chosen language, and plural wording (8
 tasks). Android audio: chapter marks inside one file, and car controls that respect chapters
 (5 tasks). Tasks 13.2, 13.3, 13.6, 14.7, 14.13 to 14.16, 15.5 and 15.9 to 15.11 move to
-wave 6. The goal is paused after this wave, at the owner's request.
+wave 6.
+
+**Wave 5 landed on 2026-10-03** with 28 more tasks (193 of 240 in all). Browse: search
+matches tags and genres, a series lists its issues in order, Kavita rows draw covers on iOS,
+list rows letterbox covers, a status filter with a status a reader can set by hand (D36),
+and add-a-library in Settings (D37). Audio: the inline voice bar opens the player, a comic
+displaces a running voice, chapter skip for narrated books on iOS, a failed part is skipped
+and counted, end-of-book offers after listening, the device voice on the publication page
+(D38), and audiobook import on iOS. Settings and native: reset clears every setting, the
+Reading row states its values, foldable hinges, a list at accessibility text sizes, tinted
+icons, and a Kavita browser that shows its rows while the server answers (all 10 tasks).
+Tasks 17.7, 17.10 and the open parts of 16.4 (CarPlay entitlement, an owner step) and 16.9
+(audiobook covers in picked folders on Android) move to wave 6. A new change,
+`page-browser-carousel`, adds a page carousel with chapters to the comic reader.
 
 **What this pass changes in the records below.**
 
