@@ -104,11 +104,19 @@ final class SpokenSource: PlaybackSource, PublicationSpeechSynthesizerDelegate {
     // MARK: - The transport
 
     func play() {
+        cancelStopAtSentenceEnd()
         guard hasStarted else { return start(from: opening) }
+        // Readium's `resume()` cancels the sentence being spoken before it looks at the
+        // state. After the sleep timer runs out, the voice still finishes its sentence, and
+        // play in that time must let the sentence go on.
+        if case .playing = speech.state { return }
         speech.resume()
     }
 
-    func pause() { speech.pause() }
+    func pause() {
+        cancelStopAtSentenceEnd()
+        speech.pause()
+    }
 
     func stop() {
         speech.delegate = nil
@@ -122,7 +130,13 @@ final class SpokenSource: PlaybackSource, PublicationSpeechSynthesizerDelegate {
     /// `AVSpeechUtterance.volume` applies to the utterance it is set on, not the one already
     /// speaking — so each sentence spoken during the fade is a little quieter than the last,
     /// and ``PlayerSleep/tickSleepTimer(by:)`` is what calls this once a tick.
-    func setVolume(_ gain: Double) { voice.setVolume(gain) }
+    ///
+    /// While a stop waits for the sentence end, the volume stays where the fade left it. The
+    /// next sentence starts before it is paused, and it must not start at full volume.
+    func setVolume(_ gain: Double) {
+        guard !stoppingAtSentenceEnd else { return }
+        voice.setVolume(gain)
+    }
 
     /// D19: the sleep timer "stops at the end of the current sentence", not mid-word.
     /// ``PublicationSpeechSynthesizer`` has no sentence-aware pause, so this waits for the
@@ -132,6 +146,17 @@ final class SpokenSource: PlaybackSource, PublicationSpeechSynthesizerDelegate {
     func stopAtSentenceEnd() {
         guard hasStarted else { return pause() }
         stoppingAtSentenceEnd = true
+    }
+
+    /// Ends a stop that waits for the sentence end, and gives the voice its full volume back.
+    ///
+    /// The pause at the sentence end calls it, and so does a listener's own play or pause
+    /// while the stop waits. Without it, a listener who pressed play in that window got one
+    /// more sentence and then silence, and the sentences after it were spoken at volume zero.
+    private func cancelStopAtSentenceEnd() {
+        guard stoppingAtSentenceEnd else { return }
+        stoppingAtSentenceEnd = false
+        voice.setVolume(1)
     }
 
     /// Moves to a part, which for a publication read aloud is one resource of its reading
@@ -229,7 +254,6 @@ final class SpokenSource: PlaybackSource, PublicationSpeechSynthesizerDelegate {
         if stoppingAtSentenceEnd {
             // The sentence that was playing when the timer elapsed has ended — this is the
             // next one starting — so this is silenced here rather than spoken.
-            stoppingAtSentenceEnd = false
             pause()
             return
         }

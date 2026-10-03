@@ -56,7 +56,7 @@ public extension PlayerCentre {
         // Unconditionally, not only on the way down: a listener who skips back inside the
         // chapter has pushed an end-of-chapter timer's fade away again, and the audio has to
         // come back up with it.
-        source?.setVolume(next.gain)
+        source?.setVolume(skipUnit == .sentence ? next.gain(fadingOver: SleepCountdown.voiceFade) : next.gain)
         if next.hasElapsed {
             sleepTimerElapsed()
         } else {
