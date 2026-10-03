@@ -238,6 +238,41 @@ internal object PlayingBook {
         }
     }
 
+    /**
+     * Starts writing reading-progress for a book already playing, which [play] never
+     * started.
+     *
+     * [PlaybackHost.attachCarStart] lets a car choose a book directly, through
+     * [app.storyarc.core.playback.PlaybackService]'s own `onSetMediaItems` rather than
+     * through here — so nothing pointed [recordPosition]'s writer at it, and its guard
+     * dropped every position the car's session reached, the same way it drops one for a
+     * book the system resumed after this process died. [watchCarStarts] is what tells the
+     * two apart: a resumed book's id matches nothing in the library this process has
+     * loaded; a car's choice is one of the publications already in it.
+     */
+    private fun adopt(publication: Publication, store: ProgressStore) {
+        if (_following.value?.id == publication.id) return
+        follow(publication, store)
+    }
+
+    /**
+     * Watches for a book playing that nothing here started, and starts writing its
+     * position once the library can say which publication it is.
+     *
+     * Every other way a book starts calls [play] first, which points the writer at the
+     * publication before the audio does — so by the time [PlaybackHost.nowPlaying] reports
+     * it, [following] already agrees and this does nothing. Only a car's direct choice
+     * reaches [PlaybackHost.nowPlaying] first. Runs for the life of the process, from
+     * [CarShelf.follow]'s own effect, so it shares that scope rather than opening a second
+     * one — see `AppShell`.
+     */
+    suspend fun watchCarStarts(publications: StateFlow<List<Publication>>, store: ProgressStore) {
+        PlaybackHost.nowPlaying.collect { playing ->
+            carStartedBook(_following.value?.id, playing?.publicationId, publications.value)
+                ?.let { adopt(it, store) }
+        }
+    }
+
     private suspend fun write(
         store: ProgressStore,
         publication: Publication,
@@ -256,4 +291,29 @@ internal object PlayingBook {
             ),
         )
     }
+}
+
+/**
+ * Which publication [PlayingBook.watchCarStarts] should adopt, or null when there is
+ * nothing new to.
+ *
+ * Lifted beside the object rather than inside it so a test can drive the rule with a list
+ * of its own choosing, the same reason `ServerShelfTiles` and `LibraryAway.everythingAway`
+ * are free functions: [PlayingBook]'s own state is a singleton wired to a real
+ * [PlaybackHost] and a real clock, which a test cannot reach without one of each.
+ *
+ * Null whenever nothing is playing, or whenever the id playing is already the one being
+ * followed -- the ordinary case, where [PlayingBook.play] pointed the writer at it before
+ * the audio did. Null too when the id matches nothing in [publications]: a book the system
+ * resumed after this process died is exactly as unresolvable as one a car chose, and this
+ * is the one case where that honestly is the right answer -- the library has nothing to
+ * adopt it as.
+ */
+internal fun carStartedBook(
+    followingId: String?,
+    playingId: String?,
+    publications: List<Publication>,
+): Publication? {
+    if (playingId == null || playingId == followingId) return null
+    return publications.firstOrNull { it.id == playingId }
 }
