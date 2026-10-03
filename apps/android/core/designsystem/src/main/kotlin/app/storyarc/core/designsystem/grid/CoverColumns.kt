@@ -39,6 +39,16 @@ val COVER_MAXIMUM_WIDTH = 168.dp
 private const val ACCESSIBILITY_FONT_SCALE = 1.3f
 
 /**
+ * Whether the reader is at or past [ACCESSIBILITY_FONT_SCALE].
+ *
+ * Public for the same reason [steppedForFontScale] is: a cover's width is not the only
+ * thing that answers differently past this line. `library-browsing`'s list fallback
+ * (`libraryFallsBackToList` in `:feature:library`) asks this rather than restating 1.3f,
+ * which is the ladder this file's own header comment exists to keep in one place.
+ */
+fun isAccessibilityFontScale(fontScale: Float): Boolean = fontScale >= ACCESSIBILITY_FONT_SCALE
+
+/**
  * How much wider a cover is drawn once the reader is at an accessibility font scale.
  *
  * A step, not a scale, and there are exactly two of them. Cover width and text size are not
@@ -109,7 +119,7 @@ fun coverMaximumWidth(fontScale: Float): Dp =
  * Rounded to whole dp, so both platforms land on the same 146 / 185 / 221.
  */
 fun Dp.steppedForFontScale(fontScale: Float): Dp =
-    if (fontScale >= ACCESSIBILITY_FONT_SCALE) {
+    if (isAccessibilityFontScale(fontScale)) {
         (value * ACCESSIBILITY_COVER_STEP).roundToInt().dp
     } else {
         this
