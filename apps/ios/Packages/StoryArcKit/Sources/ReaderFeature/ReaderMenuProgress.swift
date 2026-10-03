@@ -39,6 +39,16 @@ extension ReaderView {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(alignment: .leading) { coarseFill }
         }
+        // PB-open: this row sits first in the sheet's `List`, directly under the grabber —
+        // the one spot `.presentationDetents([.medium, .large])` also wants a touch for, to
+        // drag the sheet between its two heights. Without a competing recognizer here, that
+        // drag gesture sometimes wins the arena for a plain tap that never leaves this row,
+        // and the `Button`'s own action never runs: `SweepComicReaderTests
+        // .testCaptureComicPageBrowser` failed "Contents opened no page browser" on every
+        // run, on a booted simulator, with no error from the tap itself — the touch landed,
+        // nothing read it. A `simultaneousGesture` tap recognizer asks to recognize
+        // alongside the drag rather than lose to it, so the row opens on the first tap.
+        .simultaneousGesture(TapGesture().onEnded { openContents() })
         // One element, spoken once. The position is a second line of this row rather than a
         // separate thing to swipe to, and `comic-reader` is explicit that "the text is what
         // conveys the position".
@@ -96,12 +106,10 @@ extension ReaderView {
         // sheet of its own. Seeded from the reader's own page, the only position a
         // carousel opened on a different one would have to swipe away from.
         //
-        // An assignment, not `.toggle()`. PB-open: a `Button` inside this `List` sits under
-        // `.accessibilityElement(children: .combine)`, and a tap that the system (or a UI
-        // test) delivers while the sheet's own presentation animation is still settling can
-        // run this action twice for one tap. `.toggle()` made that silent — two flips land
-        // back on `false`, and the row the tap asked for never appears. An assignment is
-        // idempotent: two calls or one both leave the browser open.
+        // An assignment, not `.toggle()`. This row now carries two routes to this method —
+        // the `Button`'s own action and the `simultaneousGesture` above — so a tap that
+        // both recognizers accept calls this twice. `.toggle()` would make a double call
+        // net back to `false`; an assignment leaves the browser open either way.
         centredPreviewIndex = model.currentIndex
         withAnimation(.easeInOut(duration: 0.2)) { isBrowsingThumbnails = true }
     }
