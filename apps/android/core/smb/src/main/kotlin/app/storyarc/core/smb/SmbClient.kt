@@ -298,7 +298,13 @@ internal class SmbSource(private val opener: () -> SmbRandomAccessFile) : Random
             if (invalidated) {
                 synchronized(this@SmbSource) {
                     if (invalidated) {
-                        reopen()
+                        // A new path that cannot reach the share is the same answer as a
+                        // reopen that failed below: the share is gone, said as such.
+                        try {
+                            reopen()
+                        } catch (gone: java.io.IOException) {
+                            throw SmbError.HostUnreachable
+                        }
                         invalidated = false
                     }
                 }

@@ -9,11 +9,13 @@ import app.storyarc.core.model.SourceReachabilityEvents
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -59,6 +61,22 @@ class SourceReachabilityWatchTest {
     }
 
     @Test
+    fun `a repeated report keeps the moment the share went`() = runTest {
+        val library = library()
+        val source = share()
+        library.addSource(source)
+        library._registry.update { it.marking(source.id, SourceConnectionState.Unreachable(FIRST_REPORT)) }
+        library.watchSourceReachability()
+
+        SourceReachabilityEvents.reportUnreachable(source.id)
+
+        assertEquals(
+            SourceConnectionState.Unreachable(FIRST_REPORT),
+            library._registry.value[source.id]?.state,
+        )
+    }
+
+    @Test
     fun `a report for a source this library never held changes nothing`() = runTest {
         val library = library()
         val source = share()
@@ -79,5 +97,9 @@ class SourceReachabilityWatchTest {
             "restoreFolders no longer calls watchSourceReachability().",
             source.readText().contains("watchSourceReachability()"),
         )
+    }
+
+    private companion object {
+        const val FIRST_REPORT = 1_000L
     }
 }

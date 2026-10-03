@@ -150,7 +150,9 @@ private suspend fun ReaderViewModel.outcome(index: Int, page: PageEntry, size: I
     }
     val opened = archive ?: return PageOutcome.Unread
     return withContext(Dispatchers.IO) {
-        val data = runCatching { opened.data(page) }.getOrNull()
+        // `network-share`'s *Network changes*: a page read is where an open reader finds that
+        // the new path cannot reach the share, so it is also where the library is told.
+        val data = runCatching { opened.data(page) }.onFailure { reportIfUnreachable(it) }.getOrNull()
             ?: return@withContext PageOutcome.Unread
         runCatching { PageDecoder.decode(data, size) }.getOrNull()
             ?.let { PageOutcome.Decoded(it) }

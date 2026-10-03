@@ -1,5 +1,8 @@
 package app.storyarc.feature.reader
 
+import app.storyarc.core.format.AdoptingArchive
+import app.storyarc.core.format.ComicArchiveReading
+import app.storyarc.core.format.PageEntry
 import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
@@ -49,6 +52,29 @@ class SourceReachabilityReportTest {
         val result = runCatching { withTimeout(300) { received.await() } }.getOrNull()
         job.cancel()
         result
+    }
+
+    /**
+     * The scenario itself: the reader is already open, the path moves, and the next page read
+     * cannot reach the share. Driven through the reader's own page decode, not the report
+     * function alone.
+     */
+    @Test
+    fun `a page read in an open reader that finds the share gone reports its source`() {
+        val sourceId = UUID.randomUUID()
+        val page = PageEntry("001.jpg")
+        val model = model(sourceId).apply {
+            archive = AdoptingArchive(
+                object : ComicArchiveReading {
+                    override val pages = listOf(page)
+                    override val skippedPageCount = 0
+                    override suspend fun data(page: PageEntry): ByteArray = throw SmbError.HostUnreachable
+                },
+            )
+        }
+        val result = reported { runBlocking { model.decodeBitmap(0, page, size = 64) } }
+
+        assertTrue("Expected the page read to report $sourceId.", result == sourceId)
     }
 
     @Test
