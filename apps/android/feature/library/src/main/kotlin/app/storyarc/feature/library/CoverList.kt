@@ -88,8 +88,11 @@ internal fun CoverList(
      */
     selection: Set<String>? = null,
     onToggle: (Publication) -> Unit = {},
-    /** A long press, where a publication is put on a shelf. Null where nothing hosts it. */
-    onAddToShelf: ((Publication) -> Unit)? = null,
+    /**
+     * A long press opens [PublicationActionMenu] built from these. Null where there is
+     * nowhere to send any of them -- the list then draws no menu at all.
+     */
+    actions: PublicationActionCallbacks? = null,
     /**
      * Search results under their own headings. Empty means there is no search running and
      * the list is one run of rows.
@@ -183,7 +186,7 @@ internal fun CoverList(
                     maxPixelSize,
                     isPicked = selection?.contains(publication.id),
                     onToggle = onToggle,
-                    onAddToShelf = onAddToShelf,
+                    actions = actions,
                     seriesCount = series?.count,
                 )
                 HorizontalDivider()
@@ -270,7 +273,7 @@ private fun ListRow(
     /** Whether this one is picked, or null when the library is not in selection mode. */
     isPicked: Boolean? = null,
     onToggle: (Publication) -> Unit = {},
-    onAddToShelf: ((Publication) -> Unit)? = null,
+    actions: PublicationActionCallbacks? = null,
     /**
      * How many publications this row stands for, or null when it stands for itself.
      *
@@ -312,6 +315,7 @@ private fun ListRow(
     val subtitle = seriesCount
         ?.let { pluralStringResource(R.plurals.shelves_count, it, it) }
         ?: rowSubtitle(publication)
+    var menuTarget by remember { mutableStateOf<Publication?>(null) }
 
     Row(
         modifier = modifier
@@ -330,7 +334,7 @@ private fun ListRow(
             .combinedClickable(
                 onClick = { if (isPicked != null) onToggle(publication) else onOpen(publication) },
                 onLongClick = {
-                    if (isPicked == null) onAddToShelf?.invoke(publication)
+                    if (isPicked == null && actions != null) menuTarget = publication
                 },
             )
             .semantics {
@@ -452,6 +456,16 @@ private fun ListRow(
                     color = palette.textSecondary,
                 )
             }
+        }
+
+        if (actions != null) {
+            PublicationActionMenuTarget(
+                target = menuTarget,
+                viewModel = viewModel,
+                actions = actions,
+                onDismiss = { menuTarget = null },
+                onOpen = onOpen,
+            )
         }
     }
 }

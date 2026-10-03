@@ -185,6 +185,56 @@ fun PublicationActionMenu(
     }
 }
 
+/**
+ * What a cell needs to open [PublicationActionMenu], bundled so a cell's own signature grows
+ * one nullable parameter rather than one per action.
+ *
+ * Null at a call site draws no menu at all -- the surfaces that do not yet offer one (a
+ * reading-list entry the library holds no publication for, say) pass nothing rather than a
+ * menu with every row disabled, which is the one shape every scenario here forbids.
+ */
+data class PublicationActionCallbacks(
+    /** Marks a publication read or unread. The app layer owns the server round trip. */
+    val onMark: (Publication, Boolean) -> Unit,
+    /** Opens the confirmation `reading-progress` requires before clearing progress. */
+    val onRestart: (Publication) -> Unit,
+    /** The publication's own page. Defaults to the cell's own tap target. */
+    val onShowDetails: ((Publication) -> Unit)? = null,
+    /** Offered only where this menu opened on a shelf, a collection or a list the reader owns. */
+    val onRemoveFromShelf: ((Publication) -> Unit)? = null,
+    val onAddToServerList: (suspend (Publication, ServerList) -> Boolean)? = null,
+)
+
+/**
+ * The trigger every cell wires once: a target set on long press, drawn here as
+ * [PublicationActionMenu] while it is non-null.
+ *
+ * A `remember`-ed `Publication?` rather than a bare `Boolean`, because every call site already
+ * has the publication the long press was on and a second map from "is a menu open" back to
+ * "which one" is a second place to drift from the first.
+ */
+@Composable
+fun PublicationActionMenuTarget(
+    target: Publication?,
+    viewModel: LibraryViewModel,
+    actions: PublicationActionCallbacks,
+    onDismiss: () -> Unit,
+    onOpen: (Publication) -> Unit,
+) {
+    val publication = target ?: return
+    PublicationActionMenu(
+        publication = publication,
+        viewModel = viewModel,
+        onDismissRequest = onDismiss,
+        onOpen = { onOpen(publication) },
+        onMark = actions.onMark,
+        onRestart = { actions.onRestart(publication) },
+        onShowDetails = { (actions.onShowDetails ?: onOpen)(publication) },
+        onAddToServerList = actions.onAddToServerList,
+        onRemoveFromShelf = actions.onRemoveFromShelf?.let { callback -> { callback(publication) } },
+    )
+}
+
 /** The word on the row. `MARK` is the one case that depends on state. */
 private fun PublicationMenuAction.label(isFinished: Boolean): Int = when (this) {
     PublicationMenuAction.OPEN -> R.string.library_action_open

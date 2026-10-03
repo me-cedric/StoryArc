@@ -165,8 +165,11 @@ internal fun CoverGrid(
      * already chosen; putting a page in front of them would be asking the question twice.
      */
     onResume: (Publication) -> Unit = onOpen,
-    /** A long press, where a publication is put on a shelf. Nil where there is nowhere to put it. */
-    onAddToShelf: ((Publication) -> Unit)? = null,
+    /**
+     * A long press opens [PublicationActionMenu] built from these. Null where there is
+     * nowhere to send any of them -- the shelf then draws no menu at all.
+     */
+    actions: PublicationActionCallbacks? = null,
     /**
      * What the reader has picked, or null when they are not picking.
      *
@@ -245,7 +248,7 @@ internal fun CoverGrid(
                         viewModel,
                         onResume,
                         maxPixelSize,
-                        onAddToShelf,
+                        actions,
                     )
                 }
             }
@@ -260,7 +263,7 @@ internal fun CoverGrid(
                     viewModel,
                     onOpen = if (series == null) onOpen else { _ -> onOpenSeries(series) },
                     maxPixelSize,
-                    onAddToShelf,
+                    actions,
                     isPicked = selection?.contains(publication.id),
                     onToggle = onToggle,
                     seriesCount = series?.count,
@@ -409,8 +412,11 @@ private fun ContinueReadingRow(
     /** Opens the book itself. This row is a resume affordance, not a shelf of covers. */
     onResume: (Publication) -> Unit,
     maxPixelSize: Int,
-    /** A long press, where a publication is put on a shelf. Null where there is nowhere to put it. */
-    onAddToShelf: ((Publication) -> Unit)? = null,
+    /**
+     * A long press opens [PublicationActionMenu] built from these. Null where there is
+     * nowhere to send any of them.
+     */
+    actions: PublicationActionCallbacks? = null,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -437,7 +443,7 @@ private fun ContinueReadingRow(
                     // stop having collections because it is the one you were last
                     // reading, and until this was passed through, the row was the only
                     // cover in the app whose long press did nothing.
-                    onAddToShelf = onAddToShelf,
+                    actions = actions,
                     // The same accessibility step the shelf below takes. A row of covers
                     // that kept its ordinary width while the grid under it widened would
                     // be the one place on the screen still truncating its captions — and
@@ -458,8 +464,11 @@ private fun CoverCell(
     viewModel: LibraryViewModel,
     onOpen: (Publication) -> Unit,
     maxPixelSize: Int,
-    /** A long press, where a publication is put on a shelf. Null where there is nowhere to put it. */
-    onAddToShelf: ((Publication) -> Unit)? = null,
+    /**
+     * A long press opens [PublicationActionMenu] built from these. Null where there is
+     * nowhere to send any of them -- the cell then draws no menu at all.
+     */
+    actions: PublicationActionCallbacks? = null,
     /** Whether this one is picked, or null when the library is not in selection mode. */
     isPicked: Boolean? = null,
     onToggle: (Publication) -> Unit = {},
@@ -507,6 +516,7 @@ private fun CoverCell(
     val isFinished = viewModel.isFinished(publication)
     val finished = stringResource(R.string.library_cell_finished)
     val showsFinished = showsFinishedMark(isPicked, isFinished)
+    var menuTarget by remember { mutableStateOf<Publication?>(null) }
 
     Column(
         // One label for the whole cell. Read as three elements it would announce
@@ -531,7 +541,7 @@ private fun CoverCell(
                     // number of collections", and a long press is where a reader says so.
                     else -> Modifier.combinedClickable(
                         onClick = { onOpen(publication) },
-                        onLongClick = { onAddToShelf?.invoke(publication) },
+                        onLongClick = { if (actions != null) menuTarget = publication },
                     )
                 },
             )
@@ -701,6 +711,16 @@ private fun CoverCell(
             // the management surface leaking into the discovery one. The publication's own
             // page carries the one provenance line instead, which is where a reader asks
             // the question. iOS's `CoverCell` dropped the same line.
+        }
+
+        if (actions != null) {
+            PublicationActionMenuTarget(
+                target = menuTarget,
+                viewModel = viewModel,
+                actions = actions,
+                onDismiss = { menuTarget = null },
+                onOpen = onOpen,
+            )
         }
     }
 }

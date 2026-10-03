@@ -175,9 +175,17 @@ fun LibraryScreen(
     // bar in their own row, which is the whole point of moving them out of it.
     val topBarScroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    /** The publication whose add-to-shelf sheet is open, if any. */
-    var shelving by remember { mutableStateOf<Publication?>(null) }
     var restarting by remember { mutableStateOf<Publication?>(null) }
+
+    // `library-browsing`'s *A publication's actions wherever it is drawn*: every cell this
+    // screen draws builds its own long-press menu from this, rather than opening a sheet
+    // this screen owns -- see [PublicationActionMenu].
+    val publicationActions = PublicationActionCallbacks(
+        onMark = onMark,
+        onRestart = { restarting = it },
+        onShowDetails = onOpenPage,
+        onAddToServerList = onAddToServerList,
+    )
 
     /**
      * What the reader has picked, when they are picking.
@@ -565,7 +573,7 @@ fun LibraryScreen(
                             onOpen = onOpen,
                             onOpenPage = onOpenPage,
                             onOpenSeries = onOpenSeries,
-                            onAddToShelf = { shelving = it },
+                            actions = publicationActions,
                             onBrowse = onBrowse,
                             sources = registry.sources,
                         )
@@ -643,19 +651,6 @@ fun LibraryScreen(
         }
     }
 
-    val shelved = shelving
-    if (shelved != null && viewModel != null) {
-        AddToShelfSheet(
-            viewModel = viewModel,
-            publications = listOf(shelved),
-            onDismiss = { shelving = null },
-            onMark = { changing, isRead -> changing.forEach { onMark(it, isRead) } },
-            onRestart = { restarting = shelved },
-            onAddToServerList = onAddToServerList,
-            onShowDetails = { onOpenPage(shelved) },
-        )
-    }
-
     // The count and the size, before anything is copied. Outside the `Scaffold` for the
     // reason `BulkDownloadPrompt` gives: the tap is in the top bar and a dialog is not.
     if (viewModel != null) {
@@ -720,7 +715,7 @@ private fun Shelf(
     /** Opens a publication's page. Reached from every cover, in either layout. */
     onOpenPage: (Publication) -> Unit,
     onOpenSeries: (String) -> Unit,
-    onAddToShelf: (Publication) -> Unit,
+    actions: PublicationActionCallbacks,
     /** *More from this library* at the foot: the sources, and what a tap on one does. */
     onBrowse: (Source) -> Unit,
     sources: List<Source>,
@@ -759,7 +754,7 @@ private fun Shelf(
                 onBrowse = onBrowse, sources = sources,
                 onOpen = onOpenPage,
                 onResume = resume,
-                onAddToShelf = onAddToShelf,
+                actions = actions,
                 selection = selection.ids.takeIf { selection.isActive },
                 onToggle = { onSelectionChange(selection.toggle(it.id)) },
                 rail = rail,
@@ -772,7 +767,7 @@ private fun Shelf(
                 onOpen = onOpenPage,
                 selection = selection.ids.takeIf { selection.isActive },
                 onToggle = { onSelectionChange(selection.toggle(it.id)) },
-                onAddToShelf = onAddToShelf,
+                actions = actions,
                 groups = groups,
                 // Cut with one column, so the list divides a shelf the grid leaves whole.
                 sections = sections,
