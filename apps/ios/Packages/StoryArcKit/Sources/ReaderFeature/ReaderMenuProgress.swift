@@ -95,8 +95,15 @@ extension ReaderView {
         // they share one sheet now — the menu stays open rather than handing off to a
         // sheet of its own. Seeded from the reader's own page, the only position a
         // carousel opened on a different one would have to swipe away from.
+        //
+        // An assignment, not `.toggle()`. PB-open: a `Button` inside this `List` sits under
+        // `.accessibilityElement(children: .combine)`, and a tap that the system (or a UI
+        // test) delivers while the sheet's own presentation animation is still settling can
+        // run this action twice for one tap. `.toggle()` made that silent — two flips land
+        // back on `false`, and the row the tap asked for never appears. An assignment is
+        // idempotent: two calls or one both leave the browser open.
         centredPreviewIndex = model.currentIndex
-        withAnimation(.easeInOut(duration: 0.2)) { isBrowsingThumbnails.toggle() }
+        withAnimation(.easeInOut(duration: 0.2)) { isBrowsingThumbnails = true }
     }
 
     /// The position, in this reader's own units.
