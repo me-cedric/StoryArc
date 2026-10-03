@@ -213,6 +213,13 @@ struct ThumbnailBrowserTests {
     func openingTheCarouselIsIdempotent() throws {
         let progress = try code(of: "ReaderMenuProgress.swift")
         #expect(
+            progress.contains(".simultaneousGesture(TapGesture().onEnded { openContents() })"),
+            """
+            The Contents row lost its simultaneous tap. PB-open: without it, the sheet's \
+            drag under the grabber can take the tap, and the carousel never opens.
+            """
+        )
+        #expect(
             progress.contains("isBrowsingThumbnails = true"),
             """
             The Contents row no longer assigns `isBrowsingThumbnails = true` to open the \
