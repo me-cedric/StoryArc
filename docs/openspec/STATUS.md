@@ -124,6 +124,15 @@ share from the publication page (5.13), the iOS publication page download (1.5, 
 downloads through the queue (1.9), and the page-browser frames. On the iOS simulator, a UI test's
 tap on Contents does not open the carousel. Wave 6b finds the cause before the frames.
 
+**Wave 6b landed on 2026-10-03** with 5 more tasks (203 of 240 in all). The iOS page carousel
+now opens from Contents: the menu sheet's drag gesture took the tap, and the row now takes it
+too. iOS frames show the carousel left to right, right to left and on a comic without
+chapters. Also: a refusal names its container (14.7), the share browser names an indexing
+refusal (14.16), right-to-left EPUB turns go the right way (9.12), the reader chrome is opaque
+under Increase Contrast and Reduce Transparency (9.8), and a server shelf on Home shows its
+count (7.9). The lanes held too many large tasks, so 23 tasks did not finish. The 37 open
+tasks are now in 12 lanes of 2 to 4 tasks, in waves 7 to 10. smb3 and widgets stay paused.
+
 **What this pass changes in the records below.**
 
 - **`offline-downloads` *Reading while downloading* is still Android-only.** Commit
