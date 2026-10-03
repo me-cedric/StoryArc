@@ -141,6 +141,7 @@ extension LibraryView {
         if search.isSearching {
             SearchResultsView(
                 listing: search.listing,
+                model: model,
                 // The same value the field's scope bar is bound to. The bar is drawn only while
                 // the field is active, so the empty state carries its own way to widen —
                 // `library-browsing`'s *No results*.
