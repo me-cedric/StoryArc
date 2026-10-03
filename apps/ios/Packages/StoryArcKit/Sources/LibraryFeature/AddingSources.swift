@@ -55,12 +55,18 @@ private struct AddingSources: ViewModifier {
         )
     }
 
+    private func readServers() {
+        Task { await model.readServers() }
+    }
+
     func body(content: Content) -> some View {
         content.sheet(item: $sheet) { asked in
             switch asked {
-            case .catalogue: CatalogueSheet(connection: catalogue) { model.add($0) }
-            case .kavita: KavitaSheet(connection: kavita) { model.add($0) }
-            case .share: SmbSheet(connection: smb) { model.add($0) }
+            // `sources`: a server added during a session joins the library now, not at the
+            // next pull or launch.
+            case .catalogue: CatalogueSheet(connection: catalogue) { model.add($0); readServers() }
+            case .kavita: KavitaSheet(connection: kavita) { model.add($0); readServers() }
+            case .share: SmbSheet(connection: smb) { model.add($0); readServers() }
             }
         }
     }

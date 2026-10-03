@@ -381,7 +381,7 @@ class LibraryViewModel(
     }
 
     /** Every server's publications, adopted as a scanned file is. See [ServerLibrary]. */
-    internal fun readServers(pins: CertificatePins) = viewModelScope.launch {
+    fun readServers(pins: CertificatePins) = viewModelScope.launch {
         val reading = ServerLibrary.read(
             _registry, credentials, pins, progressStore,
             progressStore?.let { KavitaProgressStore.open(getApplication()) },

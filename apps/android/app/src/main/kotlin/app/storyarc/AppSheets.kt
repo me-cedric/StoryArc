@@ -40,7 +40,9 @@ internal fun AppSheets(host: AppHost, sheet: AppSheet?) {
             }
             CatalogueSheet(
                 connection = connection,
-                onAdd = { host.library.addSource(it) },
+                // `sources`: a server added during a session joins the library now, not at
+                // the next pull or launch.
+                onAdd = { host.library.addSource(it); host.library.readServers(dependencies.pins) },
                 onDismiss = {
                     dismiss()
                     connection.reset()
@@ -52,7 +54,7 @@ internal fun AppSheets(host: AppHost, sheet: AppSheet?) {
             val connection = remember { KavitaConnection(context, dependencies.credentials) }
             KavitaSheet(
                 connection = connection,
-                onAdd = { host.library.addSource(it) },
+                onAdd = { host.library.addSource(it); host.library.readServers(dependencies.pins) },
                 onDismiss = {
                     dismiss()
                     connection.reset()
@@ -64,7 +66,7 @@ internal fun AppSheets(host: AppHost, sheet: AppSheet?) {
             val connection = remember { SmbConnection(context, dependencies.credentials) }
             SmbSheet(
                 connection = connection,
-                onAdd = { host.library.addSource(it) },
+                onAdd = { host.library.addSource(it); host.library.readServers(dependencies.pins) },
                 onDismiss = {
                     dismiss()
                     connection.reset()
