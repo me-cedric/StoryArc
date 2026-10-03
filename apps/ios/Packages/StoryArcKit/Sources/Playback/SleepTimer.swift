@@ -83,10 +83,17 @@ public struct SleepCountdown: Sendable, Equatable {
     /// `audio-playback`: "playback fades out rather than cutting off when it elapses". A
     /// straight ramp over the last ``fade`` seconds, because a listener who is nearly asleep
     /// should not be woken by silence arriving all at once.
-    public var gain: Double {
-        guard remaining < Self.fade else { return 1 }
+    public var gain: Double { gain(fadingOver: Self.fade) }
+
+    /// D19: a synthesised voice fades "in steps across the last 10 seconds". A voice can
+    /// only change its volume between sentences, so it uses a shorter window than a file.
+    public static let voiceFade: TimeInterval = 10
+
+    /// How loud the audio should be, 0…1, for a fade that lasts `window` seconds.
+    public func gain(fadingOver window: TimeInterval) -> Double {
+        guard remaining < window else { return 1 }
         guard remaining > 0 else { return 0 }
-        return min(1, max(0, remaining / Self.fade))
+        return min(1, max(0, remaining / window))
     }
 
     /// The timer a moment later.

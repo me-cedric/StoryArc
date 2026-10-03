@@ -153,6 +153,24 @@ struct SleepTimerRunningTests {
         #expect(!source.calls.contains(.pause), "a voice was paused immediately rather than let finish its sentence")
     }
 
+    /// D19: a voice fades "in steps across the last 10 seconds", not across the file's
+    /// thirty. With twenty seconds left a narrated book is already quieter, and a voice is not.
+    @Test("A voice keeps its full volume until the last ten seconds")
+    func aVoiceFadesAcrossTheLastTenSeconds() {
+        let (narrated, file) = session(.narrated)
+        let (spoken, voice) = session(.spoken)
+        for centre in [narrated, spoken] {
+            centre.setSleepTimer(.after(25))
+            centre.tickSleepTimer(by: 5)
+        }
+
+        #expect(file.calls.last.map { $0 != .volume(1) } == true, "a file fades across thirty seconds")
+        #expect(voice.calls.last == .volume(1), "a voice faded before its last ten seconds")
+
+        spoken.tickSleepTimer(by: 15)
+        #expect(voice.calls.last == .volume(0.5), "half of a ten-second fade is half the volume")
+    }
+
     /// `audio-playback`: "the position at which it stopped is recorded, so resuming starts a
     /// little before it rather than where the fade ended".
     ///
