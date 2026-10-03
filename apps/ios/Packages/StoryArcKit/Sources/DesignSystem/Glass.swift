@@ -133,19 +133,36 @@ private struct GlassButtonChrome<ChromeShape: InsettableShape>: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {
         if reduceTransparency || contrast == .increased {
-            content
-                .buttonStyle(.plain)
-                // The hierarchical `.primary` ``storyArcGlassText`` uses resolves against
-                // the material, and there is no material here any more — the same reason
-                // that modifier swaps to a `theme.palette` colour under this condition.
-                .foregroundStyle(theme.palette.textPrimary)
-                .frame(minWidth: 44, minHeight: 44)
-                .background(theme.palette.surfaceOverlay, in: shape)
-                .overlay(shape.strokeBorder(theme.palette.borderStrong, lineWidth: 1))
+            content.buttonStyle(OpaqueChromeButtonStyle(shape: shape, palette: theme.palette))
         } else {
             content
                 .buttonStyle(.glass)
                 .foregroundStyle(.primary)
         }
+    }
+}
+
+/// The opaque fallback of ``View/storyArcGlassButton(in:)``.
+///
+/// A button style, not modifiers around the button: a frame or a background outside a
+/// `Button` makes the drawing bigger, but not the area a tap hits. Here the 44 pt frame
+/// and the content shape are the button's own, so the target is 44 pt as well.
+struct OpaqueChromeButtonStyle<ChromeShape: InsettableShape>: ButtonStyle {
+    let shape: ChromeShape
+    let palette: Palette
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            // The hierarchical `.primary` that ``storyArcGlassText`` uses resolves against
+            // the material, and this fallback has no material. So the palette colour comes
+            // back, as it does in that modifier.
+            .foregroundStyle(palette.textPrimary)
+            .padding(.horizontal, StoryArcSpace.md)
+            .padding(.vertical, StoryArcSpace.sm)
+            .frame(minWidth: 44, minHeight: 44)
+            .background(palette.surfaceOverlay, in: shape)
+            .overlay(shape.strokeBorder(palette.borderStrong, lineWidth: 1))
+            .contentShape(shape)
+            .opacity(configuration.isPressed ? 0.6 : 1)
     }
 }
