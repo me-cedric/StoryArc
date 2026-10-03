@@ -116,9 +116,9 @@ struct PlaybackTimelineTests {
 
     // MARK: - A part that fails mid-playback (16.5)
 
-    @Test("A failed part is followed by the next one")
+    @Test("A failed file of a folder is followed by the next file")
     func afterDecodeFailureMovesOn() {
-        #expect(chaptered.afterDecodeFailure(atPart: 0) == 1)
+        #expect(folder.afterDecodeFailure(atPart: 0) == 1)
         #expect(folder.afterDecodeFailure(atPart: 1) == 2)
     }
 
@@ -126,6 +126,24 @@ struct PlaybackTimelineTests {
     func afterDecodeFailureOnTheLastPartEndsTheBook() {
         #expect(chaptered.afterDecodeFailure(atPart: 2) == nil)
         #expect(folder.afterDecodeFailure(atPart: 2) == nil)
+    }
+
+    /// The item that failed is the whole file. Seeking it to the next chapter plays nothing
+    /// and never ends, so a chaptered M4B ends the book instead, the way `fileFinished()` does.
+    @Test("A chaptered file that fails has no later chapter to move to")
+    func afterDecodeFailureInAChapteredFileEndsTheBook() {
+        #expect(chaptered.afterDecodeFailure(atPart: 0) == nil)
+        #expect(chaptered.afterDecodeFailure(atPart: 1) == nil)
+    }
+
+    @Test("A failed file skips its own later chapters and lands on the next file")
+    func afterDecodeFailureSkipsTheRestOfTheFailedFile() {
+        let mixed = PlaybackTimeline(parts: [
+            AudiobookPart(url: Self.file("one.m4b"), title: "One", start: 0, duration: 60),
+            AudiobookPart(url: Self.file("one.m4b"), title: "Two", start: 60, duration: 60),
+            AudiobookPart(url: Self.file("two.m4b"), title: "Three", start: 0, duration: 60),
+        ])
+        #expect(mixed.afterDecodeFailure(atPart: 0) == 2)
     }
 
     // MARK: - What the player is handed

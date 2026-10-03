@@ -118,12 +118,14 @@ public struct PlaybackTimeline: Sendable, Equatable {
     /// `nil` when there is none.
     ///
     /// Task 16.5, `publication-formats`: a damaged audiobook "plays what it can and states
-    /// how much it could not", by the same rule that opens a comic missing pages. The next
-    /// part is always the answer — this book has no notion of retrying the one that just
-    /// failed — so the rule is a single step, asserted here because ``NarratedSource`` is
-    /// the engine a test cannot reach.
+    /// how much it could not", by the same rule that opens a comic missing pages. The answer
+    /// is the first later part in a *different* file: the item that failed is the whole file,
+    /// so a chaptered M4B has nothing after a failure, the same split `fileFinished()` makes
+    /// and Android's `afterDecodeFailure` makes for `PartLayout.MARKS`. Asserted here because
+    /// ``NarratedSource`` is the engine a test cannot reach.
     public func afterDecodeFailure(atPart index: Int) -> Int? {
-        let next = index + 1
-        return parts.indices.contains(next) ? next : nil
+        guard parts.indices.contains(index) else { return nil }
+        let failed = parts[index].url
+        return parts.indices.first { $0 > index && parts[$0].url != failed }
     }
 }
