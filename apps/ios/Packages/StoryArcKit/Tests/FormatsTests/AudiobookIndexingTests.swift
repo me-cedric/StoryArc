@@ -83,6 +83,29 @@ struct AudiobookIndexingTests {
         #expect(!comic.format.isAudio)
     }
 
+    // MARK: - Cover (16.9)
+
+    @Test("An M4B's own embedded artwork is indexed as its cover")
+    func embeddedCoverIsIndexed() async throws {
+        let book = try await PublicationIndexer.index(
+            fileAt: corpus.appending(path: "with-cover.m4b")
+        )
+        let path = try #require(book.coverPath)
+        #expect(FileManager.default.fileExists(atPath: path))
+    }
+
+    @Test("A folder's own loose cover image is indexed as its cover")
+    func folderCoverIsIndexed() async throws {
+        let book = try await PublicationIndexer.index(fileAt: corpus.appending(path: "mixed-folder"))
+        #expect(book.coverPath == corpus.appending(path: "mixed-folder/cover.png").path)
+    }
+
+    @Test("An audiobook with no cover of any kind indexes none")
+    func noCoverIsIndexedAsNone() async throws {
+        let book = try await PublicationIndexer.index(fileAt: corpus.appending(path: "chaptered.m4b"))
+        #expect(book.coverPath == nil)
+    }
+
     // MARK: - The refusal that is not an unsupported container
 
     /// `publication-formats`: the app "states that the file is protected by its store's

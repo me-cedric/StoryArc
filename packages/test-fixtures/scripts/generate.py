@@ -828,8 +828,17 @@ def audio(
     chapters: list[tuple[str, int, int]] | None = None,
     title: str = "Fixture Audiobook",
     extra: list[str] | None = None,
+    cover: bool = False,
 ) -> None:
-    """One audio fixture, written only when there is an ffmpeg to write it with."""
+    """One audio fixture, written only when there is an ffmpeg to write it with.
+
+    `cover=True` embeds a one-frame PNG as the container's own front-cover picture —
+    an MP4 `covr` atom (`-disposition:v attached_pic` on an `mp4`/`mov` output) or an
+    ID3 `APIC` frame (the same disposition on an `mp3` output, which `-id3v2_version 3`
+    is what makes ffmpeg write at all). One artwork image rather than one per fixture,
+    written to a scratch file and deleted after, the same way `.chapters.ffmetadata`
+    already is below — the corpus commits the audio file and not its own ingredients.
+    """
     if not (WRITE and FFMPEG):
         return
     path = AUDIOBOOKS / name
@@ -847,13 +856,23 @@ def audio(
         meta = AUDIOBOOKS / ".chapters.ffmetadata"
         meta.write_text(_chapter_metadata(title, chapters))
         command += ["-i", str(meta), "-map_metadata", "1"]
+    art = AUDIOBOOKS / ".cover.png"
+    if cover:
+        art.write_bytes(page(1))
+        command += ["-i", str(art), "-map", "0:a", "-map", f"{2 if chapters else 1}:v"]
     command += ["-ac", "1", "-c:a", codec, "-b:a", f"{AUDIO_KBPS}k", "-bitexact"]
+    if cover:
+        command += ["-c:v", "copy", "-disposition:v", "attached_pic"]
+        if codec == "libmp3lame":
+            command += ["-id3v2_version", "3"]
     command += extra or []
     command += [str(path)]
     subprocess.run(command, check=True)
     meta = AUDIOBOOKS / ".chapters.ffmetadata"
     if meta.exists():
         meta.unlink()
+    if art.exists():
+        art.unlink()
 
 
 THREE_CHAPTERS = [("One", 0, 2000), ("Two", 2000, 4000), ("Three", 4000, 6000)]
@@ -895,6 +914,30 @@ audio(
     hz=260,
     title="No Chapters",
     extra=["-movflags", "+faststart"],
+)
+
+# Task 16.9: an M4B carrying its own cover, the `covr` atom AVFoundation and media3
+# both read as artwork. The one-frame PNG is `page(1)`'s own colour, the same the
+# comic fixtures draw their first page in, so a wrong fixture is wrong to the eye
+# and not only to an assertion.
+audio(
+    "with-cover.m4b",
+    seconds=2,
+    codec="aac",
+    hz=220,
+    cover=True,
+    extra=["-movflags", "+faststart"],
+)
+
+# The same cover as an ID3 `APIC` frame, because the two containers carry artwork
+# differently and a corpus with only one would hide the half that fails.
+audio(
+    "with-cover.mp3",
+    seconds=2,
+    codec="libmp3lame",
+    hz=180,
+    cover=True,
+    extra=["-write_id3v2", "1"],
 )
 
 # A folder of parts, named so that natural sort is the only ordering that works —
@@ -968,6 +1011,24 @@ audiobooks: list[dict] = [
         "note": "Also pins that an .m4a and an .m4b holding the same audio are treated identically — the extension is a hint and the contents are the fact.",
     },
     {
+        "file": "audiobooks/with-cover.m4b",
+        "pins": "an M4B's own cover atom is read as the publication's artwork",
+        "container": "mp4",
+        "expectedPartCount": 1,
+        "expectedDurationSeconds": 2,
+        "hasEmbeddedCover": True,
+        "note": "Task 16.9. The cover is one frame of `page(1)`'s own PNG, embedded as the MP4 `covr` atom ffmpeg writes with `-disposition:v attached_pic`.",
+    },
+    {
+        "file": "audiobooks/with-cover.mp3",
+        "pins": "the same cover as an ID3 APIC frame",
+        "container": "mp3",
+        "expectedPartCount": 1,
+        "expectedDurationSeconds": 2,
+        "hasEmbeddedCover": True,
+        "note": "Task 16.9. Carried alongside the M4B on purpose: the two containers carry artwork differently and a corpus with only one would hide the half that fails.",
+    },
+    {
         "file": "audiobooks/folder-parts",
         "pins": "a folder of audio files is one audiobook, and part10 sorts after part2",
         "container": "folder",
@@ -983,7 +1044,8 @@ audiobooks: list[dict] = [
         "expectedKind": "audiobook",
         "expectedPartCount": 2,
         "expectedPartOrder": ["part1.mp3", "part2.mp3"],
-        "note": "Two audio files against one image. `publication-formats` requires the app to state which kind it chose rather than choosing silently.",
+        "expectedCoverFile": "cover.png",
+        "note": "Two audio files against one image. `publication-formats` requires the app to state which kind it chose rather than choosing silently. Task 16.9 reuses the same image as the folder's own cover, found by name rather than by position.",
     },
     {
         "file": "audiobooks/protected.aax",

@@ -20,6 +20,9 @@ struct CoverLoaderTests {
         "comics/tar-store.cbt",
         "comics/rar5-store.cbr",
         "ebooks/fixture.epub",
+        "audiobooks/with-cover.m4b",
+        "audiobooks/with-cover.mp3",
+        "audiobooks/mixed-folder",
     ])
     func loadsCovers(path: String) async throws {
         let (publication, url) = try await publication(path)
@@ -66,6 +69,18 @@ struct CoverLoaderTests {
     @Test("A publication with no pages has no cover to load")
     func noCover() async throws {
         let (publication, url) = try await publication("comics/no-pages.cbz")
+        #expect(publication.coverPath == nil)
+        await #expect(throws: CoverLoader.CoverError.noCover) {
+            _ = try await CoverLoader.coverData(for: publication, at: url)
+        }
+    }
+
+    /// Task 16.9: an audiobook with no cover anywhere — no embedded artwork, no loose
+    /// folder image — is the same `.noCover` every other coverless format answers with,
+    /// rather than a third shape this one format invents.
+    @Test("An audiobook with no cover of any kind has none to load")
+    func audiobookWithNoCover() async throws {
+        let (publication, url) = try await publication("audiobooks/chaptered.m4b")
         #expect(publication.coverPath == nil)
         await #expect(throws: CoverLoader.CoverError.noCover) {
             _ = try await CoverLoader.coverData(for: publication, at: url)

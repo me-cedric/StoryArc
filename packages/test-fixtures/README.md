@@ -16,12 +16,12 @@ packages/test-fixtures/
 ├── manifest.json          every fixture and what a correct parse yields
 ├── comics/                23 archives and 2 PDFs, 38 kB total
 ├── ebooks/                6 EPUBs, 11 kB total
-└── audiobooks/            7 audiobooks, 100 kB total
+└── audiobooks/            9 audiobooks, 103 kB total
 ```
 
 ## Status
 
-**23 comic archives, two PDFs, six EPUBs and seven audiobooks**, covering ZIP,
+**23 comic archives, two PDFs, six EPUBs and nine audiobooks**, covering ZIP,
 RAR4, RAR5, TAR, PDF, EPUB 2, EPUB 3, fixed-layout EPUB, M4B, MP3, a folder of
 parts, and two named refusals — 7-Zip and a store's content protection.
 
@@ -138,8 +138,10 @@ exists, but nothing regenerates it.
 | `chaptered.m4b` | an M4B's chapter marks come from the container's own atom |
 | `id3-chapters.mp3` | the same three chapters as ID3 CHAP frames |
 | `unchaptered.m4a` | an audiobook with no markers opens, and nothing is reported as missing |
+| `with-cover.m4b` | an M4B's own `covr` atom is read as the publication's artwork |
+| `with-cover.mp3` | the same cover as an ID3 `APIC` frame |
 | `folder-parts/` | a folder of audio files is one audiobook, and part10 sorts after part2 |
-| `mixed-folder/` | a folder of both audio and images is the kind the majority of its entries are |
+| `mixed-folder/` | a folder of both audio and images is the kind the majority of its entries are, and its image is also the folder's own cover |
 | `protected.aax` | a protected audiobook is refused **by brand**, with no prompt for a key |
 | `truncated.m4b` | a cut audiobook plays what it can and states how much it could not |
 
