@@ -448,7 +448,7 @@
     <string name="detail_series_heading">Les autres numéros de cette série</string>
     <string name="detail_downloading">Téléchargement</string>
     <string name="detail_readaloud_voice">Lu à voix haute par %1$s (%2$s)</string>
-    <string name="detail_readaloud_noVoice">Aucune voix sur cet appareil ne lit le %1$s</string>
+    <string name="detail_readaloud_noVoice">Aucune voix de cet appareil ne lit cette langue : %1$s</string>
     <string name="detail_readaloud_defaultEngine">la voix de cet appareil</string>
     <!-- What a stopped transfer on a publication page is waiting for. The downloads
          view’s own three keys, copied rather than reworded. -->
