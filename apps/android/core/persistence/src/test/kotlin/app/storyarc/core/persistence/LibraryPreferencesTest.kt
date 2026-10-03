@@ -5,6 +5,7 @@ import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.PublicationStatus
 import app.storyarc.core.model.ReadState
 import app.storyarc.core.model.YearRange
 import org.junit.Assert.assertEquals
@@ -68,17 +69,19 @@ class LibraryPreferencesTest {
                 publishers = setOf("Fixture Press"),
                 genres = setOf("Superhero"),
                 tags = setOf("reprint"),
+                statuses = setOf(PublicationStatus.HIATUS),
                 years = YearRange(from = 1986, to = 1999),
             ),
         )
 
         val restored = preferences.query()
+        assertEquals(setOf(PublicationStatus.HIATUS), restored.statuses)
         assertEquals(setOf("ja"), restored.languages)
         assertEquals(setOf("Fixture Press"), restored.publishers)
         assertEquals(setOf("Superhero"), restored.genres)
         assertEquals(setOf("reprint"), restored.tags)
         assertEquals(YearRange(from = 1986, to = 1999), restored.years)
-        assertEquals(7, restored.activeFilterCount)
+        assertEquals(8, restored.activeFilterCount)
     }
 
     @Test
