@@ -135,6 +135,7 @@
     <string name="catalogue_error_unreachable">Dieser Server war nicht erreichbar.</string>
     <string name="catalogue_error_unauthorized">Dieser Katalog hat die angegebene Anmeldung abgelehnt.</string>
     <string name="catalogue_error_changed_certificate">Das Zertifikat für %1$s hat sich geändert, seit Sie ihm vertraut haben. Entfernen Sie diese Bibliothek und fügen Sie sie nur wieder hinzu, wenn Sie den Grund kennen.</string>
+    <string name="catalogue_error_local_network_denied">Dieses Gerät hat den Zugriff auf das lokale Netzwerk nicht erteilt, deshalb konnte die Verbindung nicht starten. Schalten Sie ihn in Einstellungen unter Apps, StoryArc, Berechtigungen ein.</string>
     <string name="catalogue_search_prompt">In dieser Bibliothek suchen</string>
     <string name="catalogue_search_local">Diese Bibliothek bietet keine Suche, deshalb wurde nur das Geladene gefiltert.</string>
     <string name="catalogue_facets">Filtern</string>
@@ -252,6 +253,7 @@
     <string name="kavita_error_key_rejected">Dieser API-Schlüssel wurde abgelehnt. Prüfen Sie ihn in Ihren Kavita-Kontoeinstellungen.</string>
     <string name="kavita_error_too_old_for_request">Dieser Server ist zu alt für StoryArc. Er kennt die Anfrage nicht, die StoryArc sendet.</string>
     <string name="kavita_error_key_not_stored">Dieses Gerät wollte den API-Schlüssel nicht speichern, daher wurde der Server nicht hinzugefügt. Es wurde nichts halbfertig gespeichert.</string>
+    <string name="kavita_error_local_network_denied">Dieses Gerät hat den Zugriff auf das lokale Netzwerk nicht erteilt, deshalb konnte die Verbindung nicht starten. Schalten Sie ihn in Einstellungen unter Apps, StoryArc, Berechtigungen ein.</string>
     <string name="kavita_empty">Diese Bibliothek ist leer.</string>
     <string name="kavita_loose_chapters">Kapitel</string>
     <string name="kavita_specials">Specials</string>

@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import android.content.Context
+import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.storyarc.core.catalogue.CertificatePins
@@ -136,6 +137,14 @@ class CatalogueConnection(
         // the field into an ordinary catalogue and connected again would otherwise save the
         // server they had moved away from.
         kavita = null
+        // D25 / `network-share` "Local network permission denied": a catalogue on a LAN
+        // address is blocked the same way a share is, from SDK 37. Checked before the
+        // request starts -- the one case a blocked TCP connect times out instead of
+        // failing at once.
+        if (LocalNetworkPermission.blocks(Build.VERSION.SDK_INT, LocalNetworkPermission.isGranted(context))) {
+            _step.value = Step.Failed(context.getString(R.string.catalogue_error_local_network_denied))
+            return
+        }
         when (val target = CatalogueTarget.of(address.value)) {
             is CatalogueTarget.Kavita -> viewModelScope.launch { connectKavita(target.address) }
             is CatalogueTarget.Feed -> viewModelScope.launch { attempt(target.url, accepted) }

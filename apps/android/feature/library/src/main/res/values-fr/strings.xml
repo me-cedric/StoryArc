@@ -137,6 +137,7 @@
     <string name="catalogue_error_unreachable">Ce serveur est injoignable.</string>
     <string name="catalogue_error_unauthorized">Ce catalogue a refusé l’identification fournie.</string>
     <string name="catalogue_error_changed_certificate">Le certificat de %1$s a changé depuis que vous l’avez approuvé. Supprimez cette bibliothèque et ajoutez-la de nouveau seulement si vous savez pourquoi.</string>
+    <string name="catalogue_error_local_network_denied">Cet appareil n’a pas accordé l’accès au réseau local, donc la connexion n’a pas démarré. Activez-le dans Paramètres, sous Applications, StoryArc, Autorisations.</string>
     <string name="catalogue_search_prompt">Chercher dans cette bibliothèque</string>
     <string name="catalogue_search_local">Cette bibliothèque ne propose pas de recherche : seul ce qui est déjà chargé a été filtré.</string>
     <string name="catalogue_facets">Filtrer</string>
@@ -254,6 +255,7 @@
     <string name="kavita_error_key_rejected">Cette clé d’API a été refusée. Vérifiez-la dans les réglages de votre compte Kavita.</string>
     <string name="kavita_error_too_old_for_request">Ce serveur est trop ancien pour StoryArc. Il ne connaît pas la requête que StoryArc envoie.</string>
     <string name="kavita_error_key_not_stored">Cet appareil n’a pas voulu conserver la clé d’API : le serveur n’a pas été ajouté. Rien n’a été enregistré à moitié.</string>
+    <string name="kavita_error_local_network_denied">Cet appareil n’a pas accordé l’accès au réseau local, donc la connexion n’a pas démarré. Activez-le dans Paramètres, sous Applications, StoryArc, Autorisations.</string>
     <string name="kavita_empty">Cette bibliothèque est vide.</string>
     <string name="kavita_loose_chapters">Chapitres</string>
     <string name="kavita_specials">Hors-série</string>

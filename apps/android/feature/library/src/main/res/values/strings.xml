@@ -151,6 +151,7 @@
     <string name="catalogue_error_unreachable">This server could not be reached.</string>
     <string name="catalogue_error_unauthorized">This catalogue refused the sign-in it was given.</string>
     <string name="catalogue_error_changed_certificate">The certificate for %1$s has changed since you trusted it. Remove this library and add it again only if you know why.</string>
+    <string name="catalogue_error_local_network_denied">This device has not granted local network access, so the connection did not start. Turn it on in Settings, under Apps, StoryArc, Permissions.</string>
     <string name="catalogue_search_prompt">Search this library</string>
     <string name="catalogue_search_local">This library does not offer search, so only what has loaded was filtered.</string>
     <string name="catalogue_facets">Filter</string>
@@ -271,6 +272,7 @@
     <string name="kavita_error_key_rejected">That API key was refused. Check it in your Kavita account settings.</string>
     <string name="kavita_error_too_old_for_request">That server is too old for StoryArc. It does not know the request StoryArc sends.</string>
     <string name="kavita_error_key_not_stored">This device would not store the API key, so the server was not added. Nothing was saved half-finished.</string>
+    <string name="kavita_error_local_network_denied">This device has not granted local network access, so the connection did not start. Turn it on in Settings, under Apps, StoryArc, Permissions.</string>
     <string name="kavita_empty">This library is empty.</string>
     <string name="kavita_loose_chapters">Chapters</string>
     <string name="kavita_specials">Specials</string>
