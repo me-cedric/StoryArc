@@ -60,11 +60,16 @@ class SkippedPageCountIsCarriedTest {
 
     @Test
     fun `the view model publishes the count the archive gave it`() {
-        val text = source("ReaderViewModel.kt")
+        // dl-core 1.7 moved the assignment into `applyOpenedArchive`, an extension function in
+        // `ReaderAdoption.kt` -- the same success path a stream that opened runs, and a stream
+        // that never opened at all reaches once the copy lands. Both files together are "the
+        // view model" for this question.
+        val text = source("ReaderViewModel.kt") + source("ReaderAdoption.kt")
 
         assertTrue(
-            "ReaderViewModel no longer takes the skipped-page count from the opened archive." +
-                " The format layer would go on counting and no reader would ever be told.",
+            "Neither ReaderViewModel nor ReaderAdoption takes the skipped-page count from the" +
+                " opened archive. The format layer would go on counting and no reader would" +
+                " ever be told.",
             text.contains("_skippedPageCount.value = opened.skippedPageCount"),
         )
         assertTrue(

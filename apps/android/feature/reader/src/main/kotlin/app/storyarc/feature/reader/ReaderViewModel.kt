@@ -117,6 +117,8 @@ class ReaderViewModel(
      * D18.
      */
     private val speaker: SpokenAudio = SpokenAudio.shared,
+    /** Whether the download for this address is neither finished nor failed yet. dl-core 1.7. */
+    internal val isDownloadPending: () -> Boolean = { false },
 ) : ViewModel() {
 
     /** The shelf this publication's reading mode is remembered under. */
@@ -281,13 +283,20 @@ class ReaderViewModel(
         store.save(store.themes().remembering(settings, ThemeScope.FIXED_LAYOUT, shelf))
     }
 
-    private val _pages = MutableStateFlow<List<PageEntry>>(emptyList())
+    // Internal: `ReaderAdoption.kt`'s `applyOpenedArchive` sets this too, for a reader opened
+    // directly from a copy that just landed.
+    internal val _pages = MutableStateFlow<List<PageEntry>>(emptyList())
     val pages: StateFlow<List<PageEntry>> = _pages.asStateFlow()
 
     private val _failure = MutableStateFlow<Int?>(null)
     val failure: StateFlow<Int?> = _failure.asStateFlow()
 
-    private val _skippedPageCount = MutableStateFlow(0)
+    // Internal: `ReaderAdoption.kt` sets and clears this too. dl-core 1.7 -- not [failure],
+    // because the copy that lands replaces it rather than the reader being told anything failed.
+    internal val _isWaitingForDownload = MutableStateFlow(false)
+    val isWaitingForDownload: StateFlow<Boolean> = _isWaitingForDownload.asStateFlow()
+
+    internal val _skippedPageCount = MutableStateFlow(0)
 
     /**
      * Entries that looked like pages and could not be read at all.
@@ -450,7 +459,7 @@ class ReaderViewModel(
 
     /** Where to open. A ComicInfo cover that is not page one starts there. */
     var initialIndex: Int = 0
-        private set
+        internal set
 
     suspend fun open(maxPixelSize: Int) {
         this.maxPixelSize = maxPixelSize
@@ -469,28 +478,7 @@ class ReaderViewModel(
             val opened = withContext(Dispatchers.IO) {
                 PublicationAccess.openArchive(resolver, path)
             }
-            archive = AdoptingArchive(opened)
-            _pages.value = opened.pages
-            _skippedPageCount.value = opened.skippedPageCount
-            wide.addAll(opened.doublePageIndices)
-            publication.coverPath?.let { path ->
-                val index = opened.pages.indexOfFirst { it.path == path }
-                if (index >= 0) initialIndex = index
-            }
-            // A recorded position wins over the cover. `reading-progress` is about
-            // picking up where you left off, and a book you are halfway through
-            // should not reopen at its cover.
-            //
-            // Unless it is finished, which the same requirement singles out: reopening a
-            // finished publication "starts at the beginning while retaining the finished
-            // record". Dropping the override is the whole of it — the record is untouched,
-            // and the beginning is where `initialIndex` already is.
-            val record = progress?.progress(publication.identity)
-            val recorded = record?.position?.takeUnless { record.isFinished }
-            if (recorded is ReadingPosition.Page && recorded.index in opened.pages.indices) {
-                initialIndex = recorded.index
-            }
-            deriveCoverColours()
+            applyOpenedArchive(opened)
         } catch (cause: ComicArchiveException.UnsupportedContainer) {
             // Named, the same as Open-in's refusal: the container is recognised and
             // this is a different claim from "could not be read at all".
@@ -510,8 +498,14 @@ class ReaderViewModel(
             Log.w(TAG, "cannot open this ${publication.format}", cause)
             _failure.value = R.string.reader_damaged
         } catch (cause: Exception) {
+            // dl-core 1.7: a range-less server throws here. Waits if the download has not
+            // itself finished or failed -- `ReaderAdoption.kt` opens the copy once it lands.
             Log.w(TAG, "cannot open this ${publication.format}", cause)
-            _failure.value = R.string.reader_cannot_open
+            if (isDownloadPending()) {
+                _isWaitingForDownload.value = true
+            } else {
+                _failure.value = R.string.reader_cannot_open
+            }
         }
         _isOpened.value = true
     }
@@ -531,7 +525,7 @@ class ReaderViewModel(
      * accent — which is what `native-experience` asks for on a surface with no
      * publication colour of its own.
      */
-    private suspend fun deriveCoverColours() {
+    internal suspend fun deriveCoverColours() {
         val cover = thumbnail(coverIndex()) ?: return
         _coverColours.value = withContext(Dispatchers.Default) {
             CoverAccent.derived(CoverAccent.pixels(cover))

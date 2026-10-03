@@ -184,6 +184,7 @@ fun ReaderScreen(
 ) {
     val pages by viewModel.pages.collectAsStateWithLifecycle()
     val failure by viewModel.failure.collectAsStateWithLifecycle()
+    val isWaitingForDownload by viewModel.isWaitingForDownload.collectAsStateWithLifecycle()
     val isOpened by viewModel.isOpened.collectAsStateWithLifecycle()
 
     val configuration = LocalConfiguration.current
@@ -228,6 +229,10 @@ fun ReaderScreen(
         when {
             failure != null -> {
                 Message(stringResource(failure!!))
+                CloseButton(onClose)
+            }
+            isWaitingForDownload -> {
+                Message(stringResource(R.string.reader_waiting_for_download))
                 CloseButton(onClose)
             }
             pages.isEmpty() && isOpened -> {
@@ -1801,7 +1806,6 @@ internal fun Message(text: String) {
     }
 }
 
-/** A quarter of the width each side: hittable on a phone, and the centre still has room. */
 /**
  * The colour behind the page.
  *
@@ -1871,13 +1875,6 @@ internal fun spreadTap(half: Int, point: Offset, size: IntSize): Pair<Offset, In
     Offset(if (half == 0) point.x else point.x + size.width, point.y) to
         IntSize(size.width * 2, size.height)
 
-/**
- * The cross-dissolve, short enough not to read as an animation.
- *
- * `page-transitions` uses Fast fade as the Reduce Motion substitute as well as a
- * mode in its own right, so it must not become the thing it replaces. 140 ms is
- * about the shortest a dissolve can be and still not look like a cut.
- */
 /**
  * How long a pinch has to hold still before the page behind it is re-decoded.
  *
