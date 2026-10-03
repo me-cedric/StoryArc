@@ -6,11 +6,22 @@ is the iPhone 17 Pro simulator (lane `0EAA863A-78F3-4839-A910-0B88071D99C2`), iO
 | Frame | Task | What it shows |
 | --- | --- | --- |
 | `ios-comic-menu-chapter-ticks.png` | PB1.4 | Wave 6a. The reader menu on Quiet Machines, a comic with three chapter bookmarks. The page slider has a tick at each chapter start. The tick at page 1 is left out, because the thumb covers it. |
-| `ios-page-browser-light.png` | PB3.2 | The carousel open on Quiet Machines, page 2 of 12, in light appearance. The chapter name sits above the carousel; the centred page is drawn larger than its neighbours. |
-| `ios-page-browser-light-swiped.png` | PB3.2 | The same carousel after a slow swipe left: the centred preview has moved, the reader's own page has not. |
-| `ios-page-browser-dark.png` | PB3.2 | The same open, in dark appearance. |
-| `ios-page-browser-right-to-left.png` | PB3.2 | The same comic with its reading direction set to right-to-left from the menu's own Settings section: the carousel and the page-slider ticks mirror, page one at the right end. |
-| `ios-thumbnails-light.png` | PB3.2 | `Fine Print`, a comic with no chapter markers: the carousel draws every page with no chapter name or badge, light appearance. |
+| `ios-page-browser-right-to-left.png` | PB3.2 | The carousel open on Quiet Machines, light appearance, with the reading direction set to right-to-left from the menu's own Settings section. Page one is at the right end, and the page-slider thumb and ticks mirror. The sheet is at its large detent. |
+| `ios-page-browser-right-to-left-dark.png` | PB3.2 | The same comic, right-to-left, in dark appearance, at the medium detent. |
+| `ios-thumbnails-light.png` | PB3.2 | `Fine Print`, a comic with no chapter markers, left-to-right: the carousel draws every page with no chapter name or badge, light appearance. |
+
+## Review correction
+
+The worker's first set also held `ios-page-browser-light.png`, `ios-page-browser-light-swiped.png`
+and `ios-page-browser-dark.png`, described as left-to-right. All three showed right-to-left.
+The cause: the right-to-left walk chooses the direction from the menu, and the app keeps that
+choice for the shelf. Later walks on Quiet Machines inherited it. The light frames were
+removed, and the dark frame was renamed to what it shows.
+
+The walks now launch with `freshShelfSettings: true`, so each one starts from the built-in
+reader settings. `openPageBrowser(in:rightToLeft:)` asserts the direction: page 2 must be on
+the right of page 1, or on the left for right-to-left. On the lane simulator, with
+right-to-left stored for Quiet Machines, the light and dark walks passed as left-to-right.
 
 ## PB-open, the defect wave 6a left open
 
@@ -31,19 +42,25 @@ lose to it. `openContents()` now assigns `isBrowsingThumbnails = true` rather th
 it, because the row can call it twice for one tap (the `Button`'s action and the new
 gesture, when both recognizers accept) and a toggle would net back to `false`.
 
-Proven with a mutation: reverting the assignment back to `.toggle()` made
-`ThumbnailBrowserTests."Opening the carousel is idempotent, not a toggle"` fail by name;
-restoring it passed again. The UI reproducer passed on the lane simulator afterwards,
-confirmed on a fresh build and a fresh install, five runs in a row.
+Proven with two mutations:
+
+- Without the `simultaneousGesture`, `testCaptureComicPageBrowser` and
+  `testCaptureComicPageBrowserDark` both failed "Contents opened no page browser." on the
+  lane simulator. With it restored, they passed.
+- Back to `.toggle()`, `ThumbnailBrowserTests."Opening the carousel is idempotent, not a
+  toggle"` failed by name. The same host test also fails when the gesture line is removed.
 
 ## What is still open
 
-- **Largest accessibility text size (`UICTContentSizeCategoryAccessibilityXXXL`)**: the
-  capture test for it (and the pre-existing `testCaptureComicMenuAtLargestText`, untouched
-  by this wave) skips on this lane with "the page offered no hittable way to open it" —
-  the publication detail page's Read action does not become hittable within the wait. This
-  reproduces on `Fine Print` as well as `Quiet Machines`, so it is a capture-environment gap
-  that predates this wave, not a product defect PB-open or PB3.2 cover. Not captured.
-- **Android**: not captured this wave. `ThumbnailStrip.kt`'s carousel (tasks 2.1–2.5) is
-  built and unit-tested, but no emulator frame exists yet for light, dark, largest text or
+- **Left-to-right frames of a comic with chapter markers**, in light and in dark. Run
+  `testCaptureComicPageBrowser` and `testCaptureComicPageBrowserDark` again to capture them.
+- **Largest accessibility text size (`UICTContentSizeCategoryAccessibilityXXXL`)**:
+  `testCaptureComicPageBrowserAtLargestText` skips with "the page offered no hittable way to
+  open it". An element dump at the skip shows that the app is still on the shelf: the tap on
+  the Quiet Machines cover did not open the publication page. The shelf at this size also
+  shows the "2 couldn't be opened" banner and the alphabetical index. The pre-existing
+  `testCaptureComicMenuAtLargestText` skips the same way. Look at the shelf at this text size
+  to find what takes the tap. Not captured.
+- **Android**: not captured. `ThumbnailStrip.kt`'s carousel (tasks 2.1–2.5) is built and
+  unit-tested, but no emulator frame exists yet for light, dark, largest text or
   right-to-left.
