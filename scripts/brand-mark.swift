@@ -547,29 +547,15 @@ func androidVector(_ artwork: Artwork, flat: Bool) -> String {
 
 // MARK: - Asset catalogue metadata
 
-/// An `.appiconset`'s `Contents.json`. `tinted` answers both the `dark` and the `tinted`
-/// appearance (19.7, ``Face/tintedFace``): iOS 18 draws its own colour over the one render
-/// rather than over art the designer never supplied for a second appearance.
 func appIconContents(_ file: String, tinted: String) -> String {
-    func entry(_ file: String, appearance: String? = nil) -> String {
-        let appearances = appearance.map {
-            "\"appearances\" : [ { \"appearance\" : \"luminosity\", \"value\" : \"\($0)\" } ],\n          "
-        } ?? ""
-        return """
-                {
-                  \(appearances)"filename" : "\(file)",
-                  "idiom" : "universal",
-                  "platform" : "ios",
-                  "size" : "1024x1024"
-                }
-        """
+    let images = [(file, ""), (tinted, "dark"), (tinted, "tinted")].map { name, look in
+        let appearance = look.isEmpty ? "" : #""appearances" : [ { "appearance" : "luminosity", "value" : "\#(look)" } ], "#
+        return #"    { \#(appearance)"filename" : "\#(name)", "idiom" : "universal", "platform" : "ios", "size" : "1024x1024" }"#
     }
     return """
     {
       "images" : [
-    \(entry(file)),
-    \(entry(tinted, appearance: "dark")),
-    \(entry(tinted, appearance: "tinted"))
+    \(images.joined(separator: ",\n"))
       ],
       "info" : { "author" : "storyarc-brand-mark", "version" : 1 }
     }
@@ -634,14 +620,6 @@ func accentColorContents() -> String {
     }
 
     """
-}
-
-/// This face's own plate (iOS has no separate background layer to leave transparent) with its
-/// gradient swapped for Android's flat monochrome colour (19.7) — the render iOS's own `dark`
-/// and `tinted` appearances come from, the way `Face(id: "mono", …)` already stands in for
-/// Android's `ic_launcher_monochrome.xml`.
-extension Face {
-    var tintedFace: Face { Face(id: id, name: name, plate: plate, flat: Palette.monoMark) }
 }
 
 // MARK: - Verifying the parse
@@ -763,18 +741,14 @@ let catalogue = "apps/ios/App/Resources/Assets.xcassets"
 let androidRes = "apps/android/app/src/main/res"
 
 var written: [(String, Data)] = []
+// 19.7: each face's `dark` and `tinted` image is the Mono face, Android's mark light on the dark plate.
+let darkAndTinted = renderPNG(artwork, face: Face.all.first { $0.id == "mono" }!, side: 1024, inset: Inset.ios)
 for face in Face.all where face.id != "bare" {
     let setName = face.id == "ink" ? "AppIcon" : "AppIcon-\(face.name)"
-    let file = "\(setName)-1024.png"
-    // 19.7: the single-colour layer the system draws its own dark and tinted appearances
-    // from, the same way `ic_launcher_monochrome.xml` already stands in for Android's.
-    let tintedFile = "\(setName)-1024-tinted.png"
-    written.append(("\(catalogue)/\(setName).appiconset/\(file)",
-                    renderPNG(artwork, face: face, side: 1024, inset: Inset.ios)))
-    written.append(("\(catalogue)/\(setName).appiconset/\(tintedFile)",
-                    renderPNG(artwork, face: face.tintedFace, side: 1024, inset: Inset.ios)))
-    written.append(("\(catalogue)/\(setName).appiconset/Contents.json",
-                    Data(appIconContents(file, tinted: tintedFile).utf8)))
+    let set = "\(catalogue)/\(setName).appiconset", file = "\(setName)-1024.png", tinted = "\(setName)-1024-tinted.png"
+    written.append(("\(set)/\(file)", renderPNG(artwork, face: face, side: 1024, inset: Inset.ios)))
+    written.append(("\(set)/\(tinted)", darkAndTinted))
+    written.append(("\(set)/Contents.json", Data(appIconContents(file, tinted: tinted).utf8)))
 
     // The same face again, as an image the chooser can draw: ``appIconTileContents(_:)`` says
     // why one emission cannot serve both. `AppIconChoiceTests` asserts the name.

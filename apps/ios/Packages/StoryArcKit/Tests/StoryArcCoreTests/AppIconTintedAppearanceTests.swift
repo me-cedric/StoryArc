@@ -1,4 +1,6 @@
+import CoreGraphics
 import Foundation
+import ImageIO
 import Testing
 
 @testable import StoryArcCore
@@ -79,5 +81,34 @@ struct AppIconTintedAppearanceTests {
             FileManager.default.fileExists(atPath: imageURL.path),
             "\(face.assetName) names \(filename) for its dark/tinted appearance, and no such file is committed"
         )
+    }
+
+    /// The `dark` and `tinted` image must show the mark: light on a dark plate. The first render
+    /// put each face's own plate under a near-white mark, so Paper's image was blank.
+    @Test(
+        "Every face's dark and tinted image is a light mark on a dark plate",
+        arguments: AppIconChoice.allCases
+    )
+    func darkAndTintedImageShowsTheMark(face: AppIconChoice) throws {
+        let images = try #require(contents(of: face.assetName)["images"] as? [[String: Any]])
+        let entry = images.first { ($0["appearances"] as? [[String: Any]])?.first?["value"] as? String == "tinted" }
+        let tinted = try #require(entry?["filename"] as? String)
+        let url = Self.appleRoot.appending(
+            path: "App/Resources/Assets.xcassets/\(face.assetName).appiconset/\(tinted)"
+        )
+        let source = try #require(CGImageSourceCreateWithURL(url as CFURL, nil))
+        let image = try #require(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        let side = 16
+        var grey = [UInt8](repeating: 0, count: side * side)
+        let context = try #require(CGContext(
+            data: &grey, width: side, height: side, bitsPerComponent: 8, bytesPerRow: side,
+            space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue
+        ))
+        context.draw(image, in: CGRect(x: 0, y: 0, width: side, height: side))
+
+        let plate = Double(grey[0]) / 255
+        let mark = Double(grey.max() ?? 0) / 255
+        #expect(plate < 0.25, "\(face.assetName)'s dark and tinted image has a light plate (\(plate))")
+        #expect(mark - plate > 0.5, "\(face.assetName)'s dark and tinted image hides its mark")
     }
 }
