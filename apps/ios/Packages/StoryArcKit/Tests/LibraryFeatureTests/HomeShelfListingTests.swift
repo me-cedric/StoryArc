@@ -276,16 +276,17 @@ struct HomeShelfListingTests {
         #expect(second.first { $0.serverID == 6 }?.count == nil)
     }
 
-    private func entry(read: Int, of total: Int) -> KavitaReadingListItem {
+    private func entry(read: Int, of total: Int) throws -> KavitaReadingListItem {
         let json = #"{"id":1,"order":0,"seriesId":1,"chapterId":1,"pagesRead":\#(read),"pagesTotal":\#(total)}"#
-        // A fixture this test wrote itself, so a failure to decode it is this file's own fault.
-        return try! JSONDecoder().decode(KavitaReadingListItem.self, from: Data(json.utf8))
+        return try JSONDecoder().decode(KavitaReadingListItem.self, from: Data(json.utf8))
     }
 
     @Test("A list's card counts every entry, and the entries the server reports as finished")
-    func aListIsCounted() {
+    func aListIsCounted() throws {
         let shelf = RememberedShelf(kind: .readingList, sourceID: serverID, serverID: 9, title: "Crisis")
-        let counted = shelf.counted(items: [entry(read: 20, of: 20), entry(read: 3, of: 20), entry(read: 0, of: 20)])
+        let counted = shelf.counted(
+            items: [try entry(read: 20, of: 20), try entry(read: 3, of: 20), try entry(read: 0, of: 20)]
+        )
 
         #expect(counted.count == 3)
         #expect(counted.finished == 1)
