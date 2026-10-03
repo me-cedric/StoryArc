@@ -43,11 +43,10 @@ extension EpubReaderView {
                 // cannot sit on this material" — found once before, on a device, and then
                 // reintroduced here.
                 //
-                // The glyph takes a hierarchical style instead, which resolves against the
-                // material rather than against a stored sRGB value, so it follows a page
-                // that is cream under one theme and near-black under another.
-                .buttonStyle(.glass)
-                .foregroundStyle(.primary)
+                // `storyArcGlassButton` carries the hierarchical foreground that follows
+                // the material, and swaps both to the app's own opaque pair under Reduce
+                // Transparency or Increase Contrast — task 9.8.
+                .storyArcGlassButton(in: Circle())
                 // Large, which is the scale the system draws floating chrome at — the
                 // controls in Photos' own overlay are half again the size of a toolbar
                 // button, because a control floating over content has no bar to sit in and
@@ -65,8 +64,7 @@ extension EpubReaderView {
                     }
                     .labelStyle(.iconOnly)
                 }
-                .buttonStyle(.glass)
-                .foregroundStyle(.primary)
+                .storyArcGlassButton(in: Circle())
                 .controlSize(.large)
             }
             .padding(StoryArcSpace.md)

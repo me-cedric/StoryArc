@@ -53,6 +53,22 @@ extension View {
     public func storyArcGlassText(_ level: GlassTextLevel = .secondary) -> some View {
         modifier(GlassText(level: level))
     }
+
+    /// A glass **button** with the same opaque fallback ``storyArcGlass`` gives a container.
+    ///
+    /// The system's own `.buttonStyle(.glass)` already adapts for Reduce Transparency and
+    /// Increase Contrast by itself — but to the *system's* opaque pill, not this app's
+    /// `surfaceOverlay`/`borderStrong` pair, so a reader who turned either setting on saw
+    /// every other chrome surface in the app answer with the same two tokens and the
+    /// reader's own glass buttons answer with something else. `native-experience` names
+    /// both settings in one breath for every translucent surface, buttons included.
+    ///
+    /// 44×44 pt under the fallback, the HIG's minimum tap target — the system's own glass
+    /// button already clears it, and an icon-only pill that shrank to its label's size
+    /// would not.
+    public func storyArcGlassButton(in shape: some InsettableShape = Capsule()) -> some View {
+        modifier(GlassButtonChrome(shape: shape))
+    }
 }
 
 /// How much of the reader's attention text on glass is asking for.
@@ -103,6 +119,33 @@ private struct GlassChrome<ChromeShape: InsettableShape>: ViewModifier {
                 .overlay(shape.strokeBorder(theme.palette.borderStrong, lineWidth: 1))
         } else {
             content.glassEffect(.regular, in: shape)
+        }
+    }
+}
+
+private struct GlassButtonChrome<ChromeShape: InsettableShape>: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.theme) private var theme
+
+    let shape: ChromeShape
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if reduceTransparency || contrast == .increased {
+            content
+                .buttonStyle(.plain)
+                // The hierarchical `.primary` ``storyArcGlassText`` uses resolves against
+                // the material, and there is no material here any more — the same reason
+                // that modifier swaps to a `theme.palette` colour under this condition.
+                .foregroundStyle(theme.palette.textPrimary)
+                .frame(minWidth: 44, minHeight: 44)
+                .background(theme.palette.surfaceOverlay, in: shape)
+                .overlay(shape.strokeBorder(theme.palette.borderStrong, lineWidth: 1))
+        } else {
+            content
+                .buttonStyle(.glass)
+                .foregroundStyle(.primary)
         }
     }
 }

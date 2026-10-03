@@ -117,8 +117,9 @@ extension ReaderView {
             }
             // Untinted: `.tint` on a plain glass button tints the *material*, which is
             // what made these read as opaque pills instead of glass. See `ReaderChrome`.
-            .buttonStyle(.glass)
-            .foregroundStyle(.primary)
+            // `storyArcGlassButton` is the same fallback that chrome's two buttons take
+            // under Reduce Transparency or Increase Contrast — task 9.8.
+            .storyArcGlassButton()
             .padding(.bottom, StoryArcSpace.xl)
             .transition(.opacity)
         }
