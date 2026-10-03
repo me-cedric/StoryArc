@@ -60,15 +60,23 @@ public protocol PlaybackSource: AnyObject {
     /// `audio-playback`: playback "fades out rather than cutting off when it elapses".
     ///
     /// **It has a default, and the default is the honest answer for one of the two sources.**
-    /// A narrated file has a volume to ramp. A synthesised voice does not — it either finishes
-    /// the sentence it is on or stops in the middle of a word, and `AVSpeechUtterance.volume`
-    /// applies to the *next* utterance rather than the one being spoken. So a voice that
-    /// cannot ramp does nothing here and is still stopped by the timer, which is the clause
-    /// that matters: the alternative is a sleep timer that a read-aloud listener cannot use at
-    /// all. `design.md` has not yet recorded a decision for the voice's half — see the note
-    /// above §5 of `audiobooks-and-playback/tasks.md` — and this default is what keeps the
-    /// undecided half from blocking the decided one.
+    /// A narrated file has a volume to ramp mid-utterance. A synthesised voice does not —
+    /// `AVSpeechUtterance.volume` applies to the *next* utterance rather than the one being
+    /// spoken, so a voice fades in steps, one sentence quieter than the last, rather than
+    /// smoothly. D19 settles that as the voice's half of this requirement:
+    /// ``SpokenSource/setVolume(_:)`` in `StoryArcEpub` is the override; this default is for a
+    /// source with nothing to apply it to.
     func setVolume(_ gain: Double)
+
+    /// Stops playback no later than the end of the sentence or part already in progress.
+    ///
+    /// D19: a synthesised voice's sleep timer "stops at the end of the current sentence"
+    /// rather than mid-word — `pause()` cannot promise that, because `AVSpeechSynthesizer`
+    /// has no sentence-aware pause and ``PlaybackSource/pause()`` stops wherever the engine
+    /// happens to be. The default calls ``pause()`` immediately, which is the right answer
+    /// for a source with a clock: the fade in ``setVolume(_:)`` has already finished by the
+    /// time the timer calls this, so there is nothing left to protect by waiting.
+    func stopAtSentenceEnd()
 
     /// Move to a point inside a part.
     ///
@@ -92,4 +100,7 @@ public protocol PlaybackSource: AnyObject {
 public extension PlaybackSource {
     /// A source with no volume to ramp. See the requirement's own note.
     func setVolume(_ gain: Double) {}
+
+    /// Stops now. See the requirement's own note on ``stopAtSentenceEnd()``.
+    func stopAtSentenceEnd() { pause() }
 }

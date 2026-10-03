@@ -80,7 +80,9 @@ public extension PlayerCentre {
         record(at: rewound)
         sleep = nil
         session = session.pausedByListener()
-        source?.pause()
+        // Not `pause()`: D19 asks a voice to stop at the end of the sentence it is on, and
+        // `stopAtSentenceEnd()` is the one call that knows how for the source behind it.
+        source?.stopAtSentenceEnd()
         source?.setVolume(1)
         // The live session goes back too, so pressing play does not start mid-word in a
         // stretch the listener already slept through. Only where the source has a clock to go
