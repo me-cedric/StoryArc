@@ -71,7 +71,13 @@ export const capFor = (path) => {
  * their head, and the whole point of a ratchet is that adding a tooth costs something.
  */
 const ALLOWED = {
-    'apps/android/feature/reader/src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt': 1893,
+    // 19.5 taught `Page()` to read the window's own separating vertical hinge and lay a
+    // spread, or inset a lone page, across it rather than down the container's own
+    // midpoint — `hingeSpreadSplit` and `hingeInset` moved to `:core:designsystem` where
+    // `HingeAvoidanceTest` can assert them without a window, but the wiring that reads the
+    // hinge and applies the two widths is the view's own and grew it past its recorded
+    // length by 58 lines.
+    'apps/android/feature/reader/src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt': 1951,
     'apps/android/feature/library/src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt': 1696,
     'apps/android/feature/epubreader/src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt': 1051,
     // 19.7 added the tinted/dark icon render and crossed the cap by 26 lines. `swift
