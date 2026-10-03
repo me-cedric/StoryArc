@@ -11,12 +11,9 @@
     <string name="settings_privacy">Datenschutz</string>
     <string name="settings_about">Über</string>
     <string name="settings_language_system">System</string>
-    <string name="settings_reading_summary">Seitenwechsel und Lesevorgaben</string>
-    <string name="settings_reading_summary_volume">Lautstärketasten blättern</string>
     <string name="settings_reading_summary_values">%1$s für Bücher, %2$s für Comics</string>
     <string name="settings_reading_summary_volume_values">Lautstärketasten blättern · %1$s für Bücher, %2$s für Comics</string>
     <string name="settings_privacy_summary">Kein Konto, kein Backend, keine Analyse</string>
-    <string name="settings_about_summary">Version, Lizenz und Danksagungen</string>
     <string name="appearance_system">System</string>
     <string name="appearance_light">Hell</string>
     <string name="appearance_dark">Dunkel</string>

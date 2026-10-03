@@ -80,6 +80,9 @@ public struct SettingsView: View {
 
     @State private var query = ""
     @State private var isConfirmingReset = false
+    /// What the Reading row states. State, re-read on the way back from a group and after a
+    /// reset: `readerStore` is not observable, so a read inside `body` kept the old value.
+    @State private var readingDefaults: ShelfMemory
 
     /// Which group the screen has been pushed into, if any.
     ///
@@ -114,6 +117,7 @@ public struct SettingsView: View {
         self.readerStore = readerStore
         self.onReset = onReset
         _path = State(initialValue: opensAtDownloads ? [SettingMatch(group: .downloads)] : [])
+        _readingDefaults = State(initialValue: readerStore.themes())
         self.sources = sources
         self.itemCount = itemCount
         self.isPartial = isPartial
@@ -151,7 +155,7 @@ public struct SettingsView: View {
                                 Text(
                                     match.anchor == nil
                                         ? match.group.summaryKey(
-                                            for: settings, summary, readingDefaults: readerStore.themes()
+                                            for: settings, summary, readingDefaults: readingDefaults
                                         )
                                         : match.group.titleKey,
                                     bundle: .module
@@ -178,6 +182,7 @@ public struct SettingsView: View {
                     .navigationTitle(Text(match.group.titleKey, bundle: .module))
             }
             .searchable(text: $query, prompt: Text("settings.search", bundle: .module))
+            .onChange(of: path) { readingDefaults = readerStore.themes() }
             // `settings-and-about`: the app "confirms and states explicitly that sources,
             // downloads, and reading progress are not affected". Naming what survives is
             // the whole job — a confirmation that only says "are you sure" makes a reader
@@ -187,7 +192,10 @@ public struct SettingsView: View {
                 isPresented: $isConfirmingReset,
                 titleVisibility: .visible
             ) {
-                Button(role: .destructive) { onReset() } label: {
+                Button(role: .destructive) {
+                    onReset()
+                    readingDefaults = readerStore.themes()
+                } label: {
                     Text("settings.reset.confirm", bundle: .module)
                 }
             } message: {
