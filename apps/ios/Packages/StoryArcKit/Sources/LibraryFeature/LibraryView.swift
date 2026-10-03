@@ -263,6 +263,7 @@ public struct LibraryView: View {
             // The other three kinds, and the connections behind them. Shared with Home,
             // which draws the same empty state — see ``AddingSources``.
             .addingSources(to: model, pins: pins, sheet: $addingSource)
+            .refreshConflictNotice(progress: progress) // task 2.9 — see RefreshConflicts.swift
     }
 
     /// The library itself: the grid or the list, and the chrome that belongs to it.

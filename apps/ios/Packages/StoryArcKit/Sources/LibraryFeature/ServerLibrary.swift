@@ -27,6 +27,13 @@ enum ServerLibrary {
         /// Sources whose read stopped at its own limit. ``SourceSlice`` explains that, and
         /// the source screen is what says it out loud.
         var partial: Set<UUID> = []
+        /// Every genuine conflict a Kavita source's own pull found during this refresh.
+        ///
+        /// Task 2.9: this used to be `KavitaSync.pull`'s return value, thrown away the
+        /// moment it came back — a refresh resolved the conflict (it still saves the merged
+        /// record) but never told the reader one had happened, which is the one part of D3
+        /// a background refresh could not skip.
+        var conflicts: [KavitaConflict] = []
     }
 
     static func read(
@@ -36,7 +43,9 @@ enum ServerLibrary {
     ) async -> Reading {
         var reading = Reading()
         for source in sources {
-            let slice = await publications(of: source, credentials: credentials, progress: progress)
+            let slice = await publications(
+                of: source, credentials: credentials, progress: progress, conflicts: &reading.conflicts
+            )
             reading.rows.append(contentsOf: slice.publications.map { ($0, source.id) })
             if slice.holdsMore { reading.partial.insert(source.id) }
         }
@@ -46,7 +55,8 @@ enum ServerLibrary {
     private static func publications(
         of source: Source,
         credentials: CredentialStore?,
-        progress: ProgressStore?
+        progress: ProgressStore?,
+        conflicts: inout [KavitaConflict]
     ) async -> SourceSlice {
         switch source.kind {
         case .kavitaServer:
@@ -58,9 +68,10 @@ enum ServerLibrary {
             // recorded on other devices is merged into the local store". This refresh
             // is that moment for every Kavita source, not only the one whose browser
             // the reader happens to have open — and it also flushes what an earlier,
-            // offline session could not send.
+            // offline session could not send. A genuine conflict is collected rather
+            // than discarded, so the reader is told about it too (D3) — task 2.9.
             if let progress {
-                await KavitaSync.pull(
+                conflicts += await KavitaSync.pull(
                     fetched.chapters,
                     in: KavitaProgressStore(),
                     into: progress,
@@ -145,6 +156,7 @@ extension LibraryModel {
         for sourceID in partialSources.keys where !reading.partial.contains(sourceID) {
             partialSources.removeValue(forKey: sourceID)
         }
+        RefreshConflicts.shared.report(reading.conflicts)
         for (publication, sourceID) in reading.rows {
             _ = adopt(publication, from: sourceID)
         }

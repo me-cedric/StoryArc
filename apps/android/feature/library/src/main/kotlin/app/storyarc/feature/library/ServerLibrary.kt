@@ -42,10 +42,16 @@ internal object ServerLibrary {
      * @property partial the sources whose read stopped at its own limit rather than at the
      *   end of the source. [SourceSlice] is where that distinction is explained, and the
      *   source screen is what says it out loud.
+     * @property conflicts every genuine conflict a Kavita source's own pull found during this
+     *   refresh. Task 2.9: this used to be [KavitaSync.pull]'s return value, thrown away the
+     *   moment it came back -- a refresh resolved the conflict (it still saves the merged
+     *   record) but never told the reader one had happened, which is the one part of D3 a
+     *   background refresh could not skip.
      */
     data class Reading(
         val rows: List<Pair<Publication, UUID>> = emptyList(),
         val partial: Set<UUID> = emptySet(),
+        val conflicts: List<KavitaConflict> = emptyList(),
     )
 
     /**
@@ -62,8 +68,9 @@ internal object ServerLibrary {
         progress: ProgressStore? = null,
         kavita: KavitaProgressStore? = null,
     ): Reading = withContext(Dispatchers.IO) {
+        val conflicts = mutableListOf<KavitaConflict>()
         val slices = registry.value.sources.map { source ->
-            val read = runCatching { slice(source, credentials, pins, progress, kavita) }.getOrNull()
+            val read = runCatching { slice(source, credentials, pins, progress, kavita, conflicts) }.getOrNull()
             // **A source that just answered is answering, and the registry says so.**
             //
             // The registry rather than a list, because this read is where the answer is
@@ -87,6 +94,7 @@ internal object ServerLibrary {
         Reading(
             rows = slices.flatMap { (id, slice) -> slice.publications.map { it to id } },
             partial = slices.filter { (_, slice) -> slice.holdsMore }.map { it.first }.toSet(),
+            conflicts = conflicts,
         )
     }
 
@@ -97,6 +105,7 @@ internal object ServerLibrary {
         pins: CertificatePins,
         progress: ProgressStore?,
         kavita: KavitaProgressStore?,
+        conflicts: MutableList<KavitaConflict>,
     ): SourceSlice? =
         when (source.kind) {
             SourceKind.KAVITA_SERVER -> KavitaPage.of(source, credentials)?.address?.let { address ->
@@ -105,9 +114,10 @@ internal object ServerLibrary {
                 // recorded on other devices is merged into the local store". This refresh
                 // is that moment for every Kavita source, not only the one whose browser
                 // the reader happens to have open -- and it also flushes what an earlier,
-                // offline session could not send.
+                // offline session could not send. A genuine conflict is collected rather
+                // than discarded, so the reader is told about it too (D3) -- task 2.9.
                 if (progress != null && kavita != null) {
-                    KavitaSync.pull(fetched.chapters, kavita, progress, source.id.toString(), address)
+                    conflicts += KavitaSync.pull(fetched.chapters, kavita, progress, source.id.toString(), address)
                 }
                 fetched.slice
             }
