@@ -1,9 +1,16 @@
 package app.storyarc
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -13,6 +20,7 @@ import app.storyarc.core.model.ReadingAddress
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.persistence.AnnotationStore
 import app.storyarc.core.persistence.KavitaOrigin
+import app.storyarc.core.playback.SpokenAudio
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.KavitaSync
 import app.storyarc.feature.library.offeredNext
@@ -113,47 +121,54 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
         onDispose { owner.lifecycle.removeObserver(watcher) }
     }
 
-    ReaderScreen(
-        viewModel = viewModel,
-        onClose = {
-            onClose()
-            activity.lifecycleScope.launch { report() }
-        },
-        // D7: `null` when this publication was never a download.
-        // Both actions only record the choice; the sweep acts on it when the reader closes.
-        downloadCleanup = host.downloads.value[publication.id]?.let {
-            val choices = dependencies.cleanupChoices
-            val isSweeping = dependencies.settings.settings().removeDownloadsAfterFinishing
-            DownloadCleanupOffer(
-                isRemovedOnClose = { choices.isRemovedOnClose(publication.id, isSweeping) },
-                onRemove = { choices.removeOnClose(publication.id) },
-                onKeep = { choices.keep(publication.id) },
-            )
-        },
-        // Only for a publication that lives on a share. Everything else is already on the
-        // device, and offering to download it would be offering nothing.
-        //
-        // Answers whether the copy landed, so `NetworkNotice` can say so when it did not --
-        // the share is still unreachable then, which is the entire reason the offer exists.
-        onDownloadForOffline = screen.path
-            .takeIf { it.startsWith("smb://") }
-            ?.let { remote ->
-                suspend {
-                    val local = keepForOffline(dependencies.queue, dependencies.downloads, publication, remote)
-                    if (local != null) host.open(publication, local)
-                    local != null
-                }
+    // D18: opening this comic or PDF silenced a voice (`ReaderViewModel.open`), and this is
+    // where the listener is told so once. The player's own composable, over the page.
+    val voiceStopped = remember { SnackbarHostState() }
+    VoiceStoppedWord(SpokenAudio.shared, voiceStopped)
+    Box(Modifier.fillMaxSize()) {
+        ReaderScreen(
+            viewModel = viewModel,
+            onClose = {
+                onClose()
+                activity.lifecycleScope.launch { report() }
             },
-        // `comic-reader`: the end of one volume offers the next. The app layer answers this
-        // because it is the only place that can see both the reader and the library, and
-        // the library is what knows a reading list may have a different opinion about what
-        // comes next than the series does.
-        // Tasks 7.3 and 7.14: a server reading list the reader is inside wins over the local
-        // library's own guess, and nothing is offered that choosing could not open.
-        previousInSeries = host.library.offeredPrevious(publication),
-        nextInSeries = host.library.offeredNext(publication),
-        onOpen = host::openEntry,
-    )
+            // D7: `null` when this publication was never a download.
+            // Both actions only record the choice; the sweep acts on it when the reader closes.
+            downloadCleanup = host.downloads.value[publication.id]?.let {
+                val choices = dependencies.cleanupChoices
+                val isSweeping = dependencies.settings.settings().removeDownloadsAfterFinishing
+                DownloadCleanupOffer(
+                    isRemovedOnClose = { choices.isRemovedOnClose(publication.id, isSweeping) },
+                    onRemove = { choices.removeOnClose(publication.id) },
+                    onKeep = { choices.keep(publication.id) },
+                )
+            },
+            // Only for a publication that lives on a share. Everything else is already on the
+            // device, and offering to download it would be offering nothing.
+            //
+            // Answers whether the copy landed, so `NetworkNotice` can say so when it did not --
+            // the share is still unreachable then, which is the entire reason the offer exists.
+            onDownloadForOffline = screen.path
+                .takeIf { it.startsWith("smb://") }
+                ?.let { remote ->
+                    suspend {
+                        val local = keepForOffline(dependencies.queue, dependencies.downloads, publication, remote)
+                        if (local != null) host.open(publication, local)
+                        local != null
+                    }
+                },
+            // `comic-reader`: the end of one volume offers the next. The app layer answers this
+            // because it is the only place that can see both the reader and the library, and
+            // the library is what knows a reading list may have a different opinion about what
+            // comes next than the series does.
+            // Tasks 7.3 and 7.14: a server reading list the reader is inside wins over the local
+            // library's own guess, and nothing is offered that choosing could not open.
+            previousInSeries = host.library.offeredPrevious(publication),
+            nextInSeries = host.library.offeredNext(publication),
+            onOpen = host::openEntry,
+        )
+        SnackbarHost(voiceStopped, Modifier.align(Alignment.TopCenter).safeDrawingPadding())
+    }
 }
 
 /**

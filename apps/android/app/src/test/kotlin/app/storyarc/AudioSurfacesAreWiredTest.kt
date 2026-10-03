@@ -212,6 +212,24 @@ class AudioSurfacesAreWiredTest {
         )
     }
 
+    /**
+     * D18: opening a comic or a PDF silences a voice (`ReaderVoiceHandoverTest` pins that),
+     * and the listener is told once, over the page. The word is drawn by the reader's host.
+     */
+    @Test
+    fun `the comic and PDF reader tells the listener once that a voice stopped`() {
+        val host = read(READER_HOST)
+        assertTrue(
+            "ReaderHost no longer takes the voice-stopped word, so a voice that opening a" +
+                " comic silenced stops with nothing said.",
+            host.contains("VoiceStoppedWord(SpokenAudio.shared, voiceStopped)"),
+        )
+        assertTrue(
+            "ReaderHost no longer draws the word it takes, so the notice is spent unseen.",
+            host.contains("SnackbarHost(voiceStopped,"),
+        )
+    }
+
     private fun read(path: String): String {
         val file = File(androidRoot, path)
         if (!file.isFile) error("$path is not under ${androidRoot.absolutePath} — has it moved?")
@@ -225,6 +243,7 @@ class AudioSurfacesAreWiredTest {
         const val PLAYING_BOOK = "app/src/main/kotlin/app/storyarc/PlayingBook.kt"
         const val MAIN_ACTIVITY = "app/src/main/kotlin/app/storyarc/MainActivity.kt"
         const val PLAYER_SCREEN = "app/src/main/kotlin/app/storyarc/PlayerScreen.kt"
+        const val READER_HOST = "app/src/main/kotlin/app/storyarc/ReaderHost.kt"
 
         /**
          * The Gradle root, found by walking up from the working directory, per

@@ -570,10 +570,11 @@ internal fun PlayerFinishedScreen(
  *
  * `EpubReaderOverlays.kt` carries the same effect over the page, because a feature module and
  * the app module cannot share a composable without one depending on the other; the rule behind
- * both is `VoiceStoppedNotice`, in `:core:playback`, and asserted there.
+ * both is `VoiceStoppedNotice`, in `:core:playback`, and asserted there. `ReaderHost` draws
+ * this one over a comic or a PDF, D18.
  */
 @Composable
-private fun VoiceStoppedWord(spokenAudio: SpokenAudio, snackbars: SnackbarHostState) {
+internal fun VoiceStoppedWord(spokenAudio: SpokenAudio, snackbars: SnackbarHostState) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val owed by spokenAudio.voiceStopped.collectAsStateWithLifecycle()
