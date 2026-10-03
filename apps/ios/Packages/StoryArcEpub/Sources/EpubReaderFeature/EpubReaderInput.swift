@@ -28,10 +28,17 @@ internal import ReadiumNavigator
 enum EpubTurnKey: Equatable {
     case forward, backward, toggleChrome
 
-    static func outcome(for key: KeyEquivalent) -> EpubTurnKey? {
+    /// - Parameter isRightToLeft: mirrors only the arrow keys, which are spatial — "the
+    ///   page to the right" — the way an edge tap is. Page Up/Down and Space stay put: they
+    ///   move "the next page to read", regardless of which way the book reads, the same
+    ///   split the comic reader draws between `turn(by:)` and `turnInReadingOrder(by:)` in
+    ///   `ReaderTurning.swift`. Task 9.12.
+    static func outcome(for key: KeyEquivalent, isRightToLeft: Bool = false) -> EpubTurnKey? {
         switch key {
-        case .leftArrow, .pageUp: .backward
-        case .rightArrow, .pageDown, .space: .forward
+        case .leftArrow: isRightToLeft ? .forward : .backward
+        case .rightArrow: isRightToLeft ? .backward : .forward
+        case .pageUp: .backward
+        case .pageDown, .space: .forward
         case .return: .toggleChrome
         default: nil
         }
@@ -39,11 +46,13 @@ enum EpubTurnKey: Equatable {
 
     /// The same rule for a key Readium reports. A key with a modifier is a shortcut, not a
     /// turn, as Readium's own `DirectionalNavigationAdapter` decides.
-    static func outcome(for event: KeyEvent) -> EpubTurnKey? {
+    static func outcome(for event: KeyEvent, isRightToLeft: Bool = false) -> EpubTurnKey? {
         guard event.modifiers.isEmpty else { return nil }
         switch event.key {
-        case .arrowLeft, .pageUp: return .backward
-        case .arrowRight, .pageDown, .space: return .forward
+        case .arrowLeft: return isRightToLeft ? .forward : .backward
+        case .arrowRight: return isRightToLeft ? .backward : .forward
+        case .pageUp: return .backward
+        case .pageDown, .space: return .forward
         case .enter: return .toggleChrome
         default: return nil
         }
@@ -77,6 +86,7 @@ struct EpubReaderTurnKeys: ViewModifier {
     let isCoveredBySheet: Bool
     let onTurn: (Bool) -> Void
     let onToggleChrome: () -> Void
+    var isRightToLeft: Bool = false
 
     @FocusState private var isFocused: Bool
 
@@ -89,7 +99,7 @@ struct EpubReaderTurnKeys: ViewModifier {
             .onChange(of: isCoveredBySheet) { _, isCovered in if !isCovered { isFocused = true } }
             .onKeyPress { press in
                 guard press.modifiers.isEmpty else { return .ignored }
-                switch EpubTurnKey.outcome(for: press.key) {
+                switch EpubTurnKey.outcome(for: press.key, isRightToLeft: isRightToLeft) {
                 case .forward: onTurn(true)
                 case .backward: onTurn(false)
                 case .toggleChrome: onToggleChrome()

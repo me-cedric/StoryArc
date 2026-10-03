@@ -35,12 +35,21 @@ internal class EpubPageTurns(
     /**
      * What a tap means: an edge-third tap turns the page in every mode, where the setting
      * allows it, and any other tap toggles the chrome.
+     *
+     * Asks for the navigator only where a turn can follow -- whether a tap lands in the
+     * middle third, or the setting is off, never depends on [isRightToLeft], so the first,
+     * direction-blind call below answers that for free. Only an edge tap resolves it for
+     * real, from the one navigator this call fetches and passes on to [turn] rather than
+     * letting it fetch a second one of its own.
      */
     fun tap(x: Float, width: Float, tapTurnsPages: Boolean, toggleChrome: () -> Unit) {
-        when (val forward = EdgeTap.outcome(x, width, tapTurnsPages)) {
-            null -> toggleChrome()
-            else -> turn(forward)
+        if (EdgeTap.outcome(x, width, tapTurnsPages) == null) {
+            toggleChrome()
+            return
         }
+        val resolvedNavigator = navigator()
+        val forward = EdgeTap.outcome(x, width, tapTurnsPages, isRightToLeft(resolvedNavigator))
+        turn(checkNotNull(forward) { "the zone a tap landed in cannot change between the two calls" }, resolvedNavigator)
     }
 
     /**
@@ -48,6 +57,8 @@ internal class EpubPageTurns(
      *
      * A volume key is taken only where [volumeTurns] is on. Otherwise it goes back to the
      * system and changes the volume, as a reader who never asked for turning expects.
+     * Enter and an unmapped key never depend on [isRightToLeft] either, the same reason
+     * [tap] asks for the navigator only once it knows an edge was hit.
      */
     fun key(keyCode: Int, volumeTurns: Boolean, toggleChrome: () -> Unit): Boolean {
         val volume = volumeTurnsForward(keyCode)
@@ -56,22 +67,33 @@ internal class EpubPageTurns(
             return volumeTurns
         }
         when (EpubTurnKey.of(keyCode)) {
-            EpubTurnKey.TurnBackward -> turn(forward = false)
-            EpubTurnKey.TurnForward -> turn(forward = true)
             EpubTurnKey.ToggleChrome -> toggleChrome()
             null -> return false
+            else -> {
+                val resolvedNavigator = navigator()
+                when (EpubTurnKey.of(keyCode, isRightToLeft(resolvedNavigator))) {
+                    EpubTurnKey.TurnBackward -> turn(forward = false, resolvedNavigator)
+                    EpubTurnKey.TurnForward -> turn(forward = true, resolvedNavigator)
+                    EpubTurnKey.ToggleChrome, null -> Unit
+                }
+            }
         }
         return true
     }
 
-    /** Fast fade's own turn where it owns the turn, Readium's own elsewhere. */
+    /**
+     * Fast fade's own turn where it owns the turn, Readium's own elsewhere.
+     *
+     * @param resolvedNavigator the navigator a caller already fetched, so this does not
+     *   fetch a second one of its own for the one press that caused it.
+     */
     @OptIn(ExperimentalReadiumApi::class)
-    fun turn(forward: Boolean) {
+    fun turn(forward: Boolean, resolvedNavigator: EpubNavigatorFragment? = navigator()) {
         if (fadeOwnsTheTurn()) {
-            withFade(forward)
+            withFade(forward, resolvedNavigator)
             return
         }
-        val navigator = navigator() ?: return
+        val navigator = resolvedNavigator ?: return
         val animated = !reduceMotion()
         if (forward) navigator.goForward(animated = animated) else navigator.goBackward(animated = animated)
     }
@@ -88,8 +110,8 @@ internal class EpubPageTurns(
      * did happen.
      */
     @OptIn(ExperimentalReadiumApi::class)
-    fun withFade(forward: Boolean) {
-        val navigator = navigator() ?: return
+    fun withFade(forward: Boolean, resolvedNavigator: EpubNavigatorFragment? = navigator()) {
+        val navigator = resolvedNavigator ?: return
         if (isTurning) return
         isTurning = true
 

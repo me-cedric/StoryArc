@@ -2,6 +2,7 @@ internal import SwiftUI
 internal import UIKit
 
 internal import ReadiumNavigator
+internal import ReadiumShared
 
 // Taking the page turn over from Readium, so a transition StoryArc draws can run over
 // reflowable text.
@@ -41,6 +42,15 @@ extension EpubReaderModel {
     /// and for Slide once Reduce Motion has substituted it — `effective`, not `transition`,
     /// which left Slide animating under Readium even with Reduce Motion on.
     var ownsTheTurn: Bool { transitions(reduceMotion: reduceMotion).effective == .fastFade }
+
+    /// Whether Readium has resolved this publication's progression to right-to-left.
+    ///
+    /// `navigator.settings` is Readium's own resolved answer — publisher metadata, then
+    /// the publication's language, then the app default — so this reader never guesses at
+    /// a rule Readium already owns. Task 9.12: the edge taps, the arrow keys and the Fast
+    /// fade swipe are screen-spatial, and Readium's own pagination is the only place that
+    /// already knows which way the book reads.
+    var isRightToLeft: Bool { navigator?.settings.readingProgression == .rtl }
 }
 
 /// What a tap means, by where it landed: `true` turns forward, `false` turns back, and
@@ -60,11 +70,16 @@ enum EdgeTap {
     /// `page-transitions`: with the zones off "a tap anywhere toggles the chrome, and no
     /// tap turns a page". Not "no tap does anything" — the way back to the menu is the one
     /// thing a reader still needs from a tap.
-    static func outcome(x: CGFloat, width: CGFloat, tapTurnsPages: Bool) -> Bool? {
+    ///
+    /// - Parameter isRightToLeft: mirrors the band, the way the comic reader's own display
+    ///   order already mirrors its edge taps for free (`ZoomablePage`). This reader has no
+    ///   display-order layer — Readium paginates the text — so the mirror happens here, at
+    ///   the one place a screen position turns into a logical forward/backward call.
+    static func outcome(x: CGFloat, width: CGFloat, tapTurnsPages: Bool, isRightToLeft: Bool = false) -> Bool? {
         guard tapTurnsPages else { return nil }
         let band = width * edgeFraction
-        if x < band { return false }
-        if x > width - band { return true }
+        if x < band { return isRightToLeft }
+        if x > width - band { return !isRightToLeft }
         return nil
     }
 }
@@ -96,6 +111,9 @@ final class TurnGestures: NSObject {
     /// reader takes the flag from the environment; this package cannot see that key, and
     /// it does not need to — ``EpubReaderView`` already holds the settings.
     private var tapTurnsPages = true
+    /// Whether Readium has resolved this book's progression to right-to-left. Mirrors the
+    /// edge-tap band, the pan and the arrow keys. See ``EpubReaderModel/isRightToLeft``.
+    private var isRightToLeft = false
     /// Enough travel to mean a turn rather than a stray finger.
     private static let panThreshold: CGFloat = 40
 
@@ -113,7 +131,9 @@ final class TurnGestures: NSObject {
                 return true
             }),
             navigator.addObserver(.key { [weak self] event in
-                guard let self, let key = EpubTurnKey.outcome(for: event) else { return false }
+                guard let self, let key = EpubTurnKey.outcome(for: event, isRightToLeft: isRightToLeft) else {
+                    return false
+                }
                 self.pressed(key)
                 return true
             }),
@@ -135,12 +155,14 @@ final class TurnGestures: NSObject {
         animatedTurn: @escaping (Bool) -> Void,
         reveal: @escaping () -> Void,
         tapTurnsPages: Bool,
+        isRightToLeft: Bool = false,
         on view: UIView
     ) {
         self.turn = turn
         self.animatedTurn = animatedTurn
         self.reveal = reveal
         self.tapTurnsPages = tapTurnsPages
+        self.isRightToLeft = isRightToLeft
         let shouldOwn = turn != nil
         guard shouldOwn != (pan != nil) || host !== view else { return }
 
@@ -161,7 +183,9 @@ final class TurnGestures: NSObject {
 
     /// Fast fade's own turn where it owns the turn, Readium's animated one elsewhere.
     func tapped(at x: CGFloat, width: CGFloat) {
-        if let forward = EdgeTap.outcome(x: x, width: width, tapTurnsPages: tapTurnsPages) {
+        if let forward = EdgeTap.outcome(
+            x: x, width: width, tapTurnsPages: tapTurnsPages, isRightToLeft: isRightToLeft
+        ) {
             (turn ?? animatedTurn)?(forward)
         } else {
             reveal?()
@@ -180,8 +204,9 @@ final class TurnGestures: NSObject {
         guard recogniser.state == .ended else { return }
         let travel = recogniser.translation(in: recogniser.view).x
         guard abs(travel) > Self.panThreshold else { return }
-        // Dragging leftwards moves forwards, the way every paginated reader behaves.
-        turn?(travel < 0)
+        // Dragging leftwards moves forwards in a left-to-right book; a right-to-left
+        // book mirrors it, the same way the edge taps and the arrow keys do.
+        turn?((travel < 0) != isRightToLeft)
     }
 }
 
