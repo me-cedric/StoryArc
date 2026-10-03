@@ -372,6 +372,17 @@ private fun ChapterRow(
         }
 
         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            // `library-browsing`'s *A publication's actions wherever it is drawn* named the
+            // Kavita browser as one of the places with no explicit way to do what the tap
+            // already does -- see `KavitaSeriesCell`'s own note on the same point.
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.library_action_open)) },
+                enabled = !isFetching,
+                onClick = {
+                    menuOpen = false
+                    onOpen()
+                },
+            )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.kavita_keep)) },
                 enabled = !isKept,
