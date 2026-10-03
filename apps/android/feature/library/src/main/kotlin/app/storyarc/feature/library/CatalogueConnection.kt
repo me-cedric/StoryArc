@@ -1,7 +1,6 @@
 package app.storyarc.feature.library
 
 import android.content.Context
-import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.storyarc.core.catalogue.CertificatePins
@@ -137,20 +136,31 @@ class CatalogueConnection(
         // the field into an ordinary catalogue and connected again would otherwise save the
         // server they had moved away from.
         kavita = null
-        // D25 / `network-share` "Local network permission denied": a catalogue on a LAN
-        // address is blocked the same way a share is, from SDK 37. Checked before the
-        // request starts -- the one case a blocked TCP connect times out instead of
-        // failing at once.
-        if (LocalNetworkPermission.blocks(Build.VERSION.SDK_INT, LocalNetworkPermission.isGranted(context))) {
+        val target = CatalogueTarget.of(address.value)
+        // D25: checked before the request starts, because a blocked TCP connect times out
+        // instead of failing at once.
+        if (waitsOnLocalNetwork(target)) {
             _step.value = Step.Failed(context.getString(R.string.catalogue_error_local_network_denied))
             return
         }
-        when (val target = CatalogueTarget.of(address.value)) {
+        when (target) {
             is CatalogueTarget.Kavita -> viewModelScope.launch { connectKavita(target.address) }
             is CatalogueTarget.Feed -> viewModelScope.launch { attempt(target.url, accepted) }
             CatalogueTarget.Unusable ->
                 _step.value = Step.Failed(context.getString(R.string.catalogue_error_not_a_url))
         }
+    }
+
+    /**
+     * Whether [connect] would wait on local network access the reader has not granted: D25
+     * asks for the permission at this moment, the first connection to a server on the LAN.
+     */
+    fun waitsOnLocalNetwork(): Boolean = waitsOnLocalNetwork(CatalogueTarget.of(address.value))
+
+    private fun waitsOnLocalNetwork(target: CatalogueTarget): Boolean = when (target) {
+        is CatalogueTarget.Kavita -> LocalNetworkPermission.refuses(context, target.address.base)
+        is CatalogueTarget.Feed -> LocalNetworkPermission.refuses(context, target.url)
+        CatalogueTarget.Unusable -> false
     }
 
     /**

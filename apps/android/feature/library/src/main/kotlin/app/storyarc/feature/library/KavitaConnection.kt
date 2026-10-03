@@ -1,7 +1,6 @@
 package app.storyarc.feature.library
 
 import android.content.Context
-import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.storyarc.core.kavita.KavitaAddress
@@ -82,20 +81,27 @@ class KavitaConnection(
      */
     fun carriesKey(text: String): Boolean = KavitaAddress.fromOpds(text) != null
 
+    // A pasted OPDS URL wins, because it is unambiguous: it names the server and the key
+    // together, and a key typed beside it could only disagree.
+    private fun target(): KavitaAddress? =
+        KavitaAddress.fromOpds(address.value) ?: KavitaAddress.from(address.value, apiKey.value)
+
+    /**
+     * Whether [connect] would wait on local network access the reader has not granted: D25
+     * asks for the permission at this moment, the first connection to a server on the LAN.
+     */
+    fun waitsOnLocalNetwork(): Boolean =
+        target()?.let { LocalNetworkPermission.refuses(context, it.base) } == true
+
     fun connect() {
-        // A pasted OPDS URL wins, because it is unambiguous: it names the server and the key
-        // together, and a key typed beside it could only disagree.
-        val target = KavitaAddress.fromOpds(address.value)
-            ?: KavitaAddress.from(address.value, apiKey.value)
+        val target = target()
         if (target == null) {
             _step.value = Step.Failed(context.getString(R.string.kavita_error_not_an_address))
             return
         }
-        // D25 / `network-share` "Local network permission denied": a Kavita server on a LAN
-        // address is blocked the same way a share is, from SDK 37. Checked before the
-        // request starts -- the one case a blocked TCP connect times out instead of
-        // failing at once.
-        if (LocalNetworkPermission.blocks(Build.VERSION.SDK_INT, LocalNetworkPermission.isGranted(context))) {
+        // D25: checked before the request starts, because a blocked TCP connect times out
+        // instead of failing at once.
+        if (LocalNetworkPermission.refuses(context, target.base)) {
             _step.value = Step.Failed(context.getString(R.string.kavita_error_local_network_denied))
             return
         }
