@@ -122,4 +122,30 @@ struct ThumbnailBrowserTests {
             """
         )
     }
+
+    @Test("The carousel mirrors for a right-to-left publication")
+    func carouselMirrorsForRightToLeft() throws {
+        let strip = try code(of: "ThumbnailStrip.swift")
+        #expect(
+            strip.contains("sliderLayoutDirection(isRightToLeft:"),
+            """
+            The carousel no longer mirrors its scroll content for a right-to-left \
+            publication. `page-browser-carousel`: "the carousel runs right to left, with \
+            page one at the right end, the same way as the mirrored page slider".
+            """
+        )
+    }
+
+    @Test("A drag on the slider centres the carousel, with no animation")
+    func sliderDragCentresTheCarousel() throws {
+        let slider = try code(of: "ReaderSlider.swift")
+        #expect(
+            slider.contains("centredPreviewIndex = index"),
+            """
+            A slider drag no longer sets the carousel's centred page. \
+            `page-browser-carousel` §3: "the slider's value sets the carousel's centred \
+            page with no animation".
+            """
+        )
+    }
 }
