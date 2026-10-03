@@ -53,6 +53,8 @@ struct ReaderModelFailureTests {
         // "States which formats it does support", per `publication-formats`: a bare "not a
         // format StoryArc reads" is the generic failure that scenario forbids.
         #expect(model.failure?.contains("CBZ") == true, "\(model.failure ?? "nil") names no format.")
+        // Open-in names the container it detected, and the reader names it too.
+        #expect(model.failure?.contains("7-Zip") == true, "\(model.failure ?? "nil") names no container.")
     }
 
     @Test("An open failure outside the archive errors shows the fixed sentence, never the raw Swift error")

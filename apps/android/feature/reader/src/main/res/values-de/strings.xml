@@ -58,7 +58,7 @@
          screen, and if a catch stops recording it. -->
     <string name="reader_cannot_open">StoryArc konnte dieses Buch nicht öffnen.</string>
     <string name="reader_waiting_for_download">Warten auf den Abschluss des Downloads.</string>
-    <string name="reader_unsupported">Dies ist ein Format, das StoryArc nicht liest. StoryArc liest CBZ, CBR, CBT, EPUB, PDF, M4B und andere Hörbücher.</string>
+    <string name="reader_unsupported">Dies ist eine %1$s-Datei, die StoryArc nicht liest. StoryArc liest CBZ, CBR, CBT, EPUB, PDF, M4B und andere Hörbücher.</string>
     <string name="reader_password_protected">Dieses Archiv ist durch ein Passwort geschützt. StoryArc verwaltet keine Archiv-Passwörter, es gibt hier also nichts einzugeben.</string>
     <string name="reader_damaged">Diese Datei konnte nicht gelesen werden. Sie ist möglicherweise beschädigt.</string>
     <string name="reader_solid_archive">Dieser Comic verwendet durchgehende Komprimierung, die StoryArc nicht öffnen kann.</string>

@@ -3382,32 +3382,32 @@
         }
       }
     },
-    "reader.unsupported": {
+    "reader.unsupported %@": {
       "extractionState": "manual",
-      "comment": "Shown when the reader meets a container StoryArc recognises and does not read, without having gone through the library index first. Mirrors open_in_unsupported's claim without its parameter list.",
+      "comment": "Shown when the reader meets a container StoryArc recognises and does not read, without having gone through the library index first. The argument is the container it detected, such as 7-Zip. Mirrors open.in.unsupported, which also names the file.",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dies ist ein Format, das StoryArc nicht liest. StoryArc liest CBZ, CBR, CBT, EPUB, PDF, M4B und andere Hörbücher."
+            "value": "Dies ist eine %@-Datei, die StoryArc nicht liest. StoryArc liest CBZ, CBR, CBT, EPUB, PDF, M4B und andere Hörbücher."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This is a format StoryArc does not read. It reads CBZ, CBR, CBT, EPUB, PDF, M4B and other audiobooks."
+            "value": "This is a %@ file, which StoryArc does not read. It reads CBZ, CBR, CBT, EPUB, PDF, M4B and other audiobooks."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Este es un formato que StoryArc no lee. Lee CBZ, CBR, CBT, EPUB, PDF, M4B y otros audiolibros."
+            "value": "Este es un archivo %@, que StoryArc no lee. Lee CBZ, CBR, CBT, EPUB, PDF, M4B y otros audiolibros."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ceci est un format que StoryArc ne lit pas. Il lit les formats CBZ, CBR, CBT, EPUB, PDF, M4B et d’autres livres audio."
+            "value": "Ceci est un fichier %@, que StoryArc ne lit pas. Il lit les formats CBZ, CBR, CBT, EPUB, PDF, M4B et d’autres livres audio."
           }
         }
       }

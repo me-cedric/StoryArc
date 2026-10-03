@@ -36,7 +36,7 @@ class ReaderViewModelFailureTest {
         return file
     }
 
-    private fun failureOpening(file: File, format: PublicationFormat): Int? = runBlocking {
+    private fun failureOpening(file: File, format: PublicationFormat): ReaderFailure? = runBlocking {
         val model = ReaderViewModel(
             publication = Publication(
                 identity = PublicationIdentity(normalizedPath = file.absolutePath),
@@ -54,7 +54,7 @@ class ReaderViewModelFailureTest {
     @Test
     fun `a password-protected archive is named as protected`() {
         assertEquals(
-            R.string.reader_password_protected,
+            ReaderFailure(R.string.reader_password_protected),
             failureOpening(fixture("password-protected.cbz"), PublicationFormat.CBZ),
         )
     }
@@ -62,21 +62,22 @@ class ReaderViewModelFailureTest {
     @Test
     fun `a solid rar4 is named by its compression`() {
         assertEquals(
-            R.string.reader_solid_archive,
+            ReaderFailure(R.string.reader_solid_archive),
             failureOpening(fixture("rar4-solid.cbr"), PublicationFormat.CBR),
         )
     }
 
     @Test
     fun `a cb7 is named as a format StoryArc does not read`() {
-        assertEquals(
-            R.string.reader_unsupported,
-            failureOpening(fixture("refused.cb7"), PublicationFormat.CB7),
-        )
+        // Open-in names the container it detected, and the reader names it too.
+        val failure = failureOpening(fixture("refused.cb7"), PublicationFormat.CB7)
+        assertEquals(ReaderFailure(R.string.reader_unsupported, listOf("7-Zip")), failure)
         // "States which formats it does support", per `publication-formats`: a bare "not a
         // format StoryArc reads" is the generic failure that scenario forbids.
-        val sentence = RuntimeEnvironment.getApplication().getString(R.string.reader_unsupported)
+        val sentence = RuntimeEnvironment.getApplication()
+            .getString(R.string.reader_unsupported, *failure!!.args.toTypedArray())
         assertTrue("reader_unsupported names no format: $sentence", sentence.contains("CBZ"))
+        assertTrue("reader_unsupported names no container: $sentence", sentence.contains("7-Zip"))
     }
 
     @Test
@@ -87,7 +88,7 @@ class ReaderViewModelFailureTest {
             deleteOnExit()
             writeBytes(byteArrayOf(0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00, 0x00))
         }
-        assertEquals(R.string.reader_damaged, failureOpening(damaged, PublicationFormat.CBR))
+        assertEquals(ReaderFailure(R.string.reader_damaged), failureOpening(damaged, PublicationFormat.CBR))
     }
 
     private companion object {

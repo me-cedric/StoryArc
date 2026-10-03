@@ -289,8 +289,8 @@ class ReaderViewModel(
     val pages: StateFlow<List<PageEntry>> = _pages.asStateFlow()
 
     // Internal: `ReaderAdoption.kt` ends a wait for a download that failed with it.
-    internal val _failure = MutableStateFlow<Int?>(null)
-    val failure: StateFlow<Int?> = _failure.asStateFlow()
+    internal val _failure = MutableStateFlow<ReaderFailure?>(null)
+    val failure: StateFlow<ReaderFailure?> = _failure.asStateFlow()
 
     // Internal: `ReaderAdoption.kt` sets and clears this too. dl-core 1.7 -- not [failure],
     // because the copy that lands replaces it rather than the reader being told anything failed.
@@ -484,20 +484,20 @@ class ReaderViewModel(
             // Named, the same as Open-in's refusal: the container is recognised and
             // this is a different claim from "could not be read at all".
             Log.w(TAG, "cannot open this ${publication.format}", cause)
-            _failure.value = R.string.reader_unsupported
+            _failure.value = ReaderFailure(R.string.reader_unsupported, listOf(cause.container.displayName))
         } catch (cause: ComicArchiveException.PasswordProtected) {
             // No password field here either -- StoryArc does not manage archive passwords.
             Log.w(TAG, "cannot open this ${publication.format}", cause)
-            _failure.value = R.string.reader_password_protected
+            _failure.value = ReaderFailure(R.string.reader_password_protected)
         } catch (cause: ComicArchiveException.SolidArchive) {
             // The same sentence the library cell and the publication page already show
             // for this archive -- `publication-formats` names solid compression once.
             Log.w(TAG, "cannot open this ${publication.format}", cause)
-            _failure.value = R.string.reader_solid_archive
+            _failure.value = ReaderFailure(R.string.reader_solid_archive)
         } catch (cause: ComicArchiveException.Unreadable) {
             // Damaged, not unsupported: the format is one StoryArc reads.
             Log.w(TAG, "cannot open this ${publication.format}", cause)
-            _failure.value = R.string.reader_damaged
+            _failure.value = ReaderFailure(R.string.reader_damaged)
         } catch (cause: Exception) {
             // dl-core 1.7: a range-less server throws here. Waits if the download has not
             // itself finished or failed -- `ReaderAdoption.kt` opens the copy once it lands.
@@ -506,7 +506,7 @@ class ReaderViewModel(
             if (isDownloadPending()) {
                 _isWaitingForDownload.value = true
             } else {
-                _failure.value = R.string.reader_cannot_open
+                _failure.value = ReaderFailure(R.string.reader_cannot_open)
             }
         }
         _isOpened.value = true
@@ -573,7 +573,7 @@ class ReaderViewModel(
         } catch (cause: Exception) {
             Log.w(TAG, "cannot open this ${publication.format}", cause)
             reportIfUnreachable(cause)
-            _failure.value = R.string.reader_cannot_open
+            _failure.value = ReaderFailure(R.string.reader_cannot_open)
         }
         _isOpened.value = true
     }
