@@ -191,7 +191,8 @@
     <string name="shelves_new_here">Guardar en este dispositivo</string>
     <string name="shelves_create">Crear</string>
     <string name="shelves_cancel">Cancelar</string>
-    <string name="shelves_delete">Eliminar %1$s</string>
+    <string name="shelves_delete">Eliminar</string>
+    <string name="shelves_delete_action">Eliminar %1$s</string>
     <string name="shelves_rename">Cambiar nombre</string>
     <string name="shelves_pin">Fijar en Inicio</string>
     <string name="shelves_unpin">No fijar en Inicio</string>
@@ -407,7 +408,7 @@
 
     <!-- Inicio -->
     <string name="home_title">Inicio</string>
-    <string name="home_keep_reading">Seguir leyendo</string>
+    <string name="home_keep_reading">Continuar leyendo</string>
     <string name="home_up_next">A continuaci\u00f3n</string>
     <string name="home_recently_added">A\u00f1adidos recientemente</string>
     <string name="home_finished">Terminados</string>

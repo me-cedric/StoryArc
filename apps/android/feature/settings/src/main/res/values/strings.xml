@@ -65,6 +65,10 @@
     <string name="settings_search">Search settings</string>
     <string name="settings_search_empty">Nothing matches “%1$s”.</string>
     <string name="settings_reset">Reset settings</string>
+    <!-- one-vocabulary 4.1/15.11, D31: the same words as iOS's settings.reset.body, broken
+         into two paragraphs here. SourceDetail.swift records why iOS keeps one: a confirmation
+         body that stopped at "No files" at the largest text size does not scroll, so the blank
+         line is not free there. A presentation difference, not a wording one. -->
     <string name="settings_reset_body">Appearance, reading preferences and the defaults for new series go back to how they started.\n\nYour libraries, downloads, reading progress and the themes you chose while reading are not affected.</string>
     <string name="settings_reset_confirm">Reset</string>
     <string name="settings_cancel">Cancel</string>
@@ -108,6 +112,10 @@
     <string name="sources_remove_action">Remove %1$s</string>
     <string name="sources_move_earlier">Move “%1$s” earlier</string>
     <string name="sources_move_later">Move “%1$s” later</string>
+    <!-- one-vocabulary 4.1/15.11, D31: this platform's confirmation titles name the source
+         (here and on sources_remove_downloads_title below); iOS's do not. Reconciling would
+         change a convention on both keys and an iOS Swift signature, which is a code change
+         rather than a wording one; left as each platform's own convention. -->
     <string name="sources_remove_title">Remove %1$s?</string>
     <string name="sources_state_connected">Available</string>
     <string name="sources_kavita_system_trust">Needs a certificate your device already trusts.</string>

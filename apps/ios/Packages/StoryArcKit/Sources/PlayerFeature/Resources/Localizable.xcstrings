@@ -553,7 +553,8 @@
             "value": "%@ en arrière"
           }
         }
-      }
+      },
+      "comment": "one-vocabulary 4.1/15.11, D31: Android's player_skip_back/forward pluralise a raw second count (\"Back %1$d seconds\") instead of interpolating an already-formatted interval; the composition this platform's own plural resources force. Not a value divergence -- a reader hears the same words either way."
     },
     "player.skip.forward %@": {
       "extractionState": "manual",
@@ -582,7 +583,8 @@
             "value": "%@ en avant"
           }
         }
-      }
+      },
+      "comment": "one-vocabulary 4.1/15.11, D31: Android's player_skip_back/forward pluralise a raw second count (\"Back %1$d seconds\") instead of interpolating an already-formatted interval; the composition this platform's own plural resources force. Not a value divergence -- a reader hears the same words either way."
     },
     "player.skip.sentence.next": {
       "extractionState": "manual",

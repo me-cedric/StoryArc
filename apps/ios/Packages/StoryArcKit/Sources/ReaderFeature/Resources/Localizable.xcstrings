@@ -902,7 +902,8 @@
             "value": "Hauteur"
           }
         }
-      }
+      },
+      "comment": "one-vocabulary 4.1/15.11, D31: both platforms label this group \"Fit\" (reader.fit / reader_fit above), and each platform's own convention decides what its items repeat under it. The Apple HIG terms this disclosed menu groups under one header do not repeat it, so this says \"Screen\" rather than \"Fit to screen\"; Android's own Material menu items are self-descriptive on their own and do repeat it -- see reader_fit_screen/_width/_height/_original. Not a value divergence."
     },
     "reader.fit.original": {
       "extractionState": "manual",
@@ -931,7 +932,8 @@
             "value": "1:1"
           }
         }
-      }
+      },
+      "comment": "one-vocabulary 4.1/15.11, D31: both platforms label this group \"Fit\" (reader.fit / reader_fit above), and each platform's own convention decides what its items repeat under it. The Apple HIG terms this disclosed menu groups under one header do not repeat it, so this says \"Screen\" rather than \"Fit to screen\"; Android's own Material menu items are self-descriptive on their own and do repeat it -- see reader_fit_screen/_width/_height/_original. Not a value divergence."
     },
     "reader.fit.screen": {
       "extractionState": "manual",
@@ -960,7 +962,8 @@
             "value": "Écran"
           }
         }
-      }
+      },
+      "comment": "one-vocabulary 4.1/15.11, D31: both platforms label this group \"Fit\" (reader.fit / reader_fit above), and each platform's own convention decides what its items repeat under it. The Apple HIG terms this disclosed menu groups under one header do not repeat it, so this says \"Screen\" rather than \"Fit to screen\"; Android's own Material menu items are self-descriptive on their own and do repeat it -- see reader_fit_screen/_width/_height/_original. Not a value divergence."
     },
     "reader.fit.width": {
       "extractionState": "manual",
@@ -989,7 +992,8 @@
             "value": "Largeur"
           }
         }
-      }
+      },
+      "comment": "one-vocabulary 4.1/15.11, D31: both platforms label this group \"Fit\" (reader.fit / reader_fit above), and each platform's own convention decides what its items repeat under it. The Apple HIG terms this disclosed menu groups under one header do not repeat it, so this says \"Screen\" rather than \"Fit to screen\"; Android's own Material menu items are self-descriptive on their own and do repeat it -- see reader_fit_screen/_width/_height/_original. Not a value divergence."
     },
     "reader.leftToRight": {
       "extractionState": "manual",

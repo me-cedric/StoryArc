@@ -34,6 +34,9 @@
     </plurals>
     <string name="library_scan_cancel">Cancel</string>
     <string name="library_add_folder">Add a folder</string>
+    <!-- one-vocabulary 4.1/15.11, D31: iOS's library.folderUnavailable names and quotes one
+         folder; this joins several names into one sentence, where a quotation mark would read
+         wrong. Two notice shapes for two different jobs, not two words for one. -->
     <string name="library_folder_unavailable">%1$s can no longer be read.</string>
     <string name="library_repick_folder">Choose again</string>
     <string name="library_skipped">%1$,d couldn’t be opened</string>
@@ -207,7 +210,12 @@
     <string name="shelves_new_here">Keep on this device</string>
     <string name="shelves_create">Create</string>
     <string name="shelves_cancel">Cancel</string>
-    <string name="shelves_delete">Delete %1$s</string>
+    <!-- one-vocabulary 15.11: the visible menu item, shared wording with iOS shelves.delete
+         (plain "Delete"; the name is already in the confirmation dialog's own title). -->
+    <string name="shelves_delete">Delete</string>
+    <!-- The row's own long-press accessibility label, which still names the shelf: unlike
+         the menu item, nothing else on screen says which shelf a long press just reached. -->
+    <string name="shelves_delete_action">Delete %1$s</string>
     <string name="shelves_rename">Rename</string>
     <string name="shelves_pin">Pin to Home</string>
     <string name="shelves_unpin">Unpin from Home</string>
@@ -436,7 +444,9 @@
 
     <!-- Home -->
     <string name="home_title">Home</string>
-    <string name="home_keep_reading">Keep reading</string>
+    <!-- one-vocabulary 4.2/15.11: matches iOS home.keepReading and this catalogue's own
+         library_continue_reading, rather than a second word for the same state. -->
+    <string name="home_keep_reading">Continue reading</string>
     <string name="home_up_next">Up next</string>
     <string name="home_recently_added">Recently added</string>
     <string name="home_finished">Finished</string>

@@ -30,7 +30,11 @@
     <string name="player_pause">Pause</string>
     <string name="player_open">Open the player</string>
     <!-- Plurals rather than strings, and lint is right to insist: the label states a
-         number, and a language that inflects around that number has to be able to. -->
+         number, and a language that inflects around that number has to be able to.
+         one-vocabulary 4.1/15.11, D31: iOS's player.skip.back/forward interpolate an
+         already-formatted interval ("%@ back"); these pluralise a raw second count instead,
+         which is the composition this platform's own plural resources force. Not a value
+         divergence; a reader hears the same words either way. -->
     <plurals name="player_skip_back">
         <item quantity="one">Back %1$d second</item>
         <item quantity="other">Back %1$d seconds</item>
