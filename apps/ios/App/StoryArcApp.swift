@@ -153,32 +153,32 @@ struct StoryArcApp: App {
             return try await SmbClient(address: page.address).open(inside)
         }
 
+        let store = try? ProgressStore()
+        self.progress = store
+        let library = LibraryModel(
+            progress: store,
+            bookmarks: FolderBookmarks(),
+            preferences: LibraryPreferences(),
+            sourceStore: SourceStore(),
+            // Without this the model keeps its shelves in memory only: every
+            // collection and reading list a reader made was gone on the next launch,
+            // and `ShelvesStore` — which exists, is tested, and is written to on every
+            // edit — was never read by the app that ships.
+            shelvesStore: ShelvesStore(),
+            // One store, two readers of it: what was downloaded joins the one
+            // library rather than being reachable only by browsing back to the server
+            // it came from, and imported copies live in it too — see `ImportedCopies`.
+            downloadStore: DownloadStore(),
+            journal: ScanJournal()
+        )
+        _library = State(initialValue: library)
+
         // The speed a listener chose, remembered per publication and offered to the rest of the
         // series. Here rather than beside the session's other wiring because a session can
         // begin from either source and only one of the two paths runs through this target —
-        // see `wirePlayerSpeed`.
-        Self.wirePlayerSpeed()
-
-        let store = try? ProgressStore()
-        self.progress = store
-        _library = State(
-            initialValue: LibraryModel(
-                progress: store,
-                bookmarks: FolderBookmarks(),
-                preferences: LibraryPreferences(),
-                sourceStore: SourceStore(),
-                // Without this the model keeps its shelves in memory only: every
-                // collection and reading list a reader made was gone on the next launch,
-                // and `ShelvesStore` — which exists, is tested, and is written to on every
-                // edit — was never read by the app that ships.
-                shelvesStore: ShelvesStore(),
-                // One store, two readers of it: what was downloaded joins the one
-                // library rather than being reachable only by browsing back to the server
-                // it came from, and imported copies live in it too — see `ImportedCopies`.
-                downloadStore: DownloadStore(),
-                journal: ScanJournal()
-            )
-        )
+        // see `wirePlayerSpeed`. After `library` exists: its lock-screen artwork reads the
+        // library's own cover cache.
+        Self.wirePlayerSpeed(library: library)
     }
 
     var body: some Scene {

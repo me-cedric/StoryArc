@@ -40,8 +40,8 @@ tests over them; `PlayerText` turns each into words.
 | `View.playerSheet(isPresented:centre:)` | Presents the full player from the shell's `TabView`, which lives as long as the app does |
 | `FullPlayerView(centre:)` | The player itself |
 | `ChapterListView`, `SpeedSheet`, `SleepTimerSheet` | Each takes the centre and nothing else |
-| `PlayerArtwork(format:)` | The coverless treatment at the player's shape |
-| `PlayerArtworkImage.png(format:)` | The same view as bytes, for `MPMediaItemPropertyArtwork` |
+| `PlayerArtwork(format:cover:)` | The library's own cover, or the coverless treatment at the player's shape when there is none |
+| `PlayerArtworkImage.png(format:cover:)` | The same view as bytes, for `MPMediaItemPropertyArtwork` |
 | `PlayerLabels` | The stated values, so a surface never invents one |
 
 **The presentation is the shell's, and that is a fix rather than a preference.** `PlayerDock`

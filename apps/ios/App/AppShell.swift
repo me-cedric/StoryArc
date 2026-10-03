@@ -241,7 +241,10 @@ struct AppShell: View {
                 .flatMap { model.location(of: $0) == nil ? nil : $0 },
             onOpenNext: { publication in
                 if let url = model.location(of: publication) { onOpen(publication, url) }
-            }
+            },
+            // The same cache every shelf reads, so a cover the library has drawn once is
+            // not decoded a second time for the player. Task 16.10.
+            coverLookup: model.cover(for:maxPixelSize:)
         )
         // What changed, once, over whatever the reader landed on.
         //
