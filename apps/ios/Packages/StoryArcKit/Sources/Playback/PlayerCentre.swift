@@ -339,6 +339,9 @@ public final class PlayerCentre {
         guard let source else { return }
         place = source.place
         book = book?.naming(title(ofPartAt: place.partIndex))
+        // Task 16.5: a failed part adds itself to the source's own count; re-read on every
+        // move rather than once at `begin`.
+        unreadablePartCount = source.unreadablePartCount
         // End of chapter is a place, so it moves when the audio does — including by a skip
         // the listener made between two ticks. The volume is left to the tick, which is at
         // most half a second away.

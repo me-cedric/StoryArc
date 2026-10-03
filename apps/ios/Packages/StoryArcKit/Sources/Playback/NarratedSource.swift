@@ -31,7 +31,12 @@ public final class NarratedSource: PlaybackSource {
     /// Seconds, by ``SkipIntervals``. A narrated file has a clock.
     public let skipUnit: SkipUnit = .time
 
-    public let unreadablePartCount: Int
+    /// `private(set)`, not `let`: task 16.5 adds a part to this count the moment its file
+    /// fails mid-playback, on top of whatever ``AudiobookReader`` already found unreadable
+    /// at index time. ``PlayerCentre`` re-reads it on every ``moved`` — which a decode
+    /// failure fires too, since it ends in the same `load(part:offset:)` a successful skip
+    /// does.
+    public private(set) var unreadablePartCount: Int
 
     private let timeline: PlaybackTimeline
     private let player = AVPlayer()
@@ -41,6 +46,7 @@ public final class NarratedSource: PlaybackSource {
     private var playing: URL?
     private var ticks: Any?
     private var reachedEnd: (any NSObjectProtocol)?
+    private var failedToReachEnd: (any NSObjectProtocol)?
 
     public init(_ book: Audiobook) {
         timeline = PlaybackTimeline(parts: book.parts)
@@ -71,6 +77,8 @@ public final class NarratedSource: PlaybackSource {
         ticks = nil
         if let reachedEnd { NotificationCenter.default.removeObserver(reachedEnd) }
         reachedEnd = nil
+        if let failedToReachEnd { NotificationCenter.default.removeObserver(failedToReachEnd) }
+        failedToReachEnd = nil
     }
 
     /// Speed without pitch.
@@ -149,7 +157,9 @@ public final class NarratedSource: PlaybackSource {
         moved?()
     }
 
-    /// The current file ran out: the next one, or the end of the book.
+    /// The current file ran out: the next one, or the end of the book. And the file that
+    /// cannot: the same move, task 16.5 adds, with the part counted rather than silently
+    /// skipped.
     private func observeEnd(of item: AVPlayerItem) {
         if let reachedEnd { NotificationCenter.default.removeObserver(reachedEnd) }
         reachedEnd = NotificationCenter.default.addObserver(
@@ -159,6 +169,14 @@ public final class NarratedSource: PlaybackSource {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.fileFinished() }
         }
+        if let failedToReachEnd { NotificationCenter.default.removeObserver(failedToReachEnd) }
+        failedToReachEnd = NotificationCenter.default.addObserver(
+            forName: AVPlayerItem.failedToPlayToEndTimeNotification,
+            object: item,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.fileFailed() }
+        }
     }
 
     private func fileFinished() {
@@ -166,6 +184,22 @@ public final class NarratedSource: PlaybackSource {
         // the one file — so running that file out is running the book out.
         let next = place.partIndex + 1
         guard let target = timeline.seek(toPart: next, offset: 0), target.url != playing else {
+            ended?()
+            return
+        }
+        load(part: next, offset: 0)
+        player.rate = Float(speed.rate)
+    }
+
+    /// The current file could not be decoded to its end: counted, and played past.
+    ///
+    /// Task 16.5, `publication-formats`: a damaged audiobook "plays what it can and states
+    /// how much it could not", by the same rule that opens a comic missing pages. The count
+    /// goes up before the move, so a listener who stops at exactly this part still sees the
+    /// damage stated.
+    private func fileFailed() {
+        unreadablePartCount += 1
+        guard let next = timeline.afterDecodeFailure(atPart: place.partIndex) else {
             ended?()
             return
         }
