@@ -1,4 +1,6 @@
-internal import StoryArcCore
+public import Foundation
+
+public import StoryArcCore
 
 /// The rows a car draws, as a value.
 ///
@@ -39,5 +41,16 @@ public enum CarShelf {
         let offered = (playing.map { [$0] } ?? []) + shelf.filter { $0.publication.format.isAudio }
         var seen = Set<String>()
         return offered.filter { seen.insert($0.id).inserted }
+    }
+
+    /// A library publication as a row a car can start, or `nil` when it cannot be one.
+    ///
+    /// Task 16.4: an audiobook with a file on this device, whatever put it there — a picked
+    /// folder, an import or a download. Android's `CarShelf.carBook` draws the same line: a
+    /// publication still on a server has an address rather than a file, and a shelf lists
+    /// what it can play.
+    public static func playable(_ publication: Publication, at location: URL?) -> SpokenBook? {
+        guard publication.format.isAudio, let location, location.isFileURL else { return nil }
+        return SpokenBook(publication: publication, url: location)
     }
 }
