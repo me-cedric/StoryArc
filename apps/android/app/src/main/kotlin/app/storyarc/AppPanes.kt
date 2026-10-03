@@ -3,6 +3,7 @@ package app.storyarc
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import app.storyarc.core.designsystem.navigation.StoryArcListDetailPanes
 import app.storyarc.core.designsystem.theme.StoryArcWindowClass
@@ -94,6 +95,20 @@ internal fun rememberMovablePane(content: @Composable () -> Unit): @Composable (
     remember { movableContentOf(content) }
 
 /**
+ * The same move, for content that takes one argument whose identity changes between calls —
+ * which page, here — while the call site itself still only moves rather than rebuilds.
+ *
+ * [movableContentOf]'s own parameterised overload takes the argument as a plain function
+ * parameter, so each call passes its own current page straight through; nothing is captured
+ * and frozen at the first composition the way a value closed over from the surrounding
+ * function would be. [remember]'s block still runs once, which is what keeps this the one
+ * continuation [AppContent]'s two call sites share.
+ */
+@Composable
+internal fun <T> rememberMovablePane(content: @Composable (T) -> Unit): @Composable (T) -> Unit =
+    remember { movableContentOf(content) }
+
+/**
  * Everything under the navigation control.
  *
  * One column, or two where the window and the path both allow it. The split is derived, not
@@ -126,12 +141,56 @@ internal fun AppContent(
         }
     }
 
+    // A publication page has the same problem the shelf had, for the same reason: the
+    // single column calls `HostedScreen` for it directly, `StoryArcListDetailPanes`' detail
+    // pane calls it from inside its own wrapper, and a rotation that crosses 840 dp moves
+    // the page between those two shapes. Without this, the *second* `SaveableStateProvider`
+    // call restores whatever the *first* last saved — not the position the reader was at
+    // the moment of rotation, which that call had not yet saved when the new one composed —
+    // so a scrolled page measurably went back to the top on the device (`Read` moved from
+    // y=1398 to y=1626 after portrait, landscape, portrait). One continuation, moved rather
+    // than rebuilt either way, has nothing to restore from: it is the same state, in place.
+    //
+    // Parameterised rather than closed over: `navigation`, `settings` and the two callbacks
+    // change on every recomposition, and `remember`'s block — the one place `movableContentOf`
+    // is called — runs only once. A value closed over there would freeze at whatever it was
+    // on the first composition; `rememberUpdatedState` is what keeps each one current without
+    // re-running that call.
+    val currentNavigation = rememberUpdatedState(navigation)
+    val currentSettings = rememberUpdatedState(settings)
+    val currentOnSettingsChange = rememberUpdatedState(onSettingsChange)
+    val currentOnResetSettings = rememberUpdatedState(onResetSettings)
+    val detailPage = rememberMovablePane<Pair<Screen.PublicationPage, Boolean>> { (page, isBesideList) ->
+        remembered.SaveableStateProvider(currentNavigation.value.stateKey) {
+            HostedScreen(
+                host = host,
+                screen = page,
+                settings = currentSettings.value,
+                onSettingsChange = currentOnSettingsChange.value,
+                onResetSettings = currentOnResetSettings.value,
+                // The shelf is in the other half of this window and never leaves it, so the
+                // page draws no back arrow there — see `HostedScreen`'s own parameter for
+                // why the rule is carried here rather than inherited from a scaffold. In
+                // the single column it is whatever the single column's own rule says.
+                isBesideList = isBesideList,
+            )
+        }
+    }
+
     if (split == null) {
-        if (navigation.destination == AppDestination.LIBRARY && navigation.current == null) {
+        val screen = navigation.current
+        if (navigation.destination == AppDestination.LIBRARY && screen == null) {
             // The single column, sitting on the shelf itself — the one destination that can
             // also be the list pane of a split. Route it through `shelf` rather than through
             // `SingleColumn`'s own generic path, so this is the same call as the one below.
             shelf()
+        } else if (navigation.destination == AppDestination.LIBRARY && screen is Screen.PublicationPage) {
+            // The one screen that can also be the detail pane of a split. Everything else
+            // on this destination's stack, and a publication page opened from a destination
+            // that never splits, keeps the plain `SingleColumn` path below: there is only
+            // one shape to render it in, so there is nothing for a rotation to move it
+            // between.
+            detailPage(screen to false)
         } else {
             remembered.SaveableStateProvider(navigation.stateKey) {
                 SingleColumn(host, navigation, settings, onSettingsChange, onResetSettings)
@@ -152,20 +211,7 @@ internal fun AppContent(
             if (page == null) {
                 PublicationPanePlaceholder()
             } else {
-                remembered.SaveableStateProvider(navigation.stateKey) {
-                    HostedScreen(
-                        host = host,
-                        screen = page,
-                        settings = settings,
-                        onSettingsChange = onSettingsChange,
-                        onResetSettings = onResetSettings,
-                        // The shelf is in the other half of this window and never leaves
-                        // it, so the page draws no back arrow: there is nothing behind it
-                        // to go back to. See `HostedScreen`'s own parameter for why the
-                        // rule is carried here rather than inherited from a scaffold.
-                        isBesideList = true,
-                    )
-                }
+                detailPage(page to true)
             }
         },
     )
