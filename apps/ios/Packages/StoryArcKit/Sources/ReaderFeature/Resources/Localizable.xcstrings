@@ -3498,6 +3498,36 @@
         }
       }
     },
+    "reader.chapter.number %lld": {
+      "comment": "The carousel's chapter name when its marker gives no title — the chapter's position among the chapters, 1-based.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kapitel %lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chapter %lld"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capítulo %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chapitre %lld"
+          }
+        }
+      }
+    },
     "reader.waitingForDownload": {
       "comment": "Shown instead of reader.cannotOpen when a streamed publication failed to open only because the download has not landed yet.",
       "extractionState": "manual",

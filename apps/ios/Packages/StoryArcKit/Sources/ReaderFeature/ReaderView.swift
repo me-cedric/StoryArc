@@ -169,6 +169,9 @@ public struct ReaderView: View {
     /// Whether the thumbnail strip is open.
     @State var isBrowsingThumbnails = false
 
+    /// The page the carousel is centred on — a swipe of its own, or a slider drag.
+    @State var centredPreviewIndex: Int?
+
     /// Where a jump came from, so `comic-reader`'s "control to return to the previous
     /// position" has somewhere to return to.
     @State var pageReturn = PageReturn()
@@ -344,9 +347,6 @@ public struct ReaderView: View {
         // Everything the eleven icons used to do. `comic-reader` allows two controls over
         // the page, and this is what the second one opens.
         .sheet(isPresented: $isShowingMenu) { readerMenu }
-        // Reached from the menu's contents row, on a surface of its own now that there is no
-        // bottom bar for it to sit above.
-        .sheet(isPresented: $isBrowsingThumbnails) { thumbnailSheet }
         // D18, top rather than the foot below: see ``voiceStoppedOverlay``.
         .overlay(alignment: .top) { voiceStoppedOverlay }
         // Armed by a jump, not by the centre tap — see ``returnOffer``.

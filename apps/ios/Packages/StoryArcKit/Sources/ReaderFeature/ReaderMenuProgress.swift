@@ -91,8 +91,12 @@ extension ReaderView {
             isFindingText = true
             return
         }
-        isShowingMenu = false
-        withAnimation(.easeInOut(duration: 0.2)) { isBrowsingThumbnails = true }
+        // `page-browser-carousel`: the carousel and the page slider drive each other, so
+        // they share one sheet now — the menu stays open rather than handing off to a
+        // sheet of its own. Seeded from the reader's own page, the only position a
+        // carousel opened on a different one would have to swipe away from.
+        centredPreviewIndex = model.currentIndex
+        withAnimation(.easeInOut(duration: 0.2)) { isBrowsingThumbnails.toggle() }
     }
 
     /// The position, in this reader's own units.

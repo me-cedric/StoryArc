@@ -35,6 +35,13 @@ extension ReaderView {
                 Section {
                     contentsRow
 
+                    // `page-browser-carousel`: the carousel sits beside the slider in the
+                    // same sheet now, so a drag on the slider can centre it — a swipe
+                    // alone would never reach the slider's release to do that.
+                    if isBrowsingThumbnails {
+                        thumbnailBrowserRow
+                    }
+
                     // `comic-reader`: the slider is offered "where pages are the unit a
                     // reader moves in". One page is not a unit anybody moves in.
                     if model.pages.count > 1 {
@@ -104,34 +111,24 @@ extension ReaderView {
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }
 
-    /// The thumbnail browser, on its own surface.
+    /// The thumbnail browser, as a carousel inline in the menu.
     ///
-    /// `comic-reader`: "every page is shown in a scrollable strip with the current page
-    /// marked, and tapping one jumps to it". It was drawn over the page with the chrome
-    /// behind it; a sheet is where the same strip goes now that the chrome is two buttons.
-    var thumbnailSheet: some View {
-        NavigationStack {
-            ScrollView {
-                ThumbnailStrip(model: model, currentIndex: model.currentIndex) { index in
-                    // A jump, like the slider's: it leaves the same mark, so the way back
-                    // from a mis-tap in a three-hundred-page strip is one control.
-                    jump(to: index)
-                    isBrowsingThumbnails = false
-                }
-            }
-            .navigationTitle(Text(LocalizedStringKey(ReaderMenuEntry.contents.titleKey), bundle: .module))
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button { isBrowsingThumbnails = false } label: {
-                        Text("reader.menu.done", bundle: .module)
-                    }
-                }
-            }
+    /// `page-browser-carousel`: "every page is shown [as] a carousel that centres one
+    /// page … tapping one jumps to it". Beside ``pageSliderRow`` rather than behind a
+    /// sheet of its own, so a drag on the slider can reach it.
+    var thumbnailBrowserRow: some View {
+        ThumbnailStrip(
+            model: model,
+            currentIndex: model.currentIndex,
+            centredIndex: $centredPreviewIndex,
+            isRightToLeft: isRightToLeft
+        ) { index in
+            // A jump, like the slider's: it leaves the same mark, so the way back
+            // from a mis-tap in a three-hundred-page strip is one control.
+            jump(to: index)
+            isShowingMenu = false
         }
-        .presentationDetents([.medium])
+        .listRowInsets(EdgeInsets())
     }
 
     /// One labelled row, named by the entry rather than by this file.
