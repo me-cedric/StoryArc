@@ -67,19 +67,24 @@ object PublicationActionMenuItems {
  * The menu itself: a long press opens this, anchored to the cell, on every surface that
  * draws a publication.
  *
- * **One call wraps the whole action, the way iOS's `PublicationActionMenu` wraps
- * `AddToShelfMenu` rather than repeating what [AddToShelfSheet] already gets right.** *Add to
- * shelf* opens that same sheet, with its own mark/restart/download rows turned off through
- * [AddToShelfSheet]'s `offersDownloadAction` and its nullable callbacks -- this menu already
- * offered them, and a reader who dismisses one must not meet it again in the next.
+ * **The one shared builder, and nothing in it reaches a view model.** `home-screen` forbids
+ * the home surface from holding one -- see `HomeScreen.kt`'s own `PublicationActionFacts` --
+ * so the three facts a menu's gating needs ([markedFinished], [offersRestart], [downloadOffer])
+ * arrive as plain values here, computed by whichever caller has a way to them.
+ * [PublicationActionMenuTarget] is that caller for the library grid, the list and both shelf
+ * pages, all of which do hold one; a page that does not computes the same three facts itself
+ * and calls this directly, the way `HomeCoverRun` does.
  *
  * A `DropdownMenu`, not the `ModalBottomSheet` every surface opened before this: a long press
  * already carries the platform's own haptic through `combinedClickable`, which is why no
  * surface wiring this in needs to ask for one again -- see `Haptics.kt`'s own note on the
  * point.
  *
- * @param onDismissRequest closes the whole menu, including the shelf sheet behind it. Every
- *   surface wires this to clearing the one `Publication?` state it opened the menu from.
+ * `Add to shelf` is the one row that does not call [onDismissRequest] on its own: it hands
+ * off to whatever the caller opens next (a shelf sheet, most often), which has to stay open
+ * after this menu's own dropdown closes. [expanded] is how a caller keeps the menu's state
+ * alive underneath that -- see [PublicationActionMenuTarget].
+ *
  * @param onOpen the action the cell's own tap already performs on this surface -- a resume
  *   on the continue-reading row, the publication's page everywhere else. `library-browsing`
  *   still asks for the row because a menu reached without ever tapping the cover is the one
@@ -89,42 +94,31 @@ object PublicationActionMenuItems {
  */
 @Composable
 fun PublicationActionMenu(
-    publication: Publication,
-    viewModel: LibraryViewModel,
+    expanded: Boolean,
     onDismissRequest: () -> Unit,
+    markedFinished: Boolean,
+    offersRestart: Boolean,
+    downloadOffer: DownloadOffer,
+    offersRemoveFromShelf: Boolean,
     onOpen: () -> Unit,
-    onMark: (Publication, Boolean) -> Unit,
+    onMark: (Boolean) -> Unit,
     onRestart: () -> Unit,
+    onAddToShelf: () -> Unit,
+    onDownload: () -> Unit,
+    onRemoveDownload: () -> Unit,
+    onRemoveFromShelf: () -> Unit,
     onShowDetails: () -> Unit,
-    onAddToServerList: (suspend (Publication, ServerList) -> Boolean)? = null,
-    onRemoveFromShelf: (() -> Unit)? = null,
 ) {
-    var isShelfOpen by remember { mutableStateOf(false) }
-
-    val finished = viewModel.finishedPublications().contains(publication.id)
-    val hasProgress = viewModel.readFraction(publication) != null
-    val offersRestart = RestartOffer.isOffered(
-        publicationCount = 1,
-        hasSomethingToClear = finished || hasProgress,
-        isWired = true,
-    )
-    val downloadOffer = DownloadOffer.of(
-        publication,
-        isKept = viewModel.isOnDevice(publication),
-        isLocalFile = isOnDevice(viewModel.location(publication)),
-        isQueueableRemote = PublicationActions.isQueueableRemote(publication),
-    )
-
     val items = PublicationActionMenuItems.of(
         offersRestart = offersRestart,
         downloadOffer = downloadOffer,
-        offersRemoveFromShelf = onRemoveFromShelf != null,
+        offersRemoveFromShelf = offersRemoveFromShelf,
     )
 
-    DropdownMenu(expanded = !isShelfOpen, onDismissRequest = onDismissRequest) {
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismissRequest) {
         items.forEach { action ->
             DropdownMenuItem(
-                text = { Text(stringResource(action.label(finished))) },
+                text = { Text(stringResource(action.label(markedFinished))) },
                 onClick = {
                     when (action) {
                         PublicationMenuAction.OPEN -> {
@@ -134,7 +128,7 @@ fun PublicationActionMenu(
 
                         PublicationMenuAction.MARK -> {
                             onDismissRequest()
-                            onMark(publication, !finished)
+                            onMark(!markedFinished)
                         }
 
                         PublicationMenuAction.RESTART -> {
@@ -142,23 +136,24 @@ fun PublicationActionMenu(
                             onRestart()
                         }
 
-                        PublicationMenuAction.ADD_TO_SHELF -> isShelfOpen = true
+                        // No `onDismissRequest()` here: [expanded] going false is this
+                        // row's whole job, and it is the caller's to decide when, once
+                        // whatever `onAddToShelf` opens has itself closed.
+                        PublicationMenuAction.ADD_TO_SHELF -> onAddToShelf()
 
                         PublicationMenuAction.DOWNLOAD -> {
                             onDismissRequest()
-                            viewModel.viewModelScope.launch {
-                                viewModel.keepOffline(setOf(publication.id))
-                            }
+                            onDownload()
                         }
 
                         PublicationMenuAction.REMOVE_DOWNLOAD -> {
                             onDismissRequest()
-                            viewModel.forgetKept(setOf(publication.id))
+                            onRemoveDownload()
                         }
 
                         PublicationMenuAction.REMOVE_FROM_SHELF -> {
                             onDismissRequest()
-                            onRemoveFromShelf?.invoke()
+                            onRemoveFromShelf()
                         }
 
                         PublicationMenuAction.SHOW_DETAILS -> {
@@ -169,19 +164,6 @@ fun PublicationActionMenu(
                 },
             )
         }
-    }
-
-    if (isShelfOpen) {
-        AddToShelfSheet(
-            viewModel = viewModel,
-            publications = listOf(publication),
-            onDismiss = {
-                isShelfOpen = false
-                onDismissRequest()
-            },
-            onAddToServerList = onAddToServerList,
-            offersDownloadAction = false,
-        )
     }
 }
 
@@ -206,8 +188,12 @@ data class PublicationActionCallbacks(
 )
 
 /**
- * The trigger every cell wires once: a target set on long press, drawn here as
- * [PublicationActionMenu] while it is non-null.
+ * The trigger every view-model-holding screen wires once: a target set on long press, drawn
+ * here as [PublicationActionMenu] with its three facts computed from [viewModel], and its
+ * `Add to shelf` row opening [AddToShelfSheet] -- with that sheet's own mark, restart and
+ * download rows turned off through its `offersDownloadAction` flag and its nullable
+ * callbacks, since this menu already offered them and a reader who dismissed one must not
+ * meet it again in the next.
  *
  * A `remember`-ed `Publication?` rather than a bare `Boolean`, because every call site already
  * has the publication the long press was on and a second map from "is a menu open" back to
@@ -222,17 +208,53 @@ fun PublicationActionMenuTarget(
     onOpen: (Publication) -> Unit,
 ) {
     val publication = target ?: return
-    PublicationActionMenu(
-        publication = publication,
-        viewModel = viewModel,
-        onDismissRequest = onDismiss,
-        onOpen = { onOpen(publication) },
-        onMark = actions.onMark,
-        onRestart = { actions.onRestart(publication) },
-        onShowDetails = { (actions.onShowDetails ?: onOpen)(publication) },
-        onAddToServerList = actions.onAddToServerList,
-        onRemoveFromShelf = actions.onRemoveFromShelf?.let { callback -> { callback(publication) } },
+    var isShelfOpen by remember(publication.id) { mutableStateOf(false) }
+
+    val finished = viewModel.finishedPublications().contains(publication.id)
+    val hasProgress = viewModel.readFraction(publication) != null
+    val offersRestart = RestartOffer.isOffered(
+        publicationCount = 1,
+        hasSomethingToClear = finished || hasProgress,
+        isWired = true,
     )
+    val downloadOffer = DownloadOffer.of(
+        publication,
+        isKept = viewModel.isOnDevice(publication),
+        isLocalFile = isOnDevice(viewModel.location(publication)),
+        isQueueableRemote = PublicationActions.isQueueableRemote(publication),
+    )
+
+    PublicationActionMenu(
+        expanded = !isShelfOpen,
+        onDismissRequest = onDismiss,
+        markedFinished = finished,
+        offersRestart = offersRestart,
+        downloadOffer = downloadOffer,
+        offersRemoveFromShelf = actions.onRemoveFromShelf != null,
+        onOpen = { onOpen(publication) },
+        onMark = { read -> actions.onMark(publication, read) },
+        onRestart = { actions.onRestart(publication) },
+        onAddToShelf = { isShelfOpen = true },
+        onDownload = {
+            viewModel.viewModelScope.launch { viewModel.keepOffline(setOf(publication.id)) }
+        },
+        onRemoveDownload = { viewModel.forgetKept(setOf(publication.id)) },
+        onRemoveFromShelf = { actions.onRemoveFromShelf?.invoke(publication) },
+        onShowDetails = { (actions.onShowDetails ?: onOpen)(publication) },
+    )
+
+    if (isShelfOpen) {
+        AddToShelfSheet(
+            viewModel = viewModel,
+            publications = listOf(publication),
+            onDismiss = {
+                isShelfOpen = false
+                onDismiss()
+            },
+            onAddToServerList = actions.onAddToServerList,
+            offersDownloadAction = false,
+        )
+    }
 }
 
 /** The word on the row. `MARK` is the one case that depends on state. */

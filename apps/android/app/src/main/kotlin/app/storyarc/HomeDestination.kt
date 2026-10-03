@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.model.CompositeCover
 import app.storyarc.core.model.LibraryQuery
@@ -26,6 +27,8 @@ import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.model.RememberedShelf
 import app.storyarc.core.model.RememberedShelfKind
 import app.storyarc.feature.library.AddToShelfSheet
+import app.storyarc.feature.library.DownloadOffer
+import app.storyarc.feature.library.HomePublicationActions
 import app.storyarc.feature.library.HomeScreen
 import app.storyarc.feature.library.HomeSection
 import app.storyarc.feature.library.HomeShelfArtworkOutcome
@@ -38,14 +41,19 @@ import app.storyarc.feature.library.HomeShelves
 import app.storyarc.feature.library.HomeSurface
 import app.storyarc.feature.library.HOME_SHELF_SOLE_COVER_KEY
 import app.storyarc.feature.library.KavitaPage
+import app.storyarc.feature.library.PublicationActionFacts
+import app.storyarc.feature.library.PublicationActions
 import app.storyarc.feature.library.RestartConfirmation
+import app.storyarc.feature.library.RestartOffer
 import app.storyarc.feature.library.ServerShelf
 import app.storyarc.feature.library.counted
+import app.storyarc.feature.library.isOnDevice
 import app.storyarc.feature.library.purgeExpiredTombstones
 import app.storyarc.feature.library.serverCover
 import app.storyarc.navigation.AppSheet
 import app.storyarc.navigation.Screen
 import java.util.UUID
+import kotlinx.coroutines.launch
 
 /**
  * The reading room — the surface the app opens on.
@@ -209,14 +217,44 @@ internal fun HomeDestination(host: AppHost) {
         }
     }
 
-    // The publication a long press on a plain-shelf cover opened the sheet for.
-    // `library-browsing`'s *A publication's actions wherever it is drawn* named the home
-    // surface as one of the places that offered none at all. `home-screen` forbids
-    // [HomeScreen] itself from reaching a source, so the sheet -- which needs the view
-    // model -- lives here rather than there, the way [homeShelfArtwork] already does for a
-    // question this screen cannot answer on its own.
+    // The publication a long press's *Add to shelf* row opened the sheet for. `home-screen`
+    // forbids [HomeScreen] itself from reaching a source, so the sheet -- which needs the
+    // view model -- lives here rather than there, the way [homeShelfArtwork] already does
+    // for a question this screen cannot answer on its own.
     var shelving by remember { mutableStateOf<Publication?>(null) }
     var restarting by remember { mutableStateOf<Publication?>(null) }
+
+    // `library-browsing`'s *A publication's actions wherever it is drawn* named the home
+    // surface as one of the places a long press offered nothing at all. The menu itself is
+    // [HomeScreen]'s own, anchored to the cell it was held on; this is the three facts its
+    // gating asks, and the handful of actions only a view model can carry out.
+    val publicationFacts: (Publication) -> PublicationActionFacts = { publication ->
+        PublicationActionFacts(
+            isFinished = publication.id in host.library.finishedPublications(),
+            offersRestart = RestartOffer.isOffered(
+                publicationCount = 1,
+                hasSomethingToClear = publication.id in host.library.finishedPublications() ||
+                    host.library.readFraction(publication) != null,
+                isWired = true,
+            ),
+            downloadOffer = DownloadOffer.of(
+                publication,
+                isKept = host.library.isOnDevice(publication),
+                isLocalFile = isOnDevice(host.library.location(publication)),
+                isQueueableRemote = PublicationActions.isQueueableRemote(publication),
+            ),
+        )
+    }
+    val publicationActions = HomePublicationActions(
+        onMark = host::mark,
+        onRestart = { restarting = it },
+        onAddToShelf = { shelving = it },
+        onDownload = { publication ->
+            host.library.viewModelScope.launch { host.library.keepOffline(setOf(publication.id)) }
+        },
+        onRemoveDownload = { host.library.forgetKept(setOf(it.id)) },
+        onShowDetails = host.openPage,
+    )
 
     HomeScreen(
         surface = surface,
@@ -249,17 +287,19 @@ internal fun HomeDestination(host: AppHost) {
         // destination's own stack rather than Home's, so this switches destinations
         // instead of pushing onto whichever one Home already is.
         onShowAllShelves = { host.navigate { openLibrarySection(Screen.Shelves) } },
-        onLongPress = { shelving = it },
+        actions = publicationActions,
+        facts = publicationFacts,
     )
 
     val shelved = shelving
     if (shelved != null) {
+        // `offersDownloadAction = false`: the menu this sheet is reached from already drew
+        // Download or Remove download as one of its own rows, and `onMark`/`onRestart` are
+        // null for the same reason -- a reader who dismissed one must not meet it again here.
         AddToShelfSheet(
             viewModel = host.library,
             publications = listOf(shelved),
             onDismiss = { shelving = null },
-            onMark = { changing, isRead -> changing.forEach { host.mark(it, isRead) } },
-            onRestart = { restarting = shelved },
             onAddToServerList = { publication, list ->
                 host.library.addToServerList(
                     publication,
@@ -268,7 +308,7 @@ internal fun HomeDestination(host: AppHost) {
                     host.dependencies.credentials,
                 )
             },
-            onShowDetails = { host.openPage(shelved) },
+            offersDownloadAction = false,
         )
     }
 

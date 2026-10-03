@@ -1,7 +1,6 @@
 package app.storyarc.feature.library
 
 import android.graphics.Bitmap
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -150,9 +149,8 @@ private fun LazyListScope.shelf(
                     entry = entry,
                     cover = cover,
                     width = width,
-                    modifier = Modifier
-                        .clickable { onOpenPage(entry.publication) }
-                        .homeCardSemantics(entry, label),
+                    onOpen = onOpenPage,
+                    modifier = Modifier.homeCardSemantics(entry, label),
                 )
             }
         }
