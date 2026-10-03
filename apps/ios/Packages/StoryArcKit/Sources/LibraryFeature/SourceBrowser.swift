@@ -65,7 +65,7 @@ struct SourceBrowser: View {
                 title: page.title,
                 address: page.address,
                 path: page.address.path,
-                onOpen: onOpen
+                onOpen: { publication, url in onOpen(publication.filed(under: source.id), url) }
             )
         } else if let page = KavitaPage(source: source, credentials: credentials) {
             KavitaBrowserView(
@@ -85,5 +85,16 @@ struct SourceBrowser: View {
             // or the app was broken.
             UnreachableSource(name: source.displayName)
         }
+    }
+}
+
+extension Publication {
+    /// A publication opened from a share's own browser, filed under that share, so that a
+    /// reader that loses the share can say which source went. One already filed keeps its
+    /// own source.
+    func filed(under sourceID: UUID) -> Publication {
+        var filed = self
+        filed.sourceID = filed.sourceID ?? sourceID
+        return filed
     }
 }

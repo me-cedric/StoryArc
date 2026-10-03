@@ -1,4 +1,5 @@
 public import Foundation
+public import StoryArcCore
 
 /// Where a share is, and who is asking.
 ///
@@ -93,6 +94,12 @@ public enum SmbError: Error, Equatable, Sendable {
     /// names back on can fix it without touching the server at all.
     case localNetworkDenied
     case unexpected(detail: String)
+}
+
+extension SmbError: SourceReachabilityError {
+    /// Only a host that stopped answering. A refusal or a missing share is the server
+    /// answering, so the source is still there.
+    public var meansUnreachable: Bool { self == .hostUnreachable }
 }
 
 /// One entry in a share's directory tree.
