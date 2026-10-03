@@ -1,5 +1,6 @@
 package app.storyarc.feature.library
 
+import app.storyarc.core.model.Download
 import app.storyarc.core.model.KavitaCard
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationIdentity
@@ -33,13 +34,38 @@ internal object DownloadFold {
      *
      * `kavita-server` requires the server's description to win over the file's own, which
      * is what [KavitaCard.appliedTo] does; the identifier is what makes the two one row.
-     * A card the store does not hold changes neither: a file downloaded from an OPDS
-     * catalogue, or imported by hand, has no server row to join and no cached description.
+     * A card the store does not hold changes neither: a file downloaded by hand has no
+     * server row to join and no cached description.
+     *
+     * @param record the download this file was landed by, when there is one. dl-core 1.4: an
+     *   OPDS download has no card -- Kavita's own bridge -- so [opdsIdentity] is asked
+     *   instead, and only when the card did not already answer. Defaulted to null so every
+     *   existing caller, and every test that made this claim before an OPDS record was in
+     *   scope, is unchanged.
      */
-    fun described(publication: Publication, card: KavitaCard?): Publication {
+    fun described(publication: Publication, card: KavitaCard?, record: Download? = null): Publication {
         val described = card?.appliedTo(publication) ?: publication
-        val server = card?.remoteIdentity ?: return described
+        val server = card?.remoteIdentity ?: record?.let(::opdsIdentity) ?: return described
         return described.copy(identity = described.identity.recordingServer(server))
+    }
+
+    /**
+     * The server identity an OPDS download's own record implies, or null for a download this
+     * queue did not key that way.
+     *
+     * The inverse of [DownloadQueue.downloadId]: `OpdsContributor` builds the catalogue row's
+     * identifier as `opds:<entry id>`, and the queue keys the record as
+     * `opds:<source>:<entry id>` -- the same two parts in a different order, with the source
+     * written out again.
+     */
+    fun opdsIdentity(download: Download): PublicationIdentity.ServerIdentifier? {
+        val source = download.sourceId ?: return null
+        val prefix = "opds:$source:"
+        if (!download.id.startsWith(prefix)) return null
+        return PublicationIdentity.ServerIdentifier(
+            sourceId = source,
+            remoteId = "opds:${download.id.removePrefix(prefix)}",
+        )
     }
 
     /**
