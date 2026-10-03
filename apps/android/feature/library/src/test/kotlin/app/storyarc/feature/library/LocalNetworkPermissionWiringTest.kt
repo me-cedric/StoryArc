@@ -12,8 +12,8 @@ import org.junit.Test
  * the way [SourceRetryWiringTest] does for the same reason.
  *
  * Task 5.1's corrected note: D25 also asks for the request before the first connection to a
- * LAN OPDS catalogue or Kavita server, and only the SMB sheet asked. The four tests below
- * cover those two sheets the same way the two SMB tests cover theirs.
+ * LAN OPDS catalogue or Kavita server. The four tests below cover those two sheets: the
+ * request comes at that connect, and only a LAN address is refused.
  */
 class LocalNetworkPermissionWiringTest {
 
@@ -74,11 +74,11 @@ class LocalNetworkPermissionWiringTest {
     }
 
     @Test
-    fun `connecting a catalogue is refused before it is attempted, when local network access is blocked`() {
+    fun `connecting a catalogue is refused before it is attempted, when a LAN address is blocked`() {
         val body = catalogueConnection.substringAfter("fun connect() {")
-        val guard = body.indexOf("LocalNetworkPermission.blocks(")
-        val dispatch = body.indexOf("when (val target")
-        assertTrue("CatalogueConnection.connect() no longer asks LocalNetworkPermission.blocks.", guard >= 0)
+        val guard = body.indexOf("waitsOnLocalNetwork(target)")
+        val dispatch = body.indexOf("when (target)")
+        assertTrue("CatalogueConnection.connect() no longer asks waitsOnLocalNetwork.", guard >= 0)
         assertTrue(
             "The permission is checked after the catalogue or Kavita request would already" +
                 " have started, rather than before -- the one case a blocked TCP connect" +
@@ -87,16 +87,17 @@ class LocalNetworkPermissionWiringTest {
         )
         assertTrue(
             "A blocked connect must show its own sentence, not a generic failure.",
-            catalogueConnection.contains("R.string.catalogue_error_local_network_denied"),
+            body.contains("R.string.catalogue_error_local_network_denied"),
         )
+        assertBlocksOnlyALanAddress(catalogueConnection, "CatalogueConnection")
     }
 
     @Test
-    fun `connecting a kavita server is refused before it is attempted, when local network access is blocked`() {
+    fun `connecting a kavita server is refused before it is attempted, when a LAN address is blocked`() {
         val body = kavitaConnection.substringAfter("fun connect() {")
-        val guard = body.indexOf("LocalNetworkPermission.blocks(")
+        val guard = body.indexOf("LocalNetworkPermission.refuses(context, target.base)")
         val connecting = body.indexOf("Step.Connecting")
-        assertTrue("KavitaConnection.connect() no longer asks LocalNetworkPermission.blocks.", guard >= 0)
+        assertTrue("KavitaConnection.connect() no longer asks LocalNetworkPermission.refuses.", guard >= 0)
         assertTrue(
             "The permission is checked after the client would already have started" +
                 " connecting, rather than before -- the one case a blocked TCP connect" +
@@ -105,23 +106,42 @@ class LocalNetworkPermissionWiringTest {
         )
         assertTrue(
             "A blocked connect must show its own sentence, not a generic failure.",
-            kavitaConnection.contains("R.string.kavita_error_local_network_denied"),
+            body.contains("R.string.kavita_error_local_network_denied"),
         )
+        assertBlocksOnlyALanAddress(kavitaConnection, "KavitaConnection")
     }
 
     @Test
-    fun `the catalogue sheet asks for the permission at the moment it opens`() {
+    fun `the catalogue sheet asks for the permission at the first LAN connect`() =
+        assertAsksAtConnect(catalogueSheet, "CatalogueSheet")
+
+    @Test
+    fun `the kavita sheet asks for the permission at the first LAN connect`() =
+        assertAsksAtConnect(kavitaSheet, "KavitaSheet")
+
+    /** A public server never needs the permission, so a blanket `blocks` would refuse it. */
+    private fun assertBlocksOnlyALanAddress(source: String, name: String) {
         assertTrue(
-            "CatalogueSheet no longer requests LocalNetworkPermission.PERMISSION.",
-            catalogueSheet.contains("requestLocalNetwork.launch(LocalNetworkPermission.PERMISSION)"),
+            "$name refuses every address while the permission is blocked, a public one too.",
+            !source.contains("LocalNetworkPermission.blocks("),
         )
     }
 
-    @Test
-    fun `the kavita sheet asks for the permission at the moment it opens`() {
+    private fun assertAsksAtConnect(source: String, name: String) {
         assertTrue(
-            "KavitaSheet no longer requests LocalNetworkPermission.PERMISSION.",
-            kavitaSheet.contains("requestLocalNetwork.launch(LocalNetworkPermission.PERMISSION)"),
+            "$name no longer requests LocalNetworkPermission.PERMISSION when a connect waits on it.",
+            source.contains(
+                "if (connection.waitsOnLocalNetwork()) {\n" +
+                    "            requestLocalNetwork.launch(LocalNetworkPermission.PERMISSION)",
+            ),
+        )
+        assertTrue(
+            "$name asks when it opens, before it knows whether the server is on the LAN.",
+            !source.contains("LaunchedEffect(Unit)"),
+        )
+        assertTrue(
+            "$name has a connect button that skips the permission question.",
+            !source.contains("onClick = { connection.connect() }"),
         )
     }
 

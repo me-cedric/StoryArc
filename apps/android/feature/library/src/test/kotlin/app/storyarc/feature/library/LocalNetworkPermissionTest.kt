@@ -36,4 +36,25 @@ class LocalNetworkPermissionTest {
         assertFalse(LocalNetworkPermission.isRequired(sdkInt = 36))
         assertTrue(LocalNetworkPermission.isRequired(sdkInt = 37))
     }
+
+    @Test
+    fun `a refused permission does not stop a connection to a public server`() {
+        assertFalse(LocalNetworkPermission.refuses(37, granted = false, url = "https://kavita.example.com/"))
+        assertFalse(LocalNetworkPermission.refuses(37, granted = false, url = "https://8.8.8.8/opds"))
+        assertTrue(LocalNetworkPermission.refuses(37, granted = false, url = "http://192.168.1.20:5000/"))
+        assertFalse(LocalNetworkPermission.refuses(37, granted = true, url = "http://192.168.1.20:5000/"))
+        assertFalse(LocalNetworkPermission.refuses(36, granted = false, url = "http://192.168.1.20:5000/"))
+    }
+
+    @Test
+    fun `local addresses are private, link-local or unique-local literals, mDNS and bare names`() {
+        listOf(
+            "10.0.2.2", "172.16.0.1", "172.31.255.255", "192.168.1.20", "169.254.3.4",
+            "[fe80::1]", "fd12:3456::1", "nas.local", "NAS.local.", "nas",
+        ).forEach { assertTrue("$it is on the local network", LocalNetworkPermission.isLocal(it)) }
+        listOf(
+            "kavita.example.com", "8.8.8.8", "172.32.0.1", "172.15.0.1", "127.0.0.1",
+            "localhost", "[::1]", "2001:db8::1", "", null,
+        ).forEach { assertFalse("$it is not on the local network", LocalNetworkPermission.isLocal(it)) }
+    }
 }
