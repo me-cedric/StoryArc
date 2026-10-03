@@ -415,6 +415,7 @@ class LibraryViewModel(
         // that follows corrects it in place.
         restoreCachedLibrary()
         readServers(pins)
+        watchSourceReachability()
         restoreRememberedFiles() // 10.10
 
         val restored = SafTree.persistedTrees(resolver)
