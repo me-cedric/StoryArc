@@ -244,12 +244,16 @@ private fun GroupList(
     // lives under Reading.
     var query by remember { mutableStateOf("") }
     var confirmingReset by remember { mutableStateOf(false) }
+    // State, not a read inside the row: a reset clears this store and can leave `settings`
+    // equal, so nothing else would recompose the Reading row.
+    var readingDefaults by remember { mutableStateOf(readerStore.themes()) }
 
     if (confirmingReset) {
         ResetDialog(
             onConfirm = {
                 confirmingReset = false
                 onReset()
+                readingDefaults = readerStore.themes()
             },
             onDismiss = { confirmingReset = false },
         )
@@ -305,7 +309,7 @@ private fun GroupList(
                     supportingContent = {
                         Text(
                             if (match.anchor == null) {
-                                match.group.summary(settings, summary, readerStore.themes())
+                                match.group.summary(settings, summary, readingDefaults)
                             } else {
                                 stringResource(match.group.titleRes)
                             },

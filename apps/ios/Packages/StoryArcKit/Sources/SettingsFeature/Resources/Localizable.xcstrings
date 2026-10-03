@@ -3224,35 +3224,6 @@
         }
       }
     },
-    "settings.about.summary": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Version, Lizenz und Danksagungen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Version, licence and acknowledgements"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Versión, licencia y agradecimientos"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Version, licence et remerciements"
-          }
-        }
-      }
-    },
     "settings.appearance": {
       "extractionState": "manual",
       "localizations": {
@@ -3572,35 +3543,6 @@
         }
       }
     },
-    "settings.reading.summary": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Seitenwechsel und Lesevorgaben"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Page turns and reading defaults"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cambios de página y ajustes por defecto"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tournes de page et réglages par défaut"
-          }
-        }
-      }
-    },
     "settings.reading.summary.values %@ %@": {
       "extractionState": "manual",
       "localizations": {
@@ -3626,35 +3568,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ pour les livres, %2$@ pour les BD"
-          }
-        }
-      }
-    },
-    "settings.reading.summary.volume": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lautstärketasten blättern"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Volume buttons turn pages"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Los botones de volumen cambian de página"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les touches de volume tournent les pages"
           }
         }
       }

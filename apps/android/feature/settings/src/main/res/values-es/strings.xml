@@ -11,12 +11,9 @@
     <string name="settings_privacy">Privacidad</string>
     <string name="settings_about">Acerca de</string>
     <string name="settings_language_system">Sistema</string>
-    <string name="settings_reading_summary">Cambios de página y ajustes por defecto</string>
-    <string name="settings_reading_summary_volume">Los botones de volumen cambian de página</string>
     <string name="settings_reading_summary_values">%1$s para libros, %2$s para cómics</string>
     <string name="settings_reading_summary_volume_values">Los botones de volumen cambian de página · %1$s para libros, %2$s para cómics</string>
     <string name="settings_privacy_summary">Sin cuenta, sin backend, sin analítica</string>
-    <string name="settings_about_summary">Versión, licencia y agradecimientos</string>
     <string name="appearance_system">Sistema</string>
     <string name="appearance_light">Claro</string>
     <string name="appearance_dark">Oscuro</string>
