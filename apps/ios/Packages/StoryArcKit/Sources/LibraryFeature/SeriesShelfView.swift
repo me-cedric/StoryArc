@@ -61,7 +61,7 @@ private struct SeriesStatusMenu: View {
     let name: String
     let model: LibraryModel
 
-    private var current: PublicationStatus? { model.seriesStatusOverrides()[name] }
+    private var current: PublicationStatus? { model.seriesStatuses[name] }
 
     var body: some View {
         Menu {
