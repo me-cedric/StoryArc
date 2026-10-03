@@ -30,6 +30,7 @@ import app.storyarc.feature.reader.DownloadCleanupOffer
 import app.storyarc.feature.reader.ReaderScreen
 import app.storyarc.feature.reader.ReaderViewModel
 import app.storyarc.feature.reader.adoptLocalCopy
+import app.storyarc.feature.reader.endWaitIfDownloadStopped
 import app.storyarc.navigation.Screen
 import kotlinx.coroutines.launch
 
@@ -88,7 +89,11 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
             if (hasAdopted) return@watch
             activity.lifecycleScope.launch {
                 val arrived = ReadingAddress.arrived(screen.path, store.library())
-                    ?: return@launch
+                if (arrived == null) {
+                    // dl-core 1.7: a download that failed or went away ends a reader's wait.
+                    viewModel.endWaitIfDownloadStopped()
+                    return@launch
+                }
                 hasAdopted = viewModel.adoptLocalCopy(
                     activity.contentResolver,
                     store.location(arrived).path,

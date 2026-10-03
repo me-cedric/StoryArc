@@ -35,7 +35,9 @@ suspend fun ReaderViewModel.adoptLocalCopy(
 ): Boolean {
     val opened = runCatching { withContext(Dispatchers.IO) { PublicationAccess.openArchive(resolver, path) } }
         .getOrElse { cause ->
-            Log.w(TAG_ADOPTION, "the copy that arrived will not open; still streaming", cause)
+            Log.w(TAG_ADOPTION, "the copy that arrived will not open", cause)
+            // A reader that waited has no stream to fall back on, so its wait ends here.
+            endWaitIfDownloadStopped()
             return false
         }
     val reading = archive
@@ -46,6 +48,20 @@ suspend fun ReaderViewModel.adoptLocalCopy(
         return true
     }
     return reading.adopt(opened)
+}
+
+/**
+ * Ends a wait for a download as the ordinary failure, once the download is no longer on its way.
+ *
+ * dl-core 1.7: `offline-downloads` marks a failed download "failed with a plain-language
+ * reason", and a wait that never ends says nothing. A download that failed, was removed, or
+ * landed as a copy that will not open all end here. Nothing happens while the reader is not
+ * waiting, or while its download is still on its way.
+ */
+fun ReaderViewModel.endWaitIfDownloadStopped() {
+    if (!isWaitingForDownload.value || isDownloadPending()) return
+    _isWaitingForDownload.value = false
+    _failure.value = R.string.reader_cannot_open
 }
 
 /**

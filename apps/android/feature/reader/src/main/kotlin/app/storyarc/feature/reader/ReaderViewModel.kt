@@ -288,7 +288,8 @@ class ReaderViewModel(
     internal val _pages = MutableStateFlow<List<PageEntry>>(emptyList())
     val pages: StateFlow<List<PageEntry>> = _pages.asStateFlow()
 
-    private val _failure = MutableStateFlow<Int?>(null)
+    // Internal: `ReaderAdoption.kt` ends a wait for a download that failed with it.
+    internal val _failure = MutableStateFlow<Int?>(null)
     val failure: StateFlow<Int?> = _failure.asStateFlow()
 
     // Internal: `ReaderAdoption.kt` sets and clears this too. dl-core 1.7 -- not [failure],

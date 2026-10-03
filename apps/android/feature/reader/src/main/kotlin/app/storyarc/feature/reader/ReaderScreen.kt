@@ -232,7 +232,7 @@ fun ReaderScreen(
                 CloseButton(onClose)
             }
             isWaitingForDownload -> {
-                Message(stringResource(R.string.reader_waiting_for_download))
+                WaitingForDownload()
                 CloseButton(onClose)
             }
             pages.isEmpty() && isOpened -> {
