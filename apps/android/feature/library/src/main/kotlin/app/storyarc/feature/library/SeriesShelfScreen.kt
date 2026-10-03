@@ -7,6 +7,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Sell
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -15,6 +20,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -25,6 +33,7 @@ import app.storyarc.core.model.LibraryIndex
 import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.PublicationStatus
 
 /**
  * One series, and the publications inside it.
@@ -81,6 +90,15 @@ fun SeriesShelfScreen(
                         )
                     }
                 },
+                actions = {
+                    // D36: "a status a source reports is not editable by the reader -- only
+                    // a series with no reported status takes one set by hand". Withheld
+                    // entirely for a reported series rather than shown disabled, the same
+                    // rule `design.md` gives every other control that would change nothing.
+                    if (!viewModel.seriesHasReportedStatus(name)) {
+                        SeriesStatusMenu(name, viewModel)
+                    }
+                },
             )
         },
     ) { insets ->
@@ -108,6 +126,48 @@ fun SeriesShelfScreen(
                 onOpen = onOpen,
                 modifier = Modifier.weight(1f),
             )
+        }
+    }
+}
+
+/** The status a reader sets by hand, for a series with no reported one. */
+@Composable
+private fun SeriesStatusMenu(name: String, viewModel: LibraryViewModel) {
+    var open by remember { mutableStateOf(false) }
+    val current = viewModel.manualStatus(name)
+
+    Box {
+        IconButton(onClick = { open = true }) {
+            Icon(
+                imageVector = Icons.Filled.Sell,
+                contentDescription = stringResource(R.string.library_series_status),
+            )
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            PublicationStatus.entries.forEach { status ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(status.labelRes)) },
+                    leadingIcon = if (status == current) {
+                        { Icon(Icons.Filled.Check, contentDescription = null) }
+                    } else {
+                        null
+                    },
+                    onClick = {
+                        viewModel.setSeriesStatus(name, status)
+                        open = false
+                    },
+                )
+            }
+            if (current != null) {
+                HorizontalDivider()
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.library_series_status_clear)) },
+                    onClick = {
+                        viewModel.clearSeriesStatus(name)
+                        open = false
+                    },
+                )
+            }
         }
     }
 }

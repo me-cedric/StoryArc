@@ -79,6 +79,10 @@
     <string name="library_filter_publisher">Éditeur</string>
     <string name="library_filter_genre">Genre</string>
     <string name="library_filter_tag">Étiquette</string>
+    <string name="library_filter_status">Statut</string>
+    <string name="library_filter_status_note">Seulement les séries ayant un statut</string>
+    <string name="library_series_status">Définir le statut</string>
+    <string name="library_series_status_clear">Effacer le statut</string>
     <string name="library_filter_decade">Décennie</string>
     <string name="library_filter_decade_any">Toutes les années</string>
     <string name="library_filter_decade_label">Années %1$d</string>

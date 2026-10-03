@@ -57,6 +57,7 @@ struct FilterMenu: View {
             values("library.filter.publisher", pairs(model.availablePublishers), \.publishers)
             values("library.filter.genre", pairs(model.availableGenres), \.genres)
             values("library.filter.tag", pairs(model.availableTags), \.tags)
+            statuses
             decades
 
             if narrowing.isActive {
@@ -235,6 +236,27 @@ struct FilterMenu: View {
         }
     }
 
+    /// Status, as a source reports it or a reader set it by hand (D36).
+    ///
+    /// Omitted entirely when the library holds none: a group over a facet nothing carries
+    /// tells the reader nothing and costs a tap to find out, the same rule ``values`` follows
+    /// for a publisher, a genre or a tag. The note is the group's own first row rather than a
+    /// caption under the menu, because a submenu has no "under" — ``library-browsing``'s
+    /// *Filtering by a source's own publication status* requires the group to say so wherever
+    /// the group itself is.
+    @ViewBuilder
+    private var statuses: some View {
+        let available = model.availableStatuses()
+        if !available.isEmpty {
+            group("library.filter.status", isActive: !model.query.statuses.isEmpty) {
+                Text("library.filter.status.note", bundle: .module)
+                ForEach(available, id: \.self) { status in
+                    Toggle(isOn: statusChosen(status)) { Text(status.titleKey, bundle: .module) }
+                }
+            }
+        }
+    }
+
     /// The year range, offered as the decades the library actually spans.
     ///
     /// A radio list rather than the toggles every other group uses, because a range
@@ -272,6 +294,15 @@ struct FilterMenu: View {
             get: { model.query.formats.contains(value) },
             set: { on in
                 if on { model.query.formats.insert(value) } else { model.query.formats.remove(value) }
+            }
+        )
+    }
+
+    private func statusChosen(_ value: PublicationStatus) -> Binding<Bool> {
+        Binding(
+            get: { model.query.statuses.contains(value) },
+            set: { on in
+                if on { model.query.statuses.insert(value) } else { model.query.statuses.remove(value) }
             }
         )
     }

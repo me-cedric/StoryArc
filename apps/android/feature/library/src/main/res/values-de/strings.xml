@@ -77,6 +77,10 @@
     <string name="library_filter_publisher">Verlag</string>
     <string name="library_filter_genre">Genre</string>
     <string name="library_filter_tag">Schlagwort</string>
+    <string name="library_filter_status">Status</string>
+    <string name="library_filter_status_note">Nur Serien mit einem Status</string>
+    <string name="library_series_status">Status festlegen</string>
+    <string name="library_series_status_clear">Status löschen</string>
     <string name="library_filter_decade">Jahrzehnt</string>
     <string name="library_filter_decade_any">Alle Jahre</string>
     <string name="library_filter_decade_label">%1$der</string>

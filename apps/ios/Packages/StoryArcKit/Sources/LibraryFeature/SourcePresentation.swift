@@ -96,6 +96,23 @@ extension ReadState {
     }
 }
 
+extension PublicationStatus {
+    /// The same words `KavitaSeriesFacts` gives the series screen's own status line
+    /// (`kavita.status.*`): D36 filters by one word for a status a source reports and a
+    /// status the reader set by hand alike, so the filter menu names it the one way this
+    /// app already names it, rather than coining a second vocabulary for the same five
+    /// states.
+    var titleKey: LocalizedStringKey {
+        switch self {
+        case .ongoing: "kavita.status.ongoing"
+        case .hiatus: "kavita.status.hiatus"
+        case .completed: "kavita.status.completed"
+        case .cancelled: "kavita.status.cancelled"
+        case .ended: "kavita.status.ended"
+        }
+    }
+}
+
 extension MatchKind {
     /// The heading over a group of search results.
     ///
