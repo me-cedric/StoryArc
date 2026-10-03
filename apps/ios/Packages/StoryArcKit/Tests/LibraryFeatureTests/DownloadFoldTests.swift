@@ -119,4 +119,70 @@ struct DownloadFoldTests {
                 == "/var/mobile/Containers/Data/Application/downloads/lantern-green-43.cbz"
         )
     }
+
+    /// What an OPDS catalogue puts on the shelf: a server identifier built the way
+    /// `OpdsContributor` spells it, and no card — Kavita's own bridge.
+    private var opdsRemote: Publication {
+        Publication(
+            identity: PublicationIdentity(
+                serverIdentifier: .init(sourceID: source, remoteID: "opds:urn:uuid:bone")
+            ),
+            format: .cbz,
+            displayTitle: "Bone",
+            origin: .authoritative,
+            sourceID: source
+        )
+    }
+
+    /// What `DownloadQueue/downloadID(for:sourceID:)` keys an OPDS download's record under.
+    private var opdsDownload: Download {
+        Download(
+            id: "opds:\(source.uuidString):urn:uuid:bone",
+            sourceID: source,
+            title: "Bone",
+            remote: URL(string: "https://catalogue.test/entries/bone")!,
+            mediaType: "application/vnd.comicbook+zip",
+            state: .finished
+        )
+    }
+
+    @Test("An OPDS download joins its catalogue row too, with no card at all")
+    func opdsRowOneToo() {
+        let linked = DownloadFold.described(downloaded, card: nil, record: opdsDownload)
+
+        #expect(
+            linked.identity.matches(opdsRemote.identity),
+            "The downloaded copy does not match the catalogue row it came from."
+        )
+        #expect(DownloadFold.rowFor([opdsRemote], downloaded: linked) == 0)
+        // The cached catalogue description is kept — dl-core 1.4 asks for exactly that —
+        // because no card means nothing overwrites `downloaded`'s own title.
+        #expect(linked.displayTitle == downloaded.displayTitle)
+    }
+
+    @Test("A download whose id is not the queue's own OPDS shape is left alone")
+    func notAnOpdsId() {
+        let kavita = Download(
+            id: "kavita:\(source):3103",
+            sourceID: source,
+            title: "Lantern Green #43",
+            remote: URL(string: "https://kavita.test/api/download/chapter?chapterId=3103")!,
+            mediaType: "application/vnd.comicbook+zip",
+            state: .finished
+        )
+        #expect(DownloadFold.opdsIdentity(for: kavita) == nil)
+        #expect(DownloadFold.described(downloaded, card: nil, record: kavita).identity == downloaded.identity)
+    }
+
+    @Test("A download with no source is left alone, because the id carries no source to key on")
+    func noSource() {
+        let unscoped = Download(
+            id: "urn:uuid:bone",
+            title: "Bone",
+            remote: URL(string: "https://catalogue.test/entries/bone")!,
+            mediaType: "application/vnd.comicbook+zip",
+            state: .finished
+        )
+        #expect(DownloadFold.opdsIdentity(for: unscoped) == nil)
+    }
 }
