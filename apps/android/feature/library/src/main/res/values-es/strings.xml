@@ -77,6 +77,10 @@
     <string name="library_filter_publisher">Editorial</string>
     <string name="library_filter_genre">Género</string>
     <string name="library_filter_tag">Etiqueta</string>
+    <string name="library_filter_status">Estado</string>
+    <string name="library_filter_status_note">Solo series con un estado</string>
+    <string name="library_series_status">Establecer estado</string>
+    <string name="library_series_status_clear">Borrar estado</string>
     <string name="library_filter_decade">Década</string>
     <string name="library_filter_decade_any">Cualquier año</string>
     <string name="library_filter_decade_label">Años %1$d</string>

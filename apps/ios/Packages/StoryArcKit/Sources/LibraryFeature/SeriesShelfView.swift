@@ -42,6 +42,50 @@ struct SeriesShelfView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        .toolbar {
+            // D36: "a status a source reports is not editable by the reader -- only a
+            // series with no reported status takes one set by hand". The control is
+            // withheld entirely for a reported series rather than shown disabled, the
+            // same rule `design.md` gives every other control that would change nothing.
+            if !model.seriesHasReportedStatus(name) {
+                ToolbarItem {
+                    SeriesStatusMenu(name: name, model: model)
+                }
+            }
+        }
+    }
+}
+
+/// The status a reader sets by hand, for a series with no reported one.
+private struct SeriesStatusMenu: View {
+    let name: String
+    let model: LibraryModel
+
+    private var current: PublicationStatus? { model.seriesStatusOverrides()[name] }
+
+    var body: some View {
+        Menu {
+            ForEach(PublicationStatus.allCases, id: \.self) { status in
+                Toggle(isOn: Binding(
+                    get: { current == status },
+                    set: { _ in model.setSeriesStatus(status, for: name) }
+                )) {
+                    Text(status.titleKey, bundle: .module)
+                }
+            }
+            if current != nil {
+                Divider()
+                Button(role: .destructive) { model.clearSeriesStatus(name) } label: {
+                    Text("library.series.status.clear", bundle: .module)
+                }
+            }
+        } label: {
+            Label {
+                Text("library.series.status", bundle: .module)
+            } icon: {
+                Image(systemName: "tag")
+            }
+        }
     }
 }
 

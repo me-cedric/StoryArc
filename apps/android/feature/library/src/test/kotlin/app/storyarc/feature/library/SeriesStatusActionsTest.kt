@@ -83,6 +83,19 @@ class SeriesStatusActionsTest {
     }
 
     @Test
+    fun `manualStatus reads back exactly what was set, and null once cleared`() {
+        tearDown()
+        val model = viewModel()
+        model._publications.value = listOf(publication("Tidal Reach #1", series = "Tidal Reach"))
+        assertEquals(null, model.manualStatus("Tidal Reach"))
+        model.setSeriesStatus("Tidal Reach", PublicationStatus.HIATUS)
+        assertEquals(PublicationStatus.HIATUS, model.manualStatus("Tidal Reach"))
+        model.clearSeriesStatus("Tidal Reach")
+        assertEquals(null, model.manualStatus("Tidal Reach"))
+        tearDown()
+    }
+
+    @Test
     fun `setting a status by hand reaches what the shelf actually filters to`() {
         tearDown()
         val model = viewModel()

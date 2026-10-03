@@ -89,6 +89,10 @@
     <string name="library_filter_publisher">Publisher</string>
     <string name="library_filter_genre">Genre</string>
     <string name="library_filter_tag">Tag</string>
+    <string name="library_filter_status">Status</string>
+    <string name="library_filter_status_note">Only series with a status</string>
+    <string name="library_series_status">Set status</string>
+    <string name="library_series_status_clear">Clear status</string>
     <string name="library_filter_decade">Decade</string>
     <string name="library_filter_decade_any">Any year</string>
     <string name="library_filter_decade_label">%1$ds</string>

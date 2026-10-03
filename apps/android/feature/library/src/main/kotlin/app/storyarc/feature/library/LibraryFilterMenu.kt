@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -11,6 +12,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,8 +30,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
+import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibraryScope
+import app.storyarc.core.model.PublicationStatus
 import app.storyarc.core.model.ReadState
 import app.storyarc.core.model.SourceRegistry
 import app.storyarc.core.model.YearRange
@@ -60,6 +65,7 @@ private enum class FilterSection {
     PUBLISHER,
     GENRE,
     TAG,
+    STATUS,
     DECADE,
 }
 
@@ -245,6 +251,23 @@ private fun SectionValues(
         FilterSection.TAG -> viewModel.availableTags(locale).forEach { tag ->
             CheckedItem(tag, tag in query.tags) {
                 onQueryChange(query.copy(tags = toggled(query.tags, tag)))
+            }
+        }
+
+        // D36: the note is the group's own first row rather than a caption under the menu,
+        // because a submenu has no "under" -- `library-browsing`'s *Filtering by a source's
+        // own publication status* requires the group to say so wherever the group itself is.
+        FilterSection.STATUS -> {
+            Text(
+                text = stringResource(R.string.library_filter_status_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = LocalStoryArcPalette.current.textSecondary,
+                modifier = Modifier.padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.xs),
+            )
+            viewModel.availableStatuses().forEach { status ->
+                CheckedItem(stringResource(status.labelRes), status in query.statuses) {
+                    onQueryChange(query.copy(statuses = toggled(query.statuses, status)))
+                }
             }
         }
 
@@ -458,6 +481,7 @@ private val FilterSection.labelRes: Int
         FilterSection.PUBLISHER -> R.string.library_filter_publisher
         FilterSection.GENRE -> R.string.library_filter_genre
         FilterSection.TAG -> R.string.library_filter_tag
+        FilterSection.STATUS -> R.string.library_filter_status
         FilterSection.DECADE -> R.string.library_filter_decade
     }
 
@@ -473,6 +497,7 @@ private fun FilterSection.isActive(
     FilterSection.PUBLISHER -> query.publishers.isNotEmpty()
     FilterSection.GENRE -> query.genres.isNotEmpty()
     FilterSection.TAG -> query.tags.isNotEmpty()
+    FilterSection.STATUS -> query.statuses.isNotEmpty()
     FilterSection.DECADE -> query.years.isActive
 }
 
@@ -496,8 +521,24 @@ private fun FilterSection.hasValues(
     FilterSection.PUBLISHER -> viewModel.availablePublishers(locale).isNotEmpty()
     FilterSection.GENRE -> viewModel.availableGenres(locale).isNotEmpty()
     FilterSection.TAG -> viewModel.availableTags(locale).isNotEmpty()
+    FilterSection.STATUS -> viewModel.availableStatuses().isNotEmpty()
     FilterSection.DECADE -> viewModel.availableDecades().isNotEmpty()
 }
+
+/**
+ * The same words `KavitaCardFacts.label` gives the series screen's own status line
+ * (`kavita_status_*`): D36 filters by one word for a status a source reports and a status the
+ * reader set by hand alike, so the filter menu names it the one way this app already names
+ * it, rather than coining a second vocabulary for the same five states.
+ */
+internal val PublicationStatus.labelRes: Int
+    get() = when (this) {
+        PublicationStatus.ONGOING -> R.string.kavita_status_ongoing
+        PublicationStatus.HIATUS -> R.string.kavita_status_hiatus
+        PublicationStatus.COMPLETED -> R.string.kavita_status_completed
+        PublicationStatus.CANCELLED -> R.string.kavita_status_cancelled
+        PublicationStatus.ENDED -> R.string.kavita_status_ended
+    }
 
 private val ReadState.labelRes: Int
     get() = when (this) {

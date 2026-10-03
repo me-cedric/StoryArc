@@ -25,6 +25,9 @@ private fun LibraryViewModel.seriesStatusStore(): SeriesStatusStore =
 internal fun LibraryViewModel.withSeriesStatuses(publications: List<Publication>): List<Publication> =
     withManualStatuses(publications, seriesStatusStore().all())
 
+/** The status a reader set by hand for one series, or null where they have set none. */
+fun LibraryViewModel.manualStatus(series: String): PublicationStatus? = seriesStatusStore().all()[series]
+
 /**
  * The statuses actually present in the library, reported or set by hand, in
  * [PublicationStatus]'s own declared order.
