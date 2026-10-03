@@ -68,6 +68,10 @@ struct DetailMainColumn: View {
                 DetailBookLength(seconds: audiobook.length)
             }
             summary
+            // Task 16.7 / D38: the device's own read-aloud voice for this publication's
+            // language, or that none is installed. Absent for everything that is not an EPUB
+            // with a stated language — see ``ReadAloudVoiceLine/fact``.
+            ReadAloudVoiceLineView(publication: publication)
             // The two of `kavita-server`'s seven metadata fields that ``Publication`` has no
             // slot for. Nothing at all — not an empty block — for everything that is not a
             // kept Kavita chapter. See ``KavitaCardFacts``.
