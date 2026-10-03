@@ -109,6 +109,21 @@ Tasks 17.7, 17.10 and the open parts of 16.4 (CarPlay entitlement, an owner step
 (audiobook covers in picked folders on Android) move to wave 6. A new change,
 `page-browser-carousel`, adds a page carousel with chapters to the comic reader.
 
+**Wave 6a landed on 2026-10-03** with 5 more tasks (198 of 240 in all), and 11 of the 12
+tasks of `page-browser-carousel`. Page browser: the comic reader's thumbnail browser is a
+carousel with page numbers. The slider moves it. The carousel names the chapter, and chapter
+badges and slider ticks mark where chapters start, on both platforms. Field fixes: a share
+session that a network change makes stale is dropped (5.12). On SDK 37 the app asks for
+local network access when it first needs it (5.1). Each library refresh of a Kavita source
+merges its remote progress and retries its queue, not only the series screen (2.9). Downloads:
+an OPDS download joins its catalogue row (1.4), and a reader waits for a download that is
+still running and opens the copy when it lands (1.7). These move to wave 6b: the rotation
+freeze (21.1: no cause on an emulator; the owner records a trace on the phone), reading all
+of a Kavita, SMB or OPDS source (22.1), long press everywhere (22.4), the metered offer for a
+share from the publication page (5.13), the iOS publication page download (1.5, 1.10), Kavita
+downloads through the queue (1.9), and the page-browser frames. On the iOS simulator, a UI test's
+tap on Contents does not open the carousel. Wave 6b finds the cause before the frames.
+
 **What this pass changes in the records below.**
 
 - **`offline-downloads` *Reading while downloading* is still Android-only.** Commit
