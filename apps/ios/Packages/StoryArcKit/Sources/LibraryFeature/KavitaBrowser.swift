@@ -127,10 +127,16 @@ public struct KavitaBrowserView: View {
                 Text(failure)
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textPrimary)
-            } else if kavitaShowsLibraryPlaceholders(failure: failure, isLoading: isLoading, hasLibraries: !libraries.isEmpty) {
+            } else if kavitaShowsLibraryPlaceholders(
+                failure: failure, isLoading: isLoading, hasLibraries: !libraries.isEmpty
+            ) {
                 ForEach(0 ..< Self.placeholderRows, id: \.self) { _ in
-                    Text("Library")
-                        .redacted(reason: .placeholder)
+                    // A bar shaped like a library's name, as on Android. No text, so VoiceOver
+                    // does not read one word six times.
+                    RoundedRectangle(cornerRadius: StoryArcRadius.sm)
+                        .fill(theme.palette.surfaceRaised)
+                        .frame(width: 160, height: 16)
+                        .accessibilityHidden(true)
                 }
             }
             ForEach(libraries) { library in
