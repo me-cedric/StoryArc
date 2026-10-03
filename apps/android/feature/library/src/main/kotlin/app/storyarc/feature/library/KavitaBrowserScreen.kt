@@ -1,24 +1,27 @@
 package app.storyarc.feature.library
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,7 +38,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -43,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.grid.rememberCoverColumns
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.kavita.KavitaAddress
 import app.storyarc.core.kavita.KavitaClient
@@ -285,7 +291,9 @@ fun KavitaBrowserScreen(
         }
         when (current) {
             is KavitaLevel.Libraries -> if (askingLibraries) {
-                KavitaWaiting(body)
+                LazyColumn(modifier = body, contentPadding = edges) {
+                    items(PLACEHOLDER_LIBRARY_ROWS) { LibraryRowPlaceholder() }
+                }
             } else LazyColumn(modifier = body, contentPadding = edges) {
                 failure?.let { message ->
                     item(key = "failure") {
@@ -303,7 +311,17 @@ fun KavitaBrowserScreen(
             }
 
             is KavitaLevel.Series -> if (askingSeries) {
-                KavitaWaiting(body)
+                LazyVerticalGrid(
+                    columns = rememberCoverColumns(),
+                    contentPadding = edges,
+                    horizontalArrangement =
+                        androidx.compose.foundation.layout.Arrangement.spacedBy(StoryArcSpace.md),
+                    verticalArrangement =
+                        androidx.compose.foundation.layout.Arrangement.spacedBy(StoryArcSpace.md),
+                    modifier = body,
+                ) {
+                    items(PLACEHOLDER_SERIES_CELLS) { KavitaSeriesCellPlaceholder() }
+                }
             } else LazyVerticalGrid(
                 columns = rememberCoverColumns(),
                 contentPadding = edges,
@@ -352,16 +370,55 @@ fun KavitaBrowserScreen(
     }
 }
 
+/** Enough placeholder rows to fill a phone screen without the list ever needing to scroll. */
+private const val PLACEHOLDER_LIBRARY_ROWS = 6
+
+/** A couple of rows' worth, whatever the column count: the grid never needs to scroll either. */
+private const val PLACEHOLDER_SERIES_CELLS = 10
+
 /**
- * Drawn while the server has been asked and has not answered.
+ * Drawn in place of a library row while the server has been asked and has not answered.
  *
- * `kavita-server` asks that a reader is told why a page is empty. Silence for twenty seconds
- * is the one case where nothing was saying anything at all.
+ * `native-experience` asks for no blocking spinner while a source answers: a full-screen
+ * `CircularProgressIndicator` under the top bar used to replace the whole list, here and in
+ * ``KavitaSeriesCellPlaceholder``, which told a reader nothing about what was coming. A row
+ * shaped like the one about to arrive does.
  */
 @Composable
-private fun KavitaWaiting(modifier: Modifier) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+private fun LibraryRowPlaceholder() {
+    val palette = LocalStoryArcPalette.current
+    Box(
+        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp)
+            .padding(vertical = StoryArcSpace.xs)
+            .testTag(KAVITA_PLACEHOLDER_TAG),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth(0.6f)
+                .height(16.dp)
+                .clip(RoundedCornerShape(StoryArcRadius.sm))
+                .background(palette.surfaceRaised),
+        )
+    }
 }
+
+/** Drawn in place of a series cover while the server has been asked and has not answered. */
+@Composable
+private fun KavitaSeriesCellPlaceholder() {
+    val palette = LocalStoryArcPalette.current
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(2f / 3f)
+            .clip(RoundedCornerShape(StoryArcRadius.md))
+            .background(palette.surfaceRaised)
+            .testTag(KAVITA_PLACEHOLDER_TAG),
+    )
+}
+
+/** What a placeholder row or cell is tagged with, for `KavitaWaitingTest` to find. */
+const val KAVITA_PLACEHOLDER_TAG = "kavita.placeholder"
 
 @Composable
 private fun LibraryRow(name: String, onOpen: () -> Unit) {
