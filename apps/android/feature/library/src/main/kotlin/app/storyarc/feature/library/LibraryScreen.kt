@@ -738,12 +738,14 @@ private fun Shelf(
         // `library-browsing`: a series is one cell. See [ShelfRows].
         val rows = rememberShelfRows(publications, groups.isNotEmpty(), selection.isActive, grouping)
         val shelved = rows.shelved
+        // What is drawn, which the headings are cut for too. See [libraryFallsBackToList].
+        val drawn =
+            if (libraryFallsBackToList(layout, LocalDensity.current.fontScale)) LibraryLayout.LIST else layout
         // The headings and the alphabet, which move together. See [ShelfDivision].
-        val (sections, rail) = rememberShelfDivision(shelved, query, groups, layout, locale)
+        val (sections, rail) = rememberShelfDivision(shelved, query, groups, drawn, locale)
         val narrowing = query.isNarrowed || selection.isActive ||
             availability.isNarrowing || downloads.isActive
-        val fontScale = LocalDensity.current.fontScale
-        if (!libraryFallsBackToList(layout, fontScale)) {
+        if (drawn == LibraryLayout.GRID) {
             CoverGrid(
                 publications = shelved,
                 viewModel = viewModel,
