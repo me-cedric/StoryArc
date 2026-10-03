@@ -63,6 +63,12 @@ class ThumbnailBrowserTest {
                 " they are holding.",
             code(STRIP_SOURCE).contains("items(pageCount)"),
         )
+        assertTrue(
+            "The carousel is no longer built over `pageCount`. `comic-reader` requires" +
+                " \"every page … shown\", and `items(pageCount)` above is the wide window's" +
+                " grid, not the carousel.",
+            code(STRIP_SOURCE).contains("rememberPagerState(initialPage = initialSlot) { pageCount }"),
+        )
     }
 
     /**
@@ -120,6 +126,33 @@ class ThumbnailBrowserTest {
                 " display slot. `page-browser-carousel`: \"the carousel runs right to left," +
                 " with page one at the right end\".",
             code(STRIP_SOURCE).contains("ChapterBrowser.displayIndex("),
+        )
+    }
+
+    @Test
+    fun `a neighbour's page number keeps its size, in a colour the sheet can show`() {
+        val strip = code(STRIP_SOURCE)
+        assertTrue(
+            "The carousel scales the whole cell again. Scaled with its page, a neighbour's" +
+                " number draws at 62.5% of its size, under the type scale's smallest step.",
+            strip.contains("imageModifier = Modifier.graphicsLayer"),
+        )
+        assertTrue(
+            "The carousel's page numbers are white again. The carousel sits on the menu" +
+                " sheet, which is light in a light theme, so white numbers do not show.",
+            strip.contains("numberColor = palette.textTertiary"),
+        )
+    }
+
+    @Test
+    fun `each cell is announced as its page and its chapter`() {
+        val strip = code(STRIP_SOURCE)
+        assertTrue(
+            "A cell no longer announces its chapter. `page-browser-carousel`: TalkBack" +
+                " \"announces the page number and, when the publication has chapter markers," +
+                " the chapter name\".",
+            strip.contains("\"\$pageLabel, \$chapterName\"") &&
+                strip.contains("this.contentDescription = contentDescription"),
         )
     }
 
