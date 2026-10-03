@@ -113,4 +113,17 @@ public struct PlaybackTimeline: Sendable, Equatable {
         let last = parts.count - 1
         return PlaybackPlace(partIndex: last, offset: parts[last].duration ?? 0)
     }
+
+    /// Where playback continues after the part at `index` fails to decode mid-playback, or
+    /// `nil` when there is none.
+    ///
+    /// Task 16.5, `publication-formats`: a damaged audiobook "plays what it can and states
+    /// how much it could not", by the same rule that opens a comic missing pages. The next
+    /// part is always the answer — this book has no notion of retrying the one that just
+    /// failed — so the rule is a single step, asserted here because ``NarratedSource`` is
+    /// the engine a test cannot reach.
+    public func afterDecodeFailure(atPart index: Int) -> Int? {
+        let next = index + 1
+        return parts.indices.contains(next) ? next : nil
+    }
 }

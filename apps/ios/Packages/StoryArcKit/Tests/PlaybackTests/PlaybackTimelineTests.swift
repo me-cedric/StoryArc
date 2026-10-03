@@ -114,6 +114,20 @@ struct PlaybackTimelineTests {
         #expect(landed?.offset == 60, "the last part's own length, not a time in a part that does not exist")
     }
 
+    // MARK: - A part that fails mid-playback (16.5)
+
+    @Test("A failed part is followed by the next one")
+    func afterDecodeFailureMovesOn() {
+        #expect(chaptered.afterDecodeFailure(atPart: 0) == 1)
+        #expect(folder.afterDecodeFailure(atPart: 1) == 2)
+    }
+
+    @Test("A failed last part ends the book, not a part past the end")
+    func afterDecodeFailureOnTheLastPartEndsTheBook() {
+        #expect(chaptered.afterDecodeFailure(atPart: 2) == nil)
+        #expect(folder.afterDecodeFailure(atPart: 2) == nil)
+    }
+
     // MARK: - What the player is handed
 
     @Test("The parts a player draws carry the duration and drop the file")
