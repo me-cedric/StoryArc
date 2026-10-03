@@ -129,6 +129,8 @@ public struct RarComicArchive: ComicArchiveReading {
         PageDeclarations.chapterStarts(of: pages, declared: comicInfo?.chapterStartIndices ?? [])
     }
 
+    public var chapterTitles: [Int: String] { comicInfo?.chapterTitles ?? [:] }
+
     public func data(for page: PageEntry) async throws -> Data {
         guard let entry = pathToEntry[page.path] else { throw ComicArchiveError.unreadable }
         if entry.isStored { return try await reader.data(for: entry) }

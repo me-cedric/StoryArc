@@ -34,6 +34,12 @@ public protocol ComicArchiveReading: Sendable {
     /// this is where they find where to. `ComicInfo`'s `Bookmark` attribute, for a
     /// container that carries one.
     var chapterStartIndices: [Int] { get }
+    /// The chapter's own name, by the page in ``chapterStartIndices`` it starts at.
+    ///
+    /// `page-browser-carousel`: the carousel names the centred page's chapter from
+    /// "the marker's title". A start with no entry here has no title, and the browser
+    /// falls back to its position among the chapters.
+    var chapterTitles: [Int: String] { get }
 }
 
 extension ComicArchiveReading {
@@ -41,6 +47,7 @@ extension ComicArchiveReading {
     /// Nothing, for a container that carries no metadata to declare it with.
     public var doublePageIndices: [Int] { [] }
     public var chapterStartIndices: [Int] { [] }
+    public var chapterTitles: [Int: String] { [:] }
 }
 
 /// Resolves what `ComicInfo.xml` says about individual pages.
@@ -175,6 +182,8 @@ public struct ZipComicArchive: ComicArchiveReading {
         PageDeclarations.chapterStarts(of: pages, declared: comicInfo?.chapterStartIndices ?? [])
     }
 
+    public var chapterTitles: [Int: String] { comicInfo?.chapterTitles ?? [:] }
+
     public func data(for page: PageEntry) async throws -> Data {
         guard let entry = pathToEntry[page.path] else { throw ComicArchiveError.unreadable }
         return try await reader.data(for: entry)
@@ -258,6 +267,8 @@ public struct TarComicArchive: ComicArchiveReading {
     public var chapterStartIndices: [Int] {
         PageDeclarations.chapterStarts(of: pages, declared: comicInfo?.chapterStartIndices ?? [])
     }
+
+    public var chapterTitles: [Int: String] { comicInfo?.chapterTitles ?? [:] }
 
     public func data(for page: PageEntry) async throws -> Data {
         guard let entry = pathToEntry[page.path] else { throw ComicArchiveError.unreadable }

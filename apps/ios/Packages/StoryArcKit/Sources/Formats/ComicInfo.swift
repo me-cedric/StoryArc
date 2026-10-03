@@ -72,6 +72,14 @@ public struct ComicInfo: Sendable, Equatable {
     /// way `doublePageIndices` is: a cataloguer's own mark, not a guess.
     public let chapterStartIndices: [Int]
 
+    /// The `Bookmark` attribute's own text, by the page it marks.
+    ///
+    /// `page-browser-carousel` names the chapter above the carousel from "the marker's
+    /// title" — which for a comic archive is whatever the cataloguer wrote in
+    /// `Bookmark="…"`. A page in ``chapterStartIndices`` with no entry here had a
+    /// `Bookmark` attribute that was present but blank, which is already excluded above.
+    public let chapterTitles: [Int: String]
+
     /// The direction the reader should open in.
     ///
     /// Resolved with the domain's own rule so the format layer does not get a
@@ -129,13 +137,17 @@ public struct ComicInfo: Sendable, Equatable {
         var cover: Int?
         var spreads: [Int] = []
         var chapters: [Int] = []
+        var titles: [Int: String] = [:]
         for attributes in Self.pageElements(in: text) {
             guard let index = attributes["Image"].flatMap(Int.init) else { continue }
             if attributes["Type"] == "FrontCover", cover == nil { cover = index }
             if attributes["DoublePage"]?.lowercased() == "true" { spreads.append(index) }
-            if let bookmark = attributes["Bookmark"],
-               !bookmark.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                chapters.append(index)
+            if let bookmark = attributes["Bookmark"] {
+                let trimmed = bookmark.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    chapters.append(index)
+                    titles[index] = trimmed
+                }
             }
         }
         // Index 0 is the default, so designating it carries no information and is
@@ -143,6 +155,7 @@ public struct ComicInfo: Sendable, Equatable {
         self.coverPageIndex = cover == 0 ? nil : cover
         self.doublePageIndices = spreads.sorted()
         self.chapterStartIndices = chapters.sorted()
+        self.chapterTitles = titles
     }
 
     // MARK: - Minimal XML reading
