@@ -50,6 +50,15 @@ enum KavitaContributor {
         /// refresh of a source is a pull's other caller, and it has no reason to ask
         /// the server the same question twice.
         let chapters: [KavitaChapter]
+        /// Series on this page whose volumes call failed and was skipped, so nothing of
+        /// theirs is in ``slice`` or ``chapters``.
+        ///
+        /// A continuation page is asked for once: nothing here re-asks for this page
+        /// later, so a series that fails here would otherwise be lost until the whole
+        /// first-slice-and-continuation read starts over. ``retry(source:client:seriesIDs:store:)``
+        /// is the second chance — a caller keeps this list (``KavitaFailedSeriesStore`` does)
+        /// and feeds it back in on a later read.
+        var failedSeriesIDs: [Int] = []
     }
 
     static func page(
@@ -61,11 +70,15 @@ enum KavitaContributor {
         let series = try await client.recentSeries(page: page, size: firstSlice)
         var found: [Publication] = []
         var chapters: [KavitaChapter] = []
+        var failed: [Int] = []
         // Every chapter this read sees, so a reading list or a mark reaches Kavita for a
         // row the reader has only ever seen on a shelf — see ``KavitaProgressStore/rememberCatalog(_:)``.
         var origins: [String: KavitaOrigin] = [:]
         for each in series {
-            let volumes = (try? await client.volumes(ofSeries: each.id)) ?? []
+            guard let volumes = await retriedOnceOrNil({ try await client.volumes(ofSeries: each.id) }) else {
+                failed.append(each.id)
+                continue
+            }
             let status = volumes.isEmpty ? nil : await seriesStatus(client: client, series: each.id)
             for volume in volumes {
                 for chapter in volume.chapters {
@@ -83,8 +96,66 @@ enum KavitaContributor {
         return Page(
             slice: SourceSlice(publications: found, holdsMore: series.count >= firstSlice),
             seriesRead: series.count,
-            chapters: chapters
+            chapters: chapters,
+            failedSeriesIDs: failed
         )
+    }
+
+    /// `fetch`, retried once on failure, or `nil` when both attempts failed.
+    ///
+    /// A single `try?` reads a failure and an empty success alike — both come back `[]` —
+    /// which is exactly what used to lose a series whose volumes call kept failing: nothing
+    /// downstream could tell "skip this one, it never comes back on its own" from "this one
+    /// has nothing to show". ``page(source:client:page:store:)`` uses this instead, so a
+    /// failure stays a failure all the way to ``RetryResult`` and
+    /// ``retry(source:client:seriesIDs:store:)`` gets another chance at it. Android's
+    /// `retriedOnceOrNull` is the same function.
+    static func retriedOnceOrNil<T>(_ fetch: () async throws -> [T]) async -> [T]? {
+        if let first = try? await fetch() { return first }
+        return try? await fetch()
+    }
+
+    /// What one retry pass over `KavitaFailedSeriesStore`'s pending series produced.
+    struct RetryResult {
+        /// What a series that now answers put in the library.
+        let publications: [Publication]
+        /// Series that still failed, and so are still pending for the next pass.
+        let stillFailed: [Int]
+    }
+
+    /// Gives every series in `seriesIDs` one more try, instead of leaving it lost until the
+    /// whole first-slice-and-continuation read starts over.
+    ///
+    /// Asked for by id rather than walked by page: `seriesIDs` came from pages this source
+    /// already read past, so re-reading the page they were on would also re-read everything
+    /// around them that already succeeded. `Series/{id}` is the one request this needs per
+    /// series, the same route a reader's own tap on a search result already uses.
+    static func retry(
+        source: UUID,
+        client: KavitaClient,
+        seriesIDs: Set<Int>,
+        store: KavitaProgressStore = KavitaProgressStore()
+    ) async -> RetryResult {
+        var publications: [Publication] = []
+        var origins: [String: KavitaOrigin] = [:]
+        var stillFailed: [Int] = []
+        for id in seriesIDs {
+            guard let series = try? await client.seriesDetail(id),
+                  let volumes = await retriedOnceOrNil({ try await client.volumes(ofSeries: series.id) })
+            else {
+                stillFailed.append(id)
+                continue
+            }
+            let status = volumes.isEmpty ? nil : await seriesStatus(client: client, series: series.id)
+            for volume in volumes {
+                origins.merge(catalogOrigins(source: source, series: series, volume: volume)) { _, new in new }
+                for chapter in volume.chapters {
+                    publications.append(publication(source: source, series: series, chapter: chapter, status: status))
+                }
+            }
+        }
+        store.rememberCatalog(origins)
+        return RetryResult(publications: publications, stillFailed: stillFailed)
     }
 
     /// The chapters of a server's most recently added series, as publications.

@@ -4,9 +4,18 @@ import androidx.lifecycle.viewModelScope
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
+import app.storyarc.core.persistence.KavitaFailedSeriesStore
 import app.storyarc.core.persistence.KavitaProgressStore
+import app.storyarc.core.persistence.SourceReadProgressStore
+import app.storyarc.core.persistence.StoredSourceProgress
 import java.util.UUID
 import kotlinx.coroutines.launch
+
+/** [SourceReadProgress] as [SourceReadProgressStore] keeps it on disk. */
+private fun SourceReadProgress.stored() = StoredSourceProgress(read, total, nextPage)
+
+/** [StoredSourceProgress] as the continuation loop keeps it in memory. */
+private fun StoredSourceProgress.live() = SourceReadProgress(read, total, nextPage)
 
 /**
  * How far a partial source's continued read has gone, for the source detail screen's
@@ -23,25 +32,75 @@ fun LibraryViewModel.readProgress(sourceId: UUID): SourceReadProgress? = partial
  * already at page nine with a fresh "page two" would be the continuation rewinding itself
  * every time the reader pulls down. Here rather than inside `readServers()` because that
  * file is over its line cap and may not grow.
+ *
+ * **A source new to this process, but not new to the device, resumes from
+ * [SourceReadProgressStore] rather than from [SourceReadProgress.started].** Before this
+ * store existed, [partialSources] held the only copy of where a continuation stood, so a
+ * relaunch forgot it and every source paid for its whole continuation again from page two --
+ * `sources`' *More from a source than the library holds* asks for progress that survives
+ * exactly that.
  */
 internal fun LibraryViewModel.adoptPartialSources(partial: Set<UUID>) {
+    val store = SourceReadProgressStore.open(getApplication())
     for (sourceId in partial) {
         if (partialSources[sourceId] == null) {
-            // Exact, not a guess: a page that reported `holdsMore` asked for at most its
-            // kind's own limit and got a full page back, by `SourceSlice`'s own rule.
-            val firstSliceRead = when (_registry.value.sources.firstOrNull { it.id == sourceId }?.kind) {
-                SourceKind.KAVITA_SERVER -> KavitaContributor.FIRST_SLICE
-                SourceKind.NETWORK_SHARE -> SmbContributor.FIRST_SLICE
-                // A catalogue's first slice is one feed page, whatever size the server
-                // chose -- nothing here names that number, and nothing yet continues an
-                // OPDS read past it, so there is no total to divide it into either.
-                SourceKind.OPDS_CATALOG, SourceKind.LOCAL_FOLDER, null -> 0
-            }
-            partialSources = partialSources + (sourceId to SourceReadProgress.started(firstSliceRead))
+            val resumed = store.progress(sourceId)?.live()
+            partialSources = partialSources + (sourceId to (resumed ?: SourceReadProgress.started(firstSliceFor(sourceId))))
         }
     }
+    // A source this read did not report partial has either finished (land() already cleared
+    // its entry, store included) or is gone from the registry altogether -- either way
+    // nothing should keep asking disk about it.
+    for (sourceId in partialSources.keys - partial) store.clear(sourceId)
     partialSources = partialSources.filterKeys { it in partial }
     continueReadingServers()
+    retryFailedKavitaSeries()
+}
+
+/**
+ * Exact, not a guess: a page that reported `holdsMore` asked for at most its kind's own
+ * limit and got a full page back, by [SourceSlice]'s own rule.
+ */
+private fun LibraryViewModel.firstSliceFor(sourceId: UUID): Int =
+    when (_registry.value.sources.firstOrNull { it.id == sourceId }?.kind) {
+        SourceKind.KAVITA_SERVER -> KavitaContributor.FIRST_SLICE
+        SourceKind.NETWORK_SHARE -> SmbContributor.FIRST_SLICE
+        // A catalogue's first slice is one feed page, whatever size the server chose --
+        // nothing here names that number, and nothing yet continues an OPDS read past it,
+        // so there is no total to divide it into either.
+        SourceKind.OPDS_CATALOG, SourceKind.LOCAL_FOLDER, null -> 0
+    }
+
+/**
+ * Gives every Kavita series that failed an earlier page one more try, on every read rather
+ * than only while its source is still paging.
+ *
+ * A series can fail after its source's continuation has already finished -- the page it was
+ * on reached the end and moved [partialSources] on -- and `continueReadingServers()` only
+ * drives a source this map still holds. Running here instead, from the same place that
+ * seeds a fresh continuation, means a failed series keeps getting asked for on every launch
+ * and every pull, which is what keeps task 22.1's own correction true: "still lost until the
+ * next full read" stops being true the moment there is always a next one.
+ */
+internal fun LibraryViewModel.retryFailedKavitaSeries() {
+    val failedStore = KavitaFailedSeriesStore.open(getApplication())
+    for (source in _registry.value.sources) {
+        if (source.kind != SourceKind.KAVITA_SERVER) continue
+        val pending = failedStore.pending(source.id)
+        if (pending.isEmpty()) continue
+        val page = KavitaPage.of(source, credentials) ?: continue
+        viewModelScope.launch {
+            val kavita = KavitaProgressStore.open(getApplication())
+            val result = KavitaContributor.retry(source.id, KavitaClient(page.address), pending, kavita)
+            if (result.publications.isNotEmpty()) {
+                result.publications.forEach { adopt(it, source.id) }
+                rebuild()
+                cacheLibrary(claimsFreshness = false)
+            }
+            val stillFailed = result.stillFailed.toSet()
+            if (stillFailed != pending) failedStore.record(source.id, stillFailed)
+        }
+    }
 }
 
 /**
@@ -79,7 +138,11 @@ private suspend fun LibraryViewModel.continueReadingKavita(source: Source, clien
     if (partialSources[source.id]?.total == null) {
         val all = runCatching { client.series() }.getOrNull()
         if (all != null) {
-            partialSources[source.id]?.let { partialSources = partialSources + (source.id to it.copy(total = all.size)) }
+            partialSources[source.id]?.let {
+                val withTotal = it.copy(total = all.size)
+                partialSources = partialSources + (source.id to withTotal)
+                SourceReadProgressStore.open(getApplication()).record(source.id, withTotal.stored())
+            }
         }
     }
     val kavita = KavitaProgressStore.open(getApplication())
@@ -91,19 +154,35 @@ private suspend fun LibraryViewModel.continueReadingKavita(source: Source, clien
 }
 
 /**
- * Merges one page into the library and into the shelf snapshot, and stores where the read
- * now stands.
+ * Merges one page into the library and into the shelf snapshot, stores where the read now
+ * stands, and remembers any series this page could not read so [retryFailedKavitaSeries]
+ * gets another chance at it.
  *
  * The snapshot is written here as well as by `readServers()`, because a page merged only in
  * memory is gone at the next launch -- the task asks for each page in "the library and the
  * shelf snapshot as it arrives". It does not claim the shelf is fresh, for the reason
  * `readServers()` gives for its own write.
+ *
+ * Progress is written to [SourceReadProgressStore] here, not only kept in
+ * [LibraryViewModel.partialSources]: this is the one place every page this source's
+ * continuation ever lands passes through, continuing or finished alike.
  */
 private fun LibraryViewModel.land(sourceId: UUID, page: KavitaContributor.Page, step: SourceReadStep) {
     page.slice.publications.forEach { adopt(it, sourceId) }
+    if (page.failedSeriesIds.isNotEmpty()) {
+        val failedStore = KavitaFailedSeriesStore.open(getApplication())
+        failedStore.record(sourceId, failedStore.pending(sourceId) + page.failedSeriesIds)
+    }
+    val store = SourceReadProgressStore.open(getApplication())
     partialSources = when (step) {
-        is SourceReadStep.Continuing -> partialSources + (sourceId to step.progress)
-        else -> partialSources - sourceId
+        is SourceReadStep.Continuing -> {
+            store.record(sourceId, step.progress.stored())
+            partialSources + (sourceId to step.progress)
+        }
+        else -> {
+            store.clear(sourceId)
+            partialSources - sourceId
+        }
     }
     rebuild()
     cacheLibrary(claimsFreshness = false)

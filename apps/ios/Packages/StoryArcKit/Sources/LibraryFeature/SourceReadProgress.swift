@@ -1,4 +1,5 @@
 internal import Foundation
+internal import Persistence
 
 /// Where a source's continued read stands: how much of it has been merged so far, how much
 /// more there is when the count is known, and which page answers next.
@@ -22,6 +23,29 @@ struct SourceReadProgress: Equatable {
     static func started(firstSliceRead: Int) -> SourceReadProgress {
         SourceReadProgress(read: firstSliceRead, total: nil, nextPage: 2)
     }
+
+    /// Where a source's continuation resumes from: what ``SourceReadProgressStore`` already
+    /// has for it, or a fresh start at its own first slice.
+    ///
+    /// `sources`' *More from a source than the library holds*: before this existed, a source
+    /// new to this process always meant ``started(firstSliceRead:)``, because nothing kept
+    /// a continuation's place anywhere but ``LibraryModel/partialSources``, in memory. A free
+    /// function beside the type, so a test can prove it against an isolated store without a
+    /// `LibraryModel` — `SourceReadProgressResumingTests` is that reach. Android's own
+    /// `adoptPartialSources` makes the same choice, inline.
+    static func resuming(
+        from store: SourceReadProgressStore,
+        source sourceID: UUID,
+        firstSliceRead: Int
+    ) -> SourceReadProgress {
+        store.progress(for: sourceID).map { SourceReadProgress(read: $0.read, total: $0.total, nextPage: $0.nextPage) }
+            ?? .started(firstSliceRead: firstSliceRead)
+    }
+}
+
+/// ``SourceReadProgress`` as ``SourceReadProgressStore`` keeps it on disk.
+extension SourceReadProgress {
+    var stored: StoredSourceProgress { StoredSourceProgress(read: read, total: total, nextPage: nextPage) }
 }
 
 /// What one more page does to a source's progress.

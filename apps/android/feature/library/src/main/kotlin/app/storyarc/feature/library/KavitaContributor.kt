@@ -82,6 +82,16 @@ internal object KavitaContributor {
          * caller, and it has no reason to ask the server the same question twice.
          */
         val chapters: List<KavitaChapter>,
+        /**
+         * Series on this page whose volumes call failed twice and was skipped, so nothing
+         * of theirs is in [slice] or [chapters].
+         *
+         * A continuation page is asked for once: nothing here re-asks for this page later,
+         * so a series that fails here would otherwise be lost until the whole first-slice-
+         * and-continuation read starts over. [retry] is the second chance -- a caller keeps
+         * this list (`KavitaFailedSeriesStore` does) and feeds it back in on a later read.
+         */
+        val failedSeriesIds: List<Int> = emptyList(),
     )
 
     /**
@@ -98,8 +108,13 @@ internal object KavitaContributor {
         val series = client.recentSeries(page = page, size = FIRST_SLICE)
         val chapters = mutableListOf<KavitaChapter>()
         val origins = mutableMapOf<String, KavitaOrigin>()
+        val failed = mutableListOf<Int>()
         val publications = series.flatMap { each ->
-            val volumes = retriedOnce { client.volumes(each.id) }
+            val volumes = retriedOnceOrNull { client.volumes(each.id) }
+            if (volumes == null) {
+                failed += each.id
+                return@flatMap emptyList()
+            }
             val status = if (volumes.isEmpty()) null else seriesStatus(client, each.id)
             volumes.flatMap { volume ->
                 chapters += volume.chapters
@@ -116,7 +131,53 @@ internal object KavitaContributor {
             slice = SourceSlice(publications, holdsMore = series.size >= FIRST_SLICE),
             seriesRead = series.size,
             chapters = chapters,
+            failedSeriesIds = failed,
         )
+    }
+
+    /** What one retry pass over [KavitaFailedSeriesStore]'s pending series produced. */
+    data class RetryResult(
+        /** What a series that now answers put in the library. */
+        val publications: List<Publication>,
+        /** Series that still failed, and so are still pending for the next pass. */
+        val stillFailed: List<Int>,
+    )
+
+    /**
+     * Gives every series in [seriesIds] one more try, instead of leaving it lost until the
+     * whole first-slice-and-continuation read starts over.
+     *
+     * Asked for by id rather than walked by page: [seriesIds] came from pages this source
+     * already read past, so re-reading the page they were on would also re-read everything
+     * around them that already succeeded. `Series/{id}` is the one request this needs per
+     * series, the same route a reader's own tap on a search result already uses.
+     */
+    suspend fun retry(
+        sourceId: UUID,
+        client: KavitaClient,
+        seriesIds: Set<Int>,
+        store: KavitaProgressStore? = null,
+    ): RetryResult {
+        val publications = mutableListOf<Publication>()
+        val origins = mutableMapOf<String, KavitaOrigin>()
+        val stillFailed = mutableListOf<Int>()
+        for (id in seriesIds) {
+            val series = runCatching { client.seriesDetail(id) }.getOrNull()
+            val volumes = series?.let { retriedOnceOrNull { client.volumes(it.id) } }
+            if (series == null || volumes == null) {
+                stillFailed += id
+                continue
+            }
+            val status = if (volumes.isEmpty()) null else seriesStatus(client, series.id)
+            volumes.forEach { volume ->
+                origins += catalogOrigins(sourceId, series, volume)
+                volume.chapters.forEach { chapter ->
+                    publications += publication(sourceId, series, chapter, status)
+                }
+            }
+        }
+        store?.rememberCatalog(origins)
+        return RetryResult(publications, stillFailed)
     }
 
     /**
@@ -148,7 +209,19 @@ internal object KavitaContributor {
      * attempt makes that test fail by name.
      */
     internal suspend fun <T> retriedOnce(fetch: suspend () -> List<T>): List<T> =
-        runCatching { fetch() }.recoverCatching { fetch() }.getOrDefault(emptyList())
+        retriedOnceOrNull(fetch) ?: emptyList()
+
+    /**
+     * [fetch], retried once on failure, or null when both attempts failed.
+     *
+     * [retriedOnce]'s own default -- empty on failure -- is exactly what loses a series that
+     * still fails after this: empty reads the same as a series that genuinely has no
+     * volumes, so nothing downstream could tell "skip this one, it never comes back on its
+     * own" from "this one has nothing to show". [page] uses this instead, so a failure stays
+     * a failure all the way to [RetryResult] and [retry] gets another chance at it.
+     */
+    internal suspend fun <T> retriedOnceOrNull(fetch: suspend () -> List<T>): List<T>? =
+        runCatching { fetch() }.recoverCatching { fetch() }.getOrNull()
 
     /**
      * The status the server reports for one series, or null when it could not be read.
