@@ -117,7 +117,7 @@ internal fun HostedScreen(
             address = screen.page.address,
             path = screen.folder ?: screen.page.address.path,
             onEnter = { folder -> host.navigate { push(screen.copy(folder = folder)) } },
-            onOpen = host.open,
+            onOpen = { publication, path -> host.open(screen.page.filing(publication), path) },
             onBack = back,
         )
 

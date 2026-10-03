@@ -30,6 +30,7 @@ extension LibraryModel {
         // down: `readServers()` was reachable only from that gesture and from a source's
         // own retry button. Android has always called it here.
         Task { await readServers() }
+        watchSourceReachability()
         guard let bookmarks else {
             scan(documentsFolder)
             return

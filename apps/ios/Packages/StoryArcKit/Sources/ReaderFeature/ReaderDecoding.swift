@@ -276,8 +276,11 @@ extension ReaderModel {
 
         guard let archive else { return .unread }
         let page = pages[index]
+        let sourceID = publication.sourceID
         return await Task.detached(priority: .userInitiated) {
-            guard let data = try? await archive.data(for: page) else { return .unread }
+            guard let data = await Self.pageData(of: page, in: archive, sourceID: sourceID) else {
+                return .unread
+            }
             guard let image = try? PageDecoder.decode(data, maxPixelSize: size) else {
                 return .refused(codec: PageCodec.name(of: data, path: page.path))
             }

@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.storyarc.core.model.Publication
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
@@ -263,4 +264,16 @@ data class SmbPage(val id: String, val title: String, val address: SmbAddress) {
             return SmbPage(source.id.toString(), source.displayName, address)
         }
     }
+
+    /**
+     * A publication opened from this share's own browser, filed under the share, so that a
+     * reader that loses the share can say which source went (`network-share`'s *Network
+     * changes*). One already filed keeps its own source.
+     */
+    fun filing(publication: Publication): Publication =
+        if (publication.sourceId != null) {
+            publication
+        } else {
+            publication.copy(sourceId = runCatching { UUID.fromString(id) }.getOrNull())
+        }
 }
