@@ -75,6 +75,9 @@ final class SpokenSource: PlaybackSource, PublicationSpeechSynthesizerDelegate {
     private var hasStarted = false
     /// The sentence last reported, so a per-word state change is not a per-word redraw.
     private var spoken: Locator?
+    /// Set by ``stopAtSentenceEnd()``: the next sentence this reaches, rather than being
+    /// spoken, is where the voice goes silent. See ``reached(_:)``.
+    private var stoppingAtSentenceEnd = false
 
     init(
         speaking speech: PublicationSpeechSynthesizer,
@@ -114,6 +117,22 @@ final class SpokenSource: PlaybackSource, PublicationSpeechSynthesizerDelegate {
     }
 
     func setSpeed(_ speed: PlaybackSpeed) { voice.speak(at: speed) }
+
+    /// D19: a voice fades "in steps across the last 10 seconds" rather than smoothly, because
+    /// `AVSpeechUtterance.volume` applies to the utterance it is set on, not the one already
+    /// speaking — so each sentence spoken during the fade is a little quieter than the last,
+    /// and ``PlayerSleep/tickSleepTimer(by:)`` is what calls this once a tick.
+    func setVolume(_ gain: Double) { voice.setVolume(gain) }
+
+    /// D19: the sleep timer "stops at the end of the current sentence", not mid-word.
+    /// ``PublicationSpeechSynthesizer`` has no sentence-aware pause, so this waits for the
+    /// moment the engine itself reports starting the *next* sentence — the earliest point
+    /// this can act without cutting the one already playing — and silences it there. See
+    /// ``reached(_:)``.
+    func stopAtSentenceEnd() {
+        guard hasStarted else { return pause() }
+        stoppingAtSentenceEnd = true
+    }
 
     /// Moves to a part, which for a publication read aloud is one resource of its reading
     /// order — the chapter list's own rows.
@@ -207,6 +226,13 @@ final class SpokenSource: PlaybackSource, PublicationSpeechSynthesizerDelegate {
     /// not changed.
     private func reached(_ locator: Locator) {
         guard locator != spoken else { return }
+        if stoppingAtSentenceEnd {
+            // The sentence that was playing when the timer elapsed has ended — this is the
+            // next one starting — so this is silenced here rather than spoken.
+            stoppingAtSentenceEnd = false
+            pause()
+            return
+        }
         spoken = locator
         onSentence?(locator)
 

@@ -136,6 +136,23 @@ struct SleepTimerRunningTests {
         #expect(source.calls.contains(.pause))
     }
 
+    /// D19: a voice "stops at the end of the current sentence" rather than mid-word.
+    /// `stopAtSentenceEnd()` is the call that can honour that for a source with no clock to
+    /// pause cleanly against; `pause()` cannot promise it, so elapsing must ask for the one
+    /// that can rather than reaching for the other by habit.
+    @Test("Running out asks a voice to stop at the sentence's end, not mid-word")
+    func runningOutAsksAVoiceToFinishItsSentence() {
+        let (centre, source) = session(.spoken)
+        centre.setSleepTimer(.after(1))
+
+        centre.tickSleepTimer(by: 1)
+
+        #expect(centre.sleep == nil, "the timer is spent, not still counting")
+        #expect(!centre.isPlaying, "the book stopped")
+        #expect(source.calls.contains(.stopAtSentenceEnd))
+        #expect(!source.calls.contains(.pause), "a voice was paused immediately rather than let finish its sentence")
+    }
+
     /// `audio-playback`: "the position at which it stopped is recorded, so resuming starts a
     /// little before it rather than where the fade ended".
     ///

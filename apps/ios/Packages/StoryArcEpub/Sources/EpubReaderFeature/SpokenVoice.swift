@@ -41,6 +41,9 @@ internal import Playback
 final class SpokenVoice: NSObject, AVTTSEngineDelegate, Sendable {
 
     private let rate = Mutex<Float>(SpeechRate.avRate(for: .normal))
+    /// D19's half of the sleep timer's fade: applies to the *next* utterance, exactly as
+    /// ``speak(at:)`` already does for the rate — see ``avTTSEngine(_:didCreateUtterance:)``.
+    private let volume = Mutex<Float>(1)
 
     /// The engine, for `PublicationSpeechSynthesizer(engineFactory:)`.
     ///
@@ -64,7 +67,13 @@ final class SpokenVoice: NSObject, AVTTSEngineDelegate, Sendable {
         rate.withLock { $0 = SpeechRate.avRate(for: speed) }
     }
 
+    /// How loud every utterance from here on is spoken at. See ``SpokenSource/setVolume(_:)``.
+    func setVolume(_ gain: Double) {
+        volume.withLock { $0 = Float(gain) }
+    }
+
     func avTTSEngine(_ engine: AVTTSEngine, didCreateUtterance utterance: AVSpeechUtterance) {
         utterance.rate = rate.withLock { $0 }
+        utterance.volume = volume.withLock { $0 }
     }
 }
