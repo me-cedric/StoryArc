@@ -116,7 +116,9 @@ extension LibraryView {
         return LibrarySections.divide(
             shelved,
             by: model.query.sort,
-            columns: model.layout == .list ? 1 : LibrarySections.coversPerRow,
+            // The drawn layout, so the list fallback cuts headings the way List does.
+            columns: libraryFallsBackToList(stored: model.layout, textSize: textSize)
+                ? 1 : LibrarySections.coversPerRow,
             locale: .storyArc
         )
     }
