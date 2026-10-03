@@ -287,7 +287,11 @@ internal fun ShelfCard(
 ) {
     val palette = LocalStoryArcPalette.current
     var menuOpen by remember { mutableStateOf(false) }
-    val deleteLabel = stringResource(R.string.shelves_delete, title)
+    // 15.11: the accessibility label the long press earns and the menu item a reader sees
+    // used to be the same string, so the menu item inherited a name only the label needed --
+    // iOS's own menu item draws the plain "Delete" this now matches.
+    val deleteRowLabel = stringResource(R.string.shelves_delete_action, title)
+    val deleteMenuLabel = stringResource(R.string.shelves_delete)
     val hasMenu = onDelete != null || onRename != null || isPinned != null
 
     Column(
@@ -296,7 +300,7 @@ internal fun ShelfCard(
             .combinedClickable(
                 onClick = onOpen,
                 onLongClick = if (!hasMenu) null else { { menuOpen = true } },
-                onLongClickLabel = deleteLabel,
+                onLongClickLabel = deleteRowLabel,
             ),
     ) {
         Box {
@@ -340,7 +344,7 @@ internal fun ShelfCard(
                     }
                     if (onDelete != null) {
                         DropdownMenuItem(
-                            text = { Text(deleteLabel) },
+                            text = { Text(deleteMenuLabel) },
                             onClick = {
                                 menuOpen = false
                                 onDelete()

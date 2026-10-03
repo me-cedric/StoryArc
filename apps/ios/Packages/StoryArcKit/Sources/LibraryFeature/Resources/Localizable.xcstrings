@@ -6146,7 +6146,7 @@
       }
     },
     "library.folderUnavailable %@": {
-      "comment": "Names the folder whose permission went stale. local-library requires naming it rather than saying a folder is unavailable.",
+      "comment": "Names the folder whose permission went stale. local-library requires naming it rather than saying a folder is unavailable. one-vocabulary 4.1/15.11, D31: Android's library_folder_unavailable joins several names into one sentence instead of quoting one; two notice shapes for two different jobs, not two words for one.",
       "extractionState": "manual",
       "localizations": {
         "de": {

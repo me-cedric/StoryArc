@@ -27,6 +27,11 @@
     <string name="reader_end_download_will_be_removed">This download will be removed when you close the reader.</string>
     <string name="reader_end_keep_download">Keep</string>
     <string name="reader_fit">Fit</string>
+    <!-- one-vocabulary 4.1/15.11, D31: both platforms label this group "Fit" (reader_fit /
+         reader.fit above), and each platform's own convention decides what its items repeat
+         under it. Material's menu items are self-descriptive on their own, so these four
+         repeat "Fit to"; the Apple HIG terms iOS groups under one disclosed header do not,
+         see reader.fit.screen/.width/.height/.original. Not a value divergence. -->
     <string name="reader_fit_screen">Fit to screen</string>
     <string name="reader_fit_width">Fit to width</string>
     <string name="reader_fit_height">Fit to height</string>

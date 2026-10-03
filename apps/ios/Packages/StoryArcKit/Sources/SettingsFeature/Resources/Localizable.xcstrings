@@ -3628,7 +3628,8 @@
             "value": "L’apparence, les préférences de lecture et les réglages par défaut des nouvelles séries reviennent à leur état initial. Vos bibliothèques, téléchargements, progression de lecture et les thèmes choisis pendant la lecture ne sont pas touchés."
           }
         }
-      }
+      },
+      "comment": "one-vocabulary 4.1/15.11, D31: the same words as Android's settings_reset_body, which breaks them into two paragraphs. A confirmation body that stopped at \"No files\" at the largest text size does not scroll, so the blank line is not free here. A presentation difference, not a wording one."
     },
     "settings.reset.confirm": {
       "extractionState": "manual",
@@ -4999,7 +5000,8 @@
             "value": "Retirer %@ ?"
           }
         }
-      }
+      },
+      "comment": "one-vocabulary 4.1/15.11, D31: Android's confirmation titles name the source (sources_remove_title, sources_remove_downloads_title); iOS's do not. Reconciling would change a convention on both keys and an iOS Swift signature, which is a code change rather than a wording one -- left as each platform's own convention."
     },
     "sources.removeDownloads.body %@": {
       "extractionState": "manual",
@@ -5057,7 +5059,8 @@
             "value": "Supprimer les téléchargements ?"
           }
         }
-      }
+      },
+      "comment": "one-vocabulary 4.1/15.11, D31: Android names the source here too (sources_remove_downloads_title) and iOS does not, the same divergence as sources.remove.title beside it. Reconciling changes a convention on both keys and an iOS Swift signature."
     },
     "sources.rename": {
       "extractionState": "manual",
