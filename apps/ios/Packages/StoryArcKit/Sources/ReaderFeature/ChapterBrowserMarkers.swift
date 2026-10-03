@@ -84,10 +84,16 @@ enum ChapterBrowser {
         let sorted = markers.sorted { $0.index < $1.index }
         guard let position = sorted.firstIndex(where: { $0.index == index }) else { return nil }
         let marker = sorted[position]
-        if let title = marker.title, !title.isEmpty, title.allSatisfy(\.isNumber) {
-            return "#\(title)"
-        }
+        if let number = marker.title.flatMap(issueNumber(in:)) { return "#\(number)" }
         return "#\(position + 1)"
+    }
+
+    /// The issue number a marker's title gives: the whole title when it is only digits,
+    /// or a trailing "#4", as in "Green Lantern (2005) #4".
+    static func issueNumber(in title: String) -> String? {
+        if !title.isEmpty, title.allSatisfy(\.isNumber) { return title }
+        guard let range = title.range(of: #"#\s*\d+\s*$"#, options: .regularExpression) else { return nil }
+        return title[range].filter(\.isNumber)
     }
 
     /// Where each chapter start falls along the slider, as a fraction of its track.
