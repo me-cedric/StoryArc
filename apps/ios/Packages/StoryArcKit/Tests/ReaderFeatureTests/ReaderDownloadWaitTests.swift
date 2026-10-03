@@ -92,6 +92,27 @@ struct ReaderDownloadWaitTests {
         #expect(fixture.model.failure != nil)
     }
 
+    @Test("The wait ends as the ordinary failure when the download fails after it began",
+          .timeLimit(.minutes(1)))
+    func waitEndsWhenTheDownloadFails() async throws {
+        let fixture = try fixture()
+        defer { fixture.store.reset() }
+
+        await fixture.model.open(maxPixelSize: 256, downloadStore: fixture.store)
+        #expect(fixture.model.isWaitingForDownload)
+
+        fixture.store.save(DownloadLibrary(downloads: [
+            Download(
+                id: fixture.id, title: "Waiting Room", remote: fixture.remote, mediaType: Self.cbz,
+                state: .failed(reason: "no network", attempts: 3)
+            ),
+        ]))
+        await fixture.model.adoptTheCopyWhenItArrives(store: fixture.store)
+
+        #expect(fixture.model.isWaitingForDownload == false)
+        #expect(fixture.model.failure != nil)
+    }
+
     @Test("The watch opens the local copy directly once it lands, with nothing to adopt into",
           .timeLimit(.minutes(1)))
     func watchOpensTheLocalCopyAfterAFailedStream() async throws {

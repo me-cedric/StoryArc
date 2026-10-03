@@ -55,13 +55,7 @@ extension ReaderModel {
                 // and `open(maxPixelSize:)` set `isWaitingForDownload` instead of `failure`
                 // for exactly this reason. There is still nothing to adopt *into*, so the
                 // local copy is opened fresh the moment it lands.
-                if isWaitingForDownload,
-                   let arrived = ReadingAddress.arrived(at: url, in: store.library()),
-                   await openLocalCopyAfterWaiting(
-                       store.location(for: arrived.id, mediaType: arrived.mediaType, title: arrived.title)
-                   ) {
-                    return
-                }
+                if isWaitingForDownload, await endWait(store: store) { return }
                 try? await Task.sleep(for: Self.pollInterval)
                 continue
             }
@@ -87,6 +81,26 @@ extension ReaderModel {
         return reading.adopt(opened)
     }
 
+    /// Ends the wait that `open(maxPixelSize:)` started, or returns `false` while the download
+    /// is still on its way.
+    ///
+    /// The copy that landed opens in place of the stream. A download that failed or was
+    /// removed ends the wait as the ordinary failure: `offline-downloads` marks a failed
+    /// download "failed with a plain-language reason", and a spinner that never stops says
+    /// nothing.
+    private func endWait(store: DownloadStore) async -> Bool {
+        if let arrived = ReadingAddress.arrived(at: url, in: store.library()) {
+            await openLocalCopyAfterWaiting(
+                store.location(for: arrived.id, mediaType: arrived.mediaType, title: arrived.title)
+            )
+            return true
+        }
+        guard !Self.isAwaitingDownload(for: url, store: store) else { return false }
+        isWaitingForDownload = false
+        failure = String(localized: "reader.cannotOpen", bundle: .module, locale: .storyArc)
+        return true
+    }
+
     /// Opens the file that just finished downloading, after the stream never opened at all.
     ///
     /// Unlike ``adopt(_:into:)``, there is no existing archive to swap bytes into — the open
@@ -94,15 +108,13 @@ extension ReaderModel {
     /// path a working stream would have, through ``applyOpenedArchive(_:)``, and always clears
     /// `isWaitingForDownload`: a copy that will not open either is a real failure now that
     /// there is nothing left to wait for.
-    private func openLocalCopyAfterWaiting(_ local: URL) async -> Bool {
+    private func openLocalCopyAfterWaiting(_ local: URL) async {
+        defer { isWaitingForDownload = false }
         guard let opened = try? await ComicArchiveOpener.open(fileAt: local) else {
-            isWaitingForDownload = false
             failure = String(localized: "reader.cannotOpen", bundle: .module, locale: .storyArc)
-            return true
+            return
         }
         await applyOpenedArchive(opened)
-        isWaitingForDownload = false
-        return true
     }
 
     /// Puts a freshly opened archive in place: the page list, the designated cover, a
