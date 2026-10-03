@@ -901,7 +901,7 @@ class LibraryViewModel(
                     // What the server said wins over what the file says, and the card also
                     // names the row this file is a copy of. Both in [DownloadFold.described];
                     // this is the one place every kept download passes through.
-                    val described = DownloadFold.described(publication, cards?.card(publication.id))
+                    val described = DownloadFold.described(publication, cards?.card(publication.id), record)
                     if (adopt(described, record.sourceId, path)) added = true
                 }
             }

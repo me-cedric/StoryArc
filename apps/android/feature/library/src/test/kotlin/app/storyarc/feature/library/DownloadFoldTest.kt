@@ -1,5 +1,6 @@
 package app.storyarc.feature.library
 
+import app.storyarc.core.model.Download
 import app.storyarc.core.model.KavitaCard
 import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.Publication
@@ -144,5 +145,71 @@ class DownloadFoldTest {
             "/data/user/0/app.storyarc/files/downloads/lantern-green-43.cbz",
             linked.identity.normalizedPath,
         )
+    }
+
+    /** What an OPDS catalogue puts on the shelf: a server identifier, and no card at all. */
+    private val opdsRemote = Publication(
+        identity = PublicationIdentity(
+            serverIdentifier = PublicationIdentity.ServerIdentifier(
+                sourceId = source,
+                remoteId = "opds:urn:uuid:bone",
+            ),
+        ),
+        format = PublicationFormat.CBZ,
+        displayTitle = "Bone",
+        origin = MetadataOrigin.AUTHORITATIVE,
+        sourceId = source,
+    )
+
+    /** What [DownloadQueue.downloadId] keys an OPDS download's record under. */
+    private val opdsDownload = Download(
+        id = "opds:$source:urn:uuid:bone",
+        sourceId = source,
+        title = "Bone",
+        remote = "https://catalogue.test/entries/bone",
+        mediaType = "application/vnd.comicbook+zip",
+        state = Download.State.Finished,
+    )
+
+    @Test
+    fun `an OPDS download joins its catalogue row too, with no card at all`() {
+        val linked = DownloadFold.described(downloaded, card = null, record = opdsDownload)
+
+        assertTrue(
+            "The downloaded copy does not match the catalogue row it came from.",
+            linked.identity.matches(opdsRemote.identity),
+        )
+        assertEquals(0, DownloadFold.rowFor(listOf(opdsRemote), linked))
+        // The cached catalogue description is kept -- dl-core 1.4 asks for exactly that --
+        // because no card means nothing overwrites `downloaded`'s own title.
+        assertEquals(downloaded.displayTitle, linked.displayTitle)
+    }
+
+    @Test
+    fun `a download whose id is not the queue's own OPDS shape is left alone`() {
+        val kavita = Download(
+            id = "kavita:$source:3103",
+            sourceId = source,
+            title = "Lantern Green #43",
+            remote = "https://kavita.test/api/download/chapter?chapterId=3103",
+            mediaType = "application/vnd.comicbook+zip",
+            state = Download.State.Finished,
+        )
+
+        assertNull(DownloadFold.opdsIdentity(kavita))
+        assertEquals(downloaded.identity, DownloadFold.described(downloaded, card = null, record = kavita).identity)
+    }
+
+    @Test
+    fun `a download with no source is left alone, because the id carries no source to key on`() {
+        val unscoped = Download(
+            id = "urn:uuid:bone",
+            title = "Bone",
+            remote = "https://catalogue.test/entries/bone",
+            mediaType = "application/vnd.comicbook+zip",
+            state = Download.State.Finished,
+        )
+
+        assertNull(DownloadFold.opdsIdentity(unscoped))
     }
 }
