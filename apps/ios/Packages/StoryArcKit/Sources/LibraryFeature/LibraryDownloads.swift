@@ -70,7 +70,8 @@ extension LibraryModel {
         // place every kept download passes through on its way to the shelf.
         var attributed = DownloadFold.described(
             publication,
-            card: KavitaCardStore().card(of: publication.id)
+            card: KavitaCardStore().card(of: publication.id),
+            record: record
         )
         attributed.sourceID = record.sourceID
 

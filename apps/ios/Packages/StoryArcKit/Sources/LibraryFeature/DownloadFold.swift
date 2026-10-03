@@ -27,13 +27,37 @@ enum DownloadFold {
     ///
     /// `kavita-server` requires the server's description to win over the file's own, which
     /// is what ``KavitaCard/applied(to:)`` does; the identifier is what makes the two one
-    /// row. A card the store does not hold changes neither: a file downloaded from an OPDS
-    /// catalogue, or imported by hand, has no server row to join and no cached description.
-    static func described(_ publication: Publication, card: KavitaCard?) -> Publication {
+    /// row. A card the store does not hold changes neither: a file downloaded by hand has no
+    /// server row to join and no cached description.
+    ///
+    /// - Parameter record: the download this file was landed by, when there is one. dl-core
+    ///   1.4: an OPDS download has no card — Kavita's own bridge — so ``opdsIdentity(for:)``
+    ///   is asked instead, and only when the card did not already answer. Defaulted to `nil`
+    ///   so every existing caller — Kavita's own, and every test that built this claim before
+    ///   an OPDS record was in scope — is unchanged.
+    static func described(_ publication: Publication, card: KavitaCard?, record: Download? = nil) -> Publication {
         var described = card?.applied(to: publication) ?? publication
-        guard let server = card?.remoteIdentity else { return described }
+        guard let server = card?.remoteIdentity ?? record.flatMap(opdsIdentity(for:)) else {
+            return described
+        }
         described.identity = described.identity.recordingServer(server)
         return described
+    }
+
+    /// The server identity an OPDS download's own record implies, or `nil` for a download
+    /// this queue did not key that way.
+    ///
+    /// `OpdsContributor` builds the catalogue row's identifier as `"opds:<entry id>"`, and
+    /// `DownloadQueue/downloadID(for:sourceID:)` keys the record as
+    /// `"opds:<source>:<entry id>"` — the same two parts in a different order, with the
+    /// source written out again. Parsed rather than re-derived from an `OpdsEntry`: adopting
+    /// a download walks the download tree and has no entry to ask, only the record it wrote.
+    static func opdsIdentity(for download: Download) -> PublicationIdentity.ServerIdentifier? {
+        guard let source = download.sourceID else { return nil }
+        let prefix = "opds:\(source.uuidString):"
+        guard download.id.hasPrefix(prefix) else { return nil }
+        let entryID = download.id.dropFirst(prefix.count)
+        return PublicationIdentity.ServerIdentifier(sourceID: source, remoteID: "opds:\(entryID)")
     }
 
     /// Which row on the shelf this file belongs to, or `nil` when it is a new one.
