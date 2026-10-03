@@ -71,6 +71,23 @@ class ReaderDownloadWaitTest {
     }
 
     @Test
+    fun `the wait ends as the ordinary failure when the download fails after it began`() {
+        var isPending = true
+        val model = model(unopenablePath()) { isPending }
+        runBlocking { model.open(256) }
+        assertTrue(model.isWaitingForDownload.value)
+
+        model.endWaitIfDownloadStopped()
+        assertTrue("A download still on its way must keep the wait.", model.isWaitingForDownload.value)
+
+        isPending = false
+        model.endWaitIfDownloadStopped()
+
+        assertFalse(model.isWaitingForDownload.value)
+        assertEquals(R.string.reader_cannot_open, model.failure.value)
+    }
+
+    @Test
     fun `adoptLocalCopy opens the arrived file directly, with nothing to adopt into`() {
         val model = model(unopenablePath()) { true }
         runBlocking {
