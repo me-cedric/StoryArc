@@ -1,6 +1,7 @@
 public import SwiftUI
 
 internal import DesignSystem
+public import CoreGraphics
 public import Playback
 public import StoryArcCore
 
@@ -38,18 +39,22 @@ public extension View {
     ///     `collections-and-reading-lists` task 7.2: the end of an audiobook offers what
     ///     comes next the way the paged reader's own end screen does. `nil` offers nothing.
     ///   - onOpenNext: what happens when the offer is taken.
+    ///   - coverLookup: where the library's own cover for a publication comes from. Task
+    ///     16.10. Defaulted to "no cover", which is what a caller with no library gets.
     func playerSheet(
         isPresented: Binding<Bool>,
         centre: PlayerCentre,
         next: Publication? = nil,
-        onOpenNext: @escaping (Publication) -> Void = { _ in }
+        onOpenNext: @escaping (Publication) -> Void = { _ in },
+        coverLookup: @escaping (Publication, Int) async -> CGImage? = { _, _ in nil }
     ) -> some View {
         modifier(
             PlayerSheetModifier(
                 isPresented: isPresented,
                 centre: centre,
                 next: next,
-                onOpenNext: onOpenNext
+                onOpenNext: onOpenNext,
+                coverLookup: coverLookup
             )
         )
     }
@@ -60,11 +65,12 @@ struct PlayerSheetModifier: ViewModifier {
     let centre: PlayerCentre
     var next: Publication?
     var onOpenNext: (Publication) -> Void = { _ in }
+    var coverLookup: (Publication, Int) async -> CGImage? = { _, _ in nil }
 
     func body(content: Content) -> some View {
         content
             .sheet(isPresented: $isPresented) {
-                FullPlayerView(centre: centre, next: next, onOpenNext: onOpenNext)
+                FullPlayerView(centre: centre, next: next, onOpenNext: onOpenNext, coverLookup: coverLookup)
                     .storyArcTheme()
             }
             // The player closes when the *session* ends for any reason but one.

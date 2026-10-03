@@ -60,6 +60,18 @@ extension LibraryModel {
 
     // MARK: - Covers
 
+    /// A cover already decoded for this publication, with no attempt to decode one.
+    ///
+    /// Task 16.10: the lock screen's artwork is asked for from a synchronous closure
+    /// (``PlayerCentre/onArtwork``) that an `async` fetch cannot reach into, so this is the
+    /// half of ``cover(for:maxPixelSize:)`` that closure can call — the common case, where
+    /// a reader opened the book from a shelf that already drew its cover. `nil` for a book
+    /// the system's own "Up Next" carousel resumed after the process died, which is Android's
+    /// own caveat too (`PlayerArtwork.kt`'s `publication` parameter).
+    public func cachedCover(for publication: Publication) -> CGImage? {
+        covers[publication.id]
+    }
+
     /// The cover for a publication, decoded once and remembered.
     ///
     /// Called by a cell as it appears, which is what makes extraction lazy. A

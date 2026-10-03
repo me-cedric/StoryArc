@@ -248,7 +248,10 @@ extension StoryArcApp {
     /// **Before the first sound rather than after it**: ``PlayerCentre/begin(_:source:)`` asks
     /// `onRecallSpeed` and calls `setSpeed` before `play`, so a listener never hears the
     /// sentence that is about to be announced as the start of a chapter at the wrong pace.
-    static func wirePlayerSpeed(_ preferences: PlaybackPreferences = PlaybackPreferences()) {
+    /// - Parameter library: where the lock screen's artwork asks for a cover already decoded.
+    ///   Task 16.10. A parameter rather than `self.library`, because this is called before
+    ///   `_library` exists — see the call site.
+    static func wirePlayerSpeed(_ preferences: PlaybackPreferences = PlaybackPreferences(), library: LibraryModel) {
         let centre = PlayerCentre.shared
         guard centre.onRecallSpeed == nil else { return }
 
@@ -262,8 +265,16 @@ extension StoryArcApp {
         // `audio-playback`: the system's own media controls get "that same artwork, because a
         // lock screen showing a headphones symbol is the one place a listener looks for an
         // hour". Wired here rather than in `Playback`, which has no SwiftUI and must not.
+        //
+        // The cached half of ``LibraryModel/cover(for:maxPixelSize:)``, not the fetching
+        // half: ``PlayerCentre/onArtwork`` is asked synchronously, from inside a periodic
+        // publish this cannot suspend. The common case is already covered — a reader who
+        // opened the book from a shelf, where the cover was already decoded.
         centre.onArtwork = { book in
-            PlayerArtworkImage.png(format: book.publication.format)
+            PlayerArtworkImage.png(
+                format: book.publication.format,
+                cover: library.cachedCover(for: book.publication)
+            )
         }
     }
 

@@ -35,20 +35,28 @@ public struct FullPlayerView: View {
     /// `collections-and-reading-lists` task 7.2. `nil` offers nothing.
     private let next: Publication?
     private let onOpenNext: (Publication) -> Void
+    /// Where the library's own cover comes from. Task 16.10: the player drew the coverless
+    /// well even for a publication the library had a cover for — an EPUB being read aloud,
+    /// most often, since no audiobook cover is indexed yet (`PublicationIndexer.audiobook`).
+    /// Defaulted to "no cover" so a preview or a test built without a library still compiles.
+    private let coverLookup: (Publication, Int) async -> CGImage?
     @State private var showingChapters = false
     @State private var showingSpeed = false
     @State private var showingSleep = false
     /// The scrub in progress, so dragging does not fight the clock ticking underneath it.
     @State private var scrubbing: TimeInterval?
+    @State private var resolvedCover: CGImage?
 
     public init(
         centre: PlayerCentre,
         next: Publication? = nil,
-        onOpenNext: @escaping (Publication) -> Void = { _ in }
+        onOpenNext: @escaping (Publication) -> Void = { _ in },
+        coverLookup: @escaping (Publication, Int) async -> CGImage? = { _, _ in nil }
     ) {
         self.centre = centre
         self.next = next
         self.onOpenNext = onOpenNext
+        self.coverLookup = coverLookup
     }
 
     public var body: some View {
@@ -103,23 +111,29 @@ public struct FullPlayerView: View {
 
     // MARK: - What is playing
 
-    /// The artwork.
-    ///
-    /// No cover is read out of an audiobook yet — see `PublicationIndexer.audiobook` — so this
-    /// is the coverless treatment every other surface draws, and since the well moved to
-    /// `DesignSystem` it is the same view rather than a second one that resembles it. See
-    /// ``PlayerArtwork``, which is also what the lock screen is given.
+    /// The artwork: the library's own cover when it has one, the coverless treatment every
+    /// other surface draws otherwise. See ``PlayerArtwork``, which is also what the lock
+    /// screen is given.
     @ViewBuilder
     private var cover: some View {
-        if let format = centre.book?.publication.format {
-            PlayerArtwork(format: format)
+        if let book = centre.book {
+            PlayerArtwork(format: book.publication.format, cover: resolvedCover)
                 .frame(maxWidth: 320)
                 // Decoration. The publication is named in words directly below, and a screen
                 // reader that stopped on the format first would hear the kind of thing before
                 // the thing.
                 .accessibilityHidden(true)
+                // Keyed on the id, not the whole book: ``PlayerCentre/book`` is renamed with
+                // every chapter crossed (see its own `naming(_:)`), and re-asking the library
+                // for the same cover on every chapter would be the defect
+                // ``LibraryModel/cover(for:maxPixelSize:)``'s own cache exists to prevent.
+                .task(id: book.publication.id) {
+                    resolvedCover = await coverLookup(book.publication, Int(320 * displayScale))
+                }
         }
     }
+
+    @Environment(\.displayScale) private var displayScale
 
     private var names: some View {
         VStack(spacing: StoryArcSpace.xs) {
