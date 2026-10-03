@@ -10,6 +10,12 @@ is the iPhone 17 Pro simulator (lane `0EAA863A-78F3-4839-A910-0B88071D99C2`), iO
 | `ios-page-browser-right-to-left-dark.png` | PB3.2 | The same comic, right-to-left, in dark appearance, at the medium detent. |
 | `ios-thumbnails-light.png` | PB3.2 | `Fine Print`, a comic with no chapter markers, left-to-right: the carousel draws every page with no chapter name or badge, light appearance. |
 
+| `ios-page-browser-light.png` | PB3.2 | Added at the wave 6b merge, on the iPhone 17 Pro simulator, iOS 26.5. Quiet Machines, left to right, light. Page 1 is centred with its "#1" badge, "Prologue" is above, and the page numbers sit on one line. |
+| `ios-page-browser-swiped-light.png` | PB3.2 | The same walk after one swipe. Page 2 is the large page, the chapter is still "Prologue", and page 5 carries "#4", read from its bookmark "Quiet Machines #4". After a swipe, the large page sits a little left of the middle. |
+| `ios-page-browser-dark.png` | PB3.2 | Left to right, dark. |
+
+Not captured yet: the largest text size, and the Android carousel (task 3.2 stays open).
+
 ## Review correction
 
 The worker's first set also held `ios-page-browser-light.png`, `ios-page-browser-light-swiped.png`
