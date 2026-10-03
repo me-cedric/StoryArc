@@ -502,6 +502,7 @@ class ReaderViewModel(
             // dl-core 1.7: a range-less server throws here. Waits if the download has not
             // itself finished or failed -- `ReaderAdoption.kt` opens the copy once it lands.
             Log.w(TAG, "cannot open this ${publication.format}", cause)
+            reportIfUnreachable(cause)
             if (isDownloadPending()) {
                 _isWaitingForDownload.value = true
             } else {
@@ -571,6 +572,7 @@ class ReaderViewModel(
             }
         } catch (cause: Exception) {
             Log.w(TAG, "cannot open this ${publication.format}", cause)
+            reportIfUnreachable(cause)
             _failure.value = R.string.reader_cannot_open
         }
         _isOpened.value = true
