@@ -314,6 +314,10 @@ struct ReadingListDetail: View {
                     onRestart: { restarting = publication }
                 )
             }
+        } preview: {
+            if let publication {
+                PublicationPreviewCard(publication: publication, model: model)
+            }
         }
         .restartConfirmation($restarting, model: model)
         .refusedByServer($refusedServer, model: model, publication: publication)

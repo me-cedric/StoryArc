@@ -119,6 +119,10 @@ struct CoverCell: View {
                     onRestart: { restarting = publication }
                 )
             }
+        } preview: {
+            if isPicked == nil {
+                PublicationPreviewCard(publication: publication, model: model)
+            }
         }
         // `reading-progress` requires the clear to be confirmed. In a modifier rather than
         // written out here, because `CoverList` offers the same action and a second copy of

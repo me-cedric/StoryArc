@@ -181,6 +181,8 @@ private struct HomeShelfCard: View {
                 onRefused: { server, _ in refusedServer = server },
                 onRestart: { restarting = publication }
             )
+        } preview: {
+            PublicationPreviewCard(publication: publication, model: model)
         }
         .restartConfirmation($restarting, model: model)
         .refusedByServer($refusedServer, model: model, publication: publication)

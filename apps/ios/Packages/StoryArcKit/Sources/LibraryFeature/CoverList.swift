@@ -211,6 +211,10 @@ struct ListRow: View {
                     onRestart: { restarting = publication }
                 )
             }
+        } preview: {
+            if isPicked == nil {
+                PublicationPreviewCard(publication: publication, model: model)
+            }
         }
         // `reading-progress` asks for the action "from the publication's own cover in the
         // library", and the list is the shelf drawn as rows. The confirmation is the same
