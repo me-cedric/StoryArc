@@ -141,7 +141,11 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
     /// without caring which kind it is — ``LibraryQuery/statuses`` asks only whether it is
     /// set. Which kind this is is decided above the model, by whether the publication's own
     /// source ever reports one at all; nothing here distinguishes them.
-    public let status: PublicationStatus?
+    ///
+    /// `var`, like ``sourceID`` and for the same reason: indexing decides what a publication
+    /// *is*, and a status the reader sets by hand is assigned by the library afterwards —
+    /// `withManualStatuses(_:overrides:)` is where that assignment happens.
+    public var status: PublicationStatus?
 
     /// Where the metadata above came from, and therefore what may replace it.
     public let origin: MetadataOrigin
