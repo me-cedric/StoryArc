@@ -82,6 +82,10 @@ extension ReaderView {
             .accessibilityValue(
                 Text("reader.page \(sliderIndex + 1) \(model.pages.count)", bundle: .module)
             )
+            // `page-browser-carousel` §4: a tick at each chapter start, under the thumb.
+            .overlay {
+                ChapterTickMarks(model: model, pageCount: model.pages.count)
+            }
             // Scoped to the slider alone — mirroring the whole row would also flip the
             // page label's text alignment, which the digits do not want.
             .environment(\.layoutDirection, sliderLayoutDirection(isRightToLeft: isRightToLeft))
@@ -133,6 +137,10 @@ extension ReaderView {
                 // which is why `PageReturn` leaves no mark for a step of one.
                 if isScrubbing {
                     scrubbing = index
+                    // `page-browser-carousel` §3: "during a drag, the slider's value sets
+                    // the carousel's centred page with no animation" — one update per
+                    // frame, the same frame the thumbnail above already moves on.
+                    centredPreviewIndex = index
                 } else {
                     jump(to: index)
                 }
@@ -178,5 +186,43 @@ private struct ScrubThumbnail: View {
         // second announcement of the same page would only get in the way of the drag.
         .accessibilityHidden(true)
         .task(id: index) { image = await model.thumbnail(at: index) }
+    }
+}
+
+/// A tick at each chapter start, drawn over the slider's own track.
+///
+/// `page-browser-carousel` §4: "iOS `Slider` tick marks … if the tick API cannot place a
+/// tick at an arbitrary value, draw the ticks in an overlay aligned to the track, under
+/// the thumb." A plain `Slider` has no track slot to draw into (unlike Android's M3
+/// `Slider`), so this is that overlay — a thin mark per fraction, placed by a
+/// `GeometryReader` the same width as the track it sits on.
+///
+/// Decorative to accessibility: the slider's own value already states the page, and the
+/// chapter name above the carousel is what names the chapter — `comic-reader`'s "the
+/// ticks and the badges are never the only indication".
+private struct ChapterTickMarks: View {
+    @Environment(\.theme) private var theme
+
+    let model: ReaderModel
+    let pageCount: Int
+
+    @State private var markers: [ChapterMarker] = []
+
+    var body: some View {
+        GeometryReader { geometry in
+            ForEach(Array(fractions.enumerated()), id: \.offset) { _, fraction in
+                Capsule()
+                    .fill(theme.accent)
+                    .frame(width: 2, height: 8)
+                    .position(x: geometry.size.width * CGFloat(fraction), y: geometry.size.height / 2)
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+        .task(id: model.publication.id) { markers = await model.chapterMarkers() }
+    }
+
+    private var fractions: [Double] {
+        ChapterBrowser.tickFractions(markers: markers, pageCount: pageCount)
     }
 }

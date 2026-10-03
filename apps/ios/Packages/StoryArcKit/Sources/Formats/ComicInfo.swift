@@ -132,30 +132,41 @@ public struct ComicInfo: Sendable, Equatable {
         default: self.declaredDirection = nil
         }
 
-        // `<Page Image="n" .../>` — the attribute is the page's index, which is
-        // not necessarily its position in the list.
+        let pages = Self.readPages(in: text)
+        // Index 0 is the default, so designating it carries no information and is
+        // dropped — otherwise every well-formed file would look like an override.
+        self.coverPageIndex = pages.cover == 0 ? nil : pages.cover
+        self.doublePageIndices = pages.spreads.sorted()
+        self.chapterStartIndices = pages.chapters.sorted()
+        self.chapterTitles = pages.titles
+    }
+
+    /// What one `<Pages>` list declares, in one pass. A named type rather than a
+    /// four-member tuple — `large_tuple` allows at most two.
+    private struct PageDeclaration {
         var cover: Int?
         var spreads: [Int] = []
         var chapters: [Int] = []
         var titles: [Int: String] = [:]
-        for attributes in Self.pageElements(in: text) {
+    }
+
+    /// What `<Page Image="n" .../>` declares, read once over the whole `<Pages>` list.
+    /// `Image` is the page's index, which is not necessarily its position in the list.
+    private static func readPages(in text: String) -> PageDeclaration {
+        var declaration = PageDeclaration()
+        for attributes in pageElements(in: text) {
             guard let index = attributes["Image"].flatMap(Int.init) else { continue }
-            if attributes["Type"] == "FrontCover", cover == nil { cover = index }
-            if attributes["DoublePage"]?.lowercased() == "true" { spreads.append(index) }
+            if attributes["Type"] == "FrontCover", declaration.cover == nil { declaration.cover = index }
+            if attributes["DoublePage"]?.lowercased() == "true" { declaration.spreads.append(index) }
             if let bookmark = attributes["Bookmark"] {
                 let trimmed = bookmark.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !trimmed.isEmpty {
-                    chapters.append(index)
-                    titles[index] = trimmed
+                    declaration.chapters.append(index)
+                    declaration.titles[index] = trimmed
                 }
             }
         }
-        // Index 0 is the default, so designating it carries no information and is
-        // dropped — otherwise every well-formed file would look like an override.
-        self.coverPageIndex = cover == 0 ? nil : cover
-        self.doublePageIndices = spreads.sorted()
-        self.chapterStartIndices = chapters.sorted()
-        self.chapterTitles = titles
+        return declaration
     }
 
     // MARK: - Minimal XML reading
