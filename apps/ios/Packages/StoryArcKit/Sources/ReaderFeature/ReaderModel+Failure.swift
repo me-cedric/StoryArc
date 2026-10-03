@@ -2,6 +2,7 @@ public import Foundation
 internal import OSLog
 
 public import Formats
+internal import Persistence
 public import StoryArcCore
 
 /// Logs an open failure; `reader.cannotOpen` is the only text a reader sees.
@@ -31,6 +32,28 @@ extension ReaderModel {
             String(localized: "reader.solidArchive", bundle: .module, locale: .storyArc)
         case .unreadable, .unrecognisedContainer:
             String(localized: "reader.damaged", bundle: .module, locale: .storyArc)
+        }
+    }
+
+    /// Whether the reader has nothing on screen for one reason or another — a real failure,
+    /// or still waiting on a download. `ReaderView` draws the same chrome-stays-up behaviour
+    /// for both: neither has a pager to reveal it.
+    public var isBlocked: Bool { failure != nil || isWaitingForDownload }
+
+    /// Whether a failed open at `address` should wait rather than show the ordinary failure.
+    ///
+    /// True only for a streamed address whose own download record has neither finished (there
+    /// would be nothing to wait for — ``ReaderModel/adoptTheCopyWhenItArrives()`` would have
+    /// already taken it) nor failed (`offline-downloads` asks a failed download to be "marked
+    /// failed with a plain-language reason", not silently retried for ever behind a spinner).
+    static func isAwaitingDownload(for address: URL, store: DownloadStore = DownloadStore()) -> Bool {
+        guard ReadingAddress.isStreamed(address) else { return false }
+        return store.library().downloads.contains { download in
+            guard download.remote == address else { return false }
+            switch download.state {
+            case .queued, .running, .paused: return true
+            case .finished, .failed: return false
+            }
         }
     }
 }

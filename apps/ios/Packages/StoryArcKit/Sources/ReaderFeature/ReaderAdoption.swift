@@ -50,10 +50,18 @@ extension ReaderModel {
         guard ReadingAddress.isStreamed(url) else { return }
         while !Task.isCancelled {
             guard let reading = archive as? AdoptingArchive else {
-                // Not open yet, or it never will be — `open` throwing leaves `archive` nil
-                // for good. Either way there is nothing to adopt into this instant, only
-                // something to check again, bounded by the same interval as the store poll
-                // below so a failed open costs no more than a successful one already did.
+                // Not open yet, or a stream that never opened at all — `offline-downloads`'
+                // dl-core 1.7: a server with no range support leaves `archive` nil for good,
+                // and `open(maxPixelSize:)` set `isWaitingForDownload` instead of `failure`
+                // for exactly this reason. There is still nothing to adopt *into*, so the
+                // local copy is opened fresh the moment it lands.
+                if isWaitingForDownload,
+                   let arrived = ReadingAddress.arrived(at: url, in: store.library()),
+                   await openLocalCopyAfterWaiting(
+                       store.location(for: arrived.id, mediaType: arrived.mediaType, title: arrived.title)
+                   ) {
+                    return
+                }
                 try? await Task.sleep(for: Self.pollInterval)
                 continue
             }
@@ -77,5 +85,58 @@ extension ReaderModel {
     private func adopt(_ local: URL, into reading: AdoptingArchive) async -> Bool {
         guard let opened = try? await ComicArchiveOpener.open(fileAt: local) else { return false }
         return reading.adopt(opened)
+    }
+
+    /// Opens the file that just finished downloading, after the stream never opened at all.
+    ///
+    /// Unlike ``adopt(_:into:)``, there is no existing archive to swap bytes into — the open
+    /// in `ReaderModel.open(maxPixelSize:)` never produced one. This runs the same success
+    /// path a working stream would have, through ``applyOpenedArchive(_:)``, and always clears
+    /// `isWaitingForDownload`: a copy that will not open either is a real failure now that
+    /// there is nothing left to wait for.
+    private func openLocalCopyAfterWaiting(_ local: URL) async -> Bool {
+        guard let opened = try? await ComicArchiveOpener.open(fileAt: local) else {
+            isWaitingForDownload = false
+            failure = String(localized: "reader.cannotOpen", bundle: .module, locale: .storyArc)
+            return true
+        }
+        await applyOpenedArchive(opened)
+        isWaitingForDownload = false
+        return true
+    }
+
+    /// Puts a freshly opened archive in place: the page list, the designated cover, a
+    /// recorded position, and the warm/colour side effects a successful
+    /// `open(maxPixelSize:)` already ran. Shared with ``openLocalCopyAfterWaiting(_:)``, which
+    /// reaches this from a stream that never opened at all.
+    func applyOpenedArchive(_ opened: any ComicArchiveReading) async {
+        let wrapped = AdoptingArchive(opened)
+        archive = wrapped
+        pages = wrapped.pages
+        skippedPageCount = wrapped.skippedPageCount
+        wideIndices = Set(wrapped.doublePageIndices)
+        // Start at the designated cover when there is one. `publication-formats`
+        // lets ComicInfo name a cover that is not page one, and opening on a
+        // different page than the library showed would be disorienting.
+        if let coverPath = publication.coverPath,
+           let index = pages.firstIndex(where: { $0.path == coverPath }) {
+            currentIndex = index
+        }
+        // A recorded position wins over the cover. `reading-progress` is about picking up
+        // where you left off, and a book you are halfway through should not reopen at its
+        // cover.
+        //
+        // Unless it is finished, which the same requirement singles out: reopening a
+        // finished publication "starts at the beginning while retaining the finished
+        // record". Dropping the override is the whole of it — the record is untouched, and
+        // the beginning is where `currentIndex` already is.
+        if let recorded = try? await progress?.progress(for: publication.identity),
+           !recorded.isFinished,
+           case let .page(index, _) = recorded.position,
+           pages.indices.contains(index) {
+            currentIndex = index
+        }
+        await warm(around: currentIndex)
+        await deriveCoverColours()
     }
 }
