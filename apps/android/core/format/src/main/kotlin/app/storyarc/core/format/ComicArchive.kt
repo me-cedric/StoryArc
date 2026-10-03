@@ -55,6 +55,15 @@ interface ComicArchiveReading : AutoCloseable {
      */
     val chapterStartIndices: List<Int> get() = emptyList()
 
+    /**
+     * The chapter's own name, by the page in [chapterStartIndices] it starts at.
+     *
+     * `page-browser-carousel`: the carousel names the centred page's chapter from
+     * "the marker's title". A start with no entry here has no title, and the browser
+     * falls back to its position among the chapters.
+     */
+    val chapterTitles: Map<Int, String> get() = emptyMap()
+
     override fun close() {}
 }
 
@@ -162,6 +171,9 @@ class ZipComicArchive private constructor(
 
     override val chapterStartIndices: List<Int>
         get() = PageDeclarations.chapterStarts(pages, comicInfo?.chapterStartIndices.orEmpty())
+
+    override val chapterTitles: Map<Int, String>
+        get() = comicInfo?.chapterTitles.orEmpty()
 
     companion object {
         suspend fun open(source: RandomAccessSource): ZipComicArchive {
@@ -278,6 +290,9 @@ class TarComicArchive private constructor(
     override val chapterStartIndices: List<Int>
         get() = PageDeclarations.chapterStarts(pages, comicInfo?.chapterStartIndices.orEmpty())
 
+    override val chapterTitles: Map<Int, String>
+        get() = comicInfo?.chapterTitles.orEmpty()
+
     companion object {
         suspend fun open(source: RandomAccessSource): TarComicArchive {
             val reader = try {
@@ -379,6 +394,9 @@ class RarComicArchive private constructor(
 
     override val chapterStartIndices: List<Int>
         get() = PageDeclarations.chapterStarts(pages, comicInfo?.chapterStartIndices.orEmpty())
+
+    override val chapterTitles: Map<Int, String>
+        get() = comicInfo?.chapterTitles.orEmpty()
 
     /**
      * Whether pages can be read out of order from a remote source.

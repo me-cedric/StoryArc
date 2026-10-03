@@ -32,6 +32,9 @@ class DocumentFolderArchive private constructor(
     override val chapterStartIndices: List<Int>
         get() = PageDeclarations.chapterStarts(pages, comicInfo?.chapterStartIndices.orEmpty())
 
+    override val chapterTitles: Map<Int, String>
+        get() = comicInfo?.chapterTitles.orEmpty()
+
     companion object {
         /** Opens the folder [documentId] names, walking its subfolders as chapters. */
         fun open(resolver: ContentResolver, tree: Uri, documentId: String): DocumentFolderArchive {

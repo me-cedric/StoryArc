@@ -33,6 +33,8 @@ class AdoptingArchive(private var reading: ComicArchiveReading) : ComicArchiveRe
 
     override val chapterStartIndices: List<Int> get() = reading.chapterStartIndices
 
+    override val chapterTitles: Map<Int, String> get() = reading.chapterTitles
+
     override suspend fun data(page: PageEntry): ByteArray = reading.data(page)
 
     /**

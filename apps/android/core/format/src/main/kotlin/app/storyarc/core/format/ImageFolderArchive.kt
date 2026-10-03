@@ -34,6 +34,9 @@ class ImageFolderArchive private constructor(
     override val chapterStartIndices: List<Int>
         get() = PageDeclarations.chapterStarts(pages, comicInfo?.chapterStartIndices.orEmpty())
 
+    override val chapterTitles: Map<Int, String>
+        get() = comicInfo?.chapterTitles.orEmpty()
+
     companion object {
         fun open(directory: File): ImageFolderArchive {
             if (!directory.isDirectory) throw ComicArchiveException.UnrecognisedContainer()
