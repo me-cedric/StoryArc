@@ -173,24 +173,16 @@ private fun DetailSeriesCell(
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
-                // The same well the library shelf draws, which this cell used to leave
-                // empty. The caption below says `#3` or the title, and the title is the
-                // longer answer — a run of unmarked volumes is exactly where a reader is
-                // trying to tell one from another.
-                //
-                // No format, for the reason Home passes none: nothing on this shelf names
-                // one. Its two caption lines are the volume and the read state, and a well
-                // stands in for missing artwork rather than introducing a field the surface
-                // around it does not carry.
+                // Task 16.8: the format's own glyph and name. The caption below already
+                // says `#3` or the title, so the well naming the format instead is new
+                // information rather than the same word a second time.
                 //
                 // Spoken by the `Column` above and not by the well, which clears its own
                 // semantics. The `Surface` here is a click target with nothing in it that
                 // TalkBack reads either way — with a cover, the `Image` carries no
                 // description; without one, the well is silent — and that is the state
-                // before this change, kept. Labelling the button by letting the well speak
-                // would state the title a second time on a cell whose `contentDescription`
-                // already opens with it.
-                CoverlessWell(title = publication.displayTitle, format = null)
+                // before this change, kept.
+                CoverlessWell(format = publication.format)
             }
         }
         Text(

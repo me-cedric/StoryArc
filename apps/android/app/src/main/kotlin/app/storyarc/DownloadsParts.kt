@@ -138,19 +138,11 @@ internal fun OnDeviceCover(
                 // "the same grid, the same cells" as the library. A cell that says nothing
                 // about the book it stands for is not the same cell.
                 //
-                // With the format, because the library's cell names it and this cell is
-                // meant to be that cell: `no-pages` reads `no-pages` / `CBZ` here exactly
-                // as it does one destination away.
-                //
-                // Drawn only. The `combinedClickable` above merges this whole cell into one
-                // spoken node, and the caption at the foot of the column is what states the
-                // title to TalkBack — so the well is silent, which `CoverlessWell` does for
-                // every caller rather than leaving each to remember. Without that this cell
-                // announced `Foreign Codec, CBZ, Foreign Codec`.
-                CoverlessWell(
-                    title = publication.displayTitle,
-                    format = publication.format.displayName,
-                )
+                // Task 16.8: the well no longer repeats the title — the caption at the foot
+                // of the column already states it, both to the eye and, since the well
+                // clears its own semantics, to TalkBack. The format's own glyph and name are
+                // what the well adds.
+                CoverlessWell(format = publication.format)
             }
 
             DropdownMenu(expanded = isOffering, onDismissRequest = { isOffering = false }) {

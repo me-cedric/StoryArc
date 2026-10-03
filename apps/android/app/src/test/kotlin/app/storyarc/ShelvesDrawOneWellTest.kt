@@ -46,13 +46,13 @@ class ShelvesDrawOneWellTest {
      * of the assertion is the honest one: it reads the argument at the call site.
      */
     private val wells = mapOf(
-        "app/src/main/kotlin/app/storyarc/DownloadsParts.kt" to
-            "publication.format.displayName",
+        "app/src/main/kotlin/app/storyarc/DownloadsParts.kt" to "publication.format",
         "feature/library/src/main/kotlin/app/storyarc/feature/library/CoverGrid.kt" to
-            "publication.format.displayName",
-        "feature/library/src/main/kotlin/app/storyarc/feature/library/HomeCards.kt" to "null",
+            "publication.format",
+        "feature/library/src/main/kotlin/app/storyarc/feature/library/HomeCards.kt" to
+            "publication.format",
         "feature/library/src/main/kotlin/app/storyarc/feature/library/DetailSeriesShelf.kt" to
-            "null",
+            "publication.format",
     )
 
     @Test
@@ -88,17 +88,17 @@ class ShelvesDrawOneWellTest {
     }
 
     /**
-     * And each one names the format its own surface names, or names none.
+     * And each one hands the well its own publication's format, not a stand-in.
      *
-     * `format = null` and `format = publication.format.displayName` are interchangeable to the
-     * compiler and to every other test here, so swapping any of the four passed the whole
-     * suite. What is right per surface is argued in `CoverlessWell.kt`'s `format` parameter:
-     * the two shelves whose captions name a format pass it, and the two whose captions do not
-     * pass `null`, because a well stands in for missing artwork rather than introducing a field
-     * its neighbours do not carry.
+     * Task 16.8: every per-publication well now names the format rather than the title, which
+     * the type system enforces (`CoverlessWell`'s publication overload takes a
+     * `PublicationFormat`, not a nullable string, so there is no `null` left to pass by
+     * mistake). What the compiler does not catch is a call that reaches for a constant or
+     * another cell's format and still type-checks — `publication.format` is the one answer
+     * that cannot be wrong for whichever publication the cell is drawing.
      */
     @Test
-    fun `each cell names the format its own surface names`() {
+    fun `each cell names its own publication's format`() {
         val asked = wells.keys.associateWith { well ->
             FORMAT_ARGUMENT.find(read(well))?.groupValues?.get(1)
                 ?: "no `format = …` argument found in a CoverlessWell( call"
@@ -109,49 +109,43 @@ class ShelvesDrawOneWellTest {
     /**
      * And the well's layout is written down once.
      *
-     * A shelf that re-copied the pair of text roles would satisfy the tests above and still be
-     * the defect they exist for — four copies of one view is how this started.
+     * A shelf that re-copied its label role would satisfy the tests above and still be the
+     * defect they exist for — four copies of one view is how this started. Task 16.8 dropped
+     * the well's title role (`titleSmall`) entirely — the glyph stands in for it now — so this
+     * walks for `labelSmall` alone, which the well still draws for the format or shelf name.
      *
-     * The net is cover-shaped files, not every file in the app, and the first draft of this
-     * test got that wrong: it walked for `typography.titleSmall` **and**
-     * `typography.labelSmall` anywhere under `apps/android` and demanded the answer be exactly
-     * `CoverlessWell.kt`. `titleSmall` appears in one other file and `labelSmall` in nine, so
-     * adding a caption to the search bar or a heading to the reader's controls would have
-     * failed a test about coverless wells and named a well in the message. Requiring
-     * `StoryArcRadius.cover` — the printed-stock radius, which only a cover box carries —
-     * narrows it to the files where restating both roles would actually be a copy of this well.
+     * The net is cover-shaped *and silent* files, not every file in the app: `labelSmall`
+     * alone appears in nine of them, and one cover-shaped caller — `DetailSeriesShelf.kt` —
+     * states it too, for its own `#3` caption rather than a copy of the well. Pairing
+     * `StoryArcRadius.cover` with `clearAndSetSemantics` is what the well alone does among
+     * them: a caption a reader is meant to hear is not drawn silent to begin with.
      *
      * `CoverlessWell.kt` itself is excluded rather than expected, because it draws the well's
      * *contents* and never the frame, so it has no cover radius of its own to match on. Its own
-     * possession of the two roles is asserted directly instead.
+     * possession of the role is asserted directly instead.
      */
     @Test
-    fun `only the design system states the well's two text roles`() {
-        // Assembled rather than written out, so this file does not match its own assertion —
-        // which it did on the first run, and which is why `ShelvesAskOneRuleTest` assembles too.
-        val roles = listOf("titleSmall", "labelSmall").map { "typography.$it" }
+    fun `only the design system states the well's label role`() {
+        val role = "typography.labelSmall"
         val well = File(androidRoot, WELL)
         assertTrue("$WELL has moved; this test names it by path", well.isFile)
-        val stated = well.readText()
-        for (role in roles) {
-            assertTrue("the well no longer states $role", stated.contains(role))
-        }
+        assertTrue("the well no longer states $role", well.readText().contains(role))
 
         val copies = androidRoot.walkTopDown()
             // Gradle's own output holds generated and copied sources, and none of it is
-            // something a reviewer could fix. Test sources are skipped for a second reason:
-            // this file names both roles in its own comment above and is therefore its own
-            // first false positive, which is how the previous formulation was caught.
+            // something a reviewer could fix.
             .onEnter { it.name !in SKIPPED }
             .filter { it.isFile && it.extension == "kt" && it.name != well.name }
             .filter { file ->
                 val text = file.readText()
-                text.contains("StoryArcRadius.cover") && roles.all { text.contains(it) }
+                text.contains("StoryArcRadius.cover") &&
+                    text.contains(role) &&
+                    text.contains("clearAndSetSemantics")
             }
             .map { it.name }
             .toSortedSet()
         assertEquals(
-            "a cover-shaped file restates both of the well's text roles; if it is drawing a " +
+            "a cover-shaped file restates the well's label role; if it is drawing a " +
                 "coverless well it should ask CoverlessWell for one",
             emptySet<String>(),
             copies,
