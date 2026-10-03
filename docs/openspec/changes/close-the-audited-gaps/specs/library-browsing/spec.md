@@ -75,7 +75,7 @@ availability being the separate primary axis described under *Unified library*.
 #### Scenario: Filtering by a source's own publication status
 - **WHEN** a source reports a publication status for a series — Kavita's `publicationStatus`, among the sources this app reads
 - **THEN** the status is carried onto the row and offered as one status group in the filter menu
-- **AND** the group states that it covers only the series whose source reports a status
+- **AND** the group states that it covers only the series that carry a status, reported or set by hand
 
 #### Scenario: Setting a status by hand where a source reports none
 - **WHEN** a series' source reports no publication status at all — a folder or a share carries no such field
