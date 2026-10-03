@@ -161,10 +161,10 @@ object HomeShelfIndex {
                 HomeShelfSummary(
                     kind = shelf.kind,
                     name = shelf.title,
-                    count = null,
+                    count = shelf.count,
                     sourceName = openableSources[shelf.sourceId],
                     tiles = emptyList(),
-                    finished = null,
+                    finished = shelf.finished,
                     destination = HomeShelfDestination.OnServer(shelf),
                 )
             }

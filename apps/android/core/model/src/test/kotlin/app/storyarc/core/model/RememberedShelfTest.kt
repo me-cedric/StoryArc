@@ -83,6 +83,35 @@ class RememberedShelfTest {
     }
 
     @Test
+    fun `a cached count and finished position round-trip with the shelf`() {
+        val shelf = RememberedShelf(
+            RememberedShelfKind.READING_LIST, source, 9, "Crisis, in order", count = 12, finished = 5,
+        )
+        val read = RememberedShelf.of(shelf.token)
+        assertEquals(shelf, read)
+        assertEquals(12, read?.count)
+        assertEquals(5, read?.finished)
+    }
+
+    @Test
+    fun `a token from before the count and finished position existed still reads`() {
+        // Written by a version of this type that only ever had four colon-delimited fields.
+        val old = "collection:$source:4:Marvel"
+        val read = RememberedShelf.of(old)
+        assertEquals("Marvel", read?.title)
+        assertNull(read?.count)
+        assertNull(read?.finished)
+    }
+
+    @Test
+    fun `only a count, with no finished position, still round-trips`() {
+        val withCount = shelf(title = "Marvel").copy(count = 30)
+        val read = RememberedShelf.of(withCount.token)
+        assertEquals(30, read?.count)
+        assertNull(read?.finished)
+    }
+
+    @Test
     fun `every shelf written survives the trip back`() {
         val shelves = listOf(
             shelf(serverId = 1, title = "Alpha"),
