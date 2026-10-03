@@ -201,13 +201,14 @@ struct ThumbnailBrowserTests {
 
     /// PB-open: opening the carousel assigns `true`; it does not toggle.
     ///
-    /// A `Button` inside the menu's `List` sits under `.accessibilityElement(children:
-    /// .combine)`, and a tap delivered while the sheet's own presentation animation is
-    /// still settling can run the Contents row's action twice for one tap. `.toggle()`
-    /// made that silent: two flips land back on `false`, and the carousel the tap asked
-    /// for never appears — `SweepComicReaderTests.testCaptureComicPageBrowser` reproduced
-    /// this on a booted simulator, failing "Contents opened no page browser" on every run.
-    /// An assignment is idempotent: one call or two both leave the carousel open.
+    /// The Contents row now calls `openContents()` from two recognizers — the `Button`'s
+    /// own action and a `simultaneousGesture`, added because the row sits first in the
+    /// sheet's `List`, directly under the grabber `.presentationDetents` uses to drag the
+    /// sheet between its two heights, and without a competing recognizer that drag
+    /// sometimes won the arena and swallowed the tap (`SweepComicReaderTests
+    /// .testCaptureComicPageBrowser` failed "Contents opened no page browser" on every run,
+    /// on a booted simulator). A tap both recognizers accept calls this method twice.
+    /// `.toggle()` would make that net back to `false`; an assignment is idempotent.
     @Test("Opening the carousel is idempotent, not a toggle")
     func openingTheCarouselIsIdempotent() throws {
         let progress = try code(of: "ReaderMenuProgress.swift")

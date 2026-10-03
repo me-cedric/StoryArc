@@ -172,6 +172,55 @@ final class SweepComicReaderTests: XCTestCase {
         shutter(app, named: "comic-reader-page-browser-swiped")
     }
 
+    /// The page browser, in dark. `page-browser-carousel` 3.2.
+    func testCaptureComicPageBrowserDark() throws {
+        let app = sweepLaunch(appearance: "dark")
+        try openPublication(named: "Quiet Machines", in: app)
+        try openMenu(in: app)
+        hold(1)
+        try XCTUnwrap(hittableRow("Contents", in: app), "The menu offers no Contents row.").tap()
+        let second = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Page 2")).firstMatch
+        XCTAssertTrue(second.waitForExistence(timeout: 8), "Contents opened no page browser.")
+        hold(2)
+        shutter(app, named: "comic-reader-page-browser-dark")
+    }
+
+    /// The page browser, at the largest accessibility text size. `page-browser-carousel` 3.2.
+    func testCaptureComicPageBrowserAtLargestText() throws {
+        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
+        try openPublication(named: "Quiet Machines", in: app)
+        try openMenu(in: app)
+        hold(1)
+        try XCTUnwrap(hittableRow("Contents", in: app), "The menu offers no Contents row.").tap()
+        let second = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Page 2")).firstMatch
+        XCTAssertTrue(second.waitForExistence(timeout: 8), "Contents opened no page browser.")
+        hold(2)
+        shutter(app, named: "comic-reader-page-browser-ax5")
+    }
+
+    /// The page browser on a right-to-left comic: the carousel and its slider ticks mirror.
+    /// `page-browser-carousel` 3.2.
+    func testCaptureComicPageBrowserRightToLeft() throws {
+        let app = sweepLaunch()
+        try openPublication(named: "Quiet Machines", in: app)
+        try openMenu(in: app)
+        // The direction row is in the Settings section, below the fold at `.medium`.
+        app.swipeUp()
+        try XCTUnwrap(
+            hittableRow("Reading direction", in: app), "The menu offers no Reading direction row."
+        ).tap()
+        let rightToLeft = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "Right to left")).firstMatch
+        XCTAssertTrue(rightToLeft.waitForExistence(timeout: 8), "The Reading direction row opened no picker.")
+        rightToLeft.tap()
+        hold(1)
+        try XCTUnwrap(hittableRow("Contents", in: app), "The menu offers no Contents row.").tap()
+        let second = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Page 2")).firstMatch
+        XCTAssertTrue(second.waitForExistence(timeout: 8), "Contents opened no page browser (right-to-left).")
+        hold(2)
+        shutter(app, named: "comic-reader-page-browser-rtl")
+    }
+
     /// The image adjustments sheet — brightness, contrast, sharpness, greyscale, invert, and
     /// the border trim — which is the one surface in the app that changes the artwork itself.
     func testCaptureComicAdjustments() throws {
@@ -235,10 +284,18 @@ final class SweepComicReaderTests: XCTestCase {
         try XCTSkipUnless(found != nil, "This device's shelf never showed a cover for “\(title)”.")
         found?.tap()
 
-        guard app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 8),
-              let action = app.buttons.matching(opensAPublication)
-                  .allElementsBoundByIndex.first(where: \.isHittable)
+        guard app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 20)
         else { throw XCTSkip("“\(title)”'s page offered no hittable way to open it.") }
+        // At the largest accessibility text sizes the action sits lower than one screen,
+        // behind the title and the cover — scroll for it the way `scrollTo` does elsewhere.
+        var action = app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable)
+        for _ in 0..<4 where action == nil {
+            app.swipeUp()
+            action = app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable)
+        }
+        guard let action else {
+            throw XCTSkip("“\(title)”'s page offered no hittable way to open it.")
+        }
         action.tap()
 
         XCTAssertTrue(
