@@ -357,8 +357,7 @@ public final class LibraryModel {
     // Internal, not private: the scanning half of this type lives in another file.
     let rebuildEvery = 24
 
-    // Internal, not private: `private` is file-scoped, and the callers now sit
-    // in the other half of this type.
+    // Internal, not private: private is file-scoped, and the callers now sit in the other half.
     /// Recomputes what is on screen from the library and the query.
     func rebuild() {
         // The reader's language, not the device's. `localization` moves the interface to the
@@ -369,8 +368,9 @@ public final class LibraryModel {
         // is the answer that does, and it falls back to the process locale when nothing is
         // chosen.
         let locale = Locale.storyArc
-        visible = LibraryIndex.arrange(publications, query: query, locale: locale) { self.state(of: $0) }
-        matchGroups = LibraryIndex.grouped(publications, query: query, locale: locale) { self.state(of: $0) }
+        let shown = withManualStatuses(publications, overrides: seriesStatusOverrides())
+        visible = LibraryIndex.arrange(shown, query: query, locale: locale) { self.state(of: $0) }
+        matchGroups = LibraryIndex.grouped(shown, query: query, locale: locale) { self.state(of: $0) }
         // The whole library, narrowed by nothing. This used to apply `query.scope`, on the
         // argument that "a filter on format has nothing to say about" what a reader is in
         // the middle of — which was right about format and wrong about the library filter,
