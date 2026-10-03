@@ -84,7 +84,7 @@ extension ReaderView {
             )
             // `page-browser-carousel` §4: a tick at each chapter start, under the thumb.
             .overlay {
-                ChapterTickMarks(model: model, pageCount: model.pages.count)
+                ChapterTickMarks(model: model, pageCount: model.pages.count, thumbIndex: sliderIndex)
             }
             // Scoped to the slider alone — mirroring the whole row would also flip the
             // page label's text alignment, which the digits do not want.
@@ -208,6 +208,9 @@ private struct ChapterTickMarks: View {
 
     let model: ReaderModel
     let pageCount: Int
+    /// The page under the thumb. Its tick is left out: the thumb covers that point, and a
+    /// tick drawn over the thumb reads as a mark on the control rather than on the track.
+    let thumbIndex: Int
 
     @State private var markers: [ChapterMarker] = []
 
@@ -235,6 +238,6 @@ private struct ChapterTickMarks: View {
     }
 
     private var fractions: [Double] {
-        ChapterBrowser.tickFractions(markers: markers, pageCount: pageCount)
+        ChapterBrowser.tickFractions(markers: markers.filter { $0.index != thumbIndex }, pageCount: pageCount)
     }
 }
