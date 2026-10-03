@@ -5,17 +5,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * That `Page()` actually asks [app.storyarc.core.designsystem.navigation.hingeSpreadSplit]
- * and [app.storyarc.core.designsystem.navigation.hingeInset] for its layout, rather than
- * drawing the equal-weight split and the plain centring 19.5 replaced.
+ * That the comic reader draws its pages through
+ * [app.storyarc.core.designsystem.navigation.HingeSpread] and
+ * [app.storyarc.core.designsystem.navigation.HingeInsetPage], with a hinge measured from the
+ * page surface.
  *
- * `HingeAvoidanceTest` asserts the two functions' own arithmetic on a plain JVM, with no
- * window to fake. What it cannot see is whether `Page()` still calls them — a `Posture`
- * from a folded device is not a Robolectric shadow this repository has reached for
- * elsewhere, so this reads the call sites instead, in the manner of `CurlSheetWiringTest`.
- * **It asserts the call is written, not that a device folds correctly** — a real fold is
- * an instrumented or a manual check; this is what fails when someone reaches past the
- * split and draws the old equal halves again.
+ * `HingeSlotsTest` asserts the layout itself. A `Posture` from a folded device is not a
+ * Robolectric shadow this repository uses, so this reads the call sites, in the manner of
+ * `CurlSheetWiringTest`. It asserts the calls are written, not that a device folds correctly.
  */
 class HingeWiringTest {
 
@@ -53,52 +50,39 @@ class HingeWiringTest {
     }
 
     @Test
-    fun `the slot reads the window's own separating vertical hinge`() {
+    fun `a lone page and a pair go through the hinge layouts`() {
+        val body = pageBody()
         assertTrue(
-            "Page() no longer reads windowPosture.separatingVerticalHingeBounds — a folded" +
-                " window has nothing to avoid the hinge with.",
-            pageBody().contains(
-                "currentWindowAdaptiveInfoV2().windowPosture.separatingVerticalHingeBounds",
-            ),
+            "Page() no longer draws a lone page through HingeInsetPage.",
+            body.contains("HingeInsetPage(hingeSurface.hinge) { SinglePage("),
+        )
+        assertTrue(
+            "Page() no longer draws a pair through HingeSpread.",
+            body.contains("HingeSpread(hingeSurface.hinge) { half ->"),
+        )
+    }
+
+    /**
+     * A page inside a pager or a list moves with each frame of a swipe. Measured from that
+     * page, the hinge split the page again on each frame and recomposed it on every device.
+     */
+    @Test
+    fun `the hinge is measured from the page surface, not from a moving page`() {
+        assertTrue(
+            "The page surface no longer records its own place in the window.",
+            readerScreen.contains("Modifier.fillMaxSize().then(hingeSurface.modifier)"),
+        )
+        assertTrue(
+            "Page() measures its own position again, which moves with every frame of a swipe.",
+            !pageBody().contains("positionInWindow") && !pageBody().contains("onGloballyPositioned"),
         )
     }
 
     @Test
-    fun `a lone page is pinned to the hinge's inset rather than filling the whole slot`() {
-        val body = pageBody()
+    fun `the curl keeps a page off the hinge too`() {
         assertTrue(
-            "Page() no longer asks hingeInset(split) for a lone page.",
-            body.contains("val inset = hingeInset(split)"),
-        )
-        assertTrue(
-            "A lone page no longer narrows to the inset's own width when one is found —" +
-                " it would centre across the hinge again.",
-            body.contains(".width(with(density) { inset.width.toDp() })"),
-        )
-        assertTrue(
-            "A lone page no longer pins to the inset's own side.",
-            body.contains("if (inset.atStart) Alignment.CenterStart else Alignment.CenterEnd"),
-        )
-    }
-
-    @Test
-    fun `a spread's two halves take the hinge split's own widths, not an equal weight`() {
-        val body = pageBody()
-        assertTrue(
-            "The spread no longer asks hingeSpreadSplit for its own width.",
-            body.contains("hingeSpreadSplit("),
-        )
-        assertTrue(
-            "A spread's two halves no longer size themselves from split.leadingWidth and" +
-                " split.trailingWidth — a hinge off-centre would split the pair down the" +
-                " container's own midpoint again.",
-            body.contains(
-                "(if (half == 0) split.leadingWidth else split.trailingWidth).toDp()",
-            ),
-        )
-        assertTrue(
-            "A spread no longer draws the hinge's own gap between its two halves.",
-            body.contains("Spacer(Modifier.width(with(density) { split.gap.toDp() })"),
+            "The curl no longer draws inside HingeInsetPage.",
+            readerScreen.contains("PageTransition.PAGE_CURL) HingeInsetPage(hingeSurface.hinge) {"),
         )
     }
 

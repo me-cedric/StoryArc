@@ -1,9 +1,16 @@
 package app.storyarc.feature.epubreader
 
 import android.view.Gravity
+import android.view.View
 import android.widget.FrameLayout
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.adaptive.separatingVerticalHingeBounds
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalWindowInfo
 import app.storyarc.core.designsystem.navigation.HingeSpreadSplit
 import app.storyarc.core.designsystem.navigation.hingeInset
+import app.storyarc.core.designsystem.navigation.hingeSpreadSplit
 import kotlin.math.roundToInt
 
 /**
@@ -49,3 +56,21 @@ fun EpubHingeLayout.asLayoutParams(): FrameLayout.LayoutParams =
             HingeEdge.NONE -> Gravity.NO_GRAVITY
         }
     }
+
+/**
+ * Sets [container]'s layout params from the window's separating vertical hinge, again on each
+ * fold or resize.
+ *
+ * [container] fills the window at the window's origin, so the window width and the hinge
+ * bounds are already in its own coordinates.
+ */
+@Composable
+internal fun KeepOffHinge(container: View) {
+    val hinge = currentWindowAdaptiveInfoV2().windowPosture.separatingVerticalHingeBounds.firstOrNull()
+    val width = LocalWindowInfo.current.containerSize.width
+    LaunchedEffect(hinge, width) {
+        container.layoutParams = epubHingeLayout(hingeSpreadSplit(width.toFloat(), hinge?.left, hinge?.right))
+            .asLayoutParams()
+        container.requestLayout()
+    }
+}
