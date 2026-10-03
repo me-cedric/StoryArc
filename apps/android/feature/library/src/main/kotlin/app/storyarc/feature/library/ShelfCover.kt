@@ -153,7 +153,9 @@ internal fun ShelfComposite(
             // shelf whose members' covers could none of them be fetched. A shelf where *some*
             // arrived is built from those, which is the clause above this one.
             tiles.none { covers[it] != null } ->
-                CoverlessWell(title = name, format = null, modifier = Modifier.fillMaxSize())
+                // Task 16.8: `CoverlessWell`'s publication-less overload — the shelf's own
+                // name, with a generic glyph, since this call resolves no member's format.
+                CoverlessWell(name = name, format = null, modifier = Modifier.fillMaxSize())
 
             tiles.size >= CompositeCover.TILE_COUNT -> Column(Modifier.fillMaxSize()) {
                 Row(Modifier.fillMaxWidth().weight(1f)) {

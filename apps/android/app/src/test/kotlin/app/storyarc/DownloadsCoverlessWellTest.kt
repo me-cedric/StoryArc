@@ -53,11 +53,9 @@ class DownloadsCoverlessWellTest {
     /**
      * A publication with no artwork says what it is, in the box where the cover would be.
      *
-     * Two assertions rather than one, because the cell states the title twice over and only
-     * one of the two is the well: the caption at the foot of the column says it as well, and it
-     * said it before this fix while the box above stayed empty. So the title is expected
-     * **twice** in the drawn tree — once in the well, once in the caption — and the format,
-     * which nothing but the well names on this cell, is expected once.
+     * Task 16.8 moved the well's own text from the title to the format: the title is drawn
+     * **once** now — only by the caption at the foot of the column — and the format, which
+     * nothing but the well names on this cell, is still the one line the well adds.
      *
      * `useUnmergedTree`, because the well is deliberately silent to a screen reader; see the
      * test below. The unmerged tree is what was drawn, which is the claim here.
@@ -66,7 +64,7 @@ class DownloadsCoverlessWellTest {
     fun `the downloads cell draws the well when there is no artwork`() {
         showCell()
 
-        compose.onAllNodesWithText(TITLE, useUnmergedTree = true).assertCountEquals(2)
+        compose.onAllNodesWithText(TITLE, useUnmergedTree = true).assertCountEquals(1)
         compose.onNodeWithText(FORMAT, useUnmergedTree = true).assertIsDisplayed()
     }
 

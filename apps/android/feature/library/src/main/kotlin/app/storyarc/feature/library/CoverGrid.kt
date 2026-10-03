@@ -595,21 +595,15 @@ private fun CoverCell(
                         .clip(RoundedCornerShape(StoryArcRadius.cover)),
                 )
             } else {
-                // A set title rather than an empty rectangle. A grid of publications
-                // with no cover art -- and plenty of EPUBs carry none -- was a wall of
-                // identical cards labelled with a format, which is the one thing every
-                // card in that wall had in common. The title is what tells them apart.
-                // The format stays, smaller, because it is still the answer to "why is
-                // there no picture".
+                // Task 16.8: the format's own glyph and name, not the title repeated — the
+                // caption drawn below this cell already states it (`parts` above includes
+                // `title`), so the well saying it too was the same word twice.
                 //
-                // This shelf is where that argument was made and it is no longer where the
-                // view lives: `CoverlessWell` in `:core:designsystem` draws it now, because
-                // this cell is private to this module and three other shelves that should
-                // have been drawing the same thing were drawing nothing.
-                CoverlessWell(
-                    title = title,
-                    format = publication.format.displayName,
-                )
+                // This shelf is where `CoverlessWell` was first drawn, and it is no longer
+                // where the view lives: `CoverlessWell` in `:core:designsystem` draws it now,
+                // because this cell is private to this module and three other shelves that
+                // should have been drawing the same thing were drawing nothing.
+                CoverlessWell(format = publication.format)
             }
 
             // `library-browsing`: "its cover carries an unobtrusive progress

@@ -188,9 +188,9 @@ internal fun HomeCoverArt(
         } else {
             // This branch used to be absent, so a publication with no artwork was a bare
             // `surfaceSunken` rectangle on the one surface whose whole job is to hand the
-            // reader back a book they already know. The title is what identifies it; no
-            // format, because nothing on Home names one — its captions are the title and
-            // either what is left to read or why the book is away.
+            // reader back a book they already know. Task 16.8: the format's own glyph and
+            // name, not the title — Home's own caption already states the title, beside
+            // what is left to read or why the book is away.
             // The one case that still fills the frame: there is no artwork to be whole,
             // so the well *is* the artwork.
             Box(
@@ -199,7 +199,7 @@ internal fun HomeCoverArt(
                     .aspectRatio(1f / HOME_COVER_ASPECT)
                     .background(palette.surfaceSunken),
             ) {
-                CoverlessWell(title = publication.displayTitle, format = null)
+                CoverlessWell(format = publication.format)
             }
         }
     }

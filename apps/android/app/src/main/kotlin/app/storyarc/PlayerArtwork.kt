@@ -54,10 +54,10 @@ private val ARTWORK_MAX_WIDTH = 320.dp
  * **The well is [CoverlessWell] and not a shape of this file's own.** It is the composable the
  * library shelf, Downloads, Home's cards and the series shelf all draw, in `:core:designsystem`
  * so that `:app` can call it; a second implementation here would be the drift its own header
- * warns about. It takes this platform's two parameters, the title and the format, exactly as
- * `DownloadsParts.kt` hands them over — the format-symbol treatment iOS's well adopted is
- * `audiobooks-and-playback` §4.4b's `:core:designsystem` work, recorded there, and is not
- * decided by a player.
+ * warns about. Task 16.8 moved its text from the title to the format's own glyph and name —
+ * the format-symbol treatment iOS's well already drew — so this player draws
+ * `CoverlessWell(format:)` exactly as `DownloadsParts.kt` does, and falls back to the
+ * publication-less overload only where [publication] itself is unknown.
  *
  * **A square rather than 2:3, for the reason iOS's `PlayerArtwork` gives.** An audiobook's
  * artwork is square everywhere a listener has seen one, and the picture below is what the
@@ -76,10 +76,11 @@ private val ARTWORK_MAX_WIDTH = 320.dp
  * renders the same view to PNG for `MPMediaItemPropertyArtwork` for the same reason. Null in a
  * test, where there is no session to hand anything to and no renderer to hand it from.
  *
- * @param title what the publication is called — the well's stand-in for artwork.
+ * @param title what the publication is called — spent only when [publication] is unknown and
+ *   the well falls back to naming the book rather than a format it cannot read.
  * @param publication the publication being played, or null when the app does not know it: a
  *   book put back on the air by the system's own carousel after the process died reaches the
- *   player with an id nothing in the app has seen. The well then names no format.
+ *   player with an id nothing in the app has seen.
  * @param cover where artwork comes from, as a function rather than a view model, so a test can
  *   hand over a cover or the absence of one in a line. `OnDeviceCover` takes its cover the
  *   same way for the same reason.
@@ -135,8 +136,16 @@ internal fun PlayerArtwork(
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize(),
                 )
+            } else if (publication != null) {
+                // Task 16.8: the format's own glyph and name, not the title — the top bar
+                // already states the title, so the well naming the format is new
+                // information instead of the same word twice.
+                CoverlessWell(format = publication.format)
             } else {
-                CoverlessWell(title = title, format = publication?.format?.displayName)
+                // The system's own carousel resumed a book this app has not seen this
+                // session, so no format is known — the one case the well still falls back
+                // to the title, through its publication-less overload.
+                CoverlessWell(name = title, format = null)
             }
         }
     }

@@ -153,10 +153,9 @@ class PlayerSemanticsTest {
      * `audio-playback`, *A publication with no cover*: the player "draws the same coverless
      * treatment every other surface draws … rather than a treatment of the player's own".
      *
-     * The well is what says the format — nothing else on this screen names `M4B` — so the
-     * format in the drawn tree is the well being there. The title is expected **twice** in the
-     * unmerged tree, the top bar's and the well's, exactly as `DownloadsCoverlessWellTest`
-     * expects it twice on the Downloads cell for the same reason. Unmerged, because the well is
+     * Task 16.8 moved the well's own text from the title to the format, so the title is
+     * expected **once** in the unmerged tree now — the top bar's alone — and the format,
+     * which nothing else on this screen names, is the well's. Unmerged, because the well is
      * deliberately silent to a screen reader; what is asserted here is what was drawn.
      */
     @Test
@@ -164,7 +163,7 @@ class PlayerSemanticsTest {
         compose.setContent { Player(cover = { _, _ -> null }) }
 
         compose.onNodeWithText("M4B", useUnmergedTree = true).assertIsDisplayed()
-        compose.onAllNodesWithText("Sea Room", useUnmergedTree = true).assertCountEquals(2)
+        compose.onAllNodesWithText("Sea Room", useUnmergedTree = true).assertCountEquals(1)
         // And the well is silent: to a screen reader the title is the top bar's alone, and the
         // format is nobody's — the well's own contract, held here for the surface that draws it.
         compose.onAllNodesWithText("Sea Room").assertCountEquals(1)
