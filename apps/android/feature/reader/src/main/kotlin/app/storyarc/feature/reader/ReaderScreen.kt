@@ -23,9 +23,11 @@ import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -90,8 +92,12 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.adaptive.separatingVerticalHingeBounds
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalConfiguration
@@ -112,6 +118,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.feedback.StoryArcFeedback
 import app.storyarc.core.designsystem.feedback.rememberHaptics
 import app.storyarc.core.designsystem.navigation.StoryArcSupportingPanes
+import app.storyarc.core.designsystem.navigation.hingeInset
+import app.storyarc.core.designsystem.navigation.hingeSpreadSplit
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.rememberWindowClass
 import app.storyarc.core.designsystem.theme.LocalTapTurnsPages
@@ -884,26 +892,76 @@ private fun Pager(
      * direction". Reading order is the publication's own either way — a manga spread
      * reads 4 then 5 exactly as a western one does — so only the screen order flips, and
      * it flips here rather than anywhere the pages are counted.
+     *
+     * `native-experience` 19.5: a window folded open across a vertical hinge gives both
+     * shapes above a reason to move. A pair splits exactly at the hinge rather than at the
+     * container's own midpoint, with [Spacer] standing in for the part of the screen the
+     * hinge itself occupies; a lone page is pinned to whichever side of the hinge has more
+     * room rather than centred across it. [hingeSpreadSplit] and [hingeInset] are the whole
+     * rule, asked once per slot against this `BoxWithConstraints`' own measured width and
+     * its own position in the window — not the window's width, because a wide window can
+     * still hand this particular slot less than all of it, through a pane scaffold or a
+     * supporting strip.
      */
     @Composable
     fun Page(display: Int, stitch: ScrollAxis? = null) {
         val spread = layout.slotAt(slotIndex(display))
         val trailing = spread?.trailing
-        if (trailing == null || stitch != null) {
-            SinglePage(spread?.leading ?: 0, stitch, ::handleTap)
-            return
-        }
-        val onScreen =
-            if (isRightToLeft) listOf(trailing, spread.leading) else listOf(spread.leading, trailing)
-        Row(Modifier.fillMaxSize()) {
-            onScreen.forEachIndexed { half, index ->
+        val windowHinge = currentWindowAdaptiveInfoV2().windowPosture.separatingVerticalHingeBounds
+            .firstOrNull()
+        var positionInWindow by remember { mutableStateOf(Offset.Zero) }
+        val density = LocalDensity.current
+        BoxWithConstraints(
+            Modifier
+                .fillMaxSize()
+                .onGloballyPositioned { positionInWindow = it.positionInWindow() },
+        ) {
+            val split = remember(windowHinge, positionInWindow, constraints.maxWidth) {
+                hingeSpreadSplit(
+                    containerWidth = constraints.maxWidth.toFloat(),
+                    hingeStart = windowHinge?.let { it.left - positionInWindow.x },
+                    hingeEnd = windowHinge?.let { it.right - positionInWindow.x },
+                )
+            }
+
+            if (trailing == null || stitch != null) {
+                val inset = hingeInset(split)
                 Box(
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    modifier = if (inset == null) {
+                        Modifier.fillMaxSize()
+                    } else {
+                        Modifier
+                            .align(if (inset.atStart) Alignment.CenterStart else Alignment.CenterEnd)
+                            .width(with(density) { inset.width.toDp() })
+                            .fillMaxHeight()
+                    },
                     contentAlignment = Alignment.Center,
                 ) {
-                    SinglePage(index, stitch = null) { point, size ->
-                        val (whole, area) = spreadTap(half, point, size)
-                        handleTap(whole, area)
+                    SinglePage(spread?.leading ?: 0, stitch, ::handleTap)
+                }
+            } else {
+                val onScreen =
+                    if (isRightToLeft) listOf(trailing, spread.leading) else listOf(spread.leading, trailing)
+                Row(Modifier.fillMaxSize()) {
+                    onScreen.forEachIndexed { half, index ->
+                        if (half == 1 && split.gap > 0f) {
+                            Spacer(Modifier.width(with(density) { split.gap.toDp() }).fillMaxHeight())
+                        }
+                        Box(
+                            modifier = Modifier
+                                .width(
+                                    with(density) {
+                                        (if (half == 0) split.leadingWidth else split.trailingWidth).toDp()
+                                    },
+                                )
+                                .fillMaxHeight(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            SinglePage(index, stitch = null) { point, size ->
+                                val (whole, area) = spreadTap(half, point, size)
+                                handleTap(whole, area)
+                            }
+                        }
                     }
                 }
             }
