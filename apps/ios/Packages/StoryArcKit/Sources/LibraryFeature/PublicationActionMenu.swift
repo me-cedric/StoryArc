@@ -17,6 +17,27 @@ enum PublicationActions {
     static func canDownload(_ publication: Publication) -> Bool {
         publication.isOpenable && publication.format != .imageFolder
     }
+
+    /// Whether there is anything here a copy could be made of right now.
+    ///
+    /// Lifted out of ``DetailActions``' own `canCopy`, which answered this for the primary
+    /// action's menu alone. ``PublicationActionMenu`` asked a second question beside it —
+    /// `isLocalFile` — that was wrong the day ``LibraryModel/keepOffline(_:)`` grew a route
+    /// for a Kavita chapter with no file of its own: `kavita-server`'s *Keeping a chapter on
+    /// the device* fixed the primary menu and left this one still refusing the same row.
+    ///
+    /// **A Kavita row with no file of its own asks one more question.** A library row built
+    /// from a browse that never opened or kept it draws this exact button, and a tap that
+    /// does nothing is worse than no button at all — ``LibraryModel/canKeepKavitaChapter(_:)``
+    /// is the route that carries it through, and the one place this asks whether there is
+    /// one at all.
+    @MainActor
+    static func canCopy(_ publication: Publication, file: URL?, model: LibraryModel) -> Bool {
+        guard canDownload(publication) else { return false }
+        guard file == nil, publication.identity.serverIdentifier?.remoteID.hasPrefix("chapter:") == true
+        else { return true }
+        return model.canKeepKavitaChapter(publication)
+    }
 }
 
 /// What a download action offers: to fetch a copy, to remove one, or neither.
@@ -25,39 +46,46 @@ enum PublicationActions {
 /// test can state all three answers without constructing a view. Android's `DownloadOffer` is
 /// the same three cases.
 ///
-/// `isLocalFile`: the menu's download is ``LibraryModel/keepOffline(_:)``, which copies a file
-/// that is already on this device. A row whose bytes are on a server has no such file, so the
-/// copy is skipped and nothing happens. The menu does not offer a download it cannot deliver.
+/// `canCopy`: whether ``PublicationActions/canCopy(_:file:model:)`` found a route the menu's
+/// download — ``LibraryModel/keepOffline(_:)`` — can actually take. A local file is always
+/// one; a browsed Kavita chapter is one only when its origin is known; nothing else is.
 enum DownloadOffer: Equatable {
     case download
     case remove
     case none
 
-    static func of(_ publication: Publication, isKept: Bool, isLocalFile: Bool) -> DownloadOffer {
+    static func of(_ publication: Publication, isKept: Bool, canCopy: Bool) -> DownloadOffer {
         if isKept { return .remove }
-        return isLocalFile && PublicationActions.canDownload(publication) ? .download : .none
+        return canCopy ? .download : .none
     }
 }
 
 /// The one action list a publication offers, wherever it is drawn.
 ///
 /// `library-browsing`'s *A publication's actions wherever it is drawn*: the same actions —
-/// open (the tap that already carries the cover, not a row in here), mark read or unread,
-/// start from the beginning, add to a shelf, download or remove the download, and show
-/// details — on the library grid and list, the home surface, a shelf, a collection or
-/// reading-list page, and a server's own browser. A seventh, removing the publication from
-/// the shelf this menu was opened on, is offered only where there is one.
+/// open, mark read or unread, start from the beginning, add to a shelf, download or remove
+/// the download, and show details — on the library grid and list, search results, the home
+/// surface, a shelf, a collection or reading-list page, and a server's own browser. A
+/// seventh, removing the publication from the shelf this menu was opened on, is offered only
+/// where there is one.
+///
+/// **`open` names a row of its own.** The spec lists it as its own action beside *show
+/// details*, and the two take the same route for the reason ``CoverCell`` already gives: a
+/// cover "leads to the publication's page, not to the reader". They read as two names for
+/// one door rather than a duplicate, because a reader who is already inside the long-press
+/// interaction that drew this menu has no tap left to give — the cover under it is covered by
+/// the preview, and *Open* is how the menu itself commits to it.
 ///
 /// **Wraps ``AddToShelfMenu`` rather than repeating what it already gets right.** The owner's
 /// field report on v0.1.1 named the defect as "a long press ... offers its actions only in
 /// the library grid", and the grid's own menu was already four of the six —
 /// ``AddToShelfMenu`` carries mark read/unread, start from the beginning and add to a shelf.
-/// This adds the two it does not, and is what every surface names in the report should call
+/// This adds the ones it does not, and is what every surface names in the report should call
 /// instead of ``AddToShelfMenu`` alone.
 struct PublicationActionMenu: View {
     /// Set by the Library split's shelf column, where a value link finds no destination —
     /// the same environment key ``CoverCell`` and ``ListRow`` already read for their own tap,
-    /// and read here for the identical reason: *Show details* is the same route.
+    /// and read here for the identical reason: *Open* and *Show details* are the same route.
     @Environment(\.openPublicationRoute) private var openRoute
 
     let model: LibraryModel
@@ -72,6 +100,8 @@ struct PublicationActionMenu: View {
     @State private var isDownloading = false
 
     var body: some View {
+        openAction
+
         AddToShelfMenu(
             model: model,
             publications: [publication],
@@ -91,6 +121,24 @@ struct PublicationActionMenu: View {
         }
 
         showDetails
+    }
+
+    /// *Open*, named for a reader who is already inside the long-press interaction this menu
+    /// drew and has no tap left to give — the cover under it is covered by the preview. The
+    /// same route *Show details* takes, below: `publication-detail` requires the page
+    /// reachable "from every surface that shows a publication", and the cover's own tap
+    /// already takes one of these two roads — see ``CoverCell``.
+    @ViewBuilder
+    private var openAction: some View {
+        let label = Label(
+            String(localized: "library.action.open", bundle: .module, locale: .storyArc),
+            systemImage: "arrow.up.forward.app"
+        )
+        if let openRoute {
+            Button { openRoute(PublicationRoute(publication)) } label: { label }
+        } else {
+            NavigationLink(value: PublicationRoute(publication)) { label }
+        }
     }
 
     /// Opens the publication's own page. `publication-detail` requires the page reachable
@@ -116,7 +164,7 @@ struct PublicationActionMenu: View {
         switch DownloadOffer.of(
             publication,
             isKept: model.isOnDevice(publication),
-            isLocalFile: model.location(of: publication)?.isFileURL ?? false
+            canCopy: PublicationActions.canCopy(publication, file: model.location(of: publication), model: model)
         ) {
         case .download:
             Button {

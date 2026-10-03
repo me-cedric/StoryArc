@@ -209,20 +209,13 @@ struct DetailActions: View {
 
     /// Whether there is anything here a copy could be made of.
     ///
-    /// ``PublicationActions/canDownload(_:)`` — moved out so ``PublicationActionMenu`` can
-    /// ask the identical question rather than a second copy of it.
-    ///
-    /// **A Kavita row with no file of its own asks one more question.** `kavita-server`'s
-    /// *Keeping a chapter on the device*: a library row built from a browse that never
-    /// opened or kept it drew this exact button, and the tap did nothing —
-    /// ``LibraryModel/canKeepKavitaChapter(_:)`` is the route that now carries it through,
-    /// and the one place this asks whether there is one at all. An action a tap cannot
-    /// carry out is worse shown than left out, which is this file's own header.
+    /// ``PublicationActions/canCopy(_:file:model:)`` — moved out so ``PublicationActionMenu``
+    /// can ask the identical question rather than a second copy of it, which is how its own
+    /// menu came to refuse a Kavita chapter this one already drew a working button for. An
+    /// action a tap cannot carry out is worse shown than left out, which is this file's own
+    /// header.
     private var canCopy: Bool {
-        guard PublicationActions.canDownload(publication) else { return false }
-        guard file == nil, publication.identity.serverIdentifier?.remoteID.hasPrefix("chapter:") == true
-        else { return true }
-        return model.canKeepKavitaChapter(publication)
+        PublicationActions.canCopy(publication, file: file, model: model)
     }
 
     private func copy() {
