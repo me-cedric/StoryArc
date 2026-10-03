@@ -212,6 +212,7 @@ public struct ShelvesView: View {
                                 server: shelf.server,
                                 collectionID: shelf.id,
                                 title: shelf.title,
+                                model: model,
                                 onOpen: onOpen
                             )
                         }

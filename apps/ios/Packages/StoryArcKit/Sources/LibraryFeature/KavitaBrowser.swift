@@ -17,6 +17,10 @@ public struct KavitaBrowserView: View {
     private let address: KavitaAddress
     private let sourceId: String
     private let store: KavitaProgressStore
+    /// `library-browsing`'s *A publication's actions wherever it is drawn* names "a server's
+    /// own browser" among the places — carried to ``KavitaChapterList`` so a chapter this
+    /// device has already indexed can offer the same menu the unified library does.
+    private let model: LibraryModel
     /// Where a pulled position is written. See `KavitaSync.pull`.
     private let progress: ProgressStore?
     private let lists: [ServerShelf]
@@ -54,6 +58,7 @@ public struct KavitaBrowserView: View {
         address: KavitaAddress,
         sourceId: String,
         store: KavitaProgressStore,
+        model: LibraryModel,
         progress: ProgressStore? = nil,
         lists: [ServerShelf] = [],
         publications: [Publication] = [],
@@ -64,6 +69,7 @@ public struct KavitaBrowserView: View {
         self.address = address
         self.sourceId = sourceId
         self.store = store
+        self.model = model
         self.progress = progress
         self.lists = lists
         self.publications = publications
@@ -115,6 +121,7 @@ public struct KavitaBrowserView: View {
             client: client,
             sourceId: sourceId,
             store: store,
+            model: model,
             progress: progress,
             lists: lists,
             onOpen: onOpen
@@ -147,6 +154,7 @@ public struct KavitaBrowserView: View {
                         finder: finder,
                         sourceId: sourceId,
                         store: store,
+                        model: model,
                         progress: progress,
                         lists: lists,
                         onOpen: onOpen

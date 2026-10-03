@@ -37,6 +37,12 @@ public struct CatalogueBrowserView: View {
     /// download from a section or a facet is keyed the same way as one from the top.
     let sourceID: UUID
 
+    /// `library-browsing`'s *A publication's actions wherever it is drawn* names "a
+    /// server's own browser" among the places. Carried to every entry below so a row this
+    /// device has already indexed can offer the same menu the unified library does — see
+    /// ``CatalogueEntryLink``.
+    let model: LibraryModel
+
     /// The term as typed, and the result of the last search that was not the server's.
     @State private var term = ""
     @State private var filtered: [OpdsEntry]?
@@ -51,10 +57,12 @@ public struct CatalogueBrowserView: View {
         /// because their addresses come out of a feed.
         origin: OpdsOrigin? = nil,
         sourceID: UUID,
+        model: LibraryModel,
         onOpen: @escaping (Publication, URL) -> Void = { _, _ in }
     ) {
         let home = origin ?? OpdsOrigin(url: url)
         self.sourceID = sourceID
+        self.model = model
         _browser = State(
             initialValue: CatalogueBrowser(
                 title: title,
@@ -141,6 +149,7 @@ public struct CatalogueBrowserView: View {
                     pins: browser.pins,
                     origin: browser.origin,
                     sourceID: sourceID,
+                    model: model,
                     onOpen: onOpen
                 )
             }
@@ -211,7 +220,7 @@ public struct CatalogueBrowserView: View {
         VStack(spacing: StoryArcSpace.sm) {
             ForEach(list) { section in
                 CatalogueSectionLink(
-                    section: section, browser: browser, sourceID: sourceID, onOpen: onOpen
+                    section: section, browser: browser, sourceID: sourceID, model: model, onOpen: onOpen
                 )
             }
         }
@@ -229,6 +238,7 @@ public struct CatalogueBrowserView: View {
                     browser: browser,
                     queue: queue,
                     sourceID: sourceID,
+                    model: model,
                     isDownloaded: onDevice.contains(queue.downloadID(for: entry.id, sourceID: sourceID)),
                     onOpen: onOpen
                 )
@@ -255,6 +265,7 @@ public struct CatalogueBrowserView: View {
                     browser: browser,
                     queue: queue,
                     sourceID: sourceID,
+                    model: model,
                     onDevice: onDevice,
                     onOpen: onOpen
                 )
@@ -277,6 +288,7 @@ public struct CatalogueBrowserView: View {
                                 pins: browser.pins,
                                 origin: browser.origin,
                                 sourceID: sourceID,
+                                model: model,
                                 onOpen: onOpen
                             )
                         } label: {

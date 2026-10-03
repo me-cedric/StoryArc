@@ -14,6 +14,10 @@ public import StoryArcCore
 /// same reader a local publication does.
 struct SourceBrowser: View {
     let source: Source
+    /// `library-browsing`'s *A publication's actions wherever it is drawn* names "a server's
+    /// own browser" among the places — carried down to the OPDS and Kavita browsers so a row
+    /// this device has already indexed can offer the same menu the unified library does.
+    let model: LibraryModel
     let pins: CertificatePins
     let credentials: CredentialStore
     let kavitaProgress: KavitaProgressStore
@@ -58,6 +62,7 @@ struct SourceBrowser: View {
                 credential: page.credential,
                 pins: pins,
                 sourceID: page.sourceID,
+                model: model,
                 onOpen: onOpen
             )
         } else if let page = SmbPage(source: source, credentials: credentials) {
@@ -73,6 +78,7 @@ struct SourceBrowser: View {
                 address: page.address,
                 sourceId: page.id,
                 store: kavitaProgress,
+                model: model,
                 lists: lists,
                 publications: publications,
                 searching: searching,
