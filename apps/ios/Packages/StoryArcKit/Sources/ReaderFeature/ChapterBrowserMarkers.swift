@@ -97,4 +97,14 @@ enum ChapterBrowser {
         guard pageCount > 1 else { return [] }
         return markers.map { Double($0.index) / Double(pageCount - 1) }
     }
+
+    /// Where a tick at `fraction` goes along the slider, in points from its leading end.
+    ///
+    /// The thumb never reaches past the track, so its centre runs from half the thumb's
+    /// width to the track's width less half the thumb's width. A tick sits where the
+    /// thumb's centre sits on that chapter's first page, not at `fraction` of the track.
+    static func tickOffset(fraction: Double, trackWidth: Double, thumbWidth: Double) -> Double {
+        let inset = min(thumbWidth, trackWidth) / 2
+        return inset + fraction * (trackWidth - inset * 2)
+    }
 }

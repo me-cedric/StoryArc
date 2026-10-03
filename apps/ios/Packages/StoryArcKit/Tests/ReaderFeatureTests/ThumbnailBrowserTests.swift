@@ -1,6 +1,8 @@
 import Foundation
 import Testing
 
+@testable import ReaderFeature
+
 /// That the thumbnail browser shows the whole publication, says where the reader is, and
 /// goes where it is told.
 ///
@@ -112,9 +114,12 @@ struct ThumbnailBrowserTests {
             """
         )
 
+        // The carousel's own row, not the whole menu: the menu jumps from other rows too.
         let menu = try code(of: "ReaderMenu.swift")
+        let row = menu.components(separatedBy: "var thumbnailBrowserRow").dropFirst().first?
+            .components(separatedBy: "\n    func ").first ?? ""
         #expect(
-            menu.contains("ThumbnailStrip(") && menu.contains("jump(to: index)"),
+            row.contains("ThumbnailStrip(") && row.contains("jump(to: index)"),
             """
             The menu no longer turns a tapped thumbnail into a jump. `comic-reader`: "tapping \
             one jumps to it" — and a jump rather than a turn, so the way back from a mis-tap \
@@ -132,6 +137,51 @@ struct ThumbnailBrowserTests {
             The carousel no longer mirrors its scroll content for a right-to-left \
             publication. `page-browser-carousel`: "the carousel runs right to left, with \
             page one at the right end, the same way as the mirrored page slider".
+            """
+        )
+    }
+
+    @Test("The centred page sits in the middle of the carousel")
+    func centredPageSitsInTheMiddle() {
+        let viewport: CGFloat = 393
+        let margin = ThumbnailStrip.contentMargin(viewportWidth: viewport)
+        #expect(abs(margin * 2 + ThumbnailStrip.centredCellWidth - viewport) < 0.001)
+    }
+
+    @Test("The carousel closes with the menu it is a row of")
+    func carouselClosesWithTheMenu() throws {
+        let menu = try code(of: "ReaderMenu.swift")
+        #expect(
+            menu.contains(".onDisappear { isBrowsingThumbnails = false }"),
+            """
+            The carousel stays open after the menu closes. The chrome timer and the keyboard \
+            focus both read `isBrowsingThumbnails` as a surface over the page, so the chrome \
+            never hides and the page never takes focus back.
+            """
+        )
+    }
+
+    @Test("A page turned while the carousel is open becomes its centred page")
+    func carouselFollowsTheCurrentPage() throws {
+        let strip = try code(of: "ThumbnailStrip.swift")
+        #expect(
+            strip.contains(".onChange(of: currentIndex) { _, new in centredIndex = new }"),
+            """
+            The carousel no longer follows the page the reader is on. A page turned behind the \
+            half-height menu, or a VoiceOver step on the slider, leaves the preview behind.
+            """
+        )
+    }
+
+    @Test("Each cell is announced as its page and its chapter")
+    func cellsAnnounceTheirChapter() throws {
+        let strip = try code(of: "ThumbnailStrip.swift")
+        #expect(
+            strip.contains("chapterName: chapterName") && strip.contains("Text(\"\\(page), \\(chapterName)\")"),
+            """
+            A cell no longer announces its chapter. `page-browser-carousel`: VoiceOver \
+            "announces the page number and, when the publication has chapter markers, the \
+            chapter name".
             """
         )
     }

@@ -109,6 +109,10 @@ extension ReaderView {
         // over the page rather than replace it.
         .presentationDetents([.medium, .large])
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        // The carousel is a row of this sheet, so it closes with the sheet. Left open, it
+        // would hold the chrome up and stop the page taking keyboard focus back: both read
+        // `isBrowsingThumbnails` as a surface over the page.
+        .onDisappear { isBrowsingThumbnails = false }
     }
 
     /// The thumbnail browser, as a carousel inline in the menu.
