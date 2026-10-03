@@ -4,6 +4,33 @@ internal import DesignSystem
 public import Playback
 public import StoryArcCore
 
+/// What a tap on the compact bar's own row does.
+enum PlayerDockRowAction: Equatable {
+    /// Open the full player, over whatever is behind it.
+    case openPlayer
+    /// Reopen the publication at the sentence the voice is on.
+    case returnToPublication
+}
+
+/// Where a tap on the row goes. Lifted out of ``PlayerDock/wayIn(_:)`` so
+/// `PlayerDockRowActionTests` can assert it directly — the view itself cannot be driven in a
+/// host-only test, and this is the one branch D17 narrowed.
+///
+/// **D17.** The inline placement has no room for the chevron beside the row (see
+/// ``PlayerDock/controls(_:)``), so a publication being read aloud there would otherwise reach
+/// the full player, and its sentence skip, only through the book. The full player carries the
+/// way back to the book itself (``fullPlayerWayBack(_:)``), so the inline row trades away only
+/// one tap of it, never the way back. Outside the inline placement the chevron already carries
+/// the trip to the player, so the row keeps going straight to the book there.
+func playerDockRowAction(wayBack: PlayerWayBack, isInline: Bool) -> PlayerDockRowAction {
+    switch wayBack {
+    case .fullPlayer:
+        return .openPlayer
+    case .publication:
+        return isInline ? .openPlayer : .returnToPublication
+    }
+}
+
 /// The compact bar, docked with the app's own navigation.
 ///
 /// `audio-playback`: while something is playing "a compact bar rests above the navigation
@@ -34,34 +61,6 @@ public import StoryArcCore
 /// not steal focus when it appears, because a listener who started a book and moved on did
 /// not ask to be taken back" — so there is deliberately no `accessibilityFocused` and no
 /// screen-changed announcement in this file. The absence is the feature.
-/// What a tap on the compact bar's own row does.
-enum PlayerDockRowAction: Equatable {
-    /// Open the full player, over whatever is behind it.
-    case openPlayer
-    /// Reopen the publication at the sentence the voice is on.
-    case returnToPublication
-}
-
-/// Where a tap on the row goes. Lifted out of ``PlayerDock/wayIn(_:)`` so
-/// `PlayerDockRowActionTests` can assert it directly — the view itself cannot be driven in a
-/// host-only test, and this is the one branch D17 narrowed.
-///
-/// **D17.** The inline placement has no room for the chevron beside the row (see
-/// ``PlayerDock/controls(_:)``), so a publication being read aloud there would otherwise reach
-/// the full player, and its sentence skip, only through the book. The full player is presented
-/// as a sheet over whatever is already on screen, so opening it from the inline row still
-/// leaves the book one dismiss away — neither clause of ``PlayerWayBack`` is traded away, the
-/// chevron's one-tap convenience is. Outside the inline placement the chevron already carries
-/// that trip, so the row keeps going straight to the book there.
-func playerDockRowAction(wayBack: PlayerWayBack, isInline: Bool) -> PlayerDockRowAction {
-    switch wayBack {
-    case .fullPlayer:
-        return .openPlayer
-    case .publication:
-        return isInline ? .openPlayer : .returnToPublication
-    }
-}
-
 public struct PlayerDock: View {
     @Environment(\.theme) private var theme
     /// Full size above the tab bar, or inline in the bar once it has minimised on scroll.

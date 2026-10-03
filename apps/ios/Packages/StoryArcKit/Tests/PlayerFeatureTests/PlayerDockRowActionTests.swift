@@ -1,7 +1,9 @@
+import Foundation
 import Testing
 
 @testable import PlayerFeature
 @testable import Playback
+import StoryArcCore
 
 /// D17: the inline compact bar gives a read-aloud publication one tap to the full player.
 ///
@@ -32,5 +34,32 @@ struct PlayerDockRowActionTests {
     @Test("Outside the inline placement, the row still goes straight back to the book")
     func fullSizeRowReturnsToPublication() {
         #expect(playerDockRowAction(wayBack: .publication, isInline: false) == .returnToPublication)
+    }
+
+    // MARK: - The full player's way back (D17)
+
+    private func bar(_ format: PublicationFormat) throws -> CompactPlayer {
+        let book = SpokenBook(
+            publication: Publication(
+                identity: PublicationIdentity(normalizedPath: "/library/the-long-field.\(format)"),
+                format: format,
+                displayTitle: "The Long Field",
+                origin: .inferred
+            ),
+            url: URL(fileURLWithPath: "/library/the-long-field.\(format)")
+        )
+        return try #require(CompactPlayer.of(PlaybackSession().started(), playing: book))
+    }
+
+    @Test("The full player carries the way back to a book being read aloud")
+    func fullPlayerCarriesTheWayBack() throws {
+        let reading = try bar(.epub)
+        #expect(fullPlayerWayBack(reading) == reading.book)
+    }
+
+    @Test("A narrated audiobook's full player has no book to go back to")
+    func narratedAudiobookHasNoWayBack() throws {
+        #expect(fullPlayerWayBack(try bar(.m4b)) == nil)
+        #expect(fullPlayerWayBack(nil) == nil)
     }
 }

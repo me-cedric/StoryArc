@@ -40,6 +40,8 @@ public struct FullPlayerView: View {
     /// most often, since no audiobook cover is indexed yet (`PublicationIndexer.audiobook`).
     /// Defaulted to "no cover" so a preview or a test built without a library still compiles.
     private let coverLookup: (Publication, Int) async -> CGImage?
+    /// D17: reopens the book being read aloud. `nil` draws no way back.
+    private let onReturn: ((SpokenBook) -> Void)?
     @State private var showingChapters = false
     @State private var showingSpeed = false
     @State private var showingSleep = false
@@ -51,12 +53,14 @@ public struct FullPlayerView: View {
         centre: PlayerCentre,
         next: Publication? = nil,
         onOpenNext: @escaping (Publication) -> Void = { _ in },
-        coverLookup: @escaping (Publication, Int) async -> CGImage? = { _, _ in nil }
+        coverLookup: @escaping (Publication, Int) async -> CGImage? = { _, _ in nil },
+        onReturn: ((SpokenBook) -> Void)? = nil
     ) {
         self.centre = centre
         self.next = next
         self.onOpenNext = onOpenNext
         self.coverLookup = coverLookup
+        self.onReturn = onReturn
     }
 
     public var body: some View {
@@ -72,6 +76,7 @@ public struct FullPlayerView: View {
                     } else {
                         cover
                         names
+                        wayBack
                         position
                         transport
                         settings
@@ -151,6 +156,24 @@ public struct FullPlayerView: View {
         // the publication and the chapter "readable in full", which is what makes the
         // surface scroll rather than the words shrink.
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// D17: the inline bar's row opens this player for a book being read aloud, so the way
+    /// back to that book is here too. Absent for a narrated audiobook. See ``fullPlayerWayBack(_:)``.
+    @ViewBuilder private var wayBack: some View {
+        if let onReturn, let book = fullPlayerWayBack(centre.compact) {
+            Button {
+                onReturn(book)
+            } label: {
+                Label {
+                    Text("player.back", bundle: .module)
+                } icon: {
+                    Image(systemName: "book")
+                }
+            }
+            .buttonStyle(.bordered)
+            .tint(theme.accent)
+        }
     }
 
     // MARK: - Where it is
@@ -339,4 +362,15 @@ public struct FullPlayerView: View {
             .foregroundStyle(theme.palette.textSecondary)
             .multilineTextAlignment(.center)
     }
+}
+
+/// The book the full player's way back reopens, or `nil` when there is no book behind the audio.
+///
+/// D17: the inline compact bar's row opens the full player for a publication being read
+/// aloud, so the player carries the way back to the book that the row no longer offers there.
+/// A narrated audiobook has no book behind it. Lifted out of ``FullPlayerView`` so
+/// `PlayerDockRowActionTests` can assert it on the host.
+func fullPlayerWayBack(_ bar: CompactPlayer?) -> SpokenBook? {
+    guard let bar, bar.wayBack == .publication else { return nil }
+    return bar.book
 }

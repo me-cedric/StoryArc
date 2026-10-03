@@ -41,12 +41,15 @@ public extension View {
     ///   - onOpenNext: what happens when the offer is taken.
     ///   - coverLookup: where the library's own cover for a publication comes from. Task
     ///     16.10. Defaulted to "no cover", which is what a caller with no library gets.
+    ///   - onReturn: reopens a book being read aloud, after the sheet has gone. D17. `nil`
+    ///     draws no way back in the player.
     func playerSheet(
         isPresented: Binding<Bool>,
         centre: PlayerCentre,
         next: Publication? = nil,
         onOpenNext: @escaping (Publication) -> Void = { _ in },
-        coverLookup: @escaping (Publication, Int) async -> CGImage? = { _, _ in nil }
+        coverLookup: @escaping (Publication, Int) async -> CGImage? = { _, _ in nil },
+        onReturn: ((Publication, URL) -> Void)? = nil
     ) -> some View {
         modifier(
             PlayerSheetModifier(
@@ -54,7 +57,8 @@ public extension View {
                 centre: centre,
                 next: next,
                 onOpenNext: onOpenNext,
-                coverLookup: coverLookup
+                coverLookup: coverLookup,
+                onReturn: onReturn
             )
         )
     }
@@ -66,12 +70,25 @@ struct PlayerSheetModifier: ViewModifier {
     var next: Publication?
     var onOpenNext: (Publication) -> Void = { _ in }
     var coverLookup: (Publication, Int) async -> CGImage? = { _, _ in nil }
+    var onReturn: ((Publication, URL) -> Void)?
+    /// The book the player's way back chose. Opened in `onDismiss`, because a reader presented
+    /// while this sheet is still up has nowhere to present from. D17.
+    @State private var returning: SpokenBook?
 
     func body(content: Content) -> some View {
         content
-            .sheet(isPresented: $isPresented) {
-                FullPlayerView(centre: centre, next: next, onOpenNext: onOpenNext, coverLookup: coverLookup)
-                    .storyArcTheme()
+            .sheet(isPresented: $isPresented, onDismiss: reopen) {
+                FullPlayerView(
+                    centre: centre,
+                    next: next,
+                    onOpenNext: onOpenNext,
+                    coverLookup: coverLookup,
+                    onReturn: onReturn == nil ? nil : { book in
+                        returning = book
+                        isPresented = false
+                    }
+                )
+                .storyArcTheme()
             }
             // The player closes when the *session* ends for any reason but one.
             //
@@ -88,5 +105,11 @@ struct PlayerSheetModifier: ViewModifier {
             .onChange(of: centre.isRunning) { _, running in
                 if !running, !centre.hasReachedTheEnd { isPresented = false }
             }
+    }
+
+    private func reopen() {
+        guard let book = returning else { return }
+        returning = nil
+        onReturn?(book.publication, book.url)
     }
 }
