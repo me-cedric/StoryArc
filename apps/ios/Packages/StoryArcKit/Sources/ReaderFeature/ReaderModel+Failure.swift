@@ -24,8 +24,8 @@ extension ReaderModel {
     /// implies a format the library accepted, so that case is not expected here.
     static func sentence(for error: ComicArchiveError) -> String {
         switch error {
-        case .unsupportedContainer:
-            String(localized: "reader.unsupported", bundle: .module, locale: .storyArc)
+        case let .unsupportedContainer(container):
+            String(localized: "reader.unsupported \(container.displayName)", bundle: .module, locale: .storyArc)
         case .passwordProtected:
             String(localized: "reader.passwordProtected", bundle: .module, locale: .storyArc)
         case .solidArchive:

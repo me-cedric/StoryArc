@@ -61,7 +61,7 @@ suspend fun ReaderViewModel.adoptLocalCopy(
 fun ReaderViewModel.endWaitIfDownloadStopped() {
     if (!isWaitingForDownload.value || isDownloadPending()) return
     _isWaitingForDownload.value = false
-    _failure.value = R.string.reader_cannot_open
+    _failure.value = ReaderFailure(R.string.reader_cannot_open)
 }
 
 /**

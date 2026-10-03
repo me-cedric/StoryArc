@@ -228,7 +228,8 @@ fun ReaderScreen(
     ) {
         when {
             failure != null -> {
-                Message(stringResource(failure!!))
+                val shown = failure!!
+                Message(stringResource(shown.textRes, *shown.args.toTypedArray()))
                 CloseButton(onClose)
             }
             isWaitingForDownload -> {

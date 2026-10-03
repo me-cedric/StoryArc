@@ -67,7 +67,7 @@ class ReaderDownloadWaitTest {
         runBlocking { model.open(256) }
 
         assertFalse(model.isWaitingForDownload.value)
-        assertEquals(R.string.reader_cannot_open, model.failure.value)
+        assertEquals(ReaderFailure(R.string.reader_cannot_open), model.failure.value)
     }
 
     @Test
@@ -84,7 +84,7 @@ class ReaderDownloadWaitTest {
         model.endWaitIfDownloadStopped()
 
         assertFalse(model.isWaitingForDownload.value)
-        assertEquals(R.string.reader_cannot_open, model.failure.value)
+        assertEquals(ReaderFailure(R.string.reader_cannot_open), model.failure.value)
     }
 
     @Test
