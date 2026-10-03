@@ -119,6 +119,15 @@ struct ReflowableTapZonesTests {
         #expect(EdgeTap.outcome(x: 450, width: 900, tapTurnsPages: true, isRightToLeft: true) == nil)
     }
 
+    @Test("A leftward swipe turns forward in a left-to-right book and back in a right-to-left one")
+    func theSwipeMirrors() {
+        #expect(TurnDrag.direction(travel: -60, isRightToLeft: false) == true)
+        #expect(TurnDrag.direction(travel: -60, isRightToLeft: true) == false)
+        #expect(TurnDrag.direction(travel: 60, isRightToLeft: false) == false)
+        #expect(TurnDrag.direction(travel: 60, isRightToLeft: true) == true)
+        #expect(TurnDrag.direction(travel: TurnDrag.threshold, isRightToLeft: true) == nil)
+    }
+
     @Test("A tap mirrors the same way through the gestures, under right-to-left")
     @MainActor
     func theTapMirrorsThroughTheGestures() {

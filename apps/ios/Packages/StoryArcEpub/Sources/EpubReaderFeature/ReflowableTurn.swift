@@ -84,6 +84,20 @@ enum EdgeTap {
     }
 }
 
+/// Which way a finished Fast fade swipe turns: `true` forward, `false` back, and `nil` for a
+/// swipe too short to mean a turn. Android's `TurnDrag.direction` is the same rule.
+enum TurnDrag {
+    /// Enough travel to mean a turn rather than a stray finger. The threshold is exclusive.
+    static let threshold: CGFloat = 40
+
+    /// A leftward swipe turns forward in a left-to-right book. A right-to-left book mirrors
+    /// it, as ``EdgeTap`` mirrors the band.
+    static func direction(travel: CGFloat, isRightToLeft: Bool) -> Bool? {
+        guard abs(travel) > threshold else { return nil }
+        return (travel < 0) != isRightToLeft
+    }
+}
+
 /// The reader's taps, keys and — while Fast fade owns the turn — its swipe.
 ///
 /// **Taps and keys come through Readium's own input observers**, in every page-turn mode.
@@ -114,8 +128,6 @@ final class TurnGestures: NSObject {
     /// Whether Readium has resolved this book's progression to right-to-left. Mirrors the
     /// edge-tap band, the pan and the arrow keys. See ``EpubReaderModel/isRightToLeft``.
     private var isRightToLeft = false
-    /// Enough travel to mean a turn rather than a stray finger.
-    private static let panThreshold: CGFloat = 40
 
     private var pan: UIPanGestureRecognizer?
     private weak var host: UIView?
@@ -203,10 +215,8 @@ final class TurnGestures: NSObject {
     @objc private func panned(_ recogniser: UIPanGestureRecognizer) {
         guard recogniser.state == .ended else { return }
         let travel = recogniser.translation(in: recogniser.view).x
-        guard abs(travel) > Self.panThreshold else { return }
-        // Dragging leftwards moves forwards in a left-to-right book; a right-to-left
-        // book mirrors it, the same way the edge taps and the arrow keys do.
-        turn?((travel < 0) != isRightToLeft)
+        guard let forward = TurnDrag.direction(travel: travel, isRightToLeft: isRightToLeft) else { return }
+        turn?(forward)
     }
 }
 
