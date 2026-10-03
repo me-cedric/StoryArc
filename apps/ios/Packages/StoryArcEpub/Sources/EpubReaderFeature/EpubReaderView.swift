@@ -139,6 +139,7 @@ public struct EpubReaderView: View {
                     // default, and by default here too: a reader with no settings at all
                     // is a preview or a test, and the zones are on for them.
                     tapTurnsPages: settings?.turnPagesByTappingTheEdges ?? true,
+                    isRightToLeft: model.isRightToLeft,
                     onTap: toggleChromeOrCloseTheme
                 )
                 .ignoresSafeArea()
@@ -326,7 +327,8 @@ public struct EpubReaderView: View {
         .modifier(EpubReaderTurnKeys(
             isCoveredBySheet: isShowingMenu || isShowingTheme || isShowingContents || editingNote != nil,
             onTurn: { forward in Task { await model.turn(forward: forward) } },
-            onToggleChrome: toggleChromeOrCloseTheme
+            onToggleChrome: toggleChromeOrCloseTheme,
+            isRightToLeft: model.isRightToLeft
         ))
         // `comic-reader`'s rule, and it reads the same for a book: a long look at
         // one page is reading, not idling.

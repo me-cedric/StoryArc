@@ -109,6 +109,34 @@ struct ReflowableTapZonesTests {
         #expect(turns == ["fade true"])
     }
 
+    /// Task 9.12: the band mirrors under right-to-left, the way the comic reader's own
+    /// display order mirrors its edge taps for free. This reader has no display-order
+    /// layer of its own — Readium paginates the text — so `EdgeTap` mirrors explicitly.
+    @Test("Under right-to-left, the edge band turns the opposite way")
+    func rightToLeftMirrorsTheBand() {
+        #expect(EdgeTap.outcome(x: 100, width: 900, tapTurnsPages: true, isRightToLeft: true) == true)
+        #expect(EdgeTap.outcome(x: 800, width: 900, tapTurnsPages: true, isRightToLeft: true) == false)
+        #expect(EdgeTap.outcome(x: 450, width: 900, tapTurnsPages: true, isRightToLeft: true) == nil)
+    }
+
+    @Test("A tap mirrors the same way through the gestures, under right-to-left")
+    @MainActor
+    func theTapMirrorsThroughTheGestures() {
+        var turns: [String] = []
+        let gestures = TurnGestures()
+        gestures.apply(
+            turn: nil,
+            animatedTurn: { turns.append("animated \($0)") },
+            reveal: { turns.append("reveal") },
+            tapTurnsPages: true,
+            isRightToLeft: true,
+            on: UIView()
+        )
+        gestures.tapped(at: 800, width: 900)
+        gestures.tapped(at: 100, width: 900)
+        #expect(turns == ["animated false", "animated true"])
+    }
+
     @Test("A turn key takes the same turn a tap does, and Return reveals the chrome")
     @MainActor
     func theKeysTakeTheSameTurn() {

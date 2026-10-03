@@ -26,6 +26,8 @@ struct NavigatorHost: UIViewControllerRepresentable {
     let animatedTurn: (Bool) -> Void
     /// Whether an edge tap turns the page. `page-transitions` makes it a reader's setting.
     let tapTurnsPages: Bool
+    /// Mirrors the edge-tap band and the Fast fade swipe. Task 9.12.
+    var isRightToLeft: Bool = false
     let onTap: () -> Void
 
     func makeUIViewController(context: Context) -> EPUBNavigatorViewController {
@@ -51,6 +53,7 @@ struct NavigatorHost: UIViewControllerRepresentable {
             animatedTurn: animatedTurn,
             reveal: onTap,
             tapTurnsPages: tapTurnsPages,
+            isRightToLeft: isRightToLeft,
             on: controller.view
         )
     }

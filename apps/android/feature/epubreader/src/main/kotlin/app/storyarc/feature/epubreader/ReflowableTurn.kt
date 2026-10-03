@@ -14,6 +14,8 @@ import app.storyarc.core.model.TransitionChoices
 import kotlin.coroutines.resume
 import kotlin.math.abs
 import kotlinx.coroutines.suspendCancellableCoroutine
+import org.readium.r2.navigator.epub.EpubNavigatorFragment
+import org.readium.r2.navigator.preferences.ReadingProgression
 
 // Taking the page turn over from Readium, so a transition StoryArc draws can run over
 // reflowable text.
@@ -52,11 +54,13 @@ internal object TurnDrag {
     /**
      * `true` to go forward, `false` to go back, `null` to leave the page alone.
      *
-     * Dragging leftwards moves forwards, the way every paginated reader behaves. The
-     * threshold is exclusive: a drag of exactly the threshold has not passed it.
+     * Dragging leftwards moves forwards in a left-to-right book; a right-to-left book
+     * mirrors it, the same way the edge taps and the arrow keys do -- see [EdgeTap] and
+     * [EpubTurnKey]. The threshold is exclusive: a drag of exactly the threshold has not
+     * passed it.
      */
-    fun direction(travel: Float, threshold: Float): Boolean? =
-        if (abs(travel) <= threshold) null else travel < 0
+    fun direction(travel: Float, threshold: Float, isRightToLeft: Boolean = false): Boolean? =
+        if (abs(travel) <= threshold) null else (travel < 0) != isRightToLeft
 }
 
 /**
@@ -73,6 +77,9 @@ internal object TurnDrag {
 internal class TurnInterceptor(context: Context) : FrameLayout(context) {
 
     var onTurn: ((Boolean) -> Unit)? = null
+
+    /** Mirrors the drag, the way [EdgeTap] and [EpubTurnKey] mirror a tap and a key. */
+    var isRightToLeft: () -> Boolean = { false }
 
     private val slop = ViewConfiguration.get(context).scaledTouchSlop
     private val threshold = THRESHOLD_DP_PX(context)
@@ -102,7 +109,7 @@ internal class TurnInterceptor(context: Context) : FrameLayout(context) {
             // so in practice the intercept above is the way in.
             MotionEvent.ACTION_DOWN -> downX = event.x
             MotionEvent.ACTION_UP ->
-                TurnDrag.direction(event.x - downX, threshold)?.let(turn)
+                TurnDrag.direction(event.x - downX, threshold, isRightToLeft())?.let(turn)
         }
         return true
     }
@@ -198,6 +205,16 @@ internal val TransitionChoices.fadeOwnsTheTurn: Boolean
     get() = effective == PageTransition.FAST_FADE
 
 /**
+ * Readium's own resolved answer -- publisher metadata, then the publication's language,
+ * then the app default -- so the reader never guesses at a rule Readium already owns.
+ * Task 9.12: the edge taps, the d-pad/arrow keys and the Fast fade swipe are
+ * screen-spatial, and Readium's own pagination is the only place that already knows
+ * which way the book reads.
+ */
+internal fun isRightToLeft(navigator: EpubNavigatorFragment?): Boolean =
+    navigator?.settings?.value?.readingProgression == ReadingProgression.RTL
+
+/**
  * Where a tap lands, by edge band. `page-transitions`: edge-third taps turn the page
  * "where enabled in settings", in every mode -- not only while Fast fade owns the turn,
  * which is the one case [TurnInterceptor] above already handled.
@@ -209,13 +226,17 @@ internal object EdgeTap {
     /**
      * `true` to turn forward, `false` back, `null` to reveal the chrome instead --
      * either because the tap landed in the middle third, or because the setting is off.
+     *
+     * @param isRightToLeft mirrors the band. This reader has no display-order layer of
+     *   its own -- Readium paginates the text -- so the mirror happens here, at the one
+     *   place a screen position turns into a logical forward/backward call.
      */
-    fun outcome(x: Float, width: Float, tapTurnsPages: Boolean): Boolean? {
+    fun outcome(x: Float, width: Float, tapTurnsPages: Boolean, isRightToLeft: Boolean = false): Boolean? {
         if (!tapTurnsPages) return null
         val band = width * EDGE_FRACTION
         return when {
-            x < band -> false
-            x > width - band -> true
+            x < band -> isRightToLeft
+            x > width - band -> !isRightToLeft
             else -> null
         }
     }
@@ -232,9 +253,18 @@ internal enum class EpubTurnKey {
     ;
 
     companion object {
-        fun of(keyCode: Int): EpubTurnKey? = when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_PAGE_UP -> TurnBackward
-            KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_PAGE_DOWN, KeyEvent.KEYCODE_SPACE -> TurnForward
+        /**
+         * @param isRightToLeft mirrors only the d-pad arrows, which are spatial -- "the
+         *   page to the right" -- the way an edge tap is. Page Up/Down and Space stay
+         *   put: they move "the next page to read", regardless of which way the book
+         *   reads, the same split the comic reader draws between `turn(target:)` and
+         *   `turnInReadingOrder(step:)` in `ReaderScreen.kt`.
+         */
+        fun of(keyCode: Int, isRightToLeft: Boolean = false): EpubTurnKey? = when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_LEFT -> if (isRightToLeft) TurnForward else TurnBackward
+            KeyEvent.KEYCODE_DPAD_RIGHT -> if (isRightToLeft) TurnBackward else TurnForward
+            KeyEvent.KEYCODE_PAGE_UP -> TurnBackward
+            KeyEvent.KEYCODE_PAGE_DOWN, KeyEvent.KEYCODE_SPACE -> TurnForward
             KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> ToggleChrome
             else -> null
         }

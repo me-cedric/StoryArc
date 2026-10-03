@@ -50,4 +50,25 @@ struct EpubTurnKeyTests {
     func readiumShortcut() {
         #expect(EpubTurnKey.outcome(for: KeyEvent(phase: .down, key: .arrowRight, modifiers: .command)) == nil)
     }
+
+    /// Task 9.12: a right-to-left book mirrors the arrow keys, the way the comic reader's
+    /// own display order mirrors theirs. Page Up/Down and Space do not move — they are
+    /// "the next page to read", not "the page to the right", on either reader.
+    @Test("Under right-to-left, the arrow keys swap; Page Up/Down and Space do not")
+    func rightToLeftArrows() {
+        #expect(EpubTurnKey.outcome(for: .leftArrow, isRightToLeft: true) == .forward)
+        #expect(EpubTurnKey.outcome(for: .rightArrow, isRightToLeft: true) == .backward)
+        #expect(EpubTurnKey.outcome(for: .pageUp, isRightToLeft: true) == .backward)
+        #expect(EpubTurnKey.outcome(for: .pageDown, isRightToLeft: true) == .forward)
+        #expect(EpubTurnKey.outcome(for: .space, isRightToLeft: true) == .forward)
+        #expect(EpubTurnKey.outcome(for: .return, isRightToLeft: true) == .toggleChrome)
+    }
+
+    @Test("A key Readium reports mirrors its arrows the same way under right-to-left")
+    func rightToLeftReadiumKeys() {
+        #expect(EpubTurnKey.outcome(for: KeyEvent(phase: .down, key: .arrowLeft), isRightToLeft: true) == .forward)
+        #expect(EpubTurnKey.outcome(for: KeyEvent(phase: .down, key: .arrowRight), isRightToLeft: true) == .backward)
+        #expect(EpubTurnKey.outcome(for: KeyEvent(phase: .down, key: .pageUp), isRightToLeft: true) == .backward)
+        #expect(EpubTurnKey.outcome(for: KeyEvent(phase: .down, key: .pageDown), isRightToLeft: true) == .forward)
+    }
 }

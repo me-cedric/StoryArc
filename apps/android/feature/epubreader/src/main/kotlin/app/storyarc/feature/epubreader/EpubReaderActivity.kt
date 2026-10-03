@@ -637,6 +637,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT,
             )
+            isRightToLeft = { isRightToLeft(supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment) }
             addView(container)
         }
         root = FrameLayout(this).apply {
