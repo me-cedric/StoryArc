@@ -221,6 +221,7 @@ object LibraryIndex {
             holds(query.publishers, publication.publisher) &&
             meets(query.genres, publication.genres) &&
             meets(query.tags, publication.tags) &&
+            (query.statuses.isEmpty() || publication.status in query.statuses) &&
             query.years.contains(publication.year)
     }
 

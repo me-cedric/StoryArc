@@ -60,12 +60,11 @@ data class YearRange(val from: Int? = null, val to: Int? = null) {
  * One value rather than a dozen pieces of view state, so "return to the library and
  * the filters are still applied" is one thing to keep and one thing to restore.
  *
- * Seven of the ten facets `library-browsing` names are here: read state, format,
- * language, publisher, genre, tag and year range. The other three are absent rather
- * than half-built, and the spec's own Open Questions say why — download state needs
- * the library to know what has been downloaded, source belongs to the scope
- * selector the same spec asks for, and no format this app reads states a
- * publication status at all.
+ * Nine of the facets `library-browsing` names are here: read state, format, language,
+ * publisher, genre, tag, publication status, the library a publication came from (as
+ * [scope]) and year range. Download state is the one absent: the query is what both
+ * platforms persist and restore, and `:feature:library`'s own `DownloadFilter` says why it
+ * is not.
  */
 data class LibraryQuery(
     val search: String = "",
@@ -80,6 +79,15 @@ data class LibraryQuery(
     val publishers: Set<String> = emptySet(),
     val genres: Set<String> = emptySet(),
     val tags: Set<String> = emptySet(),
+    /**
+     * Status, as a source reports it or a reader sets it by hand (D36).
+     *
+     * One group rather than two: `library-browsing`'s *Filtering by a source's own
+     * publication status* and *Setting a status by hand where a source reports none*
+     * narrow the shelf the same way either way, and a reader choosing "Completed" does not
+     * care which kind of "Completed" a given series carries.
+     */
+    val statuses: Set<PublicationStatus> = emptySet(),
     val years: YearRange = YearRange(),
     val sort: LibrarySort = LibrarySort.TITLE,
     val ascending: Boolean = true,
@@ -102,7 +110,7 @@ data class LibraryQuery(
      * ends the reader set, for the same reason.
      */
     val activeFilterCount: Int
-        get() = listOf(readStates, formats, languages, publishers, genres, tags)
+        get() = listOf(readStates, formats, languages, publishers, genres, tags, statuses)
             .count { it.isNotEmpty() } + if (years.isActive) 1 else 0
 
     val hasFilters: Boolean get() = activeFilterCount > 0
@@ -131,6 +139,7 @@ data class LibraryQuery(
         publishers = emptySet(),
         genres = emptySet(),
         tags = emptySet(),
+        statuses = emptySet(),
         years = YearRange(),
     )
 }

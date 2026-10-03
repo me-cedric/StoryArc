@@ -203,6 +203,7 @@ public enum LibraryIndex {
             && holds(query.publishers, publication.publisher)
             && meets(query.genres, publication.genres)
             && meets(query.tags, publication.tags)
+            && (query.statuses.isEmpty || publication.status.map(query.statuses.contains) == true)
             && query.years.contains(publication.year)
     }
 

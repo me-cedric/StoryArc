@@ -158,6 +158,33 @@ data class KavitaCard(
     val publicationStatus: Int = -1,
 ) {
     /**
+     * The status this card kept, as the library's own [PublicationStatus] rather than
+     * Kavita's, or `null` when it kept none.
+     *
+     * Named apart from `:core:kavita`'s own `KavitaCard.status` extension (which this
+     * exact file's [publicationStatus] already backs): a member here would silently shadow
+     * that extension at every call site that imports it, handing `KavitaPublicationStatus`
+     * callers a [PublicationStatus] instead with no compile error to catch it.
+     *
+     * `null` covers two things and has to: a number Kavita has never defined, and the -1
+     * [publicationStatus] carries for a card written before the field existed. Zero is
+     * *OnGoing*, so a card that fell back to it would state the series is running on a
+     * server's behalf. The table is Kavita's own and is kept here rather than reached
+     * through `:core:kavita`'s `KavitaPublicationStatus` because `:core:model` must not
+     * depend on that module — D36 puts the model-level [PublicationStatus] in this one
+     * instead.
+     */
+    val libraryStatus: PublicationStatus?
+        get() = when (publicationStatus) {
+            0 -> PublicationStatus.ONGOING
+            1 -> PublicationStatus.HIATUS
+            2 -> PublicationStatus.COMPLETED
+            3 -> PublicationStatus.CANCELLED
+            4 -> PublicationStatus.ENDED
+            else -> null
+        }
+
+    /**
      * Everything a one-line summary row shows, already in order.
      *
      * The same line `KavitaMetadata`'s facts build from a live answer, so a series read
@@ -185,10 +212,11 @@ data class KavitaCard(
      * summary is not the server saying there is none, and blanking a description the file does
      * have would be losing information in the name of preferring a source.
      *
-     * [ageRating] and [publicationStatus] do not pass through here, and cannot: [Publication]
-     * has no slot for either, and no local file states them. They stay on the card and the
-     * screen reads them from it -- the same shape the live path uses, where they are named
-     * lines rather than members of the run of facts.
+     * [ageRating] does not pass through here, and cannot: [Publication] has no slot for it,
+     * and no local file states it. It stays on the card and the screen reads it from there --
+     * the same shape the live path uses, where it is a named line rather than a member of the
+     * run of facts. [status] does pass through now (D36): [library-browsing] filters by it,
+     * so it has to reach [Publication] rather than stay a fact a details screen alone reads.
      */
     /**
      * The row this download is a copy of, as the library's own identifier for it.
@@ -231,6 +259,10 @@ data class KavitaCard(
         year = if (releaseYear > 0) releaseYear else publication.year,
         summary = summary?.takeIf { it.isNotEmpty() } ?: publication.summary,
         tags = subjects.ifEmpty { publication.tags },
+        // The server's own status wins; a card that stated none leaves whatever the
+        // publication already carried -- which may be a status the reader set by hand, and
+        // D36 forbids a report from being the only thing allowed to clear that.
+        status = libraryStatus ?: publication.status,
         origin = MetadataOrigin.AUTHORITATIVE,
     )
 }

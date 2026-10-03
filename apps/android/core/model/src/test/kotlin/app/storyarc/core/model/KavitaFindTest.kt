@@ -77,6 +77,23 @@ class KavitaFindTest {
     }
 
     @Test
+    fun `the server's own status replaces whatever the publication carried`() {
+        val reported = card("p1", "Tidal Reach").copy(publicationStatus = 2) // COMPLETED
+        val described = reported.appliedTo(fromFile().copy(status = PublicationStatus.ONGOING))
+        assertEquals(PublicationStatus.COMPLETED, described.status)
+    }
+
+    @Test
+    fun `a card that states no status leaves a status the reader set by hand`() {
+        // D36: the server is not the only one allowed to say nothing. A card written before
+        // the field existed, or kept from a server that never reported one, must not silently
+        // clear a status the reader set for themselves.
+        val silent = card("p1", "Tidal Reach") // publicationStatus defaults to -1
+        val described = silent.appliedTo(fromFile().copy(status = PublicationStatus.ONGOING))
+        assertEquals(PublicationStatus.ONGOING, described.status)
+    }
+
+    @Test
     fun `what the file alone knows survives the overlay`() {
         // The card describes a publication; it does not describe the archive. A page count or
         // a cover path replaced from a card would be the server answering a question it was

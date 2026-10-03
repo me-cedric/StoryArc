@@ -30,7 +30,7 @@ struct KavitaFindTests {
     }
 
     /// A publication indexed from the file, with the values a `ComicInfo.xml` would carry.
-    private func fromFile() -> Publication {
+    private func fromFile(status: PublicationStatus? = nil) -> Publication {
         Publication(
             identity: PublicationIdentity(normalizedPath: "/downloads/p1/file.cbz"),
             format: .cbz,
@@ -40,6 +40,7 @@ struct KavitaFindTests {
             year: 1970,
             summary: "What the file says.",
             tags: ["file-tag"],
+            status: status,
             origin: .embedded,
             pageCount: 24
         )
@@ -72,6 +73,31 @@ struct KavitaFindTests {
         #expect(described.authors == ["File author"])
         #expect(described.year == 1970)
         #expect(described.tags == ["file-tag"])
+    }
+
+    @Test("The server's own status replaces whatever the publication carried")
+    func serverStatusWins() {
+        let reported = KavitaCard(
+            publicationId: "p1",
+            sourceId: "s",
+            seriesId: 1,
+            chapterId: 1,
+            seriesName: "Tidal Reach",
+            chapterName: "1",
+            publicationStatus: 2 // completed
+        )
+        let described = reported.applied(to: fromFile(status: .ongoing))
+        #expect(described.status == .completed)
+    }
+
+    @Test("A card that states no status leaves a status the reader set by hand")
+    func silentCardKeepsAHandSetStatus() {
+        // D36: the server is not the only one allowed to say nothing. A card written before
+        // the field existed, or kept from a server that never reported one, must not silently
+        // clear a status the reader set for themselves.
+        let silent = card("p1", series: "Tidal Reach") // publicationStatus defaults to -1
+        let described = silent.applied(to: fromFile(status: .ongoing))
+        #expect(described.status == .ongoing)
     }
 
     @Test("What the file alone knows survives the overlay")
