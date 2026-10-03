@@ -40,6 +40,12 @@ class ChapterBrowserMarkersTest {
     }
 
     @Test
+    fun `a title that ends in an issue number gives that number to the badge`() {
+        val issue = listOf(ChapterMarker(0, "Prologue"), ChapterMarker(9, "Green Lantern (2005) #4"))
+        assertEquals("#4", ChapterBrowser.badgeText(9, issue))
+    }
+
+    @Test
     fun `a title that is not only digits falls back to the chapter's position`() {
         assertEquals("#1", ChapterBrowser.badgeText(0, markers))
     }

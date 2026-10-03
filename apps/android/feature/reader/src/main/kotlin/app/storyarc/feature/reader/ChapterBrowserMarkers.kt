@@ -73,9 +73,20 @@ internal object ChapterBrowser {
         val sorted = markers.sortedBy { it.index }
         val position = sorted.indexOfFirst { it.index == index }
         if (position < 0) return null
-        val title = sorted[position].title
-        if (!title.isNullOrEmpty() && title.all { it.isDigit() }) return "#$title"
+        issueNumber(sorted[position].title)?.let { return "#$it" }
         return "#${position + 1}"
+    }
+
+    private val trailingIssue = Regex("#\\s*(\\d+)\\s*$")
+
+    /**
+     * The issue number a marker's title gives: the whole title when it is only digits, or a
+     * trailing "#4", as in "Green Lantern (2005) #4".
+     */
+    fun issueNumber(title: String?): String? = when {
+        title.isNullOrEmpty() -> null
+        title.all { it.isDigit() } -> title
+        else -> trailingIssue.find(title)?.groupValues?.get(1)
     }
 
     /**

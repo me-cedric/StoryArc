@@ -37,6 +37,15 @@ struct ChapterBrowserMarkersTests {
         #expect(ChapterBrowser.badgeText(at: 90, markers: markers) == "#12")
     }
 
+    @Test("A title that ends in an issue number gives that number to the badge")
+    func badgeReadsATrailingIssueNumber() {
+        let issue = [
+            ChapterMarker(index: 0, title: "Prologue"),
+            ChapterMarker(index: 9, title: "Green Lantern (2005) #4"),
+        ]
+        #expect(ChapterBrowser.badgeText(at: 9, markers: issue) == "#4")
+    }
+
     @Test("A title that is not only digits falls back to the chapter's position")
     func badgeFallsBackToPositionForAWordyTitle() {
         #expect(ChapterBrowser.badgeText(at: 0, markers: markers) == "#1")
