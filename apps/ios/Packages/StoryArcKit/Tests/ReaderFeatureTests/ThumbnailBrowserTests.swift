@@ -198,4 +198,33 @@ struct ThumbnailBrowserTests {
             """
         )
     }
+
+    /// PB-open: opening the carousel assigns `true`; it does not toggle.
+    ///
+    /// A `Button` inside the menu's `List` sits under `.accessibilityElement(children:
+    /// .combine)`, and a tap delivered while the sheet's own presentation animation is
+    /// still settling can run the Contents row's action twice for one tap. `.toggle()`
+    /// made that silent: two flips land back on `false`, and the carousel the tap asked
+    /// for never appears — `SweepComicReaderTests.testCaptureComicPageBrowser` reproduced
+    /// this on a booted simulator, failing "Contents opened no page browser" on every run.
+    /// An assignment is idempotent: one call or two both leave the carousel open.
+    @Test("Opening the carousel is idempotent, not a toggle")
+    func openingTheCarouselIsIdempotent() throws {
+        let progress = try code(of: "ReaderMenuProgress.swift")
+        #expect(
+            progress.contains("isBrowsingThumbnails = true"),
+            """
+            The Contents row no longer assigns `isBrowsingThumbnails = true` to open the \
+            carousel. PB-open: a toggle is not idempotent, and a tap this reader (or a UI \
+            test) delivers twice for one touch must still leave the carousel open.
+            """
+        )
+        #expect(
+            !progress.contains("isBrowsingThumbnails.toggle()"),
+            """
+            The Contents row toggles `isBrowsingThumbnails` again. PB-open: two toggles for \
+            one tap net back to `false`, and the carousel the tap asked for never appears.
+            """
+        )
+    }
 }
