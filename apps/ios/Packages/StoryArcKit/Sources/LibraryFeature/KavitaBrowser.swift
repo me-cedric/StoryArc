@@ -36,6 +36,11 @@ public struct KavitaBrowserView: View {
 
     @State private var libraries: [KavitaLibraryFolder] = []
     @State private var failure: String?
+    /// Whether the server has been asked and has not answered. `native-experience` asks for
+    /// "no blocking spinners" — this draws placeholder rows in their place rather than a
+    /// full-screen spinner or, until 19.8, an empty list indistinguishable from a server
+    /// with nothing in it.
+    @State private var isLoading = true
 
     /// The one search across this whole server.
     ///
@@ -100,6 +105,7 @@ public struct KavitaBrowserView: View {
             } catch {
                 failure = KavitaMessage.of(error, source: title)
             }
+            isLoading = false
         }
     }
 
@@ -121,6 +127,11 @@ public struct KavitaBrowserView: View {
                 Text(failure)
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textPrimary)
+            } else if kavitaShowsLibraryPlaceholders(failure: failure, isLoading: isLoading, hasLibraries: !libraries.isEmpty) {
+                ForEach(0 ..< Self.placeholderRows, id: \.self) { _ in
+                    Text("Library")
+                        .redacted(reason: .placeholder)
+                }
             }
             ForEach(libraries) { library in
                 NavigationLink {
@@ -140,6 +151,19 @@ public struct KavitaBrowserView: View {
             }
         }
     }
+
+    /// Enough rows to fill a phone screen without the list ever needing to scroll.
+    private static let placeholderRows = 6
+}
+
+/// Whether the libraries list draws placeholder rows in place of the real one.
+///
+/// Pulled out beside the view — same reason as ``detailSummary(of:)`` in
+/// `DetailAbsences.swift`: free and pure so `KavitaWaitingTests` can assert it without a
+/// view. The server has been asked and has not answered, nothing already arrived, and there
+/// is no failure to show instead.
+func kavitaShowsLibraryPlaceholders(failure: String?, isLoading: Bool, hasLibraries: Bool) -> Bool {
+    failure == nil && isLoading && !hasLibraries
 }
 
 /// The series in one library.

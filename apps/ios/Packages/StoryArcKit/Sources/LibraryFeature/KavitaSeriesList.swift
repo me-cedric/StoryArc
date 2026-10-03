@@ -37,6 +37,10 @@ struct KavitaSeriesList: View {
 
     private let columns = [GridItem(.adaptive(minimum: 120), spacing: StoryArcSpace.md)]
 
+    /// A couple of rows' worth, whatever the column count: the grid never needs to scroll
+    /// either.
+    private static let placeholderCells = 10
+
     var body: some View {
         Group {
             if finder.isShowing {
@@ -84,6 +88,13 @@ struct KavitaSeriesList: View {
                     .padding(StoryArcSpace.gutter)
             }
             LazyVGrid(columns: columns, spacing: StoryArcSpace.md) {
+                // `native-experience` asks for no blocking spinner while the server answers:
+                // cells shaped like the covers about to arrive, rather than a blank grid.
+                if kavitaShowsSeriesPlaceholders(failure: failure, hasLoaded: hasLoaded) {
+                    ForEach(0 ..< Self.placeholderCells, id: \.self) { _ in
+                        KavitaSeriesCellPlaceholder()
+                    }
+                }
                 ForEach(series) { each in
                     NavigationLink {
                         KavitaChapterList(
@@ -177,5 +188,29 @@ struct KavitaSeriesCell: View {
         #else
         return nil
         #endif
+    }
+}
+
+/// Whether the series grid draws placeholder cells in place of the real one.
+///
+/// Pulled out beside the view — same reason as ``detailSummary(of:)`` in
+/// `DetailAbsences.swift`: free and pure so `KavitaWaitingTests` can assert it without a
+/// view. The server has been asked and has not answered, and there is no failure to show
+/// instead.
+func kavitaShowsSeriesPlaceholders(failure: String?, hasLoaded: Bool) -> Bool {
+    failure == nil && !hasLoaded
+}
+
+/// Drawn in place of a series cover while the server has been asked and has not answered.
+///
+/// Shaped like ``KavitaSeriesCell``'s own cover tile — same corner radius, same 2:3 aspect
+/// ratio — so a reader sees a grid filling in rather than a different kind of grid.
+struct KavitaSeriesCellPlaceholder: View {
+    @Environment(\.theme) private var theme
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: StoryArcRadius.md)
+            .fill(theme.palette.surfaceRaised)
+            .aspectRatio(2.0 / 3.0, contentMode: .fit)
     }
 }
