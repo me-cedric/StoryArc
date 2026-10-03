@@ -98,21 +98,6 @@ enum ShareOpening {
         "smb.error.unexpected", bundle: .atURL(Bundle.module.bundleURL)
     )
 
-    /// Named, the same claim Open-in's refusal makes: the container is recognised and refused.
-    static let unsupported = LocalizedStringResource(
-        "smb.error.unsupported", bundle: .atURL(Bundle.module.bundleURL)
-    )
-
-    /// No password field here either — StoryArc does not manage archive passwords.
-    static let passwordProtected = LocalizedStringResource(
-        "smb.error.passwordProtected", bundle: .atURL(Bundle.module.bundleURL)
-    )
-
-    /// Damaged, not unsupported: the format is one StoryArc reads.
-    static let damaged = LocalizedStringResource(
-        "smb.error.damaged", bundle: .atURL(Bundle.module.bundleURL)
-    )
-
     /// Indexes a publication on the share and does what ``StreamingOffer`` says about it.
     ///
     /// Nothing is transferred here: `index` reads headers over the share, which is what lets
