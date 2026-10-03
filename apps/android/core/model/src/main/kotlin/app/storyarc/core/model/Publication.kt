@@ -207,6 +207,27 @@ enum class PublicationFormat {
 }
 
 /**
+ * Where a series is in its own life.
+ *
+ * `library-browsing` (D36): a source such as Kavita reports one of these for a series, and a
+ * reader may set one by hand for a series whose source reports none. The five states and
+ * their order are Kavita's own — the only source this app reads that states a status at all
+ * — but the type lives here, in `:core:model`, rather than in `:core:kavita`: a reader's own
+ * choice is not a fact about any source, and a publication's filterable status must not
+ * require that module.
+ */
+@Serializable
+enum class PublicationStatus {
+    ONGOING,
+    HIATUS,
+    COMPLETED,
+    CANCELLED,
+
+    /** A source's own distinction: finished releasing, but the source lacks every issue. */
+    ENDED,
+}
+
+/**
  * One thing a person can read.
  *
  * The library's unit. Assembled by indexing a file — the format layer reads the
@@ -259,6 +280,18 @@ data class Publication(
     val genres: List<String> = emptyList(),
     /** Free-form labels the cataloguer added. See [genres]. */
     val tags: List<String> = emptyList(),
+    /**
+     * Where a series is in its own life: null when nothing — neither a source nor the
+     * reader — has stated one.
+     *
+     * `library-browsing` (D36): a status a source reports is carried here, and it is not the
+     * reader's to change; a series whose source reports none takes one the reader sets by
+     * hand instead. Both land in this one field because the library filters on it without
+     * caring which kind it is — `LibraryQuery.statuses` asks only whether it is set. Which
+     * kind this is is decided above the model, by whether the publication's own source ever
+     * reports one at all; nothing here distinguishes them.
+     */
+    val status: PublicationStatus? = null,
     /** Where the metadata above came from, and therefore what may replace it. */
     val origin: MetadataOrigin,
     /**

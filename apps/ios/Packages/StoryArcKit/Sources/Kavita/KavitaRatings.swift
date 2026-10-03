@@ -83,10 +83,13 @@ public enum KavitaAgeRating: Int, Sendable, CaseIterable {
 /// one of the five is a real state a curator chose or accepted. So the line is drawn whenever
 /// the number is one this app knows, and omitted only when it is not.
 ///
-/// `library-browsing` records why this cannot be a filter over the whole library — no local
-/// file states it, so filtering on it would narrow a folder's shelf to nothing. Showing what
-/// one server said about one of its own series is the other thing entirely, and it is what
-/// `kavita-server`'s *Metadata* requirement asks for.
+/// `library-browsing` used to record why this could not be a filter over the whole library —
+/// no local file states it, so filtering on it would narrow a folder's shelf to nothing. D36
+/// closes that: a reader may set a status by hand on a series whose source reports none, so
+/// the filter works for every series rather than only Kavita's. This enum stays the live and
+/// cached wire shape Kavita answers with; `StoryArcCore`'s own `PublicationStatus` is what
+/// `Publication` and the filter actually carry, named independently so neither depends on the
+/// other.
 public enum KavitaPublicationStatus: Int, Sendable, CaseIterable {
     case ongoing = 0
     case hiatus = 1

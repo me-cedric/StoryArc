@@ -22,6 +22,7 @@ struct LibraryFilterTests {
         language: String? = nil,
         genres: [String] = [],
         tags: [String] = [],
+        status: PublicationStatus? = nil,
         fileSize: Int64? = nil,
         addedAt: Date? = nil,
         source: UUID? = nil
@@ -38,6 +39,7 @@ struct LibraryFilterTests {
             language: language,
             genres: genres,
             tags: tags,
+            status: status,
             origin: .inferred,
             sourceID: source,
             fileSize: fileSize,
@@ -75,9 +77,10 @@ struct LibraryFilterTests {
             publishers: ["DC"],
             genres: ["Superhero"],
             tags: ["Reprint"],
+            statuses: [.ongoing],
             years: YearRange(from: 1986, to: 1999)
         )
-        #expect(query.activeFilterCount == 7)
+        #expect(query.activeFilterCount == 8)
     }
 
     @Test("Clearing keeps the search and the sort and drops every group")
@@ -90,6 +93,7 @@ struct LibraryFilterTests {
             publishers: ["DC"],
             genres: ["Superhero"],
             tags: ["Reprint"],
+            statuses: [.ongoing],
             years: YearRange(from: 1986),
             sort: .lastRead,
             ascending: false
@@ -157,6 +161,28 @@ struct LibraryFilterTests {
         let query = LibraryQuery(genres: ["Superhero"], tags: ["Reprint"])
         let sorted = LibraryIndex.arrange([both, genreOnly], query: query, locale: english)
         #expect(titles(sorted) == ["Watchmen"])
+    }
+
+    @Test("A status filter keeps only what carries that status")
+    func statusFilter() {
+        let library = [
+            publication("Watchmen", status: .completed),
+            publication("Saga", status: .ongoing),
+            publication("Maus", status: nil),
+        ]
+        let sorted = LibraryIndex.arrange(
+            library, query: LibraryQuery(statuses: [.completed]), locale: english
+        )
+        #expect(titles(sorted) == ["Watchmen"])
+    }
+
+    @Test("A publication with no status at all never matches an active status filter")
+    func statusFilterExcludesUnset() {
+        let library = [publication("Maus", status: nil)]
+        let sorted = LibraryIndex.arrange(
+            library, query: LibraryQuery(statuses: [.ongoing]), locale: english
+        )
+        #expect(sorted.isEmpty)
     }
 
     @Test("A year range keeps what came out inside it, both ends included")

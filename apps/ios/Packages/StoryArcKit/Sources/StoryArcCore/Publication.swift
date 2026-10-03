@@ -50,6 +50,23 @@ public enum MetadataOrigin: String, Sendable, Codable, CaseIterable {
     }
 }
 
+/// Where a series is in its own life.
+///
+/// `library-browsing` (D36): a source such as Kavita reports one of these for a series, and
+/// a reader may set one by hand for a series whose source reports none. The five states and
+/// their order are Kavita's own — the only source this app reads that states a status at all
+/// — but the type lives here, in `StoryArcCore`, rather than in `Kavita`: a reader's own
+/// choice is not a fact about any source, and a publication's filterable status must not
+/// require that module. Android's `PublicationStatus` mirrors it.
+public enum PublicationStatus: String, Sendable, Codable, CaseIterable {
+    case ongoing
+    case hiatus
+    case completed
+    case cancelled
+    /// A source's own distinction: finished releasing, but the source lacks every issue.
+    case ended
+}
+
 /// One thing a person can read.
 ///
 /// The library's unit. Assembled by indexing a file — the format layer reads the
@@ -114,6 +131,17 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
     public let genres: [String]
     /// Free-form labels the cataloguer added. See ``genres``.
     public let tags: [String]
+
+    /// Where a series is in its own life: `nil` when nothing — neither a source nor the
+    /// reader — has stated one.
+    ///
+    /// `library-browsing` (D36): a status a source reports is carried here, and it is not
+    /// the reader's to change; a series whose source reports none takes one the reader sets
+    /// by hand instead. Both land in this one field because the library filters on it
+    /// without caring which kind it is — ``LibraryQuery/statuses`` asks only whether it is
+    /// set. Which kind this is is decided above the model, by whether the publication's own
+    /// source ever reports one at all; nothing here distinguishes them.
+    public let status: PublicationStatus?
 
     /// Where the metadata above came from, and therefore what may replace it.
     public let origin: MetadataOrigin
@@ -191,6 +219,7 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
         summary: String? = nil,
         genres: [String] = [],
         tags: [String] = [],
+        status: PublicationStatus? = nil,
         origin: MetadataOrigin,
         pageCount: Int? = nil,
         skippedPageCount: Int = 0,
@@ -222,6 +251,7 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
         self.summary = summary
         self.genres = genres
         self.tags = tags
+        self.status = status
         self.origin = origin
         self.pageCount = pageCount
         self.skippedPageCount = skippedPageCount

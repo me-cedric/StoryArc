@@ -62,12 +62,11 @@ public struct YearRange: Sendable, Equatable, Codable {
 /// and the filters are still applied" is one thing to keep and one thing to
 /// restore.
 ///
-/// Seven of the ten facets `library-browsing` names are here: read state, format,
-/// language, publisher, genre, tag and year range. The other three are absent
-/// rather than half-built, and the spec's own Open Questions say why — download
-/// state needs the library to know what has been downloaded, source belongs to
-/// the scope selector the same spec asks for, and no format this app reads states
-/// a publication status at all.
+/// Nine of the facets `library-browsing` names are here: read state, format, language,
+/// publisher, genre, tag, publication status, the library a publication came from (as
+/// ``scope``) and year range. Download state is the one absent: the query is what both
+/// platforms persist and restore, and `LibraryFeature`'s own `DownloadFilter` says why it is
+/// not.
 public struct LibraryQuery: Sendable, Equatable, Codable {
     public var search: String
     public var readStates: Set<ReadState>
@@ -79,6 +78,13 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
     public var publishers: Set<String>
     public var genres: Set<String>
     public var tags: Set<String>
+    /// Status, as a source reports it or a reader sets it by hand (D36).
+    ///
+    /// One group rather than two: `library-browsing`'s *Filtering by a source's own
+    /// publication status* and *Setting a status by hand where a source reports none*
+    /// narrow the shelf the same way either way, and a reader choosing "Completed" does not
+    /// care which kind of "Completed" a given series carries.
+    public var statuses: Set<PublicationStatus>
     public var years: YearRange
     public var sort: LibrarySort
     public var ascending: Bool
@@ -99,6 +105,7 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
         publishers: Set<String> = [],
         genres: Set<String> = [],
         tags: Set<String> = [],
+        statuses: Set<PublicationStatus> = [],
         years: YearRange = YearRange(),
         sort: LibrarySort = .title,
         ascending: Bool = true,
@@ -111,6 +118,7 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
         self.publishers = publishers
         self.genres = genres
         self.tags = tags
+        self.statuses = statuses
         self.years = years
         self.sort = sort
         self.ascending = ascending
@@ -131,6 +139,7 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
             !publishers.isEmpty,
             !genres.isEmpty,
             !tags.isEmpty,
+            !statuses.isEmpty,
             years.isActive,
         ].count { $0 }
     }
@@ -160,6 +169,7 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
         cleared.publishers = []
         cleared.genres = []
         cleared.tags = []
+        cleared.statuses = []
         cleared.years = YearRange()
         return cleared
     }
@@ -190,6 +200,12 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
         publishers = try container.decodeIfPresent(Set<String>.self, forKey: .publishers) ?? []
         genres = try container.decodeIfPresent(Set<String>.self, forKey: .genres) ?? []
         tags = try container.decodeIfPresent(Set<String>.self, forKey: .tags) ?? []
+        // Same reasoning as `formats` above: decoded as strings and mapped, so a status
+        // retired between builds drops only itself rather than the whole saved query.
+        statuses = Set(
+            (try container.decodeIfPresent(Set<String>.self, forKey: .statuses) ?? [])
+                .compactMap(PublicationStatus.init(rawValue:))
+        )
         years = try container.decodeIfPresent(YearRange.self, forKey: .years) ?? YearRange()
         sort = try container.decodeIfPresent(LibrarySort.self, forKey: .sort) ?? .title
         ascending = try container.decodeIfPresent(Bool.self, forKey: .ascending) ?? true

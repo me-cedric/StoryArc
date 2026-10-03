@@ -29,6 +29,7 @@ class LibraryIndexTest {
         language: String? = null,
         genres: List<String> = emptyList(),
         tags: List<String> = emptyList(),
+        status: PublicationStatus? = null,
         fileSize: Long? = null,
         addedAtEpochMillis: Long? = null,
         source: UUID? = null,
@@ -44,6 +45,7 @@ class LibraryIndexTest {
         language = language,
         genres = genres,
         tags = tags,
+        status = status,
         origin = MetadataOrigin.INFERRED,
         fileSize = fileSize,
         addedAtEpochMillis = addedAtEpochMillis,
@@ -247,9 +249,10 @@ class LibraryIndexTest {
             publishers = setOf("DC"),
             genres = setOf("Superhero"),
             tags = setOf("Reprint"),
+            statuses = setOf(PublicationStatus.ONGOING),
             years = YearRange(from = 1986, to = 1999),
         )
-        assertEquals(7, query.activeFilterCount)
+        assertEquals(8, query.activeFilterCount)
     }
 
     @Test
@@ -262,6 +265,7 @@ class LibraryIndexTest {
             publishers = setOf("DC"),
             genres = setOf("Superhero"),
             tags = setOf("Reprint"),
+            statuses = setOf(PublicationStatus.ONGOING),
             years = YearRange(from = 1986),
             sort = LibrarySort.LAST_READ,
             ascending = false,
@@ -321,6 +325,24 @@ class LibraryIndexTest {
         val query = LibraryQuery(genres = setOf("Superhero"), tags = setOf("Reprint"))
         val sorted = LibraryIndex.arrange(listOf(both, genreOnly), query, Locale.ENGLISH)
         assertEquals(listOf("Watchmen"), titles(sorted))
+    }
+
+    @Test
+    fun `a status filter keeps only what carries that status`() {
+        val library = listOf(
+            publication("Watchmen", status = PublicationStatus.COMPLETED),
+            publication("Saga", status = PublicationStatus.ONGOING),
+            publication("Maus", status = null),
+        )
+        val query = LibraryQuery(statuses = setOf(PublicationStatus.COMPLETED))
+        assertEquals(listOf("Watchmen"), titles(LibraryIndex.arrange(library, query, Locale.ENGLISH)))
+    }
+
+    @Test
+    fun `a publication with no status at all never matches an active status filter`() {
+        val library = listOf(publication("Maus", status = null))
+        val query = LibraryQuery(statuses = setOf(PublicationStatus.ONGOING))
+        assertEquals(emptyList<String>(), titles(LibraryIndex.arrange(library, query, Locale.ENGLISH)))
     }
 
     @Test
