@@ -244,7 +244,10 @@ struct AppShell: View {
             },
             // The same cache every shelf reads, so a cover the library has drawn once is
             // not decoded a second time for the player. Task 16.10.
-            coverLookup: model.cover(for:maxPixelSize:)
+            coverLookup: model.cover(for:maxPixelSize:),
+            // D17: the inline bar's row opens the player for a book being read aloud, so the
+            // player's own way back reopens that book, as the bar's row does at full size.
+            onReturn: onOpen
         )
         // What changed, once, over whatever the reader landed on.
         //
