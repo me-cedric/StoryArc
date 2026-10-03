@@ -167,22 +167,11 @@ data class KavitaCard(
      * callers a [PublicationStatus] instead with no compile error to catch it.
      *
      * `null` covers two things and has to: a number Kavita has never defined, and the -1
-     * [publicationStatus] carries for a card written before the field existed. Zero is
-     * *OnGoing*, so a card that fell back to it would state the series is running on a
-     * server's behalf. The table is Kavita's own and is kept here rather than reached
-     * through `:core:kavita`'s `KavitaPublicationStatus` because `:core:model` must not
-     * depend on that module — D36 puts the model-level [PublicationStatus] in this one
-     * instead.
+     * [publicationStatus] carries for a card written before the field existed --
+     * [PublicationStatus.ofKavita] holds the table.
      */
     val libraryStatus: PublicationStatus?
-        get() = when (publicationStatus) {
-            0 -> PublicationStatus.ONGOING
-            1 -> PublicationStatus.HIATUS
-            2 -> PublicationStatus.COMPLETED
-            3 -> PublicationStatus.CANCELLED
-            4 -> PublicationStatus.ENDED
-            else -> null
-        }
+        get() = PublicationStatus.ofKavita(publicationStatus)
 
     /**
      * Everything a one-line summary row shows, already in order.
@@ -215,8 +204,8 @@ data class KavitaCard(
      * [ageRating] does not pass through here, and cannot: [Publication] has no slot for it,
      * and no local file states it. It stays on the card and the screen reads it from there --
      * the same shape the live path uses, where it is a named line rather than a member of the
-     * run of facts. [status] does pass through now (D36): [library-browsing] filters by it,
-     * so it has to reach [Publication] rather than stay a fact a details screen alone reads.
+     * run of facts. [libraryStatus] does pass through now (D36): `library-browsing` filters
+     * by it, so it has to reach [Publication] rather than stay a fact a details screen reads.
      */
     /**
      * The row this download is a copy of, as the library's own identifier for it.

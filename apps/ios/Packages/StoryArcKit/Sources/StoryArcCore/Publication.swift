@@ -65,6 +65,21 @@ public enum PublicationStatus: String, Sendable, Codable, CaseIterable {
     case cancelled
     /// A source's own distinction: finished releasing, but the source lacks every issue.
     case ended
+
+    /// Kavita's own `publicationStatus` number as a status, or `nil` for a number Kavita
+    /// never defined. Zero is *OnGoing*, so no fallback: a guess would state a series is
+    /// running on a server's behalf. The table lives here because `StoryArcCore` must not
+    /// depend on `Kavita`; a library row and a kept card both read it.
+    public init?(kavita number: Int?) {
+        switch number {
+        case 0: self = .ongoing
+        case 1: self = .hiatus
+        case 2: self = .completed
+        case 3: self = .cancelled
+        case 4: self = .ended
+        default: return nil
+        }
+    }
 }
 
 /// One thing a person can read.

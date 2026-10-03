@@ -1,4 +1,4 @@
-public import Foundation
+internal import Foundation
 
 /// What a server said about a publication, kept so it can be read without the server.
 ///
@@ -213,20 +213,10 @@ public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
     /// than wrong in a way a type mismatch would have caught.
     ///
     /// `nil` covers two things and has to: a number Kavita has never defined, and the -1
-    /// ``publicationStatus`` carries for a card written before the field existed. Zero is
-    /// *OnGoing*, so a card that fell back to it would state the series is running on a
-    /// server's behalf. The table is Kavita's own and is kept here rather than reached
-    /// through `Kavita.KavitaPublicationStatus` because `StoryArcCore` must not depend on
-    /// that module — D36 puts the model-level ``PublicationStatus`` in this one instead.
+    /// ``publicationStatus`` carries for a card written before the field existed —
+    /// ``PublicationStatus/init(kavita:)`` holds the table.
     public var libraryStatus: PublicationStatus? {
-        switch publicationStatus {
-        case 0: .ongoing
-        case 1: .hiatus
-        case 2: .completed
-        case 3: .cancelled
-        case 4: .ended
-        default: nil
-        }
+        PublicationStatus(kavita: publicationStatus)
     }
 
     public func applied(to publication: Publication) -> Publication {
