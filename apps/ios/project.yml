@@ -156,6 +156,19 @@ targets:
             CFBundleTypeRole: Viewer
             LSItemContentTypes:
               - com.adobe.pdf
+          # Task 16.11: a single audio file and an M4B audiobook, so `local-library`'s
+          # open-in and import reach an audiobook the way they already reach a comic,
+          # an EPUB and a PDF. `xcodegen generate` writes `App/Info.plist` fresh from
+          # this `info:` block on every `pnpm build:ios` — adding the dict to the
+          # plist by hand instead is silently erased at the next generate.
+          - CFBundleTypeName: Audiobook
+            LSHandlerRank: Alternate
+            CFBundleTypeRole: Viewer
+            LSItemContentTypes:
+              - public.mpeg-4-audio
+              - public.mp3
+              - public.audio
+              - com.apple.protected-mpeg-4-audio-b
         UTImportedTypeDeclarations:
           - UTTypeIdentifier: app.storyarc.cbz
             UTTypeDescription: Comic Book ZIP
