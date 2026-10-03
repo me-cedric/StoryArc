@@ -71,7 +71,7 @@ export const capFor = (path) => {
  * their head, and the whole point of a ratchet is that adding a tooth costs something.
  */
 const ALLOWED = {
-    'apps/android/feature/reader/src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt': 1927,
+    'apps/android/feature/reader/src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt': 1893,
     'apps/android/feature/library/src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt': 1696,
     'apps/android/feature/epubreader/src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt': 1051,
 }
