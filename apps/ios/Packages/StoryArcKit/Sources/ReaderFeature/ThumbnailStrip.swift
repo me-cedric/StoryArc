@@ -47,6 +47,7 @@ struct ThumbnailStrip: View {
             GeometryReader { geometry in
                 let sideMargin = Self.contentMargin(viewportWidth: geometry.size.width)
 
+                ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: StoryArcSpace.sm) {
                         ForEach(model.pages.indices, id: \.self) { index in
@@ -62,6 +63,11 @@ struct ThumbnailStrip: View {
                 // Scoped to the scroll content alone, as `ReaderSlider`'s mirror is
                 // scoped to the slider alone: the header text keeps its own direction.
                 .environment(\.layoutDirection, sliderLayoutDirection(isRightToLeft: isRightToLeft))
+                // `.scrollPosition(id:)` does not move a lazy stack that has not laid out
+                // yet, so the carousel opened at page one with the current page drawn wide
+                // beside it. One explicit scroll once it is on screen puts it in the middle.
+                .onAppear { proxy.scrollTo(effectiveCentredIndex, anchor: .center) }
+                }
             }
             .frame(height: Self.centredCellWidth * 1.5 + StoryArcSpace.sm * 2 + pageNumberRowHeight)
         }
@@ -197,6 +203,9 @@ private struct ThumbnailCell: View {
                         lineWidth: isCurrent ? 2 : 1
                     )
             }
+            // Centred in a box as tall as the centred page, so every page number sits on
+            // one line under the carousel, as the neighbours sit centred beside it.
+            .frame(height: ThumbnailStrip.centredCellWidth * 1.5)
 
             Text(verbatim: "\(index + 1)")
                 .textRole(.caption)
