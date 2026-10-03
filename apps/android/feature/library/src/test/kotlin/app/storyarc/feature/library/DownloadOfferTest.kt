@@ -5,6 +5,7 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.StreamingCapability
+import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -93,5 +94,48 @@ class DownloadOfferTest {
             DownloadOffer.None,
             DownloadOffer.of(publication(format = PublicationFormat.CBZ), isKept = false, isLocalFile = false),
         )
+    }
+
+    private fun withServerId(remoteId: String) = Publication(
+        identity = PublicationIdentity(
+            serverIdentifier = PublicationIdentity.ServerIdentifier(UUID.randomUUID(), remoteId),
+        ),
+        format = PublicationFormat.CBZ,
+        displayTitle = "One",
+        origin = MetadataOrigin.INFERRED,
+        streaming = StreamingCapability.STREAMS,
+    )
+
+    @Test
+    fun `an OPDS row with no local file still offers to download, by the remote route`() {
+        assertEquals(
+            DownloadOffer.Download,
+            DownloadOffer.of(
+                withServerId("opds:42"),
+                isKept = false,
+                isLocalFile = false,
+                isQueueableRemote = PublicationActions.isQueueableRemote(withServerId("opds:42")),
+            ),
+        )
+    }
+
+    @Test
+    fun `a Kavita chapter with no local file offers nothing -- KeepOffline cannot reach it yet`() {
+        assertEquals(
+            DownloadOffer.None,
+            DownloadOffer.of(
+                withServerId("chapter:7"),
+                isKept = false,
+                isLocalFile = false,
+                isQueueableRemote = PublicationActions.isQueueableRemote(withServerId("chapter:7")),
+            ),
+        )
+    }
+
+    @Test
+    fun `isQueueableRemote reads the opds prefix and nothing else`() {
+        assertTrue(PublicationActions.isQueueableRemote(withServerId("opds:1")))
+        assertFalse(PublicationActions.isQueueableRemote(withServerId("chapter:1")))
+        assertFalse(PublicationActions.isQueueableRemote(publication()))
     }
 }

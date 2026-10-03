@@ -20,6 +20,7 @@
     <string name="source_state_unauthorized">Se requiere iniciar sesión</string>
     <string name="library_cell_cannot_open">Este cómic usa compresión sólida, que StoryArc no puede abrir.</string>
     <string name="library_cannot_open_cb7">Este es un archivo CB7, que StoryArc no lee. Lee CBZ, CBR, CBT, EPUB, PDF, M4B y otros audiolibros.</string>
+    <string name="library_action_open">Abrir</string>
     <string name="library_action_show_details">Mostrar detalles</string>
     <string name="library_action_remove_from_shelf">Quitar de esta estantería</string>
     <string name="library_cell_finished">Terminado</string>

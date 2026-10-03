@@ -20,6 +20,7 @@
     <string name="source_state_unauthorized">Connexion requise</string>
     <string name="library_cell_cannot_open">Cette bande dessinée utilise une compression solide, que StoryArc ne peut pas ouvrir.</string>
     <string name="library_cannot_open_cb7">Ceci est un fichier CB7, que StoryArc ne lit pas. Il lit les formats CBZ, CBR, CBT, EPUB, PDF, M4B et d’autres livres audio.</string>
+    <string name="library_action_open">Ouvrir</string>
     <string name="library_action_show_details">Afficher les détails</string>
     <string name="library_action_remove_from_shelf">Retirer de cette étagère</string>
     <string name="library_cell_finished">Terminé</string>

@@ -79,6 +79,14 @@ fun AddToShelfSheet(
      * Null only where the caller has nowhere to send it, which nothing in this app does.
      */
     onShowDetails: (() -> Unit)? = null,
+    /**
+     * Whether this sheet draws its own Download/Remove-download row.
+     *
+     * False where [PublicationActionMenu] opens this sheet for its *Add to shelf* item alone:
+     * that menu already drew Download or Remove download as one of its own rows, and a
+     * reader who dismissed it there must not meet a second copy here.
+     */
+    offersDownloadAction: Boolean = true,
 ) {
     val palette = LocalStoryArcPalette.current
     val shelves by viewModel.shelves.collectAsStateWithLifecycle()
@@ -160,11 +168,12 @@ fun AddToShelfSheet(
             // [RestartOffer] above already is. A bulk long press has its own
             // [BulkDownloadPrompt], which asks a different question -- how many of a
             // selection, not whether one already is.
-            if (alone != null) {
+            if (alone != null && offersDownloadAction) {
                 val offer = DownloadOffer.of(
                     alone,
                     isKept = viewModel.isOnDevice(alone),
                     isLocalFile = isOnDevice(viewModel.location(alone)),
+                    isQueueableRemote = PublicationActions.isQueueableRemote(alone),
                 )
                 when (offer) {
                     DownloadOffer.Download -> Row(

@@ -14,6 +14,21 @@ import app.storyarc.core.model.PublicationFormat
 object PublicationActions {
     fun canDownload(publication: Publication): Boolean =
         publication.isOpenable && publication.format != PublicationFormat.IMAGE_FOLDER
+
+    /**
+     * Whether a server row with no local file can still be queued, by [KeepOffline.keep]'s
+     * own remote path -- re-reading the catalogue it came from rather than copying a file
+     * this device does not have.
+     *
+     * `library-browsing`'s *A publication's actions wherever it is drawn* offers Download on
+     * a server row, and [KeepOffline]'s own remote enqueue is the one route that already
+     * exists for one: an OPDS entry, by its `"opds:"` remote id. A Kavita chapter's
+     * `"chapter:"` id has no such route yet -- `KeepOffline`'s own comment tracks that as the
+     * remaining half -- so this answers false for one rather than offering a Download that
+     * enqueues nothing, which the *An action that does not apply* scenario forbids outright.
+     */
+    fun isQueueableRemote(publication: Publication): Boolean =
+        publication.identity.serverIdentifier?.remoteId?.startsWith("opds:") == true
 }
 
 /**
@@ -33,9 +48,15 @@ sealed class DownloadOffer {
     object None : DownloadOffer()
 
     companion object {
-        fun of(publication: Publication, isKept: Boolean, isLocalFile: Boolean): DownloadOffer = when {
+        fun of(
+            publication: Publication,
+            isKept: Boolean,
+            isLocalFile: Boolean,
+            /** A server row [KeepOffline]'s remote path can still queue, with no local file. */
+            isQueueableRemote: Boolean = false,
+        ): DownloadOffer = when {
             isKept -> Remove
-            isLocalFile && PublicationActions.canDownload(publication) -> Download
+            (isLocalFile || isQueueableRemote) && PublicationActions.canDownload(publication) -> Download
             else -> None
         }
     }
