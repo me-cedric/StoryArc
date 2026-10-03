@@ -57,6 +57,8 @@ fun SearchScreen(
     onOpenPage: (Publication) -> Unit,
     /** How the app layer reaches a library that is not on this device, carrying the term. */
     onFollowToSource: (Source, String) -> Unit,
+    /** Marks a publication read or unread. The app layer owns the server round trip. */
+    onMark: (Publication, Boolean) -> Unit = { _, _ -> },
     /**
      * The three ways in that open a sheet only the app layer can put up.
      *
@@ -156,6 +158,7 @@ fun SearchScreen(
                 pins = pins,
                 onOpenPage = onOpenPage,
                 onFollowToSource = onFollowToSource,
+                onMark = onMark,
                 searchScope = scope,
                 onSearchScopeChange = viewModel::setSearchScope,
                 scrollBehavior = scrollBehavior,

@@ -1,7 +1,10 @@
 package app.storyarc.feature.library
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -41,8 +44,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -93,6 +98,8 @@ internal fun LibrarySearchEntry(
     onOpenPage: (Publication) -> Unit,
     /** How the app layer reaches a library that is not on this device, carrying the term. */
     onFollowToSource: (Source, String) -> Unit,
+    /** Marks a publication read or unread. The app layer owns the server round trip. */
+    onMark: (Publication, Boolean) -> Unit = { _, _ -> },
     /** What the reader narrowed the question to. Passed straight through to the bar. */
     searchScope: LibraryAvailability = LibraryAvailability.EVERYTHING,
     onSearchScopeChange: (LibraryAvailability) -> Unit = {},
@@ -112,6 +119,16 @@ internal fun LibrarySearchEntry(
     val listing by search.listing.collectAsStateWithLifecycle()
     val groups by viewModel.matchGroups.collectAsStateWithLifecycle()
     val registry by viewModel.registry.collectAsStateWithLifecycle()
+
+    // `library-browsing`'s *A publication's actions wherever it is drawn* names search
+    // results among the places a long press offered nothing at all. Only a row the device
+    // already holds has a publication this menu can act on -- see [ResultRow].
+    var restarting by remember { mutableStateOf<Publication?>(null) }
+    val resultActions = PublicationActionCallbacks(
+        onMark = onMark,
+        onRestart = { restarting = it },
+        onShowDetails = onOpenPage,
+    )
 
     // The one place the question is asked. Keyed on the term the model holds rather than on a
     // second piece of state, so a recent search chosen from the list runs exactly as if it
@@ -154,8 +171,20 @@ internal fun LibrarySearchEntry(
         searchScope = searchScope,
         onSearchScopeChange = onSearchScopeChange,
         scrollBehavior = scrollBehavior,
+        resultViewModel = viewModel,
+        resultActions = resultActions,
+        resolveHeld = { id -> viewModel.publications.value.firstOrNull { it.id == id } },
         modifier = modifier,
     )
+
+    val restart = restarting
+    if (restart != null) {
+        RestartConfirmation(
+            publication = restart,
+            viewModel = viewModel,
+            onDismiss = { restarting = null },
+        )
+    }
 }
 
 /**
@@ -218,6 +247,13 @@ internal fun LibrarySearchBar(
      * scroll nothing reports to it, and the bar would never move.
      */
     scrollBehavior: SearchBarScrollBehavior? = null,
+    /**
+     * The three that let a held row open [PublicationActionMenu]. Null draws no menu at all
+     * -- see [ResultRow].
+     */
+    resultViewModel: LibraryViewModel? = null,
+    resultActions: PublicationActionCallbacks? = null,
+    resolveHeld: (String) -> Publication? = { null },
     modifier: Modifier = Modifier,
 ) {
     val windowClass = rememberWindowClass()
@@ -319,6 +355,9 @@ internal fun LibrarySearchBar(
             onRetry = onRetry,
             scope = searchScope,
             onScopeChange = onSearchScopeChange,
+            resultViewModel = resultViewModel,
+            resultActions = resultActions,
+            resolveHeld = resolveHeld,
         )
     }
 
@@ -363,6 +402,9 @@ private fun SearchAnswerList(
     onRetry: (String) -> Unit,
     scope: LibraryAvailability,
     onScopeChange: (LibraryAvailability) -> Unit,
+    resultViewModel: LibraryViewModel? = null,
+    resultActions: PublicationActionCallbacks? = null,
+    resolveHeld: (String) -> Publication? = { null },
 ) {
     val palette = LocalStoryArcPalette.current
 
@@ -416,6 +458,9 @@ private fun SearchAnswerList(
                     onFollow = onFollow,
                     index = group.rows.indexOf(found),
                     count = group.rows.size,
+                    viewModel = resultViewModel,
+                    actions = resultActions,
+                    resolve = resolveHeld,
                 )
             }
         }
@@ -569,6 +614,7 @@ internal val LibraryAvailability.searchScopeLabel: Int
  * transparent for the same reason: a filled container here would paint a second surface over
  * the one the bar already draws.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ResultRow(
     found: FoundRow,
@@ -578,14 +624,32 @@ private fun ResultRow(
     /** Where this row sits in its heading's run, and how long that run is. */
     index: Int,
     count: Int,
+    /**
+     * A long press opens [PublicationActionMenu] built from these. Null where there is
+     * nowhere to send any of them. Offered only where [found] names a publication the
+     * device already holds -- `library-browsing`'s *An action that does not apply* is
+     * exactly a server-only row or a person or a tag, neither of which this menu could act
+     * on at all.
+     */
+    viewModel: LibraryViewModel? = null,
+    actions: PublicationActionCallbacks? = null,
+    resolve: (String) -> Publication? = { null },
 ) {
     val palette = LocalStoryArcPalette.current
     val result = found.result
     val held = result.publicationId
     val route = result.route
+    var menuTarget by remember { mutableStateOf<Publication?>(null) }
     val tap = Modifier.let {
         when {
-            held != null -> it.clickable { onOpenHeld(held) }
+            held != null -> it.combinedClickable(
+                onClick = { onOpenHeld(held) },
+                onLongClick = if (viewModel != null && actions != null) {
+                    { resolve(held)?.let { publication -> menuTarget = publication } }
+                } else {
+                    null
+                },
+            )
             route != null -> it.clickable { onFollow(route) }
             else -> it
         }
@@ -601,26 +665,38 @@ private fun ResultRow(
     val supporting: (@Composable () -> Unit)? = supportingLines(found, namesOrigin, palette)
     val colors = ListItemDefaults.colors(containerColor = Color.Transparent)
 
-    if (count > 1) {
-        // `ListItemDefaults.segmentedShapes(index, count)` is what rounds the first and last
-        // row of a run and squares the ones between, which is how Material draws a group
-        // without a rule through it.
-        SegmentedListItem(
-            shapes = ListItemDefaults.segmentedShapes(index, count),
-            supportingContent = supporting,
-            colors = colors,
-            modifier = Modifier.fillMaxWidth().then(tap),
-            content = headline,
-        )
-    } else {
-        // A run of one is not a group, and a segmented shape over a single row draws a
-        // container around nothing.
-        ListItem(
-            supportingContent = supporting,
-            colors = colors,
-            modifier = Modifier.fillMaxWidth().then(tap),
-            content = headline,
-        )
+    Box(modifier = Modifier.fillMaxWidth()) {
+        if (count > 1) {
+            // `ListItemDefaults.segmentedShapes(index, count)` is what rounds the first and
+            // last row of a run and squares the ones between, which is how Material draws a
+            // group without a rule through it.
+            SegmentedListItem(
+                shapes = ListItemDefaults.segmentedShapes(index, count),
+                supportingContent = supporting,
+                colors = colors,
+                modifier = Modifier.fillMaxWidth().then(tap),
+                content = headline,
+            )
+        } else {
+            // A run of one is not a group, and a segmented shape over a single row draws a
+            // container around nothing.
+            ListItem(
+                supportingContent = supporting,
+                colors = colors,
+                modifier = Modifier.fillMaxWidth().then(tap),
+                content = headline,
+            )
+        }
+
+        if (viewModel != null && actions != null) {
+            PublicationActionMenuTarget(
+                target = menuTarget,
+                viewModel = viewModel,
+                actions = actions,
+                onDismiss = { menuTarget = null },
+                onOpen = { onOpenHeld(it.id) },
+            )
+        }
     }
 }
 
