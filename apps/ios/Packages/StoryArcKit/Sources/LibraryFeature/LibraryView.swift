@@ -28,6 +28,11 @@ public struct LibraryView: View {
     // states live in `LibraryContent.swift`, and `private` does not reach across a file.
     // Internal, not public: nothing outside this module can see them.
     @Environment(\.theme) var theme
+    /// `library-browsing`'s list fallback at an accessibility text size — see
+    /// ``libraryFallsBackToList(stored:textSize:)``, read here rather than in
+    /// ``CoverGrid`` because the choice of *which* layout to draw belongs with
+    /// `shelfBody`, not with the grid that is only one of its two answers.
+    @Environment(\.dynamicTypeSize) var textSize
     /// Which local picker is up, if either.
     ///
     /// One optional rather than the two booleans this replaced. Those declared a

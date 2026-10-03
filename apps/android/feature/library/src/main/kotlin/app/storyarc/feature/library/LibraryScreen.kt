@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.Lifecycle
@@ -741,7 +742,8 @@ private fun Shelf(
         val (sections, rail) = rememberShelfDivision(shelved, query, groups, layout, locale)
         val narrowing = query.isNarrowed || selection.isActive ||
             availability.isNarrowing || downloads.isActive
-        if (layout == LibraryLayout.GRID) {
+        val fontScale = LocalDensity.current.fontScale
+        if (!libraryFallsBackToList(layout, fontScale)) {
             CoverGrid(
                 publications = shelved,
                 viewModel = viewModel,

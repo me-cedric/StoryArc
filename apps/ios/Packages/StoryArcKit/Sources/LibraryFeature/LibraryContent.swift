@@ -4,6 +4,22 @@ internal import Catalogue
 internal import DesignSystem
 internal import StoryArcCore
 
+/// Whether the shelf draws `CoverList` regardless of the reader's own stored layout.
+///
+/// `library-browsing` asks for a grid and "a compact list for a library too large to
+/// recognise by artwork alone" — and a library is also too large to recognise by artwork
+/// once an accessibility text size has widened every caption onto several lines of its own
+/// cover's width, which is a size a reader reaches independently of which layout they
+/// stored. Free and pure so `LibraryListFallbackTests` can assert it without a view, the
+/// same reason `detailSummary(of:)` is a function rather than an `if let` inside a body.
+///
+/// **The stored preference is never touched.** This answers "what to draw", not "what to
+/// remember" — a reader who shrinks their text back finds the grid exactly where they left
+/// it, because `stored` was read, not overwritten.
+func libraryFallsBackToList(stored: LibraryLayout, textSize: DynamicTypeSize) -> Bool {
+    stored == .list || textSize.isAccessibilitySize
+}
+
 /// What the library draws once there is something to draw: the grid, its empty
 /// states, and the offer to put the same query to a server.
 ///
@@ -219,8 +235,13 @@ extension LibraryView {
                 serverSearch = model.query.search
                 browsing = source.id
             }
+            // `library-browsing`'s list fallback: an accessibility text size draws exactly
+            // what choosing List by hand draws, the `else` branch below — not a third
+            // layout, and the stored preference is never written. See
+            // `libraryFallsBackToList(stored:textSize:)`.
+            let fallsBackToList = libraryFallsBackToList(stored: model.layout, textSize: textSize)
             if !shown.isEmpty {
-                if model.layout == .grid, !sections.isEmpty {
+                if !fallsBackToList, !sections.isEmpty {
                     // `library-browsing`: a long shelf "is divided by series where a
                     // publication declares one, and otherwise by the active sort key, with
                     // headings that stay visible while their section is on screen".
@@ -230,7 +251,7 @@ extension LibraryView {
                         selection: selection.isActive ? selection.ids : nil,
                         onToggle: { selection.toggle($0.id) }
                     )
-                } else if model.layout == .grid {
+                } else if !fallsBackToList {
                     CoverGrid(
                         publications: shelved,
                         // `library-browsing`: while a search is running, results are
