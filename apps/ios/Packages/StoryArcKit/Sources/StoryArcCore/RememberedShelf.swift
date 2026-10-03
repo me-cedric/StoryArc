@@ -59,7 +59,9 @@ public struct RememberedShelf: Sendable, Hashable, Identifiable {
         self.finished = finished
     }
 
-    public var id: String { token }
+    /// The shelf itself, without the count and the finished position the home card cached.
+    /// Two records of one shelf have the same id, so a new count does not make a new card.
+    public var id: String { "\(kind.rawValue):\(sourceID.uuidString):\(serverID):\(title)" }
 
     /// The token this shelf is written down as.
     ///
@@ -77,9 +79,16 @@ public struct RememberedShelf: Sendable, Hashable, Identifiable {
     /// it first, before the colon parse ever runs, costs the old format nothing: a token with
     /// no tab parses exactly as it always did.
     public var token: String {
-        let base = "\(kind.rawValue):\(sourceID.uuidString):\(serverID):\(title)"
-        guard count != nil || finished != nil else { return base }
-        return "\(base)\t\(count.map(String.init) ?? "")\t\(finished.map(String.init) ?? "")"
+        guard count != nil || finished != nil else { return id }
+        return "\(id)\t\(count.map(String.init) ?? "")\t\(finished.map(String.init) ?? "")"
+    }
+
+    /// The same shelf, with the count and the finished position a home card fetched.
+    public func counted(_ count: Int?, finished: Int?) -> RememberedShelf {
+        RememberedShelf(
+            kind: kind, sourceID: sourceID, serverID: serverID, title: title,
+            count: count, finished: finished
+        )
     }
 
     /// A token read back, or `nil` for anything this version cannot read.
@@ -133,5 +142,11 @@ public struct RememberedShelf: Sendable, Hashable, Identifiable {
 
     public static func shelves(stored: String) -> [RememberedShelf] {
         shelves(tokens: stored.split(separator: "\n").map(String.init))
+    }
+
+    /// The stored record with one shelf's record replaced, matched by ``id``. A shelf that
+    /// is not in the record is not added: only the shelves screen decides which shelves exist.
+    public static func stored(_ stored: String, replacing shelf: RememberedShelf) -> String {
+        Self.stored(shelves(stored: stored).map { $0.id == shelf.id ? shelf : $0 })
     }
 }

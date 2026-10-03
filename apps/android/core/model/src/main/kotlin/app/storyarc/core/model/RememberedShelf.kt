@@ -58,10 +58,19 @@ data class RememberedShelf(
      */
     val token: String
         get() {
-            val base = "${kind.word}:$sourceId:$serverId:$title"
-            if (count == null && finished == null) return base
-            return "$base\t${count?.toString().orEmpty()}\t${finished?.toString().orEmpty()}"
+            if (count == null && finished == null) return key
+            return "$key\t${count?.toString().orEmpty()}\t${finished?.toString().orEmpty()}"
         }
+
+    /**
+     * The shelf itself, without the count and the finished position the home card cached.
+     * Two records of one shelf have the same key, so a new count does not make a new card.
+     */
+    val key: String
+        get() = "${kind.word}:$sourceId:$serverId:$title"
+
+    /** The same shelf, with the count and the finished position a home card fetched. */
+    fun counted(count: Int?, finished: Int?): RememberedShelf = copy(count = count, finished = finished)
 
     companion object {
 
@@ -94,6 +103,13 @@ data class RememberedShelf(
          */
         fun tokens(shelves: Collection<RememberedShelf>): List<String> =
             shelves.map { it.token }.sorted()
+
+        /**
+         * The stored record with one shelf's record replaced, matched by [key]. A shelf that is
+         * not in the record is not added: only the shelves screen decides which shelves exist.
+         */
+        fun replacing(tokens: Collection<String>, shelf: RememberedShelf): List<String> =
+            tokens(of(tokens).map { if (it.key == shelf.key) shelf else it })
     }
 }
 

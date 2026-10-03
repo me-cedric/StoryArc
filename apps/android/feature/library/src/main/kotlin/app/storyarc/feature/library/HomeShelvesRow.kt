@@ -114,7 +114,10 @@ private fun HomeShelfLink(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
-    val caption = homeShelfCaption(summary)
+    // What the card's own fetch counted, drawn at once. The record keeps it for the next launch.
+    var counted by remember(summary.key) { mutableStateOf<RememberedShelf?>(null) }
+    val shown = counted?.let { summary.copy(count = it.count, finished = it.finished) } ?: summary
+    val caption = homeShelfCaption(shown)
 
     Column(
         modifier = modifier.clearAndSetSemantics {
@@ -128,8 +131,9 @@ private fun HomeShelfLink(
                 cover = cover,
                 serverArtwork = serverArtwork,
                 width = width,
+                onCounted = { counted = it },
             )
-            summary.fraction?.let { ShelfProgressRail(it) }
+            shown.fraction?.let { ShelfProgressRail(it) }
         }
         Column(modifier = Modifier.padding(top = StoryArcSpace.sm)) {
             Text(
@@ -173,6 +177,7 @@ private fun HomeShelfArtwork(
     cover: suspend (Publication, Int) -> Bitmap?,
     serverArtwork: suspend (RememberedShelf) -> HomeShelfArtworkOutcome,
     width: Dp,
+    onCounted: (RememberedShelf) -> Unit,
 ) {
     val density = LocalDensity.current
     val maxPixelSize = remember(density, width) { with(density) { width.roundToPx() } }
@@ -180,11 +185,13 @@ private fun HomeShelfArtwork(
     val serverShelf = (summary.destination as? HomeShelfDestination.OnServer)?.shelf
 
     if (serverShelf != null && summary.tiles.isEmpty()) {
-        var plan by remember(serverShelf) { mutableStateOf<HomeShelfCoverPlan>(HomeShelfCoverPlan.Blank) }
-        LaunchedEffect(serverShelf) {
+        // Keyed by the shelf, not by its cached count, so a new count does not fetch again.
+        var plan by remember(serverShelf.key) { mutableStateOf<HomeShelfCoverPlan>(HomeShelfCoverPlan.Blank) }
+        LaunchedEffect(serverShelf.key) {
             val outcome = serverArtwork(serverShelf)
             covers.putAll(outcome.covers)
             plan = outcome.plan
+            outcome.counted?.let(onCounted)
         }
         val tiles = when (val resolved = plan) {
             is HomeShelfCoverPlan.Sole -> listOf(HOME_SHELF_SOLE_COVER_KEY)

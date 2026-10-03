@@ -162,7 +162,9 @@ fun ShelvesScreen(
         // name the home surface had.
         if (holdsCollections.isNotEmpty() || holdsLists.isNotEmpty()) {
             preferences?.saveRememberedShelves(
-                RememberedShelf.tokens(HomeShelfIndex.remembering(found)),
+                RememberedShelf.tokens(
+                    HomeShelfIndex.remembering(found, RememberedShelf.of(preferences.rememberedShelves())),
+                ),
             )
         }
     }
