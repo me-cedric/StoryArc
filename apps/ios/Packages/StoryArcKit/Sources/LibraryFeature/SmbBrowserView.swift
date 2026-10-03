@@ -244,6 +244,7 @@ public struct SmbBrowserView: View {
         defer { opening = nil }
 
         await ShareOpening.offerOrOpen(
+            file: (entry.name, entry.length),
             index: {
                 let remote = SmbLocator.entry(entry.path, of: address)
                     ?? URL(fileURLWithPath: entry.path)
@@ -253,7 +254,6 @@ public struct SmbBrowserView: View {
                 indexed[entry.path] = catalogued
                 return (catalogued, remote)
             },
-            length: entry.length,
             onOpen: onOpen,
             onOffer: { bytes in transferring = TransferAsk(entry: entry, bytes: bytes) },
             onSay: { said in notice = said }

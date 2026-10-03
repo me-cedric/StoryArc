@@ -12750,6 +12750,66 @@
           }
         }
       }
+    },
+    "open.in.passwordProtected %@": {
+      "comment": "Shown in the share browser when the indexer finds a password-protected archive over the share. Mirrors App/RefusedFile.swift open.in.passwordProtected, so a file met here first names it the same way Open-in does.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ist durch ein Passwort geschützt. StoryArc verwaltet keine Archiv-Passwörter, es gibt hier also nichts einzugeben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is protected by a password. StoryArc does not manage archive passwords, so there is nothing to enter here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ está protegido por una contraseña. StoryArc no gestiona contraseñas de archivos, así que aquí no hay nada que introducir."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ est protégé par un mot de passe. StoryArc ne gère pas les mots de passe d’archive ; il n’y a rien à saisir ici."
+          }
+        }
+      }
+    },
+    "open.in.damaged %@": {
+      "comment": "Shown in the share browser when the indexer finds a damaged archive over the share. Mirrors App/RefusedFile.swift open.in.damaged, so a file met here first names it the same way Open-in does.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ konnte nicht gelesen werden. Es ist möglicherweise beschädigt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ could not be read. It may be damaged."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ no se pudo leer. Puede estar dañado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ n’a pas pu être lu. Il est peut-être endommagé."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
