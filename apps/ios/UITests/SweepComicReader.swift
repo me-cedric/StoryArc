@@ -157,14 +157,12 @@ final class SweepComicReaderTests: XCTestCase {
     /// The page browser on a comic with chapter bookmarks: the chapter name above the
     /// carousel, the chapter badges, the page numbers and the ticks on the page slider.
     func testCaptureComicPageBrowser() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(freshShelfSettings: true)
         try openPublication(named: "Quiet Machines", in: app)
         try openMenu(in: app)
         // The menu sheet slides up. A tap while it moves lands on the row below Contents.
         hold(1)
-        try XCTUnwrap(hittableRow("Contents", in: app), "The menu offers no Contents row.").tap()
-        let second = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Page 2")).firstMatch
-        XCTAssertTrue(second.waitForExistence(timeout: 8), "Contents opened no page browser.")
+        let second = try openPageBrowser(in: app)
         hold(2)
         shutter(app, named: "comic-reader-page-browser")
         second.swipeLeft(velocity: .slow)
@@ -174,26 +172,24 @@ final class SweepComicReaderTests: XCTestCase {
 
     /// The page browser, in dark. `page-browser-carousel` 3.2.
     func testCaptureComicPageBrowserDark() throws {
-        let app = sweepLaunch(appearance: "dark")
+        let app = sweepLaunch(appearance: "dark", freshShelfSettings: true)
         try openPublication(named: "Quiet Machines", in: app)
         try openMenu(in: app)
         hold(1)
-        try XCTUnwrap(hittableRow("Contents", in: app), "The menu offers no Contents row.").tap()
-        let second = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Page 2")).firstMatch
-        XCTAssertTrue(second.waitForExistence(timeout: 8), "Contents opened no page browser.")
+        try openPageBrowser(in: app)
         hold(2)
         shutter(app, named: "comic-reader-page-browser-dark")
     }
 
     /// The page browser, at the largest accessibility text size. `page-browser-carousel` 3.2.
     func testCaptureComicPageBrowserAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
+        let app = sweepLaunch(
+            contentSize: "UICTContentSizeCategoryAccessibilityXXXL", freshShelfSettings: true
+        )
         try openPublication(named: "Quiet Machines", in: app)
         try openMenu(in: app)
         hold(1)
-        try XCTUnwrap(hittableRow("Contents", in: app), "The menu offers no Contents row.").tap()
-        let second = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Page 2")).firstMatch
-        XCTAssertTrue(second.waitForExistence(timeout: 8), "Contents opened no page browser.")
+        try openPageBrowser(in: app)
         hold(2)
         shutter(app, named: "comic-reader-page-browser-ax5")
     }
@@ -201,7 +197,7 @@ final class SweepComicReaderTests: XCTestCase {
     /// The page browser on a right-to-left comic: the carousel and its slider ticks mirror.
     /// `page-browser-carousel` 3.2.
     func testCaptureComicPageBrowserRightToLeft() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(freshShelfSettings: true)
         try openPublication(named: "Quiet Machines", in: app)
         try openMenu(in: app)
         // The direction row is in the Settings section, below the fold at `.medium`.
@@ -214,9 +210,7 @@ final class SweepComicReaderTests: XCTestCase {
         XCTAssertTrue(rightToLeft.waitForExistence(timeout: 8), "The Reading direction row opened no picker.")
         rightToLeft.tap()
         hold(1)
-        try XCTUnwrap(hittableRow("Contents", in: app), "The menu offers no Contents row.").tap()
-        let second = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Page 2")).firstMatch
-        XCTAssertTrue(second.waitForExistence(timeout: 8), "Contents opened no page browser (right-to-left).")
+        try openPageBrowser(in: app, rightToLeft: true)
         hold(2)
         shutter(app, named: "comic-reader-page-browser-rtl")
     }
@@ -323,5 +317,26 @@ final class SweepComicReaderTests: XCTestCase {
             "The menu did not open: it offers no Contents row. Buttons: "
                 + "\(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label))"
         )
+    }
+
+    /// Taps Contents, and proves the carousel is up and runs the way the comic reads.
+    ///
+    /// The direction is asserted, not assumed. A walk that picks right-to-left stores it for
+    /// the shelf, and frames that were named light and dark then showed right-to-left.
+    @discardableResult
+    private func openPageBrowser(in app: XCUIApplication, rightToLeft: Bool = false) throws -> XCUIElement {
+        try XCTUnwrap(hittableRow("Contents", in: app), "The menu offers no Contents row.").tap()
+        let page = { (number: Int) in
+            app.buttons.matching(
+                NSPredicate(format: "label == %@ OR label BEGINSWITH %@", "Page \(number)", "Page \(number),")
+            ).firstMatch
+        }
+        let second = page(2)
+        XCTAssertTrue(second.waitForExistence(timeout: 8), "Contents opened no page browser.")
+        XCTAssertEqual(
+            second.frame.midX < page(1).frame.midX, rightToLeft,
+            "The carousel does not put page 2 on the \(rightToLeft ? "left" : "right") of page 1."
+        )
+        return second
     }
 }

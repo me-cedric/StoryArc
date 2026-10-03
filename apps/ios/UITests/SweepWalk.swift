@@ -86,7 +86,10 @@ extension XCTestCase {
         availability: String = "everywhere",
         layout: String = "grid",
         grouping: String = "series",
-        recents: String = "(\"Harbour\", \"Vermillion\", \"Fine Print\")"
+        recents: String = "(\"Harbour\", \"Vermillion\", \"Fine Print\")",
+        /// Every shelf at the reader's built-in settings. A walk that picks a reading
+        /// direction persists it for the shelf, and the next walk on that shelf inherits it.
+        freshShelfSettings: Bool = false
     ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += [
@@ -134,6 +137,10 @@ extension XCTestCase {
         }
         if let contentSize {
             app.launchArguments += ["-UIPreferredContentSizeCategoryName", contentSize]
+        }
+        if freshShelfSettings {
+            // A string is not `Data`, so `ReaderPreferences.themes()` reads no stored shelf.
+            app.launchArguments += ["-app.storyarc.themes", "none"]
         }
         app.launch()
         return app
