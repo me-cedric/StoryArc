@@ -137,6 +137,47 @@ enum LibraryRail {
         else { return "#" }
         return String(first).uppercased(with: locale)
     }
+
+    /// The height one rail entry draws at. ``IndexRail`` draws its `Button`s at this height,
+    /// so the view and ``collapsed(_:toFit:entryHeight:)`` can never disagree about how many
+    /// of them fit a given space. Stated here rather than on the view, which is main-actor
+    /// isolated and cannot stand as a nonisolated default argument's value.
+    static let entryHeight: CGFloat = 22
+
+    /// Which of these entries fit a space of the given height, one per ``entryHeight`` —
+    /// collapsing to an evenly spaced subset when they do not, the way the system's own
+    /// section index falls back to short of room rather than overlapping.
+    ///
+    /// Photographed in landscape on 2026-09-28: 27 entries of 22 pt need about 600 pt, which
+    /// is more than a landscape shelf's height, and the uncollapsed rail ran off both edges of
+    /// the screen. **Every input already short enough draws every entry it was given** — this
+    /// only ever removes some, never reorders or invents one.
+    ///
+    /// The subset always keeps the first and the last entry, because those are the ends of
+    /// the alphabet a reader reaches for, and spaces the rest evenly between them so no one
+    /// run of letters is favoured over another. A letter this drops is still reachable: it
+    /// sits between two kept ones, and ``IndexRail`` already states in its own accessibility
+    /// label that the rail is a jump, not an exhaustive list.
+    static func collapsed(
+        _ entries: [RailEntry],
+        toFit height: CGFloat,
+        entryHeight: CGFloat = LibraryRail.entryHeight
+    ) -> [RailEntry] {
+        guard entryHeight > 0, height > 0 else { return entries }
+        let capacity = max(1, Int((height / entryHeight).rounded(.down)))
+        guard entries.count > capacity else { return entries }
+        guard capacity > 1 else { return [entries[0]] }
+
+        var kept: [RailEntry] = []
+        var lastIndex = -1
+        for slot in 0..<capacity {
+            let index = slot * (entries.count - 1) / (capacity - 1)
+            guard index != lastIndex else { continue }
+            kept.append(entries[index])
+            lastIndex = index
+        }
+        return kept
+    }
 }
 
 /// The index itself, down the trailing edge of the shelf.
@@ -168,9 +209,23 @@ struct IndexRail: View {
     /// Where a chosen letter sends the shelf.
     let onChoose: (RailEntry) -> Void
 
+    /// **A `GeometryReader`, because ``LibraryRail/collapsed(_:toFit:entryHeight:)`` needs the
+    /// height before it can draw.** The rail used to be the `VStack` below with no reader
+    /// around it, sized to its own entries and centred by the parent's
+    /// `.overlay(alignment: .trailing)` — which is exactly why it could run off both edges of
+    /// a short screen: nothing here ever asked how tall the space was. Photographed in
+    /// landscape on 2026-09-28, 27 entries of 22 pt wanting about 600 pt of a shelf shorter
+    /// than that.
     var body: some View {
+        GeometryReader { geometry in
+            rail(for: LibraryRail.collapsed(entries, toFit: geometry.size.height))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+        }
+    }
+
+    private func rail(for shown: [RailEntry]) -> some View {
         VStack(spacing: 0) {
-            ForEach(entries) { entry in
+            ForEach(shown) { entry in
                 Button { onChoose(entry) } label: {
                     Text(entry.label)
                         .textRole(.caption)
@@ -180,7 +235,7 @@ struct IndexRail: View {
                         // one column. 22 points is the least a letter can be tapped at
                         // reliably, and the rail is centred rather than stretched so it
                         // clips instead of pushing the covers about.
-                        .frame(width: 22, height: 22)
+                        .frame(width: 22, height: LibraryRail.entryHeight)
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
