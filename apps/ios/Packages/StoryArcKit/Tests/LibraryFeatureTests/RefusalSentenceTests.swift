@@ -1,3 +1,4 @@
+import Formats
 import Foundation
 import StoryArcCore
 import Testing
@@ -38,8 +39,16 @@ struct RefusalSentenceTests {
 
     @MainActor
     @Test("The share browser's unsupported sentence lists the formats StoryArc reads")
-    func shareUnsupportedListsFormats() {
-        let sentence = String(localized: ShareOpening.unsupported)
+    func shareUnsupportedListsFormats() async {
+        var said: LocalizedStringResource?
+        await ShareOpening.offerOrOpen(
+            file: ("Lantern Green 043.cb7", 10),
+            index: { throw PublicationIndexer.IndexError.unsupported(format: "7-Zip") },
+            onOpen: { _, _ in },
+            onOffer: { _ in },
+            onSay: { said = $0 }
+        )
+        let sentence = said.map { String(localized: $0) } ?? ""
         #expect(sentence.contains("CBZ"), "\(sentence) names no format StoryArc reads.")
     }
 }
