@@ -63,6 +63,7 @@ extension PublicationIndexer {
         let book = format == .audioFolder
             ? await AudiobookReader.read(folderAt: url)
             : await AudiobookReader.read(fileAt: url)
+        let coverPath = await audiobookCoverPath(at: url, format: format)
 
         return Publication(
             identity: identity,
@@ -75,16 +76,31 @@ extension PublicationIndexer {
             origin: .inferred,
             pageCount: book.parts.isEmpty ? nil : book.parts.count,
             skippedPageCount: book.unreadablePartCount,
-            // No cover *inside* the file yet. An M4B can carry embedded artwork, and reading
-            // it is a separate job from opening the book; until that lands the library draws
-            // the placeholder it draws for any publication with no art, rather than a path
-            // that resolves to nothing.
-            coverPath: nil,
+            // Task 16.9: the container's own embedded artwork, or a folder's loose cover
+            // image — see `audiobookCoverPath(at:format:)`. `nil` for a book with neither,
+            // which draws the placeholder every publication with no art draws.
+            coverPath: coverPath,
             // `.downloadOnly` rather than `.streams`. `AVURLAsset` will stream an HTTP
             // source, but this app reaches its sources through `RandomAccessSource` and
             // hands the player a file URL, so a remote audiobook has to arrive before it
             // plays. `.streams` here would promise something the player cannot do.
             streaming: .downloadOnly
         )
+    }
+
+    /// Where this audiobook's own cover is, if it has one. Task 16.9.
+    ///
+    /// A folder is asked for its own loose image — there is no single file to read embedded
+    /// artwork out of, and asking the first part would read whichever track happened to sort
+    /// first rather than the book. Every other shape is one file, so its embedded artwork,
+    /// once found, is written to disk once by ``AudiobookCoverStore`` and that copy's path is
+    /// what `coverPath` carries from here on — the bytes themselves are gone the moment this
+    /// function returns, and the file this just wrote is where `CoverLoader` reads them back.
+    private static func audiobookCoverPath(at url: URL, format: PublicationFormat) async -> String? {
+        if format == .audioFolder {
+            return AudiobookCover.inFolder(at: url)?.path
+        }
+        guard let data = await AudiobookCover.embedded(in: url) else { return nil }
+        return AudiobookCoverStore().write(data, for: url)
     }
 }

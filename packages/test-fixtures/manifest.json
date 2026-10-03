@@ -580,6 +580,24 @@
       "note": "Also pins that an .m4a and an .m4b holding the same audio are treated identically \u2014 the extension is a hint and the contents are the fact."
     },
     {
+      "file": "audiobooks/with-cover.m4b",
+      "pins": "an M4B's own cover atom is read as the publication's artwork",
+      "container": "mp4",
+      "expectedPartCount": 1,
+      "expectedDurationSeconds": 2,
+      "hasEmbeddedCover": true,
+      "note": "Task 16.9. The cover is one frame of `page(1)`'s own PNG, embedded as the MP4 `covr` atom ffmpeg writes with `-disposition:v attached_pic`."
+    },
+    {
+      "file": "audiobooks/with-cover.mp3",
+      "pins": "the same cover as an ID3 APIC frame",
+      "container": "mp3",
+      "expectedPartCount": 1,
+      "expectedDurationSeconds": 2,
+      "hasEmbeddedCover": true,
+      "note": "Task 16.9. Carried alongside the M4B on purpose: the two containers carry artwork differently and a corpus with only one would hide the half that fails."
+    },
+    {
       "file": "audiobooks/folder-parts",
       "pins": "a folder of audio files is one audiobook, and part10 sorts after part2",
       "container": "folder",
@@ -602,7 +620,8 @@
         "part1.mp3",
         "part2.mp3"
       ],
-      "note": "Two audio files against one image. `publication-formats` requires the app to state which kind it chose rather than choosing silently."
+      "expectedCoverFile": "cover.png",
+      "note": "Two audio files against one image. `publication-formats` requires the app to state which kind it chose rather than choosing silently. Task 16.9 reuses the same image as the folder's own cover, found by name rather than by position."
     },
     {
       "file": "audiobooks/protected.aax",

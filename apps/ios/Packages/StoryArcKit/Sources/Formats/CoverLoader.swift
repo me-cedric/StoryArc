@@ -58,11 +58,17 @@ public enum CoverLoader {
             return try await bookCover(for: publication, at: url)
 
         case .m4b, .mp3, .flac, .ogg, .audioFolder:
-            // An M4B can carry embedded artwork and this does not read it yet, so the
-            // library draws its no-art placeholder. Named rather than folded into the comic
-            // case: a folder of audio has no first page to fall back to, and reaching for
-            // one would open a file the reader is about to hear rather than see.
-            throw CoverError.noCover
+            // Task 16.9: `coverPath` is where `PublicationIndexer` wrote the embedded
+            // artwork it read out at index time, or where a folder's own loose cover image
+            // already lives — never a path inside `url` itself, since nothing here reopens
+            // the container. Named rather than folded into the comic case: a folder of
+            // audio has no first page to fall back to, and reaching for one would open a
+            // file the reader is about to hear rather than see.
+            guard let path = publication.coverPath else { throw CoverError.noCover }
+            guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
+                throw CoverError.unreadable
+            }
+            return data
 
         case .cbz, .cbr, .cbt, .cb7, .imageFolder:
             let path = publication.coverPath
