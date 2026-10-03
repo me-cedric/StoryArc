@@ -31,13 +31,27 @@ import java.util.UUID
 internal object OpdsContributor {
 
     /** The entries of the feed a reader saved, as publications. */
-    suspend fun publications(sourceId: UUID, page: CataloguePage, pins: CertificatePins): SourceSlice {
-        val feed = client(page, pins).feed(page.url, page.credential)
+    suspend fun publications(sourceId: UUID, page: CataloguePage, pins: CertificatePins): SourceSlice =
+        page(sourceId, page, pins, url = page.url).slice
+
+    /**
+     * One feed page's entries as publications, and the feed's own `next` link.
+     *
+     * `sources`' *More from a source than the library holds*: the first read asks for
+     * [page]'s own url; `LibraryViewModel.continueReadingCatalogues` asks every page after
+     * it for [url] in turn, each time the [next] this same function returned for the page
+     * before it -- a catalogue is a chain the server hands forward one link at a time, and
+     * there is no offset or page number to ask for instead.
+     */
+    data class Page(val slice: SourceSlice, val next: String?)
+
+    suspend fun page(sourceId: UUID, page: CataloguePage, pins: CertificatePins, url: String): Page {
+        val feed = client(page, pins).feed(url, page.credential)
         val publications = feed.publications.mapNotNull { entry -> publication(sourceId, entry) }
         // The feed says so itself. A `next` link is the catalogue's own statement that this
         // page is not the whole of it, which is a better answer than counting entries
         // against a limit this side invented.
-        return SourceSlice(publications, holdsMore = feed.next != null)
+        return Page(SourceSlice(publications, holdsMore = feed.next != null), next = feed.next)
     }
 
     /**

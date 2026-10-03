@@ -386,7 +386,7 @@ class LibraryViewModel(
             _registry, credentials, pins, progressStore,
             progressStore?.let { KavitaProgressStore.open(getApplication()) },
         )
-        adoptPartialSources(reading.partial)
+        adoptPartialSources(reading.partial, reading.opdsNext, pins)
         RefreshConflicts.report(reading.conflicts)
         reading.rows.forEach { (publication, sourceId) -> adopt(publication, sourceId) }
         if (reading.rows.isEmpty()) return@launch
@@ -946,21 +946,18 @@ class LibraryViewModel(
         return true
     }
 
-    /**
-     * How many publications a source has put on the shelf.
-     *
-     * `sources` asks a source's detail screen for its "cached item count". Counted from
-     * what the library actually found rather than remembered separately: two numbers that
-     * can disagree is how a screen ends up claiming a source has titles it cannot open.
-     * It is a count of what was *read*, which is why [isPartial] exists beside it.
-     */
-    fun itemCount(sourceId: UUID): Int = _publications.value.count { it.sourceId == sourceId }
+    // [itemCount] and [isPartial] moved to `LibrarySourceStats.kt`: this file is at its
+    // recorded line-cap ceiling (`scripts/line-cap.mjs`), and 22.1-smb-opds needs the two
+    // continuation-cursor properties below it.
 
     /** Sources whose last read stopped at its own limit. [SourceSlice] explains what that is. */
     internal var partialSources: Map<UUID, SourceReadProgress> by mutableStateOf(emptyMap())
 
-    /** Whether [itemCount] is a slice of what this source holds rather than the whole of it. */
-    fun isPartial(sourceId: UUID): Boolean = sourceId in partialSources
+    /** A partial share's remaining walk frontier. [SmbContributor.page] resumes from it. */
+    internal var smbQueues: Map<UUID, List<String>> by mutableStateOf(emptyMap())
+
+    /** A partial catalogue's next feed link. [OpdsContributor.page] resumes from it. */
+    internal var opdsNext: Map<UUID, String> by mutableStateOf(emptyMap())
 
     /** The source a tree belongs to. [folderSourceOf] holds the rule. */
     private fun sourceOf(tree: Uri?): UUID? = _registry.value.folderSourceOf(tree)

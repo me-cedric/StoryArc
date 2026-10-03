@@ -6,6 +6,7 @@ import app.storyarc.core.model.StreamingCapability
 import app.storyarc.core.smb.SmbAddress
 import app.storyarc.core.smb.SmbEntry
 import java.util.UUID
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -154,5 +155,60 @@ class SmbContributorTest {
         // not reached stays in the browser and in search.
         assertEquals(200, SmbContributor.FIRST_SLICE)
         assertEquals(40, SmbContributor.MAX_FOLDERS)
+    }
+
+    // -- 22.1-smb-opds: the walk continues from its own frontier -------------------------
+
+    /** A root with [count] sibling folders, each holding one file. */
+    private fun wideTree(count: Int): Map<String, List<SmbEntry>> = buildMap {
+        put("", (0 until count).map { SmbEntry(name = "d$it", path = "d$it", isDirectory = true, length = 0) })
+        for (i in 0 until count) {
+            put("d$i", listOf(SmbEntry(name = "f.cbz", path = "d$i/f.cbz", isDirectory = false, length = 1)))
+        }
+    }
+
+    @Test
+    fun `a continuation resumes the frontier it was handed, not the share's root`() = runTest {
+        // One more folder than MAX_FOLDERS can list in a single page, so the first page
+        // is proven to stop with folders still unlisted rather than finishing the share.
+        val tree = wideTree(SmbContributor.MAX_FOLDERS + 6)
+        val listed = mutableListOf<String>()
+        suspend fun list(path: String) = tree[path].orEmpty().also { listed += path }
+
+        val first = SmbContributor.page(source, address, queue = listOf(address.path), ::list)
+        assertTrue("a share wider than the folder budget must report it holds more", first.slice.holdsMore)
+        assertTrue("some folders must still be unlisted after the first page", first.queue.isNotEmpty())
+
+        listed.clear()
+        val second = SmbContributor.page(source, address, first.queue, ::list)
+
+        // The bug this fixes: a continuation that restarted at the root would relist "" and
+        // every folder the first page already covered. Mutate `page`'s own recursive call
+        // back to `queue = listOf(address.path)` and this fails, because "" and "d0" (both
+        // already listed by the first page) reappear in the second page's own listing log.
+        assertFalse("the root must not be relisted", listed.contains(""))
+        assertFalse("an already-listed folder must not be relisted", listed.contains("d0"))
+        assertEquals(first.queue, listed)
+
+        assertEquals(SmbContributor.MAX_FOLDERS + 6, first.slice.publications.size + second.slice.publications.size)
+        assertFalse("a finished walk reports nothing more to read", second.slice.holdsMore)
+    }
+
+    @Test
+    fun `a page's own folder budget is independent of a previous page's`() = runTest {
+        // A continuation round gets the same MAX_FOLDERS budget the first page did, not
+        // whatever was left of an earlier one -- each page is its own request. A tree twice
+        // as wide as the budget proves it: if the second page's budget were the remainder of
+        // the first's instead of a fresh one, it would list far fewer than MAX_FOLDERS again.
+        val tree = wideTree(SmbContributor.MAX_FOLDERS * 2)
+        var listings = 0
+        suspend fun list(path: String) = tree[path].orEmpty().also { listings += 1 }
+
+        val first = SmbContributor.page(source, address, queue = listOf(address.path), ::list)
+        assertEquals(SmbContributor.MAX_FOLDERS, listings)
+
+        listings = 0
+        SmbContributor.page(source, address, first.queue, ::list)
+        assertEquals(SmbContributor.MAX_FOLDERS, listings)
     }
 }

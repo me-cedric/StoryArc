@@ -47,11 +47,16 @@ internal object ServerLibrary {
      *   moment it came back -- a refresh resolved the conflict (it still saves the merged
      *   record) but never told the reader one had happened, which is the one part of D3 a
      *   background refresh could not skip.
+     * @property opdsNext the `next` link this read's own first page found, for every
+     *   catalogue that turned out partial. 22.1: `continueReadingCatalogues` has nothing
+     *   else to ask for -- a catalogue is a chain of links the server hands forward, with
+     *   no page number or offset of this side's own invention.
      */
     data class Reading(
         val rows: List<Pair<Publication, UUID>> = emptyList(),
         val partial: Set<UUID> = emptySet(),
         val conflicts: List<KavitaConflict> = emptyList(),
+        val opdsNext: Map<UUID, String> = emptyMap(),
     )
 
     /**
@@ -69,8 +74,11 @@ internal object ServerLibrary {
         kavita: KavitaProgressStore? = null,
     ): Reading = withContext(Dispatchers.IO) {
         val conflicts = mutableListOf<KavitaConflict>()
+        val opdsCursors = mutableMapOf<UUID, String>()
         val slices = registry.value.sources.map { source ->
-            val read = runCatching { slice(source, credentials, pins, progress, kavita, conflicts) }.getOrNull()
+            val read = runCatching {
+                slice(source, credentials, pins, progress, kavita, conflicts, opdsCursors)
+            }.getOrNull()
             // **A source that just answered is answering, and the registry says so.**
             //
             // The registry rather than a list, because this read is where the answer is
@@ -95,6 +103,7 @@ internal object ServerLibrary {
             rows = slices.flatMap { (id, slice) -> slice.publications.map { it to id } },
             partial = slices.filter { (_, slice) -> slice.holdsMore }.map { it.first }.toSet(),
             conflicts = conflicts,
+            opdsNext = opdsCursors,
         )
     }
 
@@ -106,6 +115,7 @@ internal object ServerLibrary {
         progress: ProgressStore?,
         kavita: KavitaProgressStore?,
         conflicts: MutableList<KavitaConflict>,
+        opdsCursors: MutableMap<UUID, String>,
     ): SourceSlice? =
         when (source.kind) {
             SourceKind.KAVITA_SERVER -> KavitaPage.of(source, credentials)?.address?.let { address ->
@@ -122,8 +132,13 @@ internal object ServerLibrary {
                 fetched.slice
             }
 
-            SourceKind.OPDS_CATALOG -> CataloguePage.of(source, credentials)
-                ?.let { OpdsContributor.publications(source.id, it, pins) }
+            SourceKind.OPDS_CATALOG -> CataloguePage.of(source, credentials)?.let { page ->
+                val fetched = OpdsContributor.page(source.id, page, pins, url = page.url)
+                // Learned here, where the first page is read, so a continuation started
+                // from this read's own answer has a link to ask for rather than nothing.
+                fetched.next?.let { opdsCursors[source.id] = it }
+                fetched.slice
+            }
 
             SourceKind.NETWORK_SHARE -> SmbPage.of(source, credentials)?.let { page ->
                 SmbContributor.publications(

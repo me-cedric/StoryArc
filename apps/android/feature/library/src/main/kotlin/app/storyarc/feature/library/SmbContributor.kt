@@ -43,21 +43,52 @@ internal object SmbContributor {
     /** How many directory listings it will spend to find them. */
     const val MAX_FOLDERS = 40
 
-    /** The publications a bounded walk of the share finds. */
-    suspend fun publications(sourceId: UUID, client: SmbClient, address: SmbAddress): SourceSlice {
+    /**
+     * One page of a bounded walk, and the frontier it stopped at.
+     *
+     * `sources`' *More from a source than the library holds*: the first read is
+     * [publications], the walk's own first page starting from the share's root, and
+     * `LibraryViewModel.continueReadingShares` asks for every page after it by handing
+     * back [queue] -- the folders this page had not reached yet -- so a continuation
+     * resumes the walk where it stopped instead of relisting the share's root folders
+     * on every page, which a share with more folders than [MAX_FOLDERS] could never
+     * walk past.
+     */
+    data class Page(val slice: SourceSlice, val queue: List<String>)
+
+    /** One page of a bounded walk, starting from [queue] rather than always the root. */
+    suspend fun page(sourceId: UUID, client: SmbClient, address: SmbAddress, queue: List<String>): Page =
+        page(sourceId, address, queue) { client.list(it) }
+
+    /**
+     * [page], with the share's own listing replaced by [list].
+     *
+     * A share cannot be faked without a real SMB server, and this walk's one real decision --
+     * where it stops, and what it hands back so the next page resumes there instead of at the
+     * root -- has nothing to do with the protocol underneath it. Lifted out so
+     * `SmbContributorTest` can prove the walk and its continuation against an in-memory tree,
+     * the way `KavitaContributorTest` proves a page's retry against a fake [fetch] rather than
+     * a server.
+     */
+    internal suspend fun page(
+        sourceId: UUID,
+        address: SmbAddress,
+        queue: List<String>,
+        list: suspend (String) -> List<SmbEntry>,
+    ): Page {
         val found = mutableListOf<Publication>()
-        val queue = ArrayDeque(listOf(address.path))
+        val pending = ArrayDeque(queue)
         var listings = 0
 
-        while (queue.isNotEmpty() && found.size < FIRST_SLICE && listings < MAX_FOLDERS) {
-            val path = queue.removeFirst()
+        while (pending.isNotEmpty() && found.size < FIRST_SLICE && listings < MAX_FOLDERS) {
+            val path = pending.removeFirst()
             // A folder that refuses is skipped, not fatal: one unreadable directory must
             // not cost a reader the rest of the share.
-            val entries = runCatching { client.list(path) }.getOrNull() ?: continue
+            val entries = runCatching { list(path) }.getOrNull() ?: continue
             listings += 1
             for (entry in entries) {
                 if (entry.isDirectory) {
-                    queue.addLast(entry.path)
+                    pending.addLast(entry.path)
                     continue
                 }
                 if (found.size >= FIRST_SLICE) break
@@ -67,11 +98,18 @@ internal object SmbContributor {
         // Either budget running out is the walk stopping before the share did, and so is a
         // queue with folders still in it. All three mean the same thing to a reader: there
         // is more on the share than the number on the screen.
-        return SourceSlice(
-            publications = found,
-            holdsMore = queue.isNotEmpty() || found.size >= FIRST_SLICE || listings >= MAX_FOLDERS,
+        return Page(
+            slice = SourceSlice(
+                publications = found,
+                holdsMore = pending.isNotEmpty() || found.size >= FIRST_SLICE || listings >= MAX_FOLDERS,
+            ),
+            queue = pending.toList(),
         )
     }
+
+    /** The publications a bounded walk of the share finds, starting from its root. */
+    suspend fun publications(sourceId: UUID, client: SmbClient, address: SmbAddress): SourceSlice =
+        page(sourceId, client, address, queue = listOf(address.path)).slice
 
     /**
      * One file as a row, or null for a file this app cannot open.
