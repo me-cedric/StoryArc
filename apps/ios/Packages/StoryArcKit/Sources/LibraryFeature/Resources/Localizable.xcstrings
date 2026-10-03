@@ -2472,6 +2472,66 @@
         }
       }
     },
+    "detail.readAloud.noVoice %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Stimme auf diesem Gerät liest %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No voice on this device reads %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ninguna voz en este dispositivo lee %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune voix sur cet appareil ne lit le %@"
+          }
+        }
+      },
+      "comment": "%@ is the publication's own language, named in itself (\"Deutsch\", not \"German\")."
+    },
+    "detail.readAloud.voice %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorgelesen von %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read aloud by %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leído en voz alta por %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lu à voix haute par %@"
+          }
+        }
+      },
+      "comment": "%@ is the name of the device's own voice for this publication's language."
+    },
     "detail.series.title": {
       "extractionState": "manual",
       "localizations": {
