@@ -121,6 +121,16 @@ extension KavitaChapterList {
     private func known(_ chapter: KavitaChapter) -> Publication? {
         knownKavitaChapter(sourceId: sourceId, series: series, chapter: chapter, in: model.publications)
     }
+
+    /// What the long press shows before the menu, once ``known(_:)`` resolves — the same
+    /// decode every other page offering this menu uses. Absent for a chapter this device
+    /// has browsed to but never indexed, the way the menu itself withholds *Show details*.
+    @ViewBuilder
+    func preview(for chapter: KavitaChapter) -> some View {
+        if let known = known(chapter) {
+            PublicationPreviewCard(publication: known, model: model)
+        }
+    }
 }
 
 /// Which publication a browsed Kavita chapter's full menu acts on, or `nil` when this device

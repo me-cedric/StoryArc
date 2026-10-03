@@ -163,7 +163,7 @@ struct KavitaChapterList: View {
         }
         .buttonStyle(.plain)
         .disabled(fetching != nil)
-        .contextMenu { actions(for: chapter) }
+        .contextMenu { actions(for: chapter) } preview: { preview(for: chapter) }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken(chapter))
     }
