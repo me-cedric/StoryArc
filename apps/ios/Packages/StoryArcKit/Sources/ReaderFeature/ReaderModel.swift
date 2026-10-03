@@ -20,12 +20,23 @@ public import StoryArcCore
 @Observable
 public final class ReaderModel {
     public let publication: Publication
-    public private(set) var pages: [PageEntry] = []
+    // `internal(set)`, not `private(set)`: ``applyOpenedArchive(_:)`` sets this from
+    // `ReaderAdoption.swift`, for the reader opened directly from a copy that just landed.
+    public internal(set) var pages: [PageEntry] = []
     // `internal(set)`, not `private(set)`: `go(to:)` sets it from `ReaderDecoding.swift`
     // now, beside the tracking a page turn resets — this file is at its line cap.
     public internal(set) var currentIndex = 0
     /// Set when the publication could not be opened at all.
-    public private(set) var failure: String?
+    ///
+    /// `internal(set)`: ``ReaderAdoption.swift`` clears this when the local copy it was
+    /// waiting for turns out not to open either.
+    public internal(set) var failure: String?
+
+    /// Set when a streamed open failed only because the bytes are not all here yet, and the
+    /// download for this address has not itself failed. `offline-downloads`' *Reading while
+    /// downloading*: this is not `failure` — it is replaced by the copy that lands, in
+    /// `ReaderAdoption.swift`, which is also what sets and clears it.
+    public internal(set) var isWaitingForDownload = false
 
     /// The word owed for a voice this reader's opening stopped. D18. See ``ReaderVoiceHandover``,
     /// which arms it from ``open(maxPixelSize:)``; the view takes it.
@@ -36,7 +47,9 @@ public final class ReaderModel {
     /// `publication-formats`: a corrupt archive opens "whatever pages it can read and
     /// states how many were skipped, rather than refusing the whole publication". The
     /// archive counts them; this is where the reader can say so.
-    public private(set) var skippedPageCount = 0
+    ///
+    /// `internal(set)`: ``applyOpenedArchive(_:)`` sets this from `ReaderAdoption.swift` too.
+    public internal(set) var skippedPageCount = 0
 
     /// Pages that take the width of two.
     ///
@@ -49,7 +62,9 @@ public final class ReaderModel {
     /// Grows as pages decode, which means a landscape layout can regroup itself a few
     /// pages ahead of the reader. That is what "detected" means; the reader keeps its
     /// *page* across the regrouping rather than its slot, so nothing moves under it.
-    public private(set) var wideIndices: Set<Int> = []
+    ///
+    /// `internal(set)`: ``applyOpenedArchive(_:)`` sets this from `ReaderAdoption.swift` too.
+    public internal(set) var wideIndices: Set<Int> = []
 
     /// How many pages to keep decoded, and in which direction.
     ///
@@ -235,7 +250,10 @@ public final class ReaderModel {
     /// publication with no pages used to show the loading spinner for ever: the chrome
     /// timed out after four seconds and left a black screen with no close button, and the
     /// only way back to the library was to force-quit the app.
-    public func open(maxPixelSize: Int) async {
+    /// - Parameter downloadStore: where a failed stream checks whether to wait rather than
+    ///   fail — see ``ReaderModel/isAwaitingDownload(for:store:)``. Defaulted to the app's own
+    ///   store; a test passes its own isolated one.
+    public func open(maxPixelSize: Int, downloadStore: DownloadStore = DownloadStore()) async {
         self.maxPixelSize = maxPixelSize
         // D18. Asked before anything else opens, so a session already speaking is ended and
         // its position written before this one draws a page. See ``ReaderVoiceHandover``.
@@ -252,39 +270,20 @@ public final class ReaderModel {
             // publication opened by streaming has to be able to take the local copy when it
             // lands — see ``ReaderModel/adoptTheCopyWhenItArrives()``. Wrapping a local file
             // too costs one indirection per page read and keeps one shape above this line.
-            let opened = AdoptingArchive(try await ComicArchiveOpener.open(fileAt: url))
-            archive = opened
-            pages = opened.pages
-            skippedPageCount = opened.skippedPageCount
-            wideIndices = Set(opened.doublePageIndices)
-            // Start at the designated cover when there is one. `publication-formats`
-            // lets ComicInfo name a cover that is not page one, and opening on a
-            // different page than the library showed would be disorienting.
-            if let coverPath = publication.coverPath,
-               let index = pages.firstIndex(where: { $0.path == coverPath }) {
-                currentIndex = index
-            }
-            // A recorded position wins over the cover. `reading-progress` is about
-            // picking up where you left off, and a book you are halfway through
-            // should not reopen at its cover.
-            //
-            // Unless it is finished, which the same requirement singles out: reopening a
-            // finished publication "starts at the beginning while retaining the finished
-            // record". Dropping the override is the whole of it — the record is untouched,
-            // and the beginning is where `currentIndex` already is.
-            if let recorded = try? await progress?.progress(for: publication.identity),
-               !recorded.isFinished,
-               case let .page(index, _) = recorded.position,
-               pages.indices.contains(index) {
-                currentIndex = index
-            }
-            await warm(around: currentIndex)
-            await deriveCoverColours()
+            await applyOpenedArchive(try await ComicArchiveOpener.open(fileAt: url))
         } catch let error as ComicArchiveError {
-            failure = Self.sentence(for: error)
+            if Self.isAwaitingDownload(for: url, store: downloadStore) {
+                isWaitingForDownload = true
+            } else {
+                failure = Self.sentence(for: error)
+            }
         } catch {
-            readerOpenLog.error("open failed: \(error, privacy: .public)")
-            failure = String(localized: "reader.cannotOpen", bundle: .module, locale: .storyArc)
+            if Self.isAwaitingDownload(for: url, store: downloadStore) {
+                isWaitingForDownload = true
+            } else {
+                readerOpenLog.error("open failed: \(error, privacy: .public)")
+                failure = String(localized: "reader.cannotOpen", bundle: .module, locale: .storyArc)
+            }
         }
         noteIfEmpty()
     }
@@ -296,7 +295,7 @@ public final class ReaderModel {
     /// so there is no error to report, and the honest answer is that there is nothing here
     /// rather than a spinner that never stops.
     private func noteIfEmpty() {
-        guard failure == nil, pages.isEmpty else { return }
+        guard failure == nil, !isWaitingForDownload, pages.isEmpty else { return }
         failure = String(localized: "reader.empty", bundle: .module, locale: .storyArc)
     }
 

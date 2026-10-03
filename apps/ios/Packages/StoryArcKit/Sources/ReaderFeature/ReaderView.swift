@@ -39,7 +39,7 @@ public struct ReaderView: View {
     /// publication that failed to open has no pager — so a reader who let the chrome time
     /// out had a black screen, an error message, and no way back to the library except
     /// force-quitting the app.
-    var isChromeVisible: Bool { wantsChrome || model.failure != nil }
+    var isChromeVisible: Bool { wantsChrome || model.isBlocked }
     /// The pager's own position, which it owns outright.
     ///
     /// A two-way `Binding` into the model was tried twice and fights the gesture:
@@ -273,19 +273,7 @@ public struct ReaderView: View {
                 // it is until a reader says otherwise.
                 model.matte.ignoresSafeArea()
 
-                if let failure = model.failure {
-                    ReaderFailure(message: failure)
-                } else if model.pages.isEmpty || layout.slots.isEmpty {
-                    // The pager is not built until there are pages to put in it.
-                    // A `TabView` with no tags resolves its selection against
-                    // nothing and then lands on whatever appears first, which
-                    // opened every publication on its last page. The layout is in
-                    // the same guard for the same reason: it is rebuilt by an
-                    // effect, so it is empty for the frame in which pages arrive.
-                    DelayedProgressView()
-                } else {
-                    pages(in: geometry.size)
-                }
+                statusOrPages(in: geometry.size)
 
                 // Grouped, so overlapping glass shapes morph as one rather than
                 // stacking their edges — `native-experience`'s requirement, and
@@ -333,7 +321,7 @@ public struct ReaderView: View {
                 // the chrome behind them, and a reader dragging a slider has not stopped
                 // interacting just because they have not touched the page.
                 guard isChromeVisible, !isBrowsingThumbnails, !isAdjusting, !isShowingMenu,
-                      model.failure == nil
+                      !model.isBlocked
                 else { return }
                 try? await Task.sleep(for: .seconds(4))
                 guard !Task.isCancelled else { return }

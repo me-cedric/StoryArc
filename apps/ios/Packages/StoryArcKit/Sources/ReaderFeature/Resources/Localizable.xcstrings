@@ -3497,6 +3497,36 @@
           }
         }
       }
+    },
+    "reader.waitingForDownload": {
+      "comment": "Shown instead of reader.cannotOpen when a streamed publication failed to open only because the download has not landed yet.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warten auf den Abschluss des Downloads."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for the download to finish."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esperando a que termine la descarga."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En attente de la fin du téléchargement."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

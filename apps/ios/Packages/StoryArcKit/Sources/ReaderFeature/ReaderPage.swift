@@ -102,6 +102,46 @@ struct ReaderFailure: View {
     }
 }
 
+/// Shown in place of ``ReaderFailure`` while a streamed open has not succeeded only because
+/// the download has not landed yet. `offline-downloads`' *Reading while downloading*: this is
+/// a wait, not an error, so the icon and the wording say so.
+struct ReaderWaitingForDownload: View {
+    var body: some View {
+        VStack(spacing: StoryArcSpace.sm) {
+            ProgressView().tint(.white)
+            Text("reader.waitingForDownload", bundle: .module)
+                .textRole(.footnote)
+                .multilineTextAlignment(.center)
+        }
+        .foregroundStyle(.white.opacity(0.8))
+        .padding(StoryArcSpace.gutter)
+    }
+}
+
+extension ReaderView {
+    /// What the reader shows for its one `ZStack` slot: a failure, a wait, the loading
+    /// placeholder, or the pager — in that order. Pulled out of `ReaderView.swift`'s `body`,
+    /// which is at the 400-line cap this project enforces, and a real seam on its own: nothing
+    /// above this decision needs to know which of the four is on screen.
+    @ViewBuilder
+    func statusOrPages(in size: CGSize) -> some View {
+        if let failure = model.failure {
+            ReaderFailure(message: failure)
+        } else if model.isWaitingForDownload {
+            ReaderWaitingForDownload()
+        } else if model.pages.isEmpty || layout.slots.isEmpty {
+            // The pager is not built until there are pages to put in it. A `TabView` with no
+            // tags resolves its selection against nothing and then lands on whatever appears
+            // first, which opened every publication on its last page. The layout is in the
+            // same guard for the same reason: it is rebuilt by an effect, so it is empty for
+            // the frame in which pages arrive.
+            DelayedProgressView()
+        } else {
+            pages(in: size)
+        }
+    }
+}
+
 /// A spinner that waits before it appears.
 ///
 /// `comic-reader`: "a progress indicator appears only after 400 ms". A page that
