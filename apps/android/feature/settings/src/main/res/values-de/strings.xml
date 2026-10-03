@@ -10,6 +10,12 @@
     <string name="settings_language">Sprache</string>
     <string name="settings_privacy">Datenschutz</string>
     <string name="settings_about">Über</string>
+    <string name="sources_add">Bibliothek hinzufügen</string>
+    <string name="sources_add_folder">Dateien und Ordner</string>
+    <string name="sources_add_import">Datei öffnen</string>
+    <string name="sources_add_catalogue">Online-Bibliothek</string>
+    <string name="sources_add_kavita">Kavita-Bibliothek</string>
+    <string name="sources_add_share">Ein Computer in Ihrem Netzwerk</string>
     <string name="settings_language_system">System</string>
     <string name="settings_reading_summary_values">%1$s für Bücher, %2$s für Comics</string>
     <string name="settings_reading_summary_volume_values">Lautstärketasten blättern · %1$s für Bücher, %2$s für Comics</string>
@@ -92,7 +98,7 @@
     <string name="privacy_diagnostic_show">Anzeigen</string>
     <string name="privacy_diagnostic_hide">Ausblenden</string>
     <string name="privacy_diagnostic_share">Teilen</string>
-    <string name="sources_none">Noch keine Bibliotheken. Fügen Sie über Ihre Bibliothek einen Ordner hinzu, um zu beginnen.</string>
+    <string name="sources_none">Noch keine Bibliotheken.</string>
     <string name="sources_remove">Entfernen</string>
     <string name="sources_remove_action">%1$s entfernen</string>
     <string name="sources_move_earlier">„%1$s“ nach oben verschieben</string>

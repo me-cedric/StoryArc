@@ -56,8 +56,17 @@ class SourceKindsAreNamedTest {
         compose.onNodeWithContentDescription(label).performClick()
     }
 
-    /** The toolbar's way in: an icon button carrying the same five choices. */
-    private fun openToolbarMenu() = open(
+    /**
+     * `AddSourceMenu` on its own, an icon button carrying the same five choices.
+     *
+     * No longer the toolbar's own way in -- task 17.9 moved that button to Settings' "Your
+     * libraries" screen, which carries its own strings and names its own five choices rather
+     * than calling this composable (`:feature:settings` never depends on `:feature:library`).
+     * `AddSourceMenu` stays, and stays tested, because `AddSourceItems` -- the five rows
+     * themselves -- still backs the empty state and Home's first run, and this is the
+     * shortest path to asserting that shared row content.
+     */
+    private fun openAddSourceMenu() = open(
         content = { AddSourceMenu(onAddFolder = {}, onAddCatalogue = {}) },
         label = string(R.string.library_add_source),
     )
@@ -106,16 +115,16 @@ class SourceKindsAreNamedTest {
     }
 
     @Test
-    fun `the toolbar menu names each of the four kinds`() {
-        openToolbarMenu()
+    fun `AddSourceMenu names each of the four kinds`() {
+        openAddSourceMenu()
         for (kind in SourceKind.entries) {
             compose.onNodeWithText(string(kind.titleRes)).assertIsDisplayed()
         }
     }
 
     @Test
-    fun `the toolbar menu explains each of the four kinds`() {
-        openToolbarMenu()
+    fun `AddSourceMenu explains each of the four kinds`() {
+        openAddSourceMenu()
         for (kind in SourceKind.entries) {
             compose.onNodeWithText(string(kind.explanationRes)).assertIsDisplayed()
         }
@@ -150,7 +159,7 @@ class SourceKindsAreNamedTest {
         // `local-library` gives an imported copy a requirement of its own, and "On this
         // device" is not a place a reader configures. It keeps its own words and takes no
         // source-kind line.
-        openToolbarMenu()
+        openAddSourceMenu()
         compose.onNodeWithText(string(R.string.library_import)).assertIsDisplayed()
     }
 

@@ -204,8 +204,10 @@ struct LibraryIndexTests {
             publication("Akira", tags: ["Cyberpunk"]),
             publication("Bone"),
         ]
-        #expect(titles(LibraryIndex.arrange(library, query: LibraryQuery(search: "noir"), locale: english)) == ["Watchmen"])
-        #expect(titles(LibraryIndex.arrange(library, query: LibraryQuery(search: "cyberpunk"), locale: english)) == ["Akira"])
+        let noir = LibraryIndex.arrange(library, query: LibraryQuery(search: "noir"), locale: english)
+        #expect(titles(noir) == ["Watchmen"])
+        let cyberpunk = LibraryIndex.arrange(library, query: LibraryQuery(search: "cyberpunk"), locale: english)
+        #expect(titles(cyberpunk) == ["Akira"])
     }
 
     @Test("A tag or a genre match groups with the publisher match, not with the title")

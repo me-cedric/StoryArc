@@ -1,7 +1,7 @@
-internal import SwiftUI
+public import SwiftUI
 
 internal import StoryArcCore
-internal import UniformTypeIdentifiers
+public import UniformTypeIdentifiers
 
 /// The way a reader asks for a publication to be copied into the app.
 ///
@@ -35,13 +35,15 @@ struct ImportPublicationButton: View {
 /// device while *Open a file* directly below it worked; see ``LocalPickerTests`` for how that
 /// was isolated. Two booleans can express "both at once", which is not a state the screen has
 /// or wants; one optional cannot.
-enum LocalPick: String, Identifiable, CaseIterable {
+/// Public, task 17.9: the app layer needs it to drive the same picker from Settings' own
+/// add button that the library toolbar used to be the only way to reach.
+public enum LocalPick: String, Identifiable, CaseIterable, Sendable {
     /// A folder the reader keeps, watched where it lies.
     case folder
     /// A file handed over to be copied into storage the app owns.
     case file
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
     /// What the system browser is allowed to offer.
     ///
@@ -49,7 +51,7 @@ enum LocalPick: String, Identifiable, CaseIterable {
     /// answer "add a folder" with a comic, and the two land in different places —
     /// ``LibraryModel/addFolder(_:)`` remembers where a folder *is*, while
     /// ``LibraryModel/importFile(_:)`` copies bytes the app then owns.
-    var contentTypes: [UTType] {
+    public var contentTypes: [UTType] {
         switch self {
         case .folder: [.folder]
         case .file: ImportableTypes.all
@@ -57,7 +59,7 @@ enum LocalPick: String, Identifiable, CaseIterable {
     }
 }
 
-extension View {
+public extension View {
     /// Presents the one document picker this screen has, and says what happened when an
     /// import did not work.
     ///
@@ -65,6 +67,9 @@ extension View {
     /// Ordering is not the fix: an order is a thing the next edit re-shuffles without knowing
     /// it was load-bearing, and no gate in this repository can see a presentation that was
     /// dropped. A single presentation cannot be shadowed by a sibling that does not exist.
+    ///
+    /// Public, task 17.9: Settings' own add button drives the same picker, from the app
+    /// layer rather than from inside this module.
     func pickingLocalLibrary(
         into model: LibraryModel,
         pick: Binding<LocalPick?>

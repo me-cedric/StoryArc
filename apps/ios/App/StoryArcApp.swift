@@ -78,6 +78,12 @@ struct StoryArcApp: App {
     /// Held here so the app can refresh it when the reader closes.
     @State var library: LibraryModel
 
+    /// Which local picker or sheet Settings' own add button asked for (task 17.9) — this
+    /// screen's own copy of what `LibraryView` keeps for its toolbar, since the two are
+    /// never both asking at once and a shared one would reach into the other's state.
+    @State var settingsPicking: LocalPick?
+    @State var settingsAddingSource: AddedSource?
+
     /// A file the system handed over that StoryArc cannot read, if any.
     ///
     /// Held rather than discarded: `local-library` requires the app to name the format it
@@ -229,6 +235,11 @@ struct StoryArcApp: App {
                     readTotal: { library.readProgress(of: $0)?.total },
                     onRemoveSource: removeSource,
                     onRenameSource: { library.rename($0, to: $1) },
+                    onAddFolder: { settingsPicking = .folder },
+                    onImportSource: { settingsPicking = .file },
+                    onAddCatalogue: { settingsAddingSource = .catalogue },
+                    onAddKavita: { settingsAddingSource = .kavita },
+                    onAddShare: { settingsAddingSource = .share },
                     onReorderSource: { library.move($0, to: $1) },
                     onSourceAction: { await perform($1, on: $0) },
                     // Read from the store rather than from a browser's acquisition: the
@@ -258,6 +269,10 @@ struct StoryArcApp: App {
                 )
                     .storyArcTheme(appearance: settings.appearance)
                     .speaking(settings.language)
+                    // Task 17.9: the same two presentations `LibraryView` mounts for its own
+                    // add button, mounted a second, independent time over Settings.
+                    .pickingLocalLibrary(into: library, pick: $settingsPicking)
+                    .addingSources(to: library, pins: .app, sheet: $settingsAddingSource)
                     // Over Settings, because that is where the action was pressed and the
                     // reader has not asked to leave the screen they were diagnosing.
                     .sheet(item: $reconnecting) { source in

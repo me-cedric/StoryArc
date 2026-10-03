@@ -23,7 +23,7 @@ import Testing
 /// The picture is the other half and is not optional — `docs/designs/screenshots/`
 /// `quieter-toolbar-2026-09-02/` holds the before and after at two text sizes and two
 /// appearances.
-@Suite("The library toolbar keeps two controls and two menus")
+@Suite("The library toolbar keeps one control and two menus")
 struct LibraryToolbarTests {
 
     /// A source file in the package under test, reached from this file rather than discovered.
@@ -94,23 +94,23 @@ struct LibraryToolbarTests {
         Item(what: "select", key: "library.select", file: "LibraryToolbar.swift"),
         Item(what: "the view menu", key: "library.view", file: "LibraryBrowsingControls.swift"),
         Item(what: "the filter menu", key: "library.filter", file: "LibraryFilterMenu.swift"),
-        Item(what: "add books", key: "library.addSource", file: "AddSourceMenu.swift"),
     ]
 
     /// Counted against the packed source, so the spelling cannot drift out from under it.
     ///
     /// ``theCountCannotBeEvaded`` holds the other two routes past this number, which are the
     /// two other ways to declare a control in the same bar.
-    @Test("There are four items in the primary action, not six")
-    func fourItems() {
+    @Test("There are three items in the primary action, not six")
+    func threeItems() {
         let found = Self.packedToolbar.ranges(of: "ToolbarItem(placement:.primaryAction)").count
         #expect(
-            found == 4,
+            found == 3,
             """
             The library toolbar declares \(found) items in `.primaryAction`, and the shape \
-            `library-browsing` asks for is four: select, the view menu, the filter menu and \
-            add books. There were six before this change — the review that reported the \
-            defect counted five and undercounted — and every one added back is another \
+            `library-browsing` asks for is three: select, the view menu and the filter menu. \
+            There were six before this change — the review that reported the defect counted \
+            five and undercounted — and add books left for a fourth reason, task 17.9's own: \
+            it moved to Settings' connected-libraries screen. Every one added back is another \
             unlabelled glyph in a row of them.
             """
         )
@@ -196,9 +196,9 @@ struct LibraryToolbarTests {
     /// rather than *is important*.
     @Test("Select is a control of its own, because it changes mode rather than offering a choice")
     func selectStandsAlone() {
-        // The toolbar builds no menu of its own: the two it mounts are types of their own,
-        // and the add menu is a third. So no `Menu {` here at all is the honest way to say
-        // that nothing in this file wraps `selection.begin()` in one.
+        // The toolbar builds no menu of its own: the two it mounts are types of their own.
+        // So no `Menu {` here at all is the honest way to say that nothing in this file
+        // wraps `selection.begin()` in one.
         #expect(
             !Self.toolbar.contains("Menu {"),
             """
@@ -246,7 +246,7 @@ struct LibraryToolbarTests {
     /// it draws". A toolbar item is drawn as a glyph, and a `Label { Text } icon: { Image }`
     /// is what gives it a name anyway — a bare `Image` in the label position is a control
     /// VoiceOver can only call "button".
-    @Test("Each of the four names itself in words", arguments: Self.items)
+    @Test("Each of the three names itself in words", arguments: Self.items)
     func eachItemIsNamed(_ item: Item) {
         let declaration = Self.code(of: "Sources/LibraryFeature/\(item.file)")
         #expect(

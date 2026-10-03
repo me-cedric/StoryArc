@@ -422,11 +422,6 @@ fun LibraryScreen(
             } else {
                 LibraryTopBar(
                     scrollBehavior = topBarScroll,
-                    onAddFolder = { pickFolder.launch(null) },
-                    onAddCatalogue = onAddCatalogue,
-                    onAddKavita = onAddKavita,
-                    onAddShare = onAddShare,
-                    onImport = { importFile.launch(arrayOf("*/*")) },
                     // The way in. The way out is the close affordance the contextual bar
                     // puts at its start, so this menu gains no half-useful entry.
                     onSelect = if (viewModel != null && publications.isNotEmpty()) {

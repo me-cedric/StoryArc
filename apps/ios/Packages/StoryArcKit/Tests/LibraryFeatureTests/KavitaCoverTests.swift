@@ -96,7 +96,8 @@ struct KavitaCoverTests {
                     body: Data(#"{"username":"reader","token":"test-token"}"#.utf8)
                 )
             }
-            let query = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            let query = request.url
+                .flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }?.queryItems ?? []
             if path.hasSuffix("Image/chapter-cover"),
                query.contains(where: { $0.name == "chapterId" && $0.value == "3103" }) {
                 requestedChapterCover.value = true

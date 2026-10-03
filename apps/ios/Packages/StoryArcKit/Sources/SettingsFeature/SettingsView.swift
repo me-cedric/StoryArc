@@ -44,6 +44,12 @@ public struct SettingsView: View {
     private let readTotal: (Source.ID) -> Int?
     private let onRemoveSource: (Source) -> Void
     private let onRenameSource: (Source, String) -> Void
+    /// The five ways to add a source, moved here from the library toolbar (task 17.9).
+    private let onAddFolder: () -> Void
+    private let onImportSource: () -> Void
+    private let onAddCatalogue: () -> Void
+    private let onAddKavita: () -> Void
+    private let onAddShare: () -> Void
     /// Moves a source to the position a drag reports. `sources`: the order persists, and
     /// decides which of two sources holding one title the library shows.
     private let onReorderSource: (Source.ID, Int) -> Void
@@ -104,6 +110,11 @@ public struct SettingsView: View {
         readTotal: @escaping (Source.ID) -> Int? = { _ in nil },
         onRemoveSource: @escaping (Source) -> Void = { _ in },
         onRenameSource: @escaping (Source, String) -> Void = { _, _ in },
+        onAddFolder: @escaping () -> Void = {},
+        onImportSource: @escaping () -> Void = {},
+        onAddCatalogue: @escaping () -> Void = {},
+        onAddKavita: @escaping () -> Void = {},
+        onAddShare: @escaping () -> Void = {},
         onReorderSource: @escaping (Source.ID, Int) -> Void = { _, _ in },
         onSourceAction: @escaping (Source, SourceAction) async -> Void = { _, _ in },
         downloads: DownloadLibrary = DownloadLibrary(),
@@ -125,6 +136,11 @@ public struct SettingsView: View {
         self.readTotal = readTotal
         self.onRemoveSource = onRemoveSource
         self.onRenameSource = onRenameSource
+        self.onAddFolder = onAddFolder
+        self.onImportSource = onImportSource
+        self.onAddCatalogue = onAddCatalogue
+        self.onAddKavita = onAddKavita
+        self.onAddShare = onAddShare
         self.onReorderSource = onReorderSource
         self.onSourceAction = onSourceAction
         self.downloads = downloads
@@ -254,6 +270,11 @@ public struct SettingsView: View {
                 readTotal: readTotal,
                 onRemove: onRemoveSource,
                 onRename: onRenameSource,
+                onAddFolder: onAddFolder,
+                onImportSource: onImportSource,
+                onAddCatalogue: onAddCatalogue,
+                onAddKavita: onAddKavita,
+                onAddShare: onAddShare,
                 downloads: downloads,
                 perform: onSourceAction,
                 onReorder: onReorderSource
