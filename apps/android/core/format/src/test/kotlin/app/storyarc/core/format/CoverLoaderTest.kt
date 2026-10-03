@@ -75,6 +75,56 @@ class CoverLoaderTest {
         assertTrue("expected NoCover, got $failure", failure is CoverException.NoCover)
     }
 
+    /**
+     * Task 16.9: a folder's own loose cover image reads back byte for byte through the
+     * same `coverData` an archive's own cover page does.
+     */
+    @Test
+    fun `an audiobook folder's own cover reads back byte for byte`() = runTest {
+        val publication = PublicationIndexer.index(FixtureCorpus.file("audiobooks/mixed-folder"))
+        val data = CoverLoader.coverData(publication, FixtureCorpus.file("audiobooks/mixed-folder"))
+        assertArrayEquals(
+            FixtureCorpus.file("audiobooks/mixed-folder/cover.png").readBytes(),
+            data,
+        )
+    }
+
+    @Test
+    fun `an audiobook with no cover of any kind has none to load`() = runTest {
+        val file = FixtureCorpus.file("audiobooks/chaptered.m4b")
+        val publication = PublicationIndexer.index(file)
+        assertNull(publication.coverPath)
+        val failure = runCatching { CoverLoader.coverData(publication, file) }.exceptionOrNull()
+        assertTrue("expected NoCover, got $failure", failure is CoverException.NoCover)
+    }
+
+    /**
+     * The audio branch reads whatever `coverPath` names directly — it never reopens the
+     * container — so a path recorded by hand is read back exactly as one `PublicationIndexer`
+     * wrote, without needing a real `MediaMetadataRetriever` bind to prove it.
+     */
+    @Test
+    fun `the audio branch reads coverPath directly, with no container to reopen`() = runTest {
+        val cacheDir = kotlin.io.path.createTempDirectory("cover-loader-audio-test").toFile()
+        try {
+            val cover = File(cacheDir, "cover.bin").apply { writeBytes(byteArrayOf(9, 8, 7)) }
+            val publication = Publication(
+                identity = PublicationIdentity(normalizedPath = "/library/audiobooks/book.m4b"),
+                format = PublicationFormat.M4B,
+                displayTitle = "A Book",
+                origin = MetadataOrigin.INFERRED,
+                coverPath = cover.path,
+            )
+            val data = CoverLoader.coverData(
+                publication,
+                FixtureCorpus.file("audiobooks/chaptered.m4b"),
+            )
+            assertArrayEquals(byteArrayOf(9, 8, 7), data)
+        } finally {
+            cacheDir.deleteRecursively()
+        }
+    }
+
     @Test
     fun `indexing does not decode a cover`() = runTest {
         // `publication-formats` requires the first screen of a 10,000-item scan

@@ -782,7 +782,7 @@ class LibraryViewModel(
                         val unreadable: (String) -> Unit = { partial += scope }
                         if (target == null) {
                             return@map null to
-                                LibraryScanner.scan(managedFolder, onUnreadableFolder = unreadable)
+                                LibraryScanner.scan(managedFolder, onUnreadableFolder = unreadable, coverCacheDir = audiobookCoverCacheDir)
                         }
                         val tree = Uri.parse(target)
                         // Matched on the path, which is what a directory walk knows. A
@@ -893,7 +893,7 @@ class LibraryViewModel(
 
             var added = false
             withContext(Dispatchers.IO) {
-                LibraryScanner.scan(store.directory).collect { event ->
+                LibraryScanner.scan(store.directory, coverCacheDir = audiobookCoverCacheDir).collect { event ->
                     val publication = (event as? ScanEvent.Found)?.publication ?: return@collect
                     val path = publication.identity.normalizedPath ?: return@collect
                     val record = store.download(File(path), downloads) ?: return@collect

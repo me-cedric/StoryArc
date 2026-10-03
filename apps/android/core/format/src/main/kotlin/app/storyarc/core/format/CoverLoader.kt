@@ -93,6 +93,18 @@ object CoverLoader {
                 runCatching { reader.data(path) }.getOrNull() ?: throw CoverException.Unreadable()
             }
 
+            PublicationFormat.M4B, PublicationFormat.MP3, PublicationFormat.FLAC,
+            PublicationFormat.OGG, PublicationFormat.AUDIO_FOLDER -> {
+                // Task 16.9: `coverPath` is where `PublicationIndexer` wrote the embedded
+                // artwork it read out at index time, or where a folder's own loose cover
+                // image already lives — never a path inside the container itself, since
+                // nothing here reopens it.
+                val path = publication.coverPath ?: throw CoverException.NoCover()
+                val file = File(path)
+                if (!file.isFile) throw CoverException.Unreadable()
+                runCatching { file.readBytes() }.getOrNull() ?: throw CoverException.Unreadable()
+            }
+
             else -> {
                 val path = publication.coverPath
                 // A share row is catalogued from its name alone (`SmbContributor`): no page

@@ -106,6 +106,7 @@ object PublicationIndexer {
         identity: PublicationIdentity,
         decoderPath: File? = null,
         seriesHint: String? = null,
+        coverCacheDir: File? = null,
     ): Publication {
         val fallback = FilenameMetadata.of(name, seriesHint)
         // A content `Uri` has no path, and libarchive wants one. `/proc/self/fd/N`
@@ -151,7 +152,7 @@ object PublicationIndexer {
             FormatSniffer.Container.MP3,
             FormatSniffer.Container.FLAC,
             FormatSniffer.Container.OGG,
-            -> audiobook(container, identity, name, fallback)
+            -> audiobook(container, identity, name, fallback, decoder, coverCacheDir)
 
             // Refused by *name*, and separately from an unsupported container, because the
             // format is supported and this particular file is locked.
@@ -180,6 +181,8 @@ object PublicationIndexer {
         identity: PublicationIdentity,
         name: String,
         fallback: FilenameMetadata,
+        decoderPath: File?,
+        coverCacheDir: File?,
     ): Publication = Publication(
         identity = identity,
         format = audioFormat(container),
@@ -190,7 +193,22 @@ object PublicationIndexer {
         year = fallback.year,
         origin = MetadataOrigin.INFERRED,
         pageCount = 1,
+        // Task 16.9: the container's own embedded artwork, read once here. `decoderPath`
+        // is the one thing a `RandomAccessSource` cannot give `MediaMetadataRetriever` —
+        // the real path, or the `/proc/self/fd/N` a content `Uri` already offers for
+        // libarchive — and `coverCacheDir` is where this writes the bytes it finds,
+        // because unlike a comic's page an audio file's cover has no path of its own
+        // until something reads it out. Neither being present degrades to no cover, the
+        // same honest fallback a source with no path already accepts for its own pages.
+        coverPath = decoderPath?.let { path -> coverCacheDir?.let { audiobookCoverPath(path, it) } },
     )
+
+    /**
+     * Reads [path]'s own embedded artwork and writes it under [cacheDir], returning that
+     * copy's path — or `null` where there is no artwork to find. Task 16.9.
+     */
+    private fun audiobookCoverPath(path: File, cacheDir: File): String? =
+        AudiobookCover.embedded(path.path)?.let { AudiobookCoverStore(cacheDir).write(it, path) }
 
     /** The domain format an audio container is. Total, so a new container is a compile error. */
     private fun audioFormat(container: FormatSniffer.Container): PublicationFormat =
@@ -231,6 +249,12 @@ object PublicationIndexer {
         origin = MetadataOrigin.INFERRED,
         pageCount = folder.parts.size,
         skippedPageCount = folder.skippedPartCount,
+        // Task 16.9: a loose cover image beside the folder's own tracks, by name —
+        // there is no single file to read embedded artwork out of, and asking the
+        // first part would read whichever track happened to sort first rather than
+        // the book. `folder.root` is null only for a folder read from a listing
+        // rather than a real directory, which has no loose file to find either.
+        coverPath = folder.root?.let { AudiobookCover.inFolder(it) }?.path,
     )
 
     private suspend fun comicFromSource(
@@ -321,6 +345,7 @@ object PublicationIndexer {
         file: File,
         seriesHint: String? = null,
         catalogueSeries: String? = null,
+        coverCacheDir: File? = null,
     ): Publication {
         val filename = file.name
         val fallback = FilenameMetadata.of(filename, seriesHint, catalogueSeries)
@@ -390,7 +415,7 @@ object PublicationIndexer {
             FormatSniffer.Container.MP3,
             FormatSniffer.Container.FLAC,
             FormatSniffer.Container.OGG,
-            -> audiobook(container, identity, filename, fallback)
+            -> audiobook(container, identity, filename, fallback, file, coverCacheDir)
 
             FormatSniffer.Container.PROTECTED_AUDIOBOOK ->
                 throw IndexException.ContentProtected(container.displayName)

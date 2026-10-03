@@ -181,10 +181,19 @@ object LibraryScanner {
     fun scan(
         folder: File,
         skipping: Set<String> = emptySet(),
+        /**
+         * Where an audiobook's embedded cover is written once it is read out. Task 16.9.
+         * `null` skips that extraction, which is what every caller that has no cache
+         * directory handy already gets — the same honest degradation a source with no
+         * decoder path accepts for its own pages.
+         */
+        coverCacheDir: File? = null,
         onUnreadableFolder: (String) -> Unit = {},
     ): Flow<ScanEvent> = flow {
         // The picked folder's own name is not a series: it is the library.
-        val tally = walk(folder, seriesHint = null, skipping = skipping, onUnreadableFolder) {
+        val tally = walk(
+            folder, seriesHint = null, skipping = skipping, onUnreadableFolder, coverCacheDir,
+        ) {
             emit(it)
         }
         emit(ScanEvent.Finished(tally.found, tally.skipped))
@@ -414,6 +423,7 @@ object LibraryScanner {
         seriesHint: String?,
         skipping: Set<String>,
         onUnreadableFolder: (String) -> Unit,
+        coverCacheDir: File?,
         emit: suspend (ScanEvent) -> Unit,
     ): Tally {
         currentCoroutineContext().ensureActive()
@@ -450,7 +460,7 @@ object LibraryScanner {
         if (publicationFiles.isEmpty() && mediaFiles.isNotEmpty()) {
             // Its subdirectories are chapters of it, not separate publications.
             if (directory.absolutePath in skipping) return Tally()
-            return index(directory, seriesHint, emit)
+            return index(directory, seriesHint, coverCacheDir, emit)
         }
 
         var tally = Tally()
@@ -463,11 +473,11 @@ object LibraryScanner {
             // Already done by the scan this one is picking up from. Not counted either: the
             // caller put those publications back itself and has already counted them.
             if (file.absolutePath in skipping) continue
-            tally += index(file, seriesHint, emit)
+            tally += index(file, seriesHint, coverCacheDir, emit)
         }
         for (child in directories) {
             currentCoroutineContext().ensureActive()
-            tally += walk(child, child.name, skipping, onUnreadableFolder, emit)
+            tally += walk(child, child.name, skipping, onUnreadableFolder, coverCacheDir, emit)
         }
         return tally
     }
@@ -649,11 +659,12 @@ object LibraryScanner {
     private suspend fun index(
         file: File,
         seriesHint: String?,
+        coverCacheDir: File?,
         emit: suspend (ScanEvent) -> Unit,
     ): Tally {
         val event = try {
             ScanEvent.Found(
-                PublicationIndexer.index(file, seriesHint)
+                PublicationIndexer.index(file, seriesHint, coverCacheDir = coverCacheDir)
                     .withFileFacts(if (file.isFile) file.length() else -1L, createdAt(file)),
             )
         } catch (cause: IndexException) {
