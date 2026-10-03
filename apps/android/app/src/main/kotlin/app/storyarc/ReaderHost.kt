@@ -16,6 +16,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import app.storyarc.core.kavita.KavitaExchange
+import app.storyarc.core.model.Download
 import app.storyarc.core.model.ReadingAddress
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.persistence.AnnotationStore
@@ -60,6 +61,14 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
             // highlighted the same way a novel is, and `ebook-reader` lists both in one
             // place.
             annotationStore = AnnotationStore.open(activity),
+            // dl-core 1.7: a stream that fails to open waits rather than failing while this
+            // exact address's own download is still on its way.
+            isDownloadPending = {
+                val state = dependencies.downloads.library().downloads
+                    .firstOrNull { it.remote == screen.path }?.state
+                ReadingAddress.isStreamed(screen.path) &&
+                    state != null && !state.isFinished && state !is Download.State.Failed
+            },
         )
     }
 

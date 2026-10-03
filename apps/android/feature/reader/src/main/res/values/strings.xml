@@ -61,6 +61,9 @@
          `ReaderFailureSaysNothingInternalTest` fails if the message comes back to the
          screen, and if a catch stops recording it. -->
     <string name="reader_cannot_open">StoryArc could not open this book.</string>
+    <!-- dl-core 1.7: shown instead of reader_cannot_open when a streamed book failed to
+         open only because the download has not landed yet. -->
+    <string name="reader_waiting_for_download">Waiting for the download to finish.</string>
     <!-- These four catch the typed archive errors `reader_cannot_open` deliberately does
          not name. They are named because the format or the reason is already known,
          read from the headers rather than guessed at, and `open_in_*` in the app module
