@@ -48,7 +48,7 @@ extension LibraryModel {
     /// app: the folder can be unmounted, the card pulled, the bookmark staled — which is
     /// what ``LibraryModel/unavailableFolders`` exists for. Only a copy in the app's own
     /// storage carries the promise, so only that copy earns the mark.
-    func isOnDevice(_ publication: Publication) -> Bool {
+    public func isOnDevice(_ publication: Publication) -> Bool {
         guard let store = downloadStore, let url = locations[publication.id] else { return false }
         // Trailing separator on the folder, so a sibling directory whose name merely
         // begins with the store's — `…/Downloads-old` beside `…/Downloads` — is not

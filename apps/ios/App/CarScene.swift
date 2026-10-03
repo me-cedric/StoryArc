@@ -12,15 +12,15 @@ import StoryArcCore
 
 /// What a car asks the app for.
 ///
-/// One provider and one action, in the shape ``PlayerCentre`` already uses for the facts
+/// One provider and two actions, in the shape ``PlayerCentre`` already uses for the facts
 /// only the app layer holds — `onArtwork`, `onRecord`, `onRecallSpeed`. A car scene is not
 /// SwiftUI's scene, so it can read no environment; a seam the app installs once is how the
-/// other three cross the same boundary.
+/// other three cross the same boundary. `StoryArcApp.body` installs all three, task 16.4.
 ///
-/// **Nothing installs these yet, and that is deliberate.** The rows are only observable in
-/// a car, the scene cannot activate without the entitlement, and §12.6 of the task list
-/// carries the block. `design.md`'s "The day an Apple team exists" names this as one of the
-/// four steps the owner takes.
+/// **Installed, and still unreachable from a car.** The rows are only observable in a car,
+/// and the scene itself cannot activate without `com.apple.developer.carplay-audio` — which
+/// needs an Apple development team this project does not have, ADR-0011. That is the one
+/// step left of `design.md`'s "The day an Apple team exists", and it is the owner's.
 @MainActor
 enum CarScene {
 
@@ -29,6 +29,12 @@ enum CarScene {
 
     /// Start, or return to, one of those books.
     static var onListen: (@MainActor (SpokenBook) -> Void)?
+
+    /// The last audiobook a listener was in the middle of, read from `ProgressStore` —
+    /// Task 16.4's "read the last listened audiobook … for the first row". `PlayerCentre`
+    /// only knows one once a session has started this launch; a car that connects before
+    /// anything has played has no other way to offer the book a listener left off at.
+    static var lastListened: (@MainActor () async -> SpokenBook?)?
 }
 
 /// The car's two screens, and nothing else.
@@ -51,7 +57,20 @@ final class CarSceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
         didConnect interfaceController: CPInterfaceController
     ) {
         interface = interfaceController
-        interfaceController.setRootTemplate(list(), animated: false, completion: nil)
+        let root = list(continuing: PlayerCentre.shared.book)
+        interfaceController.setRootTemplate(root, animated: false, completion: nil)
+
+        // A car that connects before this launch has played anything has no live session
+        // to offer — `PlayerCentre.shared.book` is nil until `listen(to:at:)` runs once —
+        // so the book a listener left off at comes from `ProgressStore` instead, read
+        // asynchronously and set as the root once it answers. Skipped once a session has
+        // started: that book is the one a listener reaches for, and it would be wrong to
+        // replace it with an older one `ProgressStore` has not caught up to yet.
+        guard PlayerCentre.shared.book == nil else { return }
+        Task { [weak self] in
+            guard let self, let resumed = await CarScene.lastListened?() else { return }
+            self.interface?.setRootTemplate(self.list(continuing: resumed), animated: false, completion: nil)
+        }
     }
 
     func templateApplicationScene(
@@ -61,14 +80,8 @@ final class CarSceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
         interface = nil
     }
 
-    private func list() -> CPListTemplate {
-        let rows = CarShelf.rows(
-            // The live session, because that is what the app knows without a second store.
-            // A book in progress that outlives the app being killed is the same shared
-            // snapshot ADR-0011 defers, and it is blocked on the same missing team.
-            continuing: PlayerCentre.shared.book,
-            onDevice: CarScene.onDevice?() ?? []
-        )
+    private func list(continuing playing: SpokenBook?) -> CPListTemplate {
+        let rows = CarShelf.rows(continuing: playing, onDevice: CarScene.onDevice?() ?? [])
         return CPListTemplate(
             title: String(localized: "car.audiobooks", bundle: .main, locale: .storyArc),
             sections: [CPListSection(items: rows.map(item(for:)))]

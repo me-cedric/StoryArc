@@ -283,6 +283,20 @@ struct StoryArcApp: App {
                 await sweepFinishedDownload()
             }
             .onOpenURL { url in Task { await openHandedOver(url) } }
+            // Task 16.4: what a CarPlay scene asks the app for, installed once `library`
+            // and `progress` both exist. `CarSceneDelegate` reaches none of these directly
+            // — a car scene is not SwiftUI's scene, so it has no environment to read.
+            .task {
+                CarScene.onDevice = {
+                    library.publications
+                        .filter { $0.format.isAudio && library.isOnDevice($0) }
+                        .compactMap { publication in
+                            library.location(of: publication).map { SpokenBook(publication: publication, url: $0) }
+                        }
+                }
+                CarScene.onListen = { book in listen(to: book.publication, at: book.url) }
+                CarScene.lastListened = { await lastListenedBook() }
+            }
             // Closing the reader is not the only way a reader leaves it. A phone is
             // usually closed by going home, and a position that only travelled on a
             // clean exit would be the evening's reading lost.
