@@ -51,7 +51,7 @@ struct HomeShelfSummary: Identifiable {
     var id: String {
         switch destination {
         case let .onDevice(id): "local:\(id.uuidString)"
-        case let .onServer(shelf): shelf.token
+        case let .onServer(shelf): shelf.id
         }
     }
 }
@@ -154,15 +154,20 @@ enum HomeShelfIndex {
     /// so its answer is the complete set and a merge would only keep shelves that have since
     /// been deleted on a server. Pure so a test can assert that, which is the half a screen
     /// cannot show.
-    static func remembering(_ fetched: [ServerShelf]) -> [RememberedShelf] {
-        fetched.compactMap { shelf in
+    ///
+    /// A shelf that is still there keeps the count and the finished position its home card
+    /// cached in `previous`. Without that, each visit to the shelves screen would erase them.
+    static func remembering(_ fetched: [ServerShelf], previous: [RememberedShelf] = []) -> [RememberedShelf] {
+        let cached = Dictionary(previous.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return fetched.compactMap { shelf in
             guard let source = UUID(uuidString: shelf.server.id) else { return nil }
-            return RememberedShelf(
+            let found = RememberedShelf(
                 kind: shelf.isList ? .readingList : .collection,
                 sourceID: source,
                 serverID: shelf.id,
                 title: shelf.title
             )
+            return cached[found.id].map { found.counted($0.count, finished: $0.finished) } ?? found
         }
     }
 }
@@ -174,8 +179,12 @@ extension ServerShelves {
     /// was deleted must lose its names, and a reader on a train must keep theirs. The
     /// capability lists are what tell the two apart, which is why they are kept beside the
     /// shelves rather than inferred from them.
-    var record: String? {
+    ///
+    /// - Parameter previous: the record already stored, for the counts the home cards cached.
+    func record(keeping previous: String) -> String? {
         guard !listCapable.isEmpty || !collectionCapable.isEmpty else { return nil }
-        return RememberedShelf.stored(HomeShelfIndex.remembering(shelves))
+        return RememberedShelf.stored(
+            HomeShelfIndex.remembering(shelves, previous: RememberedShelf.shelves(stored: previous))
+        )
     }
 }

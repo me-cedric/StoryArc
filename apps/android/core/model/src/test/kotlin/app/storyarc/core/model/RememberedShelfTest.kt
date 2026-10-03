@@ -112,6 +112,25 @@ class RememberedShelfTest {
     }
 
     @Test
+    fun `a home card's count replaces its own record and leaves the others alone`() {
+        val marvel = shelf(title = "Marvel")
+        val image = shelf(serverId = 5, title = "Image")
+        val stored = RememberedShelf.tokens(listOf(marvel, image))
+
+        val read = RememberedShelf.of(RememberedShelf.replacing(stored, marvel.counted(30, finished = null)))
+
+        assertEquals(2, read.size)
+        assertEquals(30, read.single { it.key == marvel.key }.count)
+        assertNull(read.single { it.key == image.key }.count)
+    }
+
+    @Test
+    fun `a count does not change which shelf a record is`() {
+        val marvel = shelf(title = "Marvel")
+        assertEquals(marvel.key, marvel.counted(30, finished = null).key)
+    }
+
+    @Test
     fun `every shelf written survives the trip back`() {
         val shelves = listOf(
             shelf(serverId = 1, title = "Alpha"),

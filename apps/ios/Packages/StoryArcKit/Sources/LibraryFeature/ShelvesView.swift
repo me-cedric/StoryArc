@@ -107,8 +107,8 @@ public struct ShelvesView: View {
                 )
                 serverShelves = capable.shelves
                 // Kept, because the home surface may not ask a server anything — and left
-                // alone when none answered. See ``ServerShelves/record``.
-                rememberedShelves = capable.record ?? rememberedShelves
+                // alone when none answered. See ``ServerShelves/record(keeping:)``.
+                rememberedShelves = capable.record(keeping: rememberedShelves) ?? rememberedShelves
             }
             // Outside the guard: what is owed, and what is still to be said about a conflict,
             // are worth reading every time this screen appears, not only the first.

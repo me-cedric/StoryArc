@@ -1,5 +1,7 @@
 package app.storyarc.feature.library
 
+import app.storyarc.core.kavita.KavitaReadingListItem
+import app.storyarc.core.kavita.KavitaSeries
 import app.storyarc.core.model.PinnedShelves
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.RememberedShelf
@@ -75,7 +77,7 @@ data class HomeShelfSummary(
     val key: String
         get() = when (val where = destination) {
             is HomeShelfDestination.OnDevice -> "local:${where.id}"
-            is HomeShelfDestination.OnServer -> where.shelf.token
+            is HomeShelfDestination.OnServer -> where.shelf.key
         }
 }
 
@@ -182,12 +184,16 @@ object HomeShelfIndex {
      * so its answer is the complete set and a merge would only keep shelves that have since
      * been deleted on a server. Pure so a test can assert that, which is the half a screen
      * cannot show.
+     *
+     * A shelf that is still there keeps the count and the finished position its home card
+     * cached in [previous]. Without that, each visit to the shelves screen would erase them.
      */
-    fun remembering(fetched: List<ServerShelf>): List<RememberedShelf> =
-        fetched.mapNotNull { shelf ->
+    fun remembering(fetched: List<ServerShelf>, previous: List<RememberedShelf> = emptyList()): List<RememberedShelf> {
+        val cached = previous.associateBy { it.key }
+        return fetched.mapNotNull { shelf ->
             val source = runCatching { UUID.fromString(shelf.server.id) }.getOrNull()
                 ?: return@mapNotNull null
-            RememberedShelf(
+            val found = RememberedShelf(
                 kind = if (shelf.isList) {
                     RememberedShelfKind.READING_LIST
                 } else {
@@ -197,5 +203,18 @@ object HomeShelfIndex {
                 serverId = shelf.id,
                 title = shelf.title,
             )
+            cached[found.key]?.let { found.counted(it.count, it.finished) } ?: found
         }
+    }
 }
+
+/**
+ * A reading list with its entry count, and the entries the server reports as finished. The
+ * tally is [ServerListProgress.summary], the one the list's own screen states.
+ */
+fun RememberedShelf.counted(items: List<KavitaReadingListItem>): RememberedShelf =
+    counted(items.size, ServerListProgress.summary(items.map { it.pagesRead to it.pagesTotal })?.finished)
+
+/** A collection with its series count. A collection has no order, so it has no position. */
+@JvmName("countedSeries")
+fun RememberedShelf.counted(series: List<KavitaSeries>): RememberedShelf = counted(series.size, null)

@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import android.graphics.Bitmap
+import app.storyarc.core.model.RememberedShelf
 
 /**
  * What a Kavita shelf's card draws on the home surface, decided from what the server
@@ -47,6 +48,11 @@ sealed class HomeShelfCoverPlan {
 data class HomeShelfArtworkOutcome(
     val plan: HomeShelfCoverPlan,
     val covers: Map<String, Bitmap> = emptyMap(),
+    /**
+     * The shelf with the count and the finished position the same fetch found, or null when
+     * the server did not answer. The card draws it at once.
+     */
+    val counted: RememberedShelf? = null,
 )
 
 /**

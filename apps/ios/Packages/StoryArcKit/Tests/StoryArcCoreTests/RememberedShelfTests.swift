@@ -112,6 +112,27 @@ struct RememberedShelfTests {
         #expect(read?.finished == nil)
     }
 
+    @Test("A home card's count replaces its own record and leaves the others alone")
+    func aCountReplacesItsOwnRecord() {
+        let marvel = shelf(title: "Marvel")
+        let image = RememberedShelf(kind: .collection, sourceID: source, serverID: 5, title: "Image")
+        let stored = RememberedShelf.stored([marvel, image])
+
+        let read = RememberedShelf.shelves(
+            stored: RememberedShelf.stored(stored, replacing: marvel.counted(30, finished: nil))
+        )
+
+        #expect(read.count == 2)
+        #expect(read.first { $0.id == marvel.id }?.count == 30)
+        #expect(read.first { $0.id == image.id }?.count == nil)
+    }
+
+    @Test("A count does not change which shelf a record is")
+    func aCountKeepsTheIdentity() {
+        let marvel = shelf(title: "Marvel")
+        #expect(marvel.counted(30, finished: nil).id == marvel.id)
+    }
+
     @Test("Every shelf written survives the trip back")
     func everyShelfSurvives() {
         let shelves = [

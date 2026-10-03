@@ -40,6 +40,7 @@ import app.storyarc.feature.library.HOME_SHELF_SOLE_COVER_KEY
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.RestartConfirmation
 import app.storyarc.feature.library.ServerShelf
+import app.storyarc.feature.library.counted
 import app.storyarc.feature.library.purgeExpiredTombstones
 import app.storyarc.feature.library.serverCover
 import app.storyarc.navigation.AppSheet
@@ -311,6 +312,25 @@ private suspend fun homeShelfArtwork(host: AppHost, shelf: RememberedShelf): Hom
     val isList = shelf.kind == RememberedShelfKind.READING_LIST
     val kind = if (isList) "list" else "coll"
 
+    // `collections-and-reading-lists`: the card fetches its own count when it first appears,
+    // and caches it in the remembered record. The Home load does not wait for a bulk probe.
+    // Null when the server did not answer, so an unreachable server keeps the cached count.
+    val members = runCatching {
+        if (isList) {
+            val items = client.readingListItems(shelf.serverId)
+            items.sortedBy { it.order }.take(CompositeCover.TILE_COUNT).map { it.chapterId.toString() } to
+                shelf.counted(items)
+        } else {
+            val series = client.collected(shelf.serverId)
+            series.take(CompositeCover.TILE_COUNT).map { it.id.toString() } to shelf.counted(series)
+        }
+    }.getOrNull()
+    val counted = members?.second
+    if (counted != null && counted != shelf) {
+        val preferences = host.dependencies.libraryPreferences
+        preferences.saveRememberedShelves(RememberedShelf.replacing(preferences.rememberedShelves(), counted))
+    }
+
     val locked = host.library.serverCover(
         id = "srv:${source.id}:$kind:${shelf.serverId}",
         maxPixelSize = HOME_SHELF_COVER_PIXELS,
@@ -321,21 +341,11 @@ private suspend fun homeShelfArtwork(host: AppHost, shelf: RememberedShelf): Hom
         return HomeShelfArtworkOutcome(
             plan = HomeShelfCoverPlan.decide(hasLockedCover = true, memberIds = emptyList()),
             covers = mapOf(HOME_SHELF_SOLE_COVER_KEY to locked),
+            counted = counted,
         )
     }
 
-    val memberIds = runCatching {
-        if (isList) {
-            client.readingListItems(shelf.serverId)
-                .sortedBy { it.order }
-                .take(CompositeCover.TILE_COUNT)
-                .map { it.chapterId.toString() }
-        } else {
-            client.collected(shelf.serverId)
-                .take(CompositeCover.TILE_COUNT)
-                .map { it.id.toString() }
-        }
-    }.getOrDefault(emptyList())
+    val memberIds = members?.first.orEmpty()
 
     val memberKind = if (isList) "chapter" else "series"
     val covers = mutableMapOf<String, Bitmap>()
@@ -353,6 +363,7 @@ private suspend fun homeShelfArtwork(host: AppHost, shelf: RememberedShelf): Hom
     return HomeShelfArtworkOutcome(
         plan = HomeShelfCoverPlan.decide(hasLockedCover = false, memberIds = memberIds),
         covers = covers,
+        counted = counted,
     )
 }
 

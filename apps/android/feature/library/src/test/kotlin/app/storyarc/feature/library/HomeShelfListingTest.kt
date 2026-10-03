@@ -1,6 +1,8 @@
 package app.storyarc.feature.library
 
 import app.storyarc.core.kavita.KavitaAddress
+import app.storyarc.core.kavita.KavitaReadingListItem
+import app.storyarc.core.kavita.KavitaSeries
 import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.PinnedShelves
 import app.storyarc.core.model.Publication
@@ -256,5 +258,53 @@ class HomeShelfListingTest {
         assertEquals(2, first.size)
         assertEquals(1, second.size)
         assertEquals("Image", second.single().title)
+    }
+
+    /**
+     * A visit to the shelves screen rewrites the record. The counts the home cards cached
+     * must survive that, or the next launch draws no count again.
+     */
+    @Test
+    fun `a later fetch keeps the count a home card cached for a shelf that is still there`() {
+        val first = HomeShelfIndex.remembering(
+            listOf(fetched(4, "Marvel", isList = false), fetched(9, "Crisis, in order", isList = true)),
+        )
+        val cached = first.map {
+            if (it.kind == RememberedShelfKind.READING_LIST) it.counted(12, finished = 5) else it
+        }
+        val second = HomeShelfIndex.remembering(
+            listOf(fetched(9, "Crisis, in order", isList = true), fetched(6, "New", isList = false)),
+            previous = cached,
+        )
+
+        val list = second.single { it.serverId == 9 }
+        assertEquals(12, list.count)
+        assertEquals(5, list.finished)
+        assertNull(second.single { it.serverId == 6 }.count)
+    }
+
+    @Test
+    fun `a list's card counts every entry, and the entries the server reports as finished`() {
+        val shelf = RememberedShelf(RememberedShelfKind.READING_LIST, serverId, 9, "Crisis")
+        val counted = shelf.counted(
+            listOf(
+                KavitaReadingListItem(pagesRead = 20, pagesTotal = 20),
+                KavitaReadingListItem(pagesRead = 3, pagesTotal = 20),
+                KavitaReadingListItem(pagesRead = 0, pagesTotal = 20),
+            ),
+        )
+
+        assertEquals(3, counted.count)
+        assertEquals(1, counted.finished)
+        assertEquals(shelf.key, counted.key)
+    }
+
+    @Test
+    fun `a collection's card counts its series and states no position`() {
+        val shelf = RememberedShelf(RememberedShelfKind.COLLECTION, serverId, 4, "Marvel")
+        val counted = shelf.counted(listOf(KavitaSeries(id = 7, name = "S7"), KavitaSeries(id = 3, name = "S3")))
+
+        assertEquals(2, counted.count)
+        assertNull(counted.finished)
     }
 }

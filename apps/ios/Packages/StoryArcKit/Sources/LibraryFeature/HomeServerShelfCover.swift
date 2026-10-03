@@ -54,6 +54,8 @@ struct HomeServerShelfCover: View {
 
     @State private var plan: HomeShelfCoverPlan = .blank
     @State private var covers: [String: CGImage] = [:]
+    /// Where the card writes the count it fetched, so the next launch draws it at once.
+    @AppStorage(RememberedShelf.storageKey) private var rememberedShelves = ""
 
     private static let soleCoverID = "sole-cover"
 
@@ -81,8 +83,13 @@ struct HomeServerShelfCover: View {
         }
     }
 
+    /// `collections-and-reading-lists`: the card fetches its own count when it first appears,
+    /// and caches it in the remembered record. The Home load does not wait for a bulk probe.
     private func load() async {
         let client = KavitaClient(address: page.address)
+        let members = await members(client)
+        if let members { remember(members.counted) }
+
         let locked = await lockedCover(client)
         if let locked {
             covers[Self.soleCoverID] = locked
@@ -90,7 +97,7 @@ struct HomeServerShelfCover: View {
             return
         }
 
-        let memberIDs = await memberIDs(client)
+        let memberIDs = members?.tiles ?? []
         for id in memberIDs {
             if let image = await memberCover(client, id: id) {
                 covers[id] = image
@@ -112,13 +119,21 @@ struct HomeServerShelfCover: View {
         }
     }
 
-    private func memberIDs(_ client: KavitaClient) async -> [String] {
+    /// The members, asked for once: the ids of the first tiles, and the shelf with its count.
+    /// `nil` when the server did not answer, so an unreachable server keeps the cached count.
+    private func members(_ client: KavitaClient) async -> (tiles: [String], counted: RememberedShelf)? {
         if shelf.kind == .readingList {
-            let items = (try? await client.readingListItems(shelf.serverID)) ?? []
-            return ServerShelfTiles.of(items: items)
+            guard let items = try? await client.readingListItems(shelf.serverID) else { return nil }
+            return (ServerShelfTiles.of(items: items), shelf.counted(items: items))
         }
-        let series = (try? await client.collected(shelf.serverID)) ?? []
-        return ServerShelfTiles.of(series: series)
+        guard let series = try? await client.collected(shelf.serverID) else { return nil }
+        return (ServerShelfTiles.of(series: series), shelf.counted(series: series))
+    }
+
+    /// Writes the count only when it changed, so an unchanged count does not redraw Home.
+    private func remember(_ counted: RememberedShelf) {
+        guard counted != shelf else { return }
+        rememberedShelves = RememberedShelf.stored(rememberedShelves, replacing: counted)
     }
 
     private func memberCover(_ client: KavitaClient, id: String) async -> CGImage? {
@@ -147,6 +162,20 @@ struct HomeServerShelfCover: View {
     /// Android's `homeShelfArtwork` scopes its id the same way.
     static func lockedCoverID(server: String, shelf: RememberedShelf) -> String {
         "srv:\(server):lock-\(shelf.kind.rawValue):\(shelf.serverID)"
+    }
+}
+
+extension RememberedShelf {
+    /// A reading list with its entry count, and the entries the server reports as finished.
+    /// The tally is ``ServerListProgress/summary(_:)``, the one the list's own screen states.
+    func counted(items: [KavitaReadingListItem]) -> RememberedShelf {
+        let tally = ServerListProgress.summary(items.map { (read: $0.pagesRead, total: $0.pagesTotal) })
+        return counted(items.count, finished: tally?.finished)
+    }
+
+    /// A collection with its series count. A collection has no order, so it has no position.
+    func counted(series: [KavitaSeries]) -> RememberedShelf {
+        counted(series.count, finished: nil)
     }
 }
 
