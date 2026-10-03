@@ -23,8 +23,8 @@ enum KavitaContributor {
 
     /// How many series the first read of a server takes.
     ///
-    /// One request for the page, then one per series for its chapters — so this number is
-    /// the request count, near enough. A starting value chosen to be re-chosen.
+    /// One request for the page, then two per series, for its chapters and its status — so
+    /// this number is half the request count, near enough. A starting value chosen to be re-chosen.
     static let firstSlice = 60
 
     /// One page of a server's most recently added series, as publications, and how many
@@ -66,9 +66,10 @@ enum KavitaContributor {
         var origins: [String: KavitaOrigin] = [:]
         for each in series {
             let volumes = (try? await client.volumes(ofSeries: each.id)) ?? []
+            let status = volumes.isEmpty ? nil : await seriesStatus(client: client, series: each.id)
             for volume in volumes {
                 for chapter in volume.chapters {
-                    found.append(publication(source: source, series: each, chapter: chapter))
+                    found.append(publication(source: source, series: each, chapter: chapter, status: status))
                     chapters.append(chapter)
                 }
                 origins.merge(catalogOrigins(source: source, series: each, volume: volume)) { _, new in new }
@@ -95,6 +96,16 @@ enum KavitaContributor {
         try await page(source: source, client: client, page: 1, store: store)
     }
 
+    /// The status the server reports for one series, or `nil` when it could not be read.
+    ///
+    /// `library-browsing` (D36): the status a source reports is carried onto the row, so the
+    /// filter covers a server's series and not only the ones a reader downloaded. One more
+    /// request per series that has chapters. A failure costs the row its status, never the
+    /// row: the series screen then treats it as a series with no reported status.
+    static func seriesStatus(client: KavitaClient, series id: Int) async -> PublicationStatus? {
+        PublicationStatus(kavita: (try? await client.metadata(ofSeries: id))?.publicationStatus)
+    }
+
     /// One chapter as a row in the library.
     ///
     /// No path, which is the whole of what makes it a remote row: nothing is on disk, so
@@ -102,7 +113,8 @@ enum KavitaContributor {
     static func publication(
         source: UUID,
         series: KavitaSeries,
-        chapter: KavitaChapter
+        chapter: KavitaChapter,
+        status: PublicationStatus? = nil
     ) -> Publication {
         Publication(
             identity: PublicationIdentity(
@@ -112,6 +124,7 @@ enum KavitaContributor {
             displayTitle: title(series: series, chapter: chapter),
             series: series.name,
             number: issueNumber(of: chapter),
+            status: status,
             origin: .authoritative,
             pageCount: chapter.pages > 0 ? chapter.pages : nil,
             sourceID: source

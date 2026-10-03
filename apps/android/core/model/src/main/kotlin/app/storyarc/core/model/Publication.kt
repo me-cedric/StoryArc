@@ -225,6 +225,24 @@ enum class PublicationStatus {
 
     /** A source's own distinction: finished releasing, but the source lacks every issue. */
     ENDED,
+    ;
+
+    companion object {
+        /**
+         * Kavita's own `publicationStatus` number as a status, or null for a number Kavita
+         * never defined. Zero is *OnGoing*, so no fallback: a guess would state a series is
+         * running on a server's behalf. The table lives here because `:core:model` must not
+         * depend on `:core:kavita`; a library row and a kept card both read it.
+         */
+        fun ofKavita(number: Int?): PublicationStatus? = when (number) {
+            0 -> ONGOING
+            1 -> HIATUS
+            2 -> COMPLETED
+            3 -> CANCELLED
+            4 -> ENDED
+            else -> null
+        }
+    }
 }
 
 /**

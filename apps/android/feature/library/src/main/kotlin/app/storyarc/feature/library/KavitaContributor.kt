@@ -8,6 +8,7 @@ import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.model.PublicationStatus
 import app.storyarc.core.persistence.KavitaOrigin
 import app.storyarc.core.persistence.KavitaProgressStore
 import java.util.UUID
@@ -37,8 +38,8 @@ internal object KavitaContributor {
     /**
      * How many series the first read of a server takes.
      *
-     * One request for the page, then one per series for its chapters -- so this number is
-     * the request count, near enough. Sixty fills several screens of a grid and finishes in
+     * One request for the page, then two per series, for its chapters and its status -- so
+     * this number is half the request count, near enough. Sixty fills several screens of a grid and finishes in
      * a few seconds on a server on the far side of a home connection. It is a starting
      * value chosen to be re-chosen: `design.md` leaves it open, and the number wants a
      * reader's judgement about how much of a library should arrive before they can scroll.
@@ -99,10 +100,11 @@ internal object KavitaContributor {
         val origins = mutableMapOf<String, KavitaOrigin>()
         val publications = series.flatMap { each ->
             val volumes = retriedOnce { client.volumes(each.id) }
+            val status = if (volumes.isEmpty()) null else seriesStatus(client, each.id)
             volumes.flatMap { volume ->
                 chapters += volume.chapters
                 origins += catalogOrigins(sourceId, each, volume)
-                volume.chapters.map { chapter -> publication(sourceId, each, chapter) }
+                volume.chapters.map { chapter -> publication(sourceId, each, chapter, status) }
             }
         }
         store?.rememberCatalog(origins)
@@ -149,6 +151,19 @@ internal object KavitaContributor {
         runCatching { fetch() }.recoverCatching { fetch() }.getOrDefault(emptyList())
 
     /**
+     * The status the server reports for one series, or null when it could not be read.
+     *
+     * `library-browsing` (D36): the status a source reports is carried onto the row, so the
+     * filter covers a server's series and not only the ones a reader downloaded. One more
+     * request per series that has chapters. A failure costs the row its status, never the
+     * row: the series screen then treats it as a series with no reported status.
+     */
+    private suspend fun seriesStatus(client: KavitaClient, seriesId: Int): PublicationStatus? =
+        runCatching { client.metadata(seriesId).publicationStatus }
+            .getOrNull()
+            .let(PublicationStatus::ofKavita)
+
+    /**
      * One chapter as a row in the library.
      *
      * No `normalizedPath`, which is the whole of what makes it a remote row: nothing is on
@@ -161,6 +176,7 @@ internal object KavitaContributor {
         sourceId: UUID,
         series: KavitaSeries,
         chapter: KavitaChapter,
+        status: PublicationStatus? = null,
     ): Publication = Publication(
         identity = PublicationIdentity(
             serverIdentifier = PublicationIdentity.ServerIdentifier(
@@ -176,6 +192,7 @@ internal object KavitaContributor {
         series = series.name,
         number = KavitaNaming.issueNumber(chapter),
         pageCount = chapter.pages.takeIf { it > 0 },
+        status = status,
         // The server owns these answers, which is what `AUTHORITATIVE` means and why a
         // downloaded copy's embedded metadata does not overwrite them.
         origin = MetadataOrigin.AUTHORITATIVE,
