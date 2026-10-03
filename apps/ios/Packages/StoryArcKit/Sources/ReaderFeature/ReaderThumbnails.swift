@@ -36,11 +36,33 @@ extension ReaderModel {
     }
 
     /// Enough to recognise a page by its composition, not to read it.
-    nonisolated private static let thumbnailPixelSize = 160
+    ///
+    /// `page-browser-carousel` §1: "decode thumbnails at the [carousel's] centred
+    /// size, and draw the neighbours from the same image, scaled down" — so this is
+    /// sized for the carousel's centred cell (about 1.6 times ``ThumbnailStrip``'s
+    /// base width) rather than for a neighbour, and every smaller cell downsamples
+    /// the one decode instead of asking for one of its own.
+    nonisolated private static let thumbnailPixelSize = 256
 
     /// How many thumbnails to keep. A 300-page comic's worth would be tens of
     /// megabytes of pixels for a strip showing eight of them at a time.
     nonisolated private static let thumbnailBudget = 64
+
+    /// Where this publication's chapters start, and what to call each one.
+    ///
+    /// `page-browser-carousel`: the carousel and the slider's ticks both read this. A
+    /// comic archive already has it; a PDF's outline is read once, off the actor, the
+    /// same way ``ChapterActionsSection`` reads its page-only version.
+    func chapterMarkers() async -> [ChapterMarker] {
+        if let archive {
+            return ChapterBrowser.markers(
+                comicStarts: archive.chapterStartIndices,
+                titles: archive.chapterTitles
+            )
+        }
+        guard let pdf else { return [] }
+        return ChapterBrowser.markers(pdfOutline: await pdf.outline())
+    }
 
     private func evictDistantThumbnails(from index: Int) {
         guard thumbnails.count >= Self.thumbnailBudget else { return }

@@ -186,6 +186,7 @@ struct ComicInfoTests {
             """.utf8)
         )
         #expect(info?.chapterStartIndices == [12, 30])
+        #expect(info?.chapterTitles == [12: "Chapter Two", 30: "Chapter Three"])
     }
 
     @Test("A Bookmark that is empty or only whitespace marks nothing")
