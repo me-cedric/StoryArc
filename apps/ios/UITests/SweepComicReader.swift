@@ -141,6 +141,8 @@ final class SweepComicReaderTests: XCTestCase {
         let app = sweepLaunch()
         try openComic(in: app)
         try openMenu(in: app)
+        // The menu sheet slides up. A tap while it moves lands on the row below Contents.
+        hold(1)
         try XCTUnwrap(hittableRow("Contents", in: app), "The menu offers no Contents row.").tap()
         XCTAssertTrue(
             app.buttons["Page 1"].waitForExistence(timeout: 8)
@@ -150,6 +152,24 @@ final class SweepComicReaderTests: XCTestCase {
         )
         hold(2)
         shutter(app, named: "comic-reader-thumbnails")
+    }
+
+    /// The page browser on a comic with chapter bookmarks: the chapter name above the
+    /// carousel, the chapter badges, the page numbers and the ticks on the page slider.
+    func testCaptureComicPageBrowser() throws {
+        let app = sweepLaunch()
+        try openPublication(named: "Quiet Machines", in: app)
+        try openMenu(in: app)
+        // The menu sheet slides up. A tap while it moves lands on the row below Contents.
+        hold(1)
+        try XCTUnwrap(hittableRow("Contents", in: app), "The menu offers no Contents row.").tap()
+        let second = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Page 2")).firstMatch
+        XCTAssertTrue(second.waitForExistence(timeout: 8), "Contents opened no page browser.")
+        hold(2)
+        shutter(app, named: "comic-reader-page-browser")
+        second.swipeLeft(velocity: .slow)
+        hold(2)
+        shutter(app, named: "comic-reader-page-browser-swiped")
     }
 
     /// The image adjustments sheet — brightness, contrast, sharpness, greyscale, invert, and

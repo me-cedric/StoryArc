@@ -342,7 +342,16 @@ function build(root, { count = BASE_COUNT } = {}) {
   for (let issue = 1; issue <= 3; issue += 1) {
     zip(at(`Tidal Reach ${String(issue).padStart(2, '0')}.cbz`), pages(8, issue))
   }
-  zip(at('Quiet Machines.cbz'), pages(12, 4))
+  // Chapter bookmarks, so the reader's page browser has chapter names, badges and slider
+  // ticks to draw: a worded title, a title that ends in an issue number, and a third.
+  zip(at('Quiet Machines.cbz'), [...pages(12, 4), {
+    name: 'ComicInfo.xml',
+    body: '<?xml version="1.0"?>\n<ComicInfo><Pages>'
+      + '<Page Image="0" Bookmark="Prologue"/>'
+      + '<Page Image="4" Bookmark="Quiet Machines #4"/>'
+      + '<Page Image="8" Bookmark="Night Shift"/>'
+      + '</Pages></ComicInfo>\n',
+  }])
 
   // Every other container the app says it reads.
   tar(at('Paper Lanterns.cbt'), pages(6, 2))
