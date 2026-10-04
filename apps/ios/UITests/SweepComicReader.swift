@@ -275,6 +275,26 @@ final class SweepComicReaderTests: XCTestCase {
             found = wanted.allElementsBoundByIndex.first(where: \.isHittable)
             if found == nil { app.swipeUp() }
         }
+        // 21.1-ios: at the largest accessibility text size a row is 147 pt tall, and a cover
+        // can settle with most of itself past the bottom edge after one swipe — not hittable
+        // — with the next swipe already large enough to carry it past the top before this
+        // loop ever reads it settled. Measured on the lane simulator: "Fine Print"'s row sat
+        // at y 891–1037 of a 956 pt-tall screen (never hittable, centre past the bottom
+        // edge), and the row was gone from the tree by the next swipe — not a wider defect
+        // in the shelf, the rail or the banner, which the element dump showed not
+        // overlapping it. The shelf's own alphabetical index does not have this problem,
+        // because a chosen letter scrolls its first row to the very top — ask it for this
+        // title's own initial before giving up.
+        if found == nil, let initial = title.first.map({ String($0).uppercased() }) {
+            let jump = app.buttons.matching(NSPredicate(format: "label == %@", "Jump to \(initial)")).firstMatch
+            if jump.isHittable {
+                jump.tap()
+                for _ in 0..<4 where found == nil {
+                    found = wanted.allElementsBoundByIndex.first(where: \.isHittable)
+                    if found == nil { app.swipeUp() }
+                }
+            }
+        }
         try XCTSkipUnless(found != nil, "This device's shelf never showed a cover for “\(title)”.")
         found?.tap()
 

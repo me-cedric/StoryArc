@@ -13,8 +13,9 @@ is the iPhone 17 Pro simulator (lane `0EAA863A-78F3-4839-A910-0B88071D99C2`), iO
 | `ios-page-browser-light.png` | PB3.2 | Added at the wave 6b merge, on the iPhone 17 Pro simulator, iOS 26.5. Quiet Machines, left to right, light. Page 1 is centred with its "#1" badge, "Prologue" is above, and the page numbers sit on one line. |
 | `ios-page-browser-swiped-light.png` | PB3.2 | The same walk after one swipe. Page 2 is the large page, the chapter is still "Prologue", and page 5 carries "#4", read from its bookmark "Quiet Machines #4". After a swipe, the large page sits a little left of the middle. |
 | `ios-page-browser-dark.png` | PB3.2 | Left to right, dark. |
+| `ios-comic-reader-page-browser-ax5.png` | PB3.2 | `21.1-ios`. The carousel at `UICTContentSizeCategoryAccessibilityXXXL`, left to right. The sheet sits at its medium detent over Quiet Machines' gold cover, with "Contents", "1 of 12", "Prologue" and page 1's badge all legible at the larger type. |
 
-Not captured yet: the largest text size, and the Android carousel (task 3.2 stays open).
+Not captured yet: the Android carousel (task 3.2 stays open).
 
 ## Review correction
 
@@ -56,17 +57,40 @@ Proven with two mutations:
 - Back to `.toggle()`, `ThumbnailBrowserTests."Opening the carousel is idempotent, not a
   toggle"` failed by name. The same host test also fails when the gesture line is removed.
 
+## `21.1-ios`: the largest-text walk, found and closed
+
+`testCaptureComicPageBrowserAtLargestText` and the pre-existing `testCaptureComicMenuAtLargestText`
+both used to skip at largest text, with "the page offered no hittable way to open it" or
+"this device's shelf never showed a cover" — the cover tap this README above flagged as not
+reaching the publication page.
+
+**Neither the rail nor the banner takes the tap.** An element dump at the moment of the skip
+(`SweepComicReaderTests`, lane simulator, `UICTContentSizeCategoryAccessibilityXXXL`) shows
+why: at this text size a shelf row is 147 pt tall, against a 956 pt screen. `openPublication`'s
+search swipes up to eight times and taps the first hittable match — and a row can settle with
+its centre past the bottom edge of the screen, which XCUITest does not call hittable, with the
+*next* swipe already large enough to carry it past the top before the loop reads it again. The
+dump that proved it: "Fine Print"'s row sat at y 891–1037 of 956, never hittable, and was gone
+from the tree by the next swipe. The alphabetical index (`"Alphabetical index"`, entries
+`"Jump to <letter>"`) and the "2 couldn't be opened" banner were both on screen at the time, but
+neither one's frame overlapped that row — read off the same dump, not assumed.
+
+**The fix is in the test, not the shelf.** `library-browsing`'s index already exists to reach a
+letter without scrolling past it, so `openPublication` (`SweepComicReader.swift`) now asks it
+for the title's own initial when the swipe search comes up empty, before it gives up — a letter
+scrolls its first row to the very top, which is never the clipped position a swipe can leave a
+row in. Proven with a mutation: reverting the fallback made
+`testCaptureComicPageBrowserAtLargestText` and `testCaptureComicMenuAtLargestText` skip again
+with the same two messages; restoring it, the first passes and captures
+`ios-comic-reader-page-browser-ax5.png` above. `testCaptureComicMenuAtLargestText` now gets
+past the shelf and skips later, on the publication page's own action button — a second,
+narrower instance of the same clipped-row shape, out of `21.1-ios`'s scope and left open below.
+
 ## What is still open
 
-- **Left-to-right frames of a comic with chapter markers**, in light and in dark. Run
-  `testCaptureComicPageBrowser` and `testCaptureComicPageBrowserDark` again to capture them.
-- **Largest accessibility text size (`UICTContentSizeCategoryAccessibilityXXXL`)**:
-  `testCaptureComicPageBrowserAtLargestText` skips with "the page offered no hittable way to
-  open it". An element dump at the skip shows that the app is still on the shelf: the tap on
-  the Quiet Machines cover did not open the publication page. The shelf at this size also
-  shows the "2 couldn't be opened" banner and the alphabetical index. The pre-existing
-  `testCaptureComicMenuAtLargestText` skips the same way. Look at the shelf at this text size
-  to find what takes the tap. Not captured.
+- **`testCaptureComicMenuAtLargestText`** now reaches "Fine Print"'s own publication page (the
+  shelf tap works) and skips later: "the page offered no hittable way to open it", the same
+  swipe-search shape on that page's action button. `21.1-ios` did not reach this one.
 - **Android**: not captured. `ThumbnailStrip.kt`'s carousel (tasks 2.1–2.5) is built and
   unit-tested, but no emulator frame exists yet for light, dark, largest text or
   right-to-left.
