@@ -136,6 +136,60 @@ struct SmbContributorTests {
         #expect(SmbContributor.maxFolders == 40)
     }
 
+    // -- 22.1-smb-opds: the walk continues from its own frontier -------------------------
+
+    /// A root with `count` sibling folders, each holding one file.
+    private func wideTree(_ count: Int) -> [String: [SmbEntry]] {
+        var tree: [String: [SmbEntry]] = [
+            "": (0..<count).map { SmbEntry(name: "d\($0)", path: "d\($0)", isDirectory: true, length: 0) },
+        ]
+        for i in 0..<count {
+            tree["d\(i)"] = [SmbEntry(name: "f.cbz", path: "d\(i)/f.cbz", isDirectory: false, length: 1)]
+        }
+        return tree
+    }
+
+    @Test("A continuation resumes the frontier it was handed, not the share's root")
+    func continuationResumesItsOwnFrontier() async {
+        // One more folder than `maxFolders` can list in a single page, so the first page is
+        // proven to stop with folders still unlisted rather than finishing the share.
+        let tree = wideTree(SmbContributor.maxFolders + 6)
+        var listed: [String] = []
+        func list(_ path: String) async throws -> [SmbEntry] { listed.append(path); return tree[path] ?? [] }
+
+        let first = await SmbContributor.page(source: source, address: address, queue: [address.path], list: list)
+        #expect(first.slice.holdsMore)
+        #expect(!first.queue.isEmpty)
+
+        listed = []
+        let second = await SmbContributor.page(source: source, address: address, queue: first.queue, list: list)
+
+        // The bug this fixes: a continuation that restarted at the root would relist "" and
+        // every folder the first page already covered. Mutate the recursive call back to
+        // `queue: [address.path]` and this fails, because "" and "d0" (both already listed
+        // by the first page) reappear in the second page's own listing log.
+        #expect(!listed.contains(""))
+        #expect(!listed.contains("d0"))
+        #expect(listed == first.queue)
+
+        #expect(first.slice.publications.count + second.slice.publications.count == SmbContributor.maxFolders + 6)
+        #expect(!second.slice.holdsMore)
+    }
+
+    @Test("A page's own folder budget is independent of a previous page's")
+    func eachPageGetsItsOwnBudget() async {
+        let tree = wideTree(SmbContributor.maxFolders * 2)
+        var listings = 0
+        func list(_ path: String) async throws -> [SmbEntry] { listings += 1; return tree[path] ?? [] }
+
+        let first = await SmbContributor.page(source: source, address: address, queue: [address.path], list: list)
+        #expect(listings == SmbContributor.maxFolders)
+
+        listings = 0
+        _ = await SmbContributor.page(source: source, address: address, queue: first.queue, list: list)
+        #expect(listings == SmbContributor.maxFolders)
+    }
+
     @Test("A CB7 row is refused by name, before any tap")
     func cb7Refused() {
         // Known from the name alone: no header read decides a CB7 cannot open.

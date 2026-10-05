@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import androidx.lifecycle.viewModelScope
+import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
@@ -39,13 +40,27 @@ fun LibraryViewModel.readProgress(sourceId: UUID): SourceReadProgress? = partial
  * relaunch forgot it and every source paid for its whole continuation again from page two --
  * `sources`' *More from a source than the library holds* asks for progress that survives
  * exactly that.
+ *
+ * @param opdsCursors the `next` link this read's own first page found for a catalogue that
+ *   just turned partial. [SourceReadProgress] has no field for it -- it is Kavita and SMB
+ *   shaped, a count and a total -- so a catalogue's own cursor is kept beside it in
+ *   [LibraryViewModel.opdsNext] instead of inside it.
+ * @param pins carried through to [continueReadingServers], which needs it for an OPDS
+ *   catalogue's continuation -- `readServers(pins)` is this function's only caller, and
+ *   `11.3` asks the pins a reader already trusted to reach every request a catalogue read
+ *   makes, continuation included.
  */
-internal fun LibraryViewModel.adoptPartialSources(partial: Set<UUID>) {
+internal fun LibraryViewModel.adoptPartialSources(
+    partial: Set<UUID>,
+    opdsCursors: Map<UUID, String> = emptyMap(),
+    pins: CertificatePins = CertificatePins(),
+) {
     val store = SourceReadProgressStore.open(getApplication())
     for (sourceId in partial) {
         if (partialSources[sourceId] == null) {
             val resumed = store.progress(sourceId)?.live()
             partialSources = partialSources + (sourceId to (resumed ?: SourceReadProgress.started(firstSliceFor(sourceId))))
+            opdsCursors[sourceId]?.let { opdsNext = opdsNext + (sourceId to it) }
         }
     }
     // A source this read did not report partial has either finished (land() already cleared
@@ -53,7 +68,9 @@ internal fun LibraryViewModel.adoptPartialSources(partial: Set<UUID>) {
     // nothing should keep asking disk about it.
     for (sourceId in partialSources.keys - partial) store.clear(sourceId)
     partialSources = partialSources.filterKeys { it in partial }
-    continueReadingServers()
+    opdsNext = opdsNext.filterKeys { it in partial }
+    smbQueues = smbQueues.filterKeys { it in partial }
+    continueReadingServers(pins)
     retryFailedKavitaSeries()
 }
 
@@ -66,8 +83,7 @@ private fun LibraryViewModel.firstSliceFor(sourceId: UUID): Int =
         SourceKind.KAVITA_SERVER -> KavitaContributor.FIRST_SLICE
         SourceKind.NETWORK_SHARE -> SmbContributor.FIRST_SLICE
         // A catalogue's first slice is one feed page, whatever size the server chose --
-        // nothing here names that number, and nothing yet continues an OPDS read past it,
-        // so there is no total to divide it into either.
+        // nothing here names that number, so there is no total to divide it into either.
         SourceKind.OPDS_CATALOG, SourceKind.LOCAL_FOLDER, null -> 0
     }
 
@@ -104,22 +120,22 @@ internal fun LibraryViewModel.retryFailedKavitaSeries() {
 }
 
 /**
- * Starts one background reader per Kavita source that is still partial.
- *
- * `sources`' *More from a source than the library holds*: the first slice is what
- * `readServers()` already reads; this is the rest of it, page by page, so the first screen
- * paints from the slice and the library keeps growing underneath it rather than the reader
- * waiting on a server with forty thousand series.
- *
- * SMB and OPDS are not here yet -- `docs/delivery` names both as still to build.
+ * Starts one background reader per source that is still partial: a Kavita server, a network
+ * share or an OPDS catalogue. `sources`' *More from a source than the library holds*: the
+ * first slice is what `readServers()` already reads; this is the rest of it, page by page,
+ * so the first screen paints from the slice and the library keeps growing underneath it
+ * rather than the reader waiting on a server with forty thousand series, a share with a
+ * hundred thousand files, or a catalogue a thousand pages deep.
  */
-internal fun LibraryViewModel.continueReadingServers() {
+internal fun LibraryViewModel.continueReadingServers(pins: CertificatePins) {
     for (source in _registry.value.sources) {
         if (source.kind != SourceKind.KAVITA_SERVER) continue
         if (partialSources[source.id] == null) continue
         val page = KavitaPage.of(source, credentials) ?: continue
         viewModelScope.launch { continueReadingKavita(source, KavitaClient(page.address)) }
     }
+    continueReadingShares()
+    continueReadingCatalogues(pins)
 }
 
 /**

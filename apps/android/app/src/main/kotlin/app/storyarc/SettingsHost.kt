@@ -15,6 +15,8 @@ import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.SourceAction
 import app.storyarc.feature.library.clearing
 import app.storyarc.feature.library.forgetPinIfUnshared
+import app.storyarc.feature.library.isPartial
+import app.storyarc.feature.library.itemCount
 import app.storyarc.feature.library.readProgress
 import app.storyarc.feature.library.removeAfterFinishing
 import app.storyarc.feature.library.restore

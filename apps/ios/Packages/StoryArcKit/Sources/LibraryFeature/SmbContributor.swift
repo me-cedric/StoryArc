@@ -28,21 +28,49 @@ enum SmbContributor {
     /// How many directory listings it will spend to find them.
     static let maxFolders = 40
 
-    /// The publications a bounded walk of the share finds.
-    static func publications(source: UUID, client: SmbClient, address: SmbAddress) async -> SourceSlice {
+    /// One page of a bounded walk, and the frontier it stopped at.
+    ///
+    /// `sources`' *More from a source than the library holds*: the first read is
+    /// ``publications(source:client:address:)``, the walk's own first page starting from the
+    /// share's root, and `continueReadingShares` asks for every page after it by handing back
+    /// ``queue`` -- the folders this page had not reached yet -- so a continuation resumes the
+    /// walk where it stopped instead of relisting the share's root folders on every page,
+    /// which a share wider than ``maxFolders`` could never walk past.
+    struct Page {
+        let slice: SourceSlice
+        let queue: [String]
+    }
+
+    /// One page of a bounded walk, starting from `queue` rather than always the root.
+    static func page(source: UUID, client: SmbClient, address: SmbAddress, queue: [String]) async -> Page {
+        await page(source: source, address: address, queue: queue) { try await client.list($0) }
+    }
+
+    /// ``page(source:client:address:queue:)``, with the share's own listing replaced by `list`.
+    ///
+    /// A share cannot be faked without a real SMB server, and this walk's one real decision --
+    /// where it stops, and what it hands back so the next page resumes there instead of at the
+    /// root -- has nothing to do with the protocol underneath it. Lifted out so
+    /// `SmbContributorTests` can prove the walk and its continuation against an in-memory tree.
+    static func page(
+        source: UUID,
+        address: SmbAddress,
+        queue: [String],
+        list: (String) async throws -> [SmbEntry]
+    ) async -> Page {
         var found: [Publication] = []
-        var queue = [address.path]
+        var pending = queue
         var listings = 0
 
-        while !queue.isEmpty, found.count < firstSlice, listings < maxFolders {
-            let path = queue.removeFirst()
+        while !pending.isEmpty, found.count < firstSlice, listings < maxFolders {
+            let path = pending.removeFirst()
             // A folder that refuses is skipped, not fatal: one unreadable directory must
             // not cost a reader the rest of the share.
-            guard let entries = try? await client.list(path) else { continue }
+            guard let entries = try? await list(path) else { continue }
             listings += 1
             for entry in entries {
                 if entry.isDirectory {
-                    queue.append(entry.path)
+                    pending.append(entry.path)
                     continue
                 }
                 if found.count >= firstSlice { break }
@@ -54,10 +82,18 @@ enum SmbContributor {
         // Either budget running out is the walk stopping before the share did, and so is a
         // queue with folders still in it. All three mean the same thing to a reader: there
         // is more on the share than the number on the screen.
-        return SourceSlice(
-            publications: found,
-            holdsMore: !queue.isEmpty || found.count >= firstSlice || listings >= maxFolders
+        return Page(
+            slice: SourceSlice(
+                publications: found,
+                holdsMore: !pending.isEmpty || found.count >= firstSlice || listings >= maxFolders
+            ),
+            queue: pending
         )
+    }
+
+    /// The publications a bounded walk of the share finds, starting from its root.
+    static func publications(source: UUID, client: SmbClient, address: SmbAddress) async -> SourceSlice {
+        await page(source: source, client: client, address: address, queue: [address.path]).slice
     }
 
     /// One file as a row, or nil for a file this app cannot open.

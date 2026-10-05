@@ -32,6 +32,10 @@ public final class LibraryModel {
     /// Sources whose last read stopped short, and how far a continued read has gone.
     /// ``SourceReadProgress`` explains the state; ``isPartial(_:)`` is how a screen asks.
     var partialSources: [UUID: SourceReadProgress] = [:]
+    /// A partial share's remaining walk frontier, so a continuation resumes rather than restarts.
+    var smbQueues: [UUID: [String]] = [:]
+    /// A partial catalogue's next feed link, so a continuation follows it rather than the root.
+    var opdsNext: [UUID: URL] = [:]
 
     /// What the user is looking at. Setting it re-arranges the shelf.
     public var query = LibraryQuery() {
@@ -391,10 +395,5 @@ public final class LibraryModel {
         .of(progress[publication.id])
     }
 
-    // `widenToAllSources` used to be here. It existed for the *No results* offer to "widen
-    // the scope to all sources if the search was scoped" — a sentence the
-    // `one-library-three-destinations` amendment replaced, because narrowing to one library
-    // stopped being a scope. It is a filter now, so the offer is *Clear filters*, which
-    // undoes it along with everything else that could be hiding a match. The rule is
-    // ``LibraryNarrowing/cleared(includingSearch:)``.
+    // `widenToAllSources`'s *Clear filters* replacement is ``LibraryNarrowing/cleared(includingSearch:)``.
 }
