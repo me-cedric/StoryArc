@@ -7,29 +7,36 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
-/** A host advertising SMB on the local network. */
 data class SmbHost(val name: String, val address: String, val port: Int)
 
 /**
- * Hosts advertising SMB on the local network.
+ * The hosts one discovery has resolved, in the order they answered.
  *
- * `network-share` marks discovery a SHOULD, and is firm about what it must not become:
- * "manual entry is always available and never gated behind discovery". So this is a list
- * that grows beside the form, and an empty one costs a reader nothing.
- *
- * mDNS, because that is what a NAS actually advertises -- `_smb._tcp` is registered by
- * Samba, by macOS file sharing, and by every consumer NAS this app is likely to meet.
+ * Its own class, and synchronised, because `NsdManager` calls back on threads of its own: a
+ * host that resolves while another is being removed would otherwise read the map mid-write,
+ * and a [LinkedHashMap] answers that with a `ConcurrentModificationException`. The order is
+ * the answering order rather than a sort, so a list already on screen does not reshuffle
+ * under the reader's finger when a later host joins it.
  */
+internal class FoundHosts {
+    private val byName = LinkedHashMap<String, SmbHost>()
+
+    /** Records [name] at [address], replacing an earlier answer from the same name. */
+    fun resolved(name: String, address: String, port: Int): List<SmbHost> = synchronized(byName) {
+        byName[name] = SmbHost(name, address, port)
+        byName.values.toList()
+    }
+
+    /** Drops [name]. A name this discovery never resolved is not an error: it is simply absent. */
+    fun lost(name: String): List<SmbHost> = synchronized(byName) {
+        byName.remove(name)
+        byName.values.toList()
+    }
+}
+
 object SmbDiscovery {
     private const val SERVICE_TYPE = "_smb._tcp."
 
-    /**
-     * Emits the set of hosts seen so far, growing as replies arrive.
-     *
-     * The whole set each time rather than one host at a time: a screen wants to draw a
-     * list, and rebuilding one from a stream of additions and removals is work the caller
-     * should not repeat.
-     */
     fun hosts(context: Context): Flow<List<SmbHost>> = callbackFlow {
         val manager = context.getSystemService(NsdManager::class.java)
         if (manager == null) {
@@ -38,18 +45,22 @@ object SmbDiscovery {
             return@callbackFlow
         }
 
-        val found = LinkedHashMap<String, SmbHost>()
+        val found = FoundHosts()
 
-        val resolver = object : NsdManager.ResolveListener {
+        // A new one for every resolve, never a shared instance. `NsdManager` holds a resolve
+        // listener in a map keyed by the instance itself and removes it only when that one
+        // resolve succeeds or fails, so a second resolve handed the same listener throws
+        // `IllegalArgumentException("listener already in use")` -- on `NsdManager`'s own
+        // callback thread, where nothing catches it, so the app goes down rather than the
+        // resolve failing. Two shares on a network answer in the same breath, which is why
+        // the crash needed a second host to show itself and why one share never saw it.
+        fun resolver(): NsdManager.ResolveListener = object : NsdManager.ResolveListener {
             override fun onResolveFailed(info: NsdServiceInfo, code: Int) = Unit
 
             override fun onServiceResolved(info: NsdServiceInfo) {
-                // `host` is deprecated in favour of `hostAddresses`, which needs API 34.
-                // This module's floor is 31, so the old one is the one that exists.
                 @Suppress("DEPRECATION")
                 val address = info.host?.hostAddress ?: return
-                found[info.serviceName] = SmbHost(info.serviceName, address, info.port)
-                trySend(found.values.toList())
+                trySend(found.resolved(info.serviceName, address, info.port))
             }
         }
 
@@ -61,12 +72,11 @@ object SmbDiscovery {
 
             override fun onServiceFound(info: NsdServiceInfo) {
                 @Suppress("DEPRECATION")
-                manager.resolveService(info, resolver)
+                manager.resolveService(info, resolver())
             }
 
             override fun onServiceLost(info: NsdServiceInfo) {
-                found.remove(info.serviceName)
-                trySend(found.values.toList())
+                trySend(found.lost(info.serviceName))
             }
         }
 

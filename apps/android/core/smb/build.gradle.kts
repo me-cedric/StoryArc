@@ -28,6 +28,19 @@ android {
     }
 }
 
+// `SmbDiscoveryResolverTest` reads this module's own source, because the rule it guards is an
+// identity rule about an `NsdManager` call and this module has JUnit alone. The source
+// directory is declared an input as well: a `Test` task's inputs are its classpath and its
+// candidate classes, never the module's Kotlin sources, so nothing otherwise ties this task's
+// up-to-date check to the tree it reads -- and the guard is only worth having if editing that
+// file re-runs it.
+tasks.withType<Test>().configureEach {
+    systemProperty("storyarc.smb.projectDir", projectDir.absolutePath)
+    inputs.files(layout.projectDirectory.dir("src/main/kotlin"))
+        .withPropertyName("smbDiscoverySources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
 dependencies {
     // jcifs-ng was built against BouncyCastle 1.76 and parses the SPNEGO tokens the
     // server chooses with it. 1.76 is inside CVE-2025-8885, so it is raised here rather
