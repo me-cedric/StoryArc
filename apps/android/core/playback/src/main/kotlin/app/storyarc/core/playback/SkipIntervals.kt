@@ -1,6 +1,28 @@
 package app.storyarc.core.playback
 
 /**
+ * What one press of a skip control moves.
+ *
+ * `audio-playback`, *Both sources look the same*: "every control the player offers works, or
+ * is absent — none is present and refusing". A narrated file moves by [SkipIntervals]'
+ * seconds. A synthesised voice has no seconds to move by — it has sentences — so a control
+ * labelled *30 seconds* over a voice would be a control stating a distance it cannot travel.
+ *
+ * Declared as data on the source rather than asked of the engine, which is what keeps the
+ * one surface from learning which engine is behind it: the player reads this and draws the
+ * label, and nothing in it branches on a kind. iOS states the same two cases on
+ * `PlaybackSource.skipUnit`.
+ */
+enum class SkipUnit {
+
+    /** Seconds, by the fixed interval the control states. */
+    SECONDS,
+
+    /** One sentence, which is all a synthesised voice can offer. */
+    SENTENCE,
+}
+
+/**
  * How far a skip goes, in each direction.
  *
  * **The two numbers are a product decision**, recorded as one in `design.md`. Back is the

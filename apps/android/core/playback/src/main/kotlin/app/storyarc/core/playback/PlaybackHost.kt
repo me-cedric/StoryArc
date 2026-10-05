@@ -72,30 +72,59 @@ object PlaybackHost : SpokenAudio.Speaker {
         onChange = { playing ->
             _nowPlaying.value = playing
             wakeAtPartEnd(playing)
+            // The session has gone, so whatever held it has. Here rather than in each of the
+            // three endings, because `PlaybackCentre` routes all of them through one
+            // teardown and this is where that teardown is heard.
+            //
+            // **The sleep timer goes with it**, and this is the only place that catches all
+            // three endings: [stop] clears it for the listener's own stop, and a book that
+            // ran out of audio — or a voice that ran out of words — reaches the centre as an
+            // idle session instead, with no call of its own. A timer left counting on a book
+            // that has already stopped fades a book that is not playing and then "wakes" to
+            // stop it again.
             if (playing == null) {
-                // The book ran out, or was displaced. Nothing to put back, so the carousel
-                // and a car both stop offering it.
-                memory?.forget()
-                PlaybackService.resumption = null
-            } else {
-                // Where the audio has reached, kept where a service the system starts on
-                // its own can read it. See [PlaybackMemory] — a field alone was null in
-                // exactly the case resumption exists for.
-                //
-                // The part's start plus the offset into it, because media3 resumes at a time
-                // into an item and a position states a time into a part. The two are the same
-                // number for a folder, and for a chaptered file they differ by the mark.
-                memory?.moveTo(
-                    publicationId = playing.publicationId,
-                    partIndex = playing.partIndex,
-                    offsetMillis = playing.itemTimeMillis,
-                )
-                // And the process-wide field, which [PlaybackService.onPlaybackResumption]
-                // prefers over the file. Refreshed here rather than only at [start], so the
-                // carousel resumes where the audio reached instead of where it began — and
-                // so both answers come out of the one record that holds an item time.
-                memory?.last()?.let { PlaybackService.resumption = PlaybackResumption.of(it) }
+                voice = null
+                setSleepTimer(null)
             }
+            rememberForResumption(playing)
+        }
+    }
+
+    /**
+     * Keeps the record a service the system restarts plays from, for a source media3 plays.
+     *
+     * **Only for one.** [memory] is null while the voice holds the session, and this returns
+     * on that: a read-aloud session has nothing media3 could put back — there is no file, no
+     * item and no time into one — so remembering it would replace a real audiobook's record
+     * with one the resumption path cannot honour, and the shade's carousel would offer a
+     * book that plays silence. The displaced audiobook's own record is written on its way
+     * out, by the ending that displaced it.
+     */
+    private fun rememberForResumption(playing: NowPlaying?) {
+        val memory = memory ?: return
+        if (playing == null) {
+            // The book ran out, or was displaced. Nothing to put back, so the carousel
+            // and a car both stop offering it.
+            memory.forget()
+            PlaybackService.resumption = null
+        } else {
+            // Where the audio has reached, kept where a service the system starts on
+            // its own can read it. See [PlaybackMemory] — a field alone was null in
+            // exactly the case resumption exists for.
+            //
+            // The part's start plus the offset into it, because media3 resumes at a time
+            // into an item and a position states a time into a part. The two are the same
+            // number for a folder, and for a chaptered file they differ by the mark.
+            memory.moveTo(
+                publicationId = playing.publicationId,
+                partIndex = playing.partIndex,
+                offsetMillis = playing.itemTimeMillis,
+            )
+            // And the process-wide field, which [PlaybackService.onPlaybackResumption]
+            // prefers over the file. Refreshed here rather than only at [start], so the
+            // carousel resumes where the audio reached instead of where it began — and
+            // so both answers come out of the one record that holds an item time.
+            memory.last()?.let { PlaybackService.resumption = PlaybackResumption.of(it) }
         }
     }
 
@@ -103,8 +132,15 @@ object PlaybackHost : SpokenAudio.Speaker {
      * The publication being narrated — its id and title — or null. This host's half of what
      * [SpokenAudio] answers for both; the title is what a displacement notice would name,
      * and for a narrator it never does.
+     *
+     * **Null while the voice holds the session, although the session is this centre's.**
+     * One player with two sources means the voice's surface is built here, and it must not
+     * mean the voice is answered for here: `VoiceStoppedNotice` asks *what kind* of speaker
+     * was displaced, this host is the [SpokenAudio.Kind.NARRATOR], and a voice reported from
+     * here would be silenced without the word it is owed. The voice's own host answers for
+     * it, and [SpokenAudio.silence] passes over a speaker that reports nothing.
      */
-    override val speaking: SpokenAudio.Spoken? get() = centre.playing
+    override val speaking: SpokenAudio.Spoken? get() = if (voice == null) centre.playing else null
 
     /** A narrated file. Displacing one owes the listener nothing — see [VoiceStoppedNotice]. */
     override val kind: SpokenAudio.Kind = SpokenAudio.Kind.NARRATOR
@@ -127,6 +163,15 @@ object PlaybackHost : SpokenAudio.Speaker {
     private var controller: MediaController? = null
     private var current: AudiobookSource? = null
     private var memory: PlaybackMemory? = null
+
+    /**
+     * The voice, while it is the source this centre holds. Null the rest of the time.
+     *
+     * Two questions are answered from it and nothing else is: whether [speaking] is this
+     * host's to answer, and whether [stopVoice] is being asked to end a session the voice
+     * still holds. Cleared by the one teardown, in the `onChange` above.
+     */
+    private var voice: PlayerSource? = null
 
     private val _sleep = MutableStateFlow<SleepTimer?>(null)
 
@@ -261,6 +306,46 @@ object PlaybackHost : SpokenAudio.Speaker {
     }
 
     /**
+     * Takes a voice that has already begun speaking as this centre's one session.
+     *
+     * `audio-playback`, *One player for everything that speaks*: "every source of spoken
+     * audio — a narrated audiobook and the read-aloud voice alike — SHALL drive that one
+     * surface". Until this existed the Android voice drove a surface of its own, so a
+     * listener who left the reader had no compact bar to come back through, no chapter list,
+     * no speed and no sleep timer — and iOS, where read-aloud has always been a second
+     * source inside the one `PlayerCentre`, had all four.
+     *
+     * **[PlaybackCentre.attach] rather than [PlaybackCentre.start], and the caller starts
+     * first.** The voice owns its own beginning: it asks for audio focus, binds a speech
+     * engine and walks to the first sentence, and only then is there a session to draw.
+     * Started from here instead, the centre would publish an idle source and let it go in
+     * the same breath — [PlaybackCentre.publish] drops a source whose session is not active,
+     * which is exactly what an unstarted voice looks like.
+     *
+     * **[memory] is dropped, not kept.** See [rememberForResumption]: a voice has no file
+     * for media3 to put back, so a record of one would be a resumption that plays silence.
+     */
+    fun startVoice(source: PlayerSource) {
+        memory = null
+        current = null
+        voice = source
+        centre.attach(source)
+    }
+
+    /**
+     * Ends a voice session this centre is still holding.
+     *
+     * What the voice's own teardown calls, so the compact bar and the player go with the
+     * voice rather than outliving it. A session the voice has already lost — displaced by an
+     * audiobook, which stops the voice on its way in — is left alone: [voice] is null by
+     * then, and stopping here would stop the book that replaced it.
+     */
+    fun stopVoice(source: PlayerSource) {
+        if (voice !== source) return
+        stop()
+    }
+
+    /**
      * Writes the audiobooks on the device where a car can read them.
      *
      * `audio-playback` asks a car surface to list them, and the system starts [PlaybackService]
@@ -306,8 +391,11 @@ object PlaybackHost : SpokenAudio.Speaker {
         val timer = after?.let { SleepTimer.of(it, _nowPlaying.value) }
         _sleep.value = timer
         // Full volume again, whether the listener cleared a timer or replaced one part way
-        // through its fade.
-        controller?.volume = 1f
+        // through its fade. Through the source rather than through the controller this host
+        // holds: the fade belongs to whatever is making the sound, and a controller reaches
+        // only the decoder. A voice has no gain and fades by not fading — see
+        // [PlayerSource.setVolume].
+        centre.setVolume(1f)
         if (timer == null) return
 
         countdown = scope.launch {
@@ -319,7 +407,7 @@ object PlaybackHost : SpokenAudio.Speaker {
                 if (playing?.isPlaying != true) continue
                 val next = (_sleep.value ?: return@launch).ticked(TICK_MILLIS, playing)
                 _sleep.value = next
-                controller?.volume = next.gain
+                centre.setVolume(next.gain)
                 if (next.hasElapsed) {
                     fellAsleep()
                     return@launch
@@ -347,9 +435,16 @@ object PlaybackHost : SpokenAudio.Speaker {
                 offsetMillis = (it.offsetMillis - SleepTimer.FADE_MILLIS).coerceAtLeast(0),
             )
         }
-        rewound?.let(centre::seek)
-        if (playing?.isPlaying == true) centre.toggle()
-        controller?.volume = 1f
+        // Only where a seek lands somewhere a listener can be put back. A voice is not
+        // scrubbable — it has no clock to rewind thirty seconds of — and seeking it would
+        // begin the chapter again rather than resume it a little earlier. iOS's
+        // `sleepTimerElapsed` guards the same call with the same question.
+        if (playing?.isScrubbable == true) rewound?.let(centre::seek)
+        // `audio-playback` asks the audio to fade rather than be cut. A voice has no fade to
+        // give, so it finishes the sentence it is saying instead, which is the same promise
+        // kept the only way a sentence can keep it.
+        if (playing?.isPlaying == true) centre.stopAtSentenceEnd()
+        centre.setVolume(1f)
         _sleep.value = null
         val source = current ?: return
         rewound?.let { recordPosition?.invoke(source.publicationId, it, source.parts) }
@@ -384,13 +479,14 @@ object PlaybackHost : SpokenAudio.Speaker {
      */
     fun refresh() = centre.refresh()
 
-    /** Moves to the start of a part, whichever way this publication's parts are laid out. */
-    fun seekToPart(index: Int) {
-        current?.seekToPart(index)
-        // A chapter chosen from a list is a place the listener picked, not one the audio
-        // drifted to.
-        centre.recordReached()
-    }
+    /**
+     * Moves to the start of a part, whichever way this publication's parts are laid out.
+     *
+     * Through the centre, so the source that holds the session answers it. It used to go
+     * straight to [current], which is a narrated book or nothing — so choosing a chapter
+     * while the voice was speaking moved nothing and still wrote a position.
+     */
+    fun seekToPart(index: Int) = centre.seekToPart(index)
 
     /**
      * Skips by the fixed interval, which is a product decision and not media3's.

@@ -288,7 +288,7 @@ internal fun HostedScreen(
                     sleep = PlaybackHost.sleep.collectAsStateWithLifecycle().value,
                     onSleep = PlaybackHost::setSleepTimer,
                     onBack = back,
-                    publication = following?.takeIf { it.id == playing.publicationId },
+                    publication = playedPublication(playing, following, host.library.publications.value),
                     // The same cache every shelf reads, so a cover the library has drawn
                     // once is not decoded a second time for the player.
                     cover = host.library::cover,

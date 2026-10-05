@@ -2,7 +2,11 @@ package app.storyarc.feature.epubreader
 
 import android.content.Context
 import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.playback.PlaybackHost
+import app.storyarc.core.playback.PlaybackPart
 import app.storyarc.core.playback.PlaybackSession
+import app.storyarc.core.playback.SkipUnit
+import app.storyarc.core.playback.SleepAfter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -69,6 +73,15 @@ class ReadAloudHostTest {
         override fun toggle() = Unit
         override fun skip(forward: Boolean) = Unit
 
+        /** What the shared player asked of this voice, for the rules that read them back. */
+        var rate: Double = 1.0
+        var jumpedTo: Int? = null
+        var stoppedAtSentenceEnd = false
+
+        override fun setSpeed(rate: Double) { this.rate = rate }
+        override fun jumpTo(resourceIndex: Int) { jumpedTo = resourceIndex }
+        override fun stopAtSentenceEnd() { stoppedAtSentenceEnd = true }
+
         override fun stop() {
             _session.value = _session.value.stopped()
         }
@@ -111,6 +124,7 @@ class ReadAloudHostTest {
         ),
         from = from,
         drawnBy = drawnBy,
+        parts = listOf(PlaybackPart(title = "The Harbour")),
     ) { said -> voice.also { it.said = said } }
 
     /** The host is a process-wide object; a session left running would be the next test's. */
@@ -153,6 +167,64 @@ class ReadAloudHostTest {
         assertNull(ReadAloudHost.speaking)
         assertNull(ReadAloudHost.book.value)
         assertEquals(1, voice.releases)
+    }
+
+    // MARK: - The one player
+
+    /*
+     * Task 13.2. `audio-playback`, *One player for everything that speaks*: "every source of
+     * spoken audio -- a narrated audiobook and the read-aloud voice alike -- SHALL drive
+     * that one surface". The Android voice used to drive a surface of its own, so a listener
+     * who left the reader had no compact bar to come back through and no full player at all.
+     *
+     * What `PlaybackHost` does with the source once it has it is `PlaybackHostVoiceTest`'s.
+     * These two are the handover: that the host gives the player a started voice, and takes
+     * it back when the voice goes quiet.
+     */
+
+    @Test
+    fun `a started voice is what the shared player draws`() {
+        val voice = Voice()
+
+        begin(voice)
+
+        assertEquals("harbour-lights-01", PlaybackHost.nowPlaying.value?.publicationId)
+        assertEquals(SkipUnit.SENTENCE, PlaybackHost.nowPlaying.value?.skipUnit)
+    }
+
+    @Test
+    fun `a voice that could not start is never given to the player`() {
+        begin(Voice(canStart = false))
+
+        assertNull(PlaybackHost.nowPlaying.value)
+    }
+
+    @Test
+    fun `the end of the voice is the end of the player's session`() {
+        begin(Voice())
+
+        ReadAloudHost.end()
+
+        assertNull(PlaybackHost.nowPlaying.value)
+    }
+
+    /**
+     * And the end is told to the player rather than noticed by it.
+     *
+     * The session this host gives up reaches the player twice: through the source's own
+     * flow, and through the stop this host sends. Only the second ends the *player's*
+     * session rather than the source's, and a sleep timer is what tells them apart -- it is
+     * the host's, it outlives a source being let go, and a listener whose book has already
+     * stopped must not have a timer still counting down on it.
+     */
+    @Test
+    fun `a sleep timer does not outlive the voice it was counting down`() {
+        begin(Voice())
+        PlaybackHost.setSleepTimer(SleepAfter.Duration(15 * 60_000L))
+
+        ReadAloudHost.end()
+
+        assertNull(PlaybackHost.sleep.value)
     }
 
     /** And the listener's own stop is still the end of it. */

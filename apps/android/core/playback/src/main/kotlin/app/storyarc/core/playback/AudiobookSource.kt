@@ -328,7 +328,7 @@ class AudiobookSource(
     }
 
     /** Moves to the start of a part, whichever way this publication's parts are laid out. */
-    fun seekToPart(index: Int) {
+    override fun seekToPart(index: Int) {
         when (book.layout) {
             PartLayout.FILES -> player.seekTo(index, 0)
             PartLayout.MARKS -> player.seekTo(offsets.getOrElse(index) { 0L })
@@ -342,6 +342,19 @@ class AudiobookSource(
         // "without changing pitch", and setting both would be the way to break it.
         player.setPlaybackSpeed(speed.rate.toFloat())
         onChange?.invoke()
+    }
+
+    /**
+     * The sleep timer's fade, applied to the decoder this source plays through.
+     *
+     * `PlaybackHost` used to set this on the `MediaController` it holds. That reached the
+     * same player and nothing else, so the fade was a property of the host rather than of
+     * whatever was making the sound — and a second source would have had no way to be
+     * faded at all. No redraw: a gain is not a position, and nothing on the surface states
+     * it.
+     */
+    override fun setVolume(gain: Float) {
+        player.volume = gain
     }
 
     /**

@@ -58,7 +58,15 @@ object TotalProgression {
         return readingOrder.indexOfFirst { withoutFragment(it) == wanted }
     }
 
-    private fun withoutFragment(href: String): String =
+    /**
+     * A resource's href with the parts that are not its identity taken off.
+     *
+     * Public because a second caller needs the same answer: the chapter list a read-aloud
+     * session draws names its parts from the table of contents, whose links point at
+     * anchors inside a resource, and matching those against the reading order is this rule
+     * exactly. A second spelling of it is a list that names some chapters and not others.
+     */
+    fun withoutFragment(href: String): String =
         href.substringBefore('#').substringBefore('?')
 
     /** Where the reader is, from the reading order alone. Null when it cannot be told. */

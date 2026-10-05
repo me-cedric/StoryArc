@@ -377,7 +377,10 @@ internal fun AppShell(
             if (playing != null && navigation.current !is Screen.Player) {
                 CompactPlayerBar(
                     title = playing.title,
-                    chapter = playing.chapter,
+                    // Named the way the player's own list names it, so the bar and the
+                    // screen it opens onto agree about which chapter this is — see
+                    // [partName] for the resource an EPUB's contents did not name.
+                    chapter = playing.chapter?.let { partName(it, playing.partIndex) },
                     isPlaying = playing.isPlaying,
                     // Through the current part, and null where nothing knows how long it
                     // is — `audio-playback` allows a position with no total and forbids
