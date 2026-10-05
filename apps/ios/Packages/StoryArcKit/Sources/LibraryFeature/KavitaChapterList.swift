@@ -144,7 +144,7 @@ struct KavitaChapterList: View {
 
     @ViewBuilder
     private func row(_ chapter: KavitaChapter) -> some View {
-        Button {
+        let cell = Button {
             Task { await open(chapter) }
         } label: {
             HStack(spacing: StoryArcSpace.sm) {
@@ -163,7 +163,23 @@ struct KavitaChapterList: View {
         }
         .buttonStyle(.plain)
         .disabled(fetching != nil)
-        .contextMenu { actions(for: chapter) } preview: { preview(for: chapter) }
+
+        // Only an indexed chapter has a card to lift. `.contextMenu(menuItems:preview:)`
+        // draws its preview container around whatever the builder returns, so a chapter this
+        // device has never fetched — which is most of a freshly browsed series — lifted into
+        // an empty card and took the row the reader was pressing off the screen with it.
+        // ``HeldSearchResultRow`` picks between the two overloads for the same reason.
+        let isIndexed = knownKavitaChapter(
+            sourceId: sourceId, series: series, chapter: chapter, in: model.publications
+        ) != nil
+
+        Group {
+            if isIndexed {
+                cell.contextMenu { actions(for: chapter) } preview: { preview(for: chapter) }
+            } else {
+                cell.contextMenu { actions(for: chapter) }
+            }
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken(chapter))
     }

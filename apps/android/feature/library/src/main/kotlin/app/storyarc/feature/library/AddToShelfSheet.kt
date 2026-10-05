@@ -32,8 +32,6 @@ import app.storyarc.core.persistence.ShelfEditStore
 import kotlinx.coroutines.launch
 
 /**
- * What can be done with a publication that is not "open it".
- *
  * Where a publication can be put, and whether it has been read.
  *
  * `collections-and-reading-lists`: "a publication may belong to any number of collections".
@@ -61,24 +59,6 @@ fun AddToShelfSheet(
      * out of a long press, which has nothing to undo it with.
      */
     onChange: ((BulkUndo) -> Unit)? = null,
-    /**
-     * Asks the caller to confirm starting over. The confirmation `reading-progress`
-     * requires lives outside this sheet, because dismissing the sheet to show a dialogue is
-     * the caller's business, not the sheet's.
-     */
-    onRestart: (() -> Unit)? = null,
-    /**
-     * Removes the publication from the shelf this sheet was opened on. Null where the sheet
-     * was not opened from inside a shelf, a collection or a reading list the reader owns --
-     * `library-browsing`'s *A publication's actions wherever it is drawn* offers this "only
-     * where there is one".
-     */
-    onRemoveFromShelf: (() -> Unit)? = null,
-    /**
-     * Opens the publication's own page -- the same route its cover's own tap already takes.
-     * Null only where the caller has nowhere to send it, which nothing in this app does.
-     */
-    onShowDetails: (() -> Unit)? = null,
     /**
      * Whether this sheet draws its own Download/Remove-download row.
      *
@@ -136,38 +116,18 @@ fun AddToShelfSheet(
                 }
             }
 
-            // `reading-progress`: "a 'Start from the beginning' action is available ... and
-            // it clears progress only after confirmation". Offered only where there is
-            // something to clear — on an unread publication it would start it from the
-            // beginning it is already at — and only on one publication, because a set of
-            // them has no single beginning to go back to.
-            //
-            // The third condition -- that someone took the handler -- reads as a niceness
-            // here and is the whole of the defect on the other platform: iOS's menu drew
-            // this button with nothing behind it. [RestartOffer] is the rule both sides now
-            // assert, rather than one of them merely happening to have it.
-            val alone = publications.singleOrNull()
-            if (RestartOffer.isOffered(
-                    publicationCount = publications.size,
-                    hasSomethingToClear = alone != null &&
-                        (alone.id in finished || viewModel.readFraction(alone) != null),
-                    isWired = onRestart != null,
-                ) && onRestart != null
-            ) {
-                Row(
-                    name = stringResource(R.string.library_restart),
-                    isMember = false,
-                    enabled = true,
-                ) {
-                    onRestart()
-                    onDismiss()
-                }
-            }
+            // No *Start from the beginning*, no *Remove from this shelf* and no *Show
+            // details* here. [PublicationActionMenu] owns all three now: it is what a long
+            // press opens on every surface, and this sheet is reached from its *Add to shelf*
+            // row, so a reader who met those rows once must not meet them again underneath.
+            // Their parameters went with them -- none of the four callers ever passed one, so
+            // every one of the three rows was unreachable code describing a feature.
 
-            // Download or remove the download: single-publication actions, the way
-            // [RestartOffer] above already is. A bulk long press has its own
-            // [BulkDownloadPrompt], which asks a different question -- how many of a
+            // Download or remove the download: a single-publication action, the way
+            // [RestartOffer] is for the menu that owns the restart row. A bulk long press has
+            // its own [BulkDownloadPrompt], which asks a different question -- how many of a
             // selection, not whether one already is.
+            val alone = publications.singleOrNull()
             if (alone != null && offersDownloadAction) {
                 val offer = DownloadOffer.of(
                     alone,
@@ -197,17 +157,6 @@ fun AddToShelfSheet(
                     }
 
                     DownloadOffer.None -> {}
-                }
-            }
-
-            if (onRemoveFromShelf != null) {
-                Row(
-                    name = stringResource(R.string.library_action_remove_from_shelf),
-                    isMember = false,
-                    enabled = true,
-                ) {
-                    onRemoveFromShelf()
-                    onDismiss()
                 }
             }
 
@@ -306,17 +255,6 @@ fun AddToShelfSheet(
                             }
                         }
                     }
-                }
-            }
-
-            if (onShowDetails != null) {
-                Row(
-                    name = stringResource(R.string.library_action_show_details),
-                    isMember = false,
-                    enabled = true,
-                ) {
-                    onShowDetails()
-                    onDismiss()
                 }
             }
         }

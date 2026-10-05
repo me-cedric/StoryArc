@@ -3,6 +3,7 @@ package app.storyarc.feature.library
 import androidx.lifecycle.viewModelScope
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
+import app.storyarc.core.persistence.SourceReadProgressStore
 import app.storyarc.core.smb.SmbAddress
 import app.storyarc.core.smb.SmbClient
 import java.util.UUID
@@ -57,12 +58,25 @@ private suspend fun LibraryViewModel.continueReadingShare(source: Source, client
  * the read now stands. Shared by the share and the catalogue continuations -- both land a
  * plain [SourceSlice] rather than a source-specific page type, unlike Kavita's own
  * `KavitaContinuedRead.land`, which still needs the chapter list underneath its page.
+ *
+ * The cursor goes to disk with the count, which is what makes the resume branch in
+ * [adoptPartialSources] reach a share and a catalogue at all. Neither continues by a page
+ * number, so a record holding only the count told a relaunch where the read stood and not
+ * what to ask for next. `readSourceOnward` advances the cursor before it lands the page, so
+ * the map already holds the one this page stopped at.
  */
 internal fun LibraryViewModel.landContinuedSlice(sourceId: UUID, slice: SourceSlice, step: SourceReadStep) {
     slice.publications.forEach { adopt(it, sourceId) }
+    val store = SourceReadProgressStore.open(getApplication())
     partialSources = when (step) {
-        is SourceReadStep.Continuing -> partialSources + (sourceId to step.progress)
-        else -> partialSources - sourceId
+        is SourceReadStep.Continuing -> {
+            store.record(sourceId, step.progress.stored(opdsNext[sourceId], smbQueues[sourceId]))
+            partialSources + (sourceId to step.progress)
+        }
+        else -> {
+            store.clear(sourceId)
+            partialSources - sourceId
+        }
     }
     rebuild()
     cacheLibrary(claimsFreshness = false)

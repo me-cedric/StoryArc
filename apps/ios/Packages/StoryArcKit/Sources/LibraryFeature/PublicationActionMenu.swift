@@ -26,17 +26,24 @@ enum PublicationActions {
     /// for a Kavita chapter with no file of its own: `kavita-server`'s *Keeping a chapter on
     /// the device* fixed the primary menu and left this one still refusing the same row.
     ///
-    /// **A Kavita row with no file of its own asks one more question.** A library row built
-    /// from a browse that never opened or kept it draws this exact button, and a tap that
-    /// does nothing is worse than no button at all — ``LibraryModel/canKeepKavitaChapter(_:)``
-    /// is the route that carries it through, and the one place this asks whether there is
-    /// one at all.
+    /// **Every yes here names a route ``LibraryModel/keepOffline(_:)`` can actually take**,
+    /// and it has three: it copies a file this device holds, it queues a Kavita chapter whose
+    /// origin the library can resolve, and it reads an OPDS feed again to queue a catalogue
+    /// row. A `smb://` location is a share this app browses rather than a file it holds, and
+    /// `FileManager.copyItem(at:to:)` cannot take one, so `isFileURL` and not the mere
+    /// presence of a location decides the first. A library row built from a browse that never
+    /// opened or kept it draws this exact button, and a tap that does nothing is worse than no
+    /// button at all — which is why a row with no route of the three, a network share or a
+    /// server this build queues nothing for, now says no where it used to say yes to anything
+    /// that merely had no file. Android states the remote half of the rule as its own
+    /// `PublicationActions.isQueueableRemote`.
     @MainActor
     static func canCopy(_ publication: Publication, file: URL?, model: LibraryModel) -> Bool {
         guard canDownload(publication) else { return false }
-        guard file == nil, publication.identity.serverIdentifier?.remoteID.hasPrefix("chapter:") == true
-        else { return true }
-        return model.canKeepKavitaChapter(publication)
+        if file?.isFileURL == true { return true }
+        guard let remote = publication.identity.serverIdentifier?.remoteID else { return false }
+        if remote.hasPrefix("chapter:") { return model.canKeepKavitaChapter(publication) }
+        return remote.hasPrefix("opds:")
     }
 }
 
@@ -47,8 +54,10 @@ enum PublicationActions {
 /// the same three cases.
 ///
 /// `canCopy`: whether ``PublicationActions/canCopy(_:file:model:)`` found a route the menu's
-/// download — ``LibraryModel/keepOffline(_:)`` — can actually take. A local file is always
-/// one; a browsed Kavita chapter is one only when its origin is known; nothing else is.
+/// download — ``LibraryModel/keepOffline(_:)`` — can actually take. A file this device holds
+/// is always one; a browsed Kavita chapter is one only when its origin is known; an OPDS row
+/// is one because the queue can read its feed again; nothing else is, a network share least
+/// of all.
 enum DownloadOffer: Equatable {
     case download
     case remove

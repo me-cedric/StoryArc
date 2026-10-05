@@ -102,13 +102,39 @@ struct PublicationActionsCanCopyTests {
         return model
     }
 
-    @Test("A non-chapter remote row with no file is not refused for having none")
-    func nonChapterRemoteRowCanCopy() {
-        // The regression this proves: an OPDS or share row's identity never starts with
-        // "chapter:", so it takes the same road a local file does rather than the Kavita
-        // route — which is the road the menu's own `isLocalFile` check used to close.
+    /// A network share, as `LibraryMerge.location(forNormalizedPath:)` files one: browsed over
+    /// `smb://` and identified by that path rather than by any server's own remote id.
+    private func shareRow() -> Publication {
+        Publication(
+            identity: PublicationIdentity(normalizedPath: "smb://nas/comics/one.cbz"),
+            format: .cbz,
+            displayTitle: "One",
+            origin: .inferred
+        )
+    }
+
+    @Test("An OPDS row with no file is not refused for having none")
+    func opdsRemoteRowCanCopy() {
+        // The regression this proves: an OPDS row's identity never starts with "chapter:", so
+        // it takes the queue's own road rather than the Kavita route — which is the road the
+        // menu's own `isLocalFile` check used to close.
         let remote = publication(remoteID: "opds:9")
         #expect(PublicationActions.canCopy(remote, file: nil, model: modelWithNoRegisteredSource()))
+    }
+
+    @Test("A network share row offers no copy, because its location is not a file to copy")
+    func shareRowCannotCopy() {
+        // `LibraryModel.keepOffline(_:)` copies the location with `FileManager`, which cannot
+        // read an `smb://` URL, and falls through to a queue that has no road for a share
+        // either. The menu drew a Download here that reported success and moved nothing.
+        let file = URL(string: "smb://nas/comics/one.cbz")
+        #expect(!PublicationActions.canCopy(shareRow(), file: file, model: modelWithNoRegisteredSource()))
+    }
+
+    @Test("A remote row of a kind no queue serves offers no copy either")
+    func unservedRemoteRowCannotCopy() {
+        let remote = publication(remoteID: "shelf:9")
+        #expect(!PublicationActions.canCopy(remote, file: nil, model: modelWithNoRegisteredSource()))
     }
 
     @Test("A chapter row with a local file already on this device copies without asking the route")

@@ -69,15 +69,27 @@ class SourceReadProgressStore internal constructor(private val preferences: Shar
 
 /**
  * What is actually written for one source: how much of it a continuation has merged, how
- * much more there is when the count is known, and which page answers next.
+ * much more there is when the count is known, which page answers next, and the cursor its
+ * own kind asks that next page by.
  *
- * The same three fields `feature.library`'s own `SourceReadProgress` holds, kept separate so
- * a change to that type's shape is this store's decision to make, not an accident of a
- * `Serializable` conformance reaching it from a feature module this one sits under.
+ * The three counters are the same fields `feature.library`'s own `SourceReadProgress` holds,
+ * kept separate so a change to that type's shape is this store's decision to make, not an
+ * accident of a `Serializable` conformance reaching it from a feature module this one sits
+ * under.
+ *
+ * The two cursors are in no such type, because only a Kavita server continues by a page
+ * number. A share continues from the folders its last page had not listed, and a catalogue
+ * from the feed link its last page named. A record that kept the counter and dropped the
+ * cursor was worse than no record at all: the relaunch resumed at page five and walked the
+ * share's root again, counting every row the library already held a second time.
  */
 @Serializable
 data class StoredSourceProgress(
     val read: Int,
     val total: Int? = null,
     val nextPage: Int,
+    /** A partial catalogue's next feed link. Null for any other kind, and for an older record. */
+    val opdsNext: String? = null,
+    /** A partial share's remaining walk frontier. Null for any other kind, and for an older record. */
+    val smbQueue: List<String>? = null,
 )

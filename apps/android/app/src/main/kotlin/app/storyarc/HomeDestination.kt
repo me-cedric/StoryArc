@@ -294,8 +294,9 @@ internal fun HomeDestination(host: AppHost) {
     val shelved = shelving
     if (shelved != null) {
         // `offersDownloadAction = false`: the menu this sheet is reached from already drew
-        // Download or Remove download as one of its own rows, and `onMark`/`onRestart` are
-        // null for the same reason -- a reader who dismissed one must not meet it again here.
+        // Download or Remove download as one of its own rows -- a reader who dismissed one
+        // must not meet it again here. The sheet carries no mark or restart row to turn off
+        // any more; `PublicationActionMenu` owns those.
         AddToShelfSheet(
             viewModel = host.library,
             publications = listOf(shelved),

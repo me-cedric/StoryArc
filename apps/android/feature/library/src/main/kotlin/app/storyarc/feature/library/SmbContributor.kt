@@ -47,12 +47,13 @@ internal object SmbContributor {
      * One page of a bounded walk, and the frontier it stopped at.
      *
      * `sources`' *More from a source than the library holds*: the first read is
-     * [publications], the walk's own first page starting from the share's root, and
+     * [ServerLibrary]'s own, this walk's first page starting from the share's root, and
      * `LibraryViewModel.continueReadingShares` asks for every page after it by handing
      * back [queue] -- the folders this page had not reached yet -- so a continuation
      * resumes the walk where it stopped instead of relisting the share's root folders
      * on every page, which a share with more folders than [MAX_FOLDERS] could never
-     * walk past.
+     * walk past. [ServerLibrary.Reading.smbQueues] is how [queue] reaches that
+     * continuation.
      */
     data class Page(val slice: SourceSlice, val queue: List<String>)
 
@@ -106,10 +107,6 @@ internal object SmbContributor {
             queue = pending.toList(),
         )
     }
-
-    /** The publications a bounded walk of the share finds, starting from its root. */
-    suspend fun publications(sourceId: UUID, client: SmbClient, address: SmbAddress): SourceSlice =
-        page(sourceId, client, address, queue = listOf(address.path)).slice
 
     /**
      * One file as a row, or null for a file this app cannot open.

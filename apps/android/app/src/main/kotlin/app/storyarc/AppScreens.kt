@@ -193,6 +193,7 @@ internal fun HostedScreen(
             viewModel = host.library,
             onOpen = host.openPage,
             onBack = back,
+            onMark = { publication, isRead -> host.mark(publication, isRead) },
         )
 
         is Screen.ServerShelfPage -> if (screen.shelf.isList) {

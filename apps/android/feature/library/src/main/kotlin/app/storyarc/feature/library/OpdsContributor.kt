@@ -30,10 +30,6 @@ import java.util.UUID
  */
 internal object OpdsContributor {
 
-    /** The entries of the feed a reader saved, as publications. */
-    suspend fun publications(sourceId: UUID, page: CataloguePage, pins: CertificatePins): SourceSlice =
-        page(sourceId, page, pins, url = page.url).slice
-
     /**
      * One feed page's entries as publications, and the feed's own `next` link.
      *
@@ -59,8 +55,8 @@ internal object OpdsContributor {
      *
      * 11.3: pulled out so a test can assert which `pins` reach it without a live catalogue.
      * Built with no pins before, which silently failed every catalogue behind a certificate
-     * the reader had already pinned -- the client refused the handshake and [publications]'
-     * caller saw an empty slice, never an error.
+     * the reader had already pinned -- the client refused the handshake and [page]'s caller
+     * saw an empty slice, never an error.
      */
     internal fun client(page: CataloguePage, pins: CertificatePins): OpdsClient =
         OpdsClient(pins = pins, origin = page.origin)

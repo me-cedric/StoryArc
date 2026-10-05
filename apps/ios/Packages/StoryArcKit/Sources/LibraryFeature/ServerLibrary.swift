@@ -39,6 +39,14 @@ enum ServerLibrary {
         /// for — a catalogue is a chain of links the server hands forward, with no page
         /// number or offset of this side's own invention.
         var opdsNext: [UUID: URL] = [:]
+        /// The folders this read's own first page of a share had not reached yet.
+        ///
+        /// The same reason as ``opdsNext``, asked of the other cursor-shaped source: a share
+        /// has no page number either, only a frontier. Dropping it here made
+        /// `continueReadingShares` fall back to the share's root, so a share with more
+        /// folders than ``SmbContributor/maxFolders`` listed its root twice and adopted the
+        /// same rows again, which doubled the number the source detail screen shows a reader.
+        var smbQueues: [UUID: [String]] = [:]
     }
 
     static func read(
@@ -49,8 +57,7 @@ enum ServerLibrary {
         var reading = Reading()
         for source in sources {
             let slice = await publications(
-                of: source, credentials: credentials, progress: progress,
-                conflicts: &reading.conflicts, opdsNext: &reading.opdsNext
+                of: source, credentials: credentials, progress: progress, into: &reading
             )
             reading.rows.append(contentsOf: slice.publications.map { ($0, source.id) })
             if slice.holdsMore { reading.partial.insert(source.id) }
@@ -62,8 +69,7 @@ enum ServerLibrary {
         of source: Source,
         credentials: CredentialStore?,
         progress: ProgressStore?,
-        conflicts: inout [KavitaConflict],
-        opdsNext: inout [UUID: URL]
+        into reading: inout Reading
     ) async -> SourceSlice {
         switch source.kind {
         case .kavitaServer:
@@ -78,7 +84,7 @@ enum ServerLibrary {
             // offline session could not send. A genuine conflict is collected rather
             // than discarded, so the reader is told about it too (D3) — task 2.9.
             if let progress {
-                conflicts += await KavitaSync.pull(
+                reading.conflicts += await KavitaSync.pull(
                     fetched.chapters,
                     in: KavitaProgressStore(),
                     into: progress,
@@ -96,16 +102,24 @@ enum ServerLibrary {
             else { return .none }
             // Learned here, where the first page is read, so a continuation started from
             // this read's own answer has a link to ask for rather than nothing.
-            opdsNext[source.id] = fetched.next
+            reading.opdsNext[source.id] = fetched.next
             return fetched.slice
 
         case .networkShare:
             guard let page = SmbPage(source: source, credentials: credentials) else { return .none }
-            return await SmbContributor.publications(
+            let fetched = await SmbContributor.page(
                 source: source.id,
                 client: SmbClient(address: page.address),
-                address: page.address
+                address: page.address,
+                queue: [page.address.path]
             )
+            // Learned here, where the walk's first page stops, for the same reason the
+            // catalogue branch above keeps its `next` link: the continuation resumes from the
+            // folders this page left unlisted. Thrown away before, so the first continuation
+            // page fell back to the share's root and walked it again —
+            // ``Reading/smbQueues`` says what that cost.
+            reading.smbQueues[source.id] = fetched.queue
+            return fetched.slice
 
         // Already in the library: its files are what the scan walks.
         case .localFolder: return .none
@@ -139,39 +153,7 @@ extension LibraryModel {
             credentials: CredentialStore(),
             progress: progressStore
         )
-        // A source already mid-continuation keeps its progress: a pull-to-refresh reads
-        // page one again, and page one alone knows nothing past its own first slice —
-        // replacing an entry already at page nine with a fresh "page two" would be the
-        // continuation rewinding itself every time the reader pulls down.
-        //
-        // A source new to this process, but not new to the device, resumes from
-        // `SourceReadProgressStore` instead — `sources`' *More from a source than the
-        // library holds* asks for progress that survives a relaunch, not only a pull.
-        let progressStore = SourceReadProgressStore()
-        for sourceID in reading.partial where partialSources[sourceID] == nil {
-            // Exact, not a guess: a page that reported `holdsMore` asked for at most its
-            // kind's own limit and got a full page back, by ``SourceSlice``'s own rule.
-            let firstSliceRead: Int
-            switch registry.sources.first(where: { $0.id == sourceID })?.kind {
-            case .kavitaServer: firstSliceRead = KavitaContributor.firstSlice
-            case .networkShare: firstSliceRead = SmbContributor.firstSlice
-            // A catalogue's first slice is one feed page, whatever size the server chose —
-            // nothing here names that number, so there is no total to divide it into either.
-            case .opdsCatalog, .localFolder, nil: firstSliceRead = 0
-            }
-            partialSources[sourceID] = .resuming(from: progressStore, source: sourceID, firstSliceRead: firstSliceRead)
-            if let next = reading.opdsNext[sourceID] { opdsNext[sourceID] = next }
-        }
-        // A source this read did not report partial has either finished — `land` already
-        // cleared its own entry, store included — or is gone from the registry altogether;
-        // either way nothing should keep asking disk about it.
-        for sourceID in partialSources.keys where !reading.partial.contains(sourceID) {
-            partialSources.removeValue(forKey: sourceID)
-            progressStore.clear(for: sourceID)
-        }
-        for sourceID in opdsNext.keys where !reading.partial.contains(sourceID) {
-            opdsNext.removeValue(forKey: sourceID)
-        }
+        adoptPartialSources(reading)
         RefreshConflicts.shared.report(reading.conflicts)
         for (publication, sourceID) in reading.rows {
             _ = adopt(publication, from: sourceID)
@@ -188,6 +170,68 @@ extension LibraryModel {
         // after it, so clearing the indicator here would answer for a walk that may still
         // be going — and one that met an unreadable directory has refreshed nothing.
         cacheLibrary(claimsFreshness: false)
+    }
+
+    /// Seeds ``partialSources`` and the two continuation cursors from a read's own answer,
+    /// and forgets every source the read no longer reports partial.
+    ///
+    /// A source already mid-continuation keeps its progress: a pull-to-refresh reads page one
+    /// again, and page one alone knows nothing past its own first slice — replacing an entry
+    /// already at page nine with a fresh "page two" would be the continuation rewinding itself
+    /// every time the reader pulls down.
+    ///
+    /// A source new to this process, but not new to the device, resumes from
+    /// ``SourceReadProgressStore`` instead — `sources`' *More from a source than the library
+    /// holds* asks for progress that survives a relaunch, not only a pull.
+    /// ``SourceReadProgress/resumable(in:source:kind:)`` holds the one exception: a record
+    /// with no cursor for a source kind that continues by one.
+    ///
+    /// A method of its own rather than the body of ``readServers()``, so a test can drive the
+    /// seeding with a hand-built ``ServerLibrary/Reading`` — a share cannot be read without a
+    /// real SMB server, which is how the share's own cursor came to be dropped here unnoticed.
+    /// Android's `adoptPartialSources` is the same function.
+    func adoptPartialSources(_ reading: ServerLibrary.Reading) {
+        let progressStore = SourceReadProgressStore()
+        for sourceID in reading.partial where partialSources[sourceID] == nil {
+            let kind = registry.sources.first(where: { $0.id == sourceID })?.kind
+            // Exact, not a guess: a page that reported `holdsMore` asked for at most its
+            // kind's own limit and got a full page back, by ``SourceSlice``'s own rule.
+            let firstSliceRead: Int
+            switch kind {
+            case .kavitaServer: firstSliceRead = KavitaContributor.firstSlice
+            case .networkShare: firstSliceRead = SmbContributor.firstSlice
+            // A catalogue's first slice is one feed page, whatever size the server chose —
+            // nothing here names that number, so there is no total to divide it into either.
+            case .opdsCatalog, .localFolder, nil: firstSliceRead = 0
+            }
+            let resumed = SourceReadProgress.resumable(in: progressStore, source: sourceID, kind: kind)
+            partialSources[sourceID] = .resuming(from: resumed, firstSliceRead: firstSliceRead)
+            // The stored cursor outranks this read's own: the first page always hands back
+            // the link to page two, and the record says where the continuation actually
+            // stopped. Either beats nothing, which is what a share had before 22.1.
+            if let next = resumed?.opdsNext ?? reading.opdsNext[sourceID] { opdsNext[sourceID] = next }
+            if let queue = resumed?.smbQueue ?? reading.smbQueues[sourceID] { smbQueues[sourceID] = queue }
+        }
+        // A source this read did not report partial has either finished — `land` already
+        // cleared its own entry, store included — or is gone from the registry altogether;
+        // either way nothing should keep asking disk about it.
+        let known = Set(registry.sources.map(\.id))
+        let failedStore = KavitaFailedSeriesStore()
+        for sourceID in partialSources.keys where !reading.partial.contains(sourceID) {
+            partialSources.removeValue(forKey: sourceID)
+            progressStore.clear(for: sourceID)
+            // Only for a source the registry has let go. A source that merely finished its
+            // read may still owe a series, and ``retryFailedKavitaSeries()`` asks for it on
+            // every read after that — clearing here would be the one thing that makes a
+            // failed series lost for good again.
+            if !known.contains(sourceID) { failedStore.clear(for: sourceID) }
+        }
+        for sourceID in opdsNext.keys where !reading.partial.contains(sourceID) {
+            opdsNext.removeValue(forKey: sourceID)
+        }
+        for sourceID in smbQueues.keys where !reading.partial.contains(sourceID) {
+            smbQueues.removeValue(forKey: sourceID)
+        }
     }
 
     /// Starts one background reader per source that is still partial: a Kavita server, a
@@ -222,7 +266,7 @@ extension LibraryModel {
         // number the reader would otherwise never see until the read finished.
         if partialSources[source.id]?.total == nil, let all = try? await client.series() {
             partialSources[source.id]?.total = all.count
-            if let updated = partialSources[source.id] { progressStore.record(updated.stored, for: source.id) }
+            if let updated = partialSources[source.id] { progressStore.record(updated.stored(), for: source.id) }
         }
         let failedStore = KavitaFailedSeriesStore()
         await readOnward(
@@ -235,7 +279,7 @@ extension LibraryModel {
                 }
                 if case .continuing(let next) = step {
                     partialSources[source.id] = next
-                    progressStore.record(next.stored, for: source.id)
+                    progressStore.record(next.stored(), for: source.id)
                 } else {
                     partialSources.removeValue(forKey: source.id)
                     progressStore.clear(for: source.id)

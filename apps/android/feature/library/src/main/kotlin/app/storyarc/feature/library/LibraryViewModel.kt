@@ -386,7 +386,7 @@ class LibraryViewModel(
             _registry, credentials, pins, progressStore,
             progressStore?.let { KavitaProgressStore.open(getApplication()) },
         )
-        adoptPartialSources(reading.partial, reading.opdsNext, pins)
+        adoptPartialSources(reading.partial, reading.opdsNext, reading.smbQueues, pins)
         RefreshConflicts.report(reading.conflicts)
         reading.rows.forEach { (publication, sourceId) -> adopt(publication, sourceId) }
         if (reading.rows.isEmpty()) return@launch

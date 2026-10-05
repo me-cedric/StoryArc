@@ -133,6 +133,29 @@ under Increase Contrast and Reduce Transparency (9.8), and a server shelf on Hom
 count (7.9). The lanes held too many large tasks, so 23 tasks did not finish. The 37 open
 tasks are now in 12 lanes of 2 to 4 tasks, in waves 7 to 10. smb3 and widgets stay paused.
 
+**Wave 7 landed on 2026-10-05** with 2 more tasks (205 of 240 in all), and it closed
+`page-browser-carousel` (12 of 12). Six worktrees merged. **Every source now reads past its
+first slice (22.1)**: Kavita through the next pages of `Series/recently-added-v2`, a share
+through the rest of its walk, and a catalogue through its feed `next` links, on both
+platforms. The read survives a relaunch, because `SourceReadProgressStore` holds where each
+continuation stood instead of memory alone, and a Kavita series that failed a page is asked
+for again on every read through `KavitaFailedSeriesStore`, not only while its source is still
+paging. The source detail states "N of M" while it reads. **A long press offers the same
+actions everywhere (22.4)**: one shared action builder per platform now feeds the library grid
+and list, the Home rows and shelves, search results, shelf and reading-list pages, and the
+Kavita and OPDS browsers. Android draws a Material 3 DropdownMenu with haptics; iOS draws a
+context menu with a preview. **The page browser is captured on both platforms (3.2)**: the
+Android carousel in light, dark, largest text and right-to-left, and the iOS largest-text
+frame, which needed a test fix of its own -- the shelf search now asks the alphabetical index
+when a swipe search leaves no hittable row. The iOS index rail also collapses instead of
+overflowing in landscape.
+
+Two files needed a hand resolution, because two worktrees edited the same seeding function:
+`KavitaContinuedRead.kt` and `ServerLibrary.swift`. Both took the union, so a source resumes
+from disk *and* carries its catalogue cursor. Verified on the merged tree: 2,586 iOS tests,
+the Android unit suites, `pnpm lint` and `swiftlint --strict` all pass. 35 tasks stay open,
+in waves 8 to 10. smb3 and widgets stay paused.
+
 **What this pass changes in the records below.**
 
 - **`offline-downloads` *Reading while downloading* is still Android-only.** Commit

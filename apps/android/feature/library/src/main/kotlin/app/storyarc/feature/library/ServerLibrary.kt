@@ -51,12 +51,19 @@ internal object ServerLibrary {
      *   catalogue that turned out partial. 22.1: `continueReadingCatalogues` has nothing
      *   else to ask for -- a catalogue is a chain of links the server hands forward, with
      *   no page number or offset of this side's own invention.
+     * @property smbQueues the folders this read's own first page of a share had not reached
+     *   yet. The same reason as [opdsNext], asked of the other cursor-shaped source: a share
+     *   has no page number either, only a frontier. Dropping it here made
+     *   `continueReadingShares` fall back to the share's root, so a share with more folders
+     *   than [SmbContributor.MAX_FOLDERS] listed its root twice and adopted the same rows
+     *   again, which doubled the number the source detail screen shows a reader.
      */
     data class Reading(
         val rows: List<Pair<Publication, UUID>> = emptyList(),
         val partial: Set<UUID> = emptySet(),
         val conflicts: List<KavitaConflict> = emptyList(),
         val opdsNext: Map<UUID, String> = emptyMap(),
+        val smbQueues: Map<UUID, List<String>> = emptyMap(),
     )
 
     /**
@@ -75,9 +82,10 @@ internal object ServerLibrary {
     ): Reading = withContext(Dispatchers.IO) {
         val conflicts = mutableListOf<KavitaConflict>()
         val opdsCursors = mutableMapOf<UUID, String>()
+        val smbFrontiers = mutableMapOf<UUID, List<String>>()
         val slices = registry.value.sources.map { source ->
             val read = runCatching {
-                slice(source, credentials, pins, progress, kavita, conflicts, opdsCursors)
+                slice(source, credentials, pins, progress, kavita, conflicts, opdsCursors, smbFrontiers)
             }.getOrNull()
             // **A source that just answered is answering, and the registry says so.**
             //
@@ -104,6 +112,7 @@ internal object ServerLibrary {
             partial = slices.filter { (_, slice) -> slice.holdsMore }.map { it.first }.toSet(),
             conflicts = conflicts,
             opdsNext = opdsCursors,
+            smbQueues = smbFrontiers,
         )
     }
 
@@ -116,6 +125,7 @@ internal object ServerLibrary {
         kavita: KavitaProgressStore?,
         conflicts: MutableList<KavitaConflict>,
         opdsCursors: MutableMap<UUID, String>,
+        smbFrontiers: MutableMap<UUID, List<String>>,
     ): SourceSlice? =
         when (source.kind) {
             SourceKind.KAVITA_SERVER -> KavitaPage.of(source, credentials)?.address?.let { address ->
@@ -141,11 +151,19 @@ internal object ServerLibrary {
             }
 
             SourceKind.NETWORK_SHARE -> SmbPage.of(source, credentials)?.let { page ->
-                SmbContributor.publications(
+                val fetched = SmbContributor.page(
                     source.id,
                     SmbClient(page.address),
                     page.address,
+                    queue = listOf(page.address.path),
                 )
+                // Learned here, where the walk's first page stops, for the same reason the
+                // catalogue branch above keeps its `next` link: the continuation resumes
+                // from the folders this page left unlisted. Thrown away before, so the
+                // first continuation page fell back to the share's root and walked it
+                // again -- `ServerLibrary.Reading.smbQueues` says what that cost.
+                smbFrontiers[source.id] = fetched.queue
+                fetched.slice
             }
 
             // Already in the library: its files are what the scan walks.

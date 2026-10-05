@@ -31,11 +31,12 @@ enum SmbContributor {
     /// One page of a bounded walk, and the frontier it stopped at.
     ///
     /// `sources`' *More from a source than the library holds*: the first read is
-    /// ``publications(source:client:address:)``, the walk's own first page starting from the
-    /// share's root, and `continueReadingShares` asks for every page after it by handing back
-    /// ``queue`` -- the folders this page had not reached yet -- so a continuation resumes the
-    /// walk where it stopped instead of relisting the share's root folders on every page,
-    /// which a share wider than ``maxFolders`` could never walk past.
+    /// ``ServerLibrary``'s own, this walk's first page starting from the share's root, and
+    /// `continueReadingShares` asks for every page after it by handing back ``queue`` -- the
+    /// folders this page had not reached yet -- so a continuation resumes the walk where it
+    /// stopped instead of relisting the share's root folders on every page, which a share
+    /// wider than ``maxFolders`` could never walk past.
+    /// ``ServerLibrary/Reading/smbQueues`` is how ``queue`` reaches that continuation.
     struct Page {
         let slice: SourceSlice
         let queue: [String]
@@ -89,11 +90,6 @@ enum SmbContributor {
             ),
             queue: pending
         )
-    }
-
-    /// The publications a bounded walk of the share finds, starting from its root.
-    static func publications(source: UUID, client: SmbClient, address: SmbAddress) async -> SourceSlice {
-        await page(source: source, client: client, address: address, queue: [address.path]).slice
     }
 
     /// One file as a row, or nil for a file this app cannot open.

@@ -197,19 +197,10 @@ fun HomeScreen(
      * A cover in one of the plain shelves (up next, a pin, finished) was held.
      *
      * `library-browsing`'s *A publication's actions wherever it is drawn* names the home
-     * surface as one of the places the long press did nothing. The sheet itself needs a
-     * source -- the app layer's own secrets, a view model -- which `home-screen` forbids
-     * this screen from holding, so the caller is handed the publication and does the rest,
-     * the way [serverArtwork] already answers a question this screen cannot. Not offered on
-     * the Keep reading hero: that card already carries Resume and Finish as its own two
-     * affordances, and a third one buried in a long press is not what a hero is for.
-     */
-    /**
-     * A cover in one of the plain shelves (up next, a pin, finished) was held.
-     *
-     * `library-browsing`'s *A publication's actions wherever it is drawn* names the home
      * surface as one of the places the long press did nothing. Null draws no menu at all --
-     * the Keep reading hero still takes none, which [HomeCoverRun] never draws it inside.
+     * the Keep reading hero still takes none, which [HomeCoverRun] never draws it inside,
+     * because that card already carries Resume and Finish as its own two affordances and a
+     * third action buried in a long press is not what a hero is for.
      */
     actions: HomePublicationActions? = null,
     /** The three facts the menu's gating asks, computed by whoever holds the view model. */

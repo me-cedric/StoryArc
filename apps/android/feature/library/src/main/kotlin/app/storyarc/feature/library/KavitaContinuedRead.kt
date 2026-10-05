@@ -12,8 +12,13 @@ import app.storyarc.core.persistence.StoredSourceProgress
 import java.util.UUID
 import kotlinx.coroutines.launch
 
-/** [SourceReadProgress] as [SourceReadProgressStore] keeps it on disk. */
-private fun SourceReadProgress.stored() = StoredSourceProgress(read, total, nextPage)
+/**
+ * [SourceReadProgress] as [SourceReadProgressStore] keeps it on disk, with the cursor the
+ * source's own continuation asks its next page by. A Kavita server has none: its page number
+ * is already in the progress.
+ */
+internal fun SourceReadProgress.stored(opdsNext: String? = null, smbQueue: List<String>? = null) =
+    StoredSourceProgress(read, total, nextPage, opdsNext, smbQueue)
 
 /** [StoredSourceProgress] as the continuation loop keeps it in memory. */
 private fun StoredSourceProgress.live() = SourceReadProgress(read, total, nextPage)
@@ -39,12 +44,17 @@ fun LibraryViewModel.readProgress(sourceId: UUID): SourceReadProgress? = partial
  * store existed, [partialSources] held the only copy of where a continuation stood, so a
  * relaunch forgot it and every source paid for its whole continuation again from page two --
  * `sources`' *More from a source than the library holds* asks for progress that survives
- * exactly that.
+ * exactly that. [resumable] holds the one exception: a record with no cursor for a source
+ * kind that continues by one.
  *
  * @param opdsCursors the `next` link this read's own first page found for a catalogue that
  *   just turned partial. [SourceReadProgress] has no field for it -- it is Kavita and SMB
  *   shaped, a count and a total -- so a catalogue's own cursor is kept beside it in
  *   [LibraryViewModel.opdsNext] instead of inside it.
+ * @param smbFrontiers the folders this read's own first page of a share had not reached yet,
+ *   kept in [LibraryViewModel.smbQueues] for the same reason. Without it the first
+ *   continuation page fell back to the share's root and adopted that root's rows a second
+ *   time -- see [ServerLibrary.Reading.smbQueues].
  * @param pins carried through to [continueReadingServers], which needs it for an OPDS
  *   catalogue's continuation -- `readServers(pins)` is this function's only caller, and
  *   `11.3` asks the pins a reader already trusted to reach every request a catalogue read
@@ -53,25 +63,57 @@ fun LibraryViewModel.readProgress(sourceId: UUID): SourceReadProgress? = partial
 internal fun LibraryViewModel.adoptPartialSources(
     partial: Set<UUID>,
     opdsCursors: Map<UUID, String> = emptyMap(),
+    smbFrontiers: Map<UUID, List<String>> = emptyMap(),
     pins: CertificatePins = CertificatePins(),
 ) {
     val store = SourceReadProgressStore.open(getApplication())
     for (sourceId in partial) {
         if (partialSources[sourceId] == null) {
-            val resumed = store.progress(sourceId)?.live()
-            partialSources = partialSources + (sourceId to (resumed ?: SourceReadProgress.started(firstSliceFor(sourceId))))
-            opdsCursors[sourceId]?.let { opdsNext = opdsNext + (sourceId to it) }
+            val resumed = resumable(sourceId, store)
+            partialSources = partialSources + (sourceId to (resumed?.live() ?: SourceReadProgress.started(firstSliceFor(sourceId))))
+            // The stored cursor outranks this read's own: the first page always hands back
+            // the link to page two, and the record says where the continuation actually
+            // stopped. Either beats nothing, which is what a share had before 22.1.
+            (resumed?.opdsNext ?: opdsCursors[sourceId])?.let { opdsNext = opdsNext + (sourceId to it) }
+            (resumed?.smbQueue ?: smbFrontiers[sourceId])?.let { smbQueues = smbQueues + (sourceId to it) }
         }
     }
     // A source this read did not report partial has either finished (land() already cleared
     // its entry, store included) or is gone from the registry altogether -- either way
     // nothing should keep asking disk about it.
-    for (sourceId in partialSources.keys - partial) store.clear(sourceId)
+    val known = _registry.value.sources.map { it.id }.toSet()
+    val failedStore = KavitaFailedSeriesStore.open(getApplication())
+    for (sourceId in partialSources.keys - partial) {
+        store.clear(sourceId)
+        // Only for a source the registry has let go. A source that merely finished its read
+        // may still owe a series, and [retryFailedKavitaSeries] asks for it on every read
+        // after that -- clearing here would be the one thing that makes a failed series
+        // lost for good again.
+        if (sourceId !in known) failedStore.clear(sourceId)
+    }
     partialSources = partialSources.filterKeys { it in partial }
     opdsNext = opdsNext.filterKeys { it in partial }
     smbQueues = smbQueues.filterKeys { it in partial }
     continueReadingServers(pins)
     retryFailedKavitaSeries()
+}
+
+/**
+ * The record a source's continuation may carry on from, or null when it has to start over.
+ *
+ * A Kavita page number answers for itself, but a share resumes from a folder queue and a
+ * catalogue from a feed link. A record written before [StoredSourceProgress] carried those
+ * cursors has the counter and not the cursor, and resuming at page five with no cursor would
+ * walk the share's root again -- the very read this store exists to spare the reader. Such a
+ * record is refused, and the source starts from its first slice instead.
+ */
+private fun LibraryViewModel.resumable(sourceId: UUID, store: SourceReadProgressStore): StoredSourceProgress? {
+    val stored = store.progress(sourceId) ?: return null
+    return when (_registry.value.sources.firstOrNull { it.id == sourceId }?.kind) {
+        SourceKind.NETWORK_SHARE -> stored.takeIf { it.smbQueue != null }
+        SourceKind.OPDS_CATALOG -> stored.takeIf { it.opdsNext != null }
+        else -> stored
+    }
 }
 
 /**

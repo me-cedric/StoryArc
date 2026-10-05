@@ -58,19 +58,33 @@ public struct SourceReadProgressStore: @unchecked Sendable {
 }
 
 /// What is actually written for one source: how much of it a continuation has merged, how
-/// much more there is when the count is known, and which page answers next.
+/// much more there is when the count is known, which page answers next, and the cursor its
+/// own kind asks that next page by.
 ///
-/// The same three fields `LibraryFeature`'s own `SourceReadProgress` holds, kept separate so
-/// a change to that type's shape is this store's decision to make, not an accident of a
-/// `Codable` conformance reaching it from a feature module this one sits under.
+/// The three counters are the same fields `LibraryFeature`'s own `SourceReadProgress` holds,
+/// kept separate so a change to that type's shape is this store's decision to make, not an
+/// accident of a `Codable` conformance reaching it from a feature module this one sits under.
+///
+/// The two cursors are in no such type, because only a Kavita server continues by a page
+/// number. A share continues from the folders its last page had not listed, and a catalogue
+/// from the feed link its last page named. A record that kept the counter and dropped the
+/// cursor was worse than no record at all: the relaunch resumed at page five and walked the
+/// share's root again, counting every row the library already held a second time. Both are
+/// optional, so a record an older build wrote still decodes, with neither cursor in it.
 public struct StoredSourceProgress: Sendable, Equatable, Codable {
     public let read: Int
     public let total: Int?
     public let nextPage: Int
+    /// A partial catalogue's next feed link. `nil` for any other kind, and for an older record.
+    public let opdsNext: URL?
+    /// A partial share's remaining walk frontier. `nil` for any other kind, and for an older record.
+    public let smbQueue: [String]?
 
-    public init(read: Int, total: Int? = nil, nextPage: Int) {
+    public init(read: Int, total: Int? = nil, nextPage: Int, opdsNext: URL? = nil, smbQueue: [String]? = nil) {
         self.read = read
         self.total = total
         self.nextPage = nextPage
+        self.opdsNext = opdsNext
+        self.smbQueue = smbQueue
     }
 }

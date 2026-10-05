@@ -35,7 +35,7 @@ class AdoptPartialSourcesOpdsTest {
     fun `a catalogue that just turned partial is seeded with the next link its first page found`() {
         val library = library()
 
-        library.adoptPartialSources(setOf(sourceId), mapOf(sourceId to "https://library.example/feed?page=2"), CertificatePins())
+        library.adoptPartialSources(setOf(sourceId), mapOf(sourceId to "https://library.example/feed?page=2"), pins = CertificatePins())
 
         assertEquals(SourceReadProgress.started(firstSliceRead = 0), library.readProgress(sourceId))
         assertEquals("https://library.example/feed?page=2", library.opdsNext[sourceId])
@@ -44,13 +44,13 @@ class AdoptPartialSourcesOpdsTest {
     @Test
     fun `a catalogue already mid-continuation keeps its link, not a fresh one`() {
         val library = library()
-        library.adoptPartialSources(setOf(sourceId), mapOf(sourceId to "https://library.example/feed?page=2"), CertificatePins())
+        library.adoptPartialSources(setOf(sourceId), mapOf(sourceId to "https://library.example/feed?page=2"), pins = CertificatePins())
         library.opdsNext = library.opdsNext + (sourceId to "https://library.example/feed?page=5")
 
         // A second `readServers()` pull reads the catalogue's root again and hands back its
         // own "page=2" -- the same link every pull-to-refresh answers, because the root feed
         // never knows how far a continuation already got.
-        library.adoptPartialSources(setOf(sourceId), mapOf(sourceId to "https://library.example/feed?page=2"), CertificatePins())
+        library.adoptPartialSources(setOf(sourceId), mapOf(sourceId to "https://library.example/feed?page=2"), pins = CertificatePins())
 
         // The bug this guards: seeding unconditionally would stamp "page=2" back over the
         // continuation's own "page=5" on every pull, so it could never advance past its
@@ -62,9 +62,9 @@ class AdoptPartialSourcesOpdsTest {
     @Test
     fun `a catalogue that finished its read loses its link too`() {
         val library = library()
-        library.adoptPartialSources(setOf(sourceId), mapOf(sourceId to "https://library.example/feed?page=2"), CertificatePins())
+        library.adoptPartialSources(setOf(sourceId), mapOf(sourceId to "https://library.example/feed?page=2"), pins = CertificatePins())
 
-        library.adoptPartialSources(emptySet(), emptyMap(), CertificatePins())
+        library.adoptPartialSources(emptySet(), emptyMap(), pins = CertificatePins())
 
         assertNull(library.readProgress(sourceId))
         assertNull(library.opdsNext[sourceId])

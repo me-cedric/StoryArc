@@ -52,13 +52,25 @@ extension LibraryModel {
 /// the read now stands. Shared by the share and the catalogue continuations — both land a
 /// plain ``SourceSlice`` rather than a source-specific page type, unlike Kavita's own
 /// `land`, which still needs the chapter list underneath its page.
+///
+/// The cursor goes to disk with the count, which is what makes the resume branch in
+/// `adoptPartialSources` reach a share and a catalogue at all. Neither continues by a page
+/// number, so a record holding only the count told a relaunch where the read stood and not
+/// what to ask for next. ``readSourceOnward(progress:cursor:fetch:advance:land:)`` advances
+/// the cursor before it lands the page, so the map already holds the one this page stopped at.
 extension LibraryModel {
     func landContinuedSlice(source sourceID: UUID, slice: SourceSlice, step: SourceReadStep) {
         for publication in slice.publications { _ = adopt(publication, from: sourceID) }
+        let store = SourceReadProgressStore()
         if case .continuing(let next) = step {
             partialSources[sourceID] = next
+            store.record(
+                next.stored(opdsNext: opdsNext[sourceID], smbQueue: smbQueues[sourceID]),
+                for: sourceID
+            )
         } else {
             partialSources.removeValue(forKey: sourceID)
+            store.clear(for: sourceID)
         }
         cacheLibrary(claimsFreshness: false)
     }

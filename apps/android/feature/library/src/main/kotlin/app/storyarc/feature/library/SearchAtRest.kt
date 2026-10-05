@@ -77,6 +77,17 @@ internal fun SearchAtRest(
     onAddCatalogue: () -> Unit,
     onAddKavita: () -> Unit,
     onAddShare: () -> Unit,
+    /**
+     * A long press on a suggestion opens [PublicationActionMenu] built from these.
+     *
+     * `library-browsing`'s *A publication's actions wherever it is drawn* asks for the menu on
+     * every surface that draws a publication, and this page draws three shelves of them. Null
+     * draws no menu at all, which is the shape for a caller with nowhere to send any of the
+     * actions -- never a menu whose every row is dead.
+     */
+    actions: HomePublicationActions? = null,
+    /** The three facts the menu's gating asks, computed by whoever holds the view model. */
+    facts: (Publication) -> PublicationActionFacts = { PublicationActionFacts.NONE },
     modifier: Modifier = Modifier,
 ) {
     if (suggestions.isEmpty) {
@@ -113,9 +124,36 @@ internal fun SearchAtRest(
         // Each section is drawn only when it has something in it. `navigation-shell` asks the
         // screen to say so "in one sentence rather than drawing empty headings", and a heading
         // over nothing is the same mistake in miniature.
-        shelf("in-progress", R.string.search_suggestions_in_progress, suggestions.inProgress, width, cover, onOpenPage)
-        shelf("next", R.string.search_suggestions_next_in_series, suggestions.nextInSeries, width, cover, onOpenPage)
-        shelf("never", R.string.search_suggestions_never_opened, suggestions.neverOpened, width, cover, onOpenPage)
+        shelf(
+            "in-progress",
+            R.string.search_suggestions_in_progress,
+            suggestions.inProgress,
+            width,
+            cover,
+            onOpenPage,
+            actions,
+            facts,
+        )
+        shelf(
+            "next",
+            R.string.search_suggestions_next_in_series,
+            suggestions.nextInSeries,
+            width,
+            cover,
+            onOpenPage,
+            actions,
+            facts,
+        )
+        shelf(
+            "never",
+            R.string.search_suggestions_never_opened,
+            suggestions.neverOpened,
+            width,
+            cover,
+            onOpenPage,
+            actions,
+            facts,
+        )
     }
 }
 
@@ -127,6 +165,8 @@ private fun LazyListScope.shelf(
     width: Dp,
     cover: suspend (Publication, Int) -> Bitmap?,
     onOpenPage: (Publication) -> Unit,
+    actions: HomePublicationActions?,
+    facts: (Publication) -> PublicationActionFacts,
 ) {
     if (entries.isEmpty()) return
     item(key = "heading:$key") { SearchSectionHeading(heading) }
@@ -150,6 +190,8 @@ private fun LazyListScope.shelf(
                     cover = cover,
                     width = width,
                     onOpen = onOpenPage,
+                    actions = actions,
+                    facts = facts,
                     modifier = Modifier.homeCardSemantics(entry, label),
                 )
             }

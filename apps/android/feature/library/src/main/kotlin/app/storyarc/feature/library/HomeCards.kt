@@ -413,7 +413,15 @@ internal fun HomeShelfCell(
     var menuTarget by remember { mutableStateOf<Publication?>(null) }
 
     Column(
-        modifier = modifier
+        // The caller's modifier goes last, which is the opposite of the convention and is
+        // forced by what every caller passes: [Modifier.homeCardSemantics], which is
+        // `clearAndSetSemantics`. Compose collapses a modifier chain from the inside out and
+        // begins the configuration again at a clearing node, so a chain that put the caller
+        // first and the gestures after it applied the tap and the long press and then threw
+        // them away. The cell kept both for a reader who can touch it and offered neither to
+        // TalkBack -- see `HomeShelfCellIsOperableTest`. Nothing in `modifier` affects layout,
+        // so the width and the order of the draw are unchanged.
+        modifier = Modifier
             .width(width)
             // `library-browsing`'s *A publication's actions wherever it is drawn*: the
             // owner's field report on v0.1.1 named "only the library grid", and the home
@@ -421,7 +429,8 @@ internal fun HomeShelfCell(
             .combinedClickable(
                 onClick = { onOpen(entry.publication) },
                 onLongClick = { if (actions != null) menuTarget = entry.publication },
-            ),
+            )
+            .then(modifier),
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
     ) {
         Box(modifier = Modifier.fillMaxWidth().height(width * HOME_COVER_ASPECT)) {

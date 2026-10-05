@@ -70,10 +70,34 @@ fun SeriesShelfScreen(
     viewModel: LibraryViewModel,
     onOpen: (Publication) -> Unit,
     onBack: () -> Unit,
+    /**
+     * Marks a publication read. The app layer owns the secrets the server may need, so this
+     * screen cannot do it alone -- [CollectionDetailScreen] takes the same handler for the
+     * same reason.
+     *
+     * The default exists for the tests. A caller that takes it leaves the menu's *Mark as
+     * read* row doing nothing, so every caller that has a view model must pass one.
+     */
+    onMark: (Publication, Boolean) -> Unit = { _, _ -> },
 ) {
     val palette = LocalStoryArcPalette.current
     val publications by viewModel.publications.collectAsStateWithLifecycle()
     val members = seriesShelfMembers(name, publications)
+
+    var restarting by remember { mutableStateOf<Publication?>(null) }
+
+    // `library-browsing`'s *A publication's actions wherever it is drawn*: a cell here is the
+    // library's own cell, so it has to offer the library's own menu. This screen drew the grid
+    // without one, which left a series the single place a long press did nothing.
+    //
+    // No `onRemoveFromShelf`: a series is what the publications say they are, not a shelf the
+    // reader assembled, so there is nothing here to leave. That row is withheld rather than
+    // drawn dead, which is the same rule the status menu above follows.
+    val publicationActions = PublicationActionCallbacks(
+        onMark = onMark,
+        onRestart = { restarting = it },
+        onShowDetails = onOpen,
+    )
 
     Scaffold(
         containerColor = palette.surfaceCanvas,
@@ -123,9 +147,21 @@ fun SeriesShelfScreen(
                 publications = members,
                 viewModel = viewModel,
                 onOpen = onOpen,
+                actions = publicationActions,
                 modifier = Modifier.weight(1f),
             )
         }
+    }
+
+    // Outside the `Scaffold` for the reason `LibraryScreen` gives: the menu dismisses itself
+    // on the way here, so the dialogue cannot hang off the menu that asked for it.
+    val restart = restarting
+    if (restart != null) {
+        RestartConfirmation(
+            publication = restart,
+            viewModel = viewModel,
+            onDismiss = { restarting = null },
+        )
     }
 }
 

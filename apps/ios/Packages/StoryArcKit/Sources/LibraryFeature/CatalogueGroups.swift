@@ -207,16 +207,22 @@ struct CatalogueEntryLink: View {
         knownCatalogueEntry(source: sourceID, entry: entry, in: model.publications)
     }
 
+    /// The screen the cell's tap opens, named once so the menu's own *Open* row and the tap
+    /// cannot drift to two different places.
+    private var detail: some View {
+        CatalogueDetailView(
+            entry: entry,
+            credential: browser.credential,
+            client: browser.client,
+            queue: queue,
+            sourceID: sourceID,
+            onOpen: onOpen
+        )
+    }
+
     var body: some View {
-        NavigationLink {
-            CatalogueDetailView(
-                entry: entry,
-                credential: browser.credential,
-                client: browser.client,
-                queue: queue,
-                sourceID: sourceID,
-                onOpen: onOpen
-            )
+        let cell = NavigationLink {
+            detail
         } label: {
             CatalogueEntryCell(
                 entry: entry,
@@ -230,19 +236,64 @@ struct CatalogueEntryLink: View {
         // `opds-catalog` requires the app to name "the formats offered" and to state that an
         // acquisition type is unsupported, and a cell that refused to open was a refusal
         // with no explanation attached.
-        // What the menu keeps is the shortcut, not the decision. `offline-downloads`: "the
-        // app SHALL let a user download any publication from a remote source for offline
-        // reading" — a reader packing for a flight wants the download without the reading,
-        // and without a walk through the detail screen either.
-        .contextMenu {
+
+        // Only an indexed entry has a card to lift. `.contextMenu(menuItems:preview:)` draws
+        // its preview container around whatever the builder returns, so an entry this device
+        // has only browsed past lifted into an empty card and took the cell the reader was
+        // pressing off the screen with it. ``HeldSearchResultRow`` picks between the two
+        // overloads for the same reason.
+        Group {
             if let known {
-                PublicationActionMenu(
-                    model: model,
-                    publication: known,
-                    onRefused: { server, _ in refusedServer = server },
-                    onRestart: { restarting = known }
+                cell.contextMenu { menuActions } preview: {
+                    PublicationPreviewCard(publication: known, model: model)
+                }
+            } else {
+                cell.contextMenu { menuActions }
+            }
+        }
+        .meteredConfirmation($meteredAsk) { asked in
+            // The grant is this publication's, not the queue's: everything else behind it
+            // goes on waiting for Wi-Fi.
+            queue.enqueue(
+                asked.entry,
+                using: asked.acquisition,
+                sourceID: sourceID,
+                overridingMeteredConnection: true
+            )
+        }
+        .restartConfirmation($restarting, model: model)
+        .refusedByServer($refusedServer, model: model, publication: known)
+    }
+
+    /// What a long press offers. What the menu keeps is the shortcut, not the decision.
+    /// `offline-downloads`: "the app SHALL let a user download any publication from a remote
+    /// source for offline reading" — a reader packing for a flight wants the download without
+    /// the reading, and without a walk through the detail screen either.
+    @ViewBuilder
+    private var menuActions: some View {
+        if let known {
+            PublicationActionMenu(
+                model: model,
+                publication: known,
+                onRefused: { server, _ in refusedServer = server },
+                onRestart: { restarting = known }
+            )
+        } else {
+            // `library-browsing`'s *A publication's actions wherever it is drawn* names a
+            // server's own browser among the places. An entry this device has not indexed has
+            // no ``PublicationActionMenu`` to carry *Open* for it, so the one thing the tap
+            // already does was the one thing the menu never said. Android's
+            // `CatalogueEntryCell` draws the same row, first, for the same reason.
+            NavigationLink {
+                detail
+            } label: {
+                Label(
+                    String(localized: "library.action.open", bundle: .module, locale: .storyArc),
+                    systemImage: "arrow.up.forward.app"
                 )
-            } else if isDownloaded {
+            }
+
+            if isDownloaded {
                 Button(role: .destructive) {
                     queue.remove(queue.downloadID(for: entry.id, sourceID: sourceID))
                 } label: {
@@ -266,23 +317,7 @@ struct CatalogueEntryLink: View {
                     Text("catalogue.acquire.download", bundle: .module)
                 }
             }
-        } preview: {
-            if let known {
-                PublicationPreviewCard(publication: known, model: model)
-            }
         }
-        .meteredConfirmation($meteredAsk) { asked in
-            // The grant is this publication's, not the queue's: everything else behind it
-            // goes on waiting for Wi-Fi.
-            queue.enqueue(
-                asked.entry,
-                using: asked.acquisition,
-                sourceID: sourceID,
-                overridingMeteredConnection: true
-            )
-        }
-        .restartConfirmation($restarting, model: model)
-        .refusedByServer($refusedServer, model: model, publication: known)
     }
 }
 

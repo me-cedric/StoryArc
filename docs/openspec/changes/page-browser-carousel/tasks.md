@@ -17,4 +17,4 @@
 ## 3. Proof
 
 - [x] 3.1 Add unit tests for the rules that have no view: the badge text, the chapter name for the centred page, the tick positions, and the right-to-left order. Run each test against a mutation and see it fail.
-- [ ] 3.2 Capture iOS and Android frames of the browser on a comic with chapter markers, in light and dark, at the largest text size, and on a right-to-left comic.
+- [x] 3.2 Capture iOS and Android frames of the browser on a comic with chapter markers, in light and dark, at the largest text size, and on a right-to-left comic.

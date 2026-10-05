@@ -190,10 +190,10 @@ data class PublicationActionCallbacks(
 /**
  * The trigger every view-model-holding screen wires once: a target set on long press, drawn
  * here as [PublicationActionMenu] with its three facts computed from [viewModel], and its
- * `Add to shelf` row opening [AddToShelfSheet] -- with that sheet's own mark, restart and
- * download rows turned off through its `offersDownloadAction` flag and its nullable
- * callbacks, since this menu already offered them and a reader who dismissed one must not
- * meet it again in the next.
+ * `Add to shelf` row opening [AddToShelfSheet] -- with that sheet's own download row turned
+ * off through its `offersDownloadAction` flag, since this menu already offered it and a
+ * reader who dismissed one must not meet it again in the next. The sheet no longer carries
+ * mark, restart or show-details rows at all: this menu owns them now.
  *
  * A `remember`-ed `Publication?` rather than a bare `Boolean`, because every call site already
  * has the publication the long press was on and a second map from "is a menu open" back to
