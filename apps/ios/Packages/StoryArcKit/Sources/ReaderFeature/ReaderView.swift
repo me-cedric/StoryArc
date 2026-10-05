@@ -156,6 +156,9 @@ public struct ReaderView: View {
     /// be two different values or the second one is silent.
     @State var refusals = 0
 
+    /// The turn a tap, a key or a controller has asked the curl to run. See ``CurlRequest``.
+    @State var curlRequest: CurlRequest?
+
     /// How the page is sized.
     ///
     /// Read from the shelf rather than held here: `comic-reader` requires the choice to
@@ -369,13 +372,13 @@ public struct ReaderView: View {
                     || isFindingText || noting != nil
             )
         )
-        .onKeyPress(.leftArrow) { turn(by: -1); return .handled }
-        .onKeyPress(.rightArrow) { turn(by: 1); return .handled }
+        .onKeyPress(.leftArrow) { turnWithTransition(by: -1); return .handled }
+        .onKeyPress(.rightArrow) { turnWithTransition(by: 1); return .handled }
         .onKeyPress(.pageUp) { turnInReadingOrder(by: -1); return .handled }
         .onKeyPress(.pageDown) { turnInReadingOrder(by: 1); return .handled }
         .onKeyPress(.space) { turnInReadingOrder(by: 1); return .handled }
         .onKeyPress(.return) { toggleChrome(); return .handled }
-        .modifier(GameControllerTurning(onTurn: turn))
+        .modifier(GameControllerTurning(onTurn: turnWithTransition))
         // The status bar, the idle timer and the orientation lock — see
         // ``ReaderSystemChrome``, which is where the `#if os(iOS)` around all three lives.
         .modifier(

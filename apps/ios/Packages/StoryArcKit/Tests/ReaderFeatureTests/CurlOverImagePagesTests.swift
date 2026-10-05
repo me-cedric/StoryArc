@@ -182,9 +182,14 @@ struct CurlOverImagePagesTests {
             builder.ranges(of: "adjacentDisplayIndex(").count == 2,
             "The curl's beneath and previous sheets no longer both come from `adjacentDisplayIndex`."
         )
+        // `turn(by: readingOrderStep(…))` rather than `turnInReadingOrder(by:)`, which is
+        // the same step through a route that would ask the curl to roll the page over a
+        // second time. Task 8.3 and `CurlRequestTests` own that half.
         #expect(
-            builder.contains("onTurned: { turnInReadingOrder(by: 1) }")
-                && builder.contains("onTurnedBack: { turnInReadingOrder(by: -1) }"),
+            builder.contains("onTurned: { turn(by: readingOrderStep(1, isRightToLeft: isRightToLeft)) }")
+                && builder.contains(
+                    "onTurnedBack: { turn(by: readingOrderStep(-1, isRightToLeft: isRightToLeft)) }"
+                ),
             "A completed curl no longer turns by a reading-order step."
         )
     }

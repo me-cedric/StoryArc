@@ -106,12 +106,46 @@ struct CurlTurnTests {
         )
     }
 
-    @Test("With no page beneath the forward range is left alone, because the end screen is a turn")
-    func lastPageStillTurns() {
-        // `comic-reader` reaches an end screen by turning past the last page, so the last
-        // page's forward turn is a turn and not a nothing. Stated as a test because the
-        // symmetry is tempting and would take the end screen away.
-        #expect(CurlTurn.progress(base: 0, travel: -1200, width: width, isRightToLeft: false) == 1)
+    @Test("With no sheet beneath it the forward range collapses to nothing")
+    func lastPageCannotLiftOffNothing() {
+        // D10. This read the other way until the curl was watched on a last page: the
+        // forward range was left open "because the end screen is a turn", and what the
+        // reader saw was the page lifting off *itself* — the shader stands the turning
+        // sheet in for a missing one, so the sheet revealed underneath was a copy of the
+        // sheet being lifted. `page-transitions` puts both ends under one sentence,
+        // "nothing lifts and the page stays where it is, rather than turning to an empty
+        // sheet", and the end screen is still reached: a tap, a key or a controller goes
+        // through `turn(by:)`, which opens it (`ReaderTurning.turn(by:)`).
+        #expect(
+            CurlTurn.progress(
+                base: 0, travel: -1200, width: width, isRightToLeft: false, canTurnForward: false
+            ) == 0
+        )
+        #expect(
+            CurlTurn.progress(
+                base: 0, travel: -100, width: width, isRightToLeft: false, canTurnForward: false
+            ) == 0
+        )
+    }
+
+    @Test("A last page that cannot lift can still be turned back from")
+    func lastPageStillTurnsBack() {
+        // The two ends are independent, and collapsing the wrong one is how a reader ends
+        // up stranded on the last page of a publication they wanted to re-read.
+        #expect(
+            CurlTurn.progress(
+                base: 0, travel: 300, width: width, isRightToLeft: false, canTurnForward: false
+            ) == -0.3
+        )
+    }
+
+    @Test("A settle caught past the fold is brought back when there is nothing beneath")
+    func caughtSettleRespectsTheCeiling() {
+        #expect(
+            CurlTurn.progress(
+                base: 0.8, travel: 0, width: 0, isRightToLeft: false, canTurnForward: false
+            ) == 0
+        )
     }
 
     @Test("A backwards flick completes a backwards turn")
