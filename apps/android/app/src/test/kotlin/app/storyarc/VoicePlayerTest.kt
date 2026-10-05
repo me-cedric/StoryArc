@@ -126,6 +126,30 @@ class VoicePlayerTest {
         compose.onAllNodesWithContentDescription("Previous sentence").assertCountEquals(0)
     }
 
+    // MARK: - Where the audio is
+
+    /*
+     * `audio-playback` allows "a position with no total" and forbids inventing one. A voice
+     * has no clock at all, so the elapsed time read `0:00` for as long as it spoke -- a
+     * number that looks like a position and never moves. What it has instead is which part
+     * of the publication it is in.
+     */
+
+    @Test
+    fun `a source with no clock states where in the book it is, not a clock that cannot move`() {
+        compose.setContent { Player(playing = spoken(partIndex = 1)) }
+
+        compose.onNodeWithText("Part 2 of 2").assertIsDisplayed()
+        compose.onAllNodesWithText("0:00").assertCountEquals(0)
+    }
+
+    @Test
+    fun `a publication of one part states nothing, because Part 1 of 1 says nothing`() {
+        compose.setContent { Player(playing = spoken(parts = listOf(PlaybackPart("The Harbour")))) }
+
+        compose.onAllNodesWithText("Part 1 of 1").assertCountEquals(0)
+    }
+
     // MARK: - The chapter list
 
     @Test

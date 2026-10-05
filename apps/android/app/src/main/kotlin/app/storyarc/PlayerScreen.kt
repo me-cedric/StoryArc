@@ -336,11 +336,30 @@ private fun Position(
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                text = clock(offset),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // **A clock, or where in the book this part is — never a clock that cannot move.**
+            // A source with no stated duration has no clock either: a read-aloud session
+            // reported `0:00` for as long as it spoke, which is a number that looks like a
+            // position and is not one. `audio-playback` allows a position with no total and
+            // forbids inventing one, and *Part 2 of 12* is the position such a source
+            // actually has. A publication of one part states nothing, because "Part 1 of 1"
+            // tells a listener nothing. iOS's `PlayerLabels.position(part:of:time:)` picks
+            // between the same three.
+            when {
+                total != null -> Text(
+                    text = clock(offset),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                playing.parts.size > 1 -> Text(
+                    text = stringResource(
+                        R.string.player_part_of,
+                        playing.partIndex + 1,
+                        playing.parts.size,
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             total?.let {
                 Text(
                     text = clock(it),

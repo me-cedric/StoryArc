@@ -97,6 +97,7 @@
     </plurals>
     <string name="player_skip_back_sentence">Frase anterior</string>
     <string name="player_skip_forward_sentence">Frase siguiente</string>
+    <string name="player_part_of">Parte %1$d de %2$d</string>
     <string name="player_seconds">%1$d s</string>
     <string name="player_sleep">Temporizador</string>
     <string name="player_sleep_in">Parar en %1$s</string>
