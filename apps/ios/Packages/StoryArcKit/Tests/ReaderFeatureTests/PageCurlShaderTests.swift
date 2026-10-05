@@ -63,7 +63,8 @@ struct PageCurlShaderTests {
     /// two platforms have to agree on.
     private let model = [
         "float radius = max(radiusMax * size.x * sin(PI * progress), 0.0)",
-        "float fold = size.x * (1.0 - progress) + lean * radius * (0.5 - y / size.y)",
+        "float bow = y / size.y",
+        "float fold = size.x * (1.0 - progress) + lean * radius * (0.5 - bow * bow)",
         "float lipRim = fold + radius",
         "float beyond = (x - lipRim) / (size.x * shadow)",
         "1.0 - 0.45 * exp(-beyond * beyond)",

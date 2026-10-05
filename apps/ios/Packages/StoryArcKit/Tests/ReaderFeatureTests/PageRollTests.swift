@@ -155,8 +155,8 @@ struct PageRollTests {
         #expect(abs(flat.material - (fold + .pi * radius)) < 0.1)
     }
 
-    @Test("The silhouette across the band is not a vertical line")
-    func theFoldLeans() {
+    @Test("The silhouette across the band is a curve, not a straight slanted line")
+    func theFoldBows() {
         let progress = 0.5
         let radius = radius(progress)
 
@@ -165,12 +165,24 @@ struct PageRollTests {
         let bottom = fold(progress, y: height)
 
         #expect(top > bottom, "The fold does not lean: \(top) at the top, \(bottom) at the foot.")
-        #expect(abs((middle - bottom) - (top - middle)) < 0.01, "The lean is uneven.")
+        #expect(top > middle && middle > bottom, "The fold doubles back on itself.")
+        // The whole of the defect, in one number. A fold linear in `y` puts the mid-height
+        // point exactly on the chord between its two ends, which is a straight slanted line
+        // — and three of them, because the rim and the shadow are this plus a constant.
+        let chord = (top + bottom) / 2
+        #expect(
+            abs(middle - chord) > 1,
+            "The fold is straight: mid-height sits on the chord between its ends."
+        )
+        // A quarter of the span, which is what squaring the height fraction leaves at the
+        // midpoint. Android's `PageRollTest` asserts this same departure.
+        #expect(abs((middle - chord) - 0.25 * PageRoll.lean * radius) < 0.01)
+        // The span from head to foot is unchanged by the bend — it is redistributed.
         #expect(abs((top - bottom) - PageRoll.lean * radius) < 0.01)
     }
 
-    @Test("The shadow's leading edge follows the rim, so it is not a vertical line either")
-    func theShadowLeansToo() {
+    @Test("The shadow's leading edge follows the rim, so it curves with it")
+    func theShadowBowsToo() {
         let progress = 0.5
         let radius = radius(progress)
         let topFold = fold(progress, y: 0)
@@ -181,6 +193,11 @@ struct PageRollTests {
         // The same point on the screen, at the two heights: one is under the sheet and the
         // other is in open shadow, which is only true because the edge leans.
         #expect(at(x: topFold + radius, y: height, progress: progress).region == .under)
+        // And the edge bends rather than slanting: the point halfway along the straight
+        // line joining the two rim ends is still *under* the sheet at mid-height, where a
+        // straight edge would have put it exactly on the rim.
+        let chordRim = (topFold + footFold) / 2 + radius
+        #expect(at(x: chordRim, y: height / 2, progress: progress).region == .lip)
     }
 
     @Test("The page beneath is not drawn at rest, which is how the wrong side announced itself")

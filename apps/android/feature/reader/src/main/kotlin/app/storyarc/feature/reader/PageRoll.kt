@@ -28,11 +28,16 @@ import kotlin.math.sin
  * 3. the lip, from the fold to the rim a radius further right;
  * 4. the page beneath, with the lip's shadow cast on it.
  *
- * **The fold leans**, by [LEAN] radii over the height, so the bottom corner runs ahead of
+ * **The fold bows**, by [LEAN] radii over the height, so the bottom corner runs ahead of
  * the top one. Without it every edge in the picture is a vertical line, which is the
- * difference between a page turning and a wipe. It is a lean and not a cone: a cone needs
- * a second radius and a pivot, and the pivot's own arithmetic is not something a reader can
- * see in a 400 ms turn.
+ * difference between a page turning and a wipe. The displacement is the *square* of the
+ * height fraction rather than the fraction itself, which anchors the bend at the lifted
+ * bottom corner: the fold barely moves at the head of the page and sweeps fastest at the
+ * corner the finger holds, the way a sheet gripped at one corner does. A displacement
+ * linear in `y` drew the fold, the rim and the cast shadow as three straight slanted lines,
+ * which is what `page-transitions` means by a sheet that creases rather than rolls. It is
+ * still not a full cone: a cone needs a second radius and a pivot, and the pivot's own
+ * arithmetic is not something a reader can see in a 400 ms turn.
  *
  * At `progress` 0 and 1 the radius is zero, every region collapses to the fold this
  * replaces, and the ends of a turn are pixel-for-pixel what they were.
@@ -42,7 +47,12 @@ internal object PageRoll {
     /** The lip's radius at its widest, as a fraction of the page's width. */
     const val R_MAX = 0.04f
 
-    /** How far the fold leans over the page's height, in radii. */
+    /**
+     * How far the fold bows over the page's height, in radii.
+     *
+     * The span from the head of the page to the foot, which the bend redistributes rather
+     * than changes: the corner still runs this far ahead of the top.
+     */
     const val LEAN = 1.5f
 
     /** How much of the lip's brightness survives at the rim, where it is edge-on. */
@@ -82,11 +92,18 @@ internal object PageRoll {
         // landed drew the page beneath across itself. Found by the test below.
         (R_MAX * width * sin(PI.toFloat() * progress.coerceIn(0f, 1f))).coerceAtLeast(0f)
 
-    /** Where the sheet leaves the page at this height. */
+    /**
+     * Where the sheet leaves the page at this height.
+     *
+     * Quadratic in the height fraction, so the fold is a curve across the page rather than
+     * a slanted line -- and so the rim and the shadow, which are this plus a constant, bend
+     * with it. See the bow paragraph above for why the square and not the fraction.
+     */
     fun fold(width: Float, height: Float, progress: Float, y: Float, radius: Float): Float {
         val flat = width * (1f - progress.coerceIn(0f, 1f))
         if (height <= 0f) return flat
-        return flat + LEAN * radius * (0.5f - y / height)
+        val bow = y / height
+        return flat + LEAN * radius * (0.5f - bow * bow)
     }
 
     /**

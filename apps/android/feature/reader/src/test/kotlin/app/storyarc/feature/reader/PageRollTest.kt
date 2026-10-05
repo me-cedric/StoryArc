@@ -1,6 +1,7 @@
 package app.storyarc.feature.reader
 
 import kotlin.math.PI
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -142,10 +143,10 @@ class PageRollTest {
     }
 
     @Test
-    fun `the silhouette across the band is not a vertical line`() {
+    fun `the silhouette across the band is a curve, not a straight slanted line`() {
         // The other half of what makes this a page turning rather than a wipe. Every edge
-        // in the picture is the fold plus a constant, so a fold that did not lean would put
-        // three vertical lines across the page.
+        // in the picture is the fold plus a constant, so a fold that did not bend would put
+        // three straight slanted lines across the page.
         val progress = 0.5f
         val radius = PageRoll.radius(width, progress)
 
@@ -154,12 +155,24 @@ class PageRollTest {
         val bottom = PageRoll.fold(width, height, progress, y = height, radius = radius)
 
         assertTrue("The fold does not lean: $top at the top, $bottom at the foot.", top > bottom)
-        assertEquals("The lean is even.", middle - bottom, top - middle, 0.01f)
+        assertTrue("The fold doubles back on itself.", top > middle && middle > bottom)
+        // The whole of the defect, in one number. A fold linear in `y` puts the mid-height
+        // point exactly on the chord between its two ends, which is a straight slanted line
+        // -- and three of them, because the rim and the shadow are this plus a constant.
+        val chord = (top + bottom) / 2f
+        assertTrue(
+            "The fold is straight: mid-height sits on the chord between its ends.",
+            abs(middle - chord) > 1f,
+        )
+        // A quarter of the span, which is what squaring the height fraction leaves at the
+        // midpoint. iOS's `PageRollTests` asserts this same departure.
+        assertEquals(0.25f * PageRoll.LEAN * radius, middle - chord, 0.01f)
+        // The span from head to foot is unchanged by the bend -- it is redistributed.
         assertEquals(PageRoll.LEAN * radius, top - bottom, 0.01f)
     }
 
     @Test
-    fun `the shadow's leading edge follows the rim, so it is not a vertical line either`() {
+    fun `the shadow's leading edge follows the rim, so it curves with it`() {
         val progress = 0.5f
         val radius = PageRoll.radius(width, progress)
         val topFold = PageRoll.fold(width, height, progress, y = 0f, radius = radius)
@@ -181,9 +194,18 @@ class PageRollTest {
             progress = progress, crease = crease, shadow = shadow, back = back,
         )
 
+        // And the edge bends rather than slanting: the point halfway along the straight
+        // line joining the two rim ends is still *under* the sheet at mid-height, where a
+        // straight edge would have put it exactly on the rim.
+        val onTheChord = PageRoll.sample(
+            x = (topFold + footFold) / 2f + radius, y = height / 2f, width = width, height = height,
+            progress = progress, crease = crease, shadow = shadow, back = back,
+        )
+
         assertEquals(PageRoll.Region.LIP, atTheTop.region)
         assertEquals(PageRoll.Region.LIP, atTheFoot.region)
         assertEquals(PageRoll.Region.UNDER, straightAcross.region)
+        assertEquals(PageRoll.Region.LIP, onTheChord.region)
     }
 
     @Test
