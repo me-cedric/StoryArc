@@ -1,7 +1,9 @@
 public import Foundation
 
 /// Which of the two ideas a remembered shelf is.
-public enum RememberedShelfKind: String, Sendable, Hashable, CaseIterable {
+/// `Codable` because ``ShelfPin`` is, and one of its cases carries this. The conformance is
+/// the raw value, so what is encoded is the same word the tokens already use.
+public enum RememberedShelfKind: String, Sendable, Hashable, CaseIterable, Codable {
     /// `collection` and `list` rather than an ordinal, and the same two words ``ShelfPin``
     /// already uses, so one reader of a preferences file learns one vocabulary.
     case collection
@@ -62,6 +64,14 @@ public struct RememberedShelf: Sendable, Hashable, Identifiable {
     /// The shelf itself, without the count and the finished position the home card cached.
     /// Two records of one shelf have the same id, so a new count does not make a new card.
     public var id: String { "\(kind.rawValue):\(sourceID.uuidString):\(serverID):\(title)" }
+
+    /// How the reader pins this shelf to the home surface.
+    ///
+    /// The triple without the title, where ``id`` carries it: `home-screen`'s *Pinned
+    /// shelves* must survive a server renaming the shelf, and ``id`` deliberately does not —
+    /// two records of one shelf under different titles are two cards, which is what keeps a
+    /// rename visible.
+    public var pin: ShelfPin { .server(kind, sourceID: sourceID, serverID: serverID) }
 
     /// The token this shelf is written down as.
     ///

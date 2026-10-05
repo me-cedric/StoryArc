@@ -83,6 +83,13 @@ public struct HomeScreen: View {
     /// remembered shelves are not listed.
     @State private var pages: [UUID: KavitaPage] = [:]
 
+    /// What each server-backed reading list held the last time it answered.
+    ///
+    /// Written by ``ShelfSync`` as it reconciles, read here. It is what lets a pinned server
+    /// shelf be drawn as a shelf of its own without asking a server, which `home-screen`
+    /// forbids. Read once in `.task`, for ``pages``' reason: it comes off disk.
+    @State private var shelfMembers = ShelfEditQueue()
+
     public init(
         model: LibraryModel,
         onOpen: @escaping (Publication, URL) -> Void = { _, _ in },
@@ -185,6 +192,8 @@ public struct HomeScreen: View {
             // the secure store and the registry are both local, and the shelves listed below
             // come out of `rememberedShelves` rather than out of a server.
             .task { pages = KavitaPage.pages(in: model.registry, credentials: CredentialStore()) }
+            // The membership a pinned server shelf is drawn from — see ``shelfMembers``.
+            .task { shelfMembers = ShelfEditStore().queue() }
             .onChange(of: model.scanState) { _, state in
                 if case .finished = state { Task { await model.refreshProgress() } }
             }
@@ -323,39 +332,21 @@ public struct HomeScreen: View {
     /// how a redraw becomes a write, and an orphan token costs one lookup that already fails.
     @ViewBuilder
     private var pinnedSections: some View {
-        let pinned = PinnedShelves(stored: pinnedShelves)
-        ForEach(pinnedCollections(pinned), id: \.id) { collection in
-            let publications = model.publications.filter { collection.members.contains($0.id) }
-            if !publications.isEmpty {
-                HomeSection(title: Text(verbatim: collection.name)) {
-                    HomeMore(title: Text(verbatim: collection.name), publications: publications, model: model)
-                } content: {
-                    HomeShelfRow(publications: publications, model: model)
-                }
+        ForEach(
+            pinnedShelfRows(
+                PinnedShelves(stored: pinnedShelves),
+                shelves: model.shelves,
+                remembered: RememberedShelf.shelves(stored: rememberedShelves),
+                members: { shelfMembers.baseline(for: $0) },
+                publications: model.publications
+            )
+        ) { row in
+            HomeSection(title: Text(verbatim: row.name)) {
+                HomeMore(title: Text(verbatim: row.name), publications: row.publications, model: model)
+            } content: {
+                HomeShelfRow(publications: row.publications, model: model)
             }
         }
-        ForEach(pinnedLists(pinned), id: \.id) { list in
-            // A reading list keeps its own order, which is the whole difference between the
-            // two types — so the entries are walked rather than the library filtered.
-            let publications = list.entries.compactMap { entry in
-                model.publications.first { $0.id == entry }
-            }
-            if !publications.isEmpty {
-                HomeSection(title: Text(verbatim: list.name)) {
-                    HomeMore(title: Text(verbatim: list.name), publications: publications, model: model)
-                } content: {
-                    HomeShelfRow(publications: publications, model: model)
-                }
-            }
-        }
-    }
-
-    private func pinnedCollections(_ pinned: PinnedShelves) -> [PublicationCollection] {
-        model.shelves.collections.filter { pinned.contains(.collection($0.id)) }
-    }
-
-    private func pinnedLists(_ pinned: PinnedShelves) -> [ReadingList] {
-        model.shelves.lists.filter { pinned.contains(.list($0.id)) }
     }
 
     /// Collections and reading lists, which the library's toolbar used to hold.

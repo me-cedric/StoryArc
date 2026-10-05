@@ -10,6 +10,20 @@ public enum ShelfPin: Sendable, Hashable, Codable {
     case collection(UUID)
     case list(UUID)
 
+    /// A shelf a server defines, named by the triple ``RememberedShelf`` is written down as.
+    ///
+    /// `collections-and-reading-lists` says a server's shelf is "the same kind of object as
+    /// locally created ones", so `home-screen`'s *Pinned shelves* reaches it too. It took a
+    /// third case because the other two are a `UUID` this device minted and a server shelf
+    /// has none: its only name is its server's own numbering, which two servers reuse — the
+    /// reason ``ShelfKey`` exists. The source is in the triple for exactly that reason, and
+    /// the kind is in it because a server numbers its collections and its reading lists
+    /// apart.
+    ///
+    /// **Not the title.** A server that renames a shelf would otherwise unpin it, and the
+    /// reader would have no way to tell that from the shelf having gone.
+    case server(RememberedShelfKind, sourceID: UUID, serverID: Int)
+
     /// The token this pin is written down as.
     ///
     /// A string rather than the `Codable` synthesis, because these are stored in the same
@@ -21,6 +35,11 @@ public enum ShelfPin: Sendable, Hashable, Codable {
         switch self {
         case let .collection(id): "collection:\(id.uuidString)"
         case let .list(id): "list:\(id.uuidString)"
+        // `server:` first, then the same two words the other cases use, so one reader of a
+        // preferences file learns one vocabulary — and so the first field alone says how
+        // many more to expect.
+        case let .server(kind, sourceID, serverID):
+            "server:\(kind.rawValue):\(sourceID.uuidString):\(serverID)"
         }
     }
 
@@ -31,7 +50,20 @@ public enum ShelfPin: Sendable, Hashable, Codable {
     /// and gives them nothing to undo.
     public init?(token: String) {
         let parts = token.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
-        guard parts.count == 2, let id = UUID(uuidString: String(parts[1])) else { return nil }
+        guard parts.count == 2 else { return nil }
+        if parts[0] == "server" {
+            // Read before the `UUID` parse below, because a server pin's second field is a
+            // kind rather than an identifier and that parse would reject it.
+            let triple = parts[1].split(separator: ":", omittingEmptySubsequences: false)
+            guard triple.count == 3,
+                  let kind = RememberedShelfKind(rawValue: String(triple[0])),
+                  let sourceID = UUID(uuidString: String(triple[1])),
+                  let serverID = Int(triple[2])
+            else { return nil }
+            self = .server(kind, sourceID: sourceID, serverID: serverID)
+            return
+        }
+        guard let id = UUID(uuidString: String(parts[1])) else { return nil }
         switch parts[0] {
         case "collection": self = .collection(id)
         case "list": self = .list(id)

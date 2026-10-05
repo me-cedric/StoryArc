@@ -50,6 +50,7 @@ import app.storyarc.core.model.PinnedShelves
 import app.storyarc.core.model.PublicationCollection
 import app.storyarc.core.model.ReadingList
 import app.storyarc.core.model.RememberedShelf
+import app.storyarc.core.model.RememberedShelfKind
 import app.storyarc.core.model.ShelfEditQueue
 import app.storyarc.core.model.ShelfOrigin
 import app.storyarc.core.model.ShelfPin
@@ -300,10 +301,13 @@ fun ShelvesScreen(
                     )
                 }
                 items(serverCollections, key = { "c-${it.server.id}-${it.id}" }) { shelf ->
+                    val pin = serverShelfPin(shelf)
                     ServerShelfCard(
                         viewModel = viewModel,
                         shelf = shelf,
                         onDelete = { deletingServerShelf = ServerShelfDeletion.of(shelf) },
+                        isPinned = pin?.let { it in pinned },
+                        onTogglePin = { pin?.let(togglePin) },
                     ) {
                         onOpenServerCollection(shelf.server, shelf.id, shelf.title)
                     }
@@ -339,11 +343,14 @@ fun ShelvesScreen(
                     )
                 }
                 items(serverLists, key = { "l-${it.server.id}-${it.id}" }) { shelf ->
+                    val pin = serverShelfPin(shelf)
                     ServerShelfCard(
                         viewModel = viewModel,
                         shelf = shelf,
                         pending = queue.pending(ShelfSync.key(shelf)).size,
                         onDelete = { deletingServerShelf = ServerShelfDeletion.of(shelf) },
+                        isPinned = pin?.let { it in pinned },
+                        onTogglePin = { pin?.let(togglePin) },
                     ) {
                         onOpenServerList(shelf.server, shelf.id, shelf.title)
                     }
@@ -529,6 +536,24 @@ private fun LazyGridScope.makeShelfButton(label: Int, onClick: () -> Unit) {
 }
 
 /**
+ * How one of a server's shelves is pinned, or null for a source whose identifier this device
+ * cannot read back as a `UUID`.
+ *
+ * Null rather than a guess, for [ShelfPin.of]'s reason: a row with no pin offers no pin
+ * control, which the reader can see, where a guessed one would pin a shelf they never chose.
+ * The triple is [RememberedShelf]'s own, so the pin a reader sets here is the pin the home
+ * surface reads back.
+ */
+internal fun serverShelfPin(shelf: ServerShelf): ShelfPin? =
+    runCatching { UUID.fromString(shelf.server.id) }.getOrNull()?.let { source ->
+        ShelfPin.Server(
+            kind = if (shelf.isList) RememberedShelfKind.READING_LIST else RememberedShelfKind.COLLECTION,
+            sourceId = source,
+            serverId = shelf.id,
+        )
+    }
+
+/**
  * A shelf that lives in an online library.
  *
  * No composite: its members are chapters on a server this device has not necessarily opened,
@@ -541,6 +566,8 @@ private fun ServerShelfCard(
     shelf: ServerShelf,
     pending: Int = 0,
     onDelete: (() -> Unit)? = null,
+    isPinned: Boolean? = null,
+    onTogglePin: () -> Unit = {},
     onOpen: () -> Unit,
 ) {
     val client = remember(shelf.server.address) { KavitaClient(shelf.server.address) }
@@ -573,6 +600,8 @@ private fun ServerShelfCard(
         onOpen = onOpen,
         pending = pending,
         onDelete = onDelete,
+        isPinned = isPinned,
+        onTogglePin = onTogglePin,
         cover = {
             ServerShelfCover(
                 name = shelf.title,

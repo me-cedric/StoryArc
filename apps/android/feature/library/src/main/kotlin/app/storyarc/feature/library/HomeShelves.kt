@@ -6,6 +6,9 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadState
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.model.RememberedShelf
+import app.storyarc.core.model.RememberedShelfKind
+import app.storyarc.core.model.ShelfKey
 import app.storyarc.core.model.ShelfPin
 import app.storyarc.core.model.Shelves
 import kotlin.math.roundToInt
@@ -181,6 +184,16 @@ object HomeShelves {
         shelves: Shelves = Shelves(),
         /** Which of them they asked to see here. */
         pinned: PinnedShelves = PinnedShelves(),
+        /** What each server last said its own shelves were, so a pinned one can be named. */
+        remembered: List<RememberedShelf> = emptyList(),
+        /**
+         * What a server-backed reading list held the last time it answered, by key.
+         *
+         * A lambda rather than a store, for `isReadableNow`'s reason: reading the record is
+         * the app layer's business, and a store dragged in here would give this function a
+         * way to block. `ShelfSync` is what writes the record.
+         */
+        members: (ShelfKey) -> List<String>? = { null },
     ): HomeSurface {
         val state: (Publication) -> LibraryIndex.Progress = { LibraryIndex.Progress.of(progress(it)) }
         val entry: (Publication) -> HomeEntry = { entryOf(it, progress, isReadableNow) }
@@ -206,7 +219,7 @@ object HomeShelves {
             keepReading = keepReading,
             upNext = upNext(publications, state, shelfLength).map(entry),
             recentlyAdded = recentlyAdded(publications, shelfLength).map(entry),
-            pinned = pinnedShelves(publications, shelves, pinned, entry),
+            pinned = pinnedShelves(publications, shelves, pinned, remembered, members, entry),
             finished = finished(publications, progress, nowEpochMillis, shelfLength)
                 .map { (period, group) -> HomeFinishedGroup(period, group.map(entry)) },
         )
@@ -230,10 +243,18 @@ object HomeShelves {
         publications: List<Publication>,
         shelves: Shelves,
         pinned: PinnedShelves,
+        remembered: List<RememberedShelf>,
+        members: (ShelfKey) -> List<String>?,
         entry: (Publication) -> HomeEntry,
     ): List<HomePinnedShelf> {
         if (pinned.isEmpty) return emptyList()
         val byId = publications.associateBy { it.id }
+        // A server reading list names its members by the server's own chapter numbering, and
+        // a publication's own id prefers its local path once the file has been downloaded --
+        // so the join is on the server identity rather than on `Publication.id`.
+        val byRemote = publications
+            .mapNotNull { it.identity.serverIdentifier?.let { server -> "${server.sourceId}:${server.remoteId}" to it } }
+            .toMap()
 
         val collections = shelves.collections
             .filter { ShelfPin.Collection(it.id) in pinned }
@@ -254,7 +275,41 @@ object HomeShelves {
                 )
             }
 
-        return (collections + lists).filter { it.entries.isNotEmpty() }
+        // A server's shelf is pinned like any other -- `collections-and-reading-lists` calls
+        // it "the same kind of object as locally created ones" -- and it reaches this surface
+        // without a request, because *The home surface never waits on a source* forbids one.
+        // `ShelfSync` wrote down what the list held the last time it answered; this reads it.
+        //
+        // **A server *collection* has no such record**, because `ShelfSync` reconciles reading
+        // lists alone. A pinned one is still ordered ahead of the unpinned shelves on the home
+        // surface's Collections shelf, and it draws no row of its own until something writes a
+        // collection's membership down -- which is *A shelf that would be empty* rather than a
+        // silent failure.
+        //
+        // **A collection is never asked, and that is a correctness rule rather than an
+        // economy.** [ShelfKey] names a source and a number and not a kind, and a Kavita
+        // server numbers its collections and its reading lists from one apiece -- so asking
+        // for collection 1's members returns reading list 1's. Seen on a simulator on
+        // 2026-10-05: a pinned *Staff picks* drew *Start here*'s three covers, under its own
+        // name.
+        val server = remembered
+            .filter { it.pin in pinned }
+            .map { shelf ->
+                HomePinnedShelf(
+                    pin = shelf.pin,
+                    name = shelf.title,
+                    entries = if (shelf.kind != RememberedShelfKind.READING_LIST) {
+                        emptyList()
+                    } else {
+                        members(ShelfKey(shelf.sourceId.toString(), shelf.serverId))
+                            .orEmpty()
+                            .mapNotNull { byRemote["${shelf.sourceId}:chapter:$it"] }
+                            .map(entry)
+                    },
+                )
+            }
+
+        return (collections + lists + server).filter { it.entries.isNotEmpty() }
     }
 
     /**

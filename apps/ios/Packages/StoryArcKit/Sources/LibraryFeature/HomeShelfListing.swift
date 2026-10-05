@@ -54,6 +54,19 @@ struct HomeShelfSummary: Identifiable {
         case let .onServer(shelf): shelf.id
         }
     }
+
+    /// How the reader pins this card, whichever of the three kinds of shelf it stands for.
+    ///
+    /// One answer for all three is what lets `home-screen`'s "ahead of the unpinned ones" be
+    /// one ordering over the whole half rather than one over the reader's shelves and
+    /// another over the servers' — which is how a pinned server shelf came to sit behind
+    /// every local one whatever the reader did.
+    var pin: ShelfPin {
+        switch destination {
+        case let .onDevice(id): if kind == .collection { .collection(id) } else { .list(id) }
+        case let .onServer(shelf): shelf.pin
+        }
+    }
 }
 
 /// The reader's shelves, as two shelves of the home surface.
@@ -100,8 +113,7 @@ enum HomeShelfIndex {
         let byID = Dictionary(publications.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let tiles: ([String]) -> [Publication] = { ids in ids.compactMap { byID[$0] } }
 
-        let collections = pinned
-            .ordering(shelves.collections) { .collection($0.id) }
+        let collections = shelves.collections
             .map { collection in
                 HomeShelfSummary(
                     kind: .collection,
@@ -114,8 +126,7 @@ enum HomeShelfIndex {
                 )
             }
 
-        let lists = pinned
-            .ordering(shelves.lists) { .list($0.id) }
+        let lists = shelves.lists
             .map { list in
                 HomeShelfSummary(
                     kind: .readingList,
@@ -142,9 +153,13 @@ enum HomeShelfIndex {
                 )
             }
 
+        // Ordered once, over the whole half. A server's shelf takes the same pin a local one
+        // does — `collections-and-reading-lists` calls it "the same kind of object" — so
+        // `home-screen`'s "ahead of the unpinned ones" has to reach across the join rather
+        // than sort each side and then staple the servers' on the end.
         return HomeShelfListing(
-            collections: collections + server.filter { $0.kind == .collection },
-            lists: lists + server.filter { $0.kind == .readingList }
+            collections: pinned.ordering(collections + server.filter { $0.kind == .collection }, by: \.pin),
+            lists: pinned.ordering(lists + server.filter { $0.kind == .readingList }, by: \.pin)
         )
     }
 

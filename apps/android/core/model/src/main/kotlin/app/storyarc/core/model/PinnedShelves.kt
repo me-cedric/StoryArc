@@ -12,11 +12,28 @@ import java.util.UUID
  */
 sealed interface ShelfPin {
 
-    val id: UUID
+    data class Collection(val id: UUID) : ShelfPin
 
-    data class Collection(override val id: UUID) : ShelfPin
+    data class ReadingListPin(val id: UUID) : ShelfPin
 
-    data class ReadingListPin(override val id: UUID) : ShelfPin
+    /**
+     * A shelf a server defines, named by the triple [RememberedShelf] is written down as.
+     *
+     * `collections-and-reading-lists` says a server's shelf is "the same kind of object as
+     * locally created ones", so `home-screen`'s *Pinned shelves* reaches it too. It took a
+     * third kind because the other two are a `UUID` this device minted and a server shelf has
+     * none: its only name is its server's own numbering, which two servers reuse -- the reason
+     * [ShelfKey] exists. The source is in the triple for exactly that reason, and the kind is
+     * in it because a server numbers its collections and its reading lists apart.
+     *
+     * **Not the title.** A server that renames a shelf would otherwise unpin it, and the
+     * reader would have no way to tell that from the shelf having gone.
+     */
+    data class Server(
+        val kind: RememberedShelfKind,
+        val sourceId: UUID,
+        val serverId: Int,
+    ) : ShelfPin
 
     /**
      * The token this pin is written down as.
@@ -24,12 +41,15 @@ sealed interface ShelfPin {
      * A string rather than an ordinal, because these are stored in the same preferences both
      * platforms already use for scalars. `collection:` and `list:` so a stored value can be
      * read by a person looking at the file, and so reordering the declarations cannot
-     * silently repoint every pin a reader has.
+     * silently repoint every pin a reader has. A server pin puts `server:` first and then the
+     * same two words, so one reader learns one vocabulary and the first field alone says how
+     * many more to expect.
      */
     val token: String
         get() = when (this) {
             is Collection -> "collection:$id"
             is ReadingListPin -> "list:$id"
+            is Server -> "server:${kind.word}:$sourceId:$serverId"
         }
 
     companion object {
@@ -42,6 +62,9 @@ sealed interface ShelfPin {
          */
         fun of(token: String): ShelfPin? {
             val kind = token.substringBefore(':', missingDelimiterValue = "")
+            // Read before the UUID parse below, because a server pin's second field is a kind
+            // rather than an identifier and that parse would reject it.
+            if (kind == "server") return server(token.substringAfter(':', ""))
             val id = runCatching { UUID.fromString(token.substringAfter(':', "")) }.getOrNull()
                 ?: return null
             return when (kind) {
@@ -49,6 +72,16 @@ sealed interface ShelfPin {
                 "list" -> ReadingListPin(id)
                 else -> null
             }
+        }
+
+        /** The three fields after `server:`, or null when any of them is unreadable. */
+        private fun server(triple: String): Server? {
+            val parts = triple.split(":")
+            if (parts.size != 3) return null
+            val kind = RememberedShelfKind.entries.firstOrNull { it.word == parts[0] } ?: return null
+            val sourceId = runCatching { UUID.fromString(parts[1]) }.getOrNull() ?: return null
+            val serverId = parts[2].toIntOrNull() ?: return null
+            return Server(kind, sourceId, serverId)
         }
     }
 }

@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,6 +27,7 @@ import app.storyarc.core.model.ReadState
 import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.model.RememberedShelf
 import app.storyarc.core.model.RememberedShelfKind
+import app.storyarc.core.persistence.ShelfEditStore
 import app.storyarc.feature.library.AddToShelfSheet
 import app.storyarc.feature.library.DownloadOffer
 import app.storyarc.feature.library.HomePublicationActions
@@ -148,6 +150,13 @@ internal fun HomeDestination(host: AppHost) {
     val shelves by host.library.shelves.collectAsStateWithLifecycle()
     val pinned = PinnedShelves.of(host.dependencies.libraryPreferences.pinnedShelves())
 
+    // What each server last said its own shelves were, and what each of its reading lists
+    // held when it last answered. Both are read, never asked for: `home-screen` forbids this
+    // surface from reaching a source, and `ShelfSync` is what wrote the membership down.
+    val remembered = RememberedShelf.of(host.dependencies.libraryPreferences.rememberedShelves())
+    val context = LocalContext.current
+    val shelfMembers = remember(context) { ShelfEditStore.open(context).queue() }
+
     val surface: HomeSurface = remember(publications, progress, onDevice, registry, shelves, pinned) {
         HomeShelves.assemble(
             publications = publications,
@@ -156,6 +165,8 @@ internal fun HomeDestination(host: AppHost) {
             nowEpochMillis = System.currentTimeMillis(),
             shelves = shelves,
             pinned = pinned,
+            remembered = remembered,
+            members = { shelfMembers.baseline(it) },
         )
     }
 
@@ -171,7 +182,6 @@ internal fun HomeDestination(host: AppHost) {
             .filter { KavitaPage.of(it, host.dependencies.credentials) != null }
             .associate { it.id to it.displayName }
     }
-    val remembered = RememberedShelf.of(host.dependencies.libraryPreferences.rememberedShelves())
     val finished = remember(progress) {
         progress.filterValues { it.isFinished }.keys
     }

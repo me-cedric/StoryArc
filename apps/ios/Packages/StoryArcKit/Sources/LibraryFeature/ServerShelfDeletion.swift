@@ -44,6 +44,7 @@ func serverShelfCell<Destination: View>(
     pending: Int = 0,
     model: LibraryModel,
     deleting: Binding<ServerShelfDeletion?>,
+    pinned: Binding<String>,
     @ViewBuilder destination: () -> Destination
 ) -> some View {
     NavigationLink {
@@ -53,6 +54,9 @@ func serverShelfCell<Destination: View>(
     }
     .buttonStyle(.plain)
     .contextMenu {
+        // Above the destructive item, the order ``pinButton(_:in:)`` keeps for a local shelf
+        // — a server's shelf offers the same menu because it is the same kind of object.
+        if let pin = serverShelfPin(shelf) { pinButton(pin, in: pinned) }
         Button(role: .destructive) {
             deleting.wrappedValue = ServerShelfDeletion(shelf)
         } label: {

@@ -110,6 +110,42 @@ class PinnedShelvesTest {
     }
 
     @Test
+    fun `a server's shelf is pinned by its triple, and a rename does not unpin it`() {
+        // `collections-and-reading-lists`: a server's shelf is "the same kind of object as
+        // locally created ones". The triple is RememberedShelf's, without the title, so the
+        // server renaming the shelf leaves the pin where the reader put it.
+        val source = UUID.randomUUID()
+        val shelf = RememberedShelf(RememberedShelfKind.READING_LIST, source, 7, "Crossover")
+        val renamed = shelf.copy(title = "Crossovers")
+        val pinned = PinnedShelves().toggling(shelf.pin)
+
+        assertTrue(renamed.pin in pinned)
+        // Two servers number their reading lists from one, and a collection and a list are
+        // numbered apart on each -- so neither the source nor the kind may be dropped.
+        assertFalse(ShelfPin.Server(RememberedShelfKind.READING_LIST, UUID.randomUUID(), 7) in pinned)
+        assertFalse(ShelfPin.Server(RememberedShelfKind.COLLECTION, source, 7) in pinned)
+    }
+
+    @Test
+    fun `a server pin survives being written down and read back`() {
+        // The same token iOS writes, which is the point of asserting the spelling rather than
+        // only the round trip.
+        val source = UUID.randomUUID()
+        val pin = ShelfPin.Server(RememberedShelfKind.COLLECTION, source, 12)
+        val pinned = PinnedShelves().toggling(pin)
+
+        assertEquals("server:collection:$source:12", pin.token)
+        assertEquals(pinned, PinnedShelves.of(pinned.tokens))
+        assertEquals(
+            ShelfPin.Server(RememberedShelfKind.READING_LIST, source, 12),
+            ShelfPin.of("server:list:$source:12"),
+        )
+        assertNull(ShelfPin.of("server:nonsense:$source:12"))
+        assertNull(ShelfPin.of("server:list:$source"))
+        assertNull(ShelfPin.of("server:list:$source:not-a-number"))
+    }
+
+    @Test
     fun `a token this version cannot read is dropped rather than guessed at`() {
         // An unreadable pin drops one shelf off the home surface, which the reader can see and
         // put back. A guessed one pins a shelf they never chose and gives them nothing to undo.

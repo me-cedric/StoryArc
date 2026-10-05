@@ -201,13 +201,13 @@ public struct ShelvesView: View {
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
-                            pinButton(.collection(collection.id))
+                            pinButton(.collection(collection.id), in: $pinnedShelves)
                             renameButton { renaming = ShelfRenameTarget(collection) }
                             deleteButton { deleting = ShelfDeletion(collection) }
                         }
                     }
                     ForEach(server) { shelf in
-                        serverShelfCell(shelf, model: model, deleting: $deletingServerShelf) {
+                        serverShelfCell(shelf, model: model, deleting: $deletingServerShelf, pinned: $pinnedShelves) {
                             KavitaCollectionView(
                                 server: shelf.server,
                                 collectionID: shelf.id,
@@ -258,25 +258,35 @@ public struct ShelvesView: View {
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
-                            pinButton(.list(list.id))
+                            pinButton(.list(list.id), in: $pinnedShelves)
                             renameButton { renaming = ShelfRenameTarget(list) }
                             deleteButton { deleting = ShelfDeletion(list) }
                         }
                     }
-                    ForEach(server) { shelf in
-                        let pending = edits.pending(for: ShelfSync.key(shelf)).count
-                        serverShelfCell(shelf, pending: pending, model: model, deleting: $deletingServerShelf) {
-                            KavitaListView(
-                                server: shelf.server,
-                                listID: shelf.id,
-                                title: shelf.title,
-                                progress: model.progressStore,
-                                onOpen: onOpen
-                            )
-                        }
-                    }
+                    ForEach(server) { serverListCell($0) }
                 }
             }
+        }
+    }
+
+    /// One server reading list's cell, lifted out so `lists(_:server:)` stays inside the
+    /// fifty-line function body the linter allows. Its menu is `serverShelfCell`'s.
+    @ViewBuilder
+    private func serverListCell(_ shelf: ServerShelf) -> some View {
+        serverShelfCell(
+            shelf,
+            pending: edits.pending(for: ShelfSync.key(shelf)).count,
+            model: model,
+            deleting: $deletingServerShelf,
+            pinned: $pinnedShelves
+        ) {
+            KavitaListView(
+                server: shelf.server,
+                listID: shelf.id,
+                title: shelf.title,
+                progress: model.progressStore,
+                onOpen: onOpen
+            )
         }
     }
 
