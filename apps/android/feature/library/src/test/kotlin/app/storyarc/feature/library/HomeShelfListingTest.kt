@@ -200,6 +200,24 @@ class HomeShelfListingTest {
     }
 
     @Test
+    fun `a pinned server shelf leads the half, ahead of the reader's own unpinned ones`() {
+        // `collections-and-reading-lists`: a server's shelf is "the same kind of object as
+        // locally created ones", so `home-screen`'s "ahead of the unpinned ones" reaches
+        // across the join. It used to stop at it -- every server shelf sat behind every local
+        // one, whatever the reader pinned.
+        val marvel = RememberedShelf(RememberedShelfKind.COLLECTION, serverId, 4, "Marvel")
+        val listing = HomeShelfIndex.assemble(
+            shelves = Shelves(collections = listOf(collection("First"), collection("Second"))),
+            publications = library,
+            remembered = listOf(marvel),
+            openableSources = mapOf(serverId to "Kavita at home"),
+            pinned = PinnedShelves().toggling(marvel.pin),
+        )
+
+        assertEquals(listOf("Marvel", "First", "Second"), listing.collections.map { it.name })
+    }
+
+    @Test
     fun `every card's key is its own`() {
         val listing = HomeShelfIndex.assemble(
             shelves = Shelves(

@@ -230,7 +230,7 @@ extension LibraryView {
         Group {
             KavitaServerSearchOffer(registry: model.registry, query: model.query) { source in
                 serverSearch = model.query.search
-                browsing = source.id
+                browsing = .browser(source.id)
             }
             // `library-browsing`'s list fallback: an accessibility text size draws exactly
             // what choosing List by hand draws, the `else` branch below — not a third
@@ -286,7 +286,11 @@ extension LibraryView {
                 MoreFromTheLibrary(
                     sources: model.registry.sources,
                     isPartial: model.isPartial,
-                    onBrowse: { browsing = $0.id }
+                    // The shelf of that source, not its catalogue browser. *More from a
+                    // source than the library holds* asks for the rest of this library
+                    // "rendered by the same grid, the same cells and the same publication
+                    // page as everything else" — see ``SourceShelfView``.
+                    onBrowse: { browsing = .shelf($0.id) }
                 )
             } else if !model.publications.isEmpty {
                 // A library that is not empty but looks it. `library-browsing`

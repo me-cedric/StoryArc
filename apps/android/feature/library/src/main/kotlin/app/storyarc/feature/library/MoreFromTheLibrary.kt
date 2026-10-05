@@ -25,11 +25,10 @@ import app.storyarc.core.model.SourceKind
  * always there says nothing about this library in particular, and a reader learns to skim
  * past it.
  *
- * It leads to the source's own browser, which is the screen that already knows how to walk
- * that catalogue — an OPDS feed, a Kavita library, a share's directory tree. **The
- * publications there are drawn by that browser's cells and not by this grid's**, which is
- * the one clause of the requirement this does not yet meet; it is recorded in the change's
- * task 3.3 rather than glossed.
+ * It leads to [SourceShelfScreen], which draws that source's library rows with this grid's
+ * own cells. That is the clause this footer used to miss: it opened the source's catalogue
+ * browser instead, and `library-browsing` asks those publications to be "rendered by the
+ * same grid, the same cells and the same publication page as everything else".
  */
 @Composable
 internal fun MoreFromTheLibrary(

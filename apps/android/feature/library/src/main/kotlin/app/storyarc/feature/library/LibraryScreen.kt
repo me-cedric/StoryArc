@@ -128,6 +128,16 @@ fun LibraryScreen(
      */
     onFollowToSource: (Source, String) -> Unit = { source, _ -> onBrowse(source) },
     /**
+     * What *more from this library* at the foot of the shelf opens.
+     *
+     * A different screen from [onBrowse], and `library-browsing` makes the difference a
+     * requirement: the publications a source holds beyond its slice "are rendered by the same
+     * grid, the same cells and the same publication page as everything else", which a
+     * catalogue browser's own cells are not. See `SourceShelfScreen`. Defaults to [onBrowse],
+     * so a caller not yet taught the shelf still reaches that library rather than nowhere.
+     */
+    onMoreFrom: (Source) -> Unit = onBrowse,
+    /**
      * Puts a running search to the server the library is filtered to.
      *
      * `kavita-server` asks a search within a Kavita source to reach the server; the field
@@ -574,7 +584,7 @@ fun LibraryScreen(
                             onOpenPage = onOpenPage,
                             onOpenSeries = onOpenSeries,
                             actions = publicationActions,
-                            onBrowse = onBrowse,
+                            onMoreFrom = onMoreFrom,
                             sources = registry.sources,
                         )
 
@@ -717,7 +727,7 @@ private fun Shelf(
     onOpenSeries: (String) -> Unit,
     actions: PublicationActionCallbacks,
     /** *More from this library* at the foot: the sources, and what a tap on one does. */
-    onBrowse: (Source) -> Unit,
+    onMoreFrom: (Source) -> Unit,
     sources: List<Source>,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -751,7 +761,7 @@ private fun Shelf(
                 sections = sections,
                 seriesRows = rows.series,
                 onOpenSeries = { onOpenSeries(it.name) },
-                onBrowse = onBrowse, sources = sources,
+                onBrowse = onMoreFrom, sources = sources,
                 onOpen = onOpenPage,
                 onResume = resume,
                 actions = actions,
@@ -763,7 +773,7 @@ private fun Shelf(
             CoverList(
                 publications = shelved,
                 viewModel = viewModel,
-                onBrowse = onBrowse, sources = sources,
+                onBrowse = onMoreFrom, sources = sources,
                 onOpen = onOpenPage,
                 selection = selection.ids.takeIf { selection.isActive },
                 onToggle = { onSelectionChange(selection.toggle(it.id)) },

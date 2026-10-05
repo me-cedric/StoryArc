@@ -36,6 +36,7 @@ import app.storyarc.feature.library.ReadingListDetailScreen
 import app.storyarc.feature.library.ServerShelf
 import app.storyarc.feature.library.ShelvesScreen
 import app.storyarc.feature.library.SmbBrowserScreen
+import app.storyarc.feature.library.SourceShelfScreen
 import app.storyarc.feature.library.UnauthorizedSourceScreen
 import app.storyarc.feature.library.promote
 import app.storyarc.feature.library.promotionOf
@@ -192,6 +193,16 @@ internal fun HostedScreen(
             name = screen.name,
             viewModel = host.library,
             onOpen = host.openPage,
+            onBack = back,
+            onMark = { publication, isRead -> host.mark(publication, isRead) },
+        )
+
+        is Screen.SourceShelf -> SourceShelfScreen(
+            sourceId = screen.id,
+            title = screen.title,
+            viewModel = host.library,
+            onOpen = host.openPage,
+            onOpenSeries = { host.navigate { push(Screen.SeriesShelf(it)) } },
             onBack = back,
             onMark = { publication, isRead -> host.mark(publication, isRead) },
         )

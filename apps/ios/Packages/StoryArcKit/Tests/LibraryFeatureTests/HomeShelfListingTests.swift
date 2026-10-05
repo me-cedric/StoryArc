@@ -196,6 +196,24 @@ struct HomeShelfListingTests {
         #expect(listing.collections.map(\.name) == ["Second", "First", "Marvel"])
     }
 
+    @Test("A pinned server shelf leads the half, ahead of the reader's own unpinned ones")
+    func aPinnedServerShelfLeads() {
+        // `collections-and-reading-lists`: a server's shelf is "the same kind of object as
+        // locally created ones", so `home-screen`'s "ahead of the unpinned ones" reaches
+        // across the join. It used to stop at it — every server shelf sat behind every local
+        // one, whatever the reader pinned.
+        let marvel = RememberedShelf(kind: .collection, sourceID: serverID, serverID: 4, title: "Marvel")
+        let listing = HomeShelfIndex.assemble(
+            shelves: Shelves(collections: [collection("First"), collection("Second")]),
+            publications: library,
+            remembered: [marvel],
+            openableSources: [serverID: "Kavita at home"],
+            pinned: PinnedShelves().toggling(marvel.pin)
+        )
+
+        #expect(listing.collections.map(\.name) == ["Marvel", "First", "Second"])
+    }
+
     @Test("Every card's key is its own")
     func keysAreUnique() {
         let listing = HomeShelfIndex.assemble(

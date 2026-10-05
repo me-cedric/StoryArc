@@ -175,6 +175,17 @@ sealed interface Screen {
      */
     data class SeriesShelf(val name: String) : Screen
 
+    /**
+     * Everything one source has put in the library, which is where *more from this library*
+     * at the foot of the shelf leads.
+     *
+     * The id and the name rather than the [Source]: a source carries a connection state that
+     * changes while the reader is inside it, and a back stack entry that changed underneath
+     * them would take the screen away. iOS's `SourceDestination` keeps an identifier for the
+     * same reason.
+     */
+    data class SourceShelf(val id: UUID, val title: String) : Screen
+
     data class Settings(val opensAtDownloads: Boolean = false) : Screen {
         override val hidesNavigation: Boolean = true
     }

@@ -108,8 +108,8 @@ extension LibraryView {
                         // too, rather than over it. It is the same verb as choosing a cover —
                         // *show me this* — and giving it the other column would put the one
                         // navigation this screen has in two places.
-                        .navigationDestination(item: $browsing) { id in
-                            if let source = model.registry[id] { browser(for: source) }
+                        .navigationDestination(item: $browsing) { destination in
+                            sourceScreen(destination)
                         }
                         // The exhaustive shelves list, opened from outside this screen —
                         // see ``LibraryView/isShowingShelves``. Beside the shelf, the same
@@ -146,12 +146,28 @@ extension LibraryView {
             NavigationStack {
                 libraryColumn
                     .publicationPages(in: model, onOpen: onOpen, onListen: onListen)
-                    .navigationDestination(item: $browsing) { id in
-                        if let source = model.registry[id] { browser(for: source) }
+                    .navigationDestination(item: $browsing) { destination in
+                        sourceScreen(destination)
                     }
                     .navigationDestination(isPresented: $isShowingShelves) {
                         ShelvesView(model: model, onOpen: onOpen)
                     }
+            }
+        }
+    }
+
+    /// Which of a source's two screens this destination asks for — see ``SourceDestination``.
+    ///
+    /// Registered once per branch, as the publication page is, so the shelf's footer and a
+    /// search result land in the same column and the reader meets one back gesture either
+    /// way. A source the registry has since let go draws nothing rather than an empty
+    /// screen: the reader is already being told, on the shelf behind this, that it has gone.
+    @ViewBuilder
+    func sourceScreen(_ destination: SourceDestination) -> some View {
+        if let source = model.registry[destination.sourceID] {
+            switch destination {
+            case .shelf: SourceShelfView(source: source, model: model)
+            case .browser: browser(for: source)
             }
         }
     }

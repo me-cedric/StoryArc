@@ -9,8 +9,12 @@ import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReadingList
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.model.RememberedShelf
+import app.storyarc.core.model.RememberedShelfKind
+import app.storyarc.core.model.ShelfKey
 import app.storyarc.core.model.ShelfPin
 import app.storyarc.core.model.Shelves
+import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -404,6 +408,90 @@ class HomeShelvesTest {
     }
 
     @Test
+    fun `a pinned server reading list is a shelf of its own, drawn from the cached membership`() {
+        // `collections-and-reading-lists`: a server's shelf is "the same kind of object as
+        // locally created ones". `ShelfSync` wrote down what the list held the last time it
+        // answered, and that record -- never a request -- is what fills the shelf here.
+        val first = chapter("Ashfall", 11)
+        val second = chapter("Brine", 12)
+        val shelf = serverList("Crossover", 7)
+
+        val surface = assemble(
+            listOf(second, first),
+            pins = PinnedShelves().toggling(shelf.pin),
+            remembered = listOf(shelf),
+            members = { listOf("11", "12") },
+        )
+
+        assertEquals("Crossover", surface.pinned.single().name)
+        // The server's own order, which is the record, not the order the library holds them in.
+        assertEquals(listOf(first.id, second.id), surface.pinned.single().entries.map { it.id })
+    }
+
+    @Test
+    fun `a server shelf nobody pinned contributes nothing, and none is asked for`() {
+        val shelf = serverList("Crossover", 7)
+        var asked = 0
+
+        val surface = assemble(
+            listOf(chapter("Ashfall", 11)),
+            remembered = listOf(shelf),
+            members = { asked++; listOf("11") },
+        )
+
+        assertTrue(surface.pinned.isEmpty())
+        assertEquals(0, asked)
+    }
+
+    @Test
+    fun `a pinned server shelf this device holds nothing of is absent, not an empty heading`() {
+        val shelf = serverList("Crossover", 7)
+
+        val surface = assemble(
+            listOf(chapter("Ashfall", 11)),
+            pins = PinnedShelves().toggling(shelf.pin),
+            remembered = listOf(shelf),
+            members = { listOf("99") },
+        )
+
+        assertTrue(surface.pinned.isEmpty())
+    }
+
+    @Test
+    fun `a pinned server collection never borrows a reading list's members`() {
+        // [ShelfKey] names a source and a number and not a kind, and a Kavita server numbers
+        // its collections and its reading lists from one apiece. Seen on a simulator on
+        // 2026-10-05: a pinned *Staff picks* drew *Start here*'s three covers.
+        val collection = RememberedShelf(RememberedShelfKind.COLLECTION, serverSource, 7, "Staff picks")
+        var asked = false
+
+        val surface = assemble(
+            listOf(chapter("Ashfall", 11)),
+            pins = PinnedShelves().toggling(collection.pin),
+            remembered = listOf(collection),
+            members = { asked = true; listOf("11") },
+        )
+
+        assertTrue(surface.pinned.isEmpty())
+        assertFalse(asked)
+    }
+
+    @Test
+    fun `the membership is read by the shelf's own key`() {
+        val shelf = serverList("Crossover", 7)
+        var asked: ShelfKey? = null
+
+        assemble(
+            listOf(chapter("Ashfall", 11)),
+            pins = PinnedShelves().toggling(shelf.pin),
+            remembered = listOf(shelf),
+            members = { asked = it; null },
+        )
+
+        assertEquals(ShelfKey(serverSource.toString(), 7), asked)
+    }
+
+    @Test
     fun `a list entry the library does not hold is skipped rather than left as a hole`() {
         val held = publication("Ashfall")
         val list = ReadingList(name = "Crossover", entries = listOf("missing", held.id, "also-missing"))
@@ -423,6 +511,8 @@ class HomeShelvesTest {
         readable: (Publication) -> Boolean = { true },
         shelves: Shelves = Shelves(),
         pins: PinnedShelves = PinnedShelves(),
+        remembered: List<RememberedShelf> = emptyList(),
+        members: (ShelfKey) -> List<String>? = { null },
     ) = HomeShelves.assemble(
         publications = publications,
         progress = { progress[it.id] },
@@ -430,7 +520,24 @@ class HomeShelvesTest {
         nowEpochMillis = now,
         shelves = shelves,
         pinned = pins,
+        remembered = remembered,
+        members = members,
     )
+
+    private val serverSource: UUID = UUID.fromString("1B9E7C3A-0000-4000-8000-00000000ABCD")
+
+    private fun chapter(title: String, id: Int) = Publication(
+        identity = PublicationIdentity(
+            serverIdentifier = PublicationIdentity.ServerIdentifier(serverSource, "chapter:$id"),
+        ),
+        format = PublicationFormat.CBZ,
+        displayTitle = title,
+        origin = MetadataOrigin.EMBEDDED,
+        sourceId = serverSource,
+    )
+
+    private fun serverList(title: String, id: Int) =
+        RememberedShelf(RememberedShelfKind.READING_LIST, serverSource, id, title)
 
     private fun publication(
         title: String,

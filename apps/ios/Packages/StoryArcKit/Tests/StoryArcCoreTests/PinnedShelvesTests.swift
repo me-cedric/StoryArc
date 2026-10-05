@@ -102,6 +102,40 @@ struct PinnedShelvesTests {
         #expect(ShelfPin.list(id).token == "list:\(id.uuidString)")
     }
 
+    @Test("A server's shelf is pinned by its triple, and a rename does not unpin it")
+    func aServerShelfTakesThePin() {
+        // `collections-and-reading-lists`: a server's shelf is "the same kind of object as
+        // locally created ones". The triple is ``RememberedShelf``'s, without the title, so
+        // the server renaming the shelf leaves the pin where the reader put it.
+        let source = UUID()
+        let shelf = RememberedShelf(kind: .readingList, sourceID: source, serverID: 7, title: "Crossover")
+        let renamed = RememberedShelf(kind: .readingList, sourceID: source, serverID: 7, title: "Crossovers")
+        let pinned = PinnedShelves().toggling(shelf.pin)
+
+        #expect(pinned.contains(renamed.pin))
+        // Two servers number their reading lists from one, and a collection and a list are
+        // numbered apart on each — so neither the source nor the kind may be dropped.
+        #expect(!pinned.contains(.server(.readingList, sourceID: UUID(), serverID: 7)))
+        #expect(!pinned.contains(.server(.collection, sourceID: source, serverID: 7)))
+    }
+
+    @Test("A server pin survives being written down and read back")
+    func aServerPinRoundTrips() {
+        let source = UUID()
+        let pin = ShelfPin.server(.collection, sourceID: source, serverID: 12)
+        let pinned = PinnedShelves().toggling(pin)
+
+        #expect(pin.token == "server:collection:\(source.uuidString):12")
+        #expect(PinnedShelves(stored: pinned.stored) == pinned)
+        #expect(
+            ShelfPin(token: "server:list:\(source.uuidString):12")
+                == .server(.readingList, sourceID: source, serverID: 12)
+        )
+        #expect(ShelfPin(token: "server:nonsense:\(source.uuidString):12") == nil)
+        #expect(ShelfPin(token: "server:list:\(source.uuidString)") == nil)
+        #expect(ShelfPin(token: "server:list:\(source.uuidString):not-a-number") == nil)
+    }
+
     @Test("A token this version cannot read is dropped rather than guessed at")
     func unreadableTokensAreDropped() {
         // An unreadable pin drops one shelf off the home surface, which the reader can see

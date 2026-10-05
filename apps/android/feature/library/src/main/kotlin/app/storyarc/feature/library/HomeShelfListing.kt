@@ -79,6 +79,25 @@ data class HomeShelfSummary(
             is HomeShelfDestination.OnDevice -> "local:${where.id}"
             is HomeShelfDestination.OnServer -> where.shelf.key
         }
+
+    /**
+     * How the reader pins this card, whichever of the three kinds of shelf it stands for.
+     *
+     * One answer for all three is what lets `home-screen`'s "ahead of the unpinned ones" be
+     * one ordering over the whole half rather than one over the reader's shelves and another
+     * over the servers' -- which is how a pinned server shelf came to sit behind every local
+     * one, whatever the reader did.
+     */
+    val pin: ShelfPin
+        get() = when (val where = destination) {
+            is HomeShelfDestination.OnDevice ->
+                if (kind == RememberedShelfKind.COLLECTION) {
+                    ShelfPin.Collection(where.id)
+                } else {
+                    ShelfPin.ReadingListPin(where.id)
+                }
+            is HomeShelfDestination.OnServer -> where.shelf.pin
+        }
 }
 
 /**
@@ -129,8 +148,7 @@ object HomeShelfIndex {
         val byId = publications.associateBy { it.id }
         val tiles: (List<String>) -> List<Publication> = { ids -> ids.mapNotNull { byId[it] } }
 
-        val collections = pinned
-            .ordering(shelves.collections) { ShelfPin.Collection(it.id) }
+        val collections = shelves.collections
             .map { collection ->
                 HomeShelfSummary(
                     kind = RememberedShelfKind.COLLECTION,
@@ -143,8 +161,7 @@ object HomeShelfIndex {
                 )
             }
 
-        val lists = pinned
-            .ordering(shelves.lists) { ShelfPin.ReadingListPin(it.id) }
+        val lists = shelves.lists
             .map { list ->
                 HomeShelfSummary(
                     kind = RememberedShelfKind.READING_LIST,
@@ -171,9 +188,17 @@ object HomeShelfIndex {
                 )
             }
 
+        // Ordered once, over the whole half. A server's shelf takes the same pin a local one
+        // does -- `collections-and-reading-lists` calls it "the same kind of object" -- so
+        // `home-screen`'s "ahead of the unpinned ones" has to reach across the join rather
+        // than sort each side and then staple the servers' on the end.
         return HomeShelfListing(
-            collections = collections + server.filter { it.kind == RememberedShelfKind.COLLECTION },
-            lists = lists + server.filter { it.kind == RememberedShelfKind.READING_LIST },
+            collections = pinned.ordering(
+                collections + server.filter { it.kind == RememberedShelfKind.COLLECTION },
+            ) { it.pin },
+            lists = pinned.ordering(
+                lists + server.filter { it.kind == RememberedShelfKind.READING_LIST },
+            ) { it.pin },
         )
     }
 

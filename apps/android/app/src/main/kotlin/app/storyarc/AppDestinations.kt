@@ -116,6 +116,12 @@ private fun LibraryDestination(host: AppHost) {
             host.navigate { push(Screen.Settings()) }
         },
         onBrowse = { source -> host.browse(source, "") },
+        // `library-browsing`: what *more from this library* offers is the rest of **this**
+        // library, "rendered by the same grid, the same cells and the same publication page
+        // as everything else" — not the source's catalogue browser, which draws its own.
+        onMoreFrom = { source ->
+            host.navigate { push(Screen.SourceShelf(source.id, source.displayName)) }
+        },
         // `kavita-server`: a search within a Kavita source goes to the server. The library's
         // own field filters the local index; this carries the question across, and the
         // browser opens with it.

@@ -69,6 +69,16 @@ data class RememberedShelf(
     val key: String
         get() = "${kind.word}:$sourceId:$serverId:$title"
 
+    /**
+     * How the reader pins this shelf to the home surface.
+     *
+     * The triple without the title, where [key] carries it: `home-screen`'s *Pinned shelves*
+     * must survive a server renaming the shelf, and [key] deliberately does not -- two records
+     * of one shelf under different titles are two cards, which is what keeps a rename visible.
+     */
+    val pin: ShelfPin
+        get() = ShelfPin.Server(kind, sourceId, serverId)
+
     /** The same shelf, with the count and the finished position a home card fetched. */
     fun counted(count: Int?, finished: Int?): RememberedShelf = copy(count = count, finished = finished)
 

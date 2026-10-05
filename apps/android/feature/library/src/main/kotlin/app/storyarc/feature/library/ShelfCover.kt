@@ -270,11 +270,13 @@ internal fun ShelfCard(
      * Whether this shelf is already on the home surface, or null for one that cannot be
      * pinned at all.
      *
-     * Null for every server-backed shelf, and that is a gap rather than a decision: a
-     * `ServerShelf` is fetched per visit and identified by its server's own numbering, where
-     * [app.storyarc.core.model.ShelfPin] is a `UUID` -- and a home surface that resolved such
-     * a pin would have to ask a server, which `home-screen` forbids outright. Named in
-     * `one-library-three-destinations` task 2.1 rather than papered over.
+     * **A server-backed shelf takes the same pin**, because `collections-and-reading-lists`
+     * says it is "the same kind of object as locally created ones". It took a third
+     * [app.storyarc.core.model.ShelfPin] kind to say so: the other two are a `UUID` this
+     * device minted, and a server shelf's only name is its server's own numbering, which two
+     * servers reuse. [app.storyarc.core.model.RememberedShelf] already writes that triple down
+     * and survives a relaunch, so the home surface resolves the pin from its own record rather
+     * than by asking a server -- which `home-screen` forbids outright.
      */
     isPinned: Boolean? = null,
     /** Puts it on the home surface, or takes it off. */
