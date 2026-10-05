@@ -1575,7 +1575,8 @@ class LibraryViewModel(
     /** What a set of publications weighs, for the confirmation that has to state a size. */
     fun bytesOnDisk(ids: Set<String>): Long = KeepOffline.bytesOnDisk(
         resolver,
-        _publications.value.filter { it.id in ids }.mapNotNull(::location),
+        _publications.value.filter { it.id in ids },
+        ::location,
     )
 
     /** Copies a whole selection into the download store, and reports what it copied. */

@@ -99,6 +99,7 @@ internal fun ShelfBulkMenu(
                         it,
                         isLocalFile = isOnDevice(viewModel.location(it)),
                         isQueueableRemote = PublicationActions.isQueueableRemote(it),
+                        isShare = isShareLocation(viewModel.location(it)),
                     )
                 }
                 val ask = BulkDownloadAsk.of(wanted, viewModel.keptOffline(), viewModel::bytesOnDisk)
@@ -209,14 +210,17 @@ internal fun ShelfBulkMenu(
  *
  * `collections-and-reading-lists` has the app state "the item count and total size before
  * starting", and the number stated was every member this device did not already hold. Three
- * kinds of member are in that count and in no copy: a folder of images, which
+ * kinds of member were in that count and in no copy: a folder of images, which
  * [LibraryViewModel.keepOffline] skips because there is no single file to take; a publication
- * no decoder opens; and a network share row, which it has no road for at all and leaves
- * behind without a word. A reader was quoted sixteen titles and a size, and got eleven.
+ * no decoder opens; and a network share row, which it had no road for at all and left behind
+ * without a word. A reader was quoted sixteen titles and a size, and got eleven.
  *
  * [PublicationActions.canCopy] is the same question the single download action asks, so the
  * confirmation now counts exactly what one tap would take. A member the shelf names and the
  * library no longer holds falls out here too, for the same reason.
+ *
+ * The share row is back in that count, because task 7.7 gave [KeepOffline] the chunked copy it
+ * lacked. The rule here did not change -- the answer it asks did.
  *
  * Free, and with the rule passed in, so `ShelfDownloadCountTest` can state the answer without
  * a composition or a view model. iOS's `downloadableMembers` asks its own

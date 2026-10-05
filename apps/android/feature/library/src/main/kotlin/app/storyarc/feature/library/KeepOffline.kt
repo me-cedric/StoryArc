@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.net.Uri
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.catalogue.OpdsClient
+import app.storyarc.core.format.ChunkedCopy
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.model.BulkSelection
 import app.storyarc.core.model.Download
@@ -51,8 +52,22 @@ internal object KeepOffline {
      * Nothing for a publication whose file cannot be measured, rather than a guess: the
      * requirement is that a size is *shown*, and an invented one is worse than a short one.
      */
-    fun bytesOnDisk(resolver: ContentResolver, paths: List<String>): Long =
-        paths.sumOf { path -> weigh(resolver, path) }
+    /**
+     * What a selection weighs, for the confirmation that states a size before it copies.
+     *
+     * **A share row's size is the one the share stated**, because its bytes are not on this
+     * device to be measured: [weigh] answers nought for an `smb://` address, and a member
+     * counted at nought quotes a reader a total the copy then exceeds. `SmbContributor` takes
+     * that length from the share's own directory entry, which costs nothing to read. Task 7.7.
+     */
+    fun bytesOnDisk(
+        resolver: ContentResolver,
+        publications: List<Publication>,
+        locate: (Publication) -> String?,
+    ): Long = publications.sumOf { publication ->
+        val measured = locate(publication)?.let { weigh(resolver, it) } ?: 0L
+        if (measured > 0L) measured else publication.fileSize ?: 0L
+    }
 
     /** Copies a whole selection into the download store, and reports what it copied. */
     suspend fun keep(
@@ -163,9 +178,25 @@ internal object KeepOffline {
             // Replaced rather than refused: a copy left behind by a removal that only got
             // half way is not a reason to tell the reader their comic cannot be kept.
             target.delete()
-            open(resolver, path)?.use { source ->
-                target.outputStream().use { source.copyTo(it) }
-            } ?: return@runCatching null
+            // **A share is a location and not a file**, and no stream this process can open
+            // reads one: `smb://` is an address the share client answers a range at a time, so
+            // [open] returned null and a share member was skipped here without a word. That is
+            // the second half of task 7.7, and this is its decision written down -- a share
+            // member takes the chunked-copy route and the queue records what landed, rather
+            // than [DownloadQueue] gaining a share transport. That queue moves bytes with
+            // `OpdsClient` over HTTP and cannot fetch an `smb://` address; teaching it one
+            // would be a second copy loop beside [ChunkedCopy] and would point this module's
+            // download path at the SMB client, which is the dependency `PublicationAccess`'s
+            // scheme registry exists to avoid. It is also the route the single
+            // keep-for-offline action already takes for the same bytes.
+            val share = PublicationAccess.remoteSource(path)
+            if (share != null) {
+                ChunkedCopy.copy(share, target)
+            } else {
+                open(resolver, path)?.use { source ->
+                    target.outputStream().use { source.copyTo(it) }
+                } ?: return@runCatching null
+            }
             target.length()
         }.getOrNull()
     }

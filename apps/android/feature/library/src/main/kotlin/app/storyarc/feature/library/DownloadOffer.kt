@@ -36,15 +36,21 @@ object PublicationActions {
      * The one question both a menu and a bulk confirmation ask. `collections-and-reading-lists`
      * has the app state "the item count and total size before starting", and that count was
      * every member not already on the device -- a folder of images among them, which
-     * [KeepOffline] skips, and a network share row, which it has no road for at all. Counting
+     * [KeepOffline] skips, and a network share row, which it had no road for at all. Counting
      * through the same rule the single action takes is what makes the stated count the copied
      * count. iOS's `PublicationActions.canCopy(_:file:model:)` is the same rule.
+     *
+     * **[isShare] said nothing until task 7.7**, and the silence was honest only while
+     * [KeepOffline] had no road for a share: a bulk download quoted a count that left every
+     * share member out. It copies one in chunks now, through the opener the app registered for
+     * `smb`, so the count holds them again.
      */
     fun canCopy(
         publication: Publication,
         isLocalFile: Boolean,
         isQueueableRemote: Boolean,
-    ): Boolean = canDownload(publication) && (isLocalFile || isQueueableRemote)
+        isShare: Boolean = false,
+    ): Boolean = canDownload(publication) && (isLocalFile || isQueueableRemote || isShare)
 }
 
 /**
@@ -70,9 +76,13 @@ sealed class DownloadOffer {
             isLocalFile: Boolean,
             /** A server row [KeepOffline]'s remote path can still queue, with no local file. */
             isQueueableRemote: Boolean = false,
+            /** A share row, whose bytes [KeepOffline] copies in chunks off the share. */
+            isShare: Boolean = false,
         ): DownloadOffer = when {
             isKept -> Remove
-            PublicationActions.canCopy(publication, isLocalFile, isQueueableRemote) -> Download
+            PublicationActions.canCopy(publication, isLocalFile, isQueueableRemote, isShare) ->
+                Download
+
             else -> None
         }
     }
