@@ -3,6 +3,7 @@ package app.storyarc.feature.reader
 import android.graphics.Bitmap
 import android.os.Build
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -85,9 +86,16 @@ internal fun CurledPages(
     onTurnedBack: () -> Unit,
     /** A press that was not a drag: the caller decides what it means. */
     onTap: (Offset, IntSize) -> Unit,
+    /**
+     * Where the fold stands: 0 for a flat page, 1 for a whole forward turn, -1 for a whole
+     * turn back.
+     *
+     * Held by [Paging.Curled] rather than here, because a turn asked for by a tap or a key
+     * runs the same spring over the same value (task 8.3).
+     */
+    progress: Animatable<Float, AnimationVector1D>,
     modifier: Modifier = Modifier,
 ) {
-    val progress = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
     val view = LocalView.current
     // What a flick is thresholded in: `VelocityTracker` answers px/s, and a px/s number
@@ -167,6 +175,7 @@ internal fun CurledPages(
                                 width = size.width.toFloat(),
                                 isRightToLeft = isRightToLeft,
                                 canTurnBack = previous != null,
+                                canTurnForward = beneath != null,
                             )
                             scope.launch { progress.snapTo(reached) }
                         }
@@ -299,6 +308,13 @@ internal object CurlTurn {
      * @param travel raw horizontal pixels since the drag was recognised.
      * @param width what a whole turn is measured against. A width nothing has measured
      *   yet leaves the page where it stands rather than dividing by it.
+     * @param canTurnBack false at the first page, where a backwards drag moves nothing.
+     * @param canTurnForward false at the last page, where there is no sheet beneath. D10:
+     *   [PageCurl.update] stands the turning sheet in for a missing one, so the sheet a
+     *   lift revealed there was a copy of the sheet being lifted. `page-transitions` puts
+     *   both ends under one sentence — "nothing lifts and the page stays where it is,
+     *   rather than turning to an empty sheet" — and the end screen is still reached, by
+     *   the tap or the key that asked for the turn (`ReaderScreen`'s `turn`).
      */
     fun progress(
         base: Float,
@@ -306,10 +322,12 @@ internal object CurlTurn {
         width: Float,
         isRightToLeft: Boolean,
         canTurnBack: Boolean = true,
+        canTurnForward: Boolean = true,
     ): Float {
         val floor = if (canTurnBack) -1f else 0f
-        if (width <= 0f) return base.coerceIn(floor, 1f)
-        return (base + forward(travel, isRightToLeft) / width).coerceIn(floor, 1f)
+        val ceiling = if (canTurnForward) 1f else 0f
+        if (width <= 0f) return base.coerceIn(floor, ceiling)
+        return (base + forward(travel, isRightToLeft) / width).coerceIn(floor, ceiling)
     }
 
     /**
