@@ -159,7 +159,7 @@ in waves 8 to 10. smb3 and widgets stay paused.
 **What this pass changes in the records below.**
 
 - **`offline-downloads` *Reading while downloading* is still Android-only.** Commit
-  `a2a42c13` does not close the iOS half: the iOS publication page never finds, starts or
+  `3deb14c2` does not close the iOS half: the iOS publication page never finds, starts or
   shows an OPDS download, because iOS has no download queue outside a catalogue page.
 - **The honest count of `missing` is not "two clauses".** "The eight that were built nowhere"
   closes the eight scenarios it names. This pass finds 5 missing and 71 unbuilt clauses
