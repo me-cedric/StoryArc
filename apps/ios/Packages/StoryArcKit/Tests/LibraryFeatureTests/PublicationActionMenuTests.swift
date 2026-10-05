@@ -122,13 +122,16 @@ struct PublicationActionsCanCopyTests {
         #expect(PublicationActions.canCopy(remote, file: nil, model: modelWithNoRegisteredSource()))
     }
 
-    @Test("A network share row offers no copy, because its location is not a file to copy")
-    func shareRowCannotCopy() {
-        // `LibraryModel.keepOffline(_:)` copies the location with `FileManager`, which cannot
-        // read an `smb://` URL, and falls through to a queue that has no road for a share
-        // either. The menu drew a Download here that reported success and moved nothing.
+    @Test("A network share row offers a copy, because the keep now has a road for one")
+    func shareRowCanCopy() {
+        // **This claim is the opposite of the one it replaces, and the code is why.**
+        // `LibraryModel.keepOffline(_:)` copied the location with `FileManager`, which cannot
+        // read an `smb://` URL, and fell through to a queue with no road for a share either —
+        // so the menu drew a Download that reported success and moved nothing, and saying no
+        // here was the honest answer. Task 7.7 gave the keep the chunked copy the single
+        // keep-for-offline action already used, so the road exists and the offer is kept.
         let file = URL(string: "smb://nas/comics/one.cbz")
-        #expect(!PublicationActions.canCopy(shareRow(), file: file, model: modelWithNoRegisteredSource()))
+        #expect(PublicationActions.canCopy(shareRow(), file: file, model: modelWithNoRegisteredSource()))
     }
 
     @Test("A remote row of a kind no queue serves offers no copy either")

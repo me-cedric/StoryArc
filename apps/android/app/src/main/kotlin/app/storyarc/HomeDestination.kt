@@ -50,6 +50,7 @@ import app.storyarc.feature.library.RestartOffer
 import app.storyarc.feature.library.ServerShelf
 import app.storyarc.feature.library.counted
 import app.storyarc.feature.library.isOnDevice
+import app.storyarc.feature.library.isShareLocation
 import app.storyarc.feature.library.purgeExpiredTombstones
 import app.storyarc.feature.library.serverCover
 import app.storyarc.navigation.AppSheet
@@ -252,6 +253,7 @@ internal fun HomeDestination(host: AppHost) {
                 isKept = host.library.isOnDevice(publication),
                 isLocalFile = isOnDevice(host.library.location(publication)),
                 isQueueableRemote = PublicationActions.isQueueableRemote(publication),
+                isShare = isShareLocation(host.library.location(publication)),
             ),
         )
     }

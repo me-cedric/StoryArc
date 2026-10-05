@@ -1,6 +1,7 @@
 internal import Foundation
 
 internal import Catalogue
+internal import Formats
 internal import Kavita
 internal import Persistence
 internal import StoryArcCore
@@ -111,9 +112,15 @@ extension LibraryModel {
     /// `offline-downloads` 6.4. A catalogue-only member has no file to measure, so a group of
     /// ten of them was confirmed as weighing nothing and then fetched hundreds of megabytes.
     ///
-    /// Still nothing for a publication neither the filesystem nor the catalogue can measure,
-    /// rather than a guess: the requirement is that a size is *shown*, and an invented one is
-    /// worse than a short one.
+    /// **A share row's size is the one the share stated**, for the same reason — task 7.7.
+    /// `resourceValues` answers nothing for an `smb://` address, because those bytes are not on
+    /// this device to measure, and a member counted at nought quotes a reader a total the copy
+    /// then exceeds. ``SmbContributor`` takes that length from the share's own directory entry,
+    /// which costs nothing to read.
+    ///
+    /// Still nothing for a publication neither the filesystem, the catalogue nor the share can
+    /// measure, rather than a guess: the requirement is that a size is *shown*, and an invented
+    /// one is worse than a short one.
     func bytesOnDisk(of ids: Set<String>) -> Int64 {
         ids.reduce(into: Int64(0)) { total, id in
             guard let publication = publications.first(where: { $0.id == id }) else { return }
@@ -142,7 +149,14 @@ extension LibraryModel {
             // A folder of images has no single file to copy, and saying so by skipping it
             // beats copying a directory the reader never asked about.
             if let url = location(of: publication), publication.format != .imageFolder {
-                guard let bytes = await copy(publication, at: url, into: store) else { continue }
+                // **A share is a location and not a file**, and `FileManager.copyItem` cannot
+                // take one — a share member was skipped here without a word, which is the
+                // second half of task 7.7. The chunked copy is the route the single
+                // keep-for-offline action already takes for the same bytes.
+                let bytes = ShareRead.isShare(url)
+                    ? await fetch(publication, from: url, into: store)
+                    : await copy(publication, at: url, into: store)
+                guard let bytes else { continue }
                 record(publication, from: url, bytes: bytes, in: queue)
                 kept.insert(id)
                 continue
@@ -285,6 +299,38 @@ extension LibraryModel {
             DownloadStore.protect(destination)
             return Int64(size)
         }.value
+    }
+
+    /// Puts one share's publication beside the other downloads, a chunk at a time.
+    ///
+    /// Task 7.7's decision, written down: a share member takes the chunked-copy route and the
+    /// queue records what landed, rather than the queue gaining a share transport. The queue
+    /// moves bytes with `URLSession` and `OpdsClient`, neither of which can fetch an `smb://`
+    /// address; teaching it one would be a second copy loop beside ``Formats/ChunkedCopy`` and
+    /// would point `LibraryFeature`'s download path at the SMB client, which is the dependency
+    /// ``Formats/ComicArchiveOpener/register(scheme:opener:)`` exists to avoid. This is the
+    /// route the single keep-for-offline action already takes for the same bytes, so one tap
+    /// and a bulk download now copy the same way.
+    ///
+    /// `nil` when nothing is registered for the address's scheme, when the share refuses, or
+    /// when the copy stops short — the member is left out rather than recorded as a download
+    /// whose file is truncated.
+    private func fetch(
+        _ publication: Publication,
+        from url: URL,
+        into store: DownloadStore
+    ) async -> Int64? {
+        guard let mediaType = publication.format.mediaType,
+              let source = try? await ComicArchiveOpener.source(for: url)
+        else { return nil }
+        let destination = store.location(
+            for: publication.id,
+            mediaType: mediaType,
+            title: publication.displayTitle
+        )
+        guard (try? await ChunkedCopy.copy(source, to: destination)) != nil else { return nil }
+        DownloadStore.protect(destination)
+        return source.length
     }
 
     /// Writes the record that makes the copy a download rather than a stray file.

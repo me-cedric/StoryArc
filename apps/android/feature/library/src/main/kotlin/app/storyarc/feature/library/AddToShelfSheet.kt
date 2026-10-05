@@ -134,6 +134,7 @@ fun AddToShelfSheet(
                     isKept = viewModel.isOnDevice(alone),
                     isLocalFile = isOnDevice(viewModel.location(alone)),
                     isQueueableRemote = PublicationActions.isQueueableRemote(alone),
+                    isShare = isShareLocation(viewModel.location(alone)),
                 )
                 when (offer) {
                     DownloadOffer.Download -> Row(

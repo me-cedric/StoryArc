@@ -69,6 +69,13 @@ public struct PublicationDetailView: View {
     /// until the parts have been read, for every comic, and for an audiobook whose bytes this
     /// device does not hold.
     @State private var audiobook = DetailAudiobook.absent
+    /// What a tap on a share row is waiting on, and `nil` for every other row and every
+    /// share row nobody has tapped. Task 5.13 — see ``ShareRead``.
+    @State private var shareAsk: ShareRead.Ask?
+    /// Whether this link is one to be careful with. The share browser holds its own, for the
+    /// same question about the same bytes; `network-share` asks it before either of them
+    /// streams anything.
+    @State private var cost = NetworkCost()
 
     public init(
         publication: Publication,
@@ -117,6 +124,14 @@ public struct PublicationDetailView: View {
             .padding(.bottom, StoryArcSpace.xxxl)
         }
         .background(DetailBackground(wash: wash))
+        // Task 5.13: the confirmation and the download offer a share row owes, drawn exactly
+        // as ``SmbBrowserView`` draws them for the same file.
+        .shareReading(
+            $shareAsk,
+            title: publication.displayTitle,
+            onConfirmMetered: { Task { await stepShare(hasConfirmedMetered: true) } },
+            onDownload: downloadShare
+        )
         // The derived accent, on this subtree only. `Theme.coverAccent` has had a slot and
         // no library caller since it was written — the reader's thumbnails were the only
         // thing in the app that ever set it.
@@ -191,8 +206,19 @@ public struct PublicationDetailView: View {
     /// was read from ``Persistence/DownloadStore`` under the row's own id, and an OPDS
     /// download is not recorded under that id — see
     /// ``RemoteMemberResolution/downloadID(of:)``, which is the rule this asks.
+    ///
+    /// **A share row's address is its share's**, and it is the last answer rather than the
+    /// first: a copy this device holds still wins, and so does the transfer already fetching
+    /// one. Without it ``file`` asked the filesystem about `smb://nas/comics/x.cbz`, got no,
+    /// and the page offered nothing at all for a row the shelf had drawn — task 5.13.
     private var address: URL? {
-        ShareOpening.address(for: publication, local: file, transfer: transfer)
+        ShareOpening.address(for: publication, local: file, transfer: transfer) ?? shareAddress
+    }
+
+    /// Where this row lives on a share, and `nil` for every row that is not on one.
+    private var shareAddress: URL? {
+        guard publication.isOpenable, let url = model.location(of: publication) else { return nil }
+        return ShareRead.isShare(url) ? url : nil
     }
 
     /// This publication's transfer, when the queue is carrying one.
@@ -247,8 +273,33 @@ public struct PublicationDetailView: View {
         )
     }
 
+    /// The primary action. A share row is judged first; everything else opens as it always
+    /// did, because nothing else owes a confirmation or an offer before it is read.
     private func read() {
-        if let address { onOpen(publication, address) }
+        guard let address else { return }
+        guard shareAddress != nil else { return onOpen(publication, address) }
+        Task { await stepShare(hasConfirmedMetered: false) }
+    }
+
+    /// Asks ``ShareRead`` what this tap owes, and opens the share when it owes nothing.
+    private func stepShare(hasConfirmedMetered: Bool) async {
+        guard let share = shareAddress else { return }
+        let ask = await ShareRead.step(
+            publication,
+            at: share,
+            isCareful: cost.isCareful,
+            hasConfirmedMetered: hasConfirmedMetered
+        )
+        if let ask { shareAsk = ask } else { onOpen(publication, share) }
+    }
+
+    /// The offer's own action: the copy ``LibraryModel/keepOffline(_:queue:)`` makes, which
+    /// task 7.7 taught the chunked-copy route a share needs.
+    private func downloadShare() {
+        Task {
+            await model.keepOffline([publication.id])
+            isKept = model.keptOffline.contains(publication.id)
+        }
     }
 
     /// Starts the book at the chapter a listener chose, when a stack handed over a way to.

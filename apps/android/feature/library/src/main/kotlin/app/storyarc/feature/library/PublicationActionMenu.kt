@@ -222,6 +222,7 @@ fun PublicationActionMenuTarget(
         isKept = viewModel.isOnDevice(publication),
         isLocalFile = isOnDevice(viewModel.location(publication)),
         isQueueableRemote = PublicationActions.isQueueableRemote(publication),
+        isShare = isShareLocation(viewModel.location(publication)),
     )
 
     PublicationActionMenu(

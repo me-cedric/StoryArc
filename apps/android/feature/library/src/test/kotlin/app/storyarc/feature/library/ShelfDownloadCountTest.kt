@@ -5,6 +5,7 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.PublicationIdentity
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -56,7 +57,7 @@ class ShelfDownloadCountTest {
      * place, which is what makes the refusals about the member and not about a missing file.
      */
     @Test
-    fun `a folder of images and a share row are out, and an ordinary comic is in`() {
+    fun `a folder of images is out, and an ordinary comic and a share row are in`() {
         val comic = publication("/comics/one.cbz")
         val folder = publication("/comics/loose", format = PublicationFormat.IMAGE_FOLDER)
         val share = publication("smb://nas/comics/one.cbz")
@@ -71,9 +72,33 @@ class ShelfDownloadCountTest {
                 it,
                 isLocalFile = isOnDevice(locations[it.id]),
                 isQueueableRemote = PublicationActions.isQueueableRemote(it),
+                isShare = isShareLocation(locations[it.id]),
             )
         }
 
-        assertEquals(setOf(comic.id), wanted)
+        assertEquals(setOf(comic.id, share.id), wanted)
+    }
+
+    /**
+     * Task 7.7's second half, from the side the first half could not state.
+     *
+     * Wave 8 narrowed the stated count to what one tap copies, and a share member was out of
+     * it because [KeepOffline] had no road for one. It has the chunked copy now, so the member
+     * belongs in the count again -- and this fails if the road is taken away without the count
+     * being narrowed with it.
+     */
+    @Test
+    fun `a share row is a member a bulk download now copies`() {
+        val share = publication("smb://nas/comics/one.cbz")
+
+        assertTrue(
+            "A share member is skipped silently again -- task 7.7's own defect.",
+            PublicationActions.canCopy(
+                share,
+                isLocalFile = false,
+                isQueueableRemote = false,
+                isShare = isShareLocation("smb://nas/comics/one.cbz"),
+            ),
+        )
     }
 }

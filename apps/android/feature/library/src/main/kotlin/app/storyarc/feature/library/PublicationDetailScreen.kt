@@ -320,6 +320,8 @@ fun PublicationDetailScreen(
     // has to arrive before it opens offered *Download it* twice -- once as the thing the
     // page wants you to do and once buried in the menu beside it.
     val download = downloadControl(action, canDownload = obtain != null)
+    // Task 5.13: what a tap on a share row owes before it opens. See [ShareRead].
+    val reading = rememberShareReading()
 
     Scaffold(
         containerColor = palette.surfaceCanvas,
@@ -388,7 +390,7 @@ fun PublicationDetailScreen(
                 stoppedIn = stoppedIn,
                 offsetMillis = offsetMillis,
                 isFinished = isFinished,
-                onRead = { onRead(publication, where) },
+                onRead = { reading.press(publication, where) { onRead(publication, where) } },
                 onListenFrom = onListenFrom,
                 onDownload = obtain.takeIf { download == DownloadControl.PRIMARY },
                 modifier = modifier,
@@ -443,6 +445,8 @@ fun PublicationDetailScreen(
             }
         }
     }
+
+    ShareReadDialogs(reading, publication, where, obtain) { onRead(publication, where) }
 
     if (isShelfSheetOpen) {
         // Divergence #7: add-to-a-shelf is a modal bottom sheet on Android and a menu on
@@ -513,8 +517,6 @@ internal fun DetailMainPane(
             )
         }
 
-        // `offline-downloads` allows reading while downloading, so this is progress rather
-        // than a gate: the primary action above stays exactly as usable as it was.
         // `offline-downloads` allows reading while downloading, so this is progress rather
         // than a gate: the primary action above stays exactly as usable as it was.
         //
