@@ -39,7 +39,11 @@ class ReaderAppearanceTest {
 
     @Test
     fun `OLED Dark reaches the chrome even with Material You on`() {
-        val reader = of(AppSettings(appearance = AppearanceMode.OLED_DARK))
+        // Material You on, said rather than inherited: this test is about the flag arriving
+        // whatever its value, and the default moved to off on 2026-10-06 when the StoryArc
+        // palette became Android's default. A test that reads the default asserts the
+        // default, not the wiring it is named for.
+        val reader = of(AppSettings(appearance = AppearanceMode.OLED_DARK, useDynamicColor = true))
 
         // Both halves matter. `StoryArcTheme` gives true black precedence over the
         // wallpaper scheme, so the chrome only turns black if the appearance arrives

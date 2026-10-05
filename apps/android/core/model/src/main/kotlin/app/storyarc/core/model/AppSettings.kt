@@ -84,11 +84,16 @@ data class AppSettings(
     /**
      * Whether the chrome takes its colours from the wallpaper.
      *
-     * `native-experience`: the scheme "derives from the user's wallpaper by default, with a
-     * setting to use the StoryArc palette instead". On by default, which is the half that
-     * was already true -- the opt-out is the half that was not, and until it existed the
-     * only way back to the brand palette was to choose OLED Dark, which is a different
-     * setting meaning a different thing.
+     * `native-experience`: the scheme "is the StoryArc palette by default, with a setting to
+     * take the device's wallpaper colours instead". **Off by default**, so an Android reader
+     * and an iOS reader meet the same accent on a build neither has configured: `brand.accent`
+     * is one token and was reaching only one of the two platforms.
+     *
+     * Changing this default does not change an install that already holds an answer.
+     * `SettingsStore` reads a stored record, and a stored `true` stays `true`; only a fresh
+     * install and a reset read [Defaults]. That is deliberate -- a reader who chose the
+     * wallpaper, or merely lived with it, should not have their app change colour on an
+     * update -- and it is why a frame of this has to come from a fresh install.
      *
      * Read only where [appearance] is not OLED Dark. True black and a wallpaper-derived
      * wash are incompatible asks and the explicit choice wins; `StoryArcTheme` decides
@@ -97,7 +102,7 @@ data class AppSettings(
      * Android-only in effect. iOS has no dynamic colour to opt out of, so there is
      * deliberately no counterpart in `AppSettings.swift`.
      */
-    val useDynamicColor: Boolean = true,
+    val useDynamicColor: Boolean = false,
 ) {
     companion object {
         /**

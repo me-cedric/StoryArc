@@ -4,16 +4,18 @@ import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.AppearanceMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
  * The Material You opt-out.
  *
- * `native-experience`: the scheme "derives from the user's wallpaper by default, with a
- * setting to use the StoryArc palette instead". Until this existed there was no setting and
- * no field, and the only way back to the brand palette was to choose OLED Dark -- a
- * different setting meaning a different thing.
+ * `native-experience`: the scheme "is the StoryArc palette by default, with a setting to
+ * take the device's wallpaper colours instead". The default moved on 2026-10-06: one brand
+ * accent reached iOS and not Android, and which colour an Android reader met was decided by
+ * their wallpaper. The switch did not move, and neither did an install that already held an
+ * answer.
  *
  * Android-only. iOS has no dynamic colour to opt out of, so there is deliberately no
  * mirrored test there.
@@ -21,20 +23,31 @@ import org.junit.Test
 class DynamicColourSettingTest {
 
     @Test
-    fun `the wallpaper dresses the chrome until a reader says otherwise`() {
-        assertTrue(AppSettings.Defaults.useDynamicColor)
+    fun `a fresh install wears the brand palette, not the wallpaper`() {
+        assertFalse(AppSettings.Defaults.useDynamicColor)
     }
 
     @Test
-    fun `turning it off changes nothing else, and a reset undoes only it`() {
+    fun `turning it on changes nothing else, and a reset undoes only it`() {
         // `SettingsStore.reset()` writes `Defaults`, so what a reset restores is decided
         // here rather than there. The two assertions are the two halves that matter: the
-        // opt-out is the only field the switch moves, and `Defaults` is the state it
-        // returns to.
-        val opted = AppSettings.Defaults.copy(useDynamicColor = false)
+        // switch is the only field it moves, and `Defaults` is the state it returns to.
+        val opted = AppSettings.Defaults.copy(useDynamicColor = true)
 
         assertNotEquals(AppSettings.Defaults, opted)
-        assertEquals(AppSettings.Defaults, opted.copy(useDynamicColor = true))
+        assertEquals(AppSettings.Defaults, opted.copy(useDynamicColor = false))
+    }
+
+    @Test
+    fun `an install that already answered keeps its answer when the default moves`() {
+        // The clause a reader would actually feel, and the one nothing asserted before the
+        // default moved: a stored record is read, not re-derived, so a reader who chose the
+        // wallpaper -- or merely lived with it -- does not have their app change colour on an
+        // update. Only a fresh install and a reset read `Defaults`.
+        val stored = AppSettings.Defaults.copy(useDynamicColor = true)
+
+        assertTrue(stored.useDynamicColor)
+        assertNotEquals(AppSettings.Defaults.useDynamicColor, stored.useDynamicColor)
     }
 
     @Test
