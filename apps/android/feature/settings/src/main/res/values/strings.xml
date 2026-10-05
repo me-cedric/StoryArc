@@ -51,6 +51,7 @@
     <string name="about_report">Report a problem</string>
     <string name="about_acknowledgements">Acknowledgements</string>
     <string name="about_acknowledgements_note">Everything StoryArc ships that someone else wrote. Tap one for its licence in full.</string>
+    <string name="about_acknowledgements_unreadable">This list could not be read from this build. That is a packaging bug — please report it.</string>
     <string name="about_licence_missing">The %1$s text is missing from this build. That is a packaging bug — please report it.</string>
     <string name="reading_defaults">Defaults for new series</string>
     <string name="reading_defaults_note">Applies to series you have not opened before. A theme you set while reading stays with that series.</string>

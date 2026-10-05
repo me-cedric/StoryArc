@@ -59,6 +59,35 @@
         }
       }
     },
+    "about.acknowledgements.unreadable": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Liste konnte aus diesem Build nicht gelesen werden. Das ist ein Packaging-Fehler — bitte melden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This list could not be read from this build. That is a packaging bug — please report it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo leer esta lista en esta compilación. Es un error de empaquetado: por favor, infórmelo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette liste n’a pas pu être lue dans cette version. C’est un bug d’empaquetage : merci de le signaler."
+          }
+        }
+      }
+    },
     "about.author": {
       "extractionState": "manual",
       "localizations": {

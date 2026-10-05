@@ -71,4 +71,13 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
+    // A composition on the JVM, so the unit gate can ask what a screen reader is offered.
+    // `PageTurnSemanticsTest` asks whether the page surface carries the two named turns and
+    // a live region on the position, and semantics are only observable in a laid-out tree.
+    // `:feature:epubreader`, `:core:designsystem` and `:app` carry the same three.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    // The `ComponentActivity` the compose rule launches into. Without it Robolectric has no
+    // activity to resolve and every test using the rule fails at the rule.
+    testImplementation(libs.androidx.compose.ui.test.manifest)
 }

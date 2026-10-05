@@ -1,5 +1,6 @@
 package app.storyarc.feature.epubreader
 
+import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
@@ -248,14 +250,21 @@ private fun ContentsRow(
  * arguments, because the chapter's own title is the publication's and must not be translated,
  * and the band's phrase is shared with iOS's own catalogue. Each fragment is translated on its
  * own; the separators are punctuation.
+ *
+ * Not `@Composable`, and that is deliberate: `native-experience` asks the reader to announce
+ * the position after every turn, and the announcement is posted from the activity rather than
+ * from a composition. A position said one way on the menu and another way out loud is two
+ * positions, so both ask this.
  */
-@Composable
-private fun ReadingPositionLine.asLine(): String {
-    val through = stringResource(R.string.epub_progress, percentThrough)
-    val named = chapter ?: return through
-    val remainder = chapterRemainder ?: return "$through · $named"
-    return "$through · $named, " + stringResource(remainder.labelRes)
+internal fun Context.readingPositionSentence(position: ReadingPositionLine): String {
+    val through = getString(R.string.epub_progress, position.percentThrough)
+    val named = position.chapter ?: return through
+    val remainder = position.chapterRemainder ?: return "$through · $named"
+    return "$through · $named, " + getString(remainder.labelRes)
 }
+
+@Composable
+private fun ReadingPositionLine.asLine(): String = LocalContext.current.readingPositionSentence(this)
 
 /**
  * How much of the chapter is left, in this reader's own words.

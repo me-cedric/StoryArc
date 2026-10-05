@@ -8,27 +8,12 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * The acknowledgements list ships with the app, and it is not empty.
- *
- * `settings-and-about`, *Acknowledgements*: "every third-party library is listed with its
- * licence text". [Notices.forAndroid] reads a staged asset and answers an empty list on any
- * failure, so a staging task that stops running, a renamed asset path or a malformed
- * inventory all produce a screen with a heading and no rows. That is a licence breach, and
- * before this suite no gate could see it: `pnpm notices:check` compares the inventory with
- * `THIRD_PARTY_NOTICES.md` in the repository and never asks whether the binary carries it.
- *
- * Robolectric rather than a plain JVM test, because the inventory reaches the app through
- * the merged assets and only a real [Context] has those. iOS reads the same inventory
- * through `StoryArcLicences`, and that path has no test suite yet.
- */
 @RunWith(RobolectricTestRunner::class)
-// Robolectric ships no image for API 37, and nothing here has an API level in it.
 @Config(sdk = [34])
 class AcknowledgementsTest {
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
-    private val notices get() = Notices.forAndroid(context.assets)
+    private val notices get() = Notices.forAndroid(context.assets).getOrThrow()
 
     @Test
     fun `the inventory reaches the app rather than staying in the repository`() {
@@ -53,8 +38,6 @@ class AcknowledgementsTest {
 
     @Test
     fun `the list holds this platform's components and not the other app's`() {
-        // Filtering is the reason an empty list is plausible at all: a filter that matched
-        // nothing would look exactly like an inventory that failed to load.
         assertTrue(
             "No listed component names Android, so the platform filter matched nothing.",
             notices.any { it.platforms.contains("android") },
@@ -69,12 +52,110 @@ class AcknowledgementsTest {
 
     @Test
     fun `every listed component states why it is here`() {
-        // `settings-and-about` asks the screen to make the inventory visible; `Notice.why`
-        // is the field that makes a dependency nobody can justify visible with it.
         notices.forEach { notice ->
             assertTrue("${notice.name} has no name", notice.name.isNotBlank())
             assertTrue("${notice.name} states no reason", notice.why.isNotBlank())
             assertTrue("${notice.name} names no licence", notice.licence.isNotBlank())
         }
+    }
+
+    /**
+     * Everything the APK carries beyond AndroidX and Kotlin, named.
+     *
+     * `settings-and-about` asks for *every* third-party library, and the inventory listed the
+     * two toolkits and the fonts only. These nine are the rest of the release runtime
+     * classpath: `jcifs-ng` and `bcprov` come from `apps/android/core/smb/build.gradle.kts`,
+     * `desugar_jdk_libs` from the two `coreLibraryDesugaring` lines, `jsoup`, `Timber` and
+     * `Koi` arrive through the Readium toolkit, `SLF4J` through `jcifs-ng`, `Guava` through
+     * media3 and `JSpecify` through `jsoup` and `Guava`.
+     *
+     * `media3` itself is deliberately absent: it is `androidx.media3`, which the AndroidX
+     * entry already covers.
+     */
+    @Test
+    fun `every library the APK carries beyond AndroidX and Kotlin has an entry`() {
+        val shipped = mapOf(
+            "jcifs-ng" to "eu.agno3.jcifs",
+            "Bouncy Castle" to "org.bouncycastle",
+            "desugar_jdk_libs" to "com.android.tools",
+            "jsoup" to "org.jsoup",
+            "SLF4J API" to "org.slf4j",
+            "Timber" to "com.jakewharton.timber",
+            "Koi" to "com.mcxiaoke.koi",
+            "Guava" to "com.google.guava",
+            "JSpecify" to "org.jspecify",
+        )
+
+        shipped.forEach { (name, group) ->
+            assertTrue(
+                "$group ships in the APK and the acknowledgements list no \"$name\" row," +
+                    " so the screen claims a library the reader is running is not there.",
+                notices.any { it.name == name },
+            )
+        }
+    }
+
+    /**
+     * The one copyleft component carries its own text.
+     *
+     * `jcifs-ng` is LGPL-2.1-or-later and every other entry is permissive, so this is the one
+     * row whose text a reader has a legal right to. The general check above only asks that
+     * *some* text exists; this one asks that it is the LGPL.
+     */
+    @Test
+    fun `the LGPL component ships the LGPL text`() {
+        val jcifs = notices.firstOrNull { it.name == "jcifs-ng" }
+            ?: error("jcifs-ng has no entry, so there is no LGPL row to read a text from.")
+        val text = Notices.text(context.assets, jcifs).orEmpty()
+
+        assertTrue(
+            "jcifs-ng declares ${jcifs.licence} rather than an LGPL identifier.",
+            jcifs.licence.startsWith("LGPL"),
+        )
+        assertTrue(
+            "The ${jcifs.licence} row opens on ${text.length} characters that do not name the" +
+                " Lesser General Public License, so the app ships LGPL code without its terms.",
+            text.contains("LESSER GENERAL PUBLIC LICENSE", ignoreCase = true),
+        )
+    }
+
+    /**
+     * A broken inventory is reported rather than swallowed.
+     *
+     * It used to return an empty list, which the About screen drew as a heading over nothing —
+     * indistinguishable from an app that ships nothing of anyone else's.
+     */
+    @Test
+    fun `an inventory that does not decode is a failure rather than an empty list`() {
+        val outcome = runCatching { Notices.decode("{ \"notices\": [ { \"name\": 7 } ] }") }
+
+        assertTrue(
+            "A malformed inventory decoded to ${outcome.getOrNull()}. Swallowing it is what" +
+                " emptied the acknowledgements section with no word to the reader.",
+            outcome.isFailure,
+        )
+    }
+
+    /**
+     * An entry with no `platforms` is listed, not rejected.
+     *
+     * `scripts/notices.mjs` has always read `platforms` as optional and falls back to
+     * "iOS, Android". The iOS decode required it, so an entry written the way the generator
+     * allows failed the decode of the whole file on one platform and not the other.
+     */
+    @Test
+    fun `an entry that names no platform is listed on this one`() {
+        val entry = """
+            { "notices": [ { "name": "Example", "licence": "MIT",
+              "url": "https://example.invalid", "why": "A test entry." } ] }
+        """.trimIndent()
+
+        val listed = Notices.decode(entry)
+
+        assertTrue(
+            "An entry with no platforms list was dropped, so the generator and this decode" +
+                " disagree about the same file.",
+            listed.map { it.name } == listOf("Example"),
+        )
     }
 }

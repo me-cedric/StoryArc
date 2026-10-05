@@ -161,7 +161,10 @@ struct ShelfBulkActions: ViewModifier {
 
     /// Works out what a download would copy, and either asks or says there is nothing to do.
     private func askToDownload() {
-        let ask = BulkDownloadAsk.of(members, onDevice: model.keptOffline) {
+        let wanted = downloadableMembers(members, among: model.publications) {
+            PublicationActions.canCopy($0, file: model.location(of: $0), model: model)
+        }
+        let ask = BulkDownloadAsk.of(wanted, onDevice: model.keptOffline) {
             model.bytesOnDisk(of: $0)
         }
         if let ask { pending = ask } else { isAllOnDevice = true }
@@ -173,6 +176,31 @@ struct ShelfBulkActions: ViewModifier {
         guard !changed.isEmpty else { return }
         undo = BulkUndo(kind: kind, ids: changed)
     }
+}
+
+/// Which of a shelf's members a bulk download would actually copy.
+///
+/// `collections-and-reading-lists` has the app state "the item count and total size before
+/// starting", and the number stated was every member this device did not already hold. Three
+/// kinds of member are in that count and in no copy: a folder of images, which
+/// ``LibraryModel/keepOffline(_:queue:)`` skips because there is no single file to take; a
+/// publication no decoder opens; and a network share row, which that method has no road for
+/// at all and leaves behind without a word. A reader was quoted sixteen titles and a size,
+/// and got eleven.
+///
+/// ``PublicationActions/canCopy(_:file:model:)`` is the same question the single download
+/// action asks, so the confirmation now counts exactly what one tap would take. A member the
+/// shelf names and the library no longer holds falls out here too, for the same reason.
+///
+/// Free, and with the rule passed in, so ``ShelfDownloadCountTests`` can state the answer
+/// without composing a view or a model. Android's `downloadableMembers` asks its own
+/// `PublicationActions.canCopy`.
+func downloadableMembers(
+    _ members: Set<String>,
+    among publications: [Publication],
+    canCopy: (Publication) -> Bool
+) -> Set<String> {
+    Set(publications.filter { members.contains($0.id) && canCopy($0) }.map(\.id))
 }
 
 extension View {

@@ -51,6 +51,7 @@
     <string name="about_report">Signaler un problème</string>
     <string name="about_acknowledgements">Remerciements</string>
     <string name="about_acknowledgements_note">Tout ce que StoryArc embarque et qui a été écrit par d’autres. Touchez un élément pour lire sa licence en entier.</string>
+    <string name="about_acknowledgements_unreadable">Cette liste n’a pas pu être lue dans cette version. C’est un bug d’empaquetage : merci de le signaler.</string>
     <string name="about_licence_missing">Le texte %1$s manque dans cette version. C’est un bug d’empaquetage : merci de le signaler.</string>
     <string name="reading_defaults">Réglages par défaut des nouvelles séries</string>
     <string name="reading_defaults_note">S’applique aux séries jamais ouvertes. Un thème choisi pendant la lecture reste attaché à cette série.</string>

@@ -80,16 +80,14 @@ extension EpubReaderView {
     /// chapter half is a band in words rather than a second percentage — see
     /// ``ChapterRemainder``.
     ///
-    /// Three localised fragments joined by punctuation rather than one key with three
-    /// arguments, because the chapter's own title is the publication's and must not be
-    /// translated, and the band's phrase is shared with Android's own `strings.xml`. Each
-    /// fragment is translated on its own; the separators are punctuation.
-    var progressText: Text {
-        let through = Text("epub.progress \(position.percentThrough)", bundle: .module)
-        guard let chapter = position.chapter else { return through }
-        let named = through + Text(verbatim: " · ") + Text(verbatim: chapter)
-        guard let remainder = position.chapterRemainder else { return named }
-        return named + Text(verbatim: ", ")
-            + Text(LocalizedStringKey(remainder.titleKey), bundle: .module)
+    /// Built by ``epubPositionSentence(_:)``, which is also what a screen reader is told
+    /// after a turn: a position said one way on the menu and another way out loud is two
+    /// positions. That function carries why the fragments are joined here rather than in
+    /// one key with three arguments.
+    var progressText: Text { Text(verbatim: epubPositionSentence(position)) }
+
+    /// The same line, with what makes a turn a change. See ``EpubPageTurnAccessibility``.
+    var spokenPosition: ReflowablePosition {
+        ReflowablePosition(progression: model.progression, sentence: epubPositionSentence(position))
     }
 }

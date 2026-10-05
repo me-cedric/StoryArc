@@ -11,6 +11,8 @@
     <string name="reader_menu_themes">Darstellung</string>
     <string name="reader_menu_settings">Einstellungen</string>
     <string name="reader_page_label">Seite %1$d von %2$d</string>
+    <string name="reader_turn_next_page">Nächste Seite</string>
+    <string name="reader_turn_previous_page">Vorherige Seite</string>
     <string name="reader_page_slider">Seitenregler</string>
     <string name="reader_page_unavailable">Diese Seite konnte nicht gelesen werden</string>
     <string name="reader_page_unavailable_codec">Diese Seite konnte nicht gelesen werden (%1$s)</string>

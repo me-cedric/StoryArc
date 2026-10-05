@@ -13,6 +13,105 @@
       "copyright": "Copyright (c) 2017, Readium"
     },
     {
+      "name": "CryptoSwift",
+      "version": "1.10.0",
+      "licence": "Attribution",
+      "url": "https://github.com/krzyzanowskim/CryptoSwift",
+      "platforms": [
+        "ios"
+      ],
+      "why": "Decryption inside the Readium streamer. ADR-0005.",
+      "copyright": "Copyright (C) 2014-3099 Marcin Krzyżanowski <marcin.krzyzanowski@gmail.com>"
+    },
+    {
+      "name": "DifferenceKit",
+      "version": "1.3.0",
+      "licence": "Apache-2.0",
+      "url": "https://github.com/ra1028/DifferenceKit",
+      "platforms": [
+        "ios"
+      ],
+      "why": "Collection diffing inside the Readium navigator. ADR-0005.",
+      "copyright": "Copyright (c) ra1028 (https://github.com/ra1028)"
+    },
+    {
+      "name": "Fuzi",
+      "version": "4.0.1",
+      "licence": "MIT",
+      "url": "https://github.com/readium/Fuzi",
+      "platforms": [
+        "ios"
+      ],
+      "why": "XML parsing inside the Readium toolkit. ADR-0005.",
+      "copyright": "Copyright (c) 2015 Ce Zheng"
+    },
+    {
+      "name": "GCDWebServer",
+      "version": "4.0.1",
+      "licence": "BSD-3-Clause",
+      "url": "https://github.com/readium/GCDWebServer",
+      "platforms": [
+        "ios"
+      ],
+      "why": "Pinned with the Readium toolkit; its adapter target is not linked. ADR-0005.",
+      "copyright": "Copyright (c) 2012-2014, Pierre-Olivier Latour"
+    },
+    {
+      "name": "SQLite.swift",
+      "version": "0.16.0",
+      "licence": "MIT",
+      "url": "https://github.com/stephencelis/SQLite.swift",
+      "platforms": [
+        "ios"
+      ],
+      "why": "Pinned with the Readium toolkit; its LCP adapter target is not linked. ADR-0005.",
+      "copyright": "Copyright (c) 2014-2015 Stephen Celis (<stephen@stephencelis.com>)"
+    },
+    {
+      "name": "SwiftSoup",
+      "version": "2.13.9",
+      "licence": "MIT",
+      "url": "https://github.com/scinfu/SwiftSoup",
+      "platforms": [
+        "ios"
+      ],
+      "why": "HTML parsing inside the Readium toolkit. ADR-0005.",
+      "copyright": "Copyright (c) 2009-2025 Jonathan Hedley <https://jsoup.org/>\nCopyright (c) 2016-2025 Nabil Chatbi (Swift port)"
+    },
+    {
+      "name": "Zip",
+      "version": "2.1.2",
+      "licence": "MIT",
+      "url": "https://github.com/marmelroy/Zip",
+      "platforms": [
+        "ios"
+      ],
+      "why": "Its Minizip module reads EPUB entries inside Readium. Zip.unzipFile is never called; see ADR-0014.",
+      "copyright": "Copyright (c) 2015 Roy Marmelstein"
+    },
+    {
+      "name": "ZIPFoundation",
+      "version": "3.0.1",
+      "licence": "MIT",
+      "url": "https://github.com/readium/ZIPFoundation",
+      "platforms": [
+        "ios"
+      ],
+      "why": "ZIP reading inside the Readium toolkit. ADR-0005.",
+      "copyright": "Copyright (c) 2017-2024 Thomas Zoechling (https://www.peakstep.com)"
+    },
+    {
+      "name": "SMBClient",
+      "version": "0.3.1",
+      "licence": "MIT",
+      "url": "https://github.com/kishikawakatsumi/SMBClient",
+      "platforms": [
+        "ios"
+      ],
+      "why": "SMB 2/3, which iOS has no API for. ADR-0010.",
+      "copyright": "Copyright (c) 2024 Kishikawa Katsumi"
+    },
+    {
       "name": "Readium Kotlin Toolkit",
       "version": "3.3",
       "licence": "BSD-3-Clause",
@@ -22,6 +121,105 @@
       ],
       "why": "Reflowable EPUB rendering. ADR-0005.",
       "copyright": "Copyright (c) 2017, Readium"
+    },
+    {
+      "name": "jsoup",
+      "version": "1.22.2",
+      "licence": "MIT",
+      "url": "https://jsoup.org",
+      "platforms": [
+        "android"
+      ],
+      "why": "HTML parsing inside the Readium toolkit. ADR-0005.",
+      "copyright": "Copyright (c) 2009-2026 Jonathan Hedley <https://jsoup.org/>"
+    },
+    {
+      "name": "Timber",
+      "version": "5.0.1",
+      "licence": "Apache-2.0",
+      "url": "https://github.com/JakeWharton/timber",
+      "platforms": [
+        "android"
+      ],
+      "why": "Logging inside the Readium toolkit. ADR-0005.",
+      "copyright": "Copyright 2013 Jake Wharton"
+    },
+    {
+      "name": "Koi",
+      "version": "0.5.5",
+      "licence": "Apache-2.0",
+      "url": "https://github.com/mcxiaoke/kotlin-koi",
+      "platforms": [
+        "android"
+      ],
+      "why": "Utilities inside the Readium streamer. ADR-0005.",
+      "copyright": "Copyright 2015, 2016 Xiaoke Zhang"
+    },
+    {
+      "name": "Guava",
+      "version": "33.3.1-android",
+      "licence": "Apache-2.0",
+      "url": "https://github.com/google/guava",
+      "platforms": [
+        "android"
+      ],
+      "why": "Listenable futures inside media3, the audiobook player.",
+      "copyright": "Copyright (C) The Guava Authors"
+    },
+    {
+      "name": "JSpecify",
+      "version": "1.0.0",
+      "licence": "Apache-2.0",
+      "url": "https://jspecify.dev",
+      "platforms": [
+        "android"
+      ],
+      "why": "The nullness annotations jsoup and Guava carry.",
+      "copyright": "Copyright 2018-2020 The JSpecify Authors."
+    },
+    {
+      "name": "jcifs-ng",
+      "version": "2.1.10",
+      "licence": "LGPL-2.1-or-later",
+      "url": "https://github.com/AgNO3/jcifs-ng",
+      "platforms": [
+        "android"
+      ],
+      "why": "SMB 2/3, which Android has no API for. ADR-0010. The only LGPL component: it is linked unmodified and is replaceable.",
+      "copyright": "Copyright (C) 2000 \"Michael B. Allen\" <jcifs at samba dot org>\n© 2016 AgNO3 Gmbh & Co. KG"
+    },
+    {
+      "name": "SLF4J API",
+      "version": "1.7.36",
+      "licence": "MIT",
+      "url": "https://www.slf4j.org",
+      "platforms": [
+        "android"
+      ],
+      "why": "The logging facade jcifs-ng writes to. ADR-0010.",
+      "copyright": "Copyright (c) 2004-2022 QOS.ch Sarl (Switzerland)"
+    },
+    {
+      "name": "Bouncy Castle",
+      "version": "1.84",
+      "licence": "MIT",
+      "url": "https://www.bouncycastle.org",
+      "platforms": [
+        "android"
+      ],
+      "why": "SPNEGO token parsing inside jcifs-ng. Raised from 1.76 for CVE-2025-8885.",
+      "copyright": "Copyright (c) 2000-2026 The Legion of the Bouncy Castle Inc. (https://www.bouncycastle.org)."
+    },
+    {
+      "name": "desugar_jdk_libs",
+      "version": "2.1.5",
+      "licence": "GPL-2.0-with-classpath-exception",
+      "url": "https://github.com/google/desugar_jdk_libs",
+      "platforms": [
+        "android"
+      ],
+      "why": "Core library desugaring, which the Readium AAR requires. The Classpath Exception is what lets the app link it.",
+      "copyright": "Copyright (c) Oracle and/or its affiliates. All rights reserved."
     },
     {
       "name": "libarchive",
@@ -42,7 +240,7 @@
       "platforms": [
         "android"
       ],
-      "why": "The UI toolkit, lifecycle, Room and the activity host.",
+      "why": "The UI toolkit, lifecycle, Room, media3 and the activity host.",
       "copyright": "Copyright (C) The Android Open Source Project"
     },
     {

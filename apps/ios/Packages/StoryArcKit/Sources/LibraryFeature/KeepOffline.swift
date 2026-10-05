@@ -27,6 +27,42 @@ enum RemoteMemberResolution {
         return (entry, acquisition)
     }
 
+    /// The id the queue keys an OPDS entry's download under.
+    ///
+    /// One spelling of that key, because two screens reach it from different halves: a
+    /// catalogue page has the entry and its own source — ``DownloadQueue/downloadID(for:sourceID:)``
+    /// — and the publication page has only a library row. dl-core 1.2 made the key
+    /// source-scoped, and a second copy of the format is a second place for it to drift.
+    static func downloadID(entry entryID: String, sourceID: UUID) -> Download.ID {
+        "\(opdsRemoteIDPrefix)\(sourceID.uuidString):\(entryID)"
+    }
+
+    /// The id the queue keys this library row's own transfer under.
+    ///
+    /// `offline-downloads`' *The iOS publication page never finds, starts or shows an OPDS
+    /// download*. The page asked the download store for the row's own id and therefore found
+    /// nothing for every OPDS publication: the row is keyed `srv:<source>:opds:<entry>` — see
+    /// ``StoryArcCore/PublicationIdentity/stableID`` — while dl-core 1.2 keys the download
+    /// `opds:<source>:<entry>`. With no record the page had no address to stream from, no
+    /// state to draw and no progress to move.
+    ///
+    /// Everything that is not an OPDS row — a local copy, a Kavita keep — is recorded under
+    /// the row's own id, which is what the fallback keeps true.
+    static func downloadID(of publication: Publication) -> Download.ID {
+        guard let server = publication.identity.serverIdentifier,
+              server.remoteID.hasPrefix(opdsRemoteIDPrefix)
+        else { return publication.id }
+        return downloadID(
+            entry: String(server.remoteID.dropFirst(opdsRemoteIDPrefix.count)),
+            sourceID: server.sourceID
+        )
+    }
+
+    /// This publication's transfer, under whichever of the two keys names it.
+    static func record(of publication: Publication, in library: DownloadLibrary) -> Download? {
+        library[downloadID(of: publication)] ?? library[publication.id]
+    }
+
     /// Queues a resolved member, and returns the id its undo takes back.
     ///
     /// The queue's id, not the row's: the row is `srv:<source>:opds:<entry>` and the queue

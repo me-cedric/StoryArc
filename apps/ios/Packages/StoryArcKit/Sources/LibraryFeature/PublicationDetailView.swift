@@ -30,11 +30,15 @@ public struct PublicationDetailView: View {
     let model: LibraryModel
     let onOpen: (Publication, URL) -> Void
 
-    /// The queue's record for this publication, when one exists.
+    /// The one app-level queue, so this page reads the record that is being written rather
+    /// than a copy of the store taken when the page appeared.
     ///
-    /// Re-read whenever the page appears, like ``DownloadsDestination`` does: a transfer that
-    /// started in a catalogue browser has to be known here, not one visit later.
-    @State private var transfer: Download?
+    /// `offline-downloads` 1.1 makes ``DownloadQueue/shared(pins:store:sources:credentials:settings:)``
+    /// the only writer, and it is `@Observable`: reading ``DownloadQueue/library`` in ``body``
+    /// is what re-reads the record while the page is visible, with no timer and no second
+    /// read of disk. A `@State` snapshot taken in `task` sat at the fraction the enqueue left
+    /// it — zero — for the whole of the transfer.
+    @State private var queue: DownloadQueue
 
     /// How this page starts an audiobook at a chosen chapter.
     ///
@@ -76,6 +80,7 @@ public struct PublicationDetailView: View {
         self.model = model
         self.onOpen = onOpen
         self.onListen = onListen
+        _queue = State(initialValue: DownloadQueue.shared())
     }
 
     public var body: some View {
@@ -128,7 +133,6 @@ public struct PublicationDetailView: View {
         .task(id: publication.id) {
             isKept = model.keptOffline.contains(publication.id)
             kavitaCard = KavitaCardStore().card(of: publication.id)
-            transfer = DownloadStore().library()[publication.id]
             cover = await model.cover(for: publication, maxPixelSize: 900)
         }
         // Its own task, and keyed on the file as well as the publication: reading an
@@ -183,12 +187,17 @@ public struct PublicationDetailView: View {
     /// arriving to "open immediately by streaming". ``ReadingAddress`` is the rule, shared
     /// with Android and with the reader; this supplies the two facts only this page holds.
     ///
-    /// **The transfer is read from the store rather than from a queue.** A `DownloadQueue` is
-    /// state inside whichever catalogue browser started it, so no queue reaches this page —
-    /// but every queue writes through ``DownloadStore``, and a `Download`'s id *is* the
-    /// publication's, which is what makes the lookup one subscript.
+    /// **The transfer is read from the one app-level queue, by the key that queue uses.** It
+    /// was read from ``Persistence/DownloadStore`` under the row's own id, and an OPDS
+    /// download is not recorded under that id — see
+    /// ``RemoteMemberResolution/downloadID(of:)``, which is the rule this asks.
     private var address: URL? {
         ShareOpening.address(for: publication, local: file, transfer: transfer)
+    }
+
+    /// This publication's transfer, when the queue is carrying one.
+    private var transfer: Download? {
+        RemoteMemberResolution.record(of: publication, in: queue.library)
     }
 
     /// Where the audio is, when it is this publication's audio, and `nil` otherwise.

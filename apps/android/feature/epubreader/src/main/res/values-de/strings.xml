@@ -13,6 +13,8 @@
     <string name="reader_menu_themes">Lesethemen</string>
     <string name="reader_menu_settings">Einstellungen</string>
     <string name="epub_progress">%1$d%% gelesen</string>
+    <string name="reader_turn_next_page">Nächste Seite</string>
+    <string name="reader_turn_previous_page">Vorherige Seite</string>
     <string name="epub_failure_unreachable">Dieses Buch ist nicht erreichbar.</string>
     <string name="epub_failure_unreadable">Dieses Buch konnte nicht geöffnet werden.</string>
     <string name="epub_end_finished">Gelesen</string>

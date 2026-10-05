@@ -29,6 +29,22 @@ object PublicationActions {
      */
     fun isQueueableRemote(publication: Publication): Boolean =
         publication.identity.serverIdentifier?.remoteId?.startsWith("opds:") == true
+
+    /**
+     * Whether a download would actually copy this publication.
+     *
+     * The one question both a menu and a bulk confirmation ask. `collections-and-reading-lists`
+     * has the app state "the item count and total size before starting", and that count was
+     * every member not already on the device -- a folder of images among them, which
+     * [KeepOffline] skips, and a network share row, which it has no road for at all. Counting
+     * through the same rule the single action takes is what makes the stated count the copied
+     * count. iOS's `PublicationActions.canCopy(_:file:model:)` is the same rule.
+     */
+    fun canCopy(
+        publication: Publication,
+        isLocalFile: Boolean,
+        isQueueableRemote: Boolean,
+    ): Boolean = canDownload(publication) && (isLocalFile || isQueueableRemote)
 }
 
 /**
@@ -56,7 +72,7 @@ sealed class DownloadOffer {
             isQueueableRemote: Boolean = false,
         ): DownloadOffer = when {
             isKept -> Remove
-            (isLocalFile || isQueueableRemote) && PublicationActions.canDownload(publication) -> Download
+            PublicationActions.canCopy(publication, isLocalFile, isQueueableRemote) -> Download
             else -> None
         }
     }

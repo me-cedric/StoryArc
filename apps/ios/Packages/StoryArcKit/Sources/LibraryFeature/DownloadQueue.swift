@@ -173,7 +173,7 @@ public final class DownloadQueue {
     ///   carries.
     public func downloadID(for entryID: String, sourceID: UUID? = nil) -> Download.ID {
         guard let effective = sourceID ?? self.sourceID else { return entryID }
-        return "opds:\(effective.uuidString):\(entryID)"
+        return RemoteMemberResolution.downloadID(entry: entryID, sourceID: effective)
     }
 
     /// Whether this entry already has a finished download.

@@ -51,6 +51,7 @@
     <string name="about_report">Informar de un problema</string>
     <string name="about_acknowledgements">Agradecimientos</string>
     <string name="about_acknowledgements_note">Todo lo que StoryArc incluye y que escribieron otros. Toque uno para ver su licencia completa.</string>
+    <string name="about_acknowledgements_unreadable">No se pudo leer esta lista en esta compilación. Es un error de empaquetado: por favor, infórmelo.</string>
     <string name="about_licence_missing">Falta el texto %1$s en esta compilación. Es un error de empaquetado: por favor, infórmelo.</string>
     <string name="reading_defaults">Ajustes por defecto para series nuevas</string>
     <string name="reading_defaults_note">Se aplica a series que no ha abierto antes. Un tema elegido al leer se queda con esa serie.</string>

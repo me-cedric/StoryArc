@@ -85,5 +85,11 @@ extension ReaderView {
             .accessibilityLabel(
                 isRightToLeft ? Text("reader.rightToLeft", bundle: .module) : Text(verbatim: "")
             )
+            // `native-experience`: the two named turns, and the position each one arrives at.
+            .modifier(PageTurnAccessibility(
+                position: readerPositionSentence(page: model.currentIndex + 1, of: model.pages.count),
+                onNext: { turnInReadingOrder(by: 1) },
+                onPrevious: { turnInReadingOrder(by: -1) }
+            ))
     }
 }

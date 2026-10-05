@@ -94,7 +94,14 @@ internal fun ShelfBulkMenu(
             text = { Text(stringResource(R.string.library_bulk_download)) },
             onClick = {
                 isOpen = false
-                val ask = BulkDownloadAsk.of(members, viewModel.keptOffline(), viewModel::bytesOnDisk)
+                val wanted = downloadableMembers(members, publications) {
+                    PublicationActions.canCopy(
+                        it,
+                        isLocalFile = isOnDevice(viewModel.location(it)),
+                        isQueueableRemote = PublicationActions.isQueueableRemote(it),
+                    )
+                }
+                val ask = BulkDownloadAsk.of(wanted, viewModel.keptOffline(), viewModel::bytesOnDisk)
                 if (ask == null) isAllOnDevice = true else pending = ask
             },
         )
@@ -196,6 +203,30 @@ internal fun ShelfBulkMenu(
         )
     }
 }
+
+/**
+ * Which of a shelf's members a bulk download would actually copy.
+ *
+ * `collections-and-reading-lists` has the app state "the item count and total size before
+ * starting", and the number stated was every member this device did not already hold. Three
+ * kinds of member are in that count and in no copy: a folder of images, which
+ * [LibraryViewModel.keepOffline] skips because there is no single file to take; a publication
+ * no decoder opens; and a network share row, which it has no road for at all and leaves
+ * behind without a word. A reader was quoted sixteen titles and a size, and got eleven.
+ *
+ * [PublicationActions.canCopy] is the same question the single download action asks, so the
+ * confirmation now counts exactly what one tap would take. A member the shelf names and the
+ * library no longer holds falls out here too, for the same reason.
+ *
+ * Free, and with the rule passed in, so `ShelfDownloadCountTest` can state the answer without
+ * a composition or a view model. iOS's `downloadableMembers` asks its own
+ * `PublicationActions.canCopy`.
+ */
+internal fun downloadableMembers(
+    members: Set<String>,
+    publications: List<Publication>,
+    canCopy: (Publication) -> Boolean,
+): Set<String> = publications.filter { it.id in members && canCopy(it) }.map { it.id }.toSet()
 
 /**
  * The undo a bulk action leaves behind.

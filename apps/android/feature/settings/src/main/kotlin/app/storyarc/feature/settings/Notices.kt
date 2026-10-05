@@ -51,11 +51,29 @@ private data class NoticeFile(
 internal object Notices {
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun forAndroid(assets: AssetManager): List<Notice> = runCatching {
-        val text = assets.open("licences/notices.json").bufferedReader().use { it.readText() }
+    /**
+     * The inventory, or the reason there is none to draw.
+     *
+     * It returns the failure rather than an empty list. The two are not the same thing to a
+     * reader: a section drawn over an empty list says "StoryArc ships nothing of anyone
+     * else's", which is false, and nothing on the screen told them which they were looking
+     * at. `settings-and-about` asks for every library to be listed, so a build that can list
+     * none has to say so.
+     */
+    fun forAndroid(assets: AssetManager): Result<List<Notice>> = runCatching {
+        decode(assets.open("licences/notices.json").bufferedReader().use { it.readText() })
+    }
+
+    /**
+     * The inventory held in [text], filtered to this platform.
+     *
+     * Separate from [forAndroid] so that a test can hand it an entry the decoder has to cope
+     * with. The staged file is correct by construction, so it cannot stand in for one that is
+     * not. It throws, and [forAndroid] is the one place that turns that into a [Result].
+     */
+    internal fun decode(text: String): List<Notice> =
         json.decodeFromString<NoticeFile>(text).notices
             .filter { it.platforms.isEmpty() || it.platforms.contains("android") }
-    }.getOrDefault(emptyList())
 
     /**
      * One component's licence, with its own copyright line in place of the template's.

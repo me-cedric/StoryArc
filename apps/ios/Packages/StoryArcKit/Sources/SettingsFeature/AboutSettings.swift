@@ -14,7 +14,13 @@ internal import StoryArcLicences
 struct AboutSettings: View {
     @Environment(\.theme) private var theme
 
-    private let notices = StoryArcLicences.forApple()
+    /// The inventory, or the reason there is none to draw.
+    ///
+    /// Kept as a `Result` rather than reduced to a list, because the two outcomes are not
+    /// the same thing to a reader: a section drawn over an empty list says "StoryArc ships
+    /// nothing of anyone else's", which is false, and a reader has no way to tell that from
+    /// a build whose inventory did not decode.
+    private let notices = Result { try StoryArcLicences.forApple() }
 
     var body: some View {
         List {
@@ -64,21 +70,30 @@ struct AboutSettings: View {
             }
 
             Section {
-                ForEach(notices) { notice in
-                    NavigationLink {
-                        LicenceText(notice: notice)
-                    } label: {
-                        VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                            Text(notice.version.map { "\(notice.name) \($0)" } ?? notice.name)
-                            // Two data fields and a separator, not a sentence. The
-                            // licence is an SPDX identifier and `why` names an ADR, so
-                            // neither is translated and a localised format string joining
-                            // them would read the same in all four languages.
-                            Text(verbatim: "\(notice.licence) · \(notice.why)")
-                                .textRole(.footnote)
-                                .foregroundStyle(theme.palette.textTertiary)
+                switch notices {
+                case let .success(listed):
+                    ForEach(listed) { notice in
+                        NavigationLink {
+                            LicenceText(notice: notice)
+                        } label: {
+                            VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
+                                Text(notice.version.map { "\(notice.name) \($0)" } ?? notice.name)
+                                // Two data fields and a separator, not a sentence. The
+                                // licence is an SPDX identifier and `why` names an ADR, so
+                                // neither is translated and a localised format string joining
+                                // them would read the same in all four languages.
+                                Text(verbatim: "\(notice.licence) · \(notice.why)")
+                                    .textRole(.footnote)
+                                    .foregroundStyle(theme.palette.textTertiary)
+                            }
                         }
                     }
+                case .failure:
+                    // Said rather than shown as nothing, for the reason `MissingLicence`
+                    // below says it: the file is meant to be there, so its absence is a
+                    // packaging bug and the reader is the only one who can report it.
+                    Text("about.acknowledgements.unreadable", bundle: .module)
+                        .foregroundStyle(theme.palette.textSecondary)
                 }
             } header: {
                 Text("about.acknowledgements", bundle: .module)

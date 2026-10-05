@@ -31,12 +31,14 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
  * collecting anything.
  */
 @Composable
-internal fun AboutGroup(modifier: Modifier = Modifier) {
+internal fun AboutGroup(
+    modifier: Modifier = Modifier,
+    notices: Result<List<Notice>> = rememberNotices(),
+) {
     val palette = LocalStoryArcPalette.current
     val context = LocalContext.current
     var showing by remember { mutableStateOf<Notice?>(null) }
     var showingWhatsNew by remember { mutableStateOf(false) }
-    val notices = remember { Notices.forAndroid(context.assets) }
 
     if (showingWhatsNew) {
         // The whole log, and no store. `settings-and-about`: reaching it this way "does not
@@ -109,7 +111,18 @@ internal fun AboutGroup(modifier: Modifier = Modifier) {
             color = palette.textTertiary,
         )
 
-        notices.forEach { notice ->
+        val listed = notices.getOrNull()
+        if (listed == null) {
+            // Said rather than shown as nothing, for the reason `about_licence_missing` is
+            // said: the inventory is meant to be in this build, so its absence is a
+            // packaging bug and the reader is the only one who can report it.
+            Text(
+                text = stringResource(R.string.about_acknowledgements_unreadable),
+                style = MaterialTheme.typography.bodyMedium,
+                color = palette.textSecondary,
+            )
+        }
+        listed?.forEach { notice ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -133,6 +146,19 @@ internal fun AboutGroup(modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+/**
+ * The staged inventory, read once.
+ *
+ * A parameter with this as its default rather than a call inside [AboutGroup], so that a test
+ * can hand the screen the failure a correctly packaged build never produces. There is no other
+ * way to reach that branch: the assets a Robolectric run opens are the real ones.
+ */
+@Composable
+internal fun rememberNotices(): Result<List<Notice>> {
+    val assets = LocalContext.current.assets
+    return remember(assets) { Notices.forAndroid(assets) }
 }
 
 /** One licence, in full, because a summary of a licence is not a licence. */

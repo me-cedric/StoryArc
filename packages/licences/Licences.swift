@@ -25,6 +25,34 @@ public struct Notice: Sendable, Equatable, Codable, Identifiable {
     public let why: String
 
     public var id: String { "\(name)-\(licence)" }
+
+    /// Decodes an entry, treating `platforms` as optional.
+    ///
+    /// The synthesised decoder required it, and `scripts/notices.mjs` has always read it as
+    /// optional — `platformsOf` falls back to "iOS, Android" when it is absent. The two
+    /// disagreed about the same file, and this side was the strict one: a single entry
+    /// written the way the generator allows failed the decode of the **whole** inventory,
+    /// and the About screen then drew its heading over nothing.
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        name = try values.decode(String.self, forKey: .name)
+        version = try values.decodeIfPresent(String.self, forKey: .version)
+        licence = try values.decode(String.self, forKey: .licence)
+        copyright = try values.decodeIfPresent(String.self, forKey: .copyright)
+        url = try values.decode(String.self, forKey: .url)
+        platforms = try values.decodeIfPresent([String].self, forKey: .platforms) ?? []
+        why = try values.decode(String.self, forKey: .why)
+    }
+}
+
+/// Why the inventory could not be read.
+///
+/// A reader cannot act on a decoding error, but they can act on "this build is broken":
+/// `settings-and-about` asks for every library to be listed, and a screen that silently
+/// lists none looks exactly like a screen that correctly lists none.
+public enum InventoryUnreadable: Error {
+    /// `notices.json` did not reach the built bundle. A packaging error, not a data error.
+    case notInTheBundle
 }
 
 /// Where the licence inventory is.
@@ -47,12 +75,25 @@ public enum StoryArcLicences {
     /// Filtered, because half the inventory is the other app's: telling an iOS reader that
     /// the app depends on the Readium *Kotlin* toolkit would be worse than telling them
     /// nothing.
-    public static func forApple() -> [Notice] {
-        guard let url = bundle.url(forResource: "notices", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let file = try? JSONDecoder().decode(File.self, from: data)
-        else { return [] }
-        return file.notices.filter { $0.platforms.isEmpty || $0.platforms.contains("ios") }
+    ///
+    /// It throws rather than returning an empty list. The caller has to be able to tell a
+    /// short inventory from an unreadable one, because only one of the two is worth putting
+    /// a sentence on the screen for.
+    public static func forApple() throws -> [Notice] {
+        guard let url = bundle.url(forResource: "notices", withExtension: "json") else {
+            throw InventoryUnreadable.notInTheBundle
+        }
+        return try apple(in: try Data(contentsOf: url))
+    }
+
+    /// The inventory held in `data`, filtered to Apple platforms.
+    ///
+    /// Separate from ``forApple()`` so that a test can hand it an entry the decoder has to
+    /// cope with. The bundled file is correct by construction, so it cannot stand in for one
+    /// that is not, and the decode is the part with a history of being too strict.
+    public static func apple(in data: Data) throws -> [Notice] {
+        try JSONDecoder().decode(File.self, from: data).notices
+            .filter { $0.platforms.isEmpty || $0.platforms.contains("ios") }
     }
 
     /// The licence text for an identifier, or `nil` if the file is missing.

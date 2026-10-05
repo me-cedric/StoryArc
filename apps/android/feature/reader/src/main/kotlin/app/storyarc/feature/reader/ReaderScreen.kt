@@ -790,6 +790,7 @@ private fun Pager(
         .fillMaxSize()
         .focusRequester(focus)
         .focusable()
+        .pageTurnSemantics(readingPage + 1, pages.size, { turnInReadingOrder(1) }, { turnInReadingOrder(-1) })
         .onKeyEvent { event ->
             if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
             when (ReaderKeyAction.of(event.key)) {

@@ -46,6 +46,10 @@ struct DetailActions: View {
     @State private var isRestarting = false
     @State private var refusedServer: String?
 
+    /// The one app-level queue, read for the same reason ``PublicationDetailView`` reads it:
+    /// it is `@Observable`, so a bar drawn from its records moves as the bytes arrive.
+    @State private var queue = DownloadQueue.shared()
+
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
             // `.fixedSize(horizontal:vertical:)` on the row, so the two controls share one
@@ -60,11 +64,15 @@ struct DetailActions: View {
             }
             .fixedSize(horizontal: false, vertical: true)
 
-            if isCopying {
-                // `offline-downloads` lets a publication be read while it arrives, so this
-                // is a state on the page and never a modal over it. Indeterminate on
-                // purpose: this copy has no byte count to report — it is one file move
-                // inside the device — and a bar pretending to know how far along it is
+            if let transfer {
+                // `offline-downloads`' *Progress never moves during a transfer*, on this
+                // page: the queue's own record, drawn where the reader asked for the
+                // download. A state on the page and never a modal over it, because the
+                // spec lets the publication be read while it arrives.
+                DetailTransferLine(transfer: transfer, title: publication.displayTitle)
+            } else if isCopying {
+                // The local copy, which has no byte count to report — it is one file move
+                // inside the device — so a bar pretending to know how far along it is
                 // would be a fiction.
                 HStack(spacing: StoryArcSpace.sm) {
                     ProgressView()
@@ -101,6 +109,13 @@ struct DetailActions: View {
         } message: {
             Text("library.restart.body", bundle: .module)
         }
+    }
+
+    /// This publication's transfer while it is still on its way, and `nil` once it has
+    /// landed — a finished record is what ``isKept`` and the provenance line already say.
+    private var transfer: Download? {
+        RemoteMemberResolution.record(of: publication, in: queue.library)
+            .flatMap { $0.state.isFinished ? nil : $0 }
     }
 
     /// The sentence under the primary action when nothing can open this publication yet,
@@ -235,6 +250,56 @@ struct DetailActions: View {
     private func forget() {
         model.forgetKept([publication.id])
         isKept = model.keptOffline.contains(publication.id)
+    }
+}
+
+/// What the publication page says about a transfer that is still on its way.
+///
+/// `offline-downloads` asks a transfer to state what it is doing and how far it has got, and
+/// this page is where a reader starts an OPDS download — so it is where that answer has to
+/// appear. The page drew nothing at all, because it looked the record up under a key the
+/// queue does not use; ``RemoteMemberResolution/downloadID(of:)`` is the key it uses now.
+///
+/// Determinate only when the server stated a size: ``StoryArcCore/Download/fraction`` answers
+/// `nil` rather than zero for exactly that absence, so a bar that could never move is never
+/// drawn.
+private struct DetailTransferLine: View {
+    @Environment(\.theme) private var theme
+
+    let transfer: Download
+
+    /// The publication's own name, which is what the held sentence is about.
+    let title: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
+            if let fraction = transfer.fraction {
+                ProgressView(value: fraction)
+            } else {
+                ProgressView()
+            }
+            Text(sentence)
+                .textRole(.footnote)
+                .foregroundStyle(theme.palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// The state in the reader's words, taken from the words the record already carries: a
+    /// failure states the reason the queue wrote, a hold names what is being held, and
+    /// everything else is a copy on its way.
+    private var sentence: String {
+        switch transfer.state {
+        case let .failed(reason, _):
+            reason
+        case .paused:
+            String(
+                format: String(localized: "downloads.pausedTitle", bundle: .module, locale: .storyArc),
+                title
+            )
+        default:
+            String(localized: "detail.download.working", bundle: .module, locale: .storyArc)
+        }
     }
 }
 

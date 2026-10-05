@@ -203,7 +203,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                 .putExtra(EXTRA_IDENTITY, Json.encodeToString(PublicationIdentity.serializer(), identity))
     }
 
-    private val model: EpubReaderViewModel by lazy {
+    internal val model: EpubReaderViewModel by lazy {
         EpubReaderViewModel(
             application = application,
             location = requireNotNull(intent.getStringExtra(EXTRA_LOCATION)),
@@ -254,7 +254,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
     private lateinit var interceptor: TurnInterceptor
 
     /// What the dip is added to, above the book and below the chrome.
-    private lateinit var root: FrameLayout
+    internal lateinit var root: FrameLayout
 
     /** Every page turn, from a tap, a key, a volume press or a swipe. */
     private val turns by lazy {
@@ -336,8 +336,8 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     savedInstanceState: Bundle?,
                 ) {
                     PublicationEgress.deny(view)
-                    // `native-experience`: TalkBack reported "UNNAMED WebView" here.
                     PublicationEgress.namePane(view, intent.getStringExtra(EXTRA_TITLE).orEmpty())
+                    EpubPageSemantics.install(view) { forward -> turns.turn(forward) }
                 }
             },
             true,
@@ -703,7 +703,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
         // Its own coroutine: the walk for a first word reads resources, and the theme and
         // the position below must not wait for it.
         lifecycleScope.launch { prepareReadAloud(publication) }
-        model.follow(navigator.currentLocator)
+        followAndAnnounce(navigator.currentLocator)
         // Painted once the navigator exists: a decoration applied before it is on
         // screen is a decoration Readium has nowhere to put.
         lifecycleScope.launch { drawAnnotations() }

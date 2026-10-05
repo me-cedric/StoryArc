@@ -323,6 +323,11 @@ public struct EpubReaderView: View {
         .statusBarHidden(!isChromeVisible)
         .toolbar(.hidden, for: .navigationBar)
         .onChange(of: reduceMotion, initial: true) { _, new in model.reduceMotion = new }
+        // `native-experience`: the two named turns, and the position each one arrives at.
+        .modifier(EpubPageTurnAccessibility(
+            position: spokenPosition,
+            onTurn: { forward in Task { await model.turn(forward: forward) } }
+        ))
         // Keyboard, Return and a game controller — see `EpubReaderTurnKeys`.
         .modifier(EpubReaderTurnKeys(
             isCoveredBySheet: isShowingMenu || isShowingTheme || isShowingContents || editingNote != nil,

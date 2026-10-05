@@ -114,16 +114,22 @@ class AboutContentsTest {
 
     @Test
     fun `every acknowledged component has a row of its own`() {
-        val notices = Notices.forAndroid(context.assets)
+        val notices = Notices.forAndroid(context.assets).getOrThrow()
         assertTrue("There is nothing to acknowledge — see AcknowledgementsTest.", notices.isNotEmpty())
 
         showAbout()
 
         compose.onNodeWithText(string(R.string.about_acknowledgements)).assertExists()
         notices.forEach { notice ->
+            // The title exactly, not the name as a substring. One component's reason names
+            // another component — SLF4J's reason names jcifs-ng, because that is the honest
+            // answer to "why is it in the app" — and a substring finder counted that reason
+            // as a second row.
+            //
             // `onAllNodes`, because several components share one licence identifier and a
             // finder that demands exactly one node would fail on the second Apache row.
-            val row = compose.onAllNodesWithText(notice.name, substring = true).fetchSemanticsNodes()
+            val title = notice.version?.let { "${notice.name} $it" } ?: notice.name
+            val row = compose.onAllNodesWithText(title).fetchSemanticsNodes()
             assertEquals("${notice.name} has no row on the screen.", 1, row.size)
             assertTrue(
                 "${notice.name}'s row does not name the ${notice.licence} licence it is under.",
@@ -131,6 +137,25 @@ class AboutContentsTest {
                     .fetchSemanticsNodes().isNotEmpty(),
             )
         }
+    }
+
+    /**
+     * A build whose inventory did not decode says so.
+     *
+     * The screen used to draw the heading, the note, and then nothing — which reads as "this
+     * app ships nothing of anyone else's" and is false. The inventory is handed in rather than
+     * read, because a Robolectric run opens the real assets and they decode.
+     */
+    @Test
+    fun `an unreadable inventory is stated rather than drawn as an empty list`() {
+        compose.setContent {
+            StoryArcTheme {
+                AboutGroup(notices = Result.failure(IllegalStateException("the staged file is truncated")))
+            }
+        }
+
+        compose.onNodeWithText(string(R.string.about_acknowledgements)).assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.about_acknowledgements_unreadable)).assertIsDisplayed()
     }
 
     /**
