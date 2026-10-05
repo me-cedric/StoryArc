@@ -618,7 +618,7 @@ fun LibraryScreen(
                         // door, which put the four transports on the screen in the order
                         // `sources` forbids and offered no way to open a comic at all.
                         registry.sources.isEmpty() -> EmptyLibrary(
-                            onOpenComic = { importFile.launch(arrayOf("*/*")) },
+                            onOpenFile = { importFile.launch(arrayOf("*/*")) },
                             onAddFolder = { pickFolder.launch(null) },
                             onAddCatalogue = onAddCatalogue,
                             onAddKavita = onAddKavita,
@@ -643,7 +643,7 @@ fun LibraryScreen(
                                 onProbeSources(SourceRefreshOrigin.AUTOMATIC)
                                 viewModel?.rescan()
                             },
-                            onOpenComic = { importFile.launch(arrayOf("*/*")) },
+                            onOpenFile = { importFile.launch(arrayOf("*/*")) },
                         )
                     }
                 }

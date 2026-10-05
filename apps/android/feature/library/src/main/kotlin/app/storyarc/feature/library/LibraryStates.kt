@@ -77,7 +77,7 @@ internal fun CachedNotice(refreshedAtEpochMillis: Long) {
 @Composable
 internal fun EmptyLibrary(
     /** Copies one file in and opens it. Configures nothing, remembers nothing else. */
-    onOpenComic: () -> Unit,
+    onOpenFile: () -> Unit,
     onAddFolder: () -> Unit,
     onAddCatalogue: () -> Unit,
     onAddKavita: () -> Unit,
@@ -121,14 +121,15 @@ internal fun EmptyLibrary(
                 .widthIn(max = FIRST_RUN_MEASURE)
                 .padding(bottom = StoryArcSpace.sm),
         )
-        Button(onClick = onOpenComic) {
-            Text(stringResource(R.string.library_open_comic))
+        Button(onClick = onOpenFile) {
+            Text(stringResource(R.string.library_open_file))
         }
-        // Plain, and second: a reader who has just installed a comic app wants to read a
-        // comic, and the shelf full of them can wait until they know the app opens one.
+        // Plain, and second: a reader who has just installed the app wants to open something
+        // and read it, and the shelf full of sources can wait until they know the app opens
+        // one. The picker takes any file, not only a comic, which is what the label says now.
         AddBooksButton(
             onAddFolder = onAddFolder,
-            onOpenComic = onOpenComic,
+            onOpenFile = onOpenFile,
             onAddCatalogue = onAddCatalogue,
             onAddKavita = onAddKavita,
             onAddShare = onAddShare,
@@ -158,7 +159,7 @@ internal fun EmptyLibrary(
 internal fun LibraryAway(
     isEverythingAway: Boolean,
     onRetry: () -> Unit,
-    onOpenComic: () -> Unit,
+    onOpenFile: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -187,8 +188,8 @@ internal fun LibraryAway(
         Button(onClick = onRetry) {
             Text(stringResource(R.string.source_offline_retry))
         }
-        TextButton(onClick = onOpenComic) {
-            Text(stringResource(R.string.library_open_comic))
+        TextButton(onClick = onOpenFile) {
+            Text(stringResource(R.string.library_open_file))
         }
     }
 }
@@ -209,7 +210,7 @@ internal fun LibraryAway(
 @Composable
 private fun AddBooksButton(
     onAddFolder: () -> Unit,
-    onOpenComic: () -> Unit,
+    onOpenFile: () -> Unit,
     onAddCatalogue: () -> Unit,
     onAddKavita: () -> Unit,
     onAddShare: () -> Unit,
@@ -223,7 +224,7 @@ private fun AddBooksButton(
         AddSourceItems(
             onChosen = { open = false },
             onAddFolder = onAddFolder,
-            onImport = onOpenComic,
+            onImport = onOpenFile,
             onAddCatalogue = onAddCatalogue,
             onAddKavita = onAddKavita,
             onAddShare = onAddShare,

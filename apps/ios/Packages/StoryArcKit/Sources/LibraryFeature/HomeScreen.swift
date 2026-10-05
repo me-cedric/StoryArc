@@ -138,7 +138,7 @@ public struct HomeScreen: View {
             Group {
                 if model.publications.isEmpty {
                     EmptyLibraryView(
-                        openComic: { picking = .file },
+                        openFile: { picking = .file },
                         addFolder: { picking = .folder },
                         addCatalogue: { addingSource = .catalogue },
                         addKavita: { addingSource = .kavita },

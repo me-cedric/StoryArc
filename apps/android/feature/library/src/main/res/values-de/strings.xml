@@ -2,7 +2,7 @@
 <resources>
     <string name="library_title">Bibliothek</string>
     <string name="library_empty_title">Noch nichts hier</string>
-    <string name="library_empty_subtitle">Öffnen Sie einen Comic und lesen Sie los. Einen ganzen Ordner können Sie jederzeit hinzufügen.</string>
+    <string name="library_empty_subtitle">Wählen Sie eine Datei aus und lesen Sie los. Einen ganzen Ordner können Sie jederzeit hinzufügen.</string>
     <string name="source_kind_local_folder_title">Dateien und Ordner</string>
     <string name="source_kind_local_folder_explanation">Auf diesem Gerät, in Google Drive oder überall in Dateien</string>
     <string name="source_kind_network_share_title">Ein Computer in Ihrem Netzwerk</string>
@@ -420,7 +420,7 @@
     <string name="home_next_in_series">Nächster Teil</string>
     <string name="home_part_read">Angefangen</string>
     <string name="home_finished_one">Ausgelesen</string>
-    <string name="library_open_comic">Comic \u00f6ffnen</string>
+    <string name="library_open_file">Datei ausw\u00e4hlen</string>
     <plurals name="home_pages_left">
         <item quantity="one">Noch %1$,d Seite</item>
         <item quantity="other">Noch %1$,d Seiten</item>

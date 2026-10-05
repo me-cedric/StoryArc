@@ -2,7 +2,7 @@
 <resources>
     <string name="library_title">Bibliothèque</string>
     <string name="library_empty_title">Rien pour l’instant</string>
-    <string name="library_empty_subtitle">Ouvrez une bande dessinée et commencez à lire. Vous pourrez ajouter un dossier entier quand vous voudrez.</string>
+    <string name="library_empty_subtitle">Choisissez un fichier et commencez à lire. Vous pourrez ajouter un dossier entier quand vous voudrez.</string>
     <string name="source_kind_local_folder_title">Fichiers et dossiers</string>
     <string name="source_kind_local_folder_explanation">Sur cet appareil, dans Google Drive ou n’importe où dans Fichiers</string>
     <string name="source_kind_network_share_title">Un ordinateur de votre réseau</string>
@@ -422,7 +422,7 @@
     <string name="home_next_in_series">Suite de la série</string>
     <string name="home_part_read">Commenc\u00e9</string>
     <string name="home_finished_one">Termin\u00e9</string>
-    <string name="library_open_comic">Ouvrir une BD</string>
+    <string name="library_open_file">Choisir un fichier</string>
     <plurals name="home_pages_left">
         <item quantity="one">%1$,d page restante</item>
         <item quantity="other">%1$,d pages restantes</item>

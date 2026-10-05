@@ -264,7 +264,7 @@ fun HomeScreen(
                         // against unbounded height, so `fillMaxSize` collapses and the block
                         // lands at the top. That is how home and the library came to disagree.
                         modifier = Modifier.fillParentMaxSize(),
-                        onOpenComic = onOpenFile,
+                        onOpenFile = onOpenFile,
                         onAddFolder = onAddFolder,
                         onAddCatalogue = onAddCatalogue,
                         onAddKavita = onAddKavita,

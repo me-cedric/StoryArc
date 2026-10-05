@@ -174,7 +174,7 @@ fun SearchScreen(
             // `publication-detail` makes the two different verbs, and a suggestion is a cover
             // like any other. Home's Keep reading card is the one place that resumes.
             onOpenPage = onOpenPage,
-            onOpenComic = { importFile.launch(arrayOf("*/*")) },
+            onOpenFile = { importFile.launch(arrayOf("*/*")) },
             onAddFolder = { pickFolder.launch(null) },
             onAddCatalogue = onAddCatalogue,
             onAddKavita = onAddKavita,

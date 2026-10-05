@@ -2,7 +2,7 @@
 <resources>
     <string name="library_title">Library</string>
     <string name="library_empty_title">Nothing here yet</string>
-    <string name="library_empty_subtitle">Open a comic and start reading. You can add a whole folder whenever you like.</string>
+    <string name="library_empty_subtitle">Choose a file and start reading. You can add a whole folder whenever you like.</string>
     <string name="source_kind_local_folder_title">Files and folders</string>
     <!-- iOS names iCloud Drive here. Each platform names the file service its own system
          provides. The difference is deliberate, and `localization` / One state, one name
@@ -455,7 +455,7 @@
     <string name="home_next_in_series">Next in series</string>
     <string name="home_part_read">Part-read</string>
     <string name="home_finished_one">Finished</string>
-    <string name="library_open_comic">Open a comic</string>
+    <string name="library_open_file">Choose a file</string>
     <plurals name="home_pages_left">
         <item quantity="one">%1$,d page left</item>
         <item quantity="other">%1$,d pages left</item>

@@ -71,7 +71,7 @@ internal fun SearchAtRest(
     /** A suggestion is a cover like any other, so it leads to the publication's own page. */
     onOpenPage: (Publication) -> Unit,
     /** Copies one file in and opens it. Configures nothing. */
-    onOpenComic: () -> Unit,
+    onOpenFile: () -> Unit,
     onAddFolder: () -> Unit,
     /** The three the app layer owns, because each opens a sheet only it can put up. */
     onAddCatalogue: () -> Unit,
@@ -94,7 +94,7 @@ internal fun SearchAtRest(
         SearchNothingToSuggest(
             scope = scope,
             onScopeChange = onScopeChange,
-            onOpenComic = onOpenComic,
+            onOpenFile = onOpenFile,
             onAddFolder = onAddFolder,
             onAddCatalogue = onAddCatalogue,
             onAddKavita = onAddKavita,
@@ -259,7 +259,7 @@ private fun SearchSectionHeading(text: Int) {
 private fun SearchNothingToSuggest(
     scope: LibraryAvailability,
     onScopeChange: (LibraryAvailability) -> Unit,
-    onOpenComic: () -> Unit,
+    onOpenFile: () -> Unit,
     onAddFolder: () -> Unit,
     onAddCatalogue: () -> Unit,
     onAddKavita: () -> Unit,
@@ -297,14 +297,14 @@ private fun SearchNothingToSuggest(
                         .widthIn(max = FIRST_RUN_MEASURE)
                         .padding(bottom = StoryArcSpace.sm),
                 )
-                Button(onClick = onOpenComic) {
-                    Text(stringResource(R.string.library_open_comic))
+                Button(onClick = onOpenFile) {
+                    Text(stringResource(R.string.library_open_file))
                 }
                 // Plain, and second, for the reason [EmptyLibrary] gives: a reader who has
                 // just installed a comic app wants to read a comic, and the shelf full of
                 // them can wait until they know the app opens one.
                 SearchAddSourceMenu(
-                    onOpenComic = onOpenComic,
+                    onOpenFile = onOpenFile,
                     onAddFolder = onAddFolder,
                     onAddCatalogue = onAddCatalogue,
                     onAddKavita = onAddKavita,
@@ -325,7 +325,7 @@ private fun SearchNothingToSuggest(
  */
 @Composable
 private fun SearchAddSourceMenu(
-    onOpenComic: () -> Unit,
+    onOpenFile: () -> Unit,
     onAddFolder: () -> Unit,
     onAddCatalogue: () -> Unit,
     onAddKavita: () -> Unit,
@@ -346,7 +346,7 @@ private fun SearchAddSourceMenu(
         // configures.
         SearchAddSourceItem(R.string.library_import, Icons.Filled.FileDownload) {
             open = false
-            onOpenComic()
+            onOpenFile()
         }
         SearchAddSourceItem(R.string.catalogue_title, Icons.Filled.RssFeed) {
             open = false

@@ -62,7 +62,7 @@ class SearchSuggestionOffersTheMenuTest {
                     onScopeChange = {},
                     cover = { _, _ -> null },
                     onOpenPage = {},
-                    onOpenComic = {},
+                    onOpenFile = {},
                     onAddFolder = {},
                     onAddCatalogue = {},
                     onAddKavita = {},

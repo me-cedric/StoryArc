@@ -76,7 +76,7 @@ class SourceKindsAreNamedTest {
         compose.setContent {
             StoryArcTheme {
                 EmptyLibrary(
-                    onOpenComic = {},
+                    onOpenFile = {},
                     onAddFolder = {},
                     onAddCatalogue = {},
                     onAddKavita = {},

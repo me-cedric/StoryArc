@@ -76,7 +76,7 @@ class SearchAtRestTest {
         val labels = show(SearchSuggestions())
 
         compose.onNodeWithText(labels.emptyTitle).assertIsDisplayed()
-        compose.onNodeWithText(labels.openComic).assertIsDisplayed()
+        compose.onNodeWithText(labels.openFile).assertIsDisplayed()
         compose.onNodeWithText(labels.inProgress).assertDoesNotExist()
         compose.onNodeWithText(labels.nextInSeries).assertDoesNotExist()
         compose.onNodeWithText(labels.neverOpened).assertDoesNotExist()
@@ -108,7 +108,7 @@ class SearchAtRestTest {
         val reached = mutableListOf<String>()
         val labels = show(
             SearchSuggestions(),
-            onOpenComic = { reached += "comic" },
+            onOpenFile = { reached += "comic" },
             onAddFolder = { reached += "folder" },
             onAddCatalogue = { reached += "catalogue" },
             onAddKavita = { reached += "kavita" },
@@ -195,7 +195,7 @@ class SearchAtRestTest {
         val nextInSeries: String,
         val neverOpened: String,
         val emptyTitle: String,
-        val openComic: String,
+        val openFile: String,
         val addSource: String,
         val addFolder: String,
         val importFile: String,
@@ -209,7 +209,7 @@ class SearchAtRestTest {
     private fun show(
         suggestions: SearchSuggestions,
         onOpenPage: (Publication) -> Unit = {},
-        onOpenComic: () -> Unit = {},
+        onOpenFile: () -> Unit = {},
         onAddFolder: () -> Unit = {},
         onAddCatalogue: () -> Unit = {},
         onAddKavita: () -> Unit = {},
@@ -222,7 +222,7 @@ class SearchAtRestTest {
                 nextInSeries = stringResource(R.string.search_suggestions_next_in_series),
                 neverOpened = stringResource(R.string.search_suggestions_never_opened),
                 emptyTitle = stringResource(R.string.search_empty_title),
-                openComic = stringResource(R.string.library_open_comic),
+                openFile = stringResource(R.string.library_open_file),
                 addSource = stringResource(R.string.library_add_source),
                 addFolder = stringResource(R.string.library_add_folder),
                 importFile = stringResource(R.string.library_import),
@@ -241,7 +241,7 @@ class SearchAtRestTest {
                     // is which headings exist, which is decided before a bitmap arrives.
                     cover = { _, _ -> null },
                     onOpenPage = onOpenPage,
-                    onOpenComic = onOpenComic,
+                    onOpenFile = onOpenFile,
                     onAddFolder = onAddFolder,
                     onAddCatalogue = onAddCatalogue,
                     onAddKavita = onAddKavita,

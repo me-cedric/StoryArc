@@ -68,7 +68,7 @@ struct ScanningView: View {
 struct EmptyLibraryView: View {
     /// The primary, and deliberately not a source: a file picker configures nothing and
     /// remembers nothing beyond the copy the app keeps.
-    var openComic: () -> Void = {}
+    var openFile: () -> Void = {}
 
     var addFolder: () -> Void = {}
     var addCatalogue: () -> Void = {}
@@ -85,19 +85,20 @@ struct EmptyLibraryView: View {
         } description: {
             Text("library.empty.subtitle", bundle: .module)
         } actions: {
-            Button(action: openComic) {
-                Text("library.openComic", bundle: .module)
+            Button(action: openFile) {
+                Text("library.openFile", bundle: .module)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, StoryArcSpace.xs)
             }
             .buttonStyle(.borderedProminent)
 
-            // Plain, and second: a reader who has just installed a comic app wants to read
-            // a comic, and the shelf full of them can wait until they know the app opens
-            // one. `sources` calls this "one plain secondary action".
+            // Plain, and second: a reader who has just installed the app wants to open
+            // something and read it, and the shelf full of sources can wait until they know
+            // the app opens one. The picker takes any file, not only a comic, which is what
+            // the label says now. `sources` calls this "one plain secondary action".
             AddSourceMenu(
                 addFolder: addFolder,
-                importFile: openComic,
+                importFile: openFile,
                 addCatalogue: addCatalogue,
                 addKavita: addKavita,
                 addShare: addShare
@@ -163,7 +164,7 @@ struct LibraryAway: View {
     let isEverythingAway: Bool
 
     let retry: () -> Void
-    let openComic: () -> Void
+    let openFile: () -> Void
 
     var body: some View {
         ContentUnavailableView {
@@ -186,8 +187,8 @@ struct LibraryAway: View {
             }
             .buttonStyle(.borderedProminent)
 
-            Button(action: openComic) {
-                Text("library.openComic", bundle: .module)
+            Button(action: openFile) {
+                Text("library.openFile", bundle: .module)
             }
             .buttonStyle(.plain)
         }
