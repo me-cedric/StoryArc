@@ -59,16 +59,14 @@ extension ReaderView {
 
     /// Whether two pages can share the screen.
     ///
-    /// `comic-reader` scopes the pairing to landscape itself. Curl is out because the
-    /// shader takes one decoded page and compositing two into a single texture is a
-    /// different piece of work; a continuous scroll is out because it has no facing
-    /// pages to pair — it has a strip.
+    /// `comic-reader` scopes the pairing to landscape itself. A continuous scroll is out
+    /// because it has no facing pages to pair — it has a strip.
+    ///
+    /// **Curl is in, since D14.** The shader takes one texture, so the slot's two pages are
+    /// composited into one before it ever sees them (``SpreadTexture``). Which modes pair is
+    /// ``PageTransition/pairsPages``, so the two platforms answer it once.
     var isPairing: Bool {
-        guard isLandscape else { return false }
-        switch model.transitions(reduceMotion: reduceMotion).effective {
-        case .slide, .fastFade: return true
-        case .pageCurl, .verticalScroll, .horizontalScroll: return false
-        }
+        isLandscape && model.transitions(reduceMotion: reduceMotion).effective.pairsPages
     }
 
     /// What the page grouping depends on, so it is rebuilt when one of them moves and

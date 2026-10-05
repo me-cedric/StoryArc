@@ -33,9 +33,9 @@ struct CurlOverImagePagesTests {
         .deletingLastPathComponent()
         .deletingLastPathComponent()
 
-    /// The container that builds the curl, and the curl itself.
+    /// The container that builds the curl, the sheets it is handed, and the curl itself.
     private static var curlPath: [(name: String, url: URL)] {
-        ["ReaderContainers.swift", "CurledPages.swift"].map {
+        ["ReaderContainers.swift", "CurledPages.swift", "ReaderCurlSheets.swift"].map {
             ($0, package.appending(path: "Sources/ReaderFeature/\($0)"))
         }
     }
@@ -86,12 +86,13 @@ struct CurlOverImagePagesTests {
     /// The function each sheet is decoded and adjusted through. `comic-reader`
     /// "Persisting adjustments" (task 8.1) is what put this between the curl and
     /// `model.image(at:)`: the trim and the sharpening apply to a curled page exactly as
-    /// they apply to every other container's.
+    /// they apply to every other container's. It moved to `ReaderCurlSheets.swift` with
+    /// task 8.13, when a sheet became more than one decoded page.
     private func adjustedImageBuilder() throws -> String {
         try body(
-            opening: "private func adjustedImage(forDisplay display: Int) -> CGImage? {",
-            in: try code(of: Self.curlPath[0].url),
-            missing: "`ReaderContainers.swift` no longer declares `adjustedImage(forDisplay:)`."
+            opening: "private func adjustedImage(at index: Int) -> CGImage? {",
+            in: try code(of: Self.curlPath[2].url),
+            missing: "`ReaderCurlSheets.swift` no longer declares `adjustedImage(at:)`."
         )
     }
 
@@ -111,15 +112,15 @@ struct CurlOverImagePagesTests {
 
         // The page in view directly, and its two neighbours through `curlSheet(at:)`, which
         // reads the same function and adds the placeholder of task 8.4.
-        let decodes = builder.ranges(of: "adjustedImage(forDisplay:").count
+        let decodes = builder.ranges(of: "curlTexture(forDisplay:").count
             + builder.ranges(of: "curlSheet(at:").count
         let sheet = try body(
-            opening: "private func curlSheet(at display: Int?) -> CGImage? {",
-            in: try code(of: Self.curlPath[0].url),
-            missing: "`ReaderContainers.swift` no longer declares `curlSheet(at:)`."
+            opening: "func curlSheet(at display: Int?) -> CGImage? {",
+            in: try code(of: Self.curlPath[2].url),
+            missing: "`ReaderCurlSheets.swift` no longer declares `curlSheet(at:)`."
         )
         #expect(
-            sheet.contains("CurlPlaceholder.sheet(at: display, decoded: adjustedImage(forDisplay:))"),
+            sheet.contains("CurlPlaceholder.sheet(at: display, decoded: curlTexture(forDisplay:))"),
             "`curlSheet(at:)` no longer reads the decoded page first and the placeholder after it."
         )
         #expect(
@@ -137,7 +138,26 @@ struct CurlOverImagePagesTests {
         let adjusted = try adjustedImageBuilder()
         #expect(
             adjusted.ranges(of: "model.image(at:").count == 1,
-            "`adjustedImage(forDisplay:)` no longer reads exactly one decoded page from the model."
+            "`adjustedImage(at:)` no longer reads exactly one decoded page from the model."
+        )
+    }
+
+    @Test("A sheet is every page of its slot, composited, so a spread curls as one surface")
+    func aSheetIsTheWholeSlot() throws {
+        // D14, task 8.13. Before it the sheet was the slot's *leading* page and Curl was
+        // kept out of the pairing, so a reader who chose Curl in landscape lost the spread.
+        let texture = try body(
+            opening: "func curlTexture(forDisplay display: Int) -> CGImage? {",
+            in: try code(of: Self.curlPath[2].url),
+            missing: "`ReaderCurlSheets.swift` no longer declares `curlTexture(forDisplay:)`."
+        )
+        #expect(
+            texture.contains("SpreadTexture.composite(decoded)"),
+            "A curled sheet is no longer the slot's pages composited into one texture."
+        )
+        #expect(
+            texture.contains("guard decoded.count == spread.pages.count else { return nil }"),
+            "A curled sheet no longer waits for every page of its slot."
         )
     }
 

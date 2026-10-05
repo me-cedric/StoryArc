@@ -43,7 +43,8 @@ extension ReaderView {
     /// page the reader expects opened the page behind them instead.
     var curled: some View {
         CurledPages(
-            page: adjustedImage(forDisplay: displayIndex),
+            // One page, or a spread composited into one texture. See `ReaderCurlSheets`.
+            page: curlTexture(forDisplay: displayIndex),
             beneath: curlSheet(at: adjacentDisplayIndex(
                 from: displayIndex, steps: 1, slotCount: layout.count, isRightToLeft: isRightToLeft
             )),
@@ -62,33 +63,6 @@ extension ReaderView {
             onTurnedBack: { turnInReadingOrder(by: -1) },
             onTap: tapHandler()
         )
-    }
-
-    /// A neighbouring sheet, or a matte placeholder at its expected ratio while it decodes.
-    private func curlSheet(at display: Int?) -> CGImage? {
-        CurlPlaceholder.sheet(at: display, decoded: adjustedImage(forDisplay:)) { display in
-            CurlPlaceholder.image(
-                ratio: PagePlaceholder.ratio(
-                    nearest: modelIndex(forDisplay: display), among: model.decodedRatios
-                ),
-                matte: model.matte
-            )
-        }
-    }
-
-    /// The decoded page with the series' trim and sharpness baked in, the way every
-    /// other container draws it.
-    ///
-    /// `comic-reader` "Persisting adjustments": the curl drew the raw decode while every
-    /// other container applied both halves of the reader's adjustments — this is the
-    /// pixel half (border trim and sharpness); the colour half (brightness, contrast,
-    /// inversion, greyscale) is a compositing operation applied once to the whole curl
-    /// in ``CurledPages``, not per sheet.
-    private func adjustedImage(forDisplay display: Int) -> CGImage? {
-        let index = modelIndex(forDisplay: display)
-        guard let image = model.image(at: index) else { return nil }
-        let trim = trimming(at: index)
-        return sharpened(cropped(image, when: trim.cropsBorders), by: trim.sharpness)
     }
 
     /// Slide: the platform's own pager, which brings its gesture and edge resistance.

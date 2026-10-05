@@ -137,6 +137,7 @@ import app.storyarc.core.model.ReadingDirection
 import app.storyarc.core.model.ScrollAxis
 import app.storyarc.core.model.SearchMatch
 import app.storyarc.core.model.SpreadLayout
+import app.storyarc.core.model.pairsPages
 import app.storyarc.core.model.scrollAxis
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
@@ -316,13 +317,12 @@ private fun Pager(
     /**
      * Whether two pages can share the screen.
      *
-     * `comic-reader` scopes the pairing to landscape itself. Curl is out because the
-     * shader takes one decoded page and compositing two into a single texture is a
-     * different piece of work; a continuous scroll is out because it has no facing pages
-     * to pair — it has a strip.
+     * `comic-reader` scopes the pairing to landscape itself. Which modes pair is
+     * [pairsPages], so the two platforms answer it once. Curl is in since D14 -- the slot's
+     * two pages are composited into one texture before the shader sees them ([SpreadTexture]).
      */
     val isPairing = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE &&
-        (choices.effective == PageTransition.SLIDE || choices.effective == PageTransition.FAST_FADE)
+        choices.effective.pairsPages
 
     /**
      * How the pages are grouped on screen: one slot per screenful, and a slot may hold
@@ -917,21 +917,22 @@ private fun Pager(
     }
 
     /**
-     * The decoded page at a display position, with the border trim [SinglePage] applies
-     * baked in. Sharpness and colour are not baked: [CurledPages] draws them live.
+     * The sheet at a display position: one page, or a spread as the one texture a curl can
+     * turn (D14). The border trim [SinglePage] applies is baked in; sharpness and colour are
+     * not, because [CurledPages] draws those live.
      */
     @Composable
-    fun curlPage(display: Int?): Bitmap? {
-        val index = display?.let(::modelIndex) ?: return null
-        val raw = viewModel.image(index) ?: return null
-        val trims = adjustments.trimmingBorders(index !in uncropped).cropsBorders
-        return remember(raw, trims) { raw.cropped(trims) }
-    }
+    fun curlPage(display: Int?): Bitmap? = rememberSpreadTexture(
+        pages = display?.let { layout.slotAt(slotIndex(it)) }.onScreen(isRightToLeft),
+        raw = { viewModel.image(it) },
+        trimsBorders = { adjustments.trimmingBorders(it !in uncropped).cropsBorders },
+    )
 
-    /** A neighbouring sheet, or a matte placeholder at its expected ratio while it decodes. */
+    /** A neighbouring sheet, or a placeholder at its ratio -- twice as wide for a pair. */
     @Composable
     fun curlSheet(display: Int?): Bitmap? = CurlPlaceholder.sheet(display, { curlPage(it) }) {
-        rememberCurlPlaceholder(PagePlaceholder.ratio(modelIndex(it), viewModel.decodedRatios()), matte)
+        val slot = layout.slotAt(slotIndex(it))?.pages?.size ?: 1
+        rememberCurlPlaceholder(PagePlaceholder.ratio(modelIndex(it), viewModel.decodedRatios()) * slot, matte)
     }
 
     /**
