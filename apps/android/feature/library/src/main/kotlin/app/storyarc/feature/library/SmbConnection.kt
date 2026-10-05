@@ -51,6 +51,15 @@ class SmbConnection(
     private val _step = MutableStateFlow<Step>(Step.Entering)
     val step: StateFlow<Step> = _step.asStateFlow()
 
+    /**
+     * The context a sentence shown to the reader is resolved against.
+     *
+     * `localization`: this is built with the application context, whose resources stay in
+     * the system's language -- see [speakingReaderLanguage]. Read on every lookup, because
+     * the reader can change the language while this is on screen.
+     */
+    private val readersLanguage: Context get() = context.speakingReaderLanguage()
+
     val host = MutableStateFlow("")
     val share = MutableStateFlow("")
     val username = MutableStateFlow("")
@@ -118,11 +127,11 @@ class SmbConnection(
             }
         }
         if (target.host.isBlank() || target.share.isBlank()) {
-            _step.value = Step.Failed(context.getString(R.string.smb_error_not_an_address))
+            _step.value = Step.Failed(readersLanguage.getString(R.string.smb_error_not_an_address))
             return
         }
         if (LocalNetworkPermission.blocks(Build.VERSION.SDK_INT, LocalNetworkPermission.isGranted(context))) {
-            _step.value = Step.Failed(context.getString(R.string.smb_error_local_network_denied))
+            _step.value = Step.Failed(readersLanguage.getString(R.string.smb_error_local_network_denied))
             return
         }
 
@@ -138,7 +147,7 @@ class SmbConnection(
             } catch (error: SmbError) {
                 _step.value = Step.Failed(describe(error))
             } catch (error: Exception) {
-                _step.value = Step.Failed(context.getString(R.string.smb_error_unexpected))
+                _step.value = Step.Failed(readersLanguage.getString(R.string.smb_error_unexpected))
             }
         }
     }
@@ -173,7 +182,7 @@ class SmbConnection(
         if (!rooted.isGuest) {
             val key = replacing?.credentialReference ?: CredentialStore.reference(id)
             if (credentials == null || !credentials.save(rooted.password.orEmpty(), key)) {
-                _step.value = Step.Failed(context.getString(R.string.smb_error_key_not_stored))
+                _step.value = Step.Failed(readersLanguage.getString(R.string.smb_error_key_not_stored))
                 return null
             }
             reference = key
@@ -193,7 +202,7 @@ class SmbConnection(
         _step.value = Step.Entering
     }
 
-    private fun describe(error: SmbError): String = context.getString(
+    private fun describe(error: SmbError): String = readersLanguage.getString(
         when (error) {
             is SmbError.HostUnreachable -> R.string.smb_error_host_unreachable
             is SmbError.ShareNotFound -> R.string.smb_error_share_not_found

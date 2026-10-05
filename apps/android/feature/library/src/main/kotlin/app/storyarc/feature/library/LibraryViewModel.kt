@@ -1251,15 +1251,17 @@ class LibraryViewModel(
      * Added the moment there is something in it rather than at launch: `sources` requires
      * the empty state to name the four source types, and a fifth row for a source holding
      * nothing would be a source the reader never added.
+     *
+     * The name is [importedSourceName], asked again on every call because it is translated.
      */
     private fun registerImportedSource() {
-        if (_registry.value[ImportedCopies.SOURCE_ID] != null) return
+        val named = importedSourceName()
+        if (keptImportedSourceNamed(named)) return
         _registry.update {
             it.adding(
                 Source(
                     id = ImportedCopies.SOURCE_ID,
-                    displayName = getApplication<Application>()
-                        .getString(R.string.source_on_this_device),
+                    displayName = named,
                     kind = SourceKind.LOCAL_FOLDER,
                     state = SourceConnectionState.Connected,
                     // Not a tree `Uri`, and deliberately something no picked folder can be:

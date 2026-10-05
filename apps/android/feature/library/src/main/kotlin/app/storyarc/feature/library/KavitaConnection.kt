@@ -39,6 +39,15 @@ class KavitaConnection(
     private val _step = MutableStateFlow<Step>(Step.Entering)
     val step: StateFlow<Step> = _step.asStateFlow()
 
+    /**
+     * The context a sentence shown to the reader is resolved against.
+     *
+     * `localization`: this is built with the application context, whose resources stay in
+     * the system's language -- see [speakingReaderLanguage]. Read on every lookup, because
+     * the reader can change the language while this is on screen.
+     */
+    private val readersLanguage: Context get() = context.speakingReaderLanguage()
+
     val address = MutableStateFlow("")
     val apiKey = MutableStateFlow("")
 
@@ -96,13 +105,13 @@ class KavitaConnection(
     fun connect() {
         val target = target()
         if (target == null) {
-            _step.value = Step.Failed(context.getString(R.string.kavita_error_not_an_address))
+            _step.value = Step.Failed(readersLanguage.getString(R.string.kavita_error_not_an_address))
             return
         }
         // D25: checked before the request starts, because a blocked TCP connect times out
         // instead of failing at once.
         if (LocalNetworkPermission.refuses(context, target.base)) {
-            _step.value = Step.Failed(context.getString(R.string.kavita_error_local_network_denied))
+            _step.value = Step.Failed(readersLanguage.getString(R.string.kavita_error_local_network_denied))
             return
         }
 
@@ -115,7 +124,7 @@ class KavitaConnection(
             } catch (error: KavitaError) {
                 _step.value = Step.Failed(describe(error))
             } catch (error: IOException) {
-                _step.value = Step.Failed(CatalogueMessages.reachability(context, error))
+                _step.value = Step.Failed(CatalogueMessages.reachability(readersLanguage, error))
             }
         }
     }
@@ -132,7 +141,7 @@ class KavitaConnection(
         val target = resolved ?: return null
 
         return kavitaSource(target, confirmed.identity, credentials, replacing) ?: run {
-            _step.value = Step.Failed(context.getString(R.string.kavita_error_key_not_stored))
+            _step.value = Step.Failed(readersLanguage.getString(R.string.kavita_error_key_not_stored))
             null
         }
     }
@@ -141,7 +150,7 @@ class KavitaConnection(
         _step.value = Step.Entering
     }
 
-    private fun describe(error: KavitaError): String = describeKavita(context, error)
+    private fun describe(error: KavitaError): String = describeKavita(readersLanguage, error)
 }
 
 /**
