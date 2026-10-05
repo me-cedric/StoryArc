@@ -109,6 +109,9 @@ struct KavitaHits: View {
     let client: KavitaClient
     let sourceId: String
     let store: KavitaProgressStore
+    /// `library-browsing`'s *A publication's actions wherever it is drawn* — carried down
+    /// to ``KavitaChapterList`` so a search hit's own chapter list offers the same menu.
+    let model: LibraryModel
     var progress: ProgressStore?
     var lists: [ServerShelf] = []
     let onOpen: (Publication, URL) -> Void
@@ -149,6 +152,7 @@ struct KavitaHits: View {
                 series: series,
                 sourceId: sourceId,
                 store: store,
+                model: model,
                 progress: progress,
                 lists: lists,
                 onOpen: onOpen

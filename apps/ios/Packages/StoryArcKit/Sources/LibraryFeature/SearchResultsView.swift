@@ -24,6 +24,10 @@ struct SearchResultsView: View {
     @Environment(\.theme) private var theme
 
     let listing: SearchListing
+    /// `library-browsing`'s *A publication's actions wherever it is drawn* names search
+    /// results among the places, for a result the library already holds. A result a server
+    /// answered has nothing yet to act on — see ``row(_:)``.
+    let model: LibraryModel
 
     /// What the search was narrowed to, so the empty state can offer to widen it.
     ///
@@ -164,8 +168,7 @@ struct SearchResultsView: View {
     @ViewBuilder
     private func row(_ found: FoundRow) -> some View {
         if let held = found.result.publicationID {
-            NavigationLink(value: PublicationRoute(publicationID: held)) { line(found) }
-                .buttonStyle(.plain)
+            HeldSearchResultRow(model: model, publicationID: held, line: line(found))
         } else if let route = found.result.route {
             Button { onFollow(route) } label: { line(found) }
                 .buttonStyle(.plain)
@@ -256,4 +259,63 @@ struct SearchResultsView: View {
     static func named(_ sources: [SearchListing.SilentSource]) -> String {
         sources.map(\.name).formatted(.list(type: .and).locale(.storyArc))
     }
+}
+
+/// A search result the library already holds, with the same actions every other cover
+/// offers — `library-browsing`'s *A publication's actions wherever it is drawn* names
+/// search among them.
+///
+/// Its own view, not a modifier on the row ``SearchResultsView/row(_:)`` already draws:
+/// `PublicationActionMenu`'s confirmation and refusal state is per-row, and ``ForEach``
+/// gives every row its own instance of whichever view holds it, the way ``CoverCell`` and
+/// ``ListRow`` already rely on for the grid and the list.
+///
+/// The route still carries the identifier rather than the publication — resolving it here
+/// as well would be the same lookup twice, once to decide whether to draw a menu and once
+/// inside ``PublicationRoute``'s own destination, and a result that went stale between the
+/// two would answer them differently. A result this device has never indexed draws the
+/// link with no menu at all, exactly as it did before this existed.
+private struct HeldSearchResultRow<Line: View>: View {
+    let model: LibraryModel
+    let publicationID: String
+    let line: Line
+
+    @State private var refusedServer: String?
+    @State private var restarting: Publication?
+
+    private var publication: Publication? {
+        heldSearchResult(for: publicationID, in: model.publications)
+    }
+
+    var body: some View {
+        let link = NavigationLink(value: PublicationRoute(publicationID: publicationID)) { line }
+            .buttonStyle(.plain)
+
+        if let publication {
+            link
+                .contextMenu {
+                    PublicationActionMenu(
+                        model: model,
+                        publication: publication,
+                        onRefused: { server, _ in refusedServer = server },
+                        onRestart: { restarting = publication }
+                    )
+                } preview: {
+                    PublicationPreviewCard(publication: publication, model: model)
+                }
+                .restartConfirmation($restarting, model: model)
+                .refusedByServer($refusedServer, model: model, publication: publication)
+        } else {
+            link
+        }
+    }
+}
+
+/// Which publication a held search result's menu acts on, or `nil` for a result that has
+/// gone stale between the search and the render — see ``HeldSearchResultRow``'s own header.
+///
+/// Internal, not private: a view body is not somewhere this can be asserted, and
+/// `HeldSearchResultRowTests` is where a found id and a vanished one are told apart.
+func heldSearchResult(for publicationID: String, in publications: [Publication]) -> Publication? {
+    publications.first { $0.id == publicationID }
 }

@@ -18,6 +18,11 @@ struct KavitaChapterList: View {
     let series: KavitaSeries
     let sourceId: String
     let store: KavitaProgressStore
+    /// `library-browsing`'s *A publication's actions wherever it is drawn* names "a server's
+    /// own browser" among the places. Used only to offer *Show details* and *Start from the
+    /// beginning* on a chapter this device has already indexed — see ``known(_:)``; `Keep`,
+    /// `Mark read` and `Add to list` below ask the server directly and need nothing from it.
+    let model: LibraryModel
     /// The server's one search, carried down from the browser above. See ``KavitaFinder``.
     ///
     /// Nil for a chapter list reached *from* a search result, which is already inside one:
@@ -33,14 +38,18 @@ struct KavitaChapterList: View {
     @State private var metadata: KavitaMetadata?
     @State private var conflicts: [KavitaConflict] = []
     @State private var resume: KavitaChapter?
-    @State private var fetching: Int?
+    @State var fetching: Int?
+    /// The chapter a reader asked to start over, through *Start from the beginning* below —
+    /// offered only when ``known(_:)`` resolves, so the confirmation has a publication
+    /// `model.restart(_:)` can act on.
+    @State var restarting: Publication?
 
     /// Which chapters this device already has a download of.
     ///
     /// Seeded from the cards rather than from the download library: a card names the chapter
     /// a download came from, and the download record is keyed on a publication identity that
     /// only exists once the file has been indexed.
-    @State private var kept: Set<Int> = []
+    @State var kept: Set<Int> = []
 
     /// The finder this screen uses when it was not handed one.
     @State private var ownFinder = KavitaFinder()
@@ -55,6 +64,7 @@ struct KavitaChapterList: View {
                     client: client,
                     sourceId: sourceId,
                     store: store,
+                    model: model,
                     progress: progress,
                     lists: lists,
                     onOpen: onOpen
@@ -73,6 +83,7 @@ struct KavitaChapterList: View {
         // has moved on in six places is one thing that happened, and six alerts about it
         // would be the app making a reader dismiss its own synchronisation.
         .syncConflictAlert(conflicts: $conflicts, progress: progress)
+        .restartConfirmation($restarting, model: model)
         .task {
             guard volumes.isEmpty else { return }
             kept = Set(KavitaCardStore().all(from: sourceId).map(\.chapterId))
@@ -152,57 +163,9 @@ struct KavitaChapterList: View {
         }
         .buttonStyle(.plain)
         .disabled(fetching != nil)
-        .contextMenu { actions(for: chapter) }
+        .contextMenu { actions(for: chapter) } preview: { preview(for: chapter) }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken(chapter))
-    }
-
-    /// What else can be done with one chapter.
-    ///
-    /// `kavita-server`: marking read must reach the server so its own UI agrees, and a
-    /// context menu is where iOS puts the rest. Its own builder rather than inline, because
-    /// the row it hangs off is already at the length the linter allows.
-    @ViewBuilder
-    private func actions(for chapter: KavitaChapter) -> some View {
-        // `kavita-server` has a scenario about opening "a downloaded Kavita publication"
-        // offline, and until this there was no way to have one: the browser wrote every
-        // chapter to the caches directory. This is the asking.
-        Button {
-            Task { await keep(chapter) }
-        } label: {
-            Label(
-                String(localized: "kavita.keep", bundle: .module, locale: .storyArc),
-                systemImage: "arrow.down.circle"
-            )
-        }
-        .disabled(kept.contains(chapter.id))
-
-        Button {
-            Task { await mark(chapter, read: !chapter.isFinished) }
-        } label: {
-            Label(
-                chapter.isFinished
-                    ? String(localized: "library.mark.unread", bundle: .module, locale: .storyArc)
-                    : String(localized: "library.mark.read", bundle: .module, locale: .storyArc),
-                systemImage: chapter.isFinished ? "circle" : "checkmark.circle"
-            )
-        }
-
-        // Only this server's own lists: a Kavita list can hold nothing else, and offering
-        // another server's would be offering a refusal.
-        ForEach(lists.filter { $0.server.id == sourceId }) { list in
-            Button {
-                Task { await add(chapter, to: list) }
-            } label: {
-                Label(
-                    String(
-                        format: String(localized: "kavita.addToList %@", bundle: .module, locale: .storyArc),
-                        list.title
-                    ),
-                    systemImage: "text.append"
-                )
-            }
-        }
     }
 
     /// What to call a chapter in this list.
@@ -256,7 +219,7 @@ struct KavitaChapterList: View {
     /// The record and the card, not just the bytes: see ``KavitaKeep``. The chapter is not
     /// opened afterwards — the reader asked to keep it, which is a different act from asking
     /// to read it, and jumping into the reader would answer a question nobody put.
-    private func keep(_ chapter: KavitaChapter) async {
+    func keep(_ chapter: KavitaChapter) async {
         fetching = chapter.id
         defer { fetching = nil }
         let done = await KavitaKeep.keep(
@@ -274,7 +237,7 @@ struct KavitaChapterList: View {
     }
 
     /// Tells the server the reader has, or has not, read this chapter.
-    private func mark(_ chapter: KavitaChapter, read isRead: Bool) async {
+    func mark(_ chapter: KavitaChapter, read isRead: Bool) async {
         await KavitaSync.mark(
             isRead,
             for: origin(of: chapter),
@@ -285,7 +248,7 @@ struct KavitaChapterList: View {
     }
 
     /// Puts a chapter in one of this server's reading lists.
-    private func add(_ chapter: KavitaChapter, to list: ServerShelf) async {
+    func add(_ chapter: KavitaChapter, to list: ServerShelf) async {
         await KavitaSync.append(list.id, for: origin(of: chapter), to: client.address, in: store)
     }
 
@@ -301,7 +264,7 @@ struct KavitaChapterList: View {
         )
     }
 
-    private func open(_ chapter: KavitaChapter) async {
+    func open(_ chapter: KavitaChapter) async {
         fetching = chapter.id
         defer { fetching = nil }
 

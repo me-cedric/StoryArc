@@ -19,6 +19,9 @@ struct KavitaSeriesList: View {
     let finder: KavitaFinder
     let sourceId: String
     let store: KavitaProgressStore
+    /// `library-browsing`'s *A publication's actions wherever it is drawn* names "a server's
+    /// own browser" — carried down to ``KavitaChapterList``.
+    let model: LibraryModel
     /// Where a pulled position is written. See `KavitaSync.pull`.
     var progress: ProgressStore?
     /// This server's own reading lists, passed through to each chapter list.
@@ -49,6 +52,7 @@ struct KavitaSeriesList: View {
                     client: client,
                     sourceId: sourceId,
                     store: store,
+                    model: model,
                     progress: progress,
                     lists: lists,
                     onOpen: onOpen
@@ -102,6 +106,7 @@ struct KavitaSeriesList: View {
                             series: each,
                             sourceId: sourceId,
                             store: store,
+                            model: model,
                             progress: progress,
                             lists: lists,
                             onOpen: onOpen

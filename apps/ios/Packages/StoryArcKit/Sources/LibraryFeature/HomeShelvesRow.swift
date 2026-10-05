@@ -123,6 +123,7 @@ struct HomeShelvesRow: View {
                         server: page,
                         collectionID: shelf.serverID,
                         title: shelf.title,
+                        model: model,
                         onOpen: onOpen
                     )
                 }

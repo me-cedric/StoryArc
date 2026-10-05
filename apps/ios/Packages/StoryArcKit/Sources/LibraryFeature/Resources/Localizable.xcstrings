@@ -4553,6 +4553,36 @@
         }
       }
     },
+    "library.action.open": {
+      "comment": "One of the six actions library-browsing's \"A publication's actions wherever it is drawn\" requires on every menu: the same route the cover's own tap takes, named for a reader who is already inside the long-press interaction and has no tap left to give.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "library.action.removeFromShelf": {
       "comment": "One of the six actions, offered only when the menu was opened on a shelf, a collection or a reading list the reader owns.",
       "localizations": {

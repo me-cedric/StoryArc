@@ -164,6 +164,7 @@ extension LibraryView {
     func browser(for source: Source) -> some View {
         SourceBrowser(
             source: source,
+            model: model,
             pins: pins,
             credentials: credentials,
             kavitaProgress: kavitaProgress,

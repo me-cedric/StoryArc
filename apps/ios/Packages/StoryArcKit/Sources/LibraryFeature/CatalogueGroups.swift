@@ -25,6 +25,10 @@ struct CatalogueGroupSection: View {
 
     let queue: DownloadQueue
     let sourceID: UUID
+    /// `library-browsing`'s *A publication's actions wherever it is drawn* names "a server's
+    /// own browser" among the places — carried to ``CatalogueEntryLink`` so a row this
+    /// device has already indexed can offer the same menu the unified library does.
+    let model: LibraryModel
     let onDevice: Set<String>
     let onOpen: (Publication, URL) -> Void
 
@@ -37,7 +41,7 @@ struct CatalogueGroupSection: View {
             // catalogue happens to use most.
             ForEach(group.navigation) { section in
                 CatalogueSectionLink(
-                    section: section, browser: browser, sourceID: sourceID, onOpen: onOpen
+                    section: section, browser: browser, sourceID: sourceID, model: model, onOpen: onOpen
                 )
             }
 
@@ -67,6 +71,7 @@ struct CatalogueGroupSection: View {
                         pins: browser.pins,
                         origin: browser.origin,
                         sourceID: sourceID,
+                        model: model,
                         onOpen: onOpen
                     )
                 } label: {
@@ -94,6 +99,7 @@ struct CatalogueGroupSection: View {
                         browser: browser,
                         queue: queue,
                         sourceID: sourceID,
+                        model: model,
                         isDownloaded: onDevice.contains(queue.downloadID(for: entry.id, sourceID: sourceID)),
                         onOpen: onOpen
                     )
@@ -117,6 +123,7 @@ struct CatalogueSectionLink: View {
     let section: OpdsSection
     let browser: CatalogueBrowser
     let sourceID: UUID
+    let model: LibraryModel
     let onOpen: (Publication, URL) -> Void
 
     var body: some View {
@@ -128,6 +135,7 @@ struct CatalogueSectionLink: View {
                 pins: browser.pins,
                 origin: browser.origin,
                 sourceID: sourceID,
+                model: model,
                 onOpen: onOpen
             )
         } label: {
@@ -180,11 +188,24 @@ struct CatalogueEntryLink: View {
     let browser: CatalogueBrowser
     let queue: DownloadQueue
     let sourceID: UUID
+    /// `library-browsing`'s *A publication's actions wherever it is drawn* names "a
+    /// server's own browser" among the places — see ``known``.
+    let model: LibraryModel
     let isDownloaded: Bool
     let onOpen: (Publication, URL) -> Void
 
     /// The download the reader is being asked to spend mobile data on, if one is.
     @State private var meteredAsk: MeteredAsk?
+    /// The server whose list just refused this publication, if one did.
+    @State private var refusedServer: String?
+    @State private var restarting: Publication?
+
+    /// The same publication the unified library would hold for this entry, when it already
+    /// does. ``knownCatalogueEntry(source:entry:in:)``, lifted out so a test can reach it
+    /// without rendering the cell — a view body is not somewhere this can be asserted.
+    private var known: Publication? {
+        knownCatalogueEntry(source: sourceID, entry: entry, in: model.publications)
+    }
 
     var body: some View {
         NavigationLink {
@@ -214,7 +235,14 @@ struct CatalogueEntryLink: View {
         // reading" — a reader packing for a flight wants the download without the reading,
         // and without a walk through the detail screen either.
         .contextMenu {
-            if isDownloaded {
+            if let known {
+                PublicationActionMenu(
+                    model: model,
+                    publication: known,
+                    onRefused: { server, _ in refusedServer = server },
+                    onRestart: { restarting = known }
+                )
+            } else if isDownloaded {
                 Button(role: .destructive) {
                     queue.remove(queue.downloadID(for: entry.id, sourceID: sourceID))
                 } label: {
@@ -238,6 +266,10 @@ struct CatalogueEntryLink: View {
                     Text("catalogue.acquire.download", bundle: .module)
                 }
             }
+        } preview: {
+            if let known {
+                PublicationPreviewCard(publication: known, model: model)
+            }
         }
         .meteredConfirmation($meteredAsk) { asked in
             // The grant is this publication's, not the queue's: everything else behind it
@@ -249,5 +281,17 @@ struct CatalogueEntryLink: View {
                 overridingMeteredConnection: true
             )
         }
+        .restartConfirmation($restarting, model: model)
+        .refusedByServer($refusedServer, model: model, publication: known)
     }
+}
+
+/// Which publication a catalogue entry's full menu acts on, or `nil` when this device has
+/// browsed to the entry but never indexed it — see ``CatalogueEntryLink``'s own header.
+///
+/// Internal, not private: a view body is not somewhere this can be asserted, and
+/// `KnownCatalogueEntryTests` is where an indexed entry and an unindexed one are told apart.
+func knownCatalogueEntry(source: UUID, entry: OpdsEntry, in publications: [Publication]) -> Publication? {
+    guard let candidate = OpdsContributor.publication(source: source, entry: entry) else { return nil }
+    return publications.first { $0.id == candidate.id }
 }

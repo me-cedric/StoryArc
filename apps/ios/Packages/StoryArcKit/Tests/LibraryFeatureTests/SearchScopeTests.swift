@@ -16,6 +16,7 @@ import Testing
 /// unreachable*: "narrowing to what is on the device removes that notice, **because nothing is
 /// then being waited for**". A scope that only hid rows would leave the fan-out running and
 /// the notice up, which is the failure these cases are for.
+@MainActor
 @Suite("Search scope")
 struct SearchScopeTests {
 
@@ -38,6 +39,7 @@ struct SearchScopeTests {
     ) -> SearchResultsView {
         SearchResultsView(
             listing: listing,
+            model: LibraryModel(),
             scope: Binding(get: { scope }, set: onWiden),
             onFollow: { _ in },
             onRetry: { _ in }
