@@ -139,6 +139,11 @@ extension LibraryModel {
         // page one again, and page one alone knows nothing past its own first slice —
         // replacing an entry already at page nine with a fresh "page two" would be the
         // continuation rewinding itself every time the reader pulls down.
+        //
+        // A source new to this process, but not new to the device, resumes from
+        // `SourceReadProgressStore` instead — `sources`' *More from a source than the
+        // library holds* asks for progress that survives a relaunch, not only a pull.
+        let progressStore = SourceReadProgressStore()
         for sourceID in reading.partial where partialSources[sourceID] == nil {
             // Exact, not a guess: a page that reported `holdsMore` asked for at most its
             // kind's own limit and got a full page back, by ``SourceSlice``'s own rule.
@@ -151,16 +156,21 @@ extension LibraryModel {
             // it, so there is no total to divide it into either.
             case .opdsCatalog, .localFolder, nil: firstSliceRead = 0
             }
-            partialSources[sourceID] = .started(firstSliceRead: firstSliceRead)
+            partialSources[sourceID] = .resuming(from: progressStore, source: sourceID, firstSliceRead: firstSliceRead)
         }
+        // A source this read did not report partial has either finished — `land` already
+        // cleared its own entry, store included — or is gone from the registry altogether;
+        // either way nothing should keep asking disk about it.
         for sourceID in partialSources.keys where !reading.partial.contains(sourceID) {
             partialSources.removeValue(forKey: sourceID)
+            progressStore.clear(for: sourceID)
         }
         RefreshConflicts.shared.report(reading.conflicts)
         for (publication, sourceID) in reading.rows {
             _ = adopt(publication, from: sourceID)
         }
         continueReadingServers()
+        retryFailedKavitaSeries()
         guard !reading.rows.isEmpty else { return }
         // And written down, which nothing did: the snapshot was written when a *folder*
         // walk finished, so a reader whose library is one server and no folders had nothing
@@ -196,25 +206,63 @@ extension LibraryModel {
     /// ``continueReadingServers()``, most often from the next ``readServers()`` — asks for
     /// the same page again rather than skipping it or losing the source's place.
     private func continueReadingKavita(source: Source, client: KavitaClient) async {
+        let progressStore = SourceReadProgressStore()
         // Learned once and kept beside the read count for as long as the source stays
         // partial: an unfiltered listing is proven to answer the server's whole series list
         // in one request (see `KavitaClient.series`), so this costs one request for a
         // number the reader would otherwise never see until the read finished.
         if partialSources[source.id]?.total == nil, let all = try? await client.series() {
             partialSources[source.id]?.total = all.count
+            if let updated = partialSources[source.id] { progressStore.record(updated.stored, for: source.id) }
         }
+        let failedStore = KavitaFailedSeriesStore()
         await readOnward(
             progress: { partialSources[source.id] },
             fetch: { try? await KavitaContributor.page(source: source.id, client: client, page: $0) },
             land: { page, step in
                 for publication in page.slice.publications { _ = adopt(publication, from: source.id) }
+                if !page.failedSeriesIDs.isEmpty {
+                    failedStore.record(failedStore.pending(for: source.id).union(page.failedSeriesIDs), for: source.id)
+                }
                 if case .continuing(let next) = step {
                     partialSources[source.id] = next
+                    progressStore.record(next.stored, for: source.id)
                 } else {
                     partialSources.removeValue(forKey: source.id)
+                    progressStore.clear(for: source.id)
                 }
                 cacheLibrary(claimsFreshness: false)
             }
         )
+    }
+
+    /// Gives every Kavita series that failed an earlier page one more try, on every read
+    /// rather than only while its source is still paging.
+    ///
+    /// A series can fail after its source's continuation has already finished — the page it
+    /// was on reached the end and moved ``partialSources`` on — and ``continueReadingServers()``
+    /// only drives a source that map still holds. Running here instead, from the same place
+    /// that seeds a fresh continuation, means a failed series keeps getting asked for on
+    /// every launch and every pull. Android's `retryFailedKavitaSeries` is the same function.
+    func retryFailedKavitaSeries() {
+        let failedStore = KavitaFailedSeriesStore()
+        for source in registry.sources where source.kind == .kavitaServer {
+            let pending = failedStore.pending(for: source.id)
+            guard !pending.isEmpty, let page = KavitaPage(source: source, credentials: CredentialStore())
+            else { continue }
+            Task {
+                let result = await KavitaContributor.retry(
+                    source: source.id,
+                    client: KavitaClient(address: page.address),
+                    seriesIDs: pending
+                )
+                if !result.publications.isEmpty {
+                    for publication in result.publications { _ = adopt(publication, from: source.id) }
+                    cacheLibrary(claimsFreshness: false)
+                }
+                let stillFailed = Set(result.stillFailed)
+                if stillFailed != pending { failedStore.record(stillFailed, for: source.id) }
+            }
+        }
     }
 }
