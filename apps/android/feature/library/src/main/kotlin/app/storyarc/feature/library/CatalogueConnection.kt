@@ -68,6 +68,15 @@ class CatalogueConnection(
     private val _step = MutableStateFlow<Step>(Step.Entering)
     val step: StateFlow<Step> = _step.asStateFlow()
 
+    /**
+     * The context a sentence shown to the reader is resolved against.
+     *
+     * `localization`: this is built with the application context, whose resources stay in
+     * the system's language -- see [speakingReaderLanguage]. Read on every lookup, because
+     * the reader can change the language while this is on screen.
+     */
+    private val readersLanguage: Context get() = context.speakingReaderLanguage()
+
     /** The address, as typed. Completed only when a request is made. */
     val address = MutableStateFlow("")
     val user = MutableStateFlow("")
@@ -140,14 +149,14 @@ class CatalogueConnection(
         // D25: checked before the request starts, because a blocked TCP connect times out
         // instead of failing at once.
         if (waitsOnLocalNetwork(target)) {
-            _step.value = Step.Failed(context.getString(R.string.catalogue_error_local_network_denied))
+            _step.value = Step.Failed(readersLanguage.getString(R.string.catalogue_error_local_network_denied))
             return
         }
         when (target) {
             is CatalogueTarget.Kavita -> viewModelScope.launch { connectKavita(target.address) }
             is CatalogueTarget.Feed -> viewModelScope.launch { attempt(target.url, accepted) }
             CatalogueTarget.Unusable ->
-                _step.value = Step.Failed(context.getString(R.string.catalogue_error_not_a_url))
+                _step.value = Step.Failed(readersLanguage.getString(R.string.catalogue_error_not_a_url))
         }
     }
 
@@ -177,9 +186,9 @@ class CatalogueConnection(
             kavita = target to identity
             _step.value = Step.Confirmed("${identity.username} · ${hostOf(target.base)}")
         } catch (error: KavitaError) {
-            _step.value = Step.Failed(describeKavita(context, error))
+            _step.value = Step.Failed(describeKavita(readersLanguage, error))
         } catch (error: java.io.IOException) {
-            _step.value = Step.Failed(CatalogueMessages.reachability(context, error))
+            _step.value = Step.Failed(CatalogueMessages.reachability(readersLanguage, error))
         }
     }
 
@@ -233,7 +242,7 @@ class CatalogueConnection(
         kavita?.let { (address, identity) ->
             return kavitaSource(address, identity, credentials, replacing) ?: run {
                 _step.value = Step.Failed(
-                    context.getString(R.string.catalogue_error_secret_not_stored),
+                    readersLanguage.getString(R.string.catalogue_error_secret_not_stored),
                 )
                 null
             }
@@ -257,7 +266,7 @@ class CatalogueConnection(
             val stored = replacing?.credentialReference ?: CredentialStore.reference(id)
             if (credentials == null || !credentials.save(secret.stored, stored)) {
                 _step.value = Step.Failed(
-                    context.getString(R.string.catalogue_error_secret_not_stored),
+                    readersLanguage.getString(R.string.catalogue_error_secret_not_stored),
                 )
                 return null
             }
@@ -299,9 +308,9 @@ class CatalogueConnection(
             _step.value = Step.AskingCredentials(unauthorized.scheme)
         } catch (error: OpdsError) {
             resolved = url
-            _step.value = Step.Failed(CatalogueMessages.describe(context, error))
+            _step.value = Step.Failed(CatalogueMessages.describe(readersLanguage, error))
         } catch (error: java.io.IOException) {
-            _step.value = Step.Failed(CatalogueMessages.reachability(context, error))
+            _step.value = Step.Failed(CatalogueMessages.reachability(readersLanguage, error))
         }
     }
 }

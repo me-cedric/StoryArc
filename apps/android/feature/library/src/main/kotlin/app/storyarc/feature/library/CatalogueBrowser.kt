@@ -59,6 +59,15 @@ class CatalogueBrowser(
     private val _state = MutableStateFlow<State>(State.Idle)
     val state: StateFlow<State> = _state.asStateFlow()
 
+    /**
+     * The context a sentence shown to the reader is resolved against.
+     *
+     * `localization`: this is built with the application context, whose resources stay in
+     * the system's language -- see [speakingReaderLanguage]. Read on every lookup, because
+     * the reader can change the language while this is on screen.
+     */
+    private val readersLanguage: Context get() = context.speakingReaderLanguage()
+
     /** The feed as it arrived, for its title, sections and facets. */
     private val _feed = MutableStateFlow<OpdsFeed?>(null)
     val feed: StateFlow<OpdsFeed?> = _feed.asStateFlow()
@@ -213,15 +222,15 @@ class CatalogueBrowser(
             // server's certificate changed since the reader pinned it, which is the case
             // pinning exists to catch.
             _state.value = State.Failed(
-                context.getString(
+                readersLanguage.getString(
                     R.string.catalogue_error_changed_certificate,
                     refusal.certificate.host,
                 ),
             )
         } catch (error: OpdsError) {
-            _state.value = State.Failed(CatalogueMessages.describe(context, error))
+            _state.value = State.Failed(CatalogueMessages.describe(readersLanguage, error))
         } catch (error: IOException) {
-            _state.value = State.Failed(CatalogueMessages.reachability(context, error))
+            _state.value = State.Failed(CatalogueMessages.reachability(readersLanguage, error))
         }
     }
 
