@@ -18,7 +18,9 @@ extension LibraryModel {
             guard partialSources[source.id] != nil else { continue }
             guard let page = SmbPage(source: source, credentials: CredentialStore()) else { continue }
             Task {
-                await continueReadingShare(source: source, client: SmbClient(address: page.address), address: page.address)
+                await continueReadingShare(
+                    source: source, client: SmbClient(address: page.address), address: page.address
+                )
             }
         }
     }

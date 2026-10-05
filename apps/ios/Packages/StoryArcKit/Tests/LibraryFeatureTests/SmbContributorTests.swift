@@ -143,8 +143,8 @@ struct SmbContributorTests {
         var tree: [String: [SmbEntry]] = [
             "": (0..<count).map { SmbEntry(name: "d\($0)", path: "d\($0)", isDirectory: true, length: 0) },
         ]
-        for i in 0..<count {
-            tree["d\(i)"] = [SmbEntry(name: "f.cbz", path: "d\(i)/f.cbz", isDirectory: false, length: 1)]
+        for index in 0..<count {
+            tree["d\(index)"] = [SmbEntry(name: "f.cbz", path: "d\(index)/f.cbz", isDirectory: false, length: 1)]
         }
         return tree
     }

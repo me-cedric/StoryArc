@@ -32,7 +32,9 @@ enum OpdsContributor {
     /// `client` is the same seam `LibraryLookups.opdsCover(for:maxPixelSize:client:)` uses:
     /// nil builds the real one, ``ServerLibrary/client(for:)``'s own way, so a test can hand
     /// this a client built over a stubbed `URLSessionConfiguration` instead.
-    static func page(source: UUID, page: CataloguePage, url: URL, client overridden: OpdsClient? = nil) async throws -> Page {
+    static func page(
+        source: UUID, page: CataloguePage, url: URL, client overridden: OpdsClient? = nil
+    ) async throws -> Page {
         let client = overridden ?? ServerLibrary.client(for: page)
         let feed = try await client.feed(at: url, credential: page.credential)
         let publications = feed.publications.compactMap { publication(source: source, entry: $0) }

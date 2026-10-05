@@ -15,7 +15,12 @@ struct ContinuedReadLoopTests {
     }
 
     private func fakePublication() -> Publication {
-        Publication(identity: PublicationIdentity(normalizedPath: "x"), format: .cbz, displayTitle: "x", origin: .inferred)
+        Publication(
+            identity: PublicationIdentity(normalizedPath: "x"),
+            format: .cbz,
+            displayTitle: "x",
+            origin: .inferred
+        )
     }
 
     private final class Reader {
