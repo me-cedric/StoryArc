@@ -136,13 +136,20 @@ extension DownloadQueue {
     /// The same rule ``OpdsClient`` applies, because this is the same kind of address: one
     /// the catalogue chose. An acquisition href off the source's own origin is fetched
     /// without the credential, and one that steps down to cleartext is not fetched at all.
-    private func attemptRequest(for download: Download) throws -> URLRequest {
+    ///
+    /// A credential handed in at enqueue wins over the resolved one. `offline-downloads` 1.9:
+    /// a Kavita chapter needs the session token its client minted, and the secure store the
+    /// resolver reads holds the API key that mints one rather than the token itself. The
+    /// origin rule is applied to it exactly as it is to a stored credential, so a handover
+    /// cannot send a secret off the source's own origin either.
+    func attemptRequest(for download: Download) throws -> URLRequest {
         guard OpdsOrigin.isFetchable(download.remote) else { throw OpdsError.refusedAddress }
         let home = origin ?? download.sourceID.flatMap(sourceOrigin) ?? OpdsOrigin(url: download.remote)
         if home?.downgrades(download.remote) == true { throw OpdsError.refusedAddress }
 
         var request = URLRequest(url: download.remote)
-        if let credential = credential(download.id), home?.admits(download.remote) == true {
+        if let credential = given[download.id] ?? credential(download.id),
+           home?.admits(download.remote) == true {
             request.setValue(credential.header, forHTTPHeaderField: "Authorization")
         }
         return request

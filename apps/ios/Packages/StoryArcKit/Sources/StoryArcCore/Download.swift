@@ -20,7 +20,15 @@ public struct Download: Sendable, Identifiable, Equatable {
     /// Where it came from, so a failed download can be retried without re-browsing.
     public let remote: URL
 
-    public let mediaType: String
+    /// What the file is, which decides the extension it is written under.
+    ///
+    /// `var` rather than `let`, because one source cannot state it at enqueue: Kavita serves
+    /// comics and books from one route and names the type only in the response
+    /// (`offline-downloads` 1.9). Such a record is enqueued with an empty media type and
+    /// ``DownloadQueue/land(_:from:seriesHint:)`` writes what the bytes turn out to be, so
+    /// nothing guesses — a guess is what wrote an EPUB under `.cbz` and sent it to the comic
+    /// reader.
+    public var mediaType: String
 
     public var state: State
 

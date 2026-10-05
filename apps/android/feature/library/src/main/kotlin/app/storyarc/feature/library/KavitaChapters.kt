@@ -166,16 +166,21 @@ fun KavitaChapters(
     val keep: (KavitaChapter) -> Unit = { chapter ->
         scope.launch {
             fetching = chapter.id
-            val done = KavitaKeep.keep(
-                context = context,
-                chapter = chapter,
-                series = series,
-                metadata = metadata,
-                origin = originOf(chapter),
-                sourceId = runCatching { java.util.UUID.fromString(sourceId) }.getOrNull(),
-                client = client,
-                queue = queue,
-            )
+            // The queue runs the transfer now -- `offline-downloads` 1.9 -- so a screen built
+            // without one (a preview) has nothing to keep with, and says so by doing nothing
+            // rather than by writing a record whose bytes never arrive.
+            val done = queue?.let {
+                KavitaKeep.keep(
+                    context = context,
+                    chapter = chapter,
+                    series = series,
+                    metadata = metadata,
+                    origin = originOf(chapter),
+                    sourceId = runCatching { java.util.UUID.fromString(sourceId) }.getOrNull(),
+                    client = client,
+                    queue = it,
+                )
+            }
             if (done != null) kept = kept + chapter.id
             fetching = null
         }

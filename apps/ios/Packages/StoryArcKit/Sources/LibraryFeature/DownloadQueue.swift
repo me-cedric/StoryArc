@@ -209,7 +209,7 @@ public final class DownloadQueue {
                 expectedBytes: acquisition.length
             )
         )
-        titles[id] = entry
+        hints[id] = entry.series
         store?.save(library)
         pump()
     }
@@ -243,7 +243,7 @@ public final class DownloadQueue {
             // that ask — without this, the continuation below waits on a transfer nothing
             // is ever going to start.
             if overridingMeteredConnection { overridden.insert(id) }
-            titles[id] = entry
+            hints[id] = entry.series
             resume(id)
         default:
             enqueue(
@@ -315,14 +315,7 @@ public final class DownloadQueue {
     /// Asked of the filesystem: a download the system reclaimed is one the reader should be
     /// offered again rather than shown a missing file.
     public func downloaded(_ entry: OpdsEntry, sourceID: UUID? = nil) -> URL? {
-        guard let download = library[downloadID(for: entry.id, sourceID: sourceID)],
-              download.state.isFinished,
-              let store
-        else {
-            return nil
-        }
-        let file = store.location(of: download)
-        return FileManager.default.fileExists(atPath: file.path()) ? file : nil
+        file(of: downloadID(for: entry.id, sourceID: sourceID))
     }
 
     /// Forgets a download and deletes its file.
@@ -332,14 +325,25 @@ public final class DownloadQueue {
     /// that needs the reader to leave the screen and come back is not one.
     public func remove(_ id: Download.ID) {
         library = store?.removing(id, from: library) ?? library.removing(id)
+        given[id] = nil
         pump()
     }
 
-    /// What each queued download is *of*, so a retry has an entry to index against.
+    /// The series each queued download belongs to, so the indexer can name one.
     ///
     /// Held here rather than on ``Download`` because it is a catalogue's idea of a
-    /// publication, and the download record is meant to outlive the page it came from.
-    private var titles: [Download.ID: OpdsEntry] = [:]
+    /// publication, and the download record is meant to outlive the page it came from. The
+    /// whole ``OpdsEntry`` used to be kept and only its series was ever read.
+    var hints: [Download.ID: String] = [:]
+
+    /// A credential handed in at enqueue, for a source whose secret is not the credential.
+    ///
+    /// `offline-downloads` 1.9: Kavita mints a short-lived bearer token from the reader's
+    /// API key, and ``credentialResolver(store:sources:credentials:)`` reads the secure
+    /// store, which holds the key. So the caller that already has an authenticated client
+    /// hands the token in with the chapter. In memory only, for the reason ``overridden``
+    /// is: a session token written down is a secret outliving the session that minted it.
+    var given: [Download.ID: OpdsCredential] = [:]
 
     /// Starts whatever should be running and is not.
     func pump() {
@@ -364,9 +368,9 @@ public final class DownloadQueue {
         for download in ready.prefix(max(0, concurrency - running.count)) {
             // No catalogue entry is needed to fetch one: the record carries the address, the
             // media type and the name. An entry enqueued by a previous launch is gone from
-            // `titles`, and a download that only resumes while the app that started it is
+            // `hints`, and a download that only resumes while the app that started it is
             // still alive is not the offline promise `offline-downloads` makes.
-            start(download, seriesHint: titles[download.id]?.series)
+            start(download, seriesHint: hints[download.id])
         }
     }
 

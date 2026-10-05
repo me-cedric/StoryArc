@@ -21,7 +21,8 @@ extension DownloadQueue {
     ) async throws -> URL {
         guard let store else { throw CocoaError(.fileNoSuchFile) }
         try store.prepare()
-        let file = store.location(of: download)
+        let typed = try await typing(download, from: temporary)
+        let file = store.location(of: typed)
         // The download's own folder, not just the store's: the id is a directory now.
         try FileManager.default.createDirectory(
             at: file.deletingLastPathComponent(),
@@ -33,7 +34,7 @@ extension DownloadQueue {
         // The transfer this token described is over. Left behind, it would be offered to the
         // next download of the same publication, which would carry on a transfer that has
         // already finished.
-        try? FileManager.default.removeItem(at: store.resumeData(of: download))
+        try? FileManager.default.removeItem(at: store.resumeData(of: typed))
         // Indexing *is* the verification. `offline-downloads` requires integrity to be
         // checked "before it is marked available offline", and with no checksum from the
         // server the honest check is whether the bytes are a publication this app can
@@ -42,11 +43,36 @@ extension DownloadQueue {
         // The size comes from the file now rather than from a buffer, because the bytes
         // never passed through one: the system wrote them straight to disk.
         let written = Int64((try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+        // The transfer this token was handed in for is over. A session token kept past the
+        // request it authorised is a secret with no reason left to exist.
+        given[typed.id] = nil
         library = library
-            .advancing(download.id, downloaded: written, expected: written)
-            .marking(download.id, as: .finished)
+            .typing(typed.id, as: typed.mediaType)
+            .advancing(typed.id, downloaded: written, expected: written)
+            .marking(typed.id, as: .finished)
         store.save(library)
         return file
+    }
+
+    /// The same download, with the media type the bytes actually have.
+    ///
+    /// **The destination's extension is chosen before the file lands, and one source cannot
+    /// state it in time.** `offline-downloads` 1.9: Kavita serves comics and books from one
+    /// `Download/chapter` route and names the type only in the response, so a chapter is
+    /// enqueued with an empty media type. Where the record names no format this asks the
+    /// bytes, which is the one answer that cannot be a guess — and a guess here is what
+    /// wrote an EPUB under `.cbz` and handed it to the comic reader.
+    ///
+    /// A record that already names a format is left exactly as it is, so an OPDS download
+    /// still lands under the type its acquisition link declared. The sniff costs one read of
+    /// the temporary file's first pages and only for a record that has nothing to say.
+    private func typing(_ download: Download, from temporary: URL) async throws -> Download {
+        guard DownloadStore.extension(for: download.mediaType) == "bin",
+              let sniffed = try? await PublicationIndexer.index(fileAt: temporary).format.mediaType
+        else { return download }
+        var typed = download
+        typed.mediaType = sniffed
+        return typed
     }
 
     /// Records that the bytes arrived and were not a publication.

@@ -471,6 +471,23 @@ class KavitaClient(val address: KavitaAddress) {
         runCatching { json.decodeFromString<T>(String(body)) }
             .getOrElse { throw KavitaError.UnexpectedResponse }
 
+    /**
+     * The session token, for a request this client is not making itself.
+     *
+     * `offline-downloads` 1.9 sends a kept chapter through the app's one download queue, so
+     * that it streams to disk and the reader gets the row, the pause and the retry every other
+     * download has. That queue builds its own request and therefore needs the header value,
+     * and the secure store it would otherwise ask holds the *API key*, which this route does
+     * not accept.
+     *
+     * Still never written down, which is what `kavita-server` asks: the caller holds it for
+     * the one transfer and the queue drops it when that transfer lands.
+     */
+    suspend fun authorization(): String {
+        if (token == null) authenticate()
+        return token ?: throw KavitaError.KeyRejected
+    }
+
     private suspend fun authenticate(): String {
         val url = address.endpoint(
             "Plugin/authenticate",

@@ -17,7 +17,6 @@ import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadHold
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.MeteredDownload
-import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.StorageHeadroom
 import app.storyarc.core.persistence.DownloadStore
 import java.io.File
@@ -153,10 +152,18 @@ class DownloadQueue(
     private val running = mutableMapOf<String, Job>()
 
     /** Callers waiting for a particular download to land, because they mean to open it. */
-    private val waiting = mutableMapOf<String, MutableList<CompletableDeferred<File?>>>()
+    internal val waiting = mutableMapOf<String, MutableList<CompletableDeferred<File?>>>()
 
-    /** What each queued download is *of*, so a retry has an entry to index against. */
-    private val entries = mutableMapOf<String, OpdsEntry>()
+    /** The series each queued download belongs to, so the indexer can name one. */
+    internal val hints = mutableMapOf<String, String?>()
+
+    /**
+     * A credential handed in at enqueue, for a source whose stored secret is not the
+     * credential -- `offline-downloads` 1.9. Kavita mints a short-lived bearer token from the
+     * reader's API key, and [credential] reads the secure store, which holds the key. In
+     * memory only: a session token written down outlives the session that minted it.
+     */
+    internal val given = mutableMapOf<String, OpdsCredential>()
 
     /**
      * How many transfers run at once.
@@ -249,7 +256,7 @@ class DownloadQueue(
                 expectedBytes = acquisition.length,
             ),
         )
-        entries[id] = entry
+        hints[id] = entry.series
         store?.save(_library.value)
         pump()
     }
@@ -282,7 +289,7 @@ class DownloadQueue(
             // that ask -- without this, [waiter] awaits a transfer nothing is ever going to
             // start.
             if (overridingMeteredConnection) overridden += id
-            entries[id] = entry
+            hints[id] = entry.series
             resume(id)
         } else {
             enqueue(entry, acquisition, overridingMeteredConnection, sourceId)
@@ -350,12 +357,8 @@ class DownloadQueue(
      * Asked of the filesystem: a download the system reclaimed is one the reader should be
      * offered again rather than shown a missing file.
      */
-    fun downloaded(entry: OpdsEntry, sourceId: UUID? = this@DownloadQueue.sourceId): File? {
-        val download = _library.value[downloadId(entry.id, sourceId)]?.takeIf { it.state.isFinished }
-            ?: return null
-        val file = store?.location(download) ?: return null
-        return file.takeIf { it.exists() }
-    }
+    fun downloaded(entry: OpdsEntry, sourceId: UUID? = this@DownloadQueue.sourceId): File? =
+        fileOf(downloadId(entry.id, sourceId))
 
     /**
      * Forgets a download and deletes its file, then looks again because room was freed.
@@ -374,9 +377,6 @@ class DownloadQueue(
         store?.save(_library.value)
         pump()
     }
-
-    private fun extensionOf(mediaType: String): String =
-        PublicationFormat.ofMediaType(mediaType)?.name?.lowercase() ?: "bin"
 
     /**
      * Why the queue is not starting anything, if it is not.
@@ -532,9 +532,9 @@ class DownloadQueue(
         ready.take(maxOf(0, concurrency - running.size)).forEach { download ->
             // No catalogue entry is needed to fetch one: the record carries the address, the
             // media type and the name. An entry enqueued by a previous launch is gone from
-            // `entries`, and a download that only resumes while the app that started it is
+            // `hints`, and a download that only resumes while the app that started it is
             // still alive is not the offline promise `offline-downloads` makes.
-            val seriesHint = entries[download.id]?.series
+            val seriesHint = hints[download.id]
             _library.value = _library.value.marking(download.id, Download.State.Running)
             running[download.id] = scope.launch { transfer(download, seriesHint) }
         }
@@ -596,32 +596,32 @@ class DownloadQueue(
         // Read here rather than inside the block below, and before the first suspension:
         // `DownloadQueueWakingTest` counts these calls to count started transfers, and a
         // credential read after a suspension counts a transfer that has not started yet.
-        val credential = credential(download.id)
+        val credential = given[download.id] ?: credential(download.id)
         // The rule `OpdsClient` applies to a feed, against the record's own source: an
         // address that steps down from that source's `https` is not fetched at all.
         val home = origin ?: download.sourceId?.let(sourceOrigin) ?: OpdsOrigin.of(download.remote)
         if (home?.downgrades(download.remote) == true) throw OpdsError.RefusedAddress
-        val file = store.location(download)
-        withContext(Dispatchers.IO) {
-            store.prepare(file)
+        val partial = store.partial(download)
+        val file = withContext(Dispatchers.IO) {
+            store.prepare(partial)
             // Both callbacks run on this IO thread while the main thread writes the same
             // flow, so they go through `update`. A plain read-then-set here put back a record
             // the main thread had just cancelled, or dropped one it had just queued.
             client.download(
                 download.remote,
                 credential,
-                store.partial(download),
+                partial,
                 // `offline-downloads` wants a reader to see a transfer move, not every
                 // packet relayed to them -- [OpdsClient] already throttles this call.
                 onProgress = { written -> _library.update { it.advancing(download.id, written) } },
                 // Told when the server answers, so the row states it while it is drawn.
                 onAttempt = { attempt -> _library.update { it.recordingAttempt(download.id, attempt) } },
             )
-            Files.move(
-                store.partial(download).toPath(),
-                file.toPath(),
-                StandardCopyOption.REPLACE_EXISTING,
-            )
+            // Named after the transfer, not before it: see [typed].
+            val landed = store.location(typed(download, partial))
+            store.prepare(landed)
+            Files.move(partial.toPath(), landed.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            landed
         }
         // Indexing *is* the verification. `offline-downloads` requires integrity to be
         // checked "before it is marked available offline", and with no checksum from the

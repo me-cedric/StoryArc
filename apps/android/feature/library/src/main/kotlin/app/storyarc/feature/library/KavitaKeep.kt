@@ -1,22 +1,19 @@
 package app.storyarc.feature.library
 
 import android.content.Context
+import app.storyarc.core.catalogue.OpdsCredential
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.kavita.KavitaChapter
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.kavita.KavitaMetadata
 import app.storyarc.core.kavita.KavitaSeries
-import app.storyarc.core.model.Download
 import app.storyarc.core.model.KavitaCard
 import app.storyarc.core.model.Publication
 import app.storyarc.core.persistence.DownloadStore
 import app.storyarc.core.persistence.KavitaCardStore
 import app.storyarc.core.persistence.KavitaOrigin
 import app.storyarc.core.persistence.KavitaProgressStore
-import java.util.Date
 import java.util.UUID
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * Keeping a Kavita chapter on the device, as a download rather than as a cache file.
@@ -45,11 +42,22 @@ object KavitaKeep {
     data class Kept(val publication: Publication, val path: String)
 
     /**
-     * Fetches a chapter, files it as a download, and writes down what the server said.
+     * Queues a chapter, waits for its file, and writes down what the server said.
      *
      * Null when any step fails, and deliberately without a half-kept result: a record whose
      * bytes are not there reads to a reader as a library that lost their book, which is the
      * failure [DownloadStore] exists to make impossible.
+     *
+     * **The transfer is the queue's, not this object's.** `offline-downloads` 1.9: the body
+     * used to be read whole into memory, written to a cache file and moved into the store by
+     * hand, so a kept chapter had no row in the downloads view and none of the pause, resume or
+     * retry *Queue management* promises -- and a collected edition was an array the size of
+     * itself. [fetchChapter] streams it to disk instead, and the token travels with the chapter
+     * because the secure store holds the API key that mints one rather than the token this
+     * route needs.
+     *
+     * The three steps afterwards are unchanged: index the landed file, file the card, and
+     * remember where the chapter sits on the server.
      */
     suspend fun keep(
         context: Context,
@@ -59,27 +67,12 @@ object KavitaKeep {
         origin: KavitaOrigin,
         sourceId: UUID?,
         client: KavitaClient,
-        downloads: DownloadStore = DownloadStore.open(context),
+        /** The app-level queue, which is the only writer of the download store -- dl-core 1.1. */
+        queue: DownloadQueue,
         cards: KavitaCardStore = KavitaCardStore.open(context),
         progress: KavitaProgressStore = KavitaProgressStore.open(context),
-        /**
-         * The app-level queue, which is the only writer of [downloads] -- dl-core 1.1. A record
-         * saved beside it comes back out at the queue's next save. Null only where no queue
-         * exists, a preview or a test, and then the record goes to [downloads] directly.
-         */
-        queue: DownloadQueue? = null,
     ): Kept? = runCatching {
         val title = KavitaNaming.title(series, chapter)
-        val fetched = client.chapter(chapter.id)
-        val staged = withContext(Dispatchers.IO) {
-            kavitaCacheFile(context, chapter.id, fetched.mediaType).apply { writeBytes(fetched.bytes) }
-        }
-        // The server's word is preferred and is usually there. Indexing the staged copy is the
-        // fallback for a server that sent no type, because the extension the download is
-        // written under decides which reader opens it.
-        val mediaType = fetched.mediaType
-            ?: PublicationIndexer.index(staged).format.mediaType
-            ?: return@runCatching null
 
         // The record's own identifier, and therefore the directory the bytes go in.
         //
@@ -90,43 +83,23 @@ object KavitaKeep {
         // download, never found it. A catalogue download has the same shape and solved it the
         // same way: `Download.id` is what the *source* calls the thing.
         val identifier = "kavita:${origin.sourceId}:${chapter.id}"
-        val destination = downloads.location(identifier, mediaType, title)
-        val bytes = withContext(Dispatchers.IO) {
-            downloads.prepare()
-            downloads.prepare(destination)
-            // Replaced rather than refused, for the reason `KeepForOffline` gives: a file left
-            // by a removal that only got half way is not a reason to refuse the reader their
-            // comic.
-            destination.delete()
-            if (!staged.renameTo(destination)) {
-                staged.copyTo(destination, overwrite = true)
-                staged.delete()
-            }
-            destination.length()
-        }
-
-        // Indexed where it landed, not where it was staged. This is the identity the library
-        // will compute when it walks the download tree, which is what the card has to be filed
-        // under for the server's metadata to reach the shelf.
-        // `library-browsing` attributes a download to the source its record names, which is
-        // what puts a kept chapter on the one shelf that spans every source.
-        val publication = PublicationIndexer.index(destination, catalogueSeries = series.name)
-            .copy(sourceId = sourceId)
-
-        val record = Download(
+        val destination = queue.fetchChapter(
             id = identifier,
-            sourceId = sourceId,
             title = title,
             // No secret in it: Kavita takes the key as a bearer header on this route, not in
             // the query, so what is written down is a path and a chapter number.
             remote = client.address.chapterUrl(chapter.id),
-            mediaType = mediaType,
-            state = Download.State.Finished,
-            expectedBytes = bytes,
-            downloadedBytes = bytes,
-            completedAt = Date(),
-        )
-        if (queue != null) queue.record(record) else downloads.save(downloads.library().queueing(record))
+            sourceId = sourceId,
+            credential = OpdsCredential.Bearer(client.authorization()),
+            seriesHint = series.name,
+        ) ?: return@runCatching null
+
+        // Indexed where it landed, which is the identity the library will compute when it walks
+        // the download tree -- and what the card has to be filed under for the server's metadata
+        // to reach the shelf. `library-browsing` attributes a download to the source its record
+        // names, which is what puts a kept chapter on the one shelf that spans every source.
+        val publication = PublicationIndexer.index(destination, catalogueSeries = series.name)
+            .copy(sourceId = sourceId)
 
         cards.save(card(publication.id, identifier, chapter, series, metadata, origin))
         // The same note the open path leaves, and for the same reason: the reader opens a file

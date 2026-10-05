@@ -1,5 +1,6 @@
 internal import Foundation
 
+internal import Catalogue
 internal import Formats
 internal import Kavita
 internal import Persistence
@@ -50,22 +51,26 @@ enum KavitaKeep {
         let sourceID: UUID?
     }
 
-    /// Fetches a chapter, files it as a download, and writes down what the server said.
+    /// Queues a chapter, waits for its file, and writes down what the server said.
     ///
     /// Nil when any step fails, and deliberately without a half-kept result: a record whose
     /// bytes are not there reads to a reader as a library that lost their book, which is the
     /// failure ``DownloadStore`` exists to make impossible.
     ///
-    /// `@MainActor`, and the record is written through ``DownloadQueue/record(_:)`` rather
-    /// than straight to `downloads` — `offline-downloads` 1.1: a Kavita keep written
-    /// straight to the store used to be undone the next time any catalogue's own queue
-    /// saved, because that queue's in-memory copy knew nothing of this write. The one app
-    /// -level queue is the only writer now, so this goes through it too.
+    /// **The transfer is the queue's, not this type's.** `offline-downloads` 1.9: the body
+    /// used to be fetched whole into a `Data`, written to a cache file and moved into the
+    /// store by hand, so a kept chapter had no row in the downloads view and none of the
+    /// pause, resume or retry *Queue management* promises — and a collected edition was a
+    /// buffer the size of itself. ``DownloadQueue/fetchChapter(id:title:from:sourceID:credential:seriesHint:)``
+    /// streams it to disk instead, and the token travels with the chapter because the secure
+    /// store holds the API key that mints one rather than the token this route needs.
+    ///
+    /// The four steps afterwards are unchanged: index the landed file, attribute it, file the
+    /// card, and remember where the chapter sits on the server.
     @MainActor
     static func keep(
         _ subject: Subject,
         client: KavitaClient,
-        downloads: DownloadStore = DownloadStore(),
         cards: KavitaCardStore = KavitaCardStore(),
         progress: KavitaProgressStore,
         queue: DownloadQueue = .shared()
@@ -78,16 +83,6 @@ enum KavitaKeep {
         // file's name, so a kept collected edition landed on disk as "-100000.cbz".
         let title = KavitaContributor.title(of: chapter, in: series)
 
-        guard let fetched = try? await client.chapter(chapter.id),
-              let staged = kavitaCacheFile(
-                  chapterId: chapter.id,
-                  mediaType: fetched.mediaType,
-                  named: title
-              ),
-              (try? fetched.bytes.write(to: staged, options: .atomic)) != nil,
-              let mediaType = await type(of: fetched, at: staged)
-        else { return nil }
-
         // The record's own identifier, and therefore the directory the bytes go in.
         //
         // The server's chapter, not the file's identity. It was the file's, and driving it
@@ -97,16 +92,24 @@ enum KavitaKeep {
         // the download, never found it. A catalogue download has the same shape and solved
         // it the same way: `Download.id` is what the *source* calls the thing.
         let identifier = "kavita:\(origin.sourceId):\(chapter.id)"
-        let destination = downloads.location(
-            for: identifier,
-            mediaType: mediaType,
-            title: title
-        )
-        guard let bytes = file(staged, to: destination, in: downloads) else { return nil }
 
-        // Indexed where it landed, not where it was staged. This is the identity the library
-        // will compute when it walks the download tree, which is what the card has to be
-        // filed under for the server's metadata to reach the shelf.
+        // No secret in it: Kavita takes the key as a bearer header on this route, not in the
+        // query, so what is written down is a path and a chapter number.
+        guard let remote = await client.address.chapterURL(chapter.id),
+              let token = try? await client.authorization(),
+              let destination = await queue.fetchChapter(
+                  id: identifier,
+                  title: title,
+                  from: remote,
+                  sourceID: sourceID,
+                  credential: .bearer(token: token),
+                  seriesHint: series.name
+              )
+        else { return nil }
+
+        // Indexed where it landed, which is the identity the library will compute when it
+        // walks the download tree — and what the card has to be filed under for the server's
+        // metadata to reach the shelf.
         guard var publication = try? await PublicationIndexer.index(
             fileAt: destination,
             catalogueSeries: series.name
@@ -115,58 +118,12 @@ enum KavitaKeep {
         // what puts a kept chapter on the one shelf that spans every source.
         publication.sourceID = sourceID
 
-        // No secret in it: Kavita takes the key as a bearer header on this route, not in the
-        // query, so what is written down is a path and a chapter number.
-        let remote = await client.address.chapterURL(chapter.id) ?? destination
-        queue.record(
-            Download(
-                id: identifier,
-                sourceID: sourceID,
-                title: title,
-                remote: remote,
-                mediaType: mediaType,
-                state: .finished,
-                expectedBytes: bytes,
-                downloadedBytes: bytes,
-                completedAt: Date()
-            )
-        )
-
         cards.save(card(publication.id, downloadId: identifier, subject))
         // The same note the open path leaves, and for the same reason: the reader opens a
         // file and knows nothing about servers, so this is what lets the position get home.
         progress.remember(origin, for: publication.id)
 
         return Kept(publication: publication, file: destination)
-    }
-
-    /// What the file is, from the server's word or from the bytes.
-    ///
-    /// The server's declaration is preferred and is usually there. Indexing the staged copy
-    /// is the fallback for a server that sent no type, because the extension the download is
-    /// written under decides which reader opens it.
-    private static func type(of fetched: KavitaFile, at staged: URL) async -> String? {
-        if let declared = fetched.mediaType { return declared }
-        return try? await PublicationIndexer.index(fileAt: staged).format.mediaType
-    }
-
-    /// Moves the staged bytes to where the store says they live, and reports what they weigh.
-    ///
-    /// Nil when the move failed, which is what makes a half-kept download impossible: the
-    /// record is only written after this answers.
-    private static func file(_ staged: URL, to destination: URL, in store: DownloadStore) -> Int64? {
-        try? store.prepare()
-        let manager = FileManager.default
-        try? manager.createDirectory(
-            at: destination.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
-        // Replaced rather than refused, for the reason `KeepOffline` gives: a file left by a
-        // removal that only got half way is not a reason to refuse the reader their comic.
-        try? manager.removeItem(at: destination)
-        guard (try? manager.moveItem(at: staged, to: destination)) != nil else { return nil }
-        DownloadStore.protect(destination)
-        return Int64((try? destination.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
     }
 
     /// What the server said, in the shape that survives it going away.
