@@ -6,6 +6,7 @@ import android.provider.Settings
 import android.util.Log
 import android.view.Choreographer
 import android.view.View
+import app.storyarc.core.persistence.CurlCapability
 import kotlin.math.roundToInt
 
 /**
@@ -40,6 +41,32 @@ internal object FrameProbe {
     fun isArmed(context: Context): Boolean {
         if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) return false
         return Settings.Global.getInt(context.contentResolver, ARMING_KEY, 0) == 1
+    }
+
+    /**
+     * Whether a curl is counted at all.
+     *
+     * Armed, or this device has not been judged yet. `page-transitions` requires Curl to be
+     * withheld where it cannot hold the display's refresh rate, and a judgement nobody takes
+     * in a release build is no judgement -- so the frame clock runs over the first
+     * [CurlVerdict.TURNS] curls a device ever draws, and is false for ever after. D11.
+     */
+    fun isCounting(context: Context): Boolean =
+        isArmed(context) || CurlCapability.open(context).isUnjudged
+
+    /**
+     * A counted turn ended, with what it cost.
+     *
+     * The report and the verdict are independent. A reader's phone judges its own curl with
+     * nothing armed, and `scripts/measure-turn.mjs` reads a report from a phone that was
+     * judged three turns into its first session. Only a curl feeds the verdict: a slide costs
+     * a fraction of a curl's work, and letting one answer for the other would hand every
+     * device a pass.
+     */
+    fun finished(run: FrameRun, isCurl: Boolean, context: Context) {
+        if (isArmed(context)) report(run)
+        val strain = run.strain
+        if (isCurl && strain != null) CurlCapability.open(context).record(strain)
     }
 
     /**
@@ -89,10 +116,16 @@ internal class FrameTicker(private val view: View) : Choreographer.FrameCallback
 
     private var run = FrameRun(isEnabled = false)
 
-    /** A page turn started. */
-    fun began() {
+    /** Whether the run in progress is a curl, which is the only turn `CurlVerdict` judges. */
+    private var isCurl = false
+
+    /** A page turn started. [isCurl] decides whether the run can answer D11's question. */
+    fun began(isCurl: Boolean) {
         if (run.isRecording) return
-        run = FrameRun(isEnabled = FrameProbe.isArmed(view.context))
+        this.isCurl = isCurl
+        val context = view.context
+        val enabled = if (isCurl) FrameProbe.isCounting(context) else FrameProbe.isArmed(context)
+        run = FrameRun(isEnabled = enabled)
         run.begin()
         if (!run.isRecording) return
         Choreographer.getInstance().postFrameCallback(this)
@@ -111,7 +144,7 @@ internal class FrameTicker(private val view: View) : Choreographer.FrameCallback
     fun ended() {
         if (!run.isRecording) return
         cancel()
-        FrameProbe.report(run)
+        FrameProbe.finished(run, isCurl = isCurl, context = view.context)
     }
 
     /**

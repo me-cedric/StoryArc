@@ -100,7 +100,8 @@ internal fun CurledPages(
     val runtimeShader = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) PageCurl.newShader() else null
     }
-    // Off unless `adb` armed it. See `FrameProbe`.
+    // Off unless `adb` armed it, or this device has not yet judged its own curl. See
+    // `FrameProbe` and `CurlVerdict`.
     val frames = remember(view) { FrameTicker(view) }
     // A turn the reader walked out of never reaches `ended`, and a ticker nobody stopped
     // posts a frame callback for the life of the process. This is where it is stopped.
@@ -157,7 +158,7 @@ internal fun CurledPages(
                                 scope.launch { progress.stop() }
                                 // The turn starts here and ends when its settle completes, so a
                                 // count covers the drag and the spring and nothing else.
-                                frames.began()
+                                frames.began(isCurl = true)
                             }
 
                             change.consume()

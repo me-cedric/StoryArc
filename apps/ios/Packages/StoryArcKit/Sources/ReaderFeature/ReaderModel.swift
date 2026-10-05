@@ -117,8 +117,9 @@ public final class ReaderModel {
     ///
     ///     The frame-rate half of `page-transitions`' requirement is a *runtime*
     ///     question rather than a build-time one: the same shader is fast on one device
-    ///     and not on another. A check with no device known to fail it would be
-    ///     speculative, so the parameter exists to be passed `false` when one is found.
+    ///     and not on another. ``CurlCapability`` answers that half — it counts the first
+    ///     few curls this device draws — and this parameter is narrowed by it, so a caller
+    ///     passing `true` means "nothing at build time stops it" rather than "it is fast".
     public init(
         publication: Publication,
         url: URL,
@@ -132,7 +133,10 @@ public final class ReaderModel {
         self.url = url
         self.progress = progress
         self.preferences = preferences
-        self.canCurl = canCurl
+        // D11: what the device has proved about itself narrows what the build believes.
+        // `page-transitions` requires the reader's *stored* choice to survive a device that
+        // cannot honour it, and `TransitionChoices` is what keeps it — nothing here writes it.
+        self.canCurl = canCurl && !CurlCapability().cannotCurl
         self.centre = centre
         self.shelf = ShelfMemory.shelf(series: publication.series, identity: publication.id)
         self.settings = preferences?.themes().theme(for: .fixedLayout, shelf: shelf)

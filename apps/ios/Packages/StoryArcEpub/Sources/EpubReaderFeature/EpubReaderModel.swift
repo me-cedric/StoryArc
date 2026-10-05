@@ -296,9 +296,9 @@ public final class EpubReaderModel {
             axis: .vertical,
             reduceMotion: reduceMotion,
             // The curl over reflowable text needs the page rastered first, which is why
-            // `isReflowable` refuses it below rather than this pretending it cannot curl
-            // at all. The two reasons are different and the reader is told which.
-            canCurl: true,
+            // `isReflowable` refuses it below. D11 is a different refusal, about this
+            // device rather than this content, and the reader is told which they met.
+            canCurl: !CurlCapability().cannotCurl,
             // True, because this reader does take the turn over: see
             // `turnWithFade(forward:)`. A still of the outgoing page, then the navigator
             // moves with no animation of its own, then the still fades.

@@ -88,7 +88,9 @@ internal fun ProbeTurns(mode: PageTransition, display: () -> Int) {
         // `drop(1)`: the position this composition opened on is not a turn. Without it,
         // opening a publication reports a turn that nobody made.
         snapshotFlow { latest() }.drop(1).collect {
-            frames.began()
+            // Not a curl: `CurledPages` is the only container that can answer D11, and a
+            // slide costs a fraction of a curl's work. See `FrameProbe.finished`.
+            frames.began(isCurl = false)
             delay(window)
             frames.ended()
         }

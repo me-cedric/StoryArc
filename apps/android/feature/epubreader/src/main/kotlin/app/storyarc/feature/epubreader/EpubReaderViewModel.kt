@@ -13,7 +13,7 @@ import app.storyarc.core.model.SearchMatch
 import app.storyarc.core.model.SearchSnippet
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.PageTransition
-import app.storyarc.core.model.canCurlOn
+import app.storyarc.core.persistence.canCurlHere
 import app.storyarc.core.model.ScrollAxis
 import app.storyarc.core.model.TransitionChoices
 import app.storyarc.core.model.ReaderPalette
@@ -288,7 +288,7 @@ class EpubReaderViewModel(
         _transition.value = transition
     }
 
-    private val canCurl: Boolean = canCurlOn(Build.VERSION.SDK_INT)
+    private val canCurl: Boolean = canCurlHere(application)
 
     /**
      * Whether the reader has asked the system to remove animations, observed live

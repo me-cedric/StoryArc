@@ -1,4 +1,5 @@
 internal import Foundation
+internal import StoryArcCore
 #if canImport(UIKit)
 internal import QuartzCore
 #endif
@@ -30,6 +31,17 @@ enum FrameProbe {
     /// Read once: the argument domain cannot change while the process lives.
     static let isArmed = UserDefaults.standard.bool(forKey: armingKey)
 
+    /// What this device has shown about its own curl, and where a new measurement goes. D11.
+    static let capability = CurlCapability()
+
+    /// Whether a curl is counted at all.
+    ///
+    /// Armed, or this device has not been judged yet. `page-transitions` requires Curl to be
+    /// withheld where it cannot hold the display's refresh rate, and a judgement nobody takes
+    /// in a shipping build is no judgement — so the frame clock runs over the first
+    /// `CurlVerdict.turns` curls a device ever draws, and is false for ever after.
+    static var isCounting: Bool { isArmed || capability.isUnjudged }
+
     /// One line on standard output, which `scripts/measure-turn.mjs` reads through
     /// `devicectl … --console`. The same wording as Android's, so one regular expression
     /// reads both.
@@ -40,16 +52,28 @@ enum FrameProbe {
         )
     }
 
-    /// A page turn started. Called from the drag, never from a view's body.
+    /// A curl started. Called from the drag, never from a view's body.
     static func began() {
-        guard isArmed else { return }
-        ticker.began()
+        guard isCounting else { return }
+        ticker.began(isCurl: true)
     }
 
-    /// The page turn finished, whether it settled or sprang back.
+    /// The curl finished, whether it settled or sprang back.
     static func ended() {
-        guard isArmed else { return }
+        guard isCounting else { return }
         ticker.ended()
+    }
+
+    /// A counted turn ended, with what it cost.
+    ///
+    /// The report and the verdict are independent. A reader's phone judges its own curl with
+    /// nothing armed, and `scripts/measure-turn.mjs` reads a report from a phone that was
+    /// judged three turns into its first session. Only a curl feeds the verdict: a slide
+    /// costs a fraction of a curl's work, and letting one answer for the other would hand
+    /// every device a pass.
+    static func finished(_ run: FrameRun, isCurl: Bool) {
+        if isArmed { report(run) }
+        if isCurl, let strain = run.strain { capability.record(strain: strain) }
     }
 
     /// How long a run opened by a change of displayed index stays open.
@@ -75,7 +99,7 @@ enum FrameProbe {
     /// `CurledPages` calls `began()` and `ended()` itself.
     static func turned(over window: Double) {
         guard isArmed else { return }
-        ticker.began()
+        ticker.began(isCurl: false)
         Task {
             try? await Task.sleep(for: .seconds(window))
             ticker.ended()
@@ -85,7 +109,7 @@ enum FrameProbe {
     /// The view carrying the turn went away before the turn ended. Stops, and reports
     /// nothing. Android's `FrameTicker.cancel` is the twin, called from `onDispose`.
     static func cancel() {
-        guard isArmed else { return }
+        guard isCounting else { return }
         ticker.cancel()
     }
 
@@ -100,13 +124,17 @@ private final class FrameTicker: NSObject {
 
     private var run = FrameRun(isEnabled: false)
 
+    /// Whether the run in progress is a curl, which is the only turn `CurlVerdict` judges.
+    private var isCurl = false
+
     #if canImport(UIKit)
     private var link: CADisplayLink?
     #endif
 
-    func began() {
+    func began(isCurl: Bool) {
         guard !run.isRecording else { return }
-        run = FrameRun(isEnabled: FrameProbe.isArmed)
+        self.isCurl = isCurl
+        run = FrameRun(isEnabled: isCurl ? FrameProbe.isCounting : FrameProbe.isArmed)
         run.begin()
         guard run.isRecording else { return }
         #if canImport(UIKit)
@@ -120,7 +148,7 @@ private final class FrameTicker: NSObject {
     func ended() {
         guard run.isRecording else { return }
         cancel()
-        FrameProbe.report(run)
+        FrameProbe.finished(run, isCurl: isCurl)
     }
 
     /// The turn was abandoned: stop counting, and report nothing.
