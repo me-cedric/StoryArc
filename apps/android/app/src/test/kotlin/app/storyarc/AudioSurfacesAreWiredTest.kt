@@ -41,6 +41,18 @@ class AudioSurfacesAreWiredTest {
     }
 
     @Test
+    fun `a car row carries the artwork the indexer extracted`() {
+        assertTrue(
+            "CarShelf no longer gives a row the publication's cover, so task 16.9's extracted" +
+                " artwork stops at the app's own player: a head unit lists the book with no" +
+                " picture, and the lock screen of a book a car started shows none either." +
+                " What the rule decides is asserted in `CarArtworkUriTest`; this is only" +
+                " that the shelf still asks.",
+            read(CAR_SHELF).contains("artworkUri = carArtworkUri(publication.coverPath)"),
+        )
+    }
+
+    @Test
     fun `the publication page is handed its chapters, the saved part and a way into one`() {
         val screens = read(APP_SCREENS)
 

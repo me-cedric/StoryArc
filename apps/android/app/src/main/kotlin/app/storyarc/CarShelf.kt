@@ -2,6 +2,7 @@ package app.storyarc
 
 import android.content.ContentResolver
 import android.content.Context
+import android.net.Uri
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadingProgress
@@ -9,6 +10,7 @@ import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.playback.CarBook
 import app.storyarc.core.playback.PlaybackHost
 import app.storyarc.core.playback.PlaybackPosition
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -68,10 +70,14 @@ internal object CarShelf {
      * A publication still on a server is left out. Its recorded location is an address rather
      * than a file, and a shelf must list what it can play.
      *
-     * No length and no artwork: nothing on this side of the app states a book's duration, and
-     * `Publication.coverPath` names an entry inside the container rather than a picture the
-     * platform can fetch. `audio-playback` allows a row with neither and forbids inventing
-     * either.
+     * No length: nothing on this side of the app states a book's duration, and
+     * `audio-playback` allows a row without one and forbids inventing it.
+     *
+     * The artwork is [carArtworkUri]'s. It used to be null here, with the reason that
+     * `Publication.coverPath` named an entry inside the container rather than a picture the
+     * platform can fetch — true until task 16.9, and false since: for an audiobook that
+     * field is now the file the indexer wrote the embedded artwork to, or the folder's own
+     * loose cover image, which is why `CoverLoader` reads it as a file.
      *
      * **The position is `reading-progress`'s, not the shelf's own guess.** `CarLibrary.asPlayed`
      * used to answer every row at its own zero, so a car always offered a finished book's first
@@ -92,7 +98,7 @@ internal object CarShelf {
             id = audiobook.id,
             title = audiobook.title,
             durationMillis = null,
-            artworkUri = null,
+            artworkUri = carArtworkUri(publication.coverPath),
             uris = audiobook.sources.map { it.uri },
             partIndex = resumeAt.partIndex,
             offsetMillis = resumeAt.offsetMillis,
@@ -108,6 +114,24 @@ internal object CarShelf {
  * plain JVM test over [ReadingProgress] rather than one that also needs a `Publication`, a
  * `ContentResolver` and [OpenedAudiobook].
  */
+/**
+ * The picture a car row carries, and the one the lock screen of a car-started book gets.
+ *
+ * Task 16.9 reads an audiobook's own artwork at index time and records where it put it, so
+ * `coverPath` here is a file and not an entry inside a container. `PlaybackService.browseItem`
+ * hands this to `MediaMetadata.setArtworkUri` and `PlaybackHost.attachCarStart` carries it
+ * onto the session, which is `audio-playback`'s "the system's own media controls are given
+ * that same artwork rather than a second one".
+ *
+ * A `file://` URI, because that is the one form media3 fetches artwork from. The file is
+ * checked first: a cover the system has reclaimed from the cache must leave the row with no
+ * artwork rather than with a URI nothing can open.
+ */
+internal fun carArtworkUri(coverPath: String?): String? =
+    coverPath?.let(::File)
+        ?.takeIf { it.isFile }
+        ?.let { Uri.fromFile(it).toString() }
+
 internal fun carBookPosition(recorded: ReadingProgress?): PlaybackPosition =
     ListenedPosition.resume(recorded?.position, recorded?.isFinished == true)
         ?: PlaybackPosition(partIndex = 0, offsetMillis = 0)
