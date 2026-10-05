@@ -139,7 +139,7 @@ internal fun CoverGrid(
     /** What a tap on a series does: open it, rather than open the issue standing for it. */
     onOpenSeries: (LibraryRow.Series) -> Unit = {},
     /**
-     * What a tap on *more from this library* does: open that source's own browser.
+     * What a tap on *more from this library* does: open that source's own shelf.
      *
      * Nothing by default, which draws no footer at all — the grid is used by screens that
      * have no way into a source, and offering one there would lead nowhere.

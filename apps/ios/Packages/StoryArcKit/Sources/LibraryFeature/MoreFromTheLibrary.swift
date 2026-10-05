@@ -23,11 +23,11 @@ func sourcesWithMore(_ sources: [Source], isPartial: (UUID) -> Bool) -> [Source]
 /// shelf". Search was already the other half; this is the one a reader can see.
 ///
 /// **An affordance that is always there says nothing**, so a shelf where every source gave
-/// everything draws no footer at all. It leads to the source's own browser, which is the
-/// screen that already knows how to walk that catalogue — and **the publications there are
-/// drawn by that browser's cells and not by this grid's**, which is the one clause of the
-/// requirement this does not yet meet. Recorded in the change's task 3.3 rather than
-/// glossed.
+/// everything draws no footer at all. It leads to ``SourceShelfView``, which draws that
+/// source's library rows with this grid's own cells. That is the clause this footer used to
+/// miss: it opened the source's catalogue browser instead, and `library-browsing` asks those
+/// publications to be "rendered by the same grid, the same cells and the same publication
+/// page as everything else".
 struct MoreFromTheLibrary: View {
     let sources: [Source]
     let isPartial: (UUID) -> Bool

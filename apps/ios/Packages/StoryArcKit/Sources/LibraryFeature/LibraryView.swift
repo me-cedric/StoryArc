@@ -85,12 +85,12 @@ public struct LibraryView: View {
     @AppStorage(LibraryAvailability.searchScopeKey)
     var searchScope: LibraryAvailability = .everywhere
 
-    /// The catalogue being browsed, by identifier.
+    /// The source being shown, and which of its two screens — see ``SourceDestination``.
     ///
-    /// The identifier rather than the `Source`: a navigation destination needs something
+    /// An identifier rather than the `Source`: a navigation destination needs something
     /// `Hashable`, and a source carries a connection state that changes while the reader is
     /// inside it — which would pop the screen they are reading.
-    @State var browsing: Source.ID?
+    @State var browsing: SourceDestination?
 
     /// The term to hand a server's own search when one is opened from the library.
     @State var serverSearch = ""

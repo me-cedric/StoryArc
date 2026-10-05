@@ -153,7 +153,7 @@ extension LibraryView {
                 // in it.
                 onFollow: { route in
                     serverSearch = search.listing.term
-                    browsing = UUID(uuidString: route.sourceID)
+                    browsing = UUID(uuidString: route.sourceID).map(SourceDestination.browser)
                 },
                 onRetry: { id in
                     search.retry(id, in: model, credentials: credentials, pins: pins)
