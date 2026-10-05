@@ -1,7 +1,8 @@
 # Page browser frames, 2026-10-03
 
 These frames come from `page-browser-carousel` and `close-the-audited-gaps`. The iOS device
-is the iPhone 17 Pro simulator (lane `0EAA863A-78F3-4839-A910-0B88071D99C2`), iOS 26.2.
+is the iPhone 17 Pro simulator (lane `0EAA863A-78F3-4839-A910-0B88071D99C2`), iOS 26.2. The
+Android device is the `Pixel_7_Pro` emulator, API 36 (`sdk_gphone64_arm64`).
 
 | Frame | Task | What it shows |
 | --- | --- | --- |
@@ -15,7 +16,13 @@ is the iPhone 17 Pro simulator (lane `0EAA863A-78F3-4839-A910-0B88071D99C2`), iO
 | `ios-page-browser-dark.png` | PB3.2 | Left to right, dark. |
 | `ios-comic-reader-page-browser-ax5.png` | PB3.2 | `21.1-ios`. The carousel at `UICTContentSizeCategoryAccessibilityXXXL`, left to right. The sheet sits at its medium detent over Quiet Machines' gold cover, with "Contents", "1 of 12", "Prologue" and page 1's badge all legible at the larger type. |
 
-Not captured yet: the Android carousel (task 3.2 stays open).
+| `android-page-browser-light.png` | PB3.2 | Wave 7, `f4-android-frames`. Quiet Machines, left to right, light, default font scale. Page 1 centred with its "#1" badge, "Prologue" above, the page-slider ticks at pages 4 and 8 (the `ComicInfo.xml` bookmarks). |
+| `android-page-browser-dark.png` | PB3.2 | The same walk, dark. |
+| `android-page-browser-largest-text.png` | PB3.2 | The same walk at `font_scale 2.0` (Android's largest-text condition — see `device-matrix.mjs`). The page number wraps to two lines ("Page" / "1") and the badge stays inside the cell; nothing clips or overlaps. |
+| `android-page-browser-rtl.png` | PB3.2 | The same comic with Reading direction set to Right to left from the menu's own Settings section. Page 1 is centred and at the right end, pages 2 and 3 run to its left, and the slider thumb and ticks mirror to the right. |
+
+Both platforms now carry all four conditions task 3.2 asks for: light, dark, the largest
+text size and right-to-left. No defect was found in any of the eight frames.
 
 ## Review correction
 
@@ -90,7 +97,5 @@ narrower instance of the same clipped-row shape, out of `21.1-ios`'s scope and l
 
 - **`testCaptureComicMenuAtLargestText`** now reaches "Fine Print"'s own publication page (the
   shelf tap works) and skips later: "the page offered no hittable way to open it", the same
-  swipe-search shape on that page's action button. `21.1-ios` did not reach this one.
-- **Android**: not captured. `ThumbnailStrip.kt`'s carousel (tasks 2.1–2.5) is built and
-  unit-tested, but no emulator frame exists yet for light, dark, largest text or
-  right-to-left.
+  swipe-search shape on that page's action button. `21.1-ios` did not reach this one, and it
+  is narrower than task 3.2, which the frames above close.
