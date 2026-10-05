@@ -31,9 +31,25 @@ jobs:
 
       # The pure-Swift targets build on the host, so the fast gate needs no
       # simulator runtime at all.
+      #
+      # `xcodebuild`, not `swift test`, and the reason is the string catalogs.
+      # SwiftPM compiles a `.xcstrings` into `en.lproj/Localizable.strings` only
+      # on some toolchains; on others it copies the catalogue into the resource
+      # bundle unchanged. A bundle with no `.lproj` has nothing to look a key up
+      # in, so `String(localized:bundle: .module)` answers with the key itself,
+      # and every test that asserts a sentence reads `sync.conflicts.one` instead
+      # of a sentence. `xcodebuild` runs `xcstringstool` for a SwiftPM target on
+      # every version, which is why the epub and app jobs below never had this.
+      #
+      # It cost a month: this job failed on every run from 2026-09-12, and the
+      # failure looked like 20 broken localisation tests rather than one missing
+      # build step. The runner's Xcode was 26.6 (Swift 6.3.3) and the machine the
+      # tests passed on was Xcode 27.0 (Swift 6.4) — the newer toolchain compiles
+      # them, so a green local run proved nothing about this runner.
+      # `pnpm test:ios` runs the same command for that reason.
       - name: Test
         working-directory: apps/ios/Packages/StoryArcKit
-        run: swift test
+        run: xcodebuild test -scheme StoryArcKit-Package -destination 'platform=macOS' -quiet
 
   epub:
     name: StoryArcEpub — build and test
