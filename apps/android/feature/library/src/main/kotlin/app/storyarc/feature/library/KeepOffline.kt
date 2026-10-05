@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import android.content.ContentResolver
+import android.content.Context
 import android.net.Uri
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.catalogue.OpdsClient
@@ -12,6 +13,7 @@ import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.SourceRegistry
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.DownloadStore
+import app.storyarc.core.persistence.KavitaProgressStore
 import java.io.File
 import java.io.InputStream
 import java.util.Date
@@ -46,13 +48,24 @@ internal object KeepOffline {
     fun kept(store: DownloadStore): Set<String> = store.library().downloads.map { it.id }.toSet()
 
     /**
-     * What a selection weighs on disk, for the confirmation that has to state a size.
+     * What a selection weighs, for the confirmation that has to state a size.
      *
-     * Nothing for a publication whose file cannot be measured, rather than a guess: the
-     * requirement is that a size is *shown*, and an invented one is worse than a short one.
+     * The file where there is one, and the size the *server* stated where there is not --
+     * `offline-downloads` 6.4. A catalogue-only member has no file to measure, so a group of
+     * ten of them was confirmed as weighing nothing and then fetched hundreds of megabytes.
+     *
+     * Still nothing for a publication neither the filesystem nor the catalogue can measure,
+     * rather than a guess: the requirement is that a size is *shown*, and an invented one is
+     * worse than a short one.
      */
-    fun bytesOnDisk(resolver: ContentResolver, paths: List<String>): Long =
-        paths.sumOf { path -> weigh(resolver, path) }
+    fun bytesOnDisk(
+        resolver: ContentResolver,
+        publications: List<Publication>,
+        locate: (Publication) -> String?,
+    ): Long = publications.sumOf { publication ->
+        val measured = locate(publication)?.let { weigh(resolver, it) } ?: 0L
+        if (measured > 0L) measured else publication.fileSize ?: 0L
+    }
 
     /** Copies a whole selection into the download store, and reports what it copied. */
     suspend fun keep(
@@ -66,6 +79,10 @@ internal object KeepOffline {
         /** Where a catalogue-only member's source is found, to resolve it before queueing. */
         registry: SourceRegistry = SourceRegistry(),
         credentials: CredentialStore? = null,
+        /** Where a Kavita chapter's keep reads its stores. Null leaves chapters unqueued. */
+        context: Context? = null,
+        /** Where a Kavita chapter's origin is resolved from, which is what names its series. */
+        kavita: KavitaProgressStore? = null,
     ): Set<String> {
         val wanted = BulkSelection.downloading(selection, kept(store))
         store.prepare()
@@ -87,10 +104,35 @@ internal object KeepOffline {
             // fetched from. `collections-and-reading-lists`' bulk download "queues them
             // per offline-downloads" -- this is that queueing, for the member kind the
             // copy above cannot reach at all.
-            if (queue != null) enqueueRemote(publication, registry, credentials, queue)?.let { copied += it }
+            if (queue == null) continue
+            // Both remote member kinds, not just one -- `offline-downloads` 6.4. A Kavita
+            // chapter's remote identifier carries nothing past its id, so [enqueueRemote]'s
+            // feed lookup never matched one and every chapter in a group was silently left
+            // out. [enqueueKavitaChapter] rebuilds the chapter and series from the origin the
+            // device already recorded, which is what made the second kind reachable.
+            val queued = if (isKavitaChapter(publication) && context != null) {
+                enqueueKavitaChapter(context, publication, registry, kavita, credentials, queue)
+            } else {
+                enqueueRemote(publication, registry, credentials, queue)
+            }
+            queued?.let { copied += it }
         }
         return copied
     }
+
+    /**
+     * Whether a member with no local file is a Kavita chapter rather than a catalogue entry.
+     *
+     * `KavitaContributor` writes `chapter:<id>` onto the row's identity and [OpdsContributor]
+     * writes `opds:<id>`, which is the whole of the difference -- and the whole of why one
+     * route cannot serve both: a chapter's identifier carries nothing an OPDS feed can match.
+     *
+     * Internal rather than private so the choice can be asserted without a server of either
+     * kind, neither of which answers in a host test. The same reason `kavitaKeepRoute` has a
+     * pure overload.
+     */
+    internal fun isKavitaChapter(publication: Publication): Boolean =
+        publication.identity.serverIdentifier?.remoteId?.startsWith("chapter:") == true
 
     /**
      * Queues a catalogue-only member for download, resolving its OPDS acquisition fresh.
@@ -102,10 +144,8 @@ internal object KeepOffline {
      * feed no longer lists, is left out rather than failing the rest of the selection.
      * Returns the queue's id for what it queued, which is what the undo takes back.
      *
-     * Kavita's chapters are not reached here: a chapter's own remote identifier carries
-     * nothing past its id, and resolving it back to the series it belongs to has no single
-     * request to ask for -- see `KavitaKeep`'s `Subject`, which this would have to build.
-     * `docs/delivery` tracks that as the remaining half.
+     * Kavita's chapters are not reached here -- [enqueueKavitaChapter] is the sibling that
+     * reaches them, from the origin the device already recorded rather than from a feed.
      */
     private suspend fun enqueueRemote(
         publication: Publication,

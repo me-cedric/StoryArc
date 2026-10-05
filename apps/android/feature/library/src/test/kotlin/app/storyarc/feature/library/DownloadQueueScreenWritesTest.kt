@@ -10,6 +10,7 @@ import app.storyarc.core.catalogue.OpdsError
 import app.storyarc.core.catalogue.OpdsOrigin
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
+import app.storyarc.core.model.DownloadFailure
 import app.storyarc.core.persistence.DownloadStore
 import java.util.Date
 import java.util.UUID
@@ -236,9 +237,10 @@ class DownloadQueueScreenWritesTest {
         shadowOf(getMainLooper()).idle()
 
         val state = queue.library.value[queue.downloadId(entry.id, source)]?.state
+        // The record keeps the reason, not the sentence -- `localization` 15.9.
         assertEquals(
             "The queue fetched a book over cleartext from an https catalogue.",
-            CatalogueMessages.describe(context, OpdsError.RefusedAddress),
+            DownloadFailure.RefusedAddress.stored,
             (state as? Download.State.Failed)?.reason,
         )
     }

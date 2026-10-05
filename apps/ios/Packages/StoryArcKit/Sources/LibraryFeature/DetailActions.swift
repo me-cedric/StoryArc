@@ -291,7 +291,7 @@ private struct DetailTransferLine: View {
     private var sentence: String {
         switch transfer.state {
         case let .failed(reason, _):
-            reason
+            DownloadFailureWords.sentence(stored: reason)
         case .paused:
             String(
                 format: String(localized: "downloads.pausedTitle", bundle: .module, locale: .storyArc),

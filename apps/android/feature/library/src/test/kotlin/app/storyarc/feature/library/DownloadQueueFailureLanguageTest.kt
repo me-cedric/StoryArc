@@ -10,6 +10,7 @@ import app.storyarc.core.catalogue.OpdsError
 import app.storyarc.core.catalogue.OpdsOrigin
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
+import app.storyarc.core.model.DownloadFailure
 import app.storyarc.core.persistence.DownloadStore
 import app.storyarc.core.persistence.SettingsStore
 import java.util.UUID
@@ -27,6 +28,9 @@ import org.robolectric.annotation.Config
  * application context, which stays in the system's language outside any activity --
  * `DownloadQueueScreenWritesTest`'s "stepped down from https" case is the one place this
  * suite can trigger a real failure with no network fake, so it is the one reused here.
+ *
+ * Task 15.9 went further: the record keeps no sentence at all now, so the claim is that it
+ * keeps the reason and that the reason reads in the reader's language when it is drawn.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -61,10 +65,14 @@ class DownloadQueueFailureLanguageTest {
         shadowOf(getMainLooper()).idle()
 
         val reason = (queue.library.value[queue.downloadId(entry.id, source)]?.state as? Download.State.Failed)?.reason
-        val french = CatalogueMessages.describe(context.speakingReaderLanguage(), OpdsError.RefusedAddress)
-        val english = CatalogueMessages.describe(context, OpdsError.RefusedAddress)
 
-        assertEquals(french, reason)
-        assertNotEquals(english, reason)
+        // The record keeps the reason and the screen says it -- `localization` 15.9. Storing
+        // the sentence was the defect: it kept whichever language the app spoke that day, so a
+        // reader who switched afterwards read the old one for ever.
+        assertEquals(DownloadFailure.RefusedAddress.stored, reason)
+        val french = DownloadFailureWords.sentence(context.speakingReaderLanguage(), reason!!)
+        val english = DownloadFailureWords.sentence(context, reason)
+        assertEquals(CatalogueMessages.describe(context.speakingReaderLanguage(), OpdsError.RefusedAddress), french)
+        assertNotEquals(english, french)
     }
 }

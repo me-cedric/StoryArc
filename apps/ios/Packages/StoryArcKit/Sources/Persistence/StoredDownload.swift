@@ -94,7 +94,11 @@ struct StoredDownload: Codable {
 
     private var state: Download.State {
         if isFinished { return .finished }
-        if let failure { return .failed(reason: failure, attempts: attempts) }
+        // Normalised on the way in, which is where `localization` 15.9's migration lives: a
+        // record written by an older build holds a finished English sentence, and
+        // `DownloadFailure` reads anything it does not recognise as `unknown`. The row then
+        // says that the download failed, in the reader's own language, rather than nothing.
+        if let failure { return .failed(reason: DownloadFailure(stored: failure).stored, attempts: attempts) }
         // A spelling this build does not know is not a reason to lose the download. Queued
         // is the honest fallback: the queue asks the connection and the volume on its next
         // pump and writes whichever reason is true now.

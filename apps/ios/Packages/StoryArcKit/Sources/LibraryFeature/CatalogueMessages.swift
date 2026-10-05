@@ -1,68 +1,58 @@
 internal import Foundation
 import OSLog
 internal import Catalogue
+internal import StoryArcCore
 
 private let catalogueMessagesLog = Logger(subsystem: "app.storyarc.catalogue", category: "messages")
 
-/// The malformed-feed sentence, with the parser's own reason sent to the log only.
-private func catalogueMalformedSentence(loggingReason reason: String) -> String {
-    catalogueMessagesLog.error("malformed feed: \(reason, privacy: .public)")
-    return String(localized: "catalogue.error.malformed", bundle: .module, locale: .storyArc)
-}
-
-/// The fixed unreachable sentence, with the underlying transport error sent to the log only.
-private func catalogueUnreachableSentence(loggingUnderlying error: any Error) -> String {
-    catalogueMessagesLog.error("catalogue unreachable: \(error, privacy: .public)")
-    return String(localized: "catalogue.error.unreachable", bundle: .module, locale: .storyArc)
-}
-
-/// What a reader is told when a catalogue does not answer the way it should.
-///
-/// One place, because the same failure can arrive while adding a catalogue and while
-/// browsing it, and two sets of words for one condition is how a bug report ends up
-/// describing something nobody can find.
-///
-/// `opds-catalog` requires the app to say "what it received — an HTML page, a redirect, a
-/// 404 — instead of reporting a generic failure", so each case has its own sentence.
 enum CatalogueMessages {
-    static func describe(_ error: OpdsError) -> String {
+    /// What a catalogue error *is*, as a reason the record can keep.
+    ///
+    /// `localization` 15.9 split this in two: deciding which failure happened, which is here,
+    /// and saying it in words, which is ``DownloadFailureWords``. A download's record holds the
+    /// first and the row draws the second, so a reader who changes language afterwards gets
+    /// their own words rather than the ones the app spoke on the day it failed.
+    static func reason(_ error: OpdsError) -> DownloadFailure {
         switch error {
-        case .unauthorized:
-            String(localized: "catalogue.error.unauthorized", bundle: .module, locale: .storyArc)
-        case .empty:
-            String(localized: "catalogue.error.empty", bundle: .module, locale: .storyArc)
-        case .refusedAddress:
-            String(localized: "catalogue.error.refusedAddress", bundle: .module, locale: .storyArc)
-        case .redirect:
-            String(localized: "catalogue.error.redirect", bundle: .module, locale: .storyArc)
-        case .notAFeed(.html):
-            String(localized: "catalogue.error.html", bundle: .module, locale: .storyArc)
-        case let .notAFeed(.unrecognised(contentType)):
-            String(
-                format: String(localized: "catalogue.error.notAFeed", bundle: .module, locale: .storyArc),
-                contentType ?? String(localized: "catalogue.error.unknownType", bundle: .module, locale: .storyArc)
-            )
+        case .unauthorized: .unauthorized
+        case .empty: .empty
+        case .refusedAddress: .refusedAddress
+        case .redirect: .redirect
+        case .notAFeed(.html): .notAWebPage
+        case let .notAFeed(.unrecognised(contentType)): .notAFeed(contentType)
         case let .malformed(reason):
-            catalogueMalformedSentence(loggingReason: reason)
-        case let .http(status):
-            String(
-                format: String(localized: "catalogue.error.http", bundle: .module, locale: .storyArc),
-                status
-            )
+            // The parser's own words, which are English and are a developer's. Logged rather
+            // than shown, which is why the reader's reason carries no argument.
+            logged(malformed: reason)
+        case let .http(status): .http(status)
         }
     }
 
-    /// A transport failure, said in terms of what the reader can do about it.
-    static func reachability(_ error: any Error) -> String {
+    /// Why a transfer could not reach the server at all, as a reason the record can keep.
+    static func reaching(_ error: any Error) -> DownloadFailure {
         switch (error as? URLError)?.code {
-        case .some(.cannotFindHost), .some(.cannotConnectToHost):
-            String(localized: "catalogue.error.noHost", bundle: .module, locale: .storyArc)
-        case .some(.timedOut):
-            String(localized: "catalogue.error.timedOut", bundle: .module, locale: .storyArc)
-        case .some(.notConnectedToInternet):
-            String(localized: "catalogue.error.offline", bundle: .module, locale: .storyArc)
-        default:
-            catalogueUnreachableSentence(loggingUnderlying: error)
+        case .some(.cannotFindHost), .some(.cannotConnectToHost): .noHost
+        case .some(.timedOut): .timedOut
+        case .some(.notConnectedToInternet): .offline
+        default: logged(unreachable: error)
         }
+    }
+
+    static func describe(_ error: OpdsError) -> String {
+        DownloadFailureWords.sentence(reason(error))
+    }
+
+    static func reachability(_ error: any Error) -> String {
+        DownloadFailureWords.sentence(reaching(error))
+    }
+
+    private static func logged(malformed reason: String) -> DownloadFailure {
+        catalogueMessagesLog.error("malformed feed: \(reason, privacy: .public)")
+        return .malformed
+    }
+
+    private static func logged(unreachable error: any Error) -> DownloadFailure {
+        catalogueMessagesLog.error("catalogue unreachable: \(error, privacy: .public)")
+        return .unreachable
     }
 }

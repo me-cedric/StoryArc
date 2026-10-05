@@ -105,17 +105,22 @@ extension LibraryModel {
     /// download was removed there.
     var keptOffline: Set<String> { Set(DownloadStore().library().downloads.map(\.id)) }
 
-    /// What a selection weighs on disk, for the confirmation that has to state a size.
+    /// What a selection weighs, for the confirmation that has to state a size.
     ///
-    /// Nothing for a publication whose file cannot be measured, rather than a guess: the
-    /// requirement is that a size is *shown*, and an invented one is worse than a short one.
+    /// The file where there is one, and the size the *server* stated where there is not —
+    /// `offline-downloads` 6.4. A catalogue-only member has no file to measure, so a group of
+    /// ten of them was confirmed as weighing nothing and then fetched hundreds of megabytes.
+    ///
+    /// Still nothing for a publication neither the filesystem nor the catalogue can measure,
+    /// rather than a guess: the requirement is that a size is *shown*, and an invented one is
+    /// worse than a short one.
     func bytesOnDisk(of ids: Set<String>) -> Int64 {
         ids.reduce(into: Int64(0)) { total, id in
-            guard let publication = publications.first(where: { $0.id == id }),
-                  let url = location(of: publication),
-                  let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize
-            else { return }
-            total += Int64(size)
+            guard let publication = publications.first(where: { $0.id == id }) else { return }
+            let measured = location(of: publication)
+                .flatMap { try? $0.resourceValues(forKeys: [.fileSizeKey]).fileSize }
+                .map(Int64.init) ?? 0
+            total += measured > 0 ? measured : (publication.fileSize ?? 0)
         }
     }
 

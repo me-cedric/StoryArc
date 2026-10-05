@@ -61,6 +61,21 @@ public struct DownloadLibrary: Sendable, Equatable {
         })
     }
 
+    /// Records what the bytes turned out to be.
+    ///
+    /// `offline-downloads` 1.9: a Kavita chapter is enqueued before its type is known,
+    /// because one route serves comics and books and only the response names which. The
+    /// record is written with an empty media type and corrected here from the file itself,
+    /// so the stem a later lookup computes is the one the bytes were written under.
+    public func typing(_ id: Download.ID, as mediaType: String) -> DownloadLibrary {
+        DownloadLibrary(downloads: downloads.map { each in
+            guard each.id == id else { return each }
+            var changed = each
+            changed.mediaType = mediaType
+            return changed
+        })
+    }
+
     /// Records whether the attempt that just ended carried a transfer on or started it
     /// over. `offline-downloads`' *Resuming after interruption*: a resumed or restarted
     /// download used to look the same on the row, and this is what a row reads to tell

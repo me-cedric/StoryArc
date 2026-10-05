@@ -129,6 +129,22 @@ public actor KavitaClient {
         return identity
     }
 
+    /// The session token, for a request this client is not making itself.
+    ///
+    /// `offline-downloads` 1.9 sends a kept chapter through the app's one download queue, so
+    /// that it streams to disk and the reader gets the row, the pause and the retry every
+    /// other download has. That queue builds its own request and therefore needs the header
+    /// value, and the secure store it would otherwise ask holds the *API key*, which this
+    /// route does not accept. So the token is minted here, once, and handed over.
+    ///
+    /// Still never written down, which is what `kavita-server` asks: the caller holds it for
+    /// the one transfer and the queue drops it when that transfer lands.
+    public func authorization() async throws -> String {
+        if token == nil { _ = try await authenticate() }
+        guard let token else { throw KavitaError.keyRejected }
+        return token
+    }
+
     /// Exchanges the API key for a session token.
     private func authenticate() async throws -> String {
         guard let url = address.endpoint(

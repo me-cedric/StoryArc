@@ -136,13 +136,20 @@ extension DownloadQueue {
     /// The same rule ``OpdsClient`` applies, because this is the same kind of address: one
     /// the catalogue chose. An acquisition href off the source's own origin is fetched
     /// without the credential, and one that steps down to cleartext is not fetched at all.
-    private func attemptRequest(for download: Download) throws -> URLRequest {
+    ///
+    /// A credential handed in at enqueue wins over the resolved one. `offline-downloads` 1.9:
+    /// a Kavita chapter needs the session token its client minted, and the secure store the
+    /// resolver reads holds the API key that mints one rather than the token itself. The
+    /// origin rule is applied to it exactly as it is to a stored credential, so a handover
+    /// cannot send a secret off the source's own origin either.
+    func attemptRequest(for download: Download) throws -> URLRequest {
         guard OpdsOrigin.isFetchable(download.remote) else { throw OpdsError.refusedAddress }
         let home = origin ?? download.sourceID.flatMap(sourceOrigin) ?? OpdsOrigin(url: download.remote)
         if home?.downgrades(download.remote) == true { throw OpdsError.refusedAddress }
 
         var request = URLRequest(url: download.remote)
-        if let credential = credential(download.id), home?.admits(download.remote) == true {
+        if let credential = given[download.id] ?? credential(download.id),
+           home?.admits(download.remote) == true {
             request.setValue(credential.header, forHTTPHeaderField: "Authorization")
         }
         return request
@@ -190,31 +197,17 @@ extension DownloadQueue {
             // fetch is the cheapest way to find out. Exactly one: a second identical
             // result is the server's answer, and asking a third time is asking a question
             // already answered twice.
+            //
+            // The record keeps a reason, not a sentence — `localization` 15.9. A sentence
+            // written here is in the language the app spoke on the day of the failure, and
+            // the row outlives that day; ``DownloadFailureWords`` says it when it is drawn.
             if case let .unsupported(format) = error {
-                fail(
-                    download.id,
-                    reason: String(
-                        format: String(
-                            localized: "catalogue.acquire.unsupported",
-                            bundle: .module,
-                            locale: .storyArc
-                        ),
-                        format
-                    ),
-                    retryable: false
-                )
+                fail(download.id, reason: .unsupportedFormat(format), retryable: false)
             } else {
-                failVerification(
-                    download.id,
-                    reason: String(
-                        localized: "catalogue.acquire.unreadable",
-                        bundle: .module,
-                        locale: .storyArc
-                    )
-                )
+                failVerification(download.id, reason: .unreadable)
             }
         } catch let error as OpdsError {
-            fail(download.id, reason: CatalogueMessages.describe(error), retryable: error.isTransient)
+            fail(download.id, reason: CatalogueMessages.reason(error), retryable: error.isTransient)
         } catch {
             // A cancelled transfer is not a failure and must not be recorded as one. The
             // queue cancels in order to *hold* a download: `holdForConnection()` has already
@@ -226,7 +219,7 @@ extension DownloadQueue {
             // this is where network loss arrives. Without this the bytes the system fetched
             // were thrown away and the retry after the backoff began at zero.
             keepIfResumable(error, for: download)
-            fail(download.id, reason: CatalogueMessages.reachability(error))
+            fail(download.id, reason: CatalogueMessages.reaching(error))
         }
         return nil
     }

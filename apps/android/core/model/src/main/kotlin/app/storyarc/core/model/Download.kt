@@ -27,6 +27,14 @@ data class Download(
     val title: String,
     /** Where it came from, so a failed download can be retried without re-browsing. */
     val remote: String,
+    /**
+     * What the file is, which decides the extension it is written under.
+     *
+     * Empty where the source cannot state it at enqueue: Kavita serves comics and books from
+     * one route and names the type only in the response (`offline-downloads` 1.9). Such a
+     * record is corrected from the bytes as they land, so nothing guesses -- a guess is what
+     * wrote an EPUB under `.cbz` and sent it to the comic reader.
+     */
     val mediaType: String,
     val state: State = State.Queued,
     /**
@@ -203,6 +211,18 @@ data class DownloadLibrary(val downloads: List<Download> = emptyList()) {
                 it.copy(downloadedBytes = downloaded, expectedBytes = expected ?: it.expectedBytes)
             }
         },
+    )
+
+    /**
+     * Records what the bytes turned out to be.
+     *
+     * `offline-downloads` 1.9: a Kavita chapter is enqueued before its type is known, because
+     * one route serves comics and books and only the response names which. The record is
+     * written with an empty media type and corrected here from the file itself, so the stem a
+     * later lookup computes is the one the bytes were written under.
+     */
+    fun typing(id: String, mediaType: String): DownloadLibrary = copy(
+        downloads = downloads.map { if (it.id == id) it.copy(mediaType = mediaType) else it },
     )
 
     /**

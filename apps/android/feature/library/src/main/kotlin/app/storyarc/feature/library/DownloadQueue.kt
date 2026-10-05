@@ -14,10 +14,10 @@ import app.storyarc.core.format.IndexException
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
+import app.storyarc.core.model.DownloadFailure
 import app.storyarc.core.model.DownloadHold
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.MeteredDownload
-import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.StorageHeadroom
 import app.storyarc.core.persistence.DownloadStore
 import java.io.File
@@ -153,10 +153,18 @@ class DownloadQueue(
     private val running = mutableMapOf<String, Job>()
 
     /** Callers waiting for a particular download to land, because they mean to open it. */
-    private val waiting = mutableMapOf<String, MutableList<CompletableDeferred<File?>>>()
+    internal val waiting = mutableMapOf<String, MutableList<CompletableDeferred<File?>>>()
 
-    /** What each queued download is *of*, so a retry has an entry to index against. */
-    private val entries = mutableMapOf<String, OpdsEntry>()
+    /** The series each queued download belongs to, so the indexer can name one. */
+    internal val hints = mutableMapOf<String, String?>()
+
+    /**
+     * A credential handed in at enqueue, for a source whose stored secret is not the
+     * credential -- `offline-downloads` 1.9. Kavita mints a short-lived bearer token from the
+     * reader's API key, and [credential] reads the secure store, which holds the key. In
+     * memory only: a session token written down outlives the session that minted it.
+     */
+    internal val given = mutableMapOf<String, OpdsCredential>()
 
     /**
      * How many transfers run at once.
@@ -249,7 +257,7 @@ class DownloadQueue(
                 expectedBytes = acquisition.length,
             ),
         )
-        entries[id] = entry
+        hints[id] = entry.series
         store?.save(_library.value)
         pump()
     }
@@ -282,7 +290,7 @@ class DownloadQueue(
             // that ask -- without this, [waiter] awaits a transfer nothing is ever going to
             // start.
             if (overridingMeteredConnection) overridden += id
-            entries[id] = entry
+            hints[id] = entry.series
             resume(id)
         } else {
             enqueue(entry, acquisition, overridingMeteredConnection, sourceId)
@@ -350,12 +358,8 @@ class DownloadQueue(
      * Asked of the filesystem: a download the system reclaimed is one the reader should be
      * offered again rather than shown a missing file.
      */
-    fun downloaded(entry: OpdsEntry, sourceId: UUID? = this@DownloadQueue.sourceId): File? {
-        val download = _library.value[downloadId(entry.id, sourceId)]?.takeIf { it.state.isFinished }
-            ?: return null
-        val file = store?.location(download) ?: return null
-        return file.takeIf { it.exists() }
-    }
+    fun downloaded(entry: OpdsEntry, sourceId: UUID? = this@DownloadQueue.sourceId): File? =
+        fileOf(downloadId(entry.id, sourceId))
 
     /**
      * Forgets a download and deletes its file, then looks again because room was freed.
@@ -374,9 +378,6 @@ class DownloadQueue(
         store?.save(_library.value)
         pump()
     }
-
-    private fun extensionOf(mediaType: String): String =
-        PublicationFormat.ofMediaType(mediaType)?.name?.lowercase() ?: "bin"
 
     /**
      * Why the queue is not starting anything, if it is not.
@@ -532,9 +533,9 @@ class DownloadQueue(
         ready.take(maxOf(0, concurrency - running.size)).forEach { download ->
             // No catalogue entry is needed to fetch one: the record carries the address, the
             // media type and the name. An entry enqueued by a previous launch is gone from
-            // `entries`, and a download that only resumes while the app that started it is
+            // `hints`, and a download that only resumes while the app that started it is
             // still alive is not the offline promise `offline-downloads` makes.
-            val seriesHint = entries[download.id]?.series
+            val seriesHint = hints[download.id]
             _library.value = _library.value.marking(download.id, Download.State.Running)
             running[download.id] = scope.launch { transfer(download, seriesHint) }
         }
@@ -596,32 +597,32 @@ class DownloadQueue(
         // Read here rather than inside the block below, and before the first suspension:
         // `DownloadQueueWakingTest` counts these calls to count started transfers, and a
         // credential read after a suspension counts a transfer that has not started yet.
-        val credential = credential(download.id)
+        val credential = given[download.id] ?: credential(download.id)
         // The rule `OpdsClient` applies to a feed, against the record's own source: an
         // address that steps down from that source's `https` is not fetched at all.
         val home = origin ?: download.sourceId?.let(sourceOrigin) ?: OpdsOrigin.of(download.remote)
         if (home?.downgrades(download.remote) == true) throw OpdsError.RefusedAddress
-        val file = store.location(download)
-        withContext(Dispatchers.IO) {
-            store.prepare(file)
+        val partial = store.partial(download)
+        val file = withContext(Dispatchers.IO) {
+            store.prepare(partial)
             // Both callbacks run on this IO thread while the main thread writes the same
             // flow, so they go through `update`. A plain read-then-set here put back a record
             // the main thread had just cancelled, or dropped one it had just queued.
             client.download(
                 download.remote,
                 credential,
-                store.partial(download),
+                partial,
                 // `offline-downloads` wants a reader to see a transfer move, not every
                 // packet relayed to them -- [OpdsClient] already throttles this call.
                 onProgress = { written -> _library.update { it.advancing(download.id, written) } },
                 // Told when the server answers, so the row states it while it is drawn.
                 onAttempt = { attempt -> _library.update { it.recordingAttempt(download.id, attempt) } },
             )
-            Files.move(
-                store.partial(download).toPath(),
-                file.toPath(),
-                StandardCopyOption.REPLACE_EXISTING,
-            )
+            // Named after the transfer, not before it: see [typed].
+            val landed = store.location(typed(download, partial))
+            store.prepare(landed)
+            Files.move(partial.toPath(), landed.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            landed
         }
         // Indexing *is* the verification. `offline-downloads` requires integrity to be
         // checked "before it is marked available offline", and with no checksum from the
@@ -654,12 +655,13 @@ class DownloadQueue(
         // `IOException`: without it a truncated archive threw straight out of this
         // coroutine, and the scope it runs in has a `SupervisorJob` and no handler, so a
         // failed verification took the app down instead of marking the download failed.
+        //
+        // The record keeps a reason, not a sentence -- `localization` 15.9. A sentence written
+        // here is in the language the app spoke on the day of the failure, and the row outlives
+        // that day; [DownloadFailureWords] says it when the row is drawn.
         when (error) {
-            is IndexException.Unsupported -> fail(
-                download.id,
-                context.speakingReaderLanguage().getString(R.string.catalogue_acquire_unsupported, error.format),
-                retryable = false,
-            )
+            is IndexException.Unsupported ->
+                fail(download.id, DownloadFailure.UnsupportedFormat(error.format), retryable = false)
             // The four cases that replaced one `Unreadable(reason)`, answered the way that
             // one branch answered it. Which of them a re-fetch can actually help is a
             // separate question from wording a refusal, and it is not asked here.
@@ -667,27 +669,21 @@ class DownloadQueue(
             is IndexException.FormatNotRecognised,
             is IndexException.ArchivePasswordProtected,
             is IndexException.ArchiveUnreadable,
-            -> failVerification(
-                download.id,
-                context.speakingReaderLanguage().getString(R.string.catalogue_acquire_unreadable),
-            )
+            -> failVerification(download.id, DownloadFailure.Unreadable)
             // **Content protection is not a failed verification either**, and it is not an
             // unsupported format: the bytes are exactly what the server holds, the format
             // is one StoryArc reads, and this particular file is locked. Terminal, and
             // said in its own words — the unsupported message would send a reader looking
             // for a converter, and a re-fetch would download the same locked file again.
-            is IndexException.ContentProtected -> fail(
-                download.id,
-                context.speakingReaderLanguage().getString(R.string.catalogue_acquire_protected),
-                retryable = false,
-            )
+            is IndexException.ContentProtected ->
+                fail(download.id, DownloadFailure.ContentProtected, retryable = false)
         }
         null
     } catch (error: OpdsError) {
-        fail(download.id, CatalogueMessages.describe(context.speakingReaderLanguage(), error), error.isTransient)
+        fail(download.id, CatalogueMessages.reason(error), error.isTransient)
         null
     } catch (error: IOException) {
-        fail(download.id, CatalogueMessages.reachability(context.speakingReaderLanguage(), error))
+        fail(download.id, CatalogueMessages.reaching(error))
         null
     }
 
@@ -700,19 +696,19 @@ class DownloadQueue(
      * it. [DownloadLibrary.failingVerification] decides which of the two this is, and that
      * rule is asserted rather than living here.
      */
-    private fun failVerification(id: String, reason: String) {
-        _library.value = _library.value.failingVerification(id, reason)
+    private fun failVerification(id: String, reason: DownloadFailure) {
+        _library.value = _library.value.failingVerification(id, reason.stored)
         _library.value[id]?.let { download -> store?.remove(download) }
         store?.save(_library.value)
     }
 
-    private fun fail(id: String, reason: String, retryable: Boolean = true) {
+    private fun fail(id: String, reason: DownloadFailure, retryable: Boolean = true) {
         _library.value = if (retryable) {
-            _library.value.failing(id, reason)
+            _library.value.failing(id, reason.stored)
         } else {
             // Marked as though every attempt were spent, so the queue stops asking and the
             // reader sees the reason rather than a spinner that returns twice more.
-            _library.value.marking(id, Download.State.Failed(reason, DownloadLibrary.ATTEMPT_LIMIT))
+            _library.value.marking(id, Download.State.Failed(reason.stored, DownloadLibrary.ATTEMPT_LIMIT))
         }
         _library.value[id]?.let { download ->
             // The bytes go only when nothing is going to ask for the rest of them. Network
