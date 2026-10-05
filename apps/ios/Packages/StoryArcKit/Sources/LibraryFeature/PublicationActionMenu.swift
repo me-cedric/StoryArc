@@ -27,20 +27,25 @@ enum PublicationActions {
     /// the device* fixed the primary menu and left this one still refusing the same row.
     ///
     /// **Every yes here names a route ``LibraryModel/keepOffline(_:)`` can actually take**,
-    /// and it has three: it copies a file this device holds, it queues a Kavita chapter whose
+    /// and it has four: it copies a file this device holds, it copies a share's file in chunks
+    /// through the opener the app registered for `smb`, it queues a Kavita chapter whose
     /// origin the library can resolve, and it reads an OPDS feed again to queue a catalogue
-    /// row. A `smb://` location is a share this app browses rather than a file it holds, and
-    /// `FileManager.copyItem(at:to:)` cannot take one, so `isFileURL` and not the mere
-    /// presence of a location decides the first. A library row built from a browse that never
-    /// opened or kept it draws this exact button, and a tap that does nothing is worse than no
-    /// button at all — which is why a row with no route of the three, a network share or a
-    /// server this build queues nothing for, now says no where it used to say yes to anything
-    /// that merely had no file. Android states the remote half of the rule as its own
-    /// `PublicationActions.isQueueableRemote`.
+    /// row. `FileManager.copyItem(at:to:)` cannot take a `smb://` address, which is why
+    /// `isFileURL` and not the mere presence of a location decides the first and why the share
+    /// is asked for separately. A library row built from a browse that never opened or kept it
+    /// draws this exact button, and a tap that does nothing is worse than no button at all —
+    /// which is why a row with no route of the four says no. Android states the remote half of
+    /// the rule as its own `PublicationActions.isQueueableRemote`.
+    ///
+    /// **A share row said no here until task 7.7**, and that was honest only while
+    /// ``LibraryModel/keepOffline(_:queue:)`` had no road for one: a bulk download quoted a
+    /// count that left every share member out. It has the road now, so the count holds them
+    /// again — ``ShelfBulkActions`` asks this same question to state it.
     @MainActor
     static func canCopy(_ publication: Publication, file: URL?, model: LibraryModel) -> Bool {
         guard canDownload(publication) else { return false }
         if file?.isFileURL == true { return true }
+        if let file, ShareRead.isShare(file) { return true }
         guard let remote = publication.identity.serverIdentifier?.remoteID else { return false }
         if remote.hasPrefix("chapter:") { return model.canKeepKavitaChapter(publication) }
         return remote.hasPrefix("opds:")

@@ -57,7 +57,7 @@ struct ShelfDownloadCountTests {
 
     /// The real rule, not a stub: the three kinds of member the count used to overstate, asked
     /// of ``PublicationActions/canCopy(_:file:model:)`` itself.
-    @Test("A folder of images and a share row are out; an ordinary comic is in")
+    @Test("A folder of images is out; an ordinary comic and a share row are in")
     @MainActor
     func theCountIsWhatOneTapWouldCopy() {
         let model = LibraryModel()
@@ -79,8 +79,27 @@ struct ShelfDownloadCountTests {
         }
 
         #expect(
-            wanted == [comic.id],
+            wanted == [comic.id, share.id],
             "The confirmation states a count the download does not copy."
+        )
+    }
+
+    /// Task 7.7's second half, from the side the first half could not state.
+    ///
+    /// Wave 8 narrowed the stated count to what one tap copies, and a share member was out of
+    /// it because ``LibraryModel/keepOffline(_:queue:)`` had no road for one. It has the
+    /// chunked copy now, so the member belongs in the count again — and this fails if the road
+    /// is taken away without the count being narrowed with it.
+    @Test("A share row is a member a bulk download now copies")
+    @MainActor
+    func aShareMemberIsCounted() {
+        let model = LibraryModel()
+        model.registry = SourceRegistry(sources: [])
+        let address = URL(string: "smb://nas/comics/one.cbz") ?? URL(fileURLWithPath: "/")
+
+        #expect(
+            PublicationActions.canCopy(shareRow(), file: address, model: model),
+            "A share member is skipped silently again — task 7.7's own defect."
         )
     }
 

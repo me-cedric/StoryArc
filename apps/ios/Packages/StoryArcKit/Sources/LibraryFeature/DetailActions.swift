@@ -184,7 +184,7 @@ struct DetailActions: View {
                         Image(systemName: "trash")
                     }
                 }
-            } else if canCopy, file != nil {
+            } else if canCopy, file != nil || shareAddress != nil {
                 Button { copy() } label: {
                     Label {
                         Text("catalogue.acquire.download", bundle: .module)
@@ -230,7 +230,14 @@ struct DetailActions: View {
     /// action a tap cannot carry out is worse shown than left out, which is this file's own
     /// header.
     private var canCopy: Bool {
-        PublicationActions.canCopy(publication, file: file, model: model)
+        PublicationActions.canCopy(publication, file: file ?? shareAddress, model: model)
+    }
+
+    /// This row's share address, when the page resolved one. Task 5.13: ``file`` is `nil` for
+    /// a share row — its bytes are not here — so the copy route has to be asked about the
+    /// address the page is prepared to read from instead.
+    private var shareAddress: URL? {
+        address.flatMap { ShareRead.isShare($0) ? $0 : nil }
     }
 
     private func copy() {
