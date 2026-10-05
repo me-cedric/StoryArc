@@ -170,4 +170,44 @@ struct LibraryRailTests {
         #expect(anchors[ashfall[1].id] == nil, "a row no heading names is scrolled to itself")
         #expect(LibraryRail.anchors(sections: []).isEmpty, "an undivided shelf names no heading")
     }
+
+    /// `21.1-ios`: 27 entries of 22 pt need about 600 pt, more than a landscape shelf offers.
+    /// The collapse is what keeps the rail on screen instead of running off both edges.
+    private func alphabet(_ letters: String) -> [RailEntry] {
+        letters.map { RailEntry(label: String($0), publicationID: String($0)) }
+    }
+
+    @Test("A rail short enough to fit draws every entry")
+    func collapsedKeepsEverythingThatFits() {
+        let entries = alphabet("ABCDEFGHIJ")
+
+        #expect(LibraryRail.collapsed(entries, toFit: 400, entryHeight: 22) == entries)
+    }
+
+    @Test("A rail too tall for its space collapses to an evenly spaced subset")
+    func collapsedThinsAnOverflowingRail() {
+        let entries = alphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ#") // 27, the field case
+
+        let shown = LibraryRail.collapsed(entries, toFit: 300, entryHeight: 22)
+
+        #expect(shown.count <= 13, "300 / 22 fits at most 13 rows")
+        #expect(shown.first == entries.first, "the start of the alphabet is kept")
+        #expect(shown.last == entries.last, "the end of the alphabet is kept")
+        #expect(Set(shown.map(\.id)).count == shown.count, "no letter is offered twice")
+    }
+
+    @Test("A space too short for even one row still offers the first letter")
+    func collapsedNeverOffersNothing() {
+        let entries = alphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ#")
+
+        #expect(LibraryRail.collapsed(entries, toFit: 10, entryHeight: 22) == [entries[0]])
+    }
+
+    @Test("A non-positive height or entry size changes nothing, rather than dividing by it")
+    func collapsedRefusesToDivideByNothing() {
+        let entries = alphabet("ABC")
+
+        #expect(LibraryRail.collapsed(entries, toFit: 0, entryHeight: 22) == entries)
+        #expect(LibraryRail.collapsed(entries, toFit: 100, entryHeight: 0) == entries)
+    }
 }
