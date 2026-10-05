@@ -127,7 +127,7 @@ struct DownloadResumeTests {
         let queue = queue(store)
         queue.keep(Data([1, 2, 3, 4]), for: record.id)
 
-        queue.fail(record.id, reason: "the connection was lost")
+        queue.fail(record.id, reason: .unreachable)
 
         #expect(
             queue.resumption(for: record) != nil,
@@ -144,7 +144,7 @@ struct DownloadResumeTests {
         let queue = queue(store)
         queue.keep(Data([1, 2, 3, 4]), for: record.id)
 
-        queue.fail(record.id, reason: "that is not a publication", retryable: false)
+        queue.fail(record.id, reason: .unsupportedFormat("7-Zip"), retryable: false)
 
         #expect(queue.resumption(for: record) == nil)
     }

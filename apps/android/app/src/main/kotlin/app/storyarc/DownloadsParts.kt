@@ -49,6 +49,7 @@ import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.Publication
+import app.storyarc.feature.library.DownloadFailureWords
 import app.storyarc.feature.library.DownloadQueueProgress
 
 /** The proportions of a comic cover, near enough for every publisher. */
@@ -298,7 +299,9 @@ internal fun DownloadQueueRow(
                 text = pluralStringResource(
                     R.plurals.downloads_failed,
                     state.attempts,
-                    state.reason,
+                    // The stored reason is a code; the words are chosen now, in the language
+                    // the reader has chosen now — `localization` 15.9.
+                    DownloadFailureWords.sentence(LocalContext.current, state.reason),
                     state.attempts,
                 ),
                 style = MaterialTheme.typography.bodySmall,

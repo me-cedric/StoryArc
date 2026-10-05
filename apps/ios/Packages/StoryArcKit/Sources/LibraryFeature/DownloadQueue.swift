@@ -21,7 +21,10 @@ public final class DownloadQueue {
     public internal(set) var library: DownloadLibrary
 
     /// The most recent failure, for a screen that wants to say something about it.
-    public internal(set) var lastFailure: String?
+    ///
+    /// The reason rather than the sentence — `localization` 15.9 — so a screen draws it
+    /// through ``DownloadFailureWords`` in whichever language the reader has chosen now.
+    public internal(set) var lastFailure: DownloadFailure?
 
     let client: OpdsClient
     let store: DownloadStore?

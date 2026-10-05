@@ -3,6 +3,7 @@ package app.storyarc.core.persistence
 import android.content.Context
 import android.content.SharedPreferences
 import app.storyarc.core.model.Download
+import app.storyarc.core.model.DownloadFailure
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.DownloadLibrary
 import java.io.File
@@ -348,7 +349,12 @@ private data class StoredDownload(
             mediaType = mediaType,
             state = when {
                 isFinished -> Download.State.Finished
-                failure != null -> Download.State.Failed(failure, attempts)
+                // Normalised on the way in, which is where `localization` 15.9's migration
+                // lives: a record written by an older build holds a finished English sentence,
+                // and `DownloadFailure` reads anything it does not recognise as `Unknown`. The
+                // row then says that the download failed, in the reader's own language, rather
+                // than nothing.
+                failure != null -> Download.State.Failed(DownloadFailure.of(failure).stored, attempts)
                 paused != null -> Download.State.Paused(paused)
                 else -> Download.State.Queued
             },

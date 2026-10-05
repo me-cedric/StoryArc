@@ -48,7 +48,9 @@ struct DownloadBanner: View {
     private var title: String {
         switch download.state {
         case let .failed(reason, _):
-            reason
+            // The stored reason is a code; the words are chosen now, in the language the
+            // reader has chosen now — `localization` 15.9.
+            DownloadFailureWords.sentence(stored: reason)
         case .paused:
             String(
                 format: String(localized: "downloads.pausedTitle", bundle: .module, locale: .storyArc),

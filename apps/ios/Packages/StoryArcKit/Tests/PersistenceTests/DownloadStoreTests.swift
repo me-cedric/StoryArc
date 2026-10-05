@@ -122,8 +122,19 @@ struct DownloadStoreTests {
     func failureIsDurable() throws {
         // The count is what stops the third attempt from being the first attempt again.
         let store = try fixture().store
+        let reason = DownloadFailure.timedOut.stored
+        store.save(DownloadLibrary().queueing(download("a")).failing("a", reason: reason))
+        #expect(store.library()["a"]?.state == .failed(reason: reason, attempts: 1))
+    }
+
+    @Test("A sentence an older build stored is read as the generic reason")
+    func anOlderBuildsSentenceIsMigrated() throws {
+        // `localization` 15.9's migration. The sentence is in whichever language the app
+        // spoke that day, which is the defect, so it is replaced rather than kept — and the
+        // row says that the download failed rather than saying nothing at all.
+        let store = try fixture().store
         store.save(DownloadLibrary().queueing(download("a")).failing("a", reason: "timed out"))
-        #expect(store.library()["a"]?.state == .failed(reason: "timed out", attempts: 1))
+        #expect(store.library()["a"]?.state == .failed(reason: DownloadFailure.unknown.stored, attempts: 1))
     }
 
     @Test("The directory is made and kept out of backups")

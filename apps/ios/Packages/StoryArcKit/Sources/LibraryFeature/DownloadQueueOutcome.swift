@@ -82,8 +82,8 @@ extension DownloadQueue {
     /// total would count; on the second failure it has to for the same reason ``fail`` has
     /// always removed it. ``DownloadLibrary/failingVerification(_:reason:)`` decides which
     /// of the two this is, and that rule is asserted rather than living here.
-    func failVerification(_ id: Download.ID, reason: String) {
-        library = library.failingVerification(id, reason: reason)
+    func failVerification(_ id: Download.ID, reason: DownloadFailure) {
+        library = library.failingVerification(id, reason: reason.stored)
         if let store, let download = library[id] {
             store.remove(download)
         }
@@ -93,14 +93,14 @@ extension DownloadQueue {
         if case .failed = library[id]?.state { lastFailure = reason }
     }
 
-    func fail(_ id: Download.ID, reason: String, retryable: Bool = true) {
+    func fail(_ id: Download.ID, reason: DownloadFailure, retryable: Bool = true) {
         library = retryable
-            ? library.failing(id, reason: reason)
+            ? library.failing(id, reason: reason.stored)
             // Marked as though every attempt were spent, so the queue stops asking and the
             // reader sees the reason rather than a spinner that returns twice more.
             : library.marking(
                 id,
-                as: .failed(reason: reason, attempts: DownloadLibrary.attemptLimit)
+                as: .failed(reason: reason.stored, attempts: DownloadLibrary.attemptLimit)
             )
         if let store, let download = library[id], !DownloadLibrary.shouldRetry(download) {
             // The whole directory, not the one file: a stem this build did not choose is

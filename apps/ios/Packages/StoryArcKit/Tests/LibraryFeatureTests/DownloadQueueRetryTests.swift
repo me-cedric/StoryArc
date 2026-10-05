@@ -26,7 +26,7 @@ struct DownloadQueueRetryTests {
 
     /// The reason the September sweep's injected record carries, three attempts in.
     private static let failed = Download.State.failed(
-        reason: "The server did not answer in time.",
+        reason: DownloadFailure.timedOut.stored,
         attempts: 3
     )
 

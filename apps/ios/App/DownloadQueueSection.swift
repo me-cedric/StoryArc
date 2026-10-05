@@ -274,7 +274,9 @@ private struct DownloadQueueRow: View {
             // The reason, in the reader's words, and how many times it was tried — the
             // "plain-language reason" half of `offline-downloads`' Failure scenario. The
             // "retry action" half is the button above, which this line used to stand in for.
-            Text("downloads.failed \(reason) \(attempts)")
+            // The stored reason is a code; the words are chosen now, in the language the
+            // reader has chosen now — `localization` 15.9.
+            Text("downloads.failed \(DownloadFailureWords.sentence(stored: reason)) \(attempts)")
                 .textRole(.footnote)
                 .foregroundStyle(StoryArcColor.Status.danger)
         case let .paused(pause):

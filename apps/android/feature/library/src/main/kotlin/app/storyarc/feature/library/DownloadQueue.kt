@@ -14,6 +14,7 @@ import app.storyarc.core.format.IndexException
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
+import app.storyarc.core.model.DownloadFailure
 import app.storyarc.core.model.DownloadHold
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.MeteredDownload
@@ -654,12 +655,13 @@ class DownloadQueue(
         // `IOException`: without it a truncated archive threw straight out of this
         // coroutine, and the scope it runs in has a `SupervisorJob` and no handler, so a
         // failed verification took the app down instead of marking the download failed.
+        //
+        // The record keeps a reason, not a sentence -- `localization` 15.9. A sentence written
+        // here is in the language the app spoke on the day of the failure, and the row outlives
+        // that day; [DownloadFailureWords] says it when the row is drawn.
         when (error) {
-            is IndexException.Unsupported -> fail(
-                download.id,
-                context.speakingReaderLanguage().getString(R.string.catalogue_acquire_unsupported, error.format),
-                retryable = false,
-            )
+            is IndexException.Unsupported ->
+                fail(download.id, DownloadFailure.UnsupportedFormat(error.format), retryable = false)
             // The four cases that replaced one `Unreadable(reason)`, answered the way that
             // one branch answered it. Which of them a re-fetch can actually help is a
             // separate question from wording a refusal, and it is not asked here.
@@ -667,27 +669,21 @@ class DownloadQueue(
             is IndexException.FormatNotRecognised,
             is IndexException.ArchivePasswordProtected,
             is IndexException.ArchiveUnreadable,
-            -> failVerification(
-                download.id,
-                context.speakingReaderLanguage().getString(R.string.catalogue_acquire_unreadable),
-            )
+            -> failVerification(download.id, DownloadFailure.Unreadable)
             // **Content protection is not a failed verification either**, and it is not an
             // unsupported format: the bytes are exactly what the server holds, the format
             // is one StoryArc reads, and this particular file is locked. Terminal, and
             // said in its own words — the unsupported message would send a reader looking
             // for a converter, and a re-fetch would download the same locked file again.
-            is IndexException.ContentProtected -> fail(
-                download.id,
-                context.speakingReaderLanguage().getString(R.string.catalogue_acquire_protected),
-                retryable = false,
-            )
+            is IndexException.ContentProtected ->
+                fail(download.id, DownloadFailure.ContentProtected, retryable = false)
         }
         null
     } catch (error: OpdsError) {
-        fail(download.id, CatalogueMessages.describe(context.speakingReaderLanguage(), error), error.isTransient)
+        fail(download.id, CatalogueMessages.reason(error), error.isTransient)
         null
     } catch (error: IOException) {
-        fail(download.id, CatalogueMessages.reachability(context.speakingReaderLanguage(), error))
+        fail(download.id, CatalogueMessages.reaching(error))
         null
     }
 
@@ -700,19 +696,19 @@ class DownloadQueue(
      * it. [DownloadLibrary.failingVerification] decides which of the two this is, and that
      * rule is asserted rather than living here.
      */
-    private fun failVerification(id: String, reason: String) {
-        _library.value = _library.value.failingVerification(id, reason)
+    private fun failVerification(id: String, reason: DownloadFailure) {
+        _library.value = _library.value.failingVerification(id, reason.stored)
         _library.value[id]?.let { download -> store?.remove(download) }
         store?.save(_library.value)
     }
 
-    private fun fail(id: String, reason: String, retryable: Boolean = true) {
+    private fun fail(id: String, reason: DownloadFailure, retryable: Boolean = true) {
         _library.value = if (retryable) {
-            _library.value.failing(id, reason)
+            _library.value.failing(id, reason.stored)
         } else {
             // Marked as though every attempt were spent, so the queue stops asking and the
             // reader sees the reason rather than a spinner that returns twice more.
-            _library.value.marking(id, Download.State.Failed(reason, DownloadLibrary.ATTEMPT_LIMIT))
+            _library.value.marking(id, Download.State.Failed(reason.stored, DownloadLibrary.ATTEMPT_LIMIT))
         }
         _library.value[id]?.let { download ->
             // The bytes go only when nothing is going to ask for the rest of them. Network

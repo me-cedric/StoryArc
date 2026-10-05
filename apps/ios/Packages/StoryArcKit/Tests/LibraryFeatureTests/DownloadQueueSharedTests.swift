@@ -191,7 +191,8 @@ struct DownloadQueueSharedTests {
 
         #expect(
             queue.library[id]?.state == .failed(
-                reason: CatalogueMessages.describe(.refusedAddress),
+                // The record keeps the reason, not the sentence — `localization` 15.9.
+                reason: DownloadFailure.refusedAddress.stored,
                 attempts: DownloadLibrary.attemptLimit
             ),
             "The queue fetched a book over cleartext from an https catalogue."

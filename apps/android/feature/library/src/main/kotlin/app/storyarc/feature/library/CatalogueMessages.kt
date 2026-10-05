@@ -3,6 +3,7 @@ package app.storyarc.feature.library
 import android.content.Context
 import android.util.Log
 import app.storyarc.core.catalogue.OpdsError
+import app.storyarc.core.model.DownloadFailure
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -21,32 +22,46 @@ private const val TAG = "StoryArcCatalogue"
  */
 internal object CatalogueMessages {
 
-    fun describe(context: Context, error: OpdsError): String = when (error) {
-        is OpdsError.Unauthorized -> context.getString(R.string.catalogue_error_unauthorized)
-        is OpdsError.Empty -> context.getString(R.string.catalogue_error_empty)
-        is OpdsError.RefusedAddress -> context.getString(R.string.catalogue_error_refused_address)
-        is OpdsError.Redirect -> context.getString(R.string.catalogue_error_redirect)
+    /**
+     * What a catalogue error *is*, as a reason the record can keep.
+     *
+     * `localization` 15.9 split this in two: deciding which failure happened, which is here,
+     * and saying it in words, which is [DownloadFailureWords]. A download's record holds the
+     * first and the row draws the second, so a reader who changes language afterwards gets
+     * their own words rather than the ones the app spoke on the day it failed.
+     */
+    fun reason(error: OpdsError): DownloadFailure = when (error) {
+        is OpdsError.Unauthorized -> DownloadFailure.Unauthorized
+        is OpdsError.Empty -> DownloadFailure.Empty
+        is OpdsError.RefusedAddress -> DownloadFailure.RefusedAddress
+        is OpdsError.Redirect -> DownloadFailure.Redirect
         is OpdsError.NotAFeed -> when (val received = error.received) {
-            is OpdsError.Received.Html -> context.getString(R.string.catalogue_error_html)
-            is OpdsError.Received.Unrecognised -> context.getString(
-                R.string.catalogue_error_not_a_feed,
-                received.contentType ?: context.getString(R.string.catalogue_error_unknown_type),
-            )
+            is OpdsError.Received.Html -> DownloadFailure.NotAWebPage
+            is OpdsError.Received.Unrecognised -> DownloadFailure.NotAFeed(received.contentType)
         }
         is OpdsError.Malformed -> {
+            // The parser's own words, which are English and are a developer's. Logged rather
+            // than shown, which is why the reader's reason carries no argument.
             Log.w(TAG, "malformed feed: ${error.reason}")
-            context.getString(R.string.catalogue_error_malformed)
+            DownloadFailure.Malformed
         }
-        is OpdsError.Http -> context.getString(R.string.catalogue_error_http, error.status)
+        is OpdsError.Http -> DownloadFailure.Http(error.status)
     }
 
-    /** A transport failure, said in terms of what the reader can do about it. */
-    fun reachability(context: Context, error: IOException): String = when (error) {
-        is UnknownHostException -> context.getString(R.string.catalogue_error_no_host)
-        is SocketTimeoutException -> context.getString(R.string.catalogue_error_timed_out)
+    /** Why a transfer could not reach the server at all, as a reason the record can keep. */
+    fun reaching(error: IOException): DownloadFailure = when (error) {
+        is UnknownHostException -> DownloadFailure.NoHost
+        is SocketTimeoutException -> DownloadFailure.TimedOut
         else -> {
             Log.w(TAG, "catalogue unreachable", error)
-            context.getString(R.string.catalogue_error_unreachable)
+            DownloadFailure.Unreachable
         }
     }
+
+    fun describe(context: Context, error: OpdsError): String =
+        DownloadFailureWords.sentence(context, reason(error))
+
+    /** A transport failure, said in terms of what the reader can do about it. */
+    fun reachability(context: Context, error: IOException): String =
+        DownloadFailureWords.sentence(context, reaching(error))
 }

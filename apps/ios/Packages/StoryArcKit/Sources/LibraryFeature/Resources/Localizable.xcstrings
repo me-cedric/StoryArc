@@ -2590,6 +2590,36 @@
         }
       }
     },
+    "downloads.failure.unknown": {
+      "comment": "What a failure reason stored by an older build becomes. The sentence it held is in whichever language the app spoke that day, which is the defect localization 15.9 names, so it is dropped rather than shown.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Download ist fehlgeschlagen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The download failed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La descarga falló."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le téléchargement a échoué."
+          }
+        }
+      }
+    },
     "downloads.metered.body %@ %@": {
       "extractionState": "manual",
       "localizations": {
