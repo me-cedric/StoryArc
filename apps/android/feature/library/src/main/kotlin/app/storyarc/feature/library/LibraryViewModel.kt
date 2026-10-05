@@ -1573,16 +1573,15 @@ class LibraryViewModel(
     fun keptOffline(): Set<String> = KeepOffline.kept(downloads)
 
     /** What a set of publications weighs, for the confirmation that has to state a size. */
-    fun bytesOnDisk(ids: Set<String>): Long = KeepOffline.bytesOnDisk(
-        resolver,
-        _publications.value.filter { it.id in ids }.mapNotNull(::location),
-    )
+    fun bytesOnDisk(ids: Set<String>): Long =
+        KeepOffline.bytesOnDisk(resolver, _publications.value.filter { it.id in ids }, ::location)
 
     /** Copies a whole selection into the download store, and reports what it copied. */
     suspend fun keepOffline(selection: Set<String>): Set<String> =
         KeepOffline.keep(
             resolver, downloads, _publications.value, selection, ::location, downloadQueue,
             registry = _registry.value, credentials = credentials,
+            context = getApplication(), kavita = KavitaProgressStore.open(getApplication()),
         )
 
     /** Forgets copies [keepOffline] made, deleting the files with them. */

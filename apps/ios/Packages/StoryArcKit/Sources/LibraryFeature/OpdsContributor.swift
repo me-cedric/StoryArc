@@ -70,7 +70,12 @@ enum OpdsContributor {
             authors: entry.authors,
             summary: entry.summary,
             origin: .authoritative,
-            sourceID: source
+            sourceID: source,
+            // What the feed says it weighs, which for a row with no file on the device is the
+            // only size there is — `offline-downloads` 6.4. A group of catalogue-only members
+            // was confirmed as weighing nothing and then fetched hundreds of megabytes. Nil
+            // where the feed states no length, which is shown as unknown rather than as zero.
+            fileSize: acquisition.length
         )
     }
 }
