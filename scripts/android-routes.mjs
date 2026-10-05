@@ -214,6 +214,20 @@ export const ROUTES = [
     ['Library > filter libraries', [NAMES.library, named('library_filter'), named('library_filter_library')]],
     // Narrowed to one library, with the filter control counting it and *Clear filters* offered.
     ['Library > filtered to one library', [NAMES.library, named('library_filter'), named('library_filter_library'), 'Attic Catalogue', '@back']],
+    // --- D28: share rows catalogued from their own headers ----------------------------
+    //
+    // `SmbContributor` builds a share row from its file name, so the shelf states what the
+    // extension claims until that one file's headers are read. Seed the share and start its
+    // server first: `node scripts/seed-android-sources.mjs --share` and `scripts/smb-server.sh`,
+    // serving a folder whose names lie. The shelf opens narrowed to this device and a share
+    // row is on no device, so it is widened first; `issues` because what this frame is about
+    // is what one *file* turned out to be, not what a series holds.
+    //
+    // *Which library* is deliberately not used to hide the device's own corpus: that group is
+    // drawn only when two sources have each put something on the shelf, and a device holding
+    // one share offers nothing to choose between. Clear the app's data before seeding, and the
+    // share is the only thing on the shelf.
+    ['Library > share rows', [NAMES.library, named('source_on_this_device'), named('library_grouping_chip'), named('library_grouping_issues')]],
     // *Clear filters* is offered in the menu while anything is narrowed, which is where a
     // reader who narrowed the shelf to one library goes to widen it again.
     ['Library > clear filters offered', [NAMES.library, named('library_filter'), named('library_filter_library'), 'Attic Catalogue', '@back', named('library_filter')]],

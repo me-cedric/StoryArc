@@ -131,9 +131,12 @@ extension LibraryModel {
     /// rather than out of the name-only row it was handed.
     func catalogueIfOnShare(_ publication: Publication) async -> Publication {
         guard let found = await ShareCatalogue.catalogued(publication) else { return publication }
-        if let seen = publications.firstIndex(where: { $0.id == found.id }) {
-            publications[seen] = found
-        }
+        guard let seen = publications.firstIndex(where: { $0.id == found.id }) else { return found }
+        publications[seen] = found
+        // The shelf draws from ``visible``, not from ``publications`` — without this the row
+        // keeps the format and the streaming state its file name implied until the next
+        // rearrange. Android's twin calls its own `rebuild()` for the same reason.
+        rebuild()
         return found
     }
 }
