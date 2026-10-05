@@ -20,6 +20,7 @@
     <string name="source_state_unauthorized">Anmeldung erforderlich</string>
     <string name="library_cell_cannot_open">Dieser Comic verwendet durchgehende Komprimierung, die StoryArc nicht öffnen kann.</string>
     <string name="library_cannot_open_cb7">Dies ist eine CB7-Datei, die StoryArc nicht liest. StoryArc liest CBZ, CBR, CBT, EPUB, PDF, M4B und andere Hörbücher.</string>
+    <string name="library_action_open">Öffnen</string>
     <string name="library_action_show_details">Details anzeigen</string>
     <string name="library_action_remove_from_shelf">Von diesem Regal entfernen</string>
     <string name="library_cell_finished">Gelesen</string>

@@ -69,6 +69,7 @@ private fun SearchDestination(host: AppHost) {
         pins = host.dependencies.pins,
         onOpenPage = host.openPage,
         onFollowToSource = { source, term -> host.browse(source, term) },
+        onMark = host::mark,
         // The same three sheets `LibraryDestination` passes, from the same host.
         // `navigation-shell` asks the search page's empty state for "the same way of adding a
         // source that the library's own empty state offers", and the library's offers five —

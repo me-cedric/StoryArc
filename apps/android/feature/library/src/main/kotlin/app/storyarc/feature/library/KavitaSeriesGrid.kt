@@ -1,8 +1,9 @@
 package app.storyarc.feature.library
 
 import android.graphics.BitmapFactory
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -44,6 +47,7 @@ import app.storyarc.core.kavita.KavitaSeries
  * would satisfy the words and none of the point: a comic library is recognised by its
  * covers, and a reader scanning for one is looking at pictures.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun KavitaSeriesCell(series: KavitaSeries, client: KavitaClient, onOpen: () -> Unit) {
     val palette = LocalStoryArcPalette.current
@@ -62,11 +66,16 @@ fun KavitaSeriesCell(series: KavitaSeries, client: KavitaClient, onOpen: () -> U
     val spoken = percent
         ?.let { "${series.name}, " + stringResource(R.string.library_cell_progress, it) }
         ?: series.name
+    // `library-browsing`'s *A publication's actions wherever it is drawn* named the Kavita
+    // browser as one of the places a long press offered nothing at all. A series not yet on
+    // the device is not a `Publication` -- it has no read state, no download, nowhere to
+    // shelve it -- so the one action that already applies is the one the tap already takes.
+    var menuOpen by remember { mutableStateOf(false) }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
         modifier = Modifier
-            .clickable(onClick = onOpen)
+            .combinedClickable(onClick = onOpen, onLongClick = { menuOpen = true })
             .semantics(mergeDescendants = true) { contentDescription = spoken },
     ) {
         Surface(
@@ -109,6 +118,16 @@ fun KavitaSeriesCell(series: KavitaSeries, client: KavitaClient, onOpen: () -> U
             LinearProgressIndicator(
                 progress = { read.toFloat() },
                 modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.library_action_open)) },
+                onClick = {
+                    menuOpen = false
+                    onOpen()
+                },
             )
         }
     }

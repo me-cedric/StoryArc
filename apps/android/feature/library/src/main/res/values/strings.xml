@@ -23,6 +23,7 @@
     <string name="source_state_unauthorized">Sign-in needed</string>
     <string name="library_cell_cannot_open">This comic uses solid compression, which StoryArc cannot open.</string>
     <string name="library_cannot_open_cb7">This is a CB7 file, which StoryArc does not read. It reads CBZ, CBR, CBT, EPUB, PDF, M4B and other audiobooks.</string>
+    <string name="library_action_open">Open</string>
     <string name="library_action_show_details">Show details</string>
     <string name="library_action_remove_from_shelf">Remove from this shelf</string>
     <string name="library_cell_finished">Finished</string>

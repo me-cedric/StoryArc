@@ -95,11 +95,17 @@ fun CollectionDetailScreen(
 
     // Whether the reader is choosing which cover this collection wears.
     var isChoosingCover by remember { mutableStateOf(false) }
-    // The publication a long press on a member opened the sheet for. `library-browsing`'s
-    // *A publication's actions wherever it is drawn* named this screen as one of the places
-    // that offered none at all.
-    var shelving by remember { mutableStateOf<Publication?>(null) }
     var restarting by remember { mutableStateOf<Publication?>(null) }
+
+    // `library-browsing`'s *A publication's actions wherever it is drawn* named this screen
+    // as one of the places that offered none at all. A member can leave the collection it is
+    // showing in, which is the one row the library grid never offers.
+    val publicationActions = PublicationActionCallbacks(
+        onMark = onMark,
+        onRestart = { restarting = it },
+        onShowDetails = onOpen,
+        onRemoveFromShelf = { viewModel.removeFromCollection(setOf(it.id), id) },
+    )
 
     Scaffold(
         containerColor = palette.surfaceCanvas,
@@ -152,7 +158,7 @@ fun CollectionDetailScreen(
                     viewModel = viewModel,
                     continueReading = emptyList(),
                     onOpen = onOpen,
-                    onAddToShelf = { shelving = it },
+                    actions = publicationActions,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -164,19 +170,6 @@ fun CollectionDetailScreen(
             viewModel = viewModel,
             subject = ShelfCoverSubject.OfCollection(collection),
             onDismiss = { isChoosingCover = false },
-        )
-    }
-
-    val shelved = shelving
-    if (shelved != null) {
-        AddToShelfSheet(
-            viewModel = viewModel,
-            publications = listOf(shelved),
-            onDismiss = { shelving = null },
-            onMark = { changing, isRead -> changing.forEach { onMark(it, isRead) } },
-            onRestart = { restarting = shelved },
-            onRemoveFromShelf = { viewModel.removeFromCollection(setOf(shelved.id), id) },
-            onShowDetails = { onOpen(shelved) },
         )
     }
 
@@ -277,10 +270,6 @@ fun ReadingListDetailScreen(
     var undo by remember { mutableStateOf<BulkUndo?>(null) }
     BulkUndoEffect(undo, snackbars, viewModel, publications, onMark, promoter) { undo = null }
 
-    // The entry a long press on a row opened the sheet for. `library-browsing`'s *A
-    // publication's actions wherever it is drawn* named this screen too, and a reading
-    // list's own row had none at all -- only the arrows and the swipe already here.
-    var shelving by remember { mutableStateOf<Publication?>(null) }
     var restarting by remember { mutableStateOf<Publication?>(null) }
     // Whether the reader is choosing which cover this list wears. Task 7.13.
     var isChoosingCover by remember { mutableStateOf(false) }
@@ -391,7 +380,8 @@ fun ReadingListDetailScreen(
                         canMoveDown = order.allowsReordering && index + 1 < shown.size,
                         isReorderable = order.allowsReordering,
                         onOpen = { publication?.let(onOpen) },
-                        onLongOpen = publication?.let { { shelving = it } },
+                        onMark = onMark,
+                        onRestart = { restarting = it },
                         onUp = { viewModel.moveInList(entry, index - 1, id) },
                         onDown = { viewModel.moveInList(entry, index + 2, id) },
                         onRemove = { viewModel.removeFromList(entry, id) },
@@ -406,19 +396,6 @@ fun ReadingListDetailScreen(
             viewModel = viewModel,
             subject = ShelfCoverSubject.OfList(list),
             onDismiss = { isChoosingCover = false },
-        )
-    }
-
-    val shelved = shelving
-    if (shelved != null) {
-        AddToShelfSheet(
-            viewModel = viewModel,
-            publications = listOf(shelved),
-            onDismiss = { shelving = null },
-            onMark = { changing, isRead -> changing.forEach { onMark(it, isRead) } },
-            onRestart = { restarting = shelved },
-            onRemoveFromShelf = { viewModel.removeFromList(shelved.id, id) },
-            onShowDetails = { onOpen(shelved) },
         )
     }
 
@@ -466,9 +443,10 @@ private fun EntryRow(
     canMoveDown: Boolean,
     isReorderable: Boolean,
     onOpen: () -> Unit,
-    /** Opens the same action sheet every other cell offers. `null` where [publication] is
-     * null: an entry the library holds no publication for has nothing a menu could act on. */
-    onLongOpen: (() -> Unit)? = null,
+    /** Marks a publication read. The app layer owns the secrets the server may need. */
+    onMark: (Publication, Boolean) -> Unit,
+    /** Opens the confirmation `reading-progress` requires before clearing progress. */
+    onRestart: (Publication) -> Unit,
     onUp: () -> Unit,
     onDown: () -> Unit,
     onRemove: () -> Unit,
@@ -476,6 +454,18 @@ private fun EntryRow(
     val palette = LocalStoryArcPalette.current
     val title = publication?.displayTitle ?: entry
     val isAvailable = publication != null
+
+    // The same menu every other cell offers. Null where [publication] is null: an entry the
+    // library holds no publication for has nothing a menu could act on.
+    val actions = publication?.let {
+        PublicationActionCallbacks(
+            onMark = onMark,
+            onRestart = onRestart,
+            onShowDetails = { onOpen() },
+            onRemoveFromShelf = { onRemove() },
+        )
+    }
+    var menuTarget by remember { mutableStateOf<Publication?>(null) }
 
     // `collections-and-reading-lists`' delta: "each entry shows the publication's own cover
     // beside its position in the list" -- the same fetch `ShelfCover` already makes for the
@@ -514,7 +504,7 @@ private fun EntryRow(
             .combinedClickable(
                 enabled = isAvailable,
                 onClick = onOpen,
-                onLongClick = onLongOpen,
+                onLongClick = if (actions != null) { { menuTarget = publication } } else null,
             )
             .defaultMinSize(minHeight = 48.dp)
             // The row's own merged label: its place in the list, its title and its read
@@ -592,6 +582,16 @@ private fun EntryRow(
                 Icons.Filled.Close,
                 contentDescription = stringResource(R.string.shelves_remove_entry, title),
                 tint = palette.textSecondary,
+            )
+        }
+
+        if (actions != null) {
+            PublicationActionMenuTarget(
+                target = menuTarget,
+                viewModel = viewModel,
+                actions = actions,
+                onDismiss = { menuTarget = null },
+                onOpen = { onOpen() },
             )
         }
     }

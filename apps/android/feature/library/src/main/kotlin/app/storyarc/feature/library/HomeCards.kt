@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -388,11 +389,19 @@ internal fun HomeKeepReadingCard(
  * "overwhelming or distracting" the Expressive guidance warns about, and the failure mode
  * that turns a reading room back into a file manager.
  */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 internal fun HomeShelfCell(
     entry: HomeEntry,
     cover: suspend (Publication, Int) -> Bitmap?,
     width: Dp,
+    onOpen: (Publication) -> Unit,
+    /**
+     * A long press opens [PublicationActionMenu] built from these. Null where there is
+     * nowhere to send any of them -- the cell then draws no menu at all.
+     */
+    actions: HomePublicationActions? = null,
+    facts: (Publication) -> PublicationActionFacts = { PublicationActionFacts.NONE },
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -401,9 +410,18 @@ internal fun HomeShelfCell(
         animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
         label = "home-cell-dim",
     )
+    var menuTarget by remember { mutableStateOf<Publication?>(null) }
 
     Column(
-        modifier = modifier.width(width),
+        modifier = modifier
+            .width(width)
+            // `library-browsing`'s *A publication's actions wherever it is drawn*: the
+            // owner's field report on v0.1.1 named "only the library grid", and the home
+            // surface's plain shelves were one of the places it was entirely missing.
+            .combinedClickable(
+                onClick = { onOpen(entry.publication) },
+                onLongClick = { if (actions != null) menuTarget = entry.publication },
+            ),
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
     ) {
         Box(modifier = Modifier.fillMaxWidth().height(width * HOME_COVER_ASPECT)) {
@@ -438,6 +456,35 @@ internal fun HomeShelfCell(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+
+        if (actions != null) {
+            val target = menuTarget
+            if (target != null) {
+                val facts = facts(target)
+                PublicationActionMenu(
+                    expanded = true,
+                    onDismissRequest = { menuTarget = null },
+                    markedFinished = facts.isFinished,
+                    offersRestart = facts.offersRestart,
+                    downloadOffer = facts.downloadOffer,
+                    offersRemoveFromShelf = false,
+                    onOpen = { onOpen(target) },
+                    onMark = { read -> actions.onMark(target, read) },
+                    onRestart = { actions.onRestart(target) },
+                    // This menu holds no sheet of its own behind this row -- `home-screen`
+                    // forbids it the view model that sheet needs -- so, unlike the grid's
+                    // menu, this dismisses itself here rather than waiting for one to close.
+                    onAddToShelf = {
+                        menuTarget = null
+                        actions.onAddToShelf(target)
+                    },
+                    onDownload = { actions.onDownload(target) },
+                    onRemoveDownload = { actions.onRemoveDownload(target) },
+                    onRemoveFromShelf = {},
+                    onShowDetails = { (actions.onShowDetails ?: onOpen)(target) },
+                )
+            }
         }
     }
 }

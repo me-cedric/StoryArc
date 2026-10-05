@@ -1,9 +1,7 @@
 package app.storyarc.feature.library
 
 import android.graphics.Bitmap
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -33,6 +31,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.carousel.HorizontalUncontainedCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -58,6 +60,48 @@ import app.storyarc.core.model.RememberedShelf
  * app layer, which owns the library's query; this only says which shelf was chosen.
  */
 enum class HomeSection { KEEP_READING, UP_NEXT, RECENTLY_ADDED, FINISHED }
+
+/**
+ * The three facts [PublicationActionMenu]'s gating asks, for a publication on one of the
+ * home surface's plain shelves.
+ *
+ * `home-screen` forbids this screen from holding a view model -- see [HomeScreen]'s own
+ * `onLongPress` history -- so these arrive as plain values, the same way [HomeEntry] already
+ * carries [HomeEntry.isReadableNow] rather than a reference this screen could ask itself.
+ * Computed by whoever does hold one; [NONE] is the answer for a publication nothing is
+ * wired to ask about, which draws the menu's narrowest shape rather than its widest.
+ */
+data class PublicationActionFacts(
+    val isFinished: Boolean,
+    val offersRestart: Boolean,
+    val downloadOffer: DownloadOffer,
+) {
+    companion object {
+        val NONE = PublicationActionFacts(
+            isFinished = false,
+            offersRestart = false,
+            downloadOffer = DownloadOffer.None,
+        )
+    }
+}
+
+/**
+ * What a long press on a plain-shelf cover does, each the app layer's business: it holds the
+ * view model and the secrets a mark, a restart confirmation or a download may need.
+ *
+ * `onAddToShelf` opens the same sheet a long press opened before this menu existed, the way
+ * the app layer's `HomeDestination` already does for the one action this screen cannot
+ * perform on its own -- there is no second implementation of it.
+ */
+data class HomePublicationActions(
+    val onMark: (Publication, Boolean) -> Unit,
+    val onRestart: (Publication) -> Unit,
+    val onAddToShelf: (Publication) -> Unit,
+    val onDownload: (Publication) -> Unit,
+    val onRemoveDownload: (Publication) -> Unit,
+    /** The publication's own page. Defaults to the cell's own tap target. */
+    val onShowDetails: ((Publication) -> Unit)? = null,
+)
 
 /**
  * The reading room.
@@ -160,7 +204,16 @@ fun HomeScreen(
      * the Keep reading hero: that card already carries Resume and Finish as its own two
      * affordances, and a third one buried in a long press is not what a hero is for.
      */
-    onLongPress: (Publication) -> Unit = {},
+    /**
+     * A cover in one of the plain shelves (up next, a pin, finished) was held.
+     *
+     * `library-browsing`'s *A publication's actions wherever it is drawn* names the home
+     * surface as one of the places the long press did nothing. Null draws no menu at all --
+     * the Keep reading hero still takes none, which [HomeCoverRun] never draws it inside.
+     */
+    actions: HomePublicationActions? = null,
+    /** The three facts the menu's gating asks, computed by whoever holds the view model. */
+    facts: (Publication) -> PublicationActionFacts = { PublicationActionFacts.NONE },
 ) {
     val palette = LocalStoryArcPalette.current
     // The flexible bar, not the small one all twelve of the app's other bars use. Its large
@@ -239,7 +292,8 @@ fun HomeScreen(
                 cover = cover,
                 onOpen = onOpen,
                 onShowAll = onShowAll,
-                onLongPress = onLongPress,
+                actions = actions,
+                facts = facts,
             )
 
             shelf(
@@ -249,7 +303,8 @@ fun HomeScreen(
                 cover = cover,
                 onOpen = onOpen,
                 onShowAll = onShowAll,
-                onLongPress = onLongPress,
+                actions = actions,
+                facts = facts,
             )
 
             // The index before the expansions: these two name every shelf the reader has, and
@@ -273,9 +328,9 @@ fun HomeScreen(
                 onShowAll = onShowAllShelves,
             )
 
-            pinnedShelves(surface, cover, onOpen, onLongPress)
+            pinnedShelves(surface, cover, onOpen, actions, facts)
 
-            finished(surface, cover, onOpen, onShowAll, onLongPress)
+            finished(surface, cover, onOpen, onShowAll, actions, facts)
         }
     }
 }
@@ -388,11 +443,14 @@ private fun LazyListScope.shelf(
     cover: suspend (Publication, Int) -> Bitmap?,
     onOpen: (Publication) -> Unit,
     onShowAll: (HomeSection) -> Unit,
-    onLongPress: (Publication) -> Unit = {},
+    actions: HomePublicationActions? = null,
+    facts: (Publication) -> PublicationActionFacts = { PublicationActionFacts.NONE },
 ) {
     if (entries.isEmpty()) return
     item { HomeHeading(heading) { onShowAll(section) } }
-    item { HomeCoverRun(entries = entries, cover = cover, onOpen = onOpen, onLongPress = onLongPress) }
+    item {
+        HomeCoverRun(entries = entries, cover = cover, onOpen = onOpen, actions = actions, facts = facts)
+    }
 }
 
 /**
@@ -415,13 +473,20 @@ private fun LazyListScope.pinnedShelves(
     surface: HomeSurface,
     cover: suspend (Publication, Int) -> Bitmap?,
     onOpen: (Publication) -> Unit,
-    onLongPress: (Publication) -> Unit = {},
+    actions: HomePublicationActions? = null,
+    facts: (Publication) -> PublicationActionFacts = { PublicationActionFacts.NONE },
 ) {
     surface.pinned.forEach { shelf ->
         item(key = "pinned-${shelf.pin.token}") {
             Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
                 HomeShelfName(shelf.name)
-                HomeCoverRun(entries = shelf.entries, cover = cover, onOpen = onOpen, onLongPress = onLongPress)
+                HomeCoverRun(
+                    entries = shelf.entries,
+                    cover = cover,
+                    onOpen = onOpen,
+                    actions = actions,
+                    facts = facts,
+                )
             }
         }
     }
@@ -459,7 +524,8 @@ private fun LazyListScope.finished(
     cover: suspend (Publication, Int) -> Bitmap?,
     onOpen: (Publication) -> Unit,
     onShowAll: (HomeSection) -> Unit,
-    onLongPress: (Publication) -> Unit = {},
+    actions: HomePublicationActions? = null,
+    facts: (Publication) -> PublicationActionFacts = { PublicationActionFacts.NONE },
 ) {
     if (surface.finished.isEmpty()) return
     item { HomeHeading(R.string.home_finished) { onShowAll(HomeSection.FINISHED) } }
@@ -467,7 +533,13 @@ private fun LazyListScope.finished(
         item(key = "finished-${group.period}") {
             Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
                 HomePeriodLabel(group.period)
-                HomeCoverRun(entries = group.entries, cover = cover, onOpen = onOpen, onLongPress = onLongPress)
+                HomeCoverRun(
+                    entries = group.entries,
+                    cover = cover,
+                    onOpen = onOpen,
+                    actions = actions,
+                    facts = facts,
+                )
             }
         }
     }
@@ -526,13 +598,20 @@ private fun HomePeriodLabel(period: HomeFinishedPeriod) {
 }
 
 /** A run of covers at the size the window can afford. */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HomeCoverRun(
     entries: List<HomeEntry>,
     cover: suspend (Publication, Int) -> Bitmap?,
     onOpen: (Publication) -> Unit,
-    onLongPress: (Publication) -> Unit = {},
+    /**
+     * A cover in one of the plain shelves (up next, a pin, finished) was held.
+     *
+     * `library-browsing`'s *A publication's actions wherever it is drawn* names the home
+     * surface as one of the places the long press did nothing. Null draws no menu at all.
+     */
+    actions: HomePublicationActions? = null,
+    /** The three facts the menu's gating asks, computed by whoever holds the view model. */
+    facts: (Publication) -> PublicationActionFacts = { PublicationActionFacts.NONE },
 ) {
     val width = homeShelfCoverWidth(homeWindowWidthDp(), LocalDensity.current.fontScale)
     LazyRow(
@@ -546,16 +625,10 @@ private fun HomeCoverRun(
                 entry = entry,
                 cover = cover,
                 width = width,
-                modifier = Modifier
-                    // `library-browsing`'s *A publication's actions wherever it is drawn*:
-                    // the owner's field report on v0.1.1 named "only the library grid",
-                    // and the home surface's plain shelves were one of the places it was
-                    // entirely missing.
-                    .combinedClickable(
-                        onClick = { onOpen(entry.publication) },
-                        onLongClick = { onLongPress(entry.publication) },
-                    )
-                    .homeCardSemantics(entry, label),
+                onOpen = onOpen,
+                actions = actions,
+                facts = facts,
+                modifier = Modifier.homeCardSemantics(entry, label),
             )
         }
     }

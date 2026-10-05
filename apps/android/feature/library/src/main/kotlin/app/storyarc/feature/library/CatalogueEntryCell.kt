@@ -157,6 +157,16 @@ internal fun CatalogueEntryCell(
         )
 
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            // `library-browsing`'s *A publication's actions wherever it is drawn* named the
+            // OPDS browser as one of the places the menu had no explicit way to do what the
+            // tap already does -- see `KavitaSeriesCell`'s own note on the same point.
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.library_action_open)) },
+                onClick = {
+                    menu = false
+                    onSelect()
+                },
+            )
             if (isDownloaded) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.downloads_remove)) },
