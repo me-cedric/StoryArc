@@ -23,6 +23,8 @@ struct DetailCoverChoice: View {
     let model: LibraryModel
     let cover: CGImage?
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     @State private var isChoosing = false
     @State private var picked: PhotosPickerItem?
     @State private var hasChosenCover = false
@@ -51,25 +53,15 @@ struct DetailCoverChoice: View {
     @ViewBuilder
     private var controls: some View {
         VStack(spacing: StoryArcSpace.hair) {
-            HStack(spacing: StoryArcSpace.md) {
-                // Said in words as well as offered on the well itself. A well that is
-                // silently tappable is a well that nobody taps: `design.md` rule 2 asks for a
-                // label beside anything a reader has to notice, and the glyph alone says only
-                // "no artwork".
-                Button { isChoosing = true } label: {
-                    Label {
-                        Text(cover == nil ? "cover.choose" : "cover.change", bundle: .module)
-                    } icon: {
-                        Image(systemName: "photo")
-                    }
-                }
-                if hasChosenCover {
-                    Button(role: .destructive) {
-                        model.removeChosenCover(for: publication)
-                        hasChosenCover = false
-                    } label: {
-                        Text("cover.remove", bundle: .module)
-                    }
+            // Side by side until the text stops fitting, then stacked. `design.md` §3 rule 3
+            // asks every screen to survive the largest accessibility size, and two labels in
+            // a row at that size wrap into each other — `ios-detail-chosen-cover-ax5-dark.png`
+            // photographed *Cha nge cov er* across *Remove cover* before this split existed.
+            Group {
+                if typeSize.isAccessibilitySize {
+                    VStack(spacing: StoryArcSpace.xs) { buttons }
+                } else {
+                    HStack(spacing: StoryArcSpace.md) { buttons }
                 }
             }
             .textRole(.subheadline)
@@ -93,6 +85,29 @@ struct DetailCoverChoice: View {
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// The two controls themselves, so one copy serves both the row and the stack.
+    @ViewBuilder
+    private var buttons: some View {
+        // Said in words as well as offered on the well itself. A well that is silently
+        // tappable is a well that nobody taps: `design.md` rule 2 asks for a label beside
+        // anything a reader has to notice, and the glyph alone says only "no artwork".
+        Button { isChoosing = true } label: {
+            Label {
+                Text(cover == nil ? "cover.choose" : "cover.change", bundle: .module)
+            } icon: {
+                Image(systemName: "photo")
+            }
+        }
+        if hasChosenCover {
+            Button(role: .destructive) {
+                model.removeChosenCover(for: publication)
+                hasChosenCover = false
+            } label: {
+                Text("cover.remove", bundle: .module)
+            }
+        }
     }
 
     /// Takes the picture the reader chose and makes it this publication's cover.
