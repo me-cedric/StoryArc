@@ -42,6 +42,10 @@ enum KavitaMessage {
             )
         case .badAddress, .unexpectedResponse:
             return String(localized: "kavita.error.notKavita", bundle: .module, locale: .storyArc)
+        // The reader chose a picture the client will not send. The only action either case
+        // leaves them is to choose another, so both say so in one sentence.
+        case .imageTooLarge, .imageRejected:
+            return String(localized: "kavita.error.coverRefused", bundle: .module, locale: .storyArc)
         // Any other status is the server being unwell rather than the reader being wrong,
         // and `sources` makes that a grey state with an offer to try again.
         case .http:

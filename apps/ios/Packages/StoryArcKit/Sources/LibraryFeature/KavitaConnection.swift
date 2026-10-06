@@ -135,6 +135,10 @@ public final class KavitaConnection {
             String(localized: "kavita.error.notAnAddress", bundle: .module, locale: .storyArc)
         case .unexpectedResponse:
             String(localized: "kavita.error.notKavita", bundle: .module, locale: .storyArc)
+        // The reader chose a picture the client will not send. The only action either case
+        // leaves them is to choose another, so both say so in one sentence.
+        case .imageTooLarge, .imageRejected:
+            String(localized: "kavita.error.coverRefused", bundle: .module, locale: .storyArc)
         case let .http(status):
             String(
                 format: String(localized: "catalogue.error.http", bundle: .module, locale: .storyArc),

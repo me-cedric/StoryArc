@@ -68,6 +68,15 @@ public struct AppSettings: Sendable, Equatable, Codable {
     /// "its progress is kept, and the removal is undoable for 10 seconds".
     public var removeDownloadsAfterFinishing: Bool
 
+    /// Whether the app may ask an open catalogue for a cover it has no other way to find.
+    ///
+    /// False until a reader turns it on, and the default is the requirement rather than a
+    /// taste: `cover-art` says the app "SHALL NOT request a cover from any third party until
+    /// a reader turns the lookup on", and AGENTS.md non-negotiable 2 says data leaves the
+    /// device only to sources the user configured. ``CoverLookupProvider`` names the three
+    /// that would be asked.
+    public var lookUpMissingCovers: Bool
+
     public init(
         appearance: AppearanceMode = .system,
         language: String? = nil,
@@ -77,7 +86,8 @@ public struct AppSettings: Sendable, Equatable, Codable {
         darkReadingTheme: ThemePreset = .quiet,
         downloadOverWifiOnly: Bool = false,
         maximumDownloadBytes: Int64? = nil,
-        removeDownloadsAfterFinishing: Bool = false
+        removeDownloadsAfterFinishing: Bool = false,
+        lookUpMissingCovers: Bool = false
     ) {
         self.appearance = appearance
         self.language = language
@@ -88,6 +98,7 @@ public struct AppSettings: Sendable, Equatable, Codable {
         self.downloadOverWifiOnly = downloadOverWifiOnly
         self.maximumDownloadBytes = maximumDownloadBytes
         self.removeDownloadsAfterFinishing = removeDownloadsAfterFinishing
+        self.lookUpMissingCovers = lookUpMissingCovers
     }
 
     /// Decodes what is there and defaults what is not.
@@ -121,6 +132,11 @@ public struct AppSettings: Sendable, Equatable, Codable {
             ),
             removeDownloadsAfterFinishing: try container.decodeIfPresent(
                 Bool.self, forKey: .removeDownloadsAfterFinishing
+            ) ?? false,
+            // Absent means off, which is the same answer a reader who has never opened the
+            // setting gives. An older file must never read as consent.
+            lookUpMissingCovers: try container.decodeIfPresent(
+                Bool.self, forKey: .lookUpMissingCovers
             ) ?? false
         )
     }

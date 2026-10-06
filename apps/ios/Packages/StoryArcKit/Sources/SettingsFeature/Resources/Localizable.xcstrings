@@ -959,6 +959,93 @@
         }
       }
     },
+    "covers.lookup": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fehlende Cover nachschlagen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Look up missing covers"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar portadas que faltan"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechercher les couvertures manquantes"
+          }
+        }
+      }
+    },
+    "covers.lookup.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus, bis Sie es einschalten. StoryArc sendet dann eine einzige Kennung für eine Publikation ohne Cover — eine ISBN, eine MusicBrainz-Kennung oder eine ASIN — und sonst nichts. Keine Bibliotheksliste, keinen Leseverlauf, keine Gerätekennung."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off until you turn it on. StoryArc then sends one identifier for a publication with no cover — an ISBN, a MusicBrainz id or an ASIN — and nothing else. No library listing, no reading history, no device identifier."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desactivado hasta que lo active. StoryArc envía entonces un solo identificador para una publicación sin portada — un ISBN, un identificador MusicBrainz o un ASIN — y nada más. Ninguna lista de biblioteca, ningún historial de lectura, ningún identificador de dispositivo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactivé tant que vous ne l'activez pas. StoryArc envoie alors un seul identifiant pour une publication sans couverture — un ISBN, un identifiant MusicBrainz ou un ASIN — et rien d'autre. Aucune liste de bibliothèque, aucun historique de lecture, aucun identifiant d'appareil."
+          }
+        }
+      }
+    },
+    "covers.lookup.providers %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fragt: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asks: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consulta: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interroge : %@"
+          }
+        }
+      }
+    },
     "downloads.cancel": {
       "extractionState": "manual",
       "localizations": {
@@ -4085,6 +4172,35 @@
         }
       }
     },
+    "sources.add.catalogue": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online-Bibliothek"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online library"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Biblioteca en línea"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bibliothèque en ligne"
+          }
+        }
+      }
+    },
     "sources.add.folder": {
       "extractionState": "manual",
       "localizations": {
@@ -4139,35 +4255,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ouvrir un fichier"
-          }
-        }
-      }
-    },
-    "sources.add.catalogue": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Online-Bibliothek"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Online library"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Biblioteca en línea"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bibliothèque en ligne"
           }
         }
       }

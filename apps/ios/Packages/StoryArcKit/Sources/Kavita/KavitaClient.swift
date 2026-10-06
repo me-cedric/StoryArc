@@ -254,6 +254,16 @@ public enum KavitaError: Error, Equatable, Sendable {
     /// and ``KavitaClient/sendVersioned(_:path:)``.
     case routeMissing(path: String)
 
+    /// The picture is larger than ``KavitaClient/coverUploadCeiling``, so it is not sent.
+    ///
+    /// Refused here rather than by the server: a rejected body is a wasted upload on a
+    /// connection a reader may be paying for, and the server's answer to one is a 413 that
+    /// says nothing about which limit was passed.
+    case imageTooLarge
+
+    /// The picture holds no bytes, so there is nothing to write.
+    case imageRejected
+
     case http(status: Int)
 }
 
