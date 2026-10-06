@@ -42,12 +42,28 @@ class CoverCache(private val directory: File) {
      * The identity is hashed rather than used directly. A publication id can carry a path,
      * and a path carries separators — a file name is not a place to find that out.
      */
-    private fun file(id: String, maxPixelSize: Int): File {
+    private fun file(id: String, maxPixelSize: Int): File =
+        File(directory, "${hash(id)}-$maxPixelSize.jpg")
+
+    private fun hash(id: String): String {
         var hash = -0x340d631b7bdddcdbL // FNV-1a offset basis
         id.toByteArray().forEach { byte ->
             hash = (hash xor byte.toLong()) * 0x100000001b3L
         }
-        return File(directory, "${hash.toString(36)}-$maxPixelSize.jpg")
+        return hash.toString(36)
+    }
+
+    /**
+     * Forgets every size this publication was cached at.
+     *
+     * Task 2.2: a reader who chooses a cover replaces artwork this cache may already hold at
+     * two or three sizes, and the cache is keyed by identity and size with no index from one
+     * to the other. So the directory is swept for this identity's own prefix, which is the one
+     * part of the name the size does not change.
+     */
+    fun removeEverySize(id: String) {
+        val prefix = "${hash(id)}-"
+        directory.listFiles()?.forEach { if (it.name.startsWith(prefix)) it.delete() }
     }
 
     /** The cover already on disk, if there is one at this size. */

@@ -65,10 +65,19 @@ public struct CoverlessWell: View {
 
     private let symbol: String
     private let text: String
+    private let action: (() -> Void)?
 
-    public init(format: PublicationFormat) {
+    /// - Parameter action: what tapping the well does, or nil where it does nothing.
+    ///   Task 2.3 of `cover-for-every-publication`: the well drew a glyph and a format name
+    ///   and offered nothing at all, which made a publication with no artwork a dead end —
+    ///   "a reader looking at a shelf of audiobooks ripped from CDs sees a wall of glyphs and
+    ///   cannot tell one from another". The publication page passes the cover chooser here.
+    ///   Every other caller passes nothing and draws exactly what it drew before, because a
+    ///   grid cell's own tap opens the publication and must keep doing that.
+    public init(format: PublicationFormat, action: (() -> Void)? = nil) {
         symbol = coverlessWellSymbol(for: format)
         text = format.displayName
+        self.action = action
     }
 
     /// `collections-and-reading-lists` D1: a shelf with no artwork of its own, drawn the
@@ -80,9 +89,22 @@ public struct CoverlessWell: View {
     public init(name: String, format: PublicationFormat?) {
         symbol = coverlessWellSymbol(for: format)
         text = name
+        action = nil
     }
 
     public var body: some View {
+        if let action {
+            // `.plain`, so an acting well still fills its cell and paints no button chrome
+            // over the place the artwork would have had. `design.md`: chrome recedes, and a
+            // bordered button inside a cover-shaped box is a surface inside a surface.
+            Button(action: action) { well }
+                .buttonStyle(.plain)
+        } else {
+            well
+        }
+    }
+
+    private var well: some View {
         GeometryReader { geometry in
             VStack(spacing: StoryArcSpace.xs) {
                 Spacer(minLength: 0)

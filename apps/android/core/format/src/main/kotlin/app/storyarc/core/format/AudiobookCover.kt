@@ -23,11 +23,15 @@ import java.io.File
  */
 object AudiobookCover {
 
-    /** The names a folder's own cover is looked for by, in the order they are tried. */
-    val folderCoverNames = listOf(
-        "cover.jpg", "cover.jpeg", "cover.png",
-        "folder.jpg", "folder.jpeg", "folder.png",
-    )
+    /**
+     * The names a folder's own cover is looked for by, in the order they are tried.
+     *
+     * [LooseCover.fileNames] since task 1.2: the same question is now asked for every format
+     * rather than for audiobooks alone, so one list answers it. The audio names this held
+     * before are the first six of that list, in the same order, and `poster` — which a media
+     * server writes and which this did not know — is found now too.
+     */
+    val folderCoverNames = LooseCover.fileNames
 
     /**
      * A single audio file's own embedded artwork, or `null` where it carries none or
@@ -55,8 +59,7 @@ object AudiobookCover {
      * A loose cover image beside a folder's own tracks, by the first of
      * [folderCoverNames] that exists.
      */
-    fun inFolder(folder: File): File? =
-        folderCoverNames.map { File(folder, it) }.firstOrNull { it.isFile }
+    fun inFolder(folder: File): File? = LooseCover.inFolder(folder)
 }
 
 /**
@@ -77,9 +80,19 @@ class AudiobookCoverStore(private val directory: File) {
      * Failure is silent and correct, the same rule [CoverCache.store] follows: a device with
      * no room left should index the book, not refuse to.
      */
-    fun write(data: ByteArray, source: File): String? = runCatching {
+    fun write(data: ByteArray, source: File): String? = write(data, source.path)
+
+    /**
+     * The same, for a container that has no path on this device.
+     *
+     * Task 1.1: a Storage Access Framework folder is reached by a document `Uri` and never by
+     * a path, so its own artwork is keyed by that `Uri`'s own string instead. The two cases
+     * share one hash and one directory, because what a key has to do is tell one publication
+     * from another and both strings already do.
+     */
+    fun write(data: ByteArray, key: String): String? = runCatching {
         directory.mkdirs()
-        val file = file(source)
+        val file = file(key)
         file.writeBytes(data)
         file.path
     }.getOrNull()
@@ -89,9 +102,9 @@ class AudiobookCoverStore(private val directory: File) {
      * [CoverCache.file] already gives: a path carries separators, and a file name is not a
      * place to find that out.
      */
-    private fun file(source: File): File {
+    private fun file(key: String): File {
         var hash = -0x340d631b7bdddcdbL // FNV-1a offset basis
-        source.path.toByteArray().forEach { byte ->
+        key.toByteArray().forEach { byte ->
             hash = (hash xor byte.toLong()) * 0x100000001b3L
         }
         return File(directory, hash.toString(36))

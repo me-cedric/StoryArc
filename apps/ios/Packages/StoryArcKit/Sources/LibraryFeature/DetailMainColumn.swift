@@ -48,7 +48,7 @@ struct DetailMainColumn: View {
         // hundred characters a line and the primary action becomes a metre-wide bar — both
         // of which are the page *filling* the window rather than composing it.
         VStack(alignment: .leading, spacing: StoryArcSpace.xl) {
-            DetailHero(publication: publication, cover: cover)
+            DetailCoverChoice(publication: publication, model: model, cover: cover)
             DetailTitleBlock(publication: publication)
             DetailActions(
                 publication: publication,

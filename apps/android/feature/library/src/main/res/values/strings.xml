@@ -524,4 +524,9 @@
     <string name="library_grouping_issues">Issues</string>
     <string name="library_index">Alphabetical index</string>
     <string name="library_index_jump">Jump to %1$s</string>
+    <string name="cover_choose">Choose a cover</string>
+    <string name="cover_change">Change cover</string>
+    <string name="cover_remove">Remove cover</string>
+    <string name="cover_tied_to_path">Moving this publication loses the cover you chose.</string>
+    <string name="cover_unreadable">That picture could not be used.</string>
 </resources>

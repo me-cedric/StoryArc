@@ -11,7 +11,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.storyarc.core.format.LibraryScanner
 import app.storyarc.core.format.CoverCache
-import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.format.SafTree
 import app.storyarc.core.format.ScanEvent
@@ -256,7 +255,7 @@ class LibraryViewModel(
     internal val _unavailableFolders = MutableStateFlow<List<String>>(emptyList())
     val unavailableFolders: StateFlow<List<String>> = _unavailableFolders.asStateFlow()
 
-    private val covers = mutableMapOf<String, Bitmap>()
+    internal val covers = mutableMapOf<String, Bitmap>()
     private val progress = mutableStateMapOf<String, ReadingProgress>()
 
     /**
@@ -792,7 +791,7 @@ class LibraryViewModel(
                             .orEmpty()
                             .mapNotNull { it.identity.normalizedPath }
                             .toSet()
-                        tree to LibraryScanner.scan(resolver, tree, done, unreadable)
+                        tree to LibraryScanner.scan(resolver, tree, done, audiobookCoverCacheDir, unreadable)
                     }
                 for ((tree, walk) in walks) {
                     scanningFolder = tree?.toString()
@@ -1502,6 +1501,7 @@ class LibraryViewModel(
         covers[publication.id]?.let { return it }
         @Suppress("NAME_SHADOWING") val publication = catalogueIfOnShare(publication)
 
+        chosenCover(publication, maxPixelSize)?.let { return it }
         withContext(Dispatchers.IO) { coverCache.bitmap(publication.id, maxPixelSize) }?.let {
             covers[publication.id] = it
             return it
@@ -1512,9 +1512,8 @@ class LibraryViewModel(
                 coverCache.store(it, publication.id, maxPixelSize)
             }
         val bitmap = withContext(Dispatchers.IO) {
-            runCatching {
-                PublicationAccess.anyCover(resolver, publication, path, maxPixelSize)
-            }.getOrNull()?.also { coverCache.store(it, publication.id, maxPixelSize) }
+            coverLadder.cover(resolver, publication, path, maxPixelSize)
+                ?.also { coverCache.store(it, publication.id, maxPixelSize) }
         } ?: return null
         covers[publication.id] = bitmap
         return bitmap

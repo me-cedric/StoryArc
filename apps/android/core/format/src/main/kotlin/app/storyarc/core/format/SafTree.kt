@@ -133,6 +133,22 @@ object SafTree {
         childrenOrNull(resolver, tree, documentId) ?: emptyList()
 
     /**
+     * One child document's bytes, or null when it cannot be read.
+     *
+     * The one reader for a Storage Access Framework child, task 1.1. A loose cover image is a
+     * small whole file rather than something to seek inside, so this reads it straight through
+     * the resolver instead of going round [UriSource] and its descriptor — and a provider that
+     * refuses answers null, which the scanner treats as a folder with no loose cover.
+     *
+     * Only for a file the caller already knows is small. Nothing here bounds the read, because
+     * the one caller picked the name out of [LooseCover.fileNames] first.
+     */
+    fun bytes(resolver: ContentResolver, tree: Uri, documentId: String): ByteArray? =
+        runCatching {
+            resolver.openInputStream(documentUri(tree, documentId))?.use { it.readBytes() }
+        }.getOrNull()
+
+    /**
      * What is directly inside a directory, or null when it could not be listed at all.
      *
      * The distinction [children] spends. A revoked tree permission makes the query throw and

@@ -479,4 +479,9 @@
     <string name="library_grouping_issues">Números</string>
     <string name="library_index">Índice alfabético</string>
     <string name="library_index_jump">Ir a %1$s</string>
+    <string name="cover_choose">Elegir una portada</string>
+    <string name="cover_change">Cambiar la portada</string>
+    <string name="cover_remove">Quitar la portada</string>
+    <string name="cover_tied_to_path">Si mueve esta publicación, se pierde la portada elegida.</string>
+    <string name="cover_unreadable">No se ha podido usar esa imagen.</string>
 </resources>

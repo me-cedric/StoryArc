@@ -237,6 +237,11 @@ fun PublicationDetailScreen(
     }
     val accent = rememberDetailAccent(cover)
 
+    // Tasks 2.2 to 2.4: the reader's own picture, and what it costs to move the publication
+    // it belongs to. Resolved here, where the view model is, so the hero stays a view that
+    // takes a bitmap and the six tests that compose one keep composing one.
+    val coverChoice = rememberCoverChoice(viewModel, publication)
+
     // Task 16.7 / D38: the device's own read-aloud voice for this publication's language, or
     // that none is installed. See `rememberReadAloudVoiceFact`.
     val readAloudVoice = rememberReadAloudVoiceFact(publication)
@@ -394,6 +399,7 @@ fun PublicationDetailScreen(
                 onListenFrom = onListenFrom,
                 onDownload = obtain.takeIf { download == DownloadControl.PRIMARY },
                 modifier = modifier,
+                coverChoice = coverChoice,
             )
         }
         val supporting: @Composable (Modifier) -> Unit = { modifier ->
@@ -494,6 +500,8 @@ internal fun DetailMainPane(
     onListenFrom: (Int) -> Unit = {},
     onDownload: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    /** What this page can offer about the picture in its hero. See [CoverChoice]. */
+    coverChoice: CoverChoice = CoverChoice.unavailable,
 ) {
     val palette = LocalStoryArcPalette.current
     // The format is asked here rather than at the call site. "A comic never grows a chapter
@@ -505,7 +513,13 @@ internal fun DetailMainPane(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),
     ) {
-        DetailHero(publication = publication, cover = cover, accent = accent, layout = hero) {
+        DetailHero(
+            publication = publication,
+            cover = cover,
+            accent = accent,
+            layout = hero,
+            coverChoice = coverChoice,
+        ) {
             DetailPrimaryAction(
                 action = action,
                 accent = accent,
@@ -667,66 +681,6 @@ private fun DetailPrimaryAction(
                 text = explanation,
                 style = MaterialTheme.typography.bodySmall,
                 color = palette.textSecondary,
-            )
-        }
-    }
-}
-
-/**
- * Everything that is not reading.
- *
- * `publication-detail`: each of these is "available from this page without competing with
- * the primary action", and "an action that does not apply is absent, not shown disabled
- * without explanation". So download and remove-download are `null` rather than greyed when
- * the app has no way to perform them.
- */
-@Composable
-private fun DetailOverflowMenu(
-    isOpen: Boolean,
-    onDismiss: () -> Unit,
-    isFinished: Boolean,
-    onMark: (Boolean) -> Unit,
-    onAddToShelf: () -> Unit,
-    onDownload: (() -> Unit)?,
-    onRemoveDownload: (() -> Unit)?,
-) {
-    DropdownMenu(expanded = isOpen, onDismissRequest = onDismiss) {
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.detail_add_to_shelf)) },
-            onClick = {
-                onDismiss()
-                onAddToShelf()
-            },
-        )
-        DropdownMenuItem(
-            text = {
-                Text(
-                    stringResource(
-                        if (isFinished) R.string.library_mark_unread else R.string.library_mark_read,
-                    ),
-                )
-            },
-            onClick = {
-                onDismiss()
-                onMark(!isFinished)
-            },
-        )
-        onDownload?.let { download ->
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.detail_action_download)) },
-                onClick = {
-                    onDismiss()
-                    download()
-                },
-            )
-        }
-        onRemoveDownload?.let { remove ->
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.downloads_remove)) },
-                onClick = {
-                    onDismiss()
-                    remove()
-                },
             )
         }
     }

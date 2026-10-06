@@ -238,6 +238,7 @@ object PublicationIndexer {
         identity: PublicationIdentity,
         name: String,
         fallback: FilenameMetadata,
+        looseCover: String? = null,
     ): Publication = Publication(
         identity = identity,
         format = PublicationFormat.AUDIO_FOLDER,
@@ -254,7 +255,10 @@ object PublicationIndexer {
         // first part would read whichever track happened to sort first rather than
         // the book. `folder.root` is null only for a folder read from a listing
         // rather than a real directory, which has no loose file to find either.
-        coverPath = folder.root?.let { AudiobookCover.inFolder(it) }?.path,
+        // Task 1.1: a folder picked through the Storage Access Framework has no root on
+        // this device for `inFolder` to look in, so the scanner reads its loose cover out
+        // through the provider and hands the copy's own path down here instead.
+        coverPath = folder.root?.let { AudiobookCover.inFolder(it) }?.path ?: looseCover,
     )
 
     private suspend fun comicFromSource(
@@ -325,11 +329,13 @@ object PublicationIndexer {
         identity: PublicationIdentity,
         name: String,
         seriesHint: String? = null,
+        looseCover: String? = null,
     ): Publication = audiobookFolder(
         folder,
         identity,
         name,
         FilenameMetadata.of(name, seriesHint),
+        looseCover,
     )
 
     /**

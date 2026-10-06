@@ -479,4 +479,9 @@
     <string name="library_grouping_issues">Ausgaben</string>
     <string name="library_index">Alphabetisches Register</string>
     <string name="library_index_jump">Zu %1$s springen</string>
+    <string name="cover_choose">Cover auswählen</string>
+    <string name="cover_change">Cover ändern</string>
+    <string name="cover_remove">Cover entfernen</string>
+    <string name="cover_tied_to_path">Wenn Sie diese Publikation verschieben, geht das gewählte Cover verloren.</string>
+    <string name="cover_unreadable">Dieses Bild konnte nicht verwendet werden.</string>
 </resources>
