@@ -2,6 +2,7 @@ package app.storyarc.core.format
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -52,8 +53,12 @@ class AudiobookCoverInstrumentedTest {
         assertNull(data)
     }
 
+    // `: Unit` is load-bearing. An expression body returns whatever its last expression does,
+    // and this block ends with `deleteRecursively()`, which answers a `Boolean`. JUnit 4
+    // validates that a `@Test` method is void and refuses the whole class when one is not, so
+    // without this the suite does not fail -- it does not run.
     @Test
-    fun indexingAnM4bWithACoverWritesItAndRecordsThePath() = kotlinx.coroutines.runBlocking {
+    fun indexingAnM4bWithACoverWritesItAndRecordsThePath(): Unit = runBlocking {
         val cacheDir = File(
             InstrumentationRegistry.getInstrumentation().context.cacheDir,
             "audiobook-cover-instrumented-test",
