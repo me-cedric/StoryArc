@@ -41,6 +41,7 @@ struct CoverSearchHandoffTests {
             .joined(separator: "\n")
     }
 
+    @MainActor
     @Test("The hand-off opens the address and receives nothing")
     func opensTheAddressAndReceivesNothing() throws {
         // The only closure the hand-off carries takes a URL and answers `Void`. There is no
@@ -60,6 +61,7 @@ struct CoverSearchHandoffTests {
         #expect(opened.url?.query()?.contains("Fine%20Print") == true)
     }
 
+    @MainActor
     @Test("No title means no hand-off")
     func refusesWithoutATitle() {
         let handoff = CoverSearchHandoff(title: " ", open: { _ in })
