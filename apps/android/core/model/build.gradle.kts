@@ -50,6 +50,9 @@ tasks.withType<Test>().configureEach {
 }
 
 dependencies {
+    // `PageCurl` carries `@RequiresApi`: AGSL's `RuntimeShader` arrives at API 33 and the
+    // floor is 31, so the annotation is what lets lint see the guard its callers write.
+    implementation(libs.androidx.annotation)
     implementation(libs.kotlinx.coroutines.core)
     // `api`, not `implementation`: the persistence layer serialises these types, so
     // the annotations and the serializers have to be visible to it.

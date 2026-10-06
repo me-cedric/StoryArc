@@ -265,7 +265,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
             dipIndex = DIP_INDEX,
             pageColour = { AndroidColor.parseColor(model.theme.value.background) },
             reduceMotion = { model.reduceMotionFlow.value },
-            fadeOwnsTheTurn = { interceptor.onTurn != null },
+            drawnTurn = { model.transitions(model.reduceMotionFlow.value).drawnTurn },
         )
     }
 
@@ -438,11 +438,11 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     LaunchedEffect(linked) { model.follow(linked) }
 
                     // `page-transitions`: the reader picks a page turn *after* the book is
-                    // open. `effective`, not `transition` -- Reduce Motion can turn Slide
-                    // into Fast fade's own turn, and ownership has to follow that.
-                    val fadeOwnsTheTurn = model.transitions(reduceMotion).fadeOwnsTheTurn
-                    LaunchedEffect(fadeOwnsTheTurn) {
-                        interceptor.onTurn = if (fadeOwnsTheTurn) turns::withFade else null
+                    // open, and Reduce Motion can turn a Slide into Fast fade's own turn, so
+                    // ownership follows `effective` and the swipe is armed, not one mode.
+                    val drawnTurn = model.transitions(reduceMotion).drawnTurn
+                    LaunchedEffect(drawnTurn) {
+                        interceptor.onTurn = if (drawnTurn != null) turns::swipe else null
                     }
 
                     // `ebook-reader`: a footnote "opens in place". A bottom sheet is the

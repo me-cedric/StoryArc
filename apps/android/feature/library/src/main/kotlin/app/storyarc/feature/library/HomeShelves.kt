@@ -187,7 +187,7 @@ object HomeShelves {
         /** What each server last said its own shelves were, so a pinned one can be named. */
         remembered: List<RememberedShelf> = emptyList(),
         /**
-         * What a server-backed reading list held the last time it answered, by key.
+         * What a server-backed shelf held the last time it answered, by key.
          *
          * A lambda rather than a store, for `isReadableNow`'s reason: reading the record is
          * the app layer's business, and a store dragged in here would give this function a
@@ -280,30 +280,32 @@ object HomeShelves {
         // without a request, because *The home surface never waits on a source* forbids one.
         // `ShelfSync` wrote down what the list held the last time it answered; this reads it.
         //
-        // **A server *collection* has no such record**, because `ShelfSync` reconciles reading
-        // lists alone. A pinned one is still ordered ahead of the unpinned shelves on the home
-        // surface's Collections shelf, and it draws no row of its own until something writes a
-        // collection's membership down -- which is *A shelf that would be empty* rather than a
-        // silent failure.
+        // **A server collection is asked by its own key**, which is safe because [ShelfKey]
+        // names the kind as well as the source and the number. It did not until 2026-10-06,
+        // and a Kavita server numbers its collections and its reading lists from one apiece --
+        // so a pinned *Staff picks* drew *Start here*'s three covers, under its own name, on a
+        // simulator on 2026-10-05.
         //
-        // **A collection is never asked, and that is a correctness rule rather than an
-        // economy.** [ShelfKey] names a source and a number and not a kind, and a Kavita
-        // server numbers its collections and its reading lists from one apiece -- so asking
-        // for collection 1's members returns reading list 1's. Seen on a simulator on
-        // 2026-10-05: a pinned *Staff picks* drew *Start here*'s three covers, under its own
-        // name.
+        // A collection's record names series rather than chapters, because that is what a
+        // collection groups and what a `Publication` carries -- `ShelfSync.members` says why
+        // the name is the join. It is filtered out of the library and a list is walked, the
+        // same rule the two local kinds above already follow, and it is scoped to the shelf's
+        // own source: a series name is unique on one server and says nothing about another.
         val server = remembered
             .filter { it.pin in pinned }
             .map { shelf ->
+                val entries = members(ShelfKey(shelf.sourceId.toString(), shelf.serverId, shelf.kind))
+                    .orEmpty()
                 HomePinnedShelf(
                     pin = shelf.pin,
                     name = shelf.title,
-                    entries = if (shelf.kind != RememberedShelfKind.READING_LIST) {
-                        emptyList()
+                    entries = if (shelf.kind == RememberedShelfKind.READING_LIST) {
+                        entries.mapNotNull { byRemote["${shelf.sourceId}:chapter:$it"] }.map(entry)
                     } else {
-                        members(ShelfKey(shelf.sourceId.toString(), shelf.serverId))
-                            .orEmpty()
-                            .mapNotNull { byRemote["${shelf.sourceId}:chapter:$it"] }
+                        val named = entries.toSet()
+                        publications
+                            .filter { it.identity.serverIdentifier?.sourceId == shelf.sourceId }
+                            .filter { it.series?.let(named::contains) == true }
                             .map(entry)
                     },
                 )

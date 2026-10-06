@@ -2,16 +2,44 @@ public import Foundation
 
 /// Which server-backed shelf something belongs to.
 ///
-/// A server and one of its shelves, because neither half identifies a shelf on its own: two
-/// Kavita servers number their reading lists from one, and a reader may well have both.
+/// A server, one of its shelves, and which kind of shelf that is. None of the three
+/// identifies a shelf on its own: two Kavita servers number their reading lists from one, and
+/// one Kavita server numbers its collections and its reading lists from one apiece — so
+/// without the kind, asking for collection 7's members answers with reading list 7's. Seen on
+/// a simulator on 2026-10-05: a pinned *Staff picks* drew *Start here*'s three covers, under
+/// its own name.
 public struct ShelfKey: Sendable, Hashable, Codable {
     public let sourceID: String
     public let shelfID: Int
+    /// Which of the two ideas this shelf is, named by the type ``RememberedShelf`` already
+    /// writes down — one vocabulary for the kind, rather than a second flag that can disagree
+    /// with the first.
+    public let kind: RememberedShelfKind
 
-    public init(sourceID: String, shelfID: Int) {
+    /// Defaulted to a reading list, because every shelf this type named before the kind
+    /// existed was one: nothing had ever reconciled a collection.
+    public init(sourceID: String, shelfID: Int, kind: RememberedShelfKind = .readingList) {
         self.sourceID = sourceID
         self.shelfID = shelfID
+        self.kind = kind
     }
+
+    /// A key written before the kind existed is a reading list, for the reason the default
+    /// gives. Decoded by hand rather than defaulted in the synthesis, which `Codable` does not
+    /// offer — and a queue written by an earlier build must not be dropped because a field
+    /// arrived, the rule ``ShelfEditQueue`` already states.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            sourceID: try container.decode(String.self, forKey: .sourceID),
+            shelfID: try container.decode(Int.self, forKey: .shelfID),
+            kind: try container.decodeIfPresent(RememberedShelfKind.self, forKey: .kind)
+                ?? .readingList
+        )
+    }
+
+    /// What a shelf is called in an identifier two kinds would otherwise collide in.
+    public var token: String { "\(sourceID)/\(kind.rawValue):\(shelfID)" }
 }
 
 /// One edit a reader made to a server-backed reading list that the server has not seen.
@@ -23,7 +51,7 @@ public struct ShelfKey: Sendable, Hashable, Codable {
 public struct ShelfEdit: Sendable, Equatable, Codable, Identifiable {
     /// What makes two queued edits the same edit. Adding the same entry to the same list
     /// twice is one pending edit, not two.
-    public var id: String { "\(shelf.sourceID)/\(shelf.shelfID)/\(entry)" }
+    public var id: String { "\(shelf.token)/\(entry)" }
 
     public let shelf: ShelfKey
     /// The entry it adds, named the way the server names its own entries, so a pull can tell
@@ -93,7 +121,7 @@ public struct ShelfConflictNotice: Sendable, Equatable, Codable, Identifiable {
     public let isOrder: Bool
 
     public init(shelf: ShelfKey, shelfName: String, discarded: [String] = [], at: Date, isOrder: Bool = false) {
-        id = "\(shelf.sourceID)/\(shelf.shelfID)/\(at.timeIntervalSince1970)"
+        id = "\(shelf.token)/\(at.timeIntervalSince1970)"
         self.shelf = shelf
         self.shelfName = shelfName
         self.discarded = discarded

@@ -27,7 +27,7 @@ struct HomePinnedShelvesTests {
         )
     }
 
-    private func chapter(_ title: String, _ id: Int) -> Publication {
+    private func chapter(_ title: String, _ id: Int, series: String? = nil) -> Publication {
         Publication(
             identity: PublicationIdentity(
                 serverIdentifier: PublicationIdentity.ServerIdentifier(
@@ -37,6 +37,7 @@ struct HomePinnedShelvesTests {
             ),
             format: .cbz,
             displayTitle: title,
+            series: series,
             origin: .embedded,
             sourceID: source
         )
@@ -110,29 +111,49 @@ struct HomePinnedShelvesTests {
         )
 
         #expect(rows.isEmpty)
-        #expect(asked == [ShelfKey(sourceID: source.uuidString, shelfID: 7)])
+        #expect(asked == [ShelfKey(sourceID: source.uuidString, shelfID: 7, kind: .readingList)])
     }
 
-    @Test("A pinned server collection never borrows a reading list's members")
-    func aCollectionIsNeverAsked() {
-        // ``ShelfKey`` names a source and a number and not a kind, and a Kavita server
-        // numbers its collections and its reading lists from one apiece. Seen on a simulator
-        // on 2026-10-05: a pinned *Staff picks* drew *Start here*'s three covers.
-        let collection = RememberedShelf(kind: .collection, sourceID: source, serverID: 7, title: "Staff picks")
-        var asked = false
+    @Test("A pinned server collection is a shelf of its own, drawn from its own record")
+    func aPinnedServerCollection() {
+        // A collection has no order, so the library's order stands, and it is filtered out of
+        // the library by the series it names — the rule a local collection already follows.
+        let collection = RememberedShelf(
+            kind: .collection, sourceID: source, serverID: 7, title: "Staff picks"
+        )
         let rows = pinnedShelfRows(
             PinnedShelves().toggling(collection.pin),
             shelves: Shelves(),
             remembered: [collection],
-            members: { _ in
-                asked = true
-                return ["11"]
+            members: { _ in ["Ashfall"] },
+            publications: [chapter("First", 11, series: "Ashfall"), chapter("Other", 12)]
+        )
+
+        #expect(rows.map(\.name) == ["Staff picks"])
+        #expect(rows[0].publications.map(\.displayTitle) == ["First"])
+    }
+
+    @Test("A pinned server collection never borrows a reading list's members")
+    func aCollectionIsAskedByItsOwnKind() {
+        // ``ShelfKey`` named a source and a number and not a kind until 2026-10-06, and a
+        // Kavita server numbers its collections and its reading lists from one apiece. Seen on
+        // a simulator on 2026-10-05: a pinned *Staff picks* drew *Start here*'s three covers.
+        let collection = RememberedShelf(
+            kind: .collection, sourceID: source, serverID: 7, title: "Staff picks"
+        )
+        var asked: [ShelfKey] = []
+        _ = pinnedShelfRows(
+            PinnedShelves().toggling(collection.pin),
+            shelves: Shelves(),
+            remembered: [collection],
+            members: { key in
+                asked.append(key)
+                return nil
             },
             publications: [chapter("First", 11)]
         )
 
-        #expect(rows.isEmpty)
-        #expect(!asked)
+        #expect(asked == [ShelfKey(sourceID: source.uuidString, shelfID: 7, kind: .collection)])
     }
 
     @Test("The reader's own shelves come first, and a server's after them")

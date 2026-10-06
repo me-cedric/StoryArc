@@ -119,8 +119,10 @@ public struct EpubReaderView: View {
 
     public var body: some View {
         // Nil while Readium owns the turn, which leaves its paginated scroll as it was.
+        // Otherwise the same funnel a key and a controller go through, so one mode cannot
+        // reach the swipe and another the keyboard.
         let turn: ((Bool) -> Void)? = model.ownsTheTurn ? { forward in
-            Task { await model.turnWithFade(forward: forward) }
+            Task { await model.turn(forward: forward) }
         } : nil
         let animatedTurn: (Bool) -> Void = { forward in
             Task { forward ? await model.goForward() : await model.goBackward() }

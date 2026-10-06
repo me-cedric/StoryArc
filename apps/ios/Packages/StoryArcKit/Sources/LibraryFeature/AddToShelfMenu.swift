@@ -178,7 +178,7 @@ struct AddToShelfMenu: View {
             )
         }
         if accepted > 0 {
-            await ShelfSync.reconcile(lists: [list], store: edits, progress: progress)
+            await ShelfSync.reconcile(shelves: [list], store: edits, progress: progress)
         }
         if !refused.isEmpty { onRefused(list.server.title, refused) }
     }

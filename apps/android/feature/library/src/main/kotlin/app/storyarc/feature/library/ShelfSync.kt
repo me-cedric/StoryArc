@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import app.storyarc.core.kavita.KavitaClient
+import app.storyarc.core.model.RememberedShelfKind
 import app.storyarc.core.model.ShelfConflictNotice
 import app.storyarc.core.model.ShelfEdit
 import app.storyarc.core.model.ShelfEntry
@@ -11,7 +12,7 @@ import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.persistence.ShelfEditStore
 
 /**
- * Keeping a server-backed reading list and the edits owed to it in step.
+ * Keeping a server-backed shelf and the edits owed to it in step.
  *
  * `collections-and-reading-lists` asks for two things that are one round of work: an edit
  * made while the server was away is "pushed on reconnection", and an edit the server has
@@ -24,27 +25,31 @@ import app.storyarc.core.persistence.ShelfEditStore
  */
 object ShelfSync {
 
-    /** One reading list, as the server currently has it. */
+    /** One shelf, as the server currently has it. */
     private data class Fetched(val shelf: ServerShelf, val entries: List<String>)
 
     /**
-     * Reconciles every server reading list that will answer.
+     * Reconciles every server shelf that will answer.
      *
-     * A list that does not answer is simply absent from what is merged, which leaves its
+     * A shelf that does not answer is simply absent from what is merged, which leaves its
      * edits queued and says nothing about them -- that is the unreachable server, and
      * `sources` is explicit that it is a normal state rather than a failure.
+     *
+     * **A collection is asked as well as a reading list, and only for its membership.** It
+     * carries no pending edit -- nothing offers one -- so the merge finds nothing to push and
+     * nothing to drop for it, and the whole of its round is the record it leaves behind. That
+     * record is what `home-screen`'s *Pinned shelves* then draws a pinned collection from
+     * without asking a server, which *The home surface never waits on a source* forbids.
      */
     suspend fun reconcile(
-        lists: List<ServerShelf>,
+        shelves: List<ServerShelf>,
         store: ShelfEditStore,
         progress: KavitaProgressStore,
         now: Long = System.currentTimeMillis(),
     ) {
-        val fetched = lists.mapNotNull { shelf ->
-            val client = KavitaClient(shelf.server.address)
-            val items = runCatching { client.readingListItems(shelf.id) }.getOrNull()
-                ?: return@mapNotNull null
-            Fetched(shelf, items.sortedBy { it.order }.map { it.chapterId.toString() })
+        val fetched = shelves.mapNotNull { shelf ->
+            val entries = members(shelf) ?: return@mapNotNull null
+            Fetched(shelf, entries)
         }
         if (fetched.isEmpty()) return
 
@@ -66,7 +71,7 @@ object ShelfSync {
             settled = settled.noting(
                 ShelfConflictNotice(
                     shelf = conflict.shelf,
-                    shelfName = lists.firstOrNull { key(it) == conflict.shelf }?.title.orEmpty(),
+                    shelfName = shelves.firstOrNull { key(it) == conflict.shelf }?.title.orEmpty(),
                     discarded = conflict.discarded.map { it.title },
                     at = now,
                 ),
@@ -74,7 +79,30 @@ object ShelfSync {
         }
         store.save(settled)
 
-        push(pull.toPush, lists, progress)
+        push(pull.toPush, shelves, progress)
+    }
+
+    /**
+     * What one shelf holds, named the way the thing that reads the record back joins on.
+     *
+     * A reading list answers with its chapters, in the server's order, because the order is
+     * the list's meaning. A collection answers with the *names* of its series, in the order
+     * the server listed them, because a collection groups series and this library's own idea
+     * of a series is its name -- `LibraryRows` groups by nothing else, and a `Publication`
+     * carries the name and no server series number at all. A series renamed on the server
+     * drops out of the pinned shelf until the next reconciliation, which then writes the new
+     * name down: the record heals itself, where a pin keyed on a title would not.
+     *
+     * Null where the server did not answer, so the caller can tell that apart from a shelf the
+     * server says is empty.
+     */
+    private suspend fun members(shelf: ServerShelf): List<String>? {
+        val client = KavitaClient(shelf.server.address)
+        if (!shelf.isList) {
+            return runCatching { client.collected(shelf.id) }.getOrNull()?.map { it.name }
+        }
+        val items = runCatching { client.readingListItems(shelf.id) }.getOrNull() ?: return null
+        return items.sortedBy { it.order }.map { it.chapterId.toString() }
     }
 
     /**
@@ -96,8 +124,15 @@ object ShelfSync {
         }
     }
 
-    /** How a server's reading list is named across a restart. */
-    fun key(shelf: ServerShelf): ShelfKey = ShelfKey(shelf.server.id, shelf.id)
+    /**
+     * How a server's shelf is named across a restart. The kind is in it because one server
+     * numbers its collections and its reading lists from one apiece.
+     */
+    fun key(shelf: ServerShelf): ShelfKey = ShelfKey(
+        shelf.server.id,
+        shelf.id,
+        if (shelf.isList) RememberedShelfKind.READING_LIST else RememberedShelfKind.COLLECTION,
+    )
 
     /**
      * Where one entry of a server reading list currently sits.
@@ -189,12 +224,12 @@ object ShelfSync {
      */
     private suspend fun push(
         owed: List<ShelfEdit>,
-        lists: List<ServerShelf>,
+        shelves: List<ServerShelf>,
         progress: KavitaProgressStore,
     ) {
         if (owed.isEmpty()) return
         for (id in owed.map { it.shelf.sourceId }.toSet()) {
-            val page = lists.firstOrNull { it.server.id == id }?.server ?: continue
+            val page = shelves.firstOrNull { it.server.id == id }?.server ?: continue
             KavitaSync.flush(progress, id, page.address)
         }
     }

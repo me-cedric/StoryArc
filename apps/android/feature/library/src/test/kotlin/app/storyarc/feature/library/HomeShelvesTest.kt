@@ -458,22 +458,42 @@ class HomeShelvesTest {
     }
 
     @Test
-    fun `a pinned server collection never borrows a reading list's members`() {
-        // [ShelfKey] names a source and a number and not a kind, and a Kavita server numbers
-        // its collections and its reading lists from one apiece. Seen on a simulator on
-        // 2026-10-05: a pinned *Staff picks* drew *Start here*'s three covers.
+    fun `a pinned server collection is a shelf of its own, drawn from its own record`() {
+        // A collection has no order, so the library's order stands, and it is filtered out of
+        // the library by the series it names -- the rule a local collection already follows.
         val collection = RememberedShelf(RememberedShelfKind.COLLECTION, serverSource, 7, "Staff picks")
-        var asked = false
+        val member = chapter("Ashfall", 11, series = "Ashfall")
 
         val surface = assemble(
+            listOf(member, chapter("Brine", 12)),
+            pins = PinnedShelves().toggling(collection.pin),
+            remembered = listOf(collection),
+            members = { listOf("Ashfall") },
+        )
+
+        assertEquals("Staff picks", surface.pinned.single().name)
+        assertEquals(listOf(member.id), surface.pinned.single().entries.map { it.id })
+    }
+
+    @Test
+    fun `a pinned server collection never borrows a reading list's members`() {
+        // [ShelfKey] named a source and a number and not a kind until 2026-10-06, and a Kavita
+        // server numbers its collections and its reading lists from one apiece. Seen on a
+        // simulator on 2026-10-05: a pinned *Staff picks* drew *Start here*'s three covers.
+        val collection = RememberedShelf(RememberedShelfKind.COLLECTION, serverSource, 7, "Staff picks")
+        var asked: ShelfKey? = null
+
+        assemble(
             listOf(chapter("Ashfall", 11)),
             pins = PinnedShelves().toggling(collection.pin),
             remembered = listOf(collection),
-            members = { asked = true; listOf("11") },
+            members = { asked = it; null },
         )
 
-        assertTrue(surface.pinned.isEmpty())
-        assertFalse(asked)
+        assertEquals(
+            ShelfKey(serverSource.toString(), 7, RememberedShelfKind.COLLECTION),
+            asked,
+        )
     }
 
     @Test
@@ -488,7 +508,7 @@ class HomeShelvesTest {
             members = { asked = it; null },
         )
 
-        assertEquals(ShelfKey(serverSource.toString(), 7), asked)
+        assertEquals(ShelfKey(serverSource.toString(), 7, RememberedShelfKind.READING_LIST), asked)
     }
 
     @Test
@@ -526,12 +546,13 @@ class HomeShelvesTest {
 
     private val serverSource: UUID = UUID.fromString("1B9E7C3A-0000-4000-8000-00000000ABCD")
 
-    private fun chapter(title: String, id: Int) = Publication(
+    private fun chapter(title: String, id: Int, series: String? = null) = Publication(
         identity = PublicationIdentity(
             serverIdentifier = PublicationIdentity.ServerIdentifier(serverSource, "chapter:$id"),
         ),
         format = PublicationFormat.CBZ,
         displayTitle = title,
+        series = series,
         origin = MetadataOrigin.EMBEDDED,
         sourceId = serverSource,
     )

@@ -1,4 +1,4 @@
-package app.storyarc.feature.reader
+package app.storyarc.core.model
 
 import kotlin.math.PI
 import kotlin.math.abs

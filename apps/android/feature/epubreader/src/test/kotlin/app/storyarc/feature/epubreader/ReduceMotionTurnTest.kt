@@ -61,8 +61,8 @@ class ReduceMotionTurnTest {
         val model = reader()
         model.choose(PageTransition.SLIDE)
 
-        assertFalse(model.transitions(reduceMotion = false).fadeOwnsTheTurn)
-        assertTrue(model.transitions(reduceMotion = true).fadeOwnsTheTurn)
+        assertEquals(null, model.transitions(reduceMotion = false).drawnTurn)
+        assertEquals(PageTransition.FAST_FADE, model.transitions(reduceMotion = true).drawnTurn)
     }
 
     @Test

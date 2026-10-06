@@ -86,17 +86,19 @@ val PageTransition.needsARasteredPage: Boolean
  * Fast fade can: it needs one raster, a still of the page that is leaving, and the reader
  * takes that before the navigator moves.
  *
- * Curl cannot yet. It needs the *incoming* page as a second texture before it is on
- * screen. Task 4.3b of `reader-theming-and-page-transitions` owns that, and Apple Books
- * doing it over reflowable text is the evidence that it can be done.
+ * Curl needs two: the sheet that rolls and the page it rolls onto, and the second of those
+ * is not on screen when the turn starts.
  *
  * **A second offscreen navigator is not what it needs, and this line used to say it was.**
  * Readium keeps the neighbouring pages laid out already — `FadeTurn`'s own note records
  * that `goForward(animated = false)` returns before the next frame here — so the incoming
- * page is reachable by moving the pager under a still of the outgoing one.
+ * page is reachable by moving the pager under a picture of the outgoing one, which is what
+ * `ReflowableCurl` does: it raises the sheet at a progress of zero, where the shader draws
+ * the outgoing raster flat and whole, moves the navigator under it, and photographs what
+ * arrived.
  *
- * What is unsettled is the *timing*, not the source. 4.3b records the measurement, and it
- * is iOS that has the expensive half.
+ * Whether a reader can take those two is [TransitionChoices]' `canCurlOverText`, not this —
+ * a mode's own needs and a reader's own reach are not the same sentence.
  */
 val PageTransition.needsTwoRasters: Boolean
     get() = this == PageTransition.PAGE_CURL
@@ -177,10 +179,20 @@ class TransitionChoices(
      *
      * The same shape as [canCurl], and for the same kind of reason: a capability the
      * platform either has or does not. A comic always can, because the page is already an
-     * image. Reflowable text needs the reader to take the turn over from Readium, and the
-     * Android EPUB reader does not do that yet — task 4.3b.
+     * image. Reflowable text needs the reader to take the turn over from Readium, which
+     * both EPUB readers now do.
      */
     canFade: Boolean = true,
+    /**
+     * Whether this platform's reader can raster the outgoing *and* the incoming page and
+     * roll the first off the second.
+     *
+     * [needsTwoRasters] says which mode needs them; this says whether the reader in front of
+     * the content can take them. The two were one fact until 2026-10-06, when the reflowable
+     * readers learned to, and a mode's own needs and a reader's own reach are not the same
+     * sentence.
+     */
+    canCurlOverText: Boolean = false,
     /**
      * Whether the text reflows. A reflowable page is live web content, so the modes
      * that deform a picture of a page cannot run over it yet — listed with the reason
@@ -221,11 +233,14 @@ class TransitionChoices(
      */
     val unavailable: Map<PageTransition, TransitionUnavailability> = buildMap {
         if (isReflowable) {
-            // Only the mode that needs *two* rasters, plus the fade where this platform's
-            // reader cannot draw one. Fast fade needs a single raster, and the reader takes
-            // it before the navigator moves.
-            offered.filter { it.needsTwoRasters || (it == PageTransition.FAST_FADE && !canFade) }
-                .forEach { put(it, TransitionUnavailability.REFLOWABLE_TEXT) }
+            // A mode this reader cannot supply the pictures for. Fast fade needs one raster
+            // and takes it before the navigator moves; Curl needs a second, after. Each is
+            // listed with the reason rather than dropped, where the platform's reader has
+            // not learned it yet.
+            offered.filter {
+                (it.needsTwoRasters && !canCurlOverText) ||
+                    (it == PageTransition.FAST_FADE && !canFade)
+            }.forEach { put(it, TransitionUnavailability.REFLOWABLE_TEXT) }
         }
         if (reduceMotion) {
             offered.filter { it.isAnimatedTransition }
@@ -255,7 +270,8 @@ class TransitionChoices(
         // is itself impossible. Checking content first left `effective` naming a mode
         // this publication refuses.
         .let {
-            val refused = it.needsTwoRasters || (it == PageTransition.FAST_FADE && !canFade)
+            val refused = (it.needsTwoRasters && !canCurlOverText) ||
+                (it == PageTransition.FAST_FADE && !canFade)
             if (isReflowable && refused) PageTransition.SLIDE else it
         }
 

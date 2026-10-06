@@ -19,7 +19,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.graphicsLayer
@@ -32,6 +31,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
 import app.storyarc.core.model.ImageAdjustments
+import app.storyarc.core.model.PageCurl
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
@@ -231,7 +231,8 @@ internal fun CurledPages(
             val turning = sheets.turning ?: return@Canvas
             PageCurl.update(
                 shader,
-                area = Size(size.width, size.height),
+                width = size.width,
+                height = size.height,
                 progress = sheets.progress,
                 isRightToLeft = isRightToLeft,
                 page = turning,

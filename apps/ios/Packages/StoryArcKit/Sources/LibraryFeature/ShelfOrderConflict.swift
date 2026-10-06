@@ -85,7 +85,7 @@ extension LibraryModel {
         let queue = KavitaProgressStore()
         for page in listCapable {
             let shelves = serverLists.filter { $0.server.id == page.id }
-            await ShelfSync.reconcile(lists: shelves, store: editStore, progress: queue)
+            await ShelfSync.reconcile(shelves: shelves, store: editStore, progress: queue)
             await KavitaSync.flush(
                 page.id,
                 to: page.address,

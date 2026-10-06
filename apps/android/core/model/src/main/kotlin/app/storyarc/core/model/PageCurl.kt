@@ -1,4 +1,4 @@
-package app.storyarc.feature.reader
+package app.storyarc.core.model
 
 import android.graphics.Bitmap
 import android.graphics.BitmapShader
@@ -7,7 +7,6 @@ import android.graphics.RuntimeShader
 import android.graphics.Shader
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.ui.geometry.Size
 
 /**
  * The page curl, as one AGSL shader.
@@ -50,21 +49,7 @@ import androidx.compose.ui.geometry.Size
  * drawn as a brush, is that sentence in code.
  */
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal object PageCurl {
-
-    /**
-     * How wide the shaded crease is, as a fraction of the page's width.
-     *
-     * Narrow enough to read as an edge rather than as a gradient across the page, wide
-     * enough to survive a low-density screen.
-     */
-    private const val CREASE = 0.06f
-
-    /** How far the cast shadow reaches beyond the turned sheet, in the same units. */
-    private const val SHADOW = 0.05f
-
-    /** How much darker the back of a sheet is than its front. */
-    private const val BACK = 0.55f
+object PageCurl {
 
     /**
      * The roll, in AGSL.
@@ -155,23 +140,24 @@ internal object PageCurl {
      */
     fun update(
         shader: RuntimeShader,
-        area: Size,
+        width: Float,
+        height: Float,
         progress: Float,
         isRightToLeft: Boolean,
         page: Bitmap,
         beneath: Bitmap?,
     ) {
-        shader.setFloatUniform("size", area.width, area.height)
+        shader.setFloatUniform("size", width, height)
         shader.setFloatUniform("progress", progress.coerceIn(0f, 1f))
-        shader.setFloatUniform("crease", CREASE)
-        shader.setFloatUniform("shadow", SHADOW)
+        shader.setFloatUniform("crease", PageRoll.CREASE)
+        shader.setFloatUniform("shadow", PageRoll.SHADOW)
         shader.setFloatUniform("direction", if (isRightToLeft) -1f else 1f)
-        shader.setFloatUniform("back", BACK)
+        shader.setFloatUniform("back", PageRoll.BACK)
         shader.setFloatUniform("radiusMax", PageRoll.R_MAX)
         shader.setFloatUniform("lean", PageRoll.LEAN)
         shader.setFloatUniform("rim", PageRoll.RIM)
-        shader.setInputShader("page", page.fitted(area))
-        shader.setInputShader("beneath", (beneath ?: page).fitted(area))
+        shader.setInputShader("page", page.fitted(width, height))
+        shader.setInputShader("beneath", (beneath ?: page).fitted(width, height))
     }
 
     /**
@@ -184,13 +170,13 @@ internal object PageCurl {
      * smeared the edge pixel across the letterbox instead of leaving the black the
      * other three modes show there.
      */
-    private fun Bitmap.fitted(area: Size): Shader {
-        val scale = minOf(area.width / width, area.height / height)
+    private fun Bitmap.fitted(areaWidth: Float, areaHeight: Float): Shader {
+        val scale = minOf(areaWidth / width, areaHeight / height)
         val matrix = Matrix().apply {
             setScale(scale, scale)
             postTranslate(
-                (area.width - width * scale) / 2f,
-                (area.height - height * scale) / 2f,
+                (areaWidth - width * scale) / 2f,
+                (areaHeight - height * scale) / 2f,
             )
         }
         return BitmapShader(this, Shader.TileMode.DECAL, Shader.TileMode.DECAL).apply {
