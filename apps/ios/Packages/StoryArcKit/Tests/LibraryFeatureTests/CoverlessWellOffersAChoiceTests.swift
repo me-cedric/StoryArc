@@ -25,15 +25,26 @@ struct CoverlessWellOffersAChoiceTests {
     )
 
     @Test("An empty well is the way to choose a cover")
-    func emptyWellActs() {
-        let hero = DetailHero(publication: publication, cover: nil, onChooseCover: {})
+    @MainActor
+    func emptyWellActs() throws {
+        // Pressed, not only asked about: `offersChoice` was a property beside the wiring, so a
+        // hero that stopped handing the action to its well stayed green. This presses the
+        // well the hero draws.
+        var chose = false
+        let hero = DetailHero(publication: publication, cover: nil, onChooseCover: { chose = true })
         #expect(hero.offersChoice)
+
+        let press = try #require(hero.well.action)
+        press()
+
+        #expect(chose)
     }
 
     @Test("A page that offers no choice draws the hero it always drew")
     func noChoiceLeavesTheWellDecorative() {
         let hero = DetailHero(publication: publication, cover: nil)
         #expect(!hero.offersChoice)
+        #expect(hero.well.action == nil)
     }
 
     @Test("A publication that has artwork is looked at rather than tapped")

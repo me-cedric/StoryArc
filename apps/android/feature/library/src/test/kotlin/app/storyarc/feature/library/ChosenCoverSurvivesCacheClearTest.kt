@@ -46,9 +46,7 @@ class ChosenCoverSurvivesCacheClearTest {
         val cached = File(application.cacheDir, "covers").apply { mkdirs() }
             .resolve("ab12-200.jpg")
             .apply { writeBytes(byteArrayOf(1)) }
-        val overrides = CoverOverrideStore(
-            CoverOverrideStore.directoryIn(application.filesDir),
-        )
+        val overrides = CoverOverrideStore(appDirectory())
         val chosen = overrides.store(picture, publication)
 
         StorageUsage(application).clearCache()
@@ -60,7 +58,9 @@ class ChosenCoverSurvivesCacheClearTest {
 
     @Test
     fun `chosen covers are not kept anywhere the cache clear reaches`() {
-        val directory = CoverOverrideStore.directoryIn(application.filesDir).canonicalPath
+        // The folder the app itself uses, read from the view model. A test that named its own
+        // folder would stay green if the app moved its covers under the cache.
+        val directory = appDirectory().canonicalPath
 
         listOfNotNull(application.cacheDir, application.externalCacheDir).forEach { cache ->
             assertFalse(
@@ -73,4 +73,7 @@ class ChosenCoverSurvivesCacheClearTest {
             directory,
         )
     }
+
+    /** Where the app keeps chosen covers: the view model's own answer, not one built here. */
+    private fun appDirectory(): File = LibraryViewModel(application).coverOverrideDirectory
 }

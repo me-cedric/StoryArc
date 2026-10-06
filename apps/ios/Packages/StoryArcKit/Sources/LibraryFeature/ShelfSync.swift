@@ -93,10 +93,16 @@ enum ShelfSync {
     private static func members(of shelf: ServerShelf) async -> [String]? {
         let client = KavitaClient(address: shelf.server.address)
         guard shelf.isList else {
-            return (try? await client.collected(shelf.id))?.map(\.name)
+            return (try? await client.collected(shelf.id)).map(collectionMembers)
         }
         guard let items = try? await client.readingListItems(shelf.id) else { return nil }
         return items.sorted { $0.order < $1.order }.map { String($0.chapterId) }
+    }
+
+    /// What a pinned collection records as its members: the names of its series. Pure, so the
+    /// rule `HomePinnedShelves` filters by can be asserted without a server.
+    static func collectionMembers(_ series: [KavitaSeries]) -> [String] {
+        series.map(\.name)
     }
 
     /// Records an edit the server has not been told about yet.

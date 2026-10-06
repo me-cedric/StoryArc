@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import Testing
 
@@ -69,4 +70,25 @@ struct ReflowableCurlTests {
 
         #expect(reader.drawnTurn == .fastFade)
     }
+
+    @Test("The curl works in the scale its pages were rastered at, not the device's")
+    @MainActor
+    func theCurlUsesItsRastersScale() throws {
+        // A 600 by 900 pixel raster taken at 2x is a 300 by 450 point page. Read at the
+        // device's scale — 3x on the simulator this runs on — the shader drew it at 200 by
+        // 300, which is what an iPad window on an external display got.
+        let context = try #require(CGContext(
+            data: nil, width: 600, height: 900, bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        let page = try #require(context.makeImage())
+
+        let curl = ReflowableCurl(
+            page: page, beneath: page, isRightToLeft: false, progress: 0, scale: 2
+        )
+
+        #expect(curl.size == CGSize(width: 300, height: 450))
+    }
 }
+

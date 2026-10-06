@@ -17,7 +17,10 @@ import app.storyarc.core.model.PageTransition
 import app.storyarc.core.model.ScrollAxis
 import app.storyarc.core.model.TransitionChoices
 import kotlin.coroutines.resume
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 
 // The curl over reflowable text, which is task 4.3b of `reader-theming-and-page-transitions`.
 //
@@ -143,7 +146,7 @@ internal class CurlTurn(
      * A raster that does not arrive leaves the turn as a cut: by then the pager has moved, so
      * the reader loses the transition and never the page.
      */
-    suspend fun run(isRightToLeft: Boolean, move: () -> Boolean): Boolean {
+    suspend fun run(isRightToLeft: Boolean, move: suspend () -> Boolean): Boolean {
         val outgoing = book.raster() ?: return move()
 
         val sheet = CurlSheet(host.context).apply {
@@ -161,6 +164,10 @@ internal class CurlTurn(
         host.addView(sheet, index)
         try {
             if (!move()) return false
+            // Two frames: one for the moved page to lay out, one for it to draw. A raster
+            // taken sooner photographs the page the reader is leaving.
+            book.nextFrame()
+            book.nextFrame()
             sheet.beneath = book.raster() ?: return true
             sheet.roll()
             return true
@@ -168,6 +175,9 @@ internal class CurlTurn(
             host.removeView(sheet)
         }
     }
+
+    private suspend fun View.nextFrame() =
+        suspendCancellableCoroutine { continuation -> postOnAnimation { continuation.resume(Unit) } }
 
     /** Runs the roll and returns when it has finished. */
     private suspend fun CurlSheet.roll() = suspendCancellableCoroutine { continuation ->
@@ -238,3 +248,26 @@ internal fun EpubReaderViewModel.transitions(reduceMotion: Boolean): TransitionC
         canCurlOverText = true,
         isReflowable = true,
     )
+
+/**
+ * Calls [move], then waits until [location] reports somewhere new. False when it never does
+ * within [timeoutMillis].
+ *
+ * Readium's `goForward` answers before the page has moved -- it posts the scroll to a
+ * coroutine and a JavaScript call -- and it answers true at the last page too, where nothing
+ * moves at all. Its answer says nothing about whether a page turned. The location does: it
+ * changes when the page does, and only then. So the curl rasters the incoming page only after
+ * this, and does not roll at all where the book stood still.
+ */
+internal suspend fun <T> movedTo(
+    location: Flow<T>,
+    timeoutMillis: Long = MOVE_TIMEOUT_MILLIS,
+    move: () -> Unit,
+): Boolean {
+    val before = location.first()
+    move()
+    return withTimeoutOrNull(timeoutMillis) { location.first { it != before } } != null
+}
+
+/** How long a turn may take to report a new location before it counts as no turn. */
+internal const val MOVE_TIMEOUT_MILLIS = 500L

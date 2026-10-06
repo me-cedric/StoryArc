@@ -37,13 +37,17 @@ extension UIView {
     func raster(afterScreenUpdates: Bool) -> CGImage? {
         guard bounds.width > 0, bounds.height > 0 else { return nil }
         let format = UIGraphicsImageRendererFormat()
-        format.scale = window?.screen.scale ?? traitCollection.displayScale
+        format.scale = rasterScale
         format.opaque = true
         let image = UIGraphicsImageRenderer(bounds: bounds, format: format).image { _ in
             drawHierarchy(in: bounds, afterScreenUpdates: afterScreenUpdates)
         }
         return image.cgImage
     }
+
+    /// The scale ``raster(afterScreenUpdates:)`` draws at: this view's own screen's, which on
+    /// an iPad window on an external display is not the device's.
+    var rasterScale: CGFloat { window?.screen.scale ?? traitCollection.displayScale }
 }
 
 /// The rolling sheet, drawn over the navigator while a turn runs.
@@ -59,6 +63,10 @@ struct ReflowableCurl: View {
     let beneath: CGImage
     let isRightToLeft: Bool
     var progress: Double
+    /// The scale the rasters were taken at, passed with them from the view that took them, so
+    /// a texture and the scale it was made at cannot drift apart. `UIScreen.main` answered
+    /// the device's scale, which is not the window's on an external display.
+    let scale: CGFloat
 
     var body: some View {
         Rectangle().fill(
@@ -83,13 +91,9 @@ struct ReflowableCurl: View {
     /// Read from the texture rather than from a `GeometryReader`: the overlay is sized to the
     /// navigator's bounds by the caller, and asking SwiftUI for that size again would be a
     /// second answer that can disagree with the first by a layout pass.
-    private var size: CGSize {
+    var size: CGSize {
         CGSize(width: Double(page.width) / scale, height: Double(page.height) / scale)
     }
-
-    /// The scale the rasters were taken at, recovered from the pair rather than passed: a
-    /// texture and the scale it was made at must not be able to drift apart.
-    private var scale: CGFloat { UIScreen.main.scale }
 }
 
 extension EpubReaderModel {
@@ -128,7 +132,8 @@ extension EpubReaderModel {
             // Stood in by the outgoing page until step 4 has one. The shader samples it only
             // past the fold, and at a progress of zero there is no past the fold.
             beneath: outgoing,
-            isRightToLeft: isRightToLeft
+            isRightToLeft: isRightToLeft,
+            scale: page.rasterScale
         )
         curl.view.frame = page.frame
         host.addSubview(curl.view)
@@ -172,10 +177,12 @@ final class CurlOverlay {
         set { state.beneath = newValue }
     }
 
-    init(page: CGImage, beneath: CGImage, isRightToLeft: Bool) {
+    init(page: CGImage, beneath: CGImage, isRightToLeft: Bool, scale: CGFloat) {
         state = Progress(beneath: beneath)
         controller = UIHostingController(
-            rootView: ReflowableCurlHost(page: page, isRightToLeft: isRightToLeft, state: state)
+            rootView: ReflowableCurlHost(
+                page: page, isRightToLeft: isRightToLeft, scale: scale, state: state
+            )
         )
         // Opaque would letterbox the navigator's own background in wherever the raster does
         // not reach, which at a progress of zero is nowhere and at the end of the roll is
@@ -215,6 +222,7 @@ final class CurlOverlay {
 struct ReflowableCurlHost: View {
     let page: CGImage
     let isRightToLeft: Bool
+    let scale: CGFloat
     @State var state: CurlOverlay.Progress
 
     var body: some View {
@@ -222,7 +230,8 @@ struct ReflowableCurlHost: View {
             page: page,
             beneath: state.beneath,
             isRightToLeft: isRightToLeft,
-            progress: state.value
+            progress: state.value,
+            scale: scale
         )
         .ignoresSafeArea()
     }

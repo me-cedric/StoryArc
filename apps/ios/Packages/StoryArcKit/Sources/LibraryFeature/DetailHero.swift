@@ -56,7 +56,11 @@ struct DetailHero: View {
     }
 
     /// Whether the empty well is the cover chooser's own button on this page.
-    var offersChoice: Bool { cover == nil && onChooseCover != nil }
+    var offersChoice: Bool { cover == nil && well.action != nil }
+
+    /// The well this hero draws where there is no artwork: the one value the body draws and a
+    /// test presses, so the two cannot be different wells.
+    var well: CoverlessWell { CoverlessWell(format: publication.format, action: onChooseCover) }
 
     /// How wide the cover is allowed to get.
     ///
@@ -86,7 +90,7 @@ struct DetailHero: View {
             // give an *audiobook* a book: `book.closed` was hard-coded. ``CoverlessWell`` is
             // the same two things chosen from the format, drawn on every surface that has a
             // cover-shaped hole in it.
-            CoverlessWell(format: publication.format, action: onChooseCover)
+            well
         }
     }
 }

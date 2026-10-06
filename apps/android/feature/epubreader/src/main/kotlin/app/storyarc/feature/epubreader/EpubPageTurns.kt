@@ -175,10 +175,12 @@ internal class EpubPageTurns(
         scope.launch {
             try {
                 CurlTurn(dipHost(), dipIndex, book).run(isRightToLeft(navigator)) {
-                    if (forward) {
-                        navigator.goForward(animated = false)
-                    } else {
-                        navigator.goBackward(animated = false)
+                    movedTo(navigator.currentLocator) {
+                        if (forward) {
+                            navigator.goForward(animated = false)
+                        } else {
+                            navigator.goBackward(animated = false)
+                        }
                     }
                 }
             } finally {

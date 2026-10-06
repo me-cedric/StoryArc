@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import app.storyarc.core.kavita.KavitaClient
+import app.storyarc.core.kavita.KavitaSeries
 import app.storyarc.core.model.RememberedShelfKind
 import app.storyarc.core.model.ShelfConflictNotice
 import app.storyarc.core.model.ShelfEdit
@@ -99,7 +100,7 @@ object ShelfSync {
     private suspend fun members(shelf: ServerShelf): List<String>? {
         val client = KavitaClient(shelf.server.address)
         if (!shelf.isList) {
-            return runCatching { client.collected(shelf.id) }.getOrNull()?.map { it.name }
+            return runCatching { client.collected(shelf.id) }.getOrNull()?.let(::collectionMembers)
         }
         val items = runCatching { client.readingListItems(shelf.id) }.getOrNull() ?: return null
         return items.sortedBy { it.order }.map { it.chapterId.toString() }
@@ -128,6 +129,12 @@ object ShelfSync {
      * How a server's shelf is named across a restart. The kind is in it because one server
      * numbers its collections and its reading lists from one apiece.
      */
+    /**
+     * What a pinned collection records as its members: the names of its series. Pure, so the
+     * rule the home shelf filters by can be asserted without a server.
+     */
+    internal fun collectionMembers(series: List<KavitaSeries>): List<String> = series.map { it.name }
+
     fun key(shelf: ServerShelf): ShelfKey = ShelfKey(
         shelf.server.id,
         shelf.id,

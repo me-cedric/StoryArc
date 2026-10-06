@@ -65,7 +65,9 @@ public struct CoverlessWell: View {
 
     private let symbol: String
     private let text: String
-    private let action: (() -> Void)?
+    /// What tapping the well does, or nil where it is only a picture. Readable so a test can
+    /// press the well a page actually draws.
+    public let action: (() -> Void)?
 
     /// - Parameter action: what tapping the well does, or nil where it does nothing.
     ///   Task 2.3 of `cover-for-every-publication`: the well drew a glyph and a format name
