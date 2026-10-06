@@ -2,6 +2,7 @@ import Foundation
 import Testing
 
 import Formats
+@testable import LibraryFeature
 import Persistence
 import StoryArcCore
 
@@ -42,6 +43,36 @@ struct ChosenCoverSurvivesCacheClearTests {
         let overrides = CoverOverrideStore.defaultDirectory.standardizedFileURL.path
         let caches = URL.cachesDirectory.standardizedFileURL.path
         #expect(!overrides.hasPrefix(caches.hasSuffix("/") ? caches : caches + "/"))
+    }
+
+    @Test("Removing a cover redraws every copy of the file and nothing else")
+    @MainActor
+    func everyCopyIsRedrawn() async {
+        // The store files a chosen cover under the content digest, so two copies of one file
+        // share it. Redrawing only the copy the reader acted on left the other showing the
+        // old picture for the rest of the launch.
+        let acted = book("a", digest: "same-bytes")
+        let copy = book("b", digest: "same-bytes")
+        let other = book("c", digest: "other-bytes")
+        let model = LibraryModel()
+        model.publications = [acted, copy, other]
+        let before = [acted, copy, other].map(model.coverLoadKey(for:))
+
+        await model.removeChosenCover(for: acted)
+
+        let after = [acted, copy, other].map(model.coverLoadKey(for:))
+        #expect(after[0] != before[0])
+        #expect(after[1] != before[1], "The other copy of the same file kept its old cover.")
+        #expect(after[2] == before[2])
+    }
+
+    private func book(_ name: String, digest: String) -> Publication {
+        Publication(
+            identity: PublicationIdentity(contentDigest: digest, normalizedPath: "/books/\(name).cbz"),
+            format: .cbz,
+            displayTitle: name,
+            origin: .inferred
+        )
     }
 
     private var publication: Publication {

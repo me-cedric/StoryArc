@@ -1,5 +1,8 @@
 import DesignSystem
+import Formats
+import Foundation
 import Kavita
+import StoryArcCore
 import SwiftUI
 
 /// One chapter's artwork, at the height of a reading-list row.
@@ -18,6 +21,8 @@ struct EntryPoster: View {
 
     let chapterID: Int?
     let address: KavitaAddress
+    /// The source this list belongs to, which names the chapter the way the library does.
+    var serverID: String?
 
     @Environment(\.theme) private var theme
     @State private var cover: Image?
@@ -39,10 +44,27 @@ struct EntryPoster: View {
         .accessibilityHidden(true)
         .task(id: chapterID) {
             guard cover == nil, let chapterID else { return }
+            // The reader's own picture first, as the publication page draws it: a chosen
+            // cover is the ladder's top rung, and the only one a server row can reach. The
+            // server's own cover only where the reader chose none.
+            if let chosen = chosenCover(chapterID) {
+                cover = Self.image(from: chosen)
+                return
+            }
             guard let data = try? await KavitaClient(address: address).chapterCover(chapterID)
             else { return }
             cover = Self.image(from: data)
         }
+    }
+
+    /// The chapter's chosen cover, under the identity `KavitaContributor` gives it.
+    private func chosenCover(_ chapterID: Int) -> Data? {
+        guard let serverID, let source = UUID(uuidString: serverID) else { return nil }
+        let identity = PublicationIdentity(
+            serverIdentifier: .init(sourceID: source, remoteID: "chapter:\(chapterID)")
+        )
+        let chapter = Publication(identity: identity, format: .cbz, displayTitle: "", origin: .authoritative)
+        return CoverOverrideStore().data(for: chapter)
     }
 
     private static func image(from data: Data) -> Image? {

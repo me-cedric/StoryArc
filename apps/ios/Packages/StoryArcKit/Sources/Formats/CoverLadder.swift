@@ -69,22 +69,6 @@ public struct CoverLadder: Sendable {
         else { return nil }
         return try? PageDecoder.decode(data, maxPixelSize: maxPixelSize)
     }
-
-    /// The file the publication's artwork lives in, for a caller that needs a path rather
-    /// than pixels — the media session hands one to the system, which draws it itself.
-    ///
-    /// The same ladder, stopping at the rungs that are already files: a chosen cover, the
-    /// artwork the indexer wrote out for an audiobook, then a loose image beside the file.
-    /// A comic's cover is an entry inside an archive and has no path of its own, so this
-    /// answers nil for one — which is what it answered before this existed.
-    public func coverFile(for publication: Publication, at url: URL?) -> URL? {
-        if let chosen = overrides.file(for: publication) { return chosen }
-        if let path = publication.coverPath, publication.format.isAudio,
-           FileManager.default.fileExists(atPath: path) {
-            return URL(fileURLWithPath: path)
-        }
-        return url.flatMap(LooseCover.beside)
-    }
 }
 
 /// Turning a picture the reader picked into a cover.

@@ -1,18 +1,25 @@
 package app.storyarc.feature.library
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -26,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -37,19 +45,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import app.storyarc.core.designsystem.tokens.StoryArcRadius
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,12 +56,17 @@ import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.grid.rememberCoverColumns
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcColor
+import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.format.CoverOverrideStore
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.kavita.KavitaReadingListItem
 import app.storyarc.core.kavita.KavitaSeries
+import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ShelfConflictNotice
 import app.storyarc.core.model.ShelfEntry
 import app.storyarc.core.model.ShelfKey
@@ -73,6 +77,7 @@ import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.ShelfEditStore
 import app.storyarc.core.persistence.serverIdentifier
 import java.io.File
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -139,6 +144,9 @@ fun KavitaListScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val client = remember(server.address) { KavitaClient(server.address) }
+    val overrides = remember(context) {
+        CoverOverrideStore(CoverOverrideStore.directoryIn(context.filesDir))
+    }
     var items by remember(listId) { mutableStateOf<List<KavitaReadingListItem>>(emptyList()) }
     var fetching by remember(listId) { mutableStateOf<Int?>(null) }
     // Where a failed open is said. A snackbar rather than a line in the list: the reader who
@@ -283,7 +291,12 @@ fun KavitaListScreen(
                         ?: ServerListProgress.State.Unknown,
                     // Fetched inside the row, so a list of seventy-seven asks the server
                     // only for the rows a reader has actually scrolled to.
-                    cover = rememberChapterCover(entry?.chapterId, load = client::chapterCover),
+                    // The reader's own picture first, as the publication page draws it: a
+                    // chosen cover is the ladder's top rung, and the only one a server row
+                    // can reach. The server's own cover only where the reader chose none.
+                    cover = rememberChapterCover(entry?.chapterId) { id ->
+                        chapterCover(overrides, server.id, id, client::chapterCover)
+                    },
                     isFetching = fetching?.toString() == row.id,
                     // An entry the server has not heard of has no place in the server's own
                     // order, so it cannot be moved into one.
@@ -559,6 +572,36 @@ private val POSTER_HEIGHT = 56.dp
  * A chapter with no artwork, or a fetch that fails, leaves null — the row keeps its number,
  * its title and its place, which is what `collections-and-reading-lists` asks for.
  */
+/**
+ * A reading-list entry's cover: the reader's own picture where they chose one, and the
+ * server's cover only where they did not.
+ */
+internal suspend fun chapterCover(
+    overrides: CoverOverrideStore,
+    serverId: String,
+    chapterId: Int,
+    server: suspend (Int) -> ByteArray,
+): ByteArray =
+    withContext(Dispatchers.IO) { overrides.bytes(chapterPublication(serverId, chapterId)) }
+        ?: server(chapterId)
+
+/**
+ * A Kavita chapter as the library names it, for the one question a list entry asks of the
+ * cover-override store. The identity is the one `KavitaContributor.publication` gives the same
+ * chapter, so the store files both under one key.
+ */
+private fun chapterPublication(serverId: String, chapterId: Int) = Publication(
+    identity = PublicationIdentity(
+        serverIdentifier = PublicationIdentity.ServerIdentifier(
+            UUID.fromString(serverId),
+            "chapter:$chapterId",
+        ),
+    ),
+    format = PublicationFormat.CBZ,
+    displayTitle = "",
+    origin = MetadataOrigin.AUTHORITATIVE,
+)
+
 @Composable
 internal fun rememberChapterCover(chapterId: Int?, load: suspend (Int) -> ByteArray): Bitmap? {
     var cover by remember(chapterId) { mutableStateOf<Bitmap?>(null) }

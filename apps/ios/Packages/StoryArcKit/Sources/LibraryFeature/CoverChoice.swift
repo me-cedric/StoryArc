@@ -66,9 +66,17 @@ extension LibraryModel {
     /// ``CoverCache`` is what it will read on the next one — leaving either behind shows the
     /// reader the cover they just replaced, which reads as the choice not having worked.
     private func forgetDrawnCover(of publication: Publication) {
-        covers[publication.id] = nil
-        CoverCache().removeEverySize(for: publication.id)
-        coverRevisions[publication.id, default: 0] += 1
+        // Every copy of one file shares one chosen cover, because the store keys it by
+        // digest, so every copy is redrawn — not only the one the reader acted on.
+        let digest = publication.identity.contentDigest
+        let copies = publications
+            .filter { digest != nil && $0.identity.contentDigest == digest }
+            .map(\.id)
+        for id in Set(copies + [publication.id]) {
+            covers[id] = nil
+            CoverCache().removeEverySize(for: id)
+            coverRevisions[id, default: 0] += 1
+        }
     }
 
     /// The key a view that draws this publication's cover loads it under.

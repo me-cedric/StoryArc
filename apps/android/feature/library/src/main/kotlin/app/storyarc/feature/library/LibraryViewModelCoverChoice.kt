@@ -109,9 +109,19 @@ internal suspend fun LibraryViewModel.removeChosenCover(publication: Publication
  * shows the reader the cover they just replaced, which reads as the choice not having worked.
  */
 private suspend fun LibraryViewModel.forgetDrawnCover(publication: Publication) {
-    covers.remove(publication.id)
-    withContext(Dispatchers.IO) { coverCache.removeEverySize(publication.id) }
-    coverRevisions[publication.id] = (coverRevisions[publication.id] ?: 0) + 1
+    // Every copy of one file shares one chosen cover, because the store keys it by digest, so
+    // every copy is redrawn -- not only the one the reader acted on.
+    val digest = publication.identity.contentDigest
+    val ids = publications.value
+        .filter { digest != null && it.identity.contentDigest == digest }
+        .map { it.id }
+        .plus(publication.id)
+        .distinct()
+    for (id in ids) {
+        covers.remove(id)
+        withContext(Dispatchers.IO) { coverCache.removeEverySize(id) }
+        coverRevisions[id] = (coverRevisions[id] ?: 0) + 1
+    }
 }
 
 /**

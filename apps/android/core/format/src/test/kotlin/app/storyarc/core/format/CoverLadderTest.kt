@@ -229,6 +229,19 @@ class CoverLadderTest {
         assertFalse(directory.path.startsWith(cache.path))
     }
 
+    @Test
+    fun `a replacement that fails to write leaves the earlier choice whole`() {
+        val folder = temporaryFolder()
+        val publication = audiobook(File(folder, "Book 03.m4b"))
+        val overrides = CoverOverrideStore(File(folder, "overrides"))
+        val first = overrides.store(byteArrayOf(1, 2, 3), publication)!!
+        // A directory where the half-written copy goes makes the next write fail.
+        File(first.parentFile, "${first.name}.partial").mkdirs()
+
+        assertNull(overrides.store(byteArrayOf(9, 9, 9, 9), publication))
+        assertEquals(listOf<Byte>(1, 2, 3), overrides.bytes(publication)?.toList())
+    }
+
     private fun audiobook(file: File) = Publication(
         identity = PublicationIdentity(contentDigest = file.path, normalizedPath = file.path),
         format = PublicationFormat.M4B,

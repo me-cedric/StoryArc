@@ -76,11 +76,19 @@ public struct CoverOverrideStore: Sendable {
         // The same protection `CoverCache` gives a decoded page: a chosen cover is artwork
         // the reader put on the device, and it is readable while the app runs rather than
         // while the device is locked.
-        try? data.write(to: url, options: [.atomic, .completeFileProtectionUnlessOpen])
+        let options: Data.WritingOptions = [.atomic, .completeFileProtectionUnlessOpen]
         #else
-        try? data.write(to: url, options: .atomic)
+        let options: Data.WritingOptions = .atomic
         #endif
-        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+        // The write's own answer, not whether a file is there afterwards. Replacing a chosen
+        // cover on a full disk leaves the earlier file in place, and checking for a file
+        // reported that failure as success while the old picture stayed.
+        do {
+            try data.write(to: url, options: options)
+            return url
+        } catch {
+            return nil
+        }
     }
 
     /// Forgets this publication's chosen cover and deletes the image.

@@ -197,7 +197,7 @@ struct KavitaListView: View {
                     // The library's own cover shape, at a row's height. Decorative: the row
                     // says what it is in one merged label below, so a description here would
                     // read it twice.
-                    EntryPoster(chapterID: Int(row.id), address: server.address)
+                    EntryPoster(chapterID: Int(row.id), address: server.address, serverID: server.id)
 
                     VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
                         Text(row.title)

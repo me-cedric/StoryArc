@@ -93,6 +93,26 @@ struct CoverLadderTests {
         #expect(image.width <= 100)
     }
 
+    @Test("A replacement that fails to write is reported, and the earlier choice stays")
+    func failedReplacementIsReported() throws {
+        let folder = try temporaryFolder()
+        let publication = audiobook(at: folder.appending(path: "Book 03.m4b"))
+        let overrides = store(in: folder)
+        let first = try png(width: 20, height: 30)
+        let chosen = try #require(overrides.store(first, for: publication))
+        // A folder the store cannot write into makes the replacement fail.
+        let directory = chosen.deletingLastPathComponent()
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: directory.path)
+        defer {
+            try? FileManager.default.setAttributes(
+                [.posixPermissions: 0o755], ofItemAtPath: directory.path
+            )
+        }
+
+        #expect(overrides.store(try png(width: 40, height: 60), for: publication) == nil)
+        #expect(overrides.data(for: publication) == first)
+    }
+
     // MARK: - The key the override is filed under
 
     @Test("A chosen cover outlives a rename, because the key is the content digest")

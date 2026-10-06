@@ -67,12 +67,19 @@ class CoverOverrideStore(private val directory: File) {
      *   say so: unlike a cache write, this one is the reader's own choice, and dropping it
      *   quietly would leave them tapping a button that does nothing.
      */
-    fun store(data: ByteArray, publication: Publication): File? = runCatching {
+    fun store(data: ByteArray, publication: Publication): File? {
         directory.mkdirs()
         val file = location(publication)
-        file.writeBytes(data)
-        file
-    }.getOrNull()
+        // Written beside and renamed into place, as iOS's atomic write does. Written straight
+        // to the final file, a write that failed part of the way deleted the earlier choice
+        // and left a truncated image the store still reported as chosen.
+        val partial = File(directory, "${file.name}.partial")
+        return runCatching {
+            partial.writeBytes(data)
+            check(partial.renameTo(file)) { "rename failed" }
+            file
+        }.onFailure { partial.delete() }.getOrNull()
+    }
 
     /**
      * Forgets this publication's chosen cover and deletes the image.
