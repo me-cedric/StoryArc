@@ -485,7 +485,7 @@ private fun CoverCell(
     val palette = LocalStoryArcPalette.current
     var cover by remember(publication.id) { mutableStateOf<Bitmap?>(null) }
 
-    LaunchedEffect(publication.id) {
+    LaunchedEffect(publication.id, viewModel.coverRevision(publication)) {
         cover = viewModel.cover(publication, maxPixelSize)
     }
 

@@ -150,6 +150,10 @@ public struct PublicationDetailView: View {
             kavitaCard = KavitaCardStore().card(of: publication.id)
             cover = await model.cover(for: publication, maxPixelSize: 900)
         }
+        // A cover the reader chose or removed on this page is drawn at once.
+        .onChange(of: model.coverLoadKey(for: publication)) {
+            Task { cover = await model.cover(for: publication, maxPixelSize: 900) }
+        }
         // Its own task, and keyed on the file as well as the publication: reading an
         // audiobook's chapter markers opens the container, which is slower than either read
         // above and must not hold the cover behind it. A comic never starts it — the guard is

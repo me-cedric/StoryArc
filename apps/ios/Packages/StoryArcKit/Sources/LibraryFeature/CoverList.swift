@@ -230,10 +230,8 @@ struct ListRow: View {
         .accessibilityLabel(accessibilityLabel)
         .accessibilityAddTraits(publication.isOpenable ? .isButton : [])
         .accessibilityAddTraits(isPicked == true ? .isSelected : [])
-        .task(id: publication.id) {
-            if cover == nil {
-                cover = await model.cover(for: publication, maxPixelSize: maxPixelSize)
-            }
+        .task(id: model.coverLoadKey(for: publication)) {
+            cover = await model.cover(for: publication, maxPixelSize: maxPixelSize)
         }
     }
 

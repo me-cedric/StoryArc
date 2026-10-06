@@ -5,7 +5,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -132,7 +131,12 @@ internal fun DetailHero(
                     height = layout.coverHeight,
                     onChooseCover = coverChoice.onChoose.takeIf { cover == null },
                 )
-                Box(modifier = Modifier.weight(1f, fill = false).widthIn(max = ACTION_WIDTH)) {
+                // A column, not a box: a box draws both children from its top corner, so the
+                // cover controls landed on the primary action and took its taps.
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
+                    modifier = Modifier.weight(1f, fill = false).widthIn(max = ACTION_WIDTH),
+                ) {
                     action()
                     CoverChoiceControls(choice = coverChoice, hasCover = cover != null, accent = accent)
                 }

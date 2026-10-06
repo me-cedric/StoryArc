@@ -95,8 +95,9 @@ internal suspend fun LibraryViewModel.setCover(
  * The ladder resolves the publication's cover again from the rung below on the next draw,
  * which is what `cover-art`'s *Undoing the choice* asks for.
  */
-internal fun LibraryViewModel.removeChosenCover(publication: Publication) {
-    CoverOverrideStore(coverOverrideDirectory).remove(publication)
+internal suspend fun LibraryViewModel.removeChosenCover(publication: Publication) {
+    // Off the main thread: the store deletes a file and the cover cache lists its directory.
+    withContext(Dispatchers.IO) { CoverOverrideStore(coverOverrideDirectory).remove(publication) }
     forgetDrawnCover(publication)
 }
 
@@ -107,7 +108,16 @@ internal fun LibraryViewModel.removeChosenCover(publication: Publication) {
  * [LibraryViewModel.coverCache] is what it will read on the next one — leaving either behind
  * shows the reader the cover they just replaced, which reads as the choice not having worked.
  */
-private fun LibraryViewModel.forgetDrawnCover(publication: Publication) {
+private suspend fun LibraryViewModel.forgetDrawnCover(publication: Publication) {
     covers.remove(publication.id)
-    coverCache.removeEverySize(publication.id)
+    withContext(Dispatchers.IO) { coverCache.removeEverySize(publication.id) }
+    coverRevisions[publication.id] = (coverRevisions[publication.id] ?: 0) + 1
 }
+
+/**
+ * How many times this publication's cover has changed this launch. A view that holds a decoded
+ * cover keys its load on this, so a cover the reader chooses or removes is redrawn wherever it
+ * is on screen -- the two-pane layout keeps the shelf beside the page that changed it.
+ */
+internal fun LibraryViewModel.coverRevision(publication: Publication): Int =
+    coverRevisions[publication.id] ?: 0

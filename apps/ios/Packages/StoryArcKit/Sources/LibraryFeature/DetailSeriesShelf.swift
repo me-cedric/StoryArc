@@ -141,8 +141,7 @@ private struct DetailSeriesEntry: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(label)
         .accessibilityAddTraits(.isButton)
-        .task(id: publication.id) {
-            guard cover == nil else { return }
+        .task(id: model.coverLoadKey(for: publication)) {
             cover = await model.cover(for: publication, maxPixelSize: 240)
         }
     }

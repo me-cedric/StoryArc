@@ -121,6 +121,7 @@ public final class LibraryModel {
     /// Internal, not private: the scanning and the imported-copies halves of this type
     /// live in other files, and `private` is file-scoped.
     var covers: [String: CGImage] = [:]
+    var coverRevisions: [String: Int] = [:]  // See `coverLoadKey(for:)`.
     /// Where each publication came from, so a cover can be loaded later.
     var locations: [String: URL] = [:]
 

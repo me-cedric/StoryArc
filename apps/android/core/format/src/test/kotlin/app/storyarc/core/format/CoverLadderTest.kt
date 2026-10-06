@@ -238,4 +238,49 @@ class CoverLadderTest {
 
     private fun temporaryFolder(): File =
         createTempDirectory("cover-ladder").toFile().also { it.deleteOnExit() }
+
+    @Test
+    fun `a picked photograph is decoded at a fraction of its size, never whole`() {
+        // A 48-megapixel phone photograph is 8000 by 6000. Decoded whole it is 192 MB of
+        // pixels for a cover the page draws at 900.
+        assertEquals(4, CoverArtwork.sampleSize(8000, 6000))
+        assertTrue(8000 / CoverArtwork.sampleSize(8000, 6000) >= CoverArtwork.MAX_SIDE)
+        // A picture already near the cover's size is decoded as it is.
+        assertEquals(1, CoverArtwork.sampleSize(1200, 1800))
+        assertEquals(1, CoverArtwork.sampleSize(3199, 2000))
+    }
+
+    @Test
+    fun `every EXIF orientation is turned upright`() {
+        // A phone writes a portrait photograph as a landscape bitmap plus this tag. Ignored,
+        // the reader's cover is stored lying on its side. Raw tag values, so this reads the
+        // EXIF standard rather than the constants it is checking.
+        val upright = CoverArtwork.Orientation(0f, mirrored = false)
+        assertEquals(upright, CoverArtwork.orientation(1))
+        assertEquals(CoverArtwork.Orientation(0f, mirrored = true), CoverArtwork.orientation(2))
+        assertEquals(CoverArtwork.Orientation(180f, mirrored = false), CoverArtwork.orientation(3))
+        assertEquals(CoverArtwork.Orientation(180f, mirrored = true), CoverArtwork.orientation(4))
+        assertEquals(CoverArtwork.Orientation(90f, mirrored = true), CoverArtwork.orientation(5))
+        assertEquals(CoverArtwork.Orientation(90f, mirrored = false), CoverArtwork.orientation(6))
+        assertEquals(CoverArtwork.Orientation(270f, mirrored = true), CoverArtwork.orientation(7))
+        assertEquals(CoverArtwork.Orientation(270f, mirrored = false), CoverArtwork.orientation(8))
+        // A tag this code does not know leaves the picture as it is.
+        assertEquals(upright, CoverArtwork.orientation(0))
+    }
+
+    @Test
+    fun `a picture larger than the ceiling is refused before it is decoded`() {
+        assertNull(CoverArtwork.coverShaped(ByteArray(CoverArtwork.MAX_BYTES + 1)))
+    }
+
+    @Test
+    fun `a document's folder is the one before it on its trail from the root`() {
+        // `findDocumentPath` names every document from the tree's root down to this one.
+        val trail = listOf("primary:Books", "primary:Books/Shelf", "primary:Books/Shelf/Tide.epub")
+
+        assertEquals("primary:Books/Shelf", LooseCover.folderOf(trail))
+        // The tree's root has no folder above it inside the tree.
+        assertNull(LooseCover.folderOf(listOf("primary:Books")))
+        assertNull(LooseCover.folderOf(emptyList()))
+    }
 }

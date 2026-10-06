@@ -28,7 +28,10 @@ import androidx.compose.ui.text.style.TextAlign
 import app.storyarc.core.designsystem.grid.isAccessibilityFontScale
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.format.CoverArtwork
 import app.storyarc.core.model.Publication
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -97,7 +100,8 @@ internal fun rememberCoverChoice(
             // is sent.
             val bytes = withContext(Dispatchers.IO) {
                 runCatching {
-                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    context.contentResolver.openInputStream(uri)
+                        ?.use { it.readAtMost(CoverArtwork.MAX_BYTES) }
                 }.getOrNull()
             }
             val stored = bytes != null && viewModel.setCover(bytes, publication)
@@ -116,8 +120,10 @@ internal fun rememberCoverChoice(
         },
         onRemove = if (hasChosen) {
             {
-                viewModel.removeChosenCover(publication)
-                hasChosen = false
+                scope.launch {
+                    viewModel.removeChosenCover(publication)
+                    hasChosen = false
+                }
             }
         } else {
             null
@@ -207,3 +213,18 @@ internal fun CoverChoiceControls(
 @Composable
 private fun textButtonColors(content: Color) =
     ButtonDefaults.textButtonColors(contentColor = content)
+
+/**
+ * The stream's bytes, or null when it holds more than [limit]. A picked file is untrusted
+ * input, and `readBytes` would hold a file of any size whole before anything could refuse it.
+ */
+private fun InputStream.readAtMost(limit: Int): ByteArray? {
+    val out = ByteArrayOutputStream()
+    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+    while (true) {
+        val read = read(buffer)
+        if (read < 0) return out.toByteArray()
+        if (out.size() + read > limit) return null
+        out.write(buffer, 0, read)
+    }
+}

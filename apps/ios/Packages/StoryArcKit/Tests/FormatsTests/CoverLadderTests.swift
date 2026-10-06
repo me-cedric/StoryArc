@@ -159,6 +159,33 @@ struct CoverLadderTests {
         #expect(abs(ratio - CoverArtwork.aspectRatio) < 0.01)
     }
 
+    @Test("A photograph a phone stored on its side is turned upright first")
+    func pickedPictureIsTurnedUpright() throws {
+        // A phone writes a portrait photograph as a landscape bitmap plus EXIF orientation 6.
+        // Upright it is 200 by 300, which is already the cover shape, so the crop keeps it
+        // whole. Read without the tag it is 300 by 200, and the crop cuts it to 133 by 200.
+        let sideways = try png(width: 300, height: 200, orientation: 6)
+        let shaped = try #require(CoverArtwork.coverShaped(sideways))
+        let image = try #require(decode(shaped))
+
+        #expect(image.width == 200)
+        #expect(image.height == 300)
+    }
+
+    @Test("A large photograph is stored bounded, never whole")
+    func pickedPictureIsBounded() throws {
+        let large = try png(width: 2000, height: 3000)
+        let shaped = try #require(CoverArtwork.coverShaped(large))
+        let image = try #require(decode(shaped))
+
+        #expect(max(image.width, image.height) <= CoverArtwork.maxSide)
+    }
+
+    @Test("A picture larger than the ceiling is refused before it is decoded")
+    func oversizedPictureIsRefused() {
+        #expect(CoverArtwork.coverShaped(Data(count: CoverArtwork.maxBytes + 1)) == nil)
+    }
+
     @Test("A picture that is not an image is refused rather than stored")
     func unreadablePictureIsRefused() {
         #expect(CoverArtwork.coverShaped(Data("not a picture".utf8)) == nil)
@@ -185,7 +212,7 @@ struct CoverLadderTests {
         return url
     }
 
-    private func png(width: Int, height: Int) throws -> Data {
+    private func png(width: Int, height: Int, orientation: Int? = nil) throws -> Data {
         let context = try #require(CGContext(
             data: nil,
             width: width,
@@ -202,7 +229,10 @@ struct CoverLadderTests {
         let destination = try #require(CGImageDestinationCreateWithData(
             buffer, UTType.png.identifier as CFString, 1, nil
         ))
-        CGImageDestinationAddImage(destination, image, nil)
+        let properties = orientation.map {
+            [kCGImagePropertyOrientation: NSNumber(value: $0)] as CFDictionary
+        }
+        CGImageDestinationAddImage(destination, image, properties)
         #expect(CGImageDestinationFinalize(destination))
         return buffer as Data
     }

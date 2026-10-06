@@ -1,5 +1,8 @@
 package app.storyarc.core.format
 
+import android.content.ContentResolver
+import android.net.Uri
+import android.provider.DocumentsContract
 import java.io.File
 
 /**
@@ -75,4 +78,27 @@ object LooseCover {
         val present = names.associateBy { it.lowercase() }
         return fileNames.firstNotNullOfOrNull { present[it] }
     }
+
+    /**
+     * The bytes of the loose cover beside a Storage Access Framework [document], or null.
+     *
+     * A document has no path to look beside, so its folder is found through the provider:
+     * `findDocumentPath` names every document from the tree's root down to this one, and the
+     * one before it is the folder. A provider that cannot answer that degrades to no loose
+     * cover, which is what every SAF document had before this existed.
+     *
+     * ponytail: asked each time a cover misses its first two rungs, with no memory of a miss;
+     * remember the misses per folder if a large SAF shelf of coverless files scrolls slowly.
+     */
+    fun besideDocument(resolver: ContentResolver, document: Uri): ByteArray? = runCatching {
+        val trail = DocumentsContract.findDocumentPath(resolver, document)?.path ?: return null
+        val folder = folderOf(trail) ?: return null
+        val files = SafTree.childrenOrNull(resolver, document, folder)
+            ?.filterNot { it.isDirectory } ?: return null
+        val name = named(files.map { it.name }) ?: return null
+        SafTree.bytes(resolver, document, files.first { it.name == name }.documentId)
+    }.getOrNull()
+
+    /** The folder a document sits in, from its root-to-document trail, or null at the root. */
+    internal fun folderOf(trail: List<String>): String? = trail.getOrNull(trail.size - 2)
 }

@@ -42,7 +42,9 @@ struct CoverCell: View {
     var onRemoveFromShelf: (() -> Void)?
 
     @State private var cover: CGImage?
-    @State private var didAttemptLoad = false
+    /// The cover load this cell last made. A key, not a flag: the key changes when the reader
+    /// chooses or removes this publication's cover, and the cell must then ask again.
+    @State private var loadedKey: String?
 
     /// The cell, and what a tap on it does.
     ///
@@ -138,9 +140,10 @@ struct CoverCell: View {
         // Spoken, because a tick in the corner of a cover is invisible to VoiceOver and
         // "is this one picked" is the only question selection mode asks.
         .accessibilityAddTraits(isPicked == true ? .isSelected : [])
-        .task(id: publication.id) {
-            guard !didAttemptLoad else { return }
-            didAttemptLoad = true
+        .task(id: model.coverLoadKey(for: publication)) {
+            let key = model.coverLoadKey(for: publication)
+            guard loadedKey != key else { return }
+            loadedKey = key
             cover = await model.cover(for: publication, maxPixelSize: maxPixelSize)
         }
     }

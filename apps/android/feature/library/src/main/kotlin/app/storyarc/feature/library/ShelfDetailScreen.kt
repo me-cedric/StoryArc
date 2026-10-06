@@ -474,7 +474,7 @@ private fun EntryRow(
     val density = LocalDensity.current
     val maxPixelSize = remember(density) { with(density) { (POSTER_HEIGHT * 2f / 3f).roundToPx() } }
     var cover by remember(entry) { mutableStateOf<Bitmap?>(null) }
-    LaunchedEffect(entry, publication) {
+    LaunchedEffect(entry, publication, publication?.let { viewModel.coverRevision(it) }) {
         cover = publication?.let { viewModel.cover(it, maxPixelSize) }
     }
 

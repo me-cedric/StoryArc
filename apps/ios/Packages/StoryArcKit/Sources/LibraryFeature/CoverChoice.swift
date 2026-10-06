@@ -36,9 +36,14 @@ extension LibraryModel {
     ///   decode, or a write that failed; the caller tells the reader rather than leaving a
     ///   button that appears to do nothing.
     @discardableResult
-    public func setCover(_ picture: Data, for publication: Publication) -> Bool {
-        guard let shaped = CoverArtwork.coverShaped(picture) else { return false }
-        guard CoverOverrideStore().store(shaped, for: publication) != nil else { return false }
+    public func setCover(_ picture: Data, for publication: Publication) async -> Bool {
+        // Decoded, cropped, encoded and written off the main actor: a phone photograph takes
+        // long enough at each step to drop frames on the page the reader is looking at.
+        let stored = await Task.detached(priority: .userInitiated) {
+            guard let shaped = CoverArtwork.coverShaped(picture) else { return false }
+            return CoverOverrideStore().store(shaped, for: publication) != nil
+        }.value
+        guard stored else { return false }
         forgetDrawnCover(of: publication)
         return true
     }
@@ -47,8 +52,11 @@ extension LibraryModel {
     ///
     /// The ladder resolves the publication's cover again from the rung below on the next
     /// draw, which is what `cover-art`'s *Undoing the choice* asks for.
-    public func removeChosenCover(for publication: Publication) {
-        CoverOverrideStore().remove(for: publication)
+    public func removeChosenCover(for publication: Publication) async {
+        // Off the main actor: the store deletes a file and the cover cache lists a directory.
+        await Task.detached(priority: .userInitiated) {
+            CoverOverrideStore().remove(for: publication)
+        }.value
         forgetDrawnCover(of: publication)
     }
 
@@ -60,5 +68,14 @@ extension LibraryModel {
     private func forgetDrawnCover(of publication: Publication) {
         covers[publication.id] = nil
         CoverCache().removeEverySize(for: publication.id)
+        coverRevisions[publication.id, default: 0] += 1
+    }
+
+    /// The key a view that draws this publication's cover loads it under.
+    ///
+    /// It carries how many times the cover changed this launch, so a cover the reader chooses
+    /// or removes is redrawn wherever it is on screen rather than on the next launch.
+    func coverLoadKey(for publication: Publication) -> String {
+        "\(publication.id)#\(coverRevisions[publication.id, default: 0])"
     }
 }

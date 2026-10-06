@@ -200,15 +200,37 @@ object PublicationIndexer {
         // because unlike a comic's page an audio file's cover has no path of its own
         // until something reads it out. Neither being present degrades to no cover, the
         // same honest fallback a source with no path already accepts for its own pages.
-        coverPath = decoderPath?.let { path -> coverCacheDir?.let { audiobookCoverPath(path, it) } },
+        coverPath = decoderPath?.let { path ->
+            coverCacheDir?.let { audiobookCoverPath(path, identity, it) }
+        },
     )
 
     /**
      * Reads [path]'s own embedded artwork and writes it under [cacheDir], returning that
      * copy's path — or `null` where there is no artwork to find. Task 16.9.
      */
-    private fun audiobookCoverPath(path: File, cacheDir: File): String? =
-        AudiobookCover.embedded(path.path)?.let { AudiobookCoverStore(cacheDir).write(it, path) }
+    private fun audiobookCoverPath(
+        path: File,
+        identity: PublicationIdentity,
+        cacheDir: File,
+    ): String? = AudiobookCover.embedded(path.path)?.let { art ->
+        AudiobookCoverStore(cacheDir).write(art, audiobookCoverKey(path.path, identity))
+    }
+
+    /**
+     * What an audio file's extracted artwork is filed under.
+     *
+     * The file's own path where it has one. A provider's document has none, and the path it
+     * is read through -- `/proc/self/fd/N` -- names a descriptor, not a file: the scan closes
+     * it before opening the next document, the kernel hands the next document the same number,
+     * and every audiobook in a picked folder wrote its cover over the one before. Such a
+     * document is filed under its identity instead, which is what it is rather than how it
+     * was opened.
+     */
+    internal fun audiobookCoverKey(path: String, identity: PublicationIdentity): String =
+        if (path.startsWith(DESCRIPTOR_PATH_PREFIX)) identity.stableId else path
+
+    private const val DESCRIPTOR_PATH_PREFIX = "/proc/self/fd/"
 
     /** The domain format an audio container is. Total, so a new container is a compile error. */
     private fun audioFormat(container: FormatSniffer.Container): PublicationFormat =

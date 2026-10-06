@@ -100,14 +100,32 @@ public enum CoverArtwork {
 
     private static let quality: CGFloat = 0.9
 
-    /// `data` centre-cropped to the cover shape and re-encoded, or nil when it is not an
-    /// image this app can decode.
+    /// The longest side a stored cover keeps. The publication page asks for 900 pixels;
+    /// this leaves room for a large iPad without storing a 48-megapixel photograph whole.
+    public static let maxSide = 1600
+
+    /// The largest picture this app reads at all. A picked file is untrusted input.
+    public static let maxBytes = 40 * 1024 * 1024
+
+    /// `data` turned upright, centre-cropped to the cover shape, bounded to ``maxSide`` and
+    /// re-encoded, or nil when it is too large or not an image this app can decode.
+    ///
+    /// A thumbnail decode rather than a full one, for two reasons in one call. A phone
+    /// writes a portrait photograph as a landscape bitmap plus an EXIF orientation, and
+    /// `kCGImageSourceCreateThumbnailWithTransform` is what applies it — a plain decode
+    /// stores the reader's cover lying on its side. And the thumbnail is decoded at its
+    /// bounded size, so a 48-megapixel photograph is never held whole.
     ///
     /// Centre rather than anything cleverer: a cover's subject is in the middle of it, and
     /// face detection on a book jacket finds the author's photograph on the back.
     public static func coverShaped(_ data: Data) -> Data? {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
+        guard data.count <= maxBytes,
+              let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                  kCGImageSourceCreateThumbnailFromImageAlways: true,
+                  kCGImageSourceCreateThumbnailWithTransform: true,
+                  kCGImageSourceThumbnailMaxPixelSize: maxSide,
+              ] as CFDictionary)
         else { return nil }
         return encoded(cropped(image))
     }

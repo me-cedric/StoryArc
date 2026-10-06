@@ -307,11 +307,13 @@ object LibraryScanner {
     ): Publication {
         val uri = SafTree.documentUri(tree, listed.documentId)
         if (listed.isFolder) {
-            return PublicationIndexer.index(
-                DocumentFolderArchive.open(resolver, tree, listed.documentId),
-                identityOf(uri),
+            return indexFolder(
+                resolver,
+                tree,
+                listed.documentId,
                 listed.name,
                 listed.seriesHint,
+                coverCacheDir,
             )
         }
         // Closed as soon as the archive is catalogued, for the reason [indexDocument] gives.
@@ -611,6 +613,43 @@ object LibraryScanner {
         return if (event is ScanEvent.Found) Tally(found = 1) else Tally(skipped = 1)
     }
 
+    /**
+     * A document-tree folder, indexed as the kind of folder `FolderKind` says it is. Shared by
+     * the full scan and [index], which had drifted: a changed audiobook folder was re-indexed
+     * as comic pages, and lost its cover with it.
+     */
+    private suspend fun indexFolder(
+        resolver: ContentResolver,
+        tree: Uri,
+        documentId: String,
+        name: String,
+        seriesHint: String?,
+        coverCacheDir: File?,
+    ): Publication {
+        val uri = SafTree.documentUri(tree, documentId)
+        val entries = SafTree.children(resolver, tree, documentId)
+        val kind = FolderKind.of(entries.filterNot { it.isDirectory }.map { it.name })
+        if (kind != FolderKind.AUDIOBOOK) {
+            return PublicationIndexer.index(
+                DocumentFolderArchive.open(resolver, tree, documentId),
+                identityOf(uri),
+                name,
+                seriesHint,
+            )
+        }
+        return PublicationIndexer.index(
+            AudiobookFolder.of(
+                entries.filterNot { it.isDirectory }.map { entry ->
+                    AudiobookFolder.Candidate(entry.name, entry.size)
+                },
+            ),
+            identityOf(uri),
+            name,
+            seriesHint,
+            looseCover(resolver, tree, entries, uri, coverCacheDir),
+        )
+    }
+
     private suspend fun indexDocumentFolder(
         resolver: ContentResolver,
         tree: Uri,
@@ -623,33 +662,8 @@ object LibraryScanner {
         val uri = SafTree.documentUri(tree, documentId)
         val name = uri.lastPathSegment?.substringAfterLast('/') ?: documentId
         val event = try {
-            // Which kind of folder this is, asked here rather than assumed. The `File`
-            // walk asks the same question inside `PublicationIndexer.index(File)`; a
-            // document tree has no `File`, so the listing is done here and the answer is
-            // `FolderKind`'s either way.
-            val entries = SafTree.children(resolver, tree, documentId)
-            val kind = FolderKind.of(entries.filterNot { it.isDirectory }.map { it.name })
-
-            val publication = if (kind == FolderKind.AUDIOBOOK) {
-                PublicationIndexer.index(
-                    AudiobookFolder.of(
-                        entries.filterNot { it.isDirectory }.map { entry ->
-                            AudiobookFolder.Candidate(entry.name, entry.size)
-                        },
-                    ),
-                    identityOf(uri),
-                    name,
-                    seriesHint,
-                    looseCover(resolver, tree, entries, uri, coverCacheDir),
-                )
-            } else {
-                PublicationIndexer.index(
-                    DocumentFolderArchive.open(resolver, tree, documentId),
-                    identityOf(uri),
-                    name,
-                    seriesHint,
-                )
-            }
+            val publication =
+                indexFolder(resolver, tree, documentId, name, seriesHint, coverCacheDir)
             // The folder was weighed by its own parts; only the date is outside
             // knowledge here.
             ScanEvent.Found(publication.withFileFacts(size = -1L, addedAt = modifiedAt))

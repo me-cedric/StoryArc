@@ -232,7 +232,8 @@ fun PublicationDetailScreen(
     val library by viewModel.publications.collectAsStateWithLifecycle()
 
     var cover by remember(publication.id) { mutableStateOf<Bitmap?>(null) }
-    LaunchedEffect(publication.id) {
+    // Keyed on the cover revision too, so a cover the reader chooses or removes is drawn at once.
+    LaunchedEffect(publication.id, viewModel.coverRevision(publication)) {
         cover = viewModel.cover(publication, DETAIL_COVER_PIXELS)
     }
     val accent = rememberDetailAccent(cover)

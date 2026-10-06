@@ -3,7 +3,11 @@ package app.storyarc.core.format
 import android.content.ContentResolver
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
+import android.net.Uri
 import app.storyarc.core.model.Publication
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import kotlin.math.roundToInt
@@ -66,8 +70,19 @@ class CoverLadder(private val overrides: CoverOverrideStore) {
         runCatching { PublicationAccess.anyCover(resolver, publication, path, maxPixelSize) }
             .getOrNull()
             ?.let { return it }
-        val loose = looseCover(path) ?: return null
-        return runCatching { PageDecoder.decode(loose.readBytes(), maxPixelSize) }.getOrNull()
+        val loose = looseCoverBytes(resolver, path) ?: return null
+        return runCatching { PageDecoder.decode(loose, maxPixelSize) }.getOrNull()
+    }
+
+    /**
+     * The loose cover beside [path]: a file beside a file, or a document beside a document.
+     * Task 1.2 is "both" platforms and every format, and a folder the reader picks on Android
+     * is a document tree, so the document case is the common one there.
+     */
+    private fun looseCoverBytes(resolver: ContentResolver, path: String): ByteArray? = when {
+        PublicationAccess.isRemote(path) -> null
+        PublicationAccess.isDocument(path) -> LooseCover.besideDocument(resolver, Uri.parse(path))
+        else -> looseCover(path)?.let { runCatching { it.readBytes() }.getOrNull() }
     }
 
     /**
@@ -91,11 +106,10 @@ class CoverLadder(private val overrides: CoverOverrideStore) {
     /**
      * A loose image beside a recorded path, where that path names something on the filesystem.
      *
-     * A Storage Access Framework document has no filesystem path to look beside, so a loose
-     * cover on a SAF path is found at index time instead, where the scanner already holds the
-     * folder's own listing — see `LibraryScanner.indexDocumentFolder`. Answering null here for
-     * such a path is therefore the right answer rather than a gap: by the time anything asks
-     * this, the copy already made is the publication's recorded cover.
+     * Null for a Storage Access Framework document, which has no filesystem path to look
+     * beside: [cover] reaches that case through [LooseCover.besideDocument], and an audiobook
+     * folder's loose cover is copied at index time as its recorded cover. [coverFile] needs a
+     * file rather than bytes, so for a single SAF document it has none to give.
      */
     private fun looseCover(path: String?): File? {
         if (path == null || PublicationAccess.isDocument(path) || PublicationAccess.isRemote(path)) {
@@ -143,16 +157,79 @@ object CoverArtwork {
     }
 
     /**
-     * [data] centre-cropped to the cover shape and re-encoded, or null when it is not an image
-     * this device can decode.
+     * The longest side a stored cover keeps. The publication page asks for 900 pixels; this
+     * leaves room for a large tablet without storing a 48-megapixel photograph whole.
+     */
+    const val MAX_SIDE = 1600
+
+    /** The largest picture this app reads at all. A picked file is untrusted input. */
+    const val MAX_BYTES = 40 * 1024 * 1024
+
+    /**
+     * The power-of-two step [BitmapFactory] decodes at, so a picture [width] by [height] is
+     * never held at full size. It stops while the longest side is still at least [MAX_SIDE],
+     * so the final scale only ever shrinks.
+     */
+    fun sampleSize(width: Int, height: Int): Int {
+        var sample = 1
+        while (maxOf(width, height) / (sample * 2) >= MAX_SIDE) sample *= 2
+        return sample
+    }
+
+    /** What an EXIF orientation tag asks for: a turn, then a mirror. */
+    data class Orientation(val degrees: Float, val mirrored: Boolean)
+
+    /**
+     * The turn and mirror for an EXIF orientation tag. A phone writes a portrait photograph
+     * as a landscape bitmap plus a tag, so a decode that ignores the tag stores it sideways.
+     */
+    fun orientation(tag: Int): Orientation = when (tag) {
+        ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> Orientation(0f, mirrored = true)
+        ExifInterface.ORIENTATION_ROTATE_180 -> Orientation(180f, mirrored = false)
+        ExifInterface.ORIENTATION_FLIP_VERTICAL -> Orientation(180f, mirrored = true)
+        ExifInterface.ORIENTATION_TRANSPOSE -> Orientation(90f, mirrored = true)
+        ExifInterface.ORIENTATION_ROTATE_90 -> Orientation(90f, mirrored = false)
+        ExifInterface.ORIENTATION_TRANSVERSE -> Orientation(270f, mirrored = true)
+        ExifInterface.ORIENTATION_ROTATE_270 -> Orientation(270f, mirrored = false)
+        else -> Orientation(0f, mirrored = false)
+    }
+
+    /**
+     * [data] turned upright, centre-cropped to the cover shape, bounded to [MAX_SIDE] and
+     * re-encoded, or null when it is too large or not an image this device can decode.
      */
     fun coverShaped(data: ByteArray): ByteArray? = runCatching {
-        val decoded = BitmapFactory.decodeByteArray(data, 0, data.size) ?: return null
-        val box = crop(decoded.width, decoded.height)
-        val cropped = Bitmap.createBitmap(decoded, box.x, box.y, box.width, box.height)
+        if (data.size > MAX_BYTES) return null
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(data, 0, data.size, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        val options = BitmapFactory.Options().apply {
+            inSampleSize = sampleSize(bounds.outWidth, bounds.outHeight)
+        }
+        val decoded = BitmapFactory.decodeByteArray(data, 0, data.size, options) ?: return null
+        val upright = upright(decoded, orientation(orientationTag(data)))
+        val box = crop(upright.width, upright.height)
+        val scale = minOf(1f, MAX_SIDE.toFloat() / maxOf(box.width, box.height))
+        val matrix = Matrix().apply { setScale(scale, scale) }
+        val cropped = Bitmap.createBitmap(upright, box.x, box.y, box.width, box.height, matrix, true)
         ByteArrayOutputStream().use { out ->
             cropped.compress(Bitmap.CompressFormat.JPEG, QUALITY, out)
             out.toByteArray()
         }
     }.getOrNull()
+
+    /** The picture's EXIF orientation, or normal where it carries none or cannot be read. */
+    private fun orientationTag(data: ByteArray): Int = runCatching {
+        ExifInterface(ByteArrayInputStream(data))
+            .getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+    }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
+
+    private fun upright(bitmap: Bitmap, turn: Orientation): Bitmap {
+        if (turn.degrees == 0f && !turn.mirrored) return bitmap
+        val matrix = Matrix().apply {
+            setRotate(turn.degrees)
+            if (turn.mirrored) postScale(-1f, 1f)
+        }
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+    }
 }

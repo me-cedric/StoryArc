@@ -256,6 +256,7 @@ class LibraryViewModel(
     val unavailableFolders: StateFlow<List<String>> = _unavailableFolders.asStateFlow()
 
     internal val covers = mutableMapOf<String, Bitmap>()
+    internal val coverRevisions = mutableStateMapOf<String, Int>() // See [coverRevision].
     private val progress = mutableStateMapOf<String, ReadingProgress>()
 
     /**
@@ -1118,7 +1119,7 @@ class LibraryViewModel(
         for (entry in change.toIndex) {
             val listed = byPath[entry.path] ?: continue
             val publication = withContext(Dispatchers.IO) {
-                runCatching { LibraryScanner.index(resolver, tree, listed) }.getOrNull()
+                runCatching { LibraryScanner.index(resolver, tree, listed, audiobookCoverCacheDir) }.getOrNull()
             } ?: continue
             adopt(publication, sourceId)
             locations[publication.id] = entry.path

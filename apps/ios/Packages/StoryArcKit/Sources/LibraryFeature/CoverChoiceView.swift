@@ -102,8 +102,10 @@ struct DetailCoverChoice: View {
         }
         if hasChosenCover {
             Button(role: .destructive) {
-                model.removeChosenCover(for: publication)
-                hasChosenCover = false
+                Task {
+                    await model.removeChosenCover(for: publication)
+                    hasChosenCover = false
+                }
             } label: {
                 Text("cover.remove", bundle: .module)
             }
@@ -119,7 +121,7 @@ struct DetailCoverChoice: View {
         guard let item else { return }
         picked = nil
         guard let data = try? await item.loadTransferable(type: Data.self),
-              model.setCover(data, for: publication)
+              await model.setCover(data, for: publication)
         else {
             isUnreadable = true
             return
