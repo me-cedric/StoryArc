@@ -114,6 +114,14 @@ public struct TransitionChoices: Sendable, Equatable {
         /// already an image. Reflowable text needs the reader to take the turn over from
         /// Readium, and only iOS does that today.
         canFade: Bool = true,
+        /// Whether this platform's reader can raster the outgoing *and* the incoming page and
+        /// roll the first off the second.
+        ///
+        /// ``PageTransition/needsTwoRasters`` says which mode needs them; this says whether
+        /// the reader in front of the content can take them. The two were one fact until
+        /// 2026-10-06, when the reflowable readers learned to, and a mode's own needs and a
+        /// reader's own reach are not the same sentence.
+        canCurlOverText: Bool = false,
         isReflowable: Bool = false
     ) {
         self.chosen = chosen
@@ -138,9 +146,12 @@ public struct TransitionChoices: Sendable, Equatable {
 
         var unavailable: [PageTransition: TransitionUnavailability] = [:]
         if isReflowable {
-            // Only the mode that needs *two* rasters. Fast fade needs one, and the reader
-            // takes it before the navigator moves — where the platform's reader does.
-            for mode in offered where mode.needsTwoRasters || (mode == .fastFade && !canFade) {
+            // A mode this reader cannot supply the pictures for. Fast fade needs one raster
+            // and takes it before the navigator moves; Curl needs a second, after. Each is
+            // listed with the reason rather than dropped, where the platform's reader has
+            // not learned it yet.
+            for mode in offered
+            where (mode.needsTwoRasters && !canCurlOverText) || (mode == .fastFade && !canFade) {
                 unavailable[mode] = .reflowableText
             }
         }
@@ -162,7 +173,8 @@ public struct TransitionChoices: Sendable, Equatable {
         // Reduce Motion turns Slide into Fast fade, and over reflowable text Fast fade
         // is itself impossible. Checking content first left `effective` naming a mode
         // this publication refuses.
-        if isReflowable, effective.needsTwoRasters || (effective == .fastFade && !canFade) {
+        if isReflowable,
+           (effective.needsTwoRasters && !canCurlOverText) || (effective == .fastFade && !canFade) {
             effective = .slide
         }
         self.effective = effective
@@ -180,23 +192,24 @@ extension PageTransition {
     /// has to be rastered first.
     public var needsARasteredPage: Bool { self == .pageCurl || self == .fastFade }
 
-    /// Whether reflowable text can offer this mode.
+    /// Whether this mode needs the *incoming* page as a second texture, not only a still of
+    /// the one that is leaving.
     ///
-    /// Fast fade can: it needs one raster, a still of the page that is leaving, and the
-    /// reader takes that before the navigator moves.
-    ///
-    /// Curl cannot yet. It needs the *incoming* page as a second texture before it is on
-    /// screen. Task 4.3b of `reader-theming-and-page-transitions` owns that, and Apple
-    /// Books doing it over reflowable text is the evidence that it can be done.
+    /// Fast fade needs one raster, taken before the navigator moves. Curl needs two: the
+    /// sheet that rolls and the page it rolls onto, and the second of those is not on screen
+    /// when the turn starts.
     ///
     /// **A second offscreen navigator is not what it needs, and this line used to say it
     /// was.** Readium keeps the neighbouring resources loaded and laid out already —
     /// `PaginationView.loadedViews`, at the navigator's default preload counts — and
     /// within one resource the next page is a CSS column in the *same* web view. So the
-    /// incoming page is reachable by moving the navigator with no animation under a still
-    /// of the outgoing page, which is what Fast fade already does.
+    /// incoming page is reachable by moving the navigator with no animation under a picture
+    /// of the outgoing page, which is what `ReflowableCurl` does: it raises the sheet at a
+    /// progress of zero, where the shader draws the outgoing raster flat and whole, moves the
+    /// navigator under it, and photographs what arrived.
     ///
-    /// What is unsettled is the *timing*, not the source. 4.3b records the measurement.
+    /// Whether a reader can take those two is ``TransitionChoices``' `canCurlOverText`, not
+    /// this — a mode's own needs and a reader's own reach are not the same sentence.
     public var needsTwoRasters: Bool { self == .pageCurl }
 
     /// Whether two facing pages may share the screen in this mode.

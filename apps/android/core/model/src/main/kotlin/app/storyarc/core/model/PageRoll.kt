@@ -1,4 +1,4 @@
-package app.storyarc.feature.reader
+package app.storyarc.core.model
 
 import kotlin.math.PI
 import kotlin.math.asin
@@ -41,8 +41,14 @@ import kotlin.math.sin
  *
  * At `progress` 0 and 1 the radius is zero, every region collapses to the fold this
  * replaces, and the ends of a turn are pixel-for-pixel what they were.
+ *
+ * **Here rather than in `:feature:reader`, because two reading surfaces roll a page now.**
+ * The comic reader rolls a decoded page and the EPUB reader rolls a rastered one, and no
+ * feature module may depend on another, so the one set of numbers and the one projection
+ * live below both. The six constants are all of them: a shader that spelled any of them
+ * itself is what `PageCurlShaderTest` refuses.
  */
-internal object PageRoll {
+object PageRoll {
 
     /** The lip's radius at its widest, as a fraction of the page's width. */
     const val R_MAX = 0.04f
@@ -58,8 +64,22 @@ internal object PageRoll {
     /** How much of the lip's brightness survives at the rim, where it is edge-on. */
     const val RIM = 0.35f
 
+    /**
+     * How wide the shaded crease is, as a fraction of the page's width.
+     *
+     * Narrow enough to read as an edge rather than as a gradient across the page, wide
+     * enough to survive a low-density screen.
+     */
+    const val CREASE = 0.06f
+
+    /** How far the cast shadow reaches beyond the turned sheet, in the same units. */
+    const val SHADOW = 0.05f
+
+    /** How much darker the back of a sheet is than its front. */
+    const val BACK = 0.55f
+
     /** Which surface a point on the screen shows. */
-    internal enum class Region { FRONT, BACK, LIP, UNDER }
+    enum class Region { FRONT, BACK, LIP, UNDER }
 
     /**
      * What to draw at one point.
@@ -72,7 +92,7 @@ internal object PageRoll {
      *   lip.
      * @property lit what to add afterwards, which is the sheen along the top of the lip.
      */
-    internal data class Sample(
+    data class Sample(
         val region: Region,
         val material: Float,
         val shade: Float,

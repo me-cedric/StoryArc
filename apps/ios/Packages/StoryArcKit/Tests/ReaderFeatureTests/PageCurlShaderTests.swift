@@ -48,10 +48,24 @@ struct PageCurlShaderTests {
         normalised(try source("apps/ios/Packages/StoryArcKit/Sources/ReaderFeature/PageCurl.metal"))
     }
 
+    /// The reflowable reader's own copy of the same shader.
+    ///
+    /// Two copies because a shader needs a resource bundle, the design system has none, and
+    /// `docs/architecture` lets no feature module depend on another — `PaperGrain` states
+    /// the same reason for its own. The projection lives once, in `PageRoll`, and the two
+    /// files have to agree character for character about how it is written.
+    private func reflowableMetal() throws -> String {
+        normalised(
+            try source(
+                "apps/ios/Packages/StoryArcEpub/Sources/EpubReaderFeature/PageCurl.metal"
+            )
+        )
+    }
+
     private func agsl() throws -> String {
         normalised(
             try source(
-                "apps/android/feature/reader/src/main/kotlin/app/storyarc/feature/reader/PageCurl.kt"
+                "apps/android/core/model/src/main/kotlin/app/storyarc/core/model/PageCurl.kt"
             )
         )
     }
@@ -81,10 +95,23 @@ struct PageCurlShaderTests {
 
     @Test("Metal carries the whole projection")
     func metalCarriesIt() throws {
-        let text = try metal()
-        for line in model {
-            #expect(text.contains(line), "PageCurl.metal no longer contains `\(line)`.")
+        for text in [try metal(), try reflowableMetal()] {
+            for line in model {
+                #expect(text.contains(line), "A Metal shader no longer contains `\(line)`.")
+            }
         }
+    }
+
+    @Test("The two Metal copies are one shader")
+    func theTwoCopiesMatch() throws {
+        // Everything but the header comment, which says which copy it is and why there are
+        // two. The body is the shader, and a body that differed by one character would be
+        // two page turns in one app.
+        func body(_ text: String) -> String {
+            guard let at = text.range(of: "[[ stitchable ]]") else { return text }
+            return String(text[at.lowerBound...])
+        }
+        #expect(body(try metal()) == body(try reflowableMetal()))
     }
 
     @Test("AGSL carries the whole projection")
@@ -101,7 +128,7 @@ struct PageCurlShaderTests {
         // the sheet's free edge, then the flat back face. A shader that tested the flat
         // back face before the lip would draw the fold over the roll.
         let order = ["x > lipRim", "radius > 0.0 && x >= fold", "x < edge"]
-        for text in [try metal(), try agsl()] {
+        for text in [try metal(), try reflowableMetal(), try agsl()] {
             var searched = text.startIndex..<text.endIndex
             for branch in order {
                 let found = try #require(
@@ -118,7 +145,7 @@ struct PageCurlShaderTests {
         // `PageRoll` owns the numbers and both shaders receive them. A literal that looked
         // like one of them, written into a shader, is how the two platforms drift apart
         // while every test passes.
-        for text in [try metal(), try agsl()] {
+        for text in [try metal(), try reflowableMetal(), try agsl()] {
             for constant in ["0.04", "1.5", "0.35"] {
                 #expect(
                     !text.contains(constant),

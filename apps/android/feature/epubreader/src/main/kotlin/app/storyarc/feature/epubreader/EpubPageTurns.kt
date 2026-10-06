@@ -1,6 +1,8 @@
 package app.storyarc.feature.epubreader
 
+import android.os.Build
 import android.view.ViewGroup
+import app.storyarc.core.model.PageTransition
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
@@ -14,11 +16,13 @@ import org.readium.r2.shared.ExperimentalReadiumApi
  * change together.
  *
  * @param navigator the navigator on screen, or null before it exists.
- * @param dipHost what the Fast fade dip is added to, above the book and below the chrome.
- * @param dipIndex where in [dipHost] the dip goes.
+ * @param dipHost what the Fast fade dip and the curl's sheet are added to, above the book and
+ *   below the chrome.
+ * @param dipIndex where in [dipHost] either of them goes.
  * @param pageColour the page's own colour, which the dip fades through.
  * @param reduceMotion whether Readium's own turn must not animate.
- * @param fadeOwnsTheTurn whether Fast fade draws the turn, rather than Readium.
+ * @param drawnTurn which transition this reader draws itself, or null where Readium keeps the
+ *   turn.
  */
 internal class EpubPageTurns(
     private val scope: CoroutineScope,
@@ -27,7 +31,7 @@ internal class EpubPageTurns(
     private val dipIndex: Int,
     private val pageColour: () -> Int,
     private val reduceMotion: () -> Boolean,
-    private val fadeOwnsTheTurn: () -> Boolean,
+    private val drawnTurn: () -> PageTransition?,
 ) {
     /** A turn already running. A second swipe during one would fade over a fade. */
     private var isTurning = false
@@ -82,21 +86,37 @@ internal class EpubPageTurns(
     }
 
     /**
-     * Fast fade's own turn where it owns the turn, Readium's own elsewhere.
+     * The turn this reader draws where it draws one, Readium's own elsewhere.
      *
      * @param resolvedNavigator the navigator a caller already fetched, so this does not
      *   fetch a second one of its own for the one press that caused it.
      */
     @OptIn(ExperimentalReadiumApi::class)
     fun turn(forward: Boolean, resolvedNavigator: EpubNavigatorFragment? = navigator()) {
-        if (fadeOwnsTheTurn()) {
-            withFade(forward, resolvedNavigator)
-            return
+        when (drawnTurn()) {
+            PageTransition.PAGE_CURL -> {
+                withCurl(forward, resolvedNavigator)
+                return
+            }
+            PageTransition.FAST_FADE -> {
+                withFade(forward, resolvedNavigator)
+                return
+            }
+            else -> Unit
         }
         val navigator = resolvedNavigator ?: return
         val animated = !reduceMotion()
         if (forward) navigator.goForward(animated = animated) else navigator.goBackward(animated = animated)
     }
+
+    /**
+     * The turn a swipe takes, which is whichever one this reader is drawing.
+     *
+     * [TurnInterceptor] holds one callback and arms it only while the reader owns the turn,
+     * so this is what it holds. Routed through [turn] rather than bound to a mode when the
+     * interceptor was armed: a reader chooses a page turn *after* the book is open.
+     */
+    fun swipe(forward: Boolean) = turn(forward)
 
     /**
      * Turns a page with a transition StoryArc draws rather than one Readium draws.
@@ -118,6 +138,43 @@ internal class EpubPageTurns(
         scope.launch {
             try {
                 FadeTurn(dipHost(), dipIndex).run(pageColour = pageColour()) {
+                    if (forward) {
+                        navigator.goForward(animated = false)
+                    } else {
+                        navigator.goBackward(animated = false)
+                    }
+                }
+            } finally {
+                isTurning = false
+            }
+        }
+    }
+
+    /**
+     * Turns a page by rolling a picture of it off a picture of the next one. Task 8.12.
+     *
+     * [CurlTurn] carries the order the five steps run in and why. What is here is the guard
+     * every drawn turn needs -- one turn at a time, because a second roll begun during one
+     * would raster a page that is already under a sheet -- and the API floor: AGSL's
+     * `RuntimeShader` arrives at API 33, and below it `EpubReaderViewModel.canCurl` has
+     * already withheld the mode, so this branch is unreachable rather than merely unused.
+     */
+    @OptIn(ExperimentalReadiumApi::class)
+    fun withCurl(forward: Boolean, resolvedNavigator: EpubNavigatorFragment? = navigator()) {
+        val navigator = resolvedNavigator ?: return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            withFade(forward, resolvedNavigator)
+            return
+        }
+        // The fragment's own view, not the dip's host: the sheet is in that host while the
+        // second raster is taken, so a raster of the host would photograph the sheet.
+        val book = navigator.view ?: return
+        if (isTurning) return
+        isTurning = true
+
+        scope.launch {
+            try {
+                CurlTurn(dipHost(), dipIndex, book).run(isRightToLeft(navigator)) {
                     if (forward) {
                         navigator.goForward(animated = false)
                     } else {

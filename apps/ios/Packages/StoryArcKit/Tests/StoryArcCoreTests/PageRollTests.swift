@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import ReaderFeature
+@testable import StoryArcCore
 
 /// That the page bends, and that the bend is the same bend on both platforms.
 ///

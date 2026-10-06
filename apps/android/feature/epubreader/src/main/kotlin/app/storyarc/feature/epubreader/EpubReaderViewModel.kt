@@ -252,25 +252,6 @@ class EpubReaderViewModel(
     }
 
     /**
-     * Which page-turn rows to offer, and which of them this content cannot run. A
-     * parameter rather than read here, so a recomposition on [reduceMotionFlow]
-     * recomputes this too.
-     */
-    fun transitions(reduceMotion: Boolean): TransitionChoices = TransitionChoices(
-        chosen = _transition.value,
-        // Reflowing text scrolls the way it is read; the axis is not a choice here.
-        axis = ScrollAxis.VERTICAL,
-        reduceMotion = reduceMotion,
-        canCurl = canCurl,
-        // The activity takes the turn over from Readium when this is chosen —
-        // `TurnInterceptor` steals the drag, `FadeTurn` draws the dip. Until that
-        // existed this was false, because offering a mode that quietly gave a Slide
-        // instead would have been worse than saying it was not available yet.
-        canFade = true,
-        isReflowable = true,
-    )
-
-    /**
      * Chooses a page turn, for this shelf alone. Keeps the shelf's own theme rather
      * than whatever a followed appearance theme has put in force — see [follow] — by
      * writing the series' own stored theme back with only the transition moved, and
@@ -288,7 +269,7 @@ class EpubReaderViewModel(
         _transition.value = transition
     }
 
-    private val canCurl: Boolean = canCurlHere(application)
+    internal val canCurl: Boolean = canCurlHere(application)
 
     /**
      * Whether the reader has asked the system to remove animations, observed live

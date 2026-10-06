@@ -1,4 +1,4 @@
-internal import Foundation
+public import Foundation
 
 /// Where a rolling page's surface is, and how the light falls on it.
 ///
@@ -30,19 +30,36 @@ internal import Foundation
 ///
 /// At a progress of 0 and 1 the radius is zero, every region collapses to the fold this
 /// replaces, and the ends of a turn are pixel-for-pixel what they were.
-enum PageRoll {
+///
+/// **Here rather than in the comic reader, for the reason ``PaperGrain`` gives about its own
+/// shader: the decision is shared and the shader that draws it belongs to the surface that
+/// draws it.** Two reading surfaces roll a page now — the comic reader over a decoded page,
+/// and the EPUB reader over a rastered one — and `docs/architecture` lets no feature depend on
+/// another, so the one set of numbers and the one projection live below both. The six
+/// constants are all of them: a shader that spelled any of them itself is what
+/// ``PageCurlShaderTests`` refuses.
+public enum PageRoll {
 
     /// The lip's radius at its widest, as a fraction of the page's width.
-    static let radiusMax: Double = 0.04
+    public static let radiusMax: Double = 0.04
 
     /// How far the fold bows over the page's height, in radii.
     ///
     /// The span from the head of the page to the foot, which the bend redistributes rather
     /// than changes: the corner still runs this far ahead of the top.
-    static let lean: Double = 1.5
+    public static let lean: Double = 1.5
 
     /// How much of the lip's brightness survives at the rim, where it is edge-on.
-    static let rim: Double = 0.35
+    public static let rim: Double = 0.35
+
+    /// How far the sheen reaches from the fold, as a fraction of the width.
+    public static let crease: Double = 0.06
+
+    /// How far the lip's cast shadow reaches, as a fraction of the width.
+    public static let shadow: Double = 0.05
+
+    /// How much light the flat back face keeps.
+    public static let back: Double = 0.55
 
     /// Which surface a point on the screen shows.
     enum Region { case front, back, lip, under }

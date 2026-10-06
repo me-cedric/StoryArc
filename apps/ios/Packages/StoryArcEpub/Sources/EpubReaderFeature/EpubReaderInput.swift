@@ -67,12 +67,10 @@ extension EpubReaderModel {
     /// when the reader appears. A closure captured then kept the mode the book opened in,
     /// so a reader who chose Fast fade afterwards still got a Slide from the d-pad.
     func turn(forward: Bool) async {
-        if ownsTheTurn {
-            await turnWithFade(forward: forward)
-        } else if forward {
-            await goForward()
-        } else {
-            await goBackward()
+        switch drawnTurn {
+        case .pageCurl: await turnWithCurl(forward: forward)
+        case .fastFade: await turnWithFade(forward: forward)
+        default: if forward { await goForward() } else { await goBackward() }
         }
     }
 }

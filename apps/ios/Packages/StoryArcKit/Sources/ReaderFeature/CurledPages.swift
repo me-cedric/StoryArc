@@ -140,10 +140,10 @@ struct CurledPages: View {
     ) -> Shader {
         ShaderLibrary.bundle(.module).pageCurl(
             .float(progress),
-            .float(Self.crease),
-            .float(Self.shadow),
+            .float(Float(PageRoll.crease)),
+            .float(Float(PageRoll.shadow)),
             .float(isRightToLeft ? -1 : 1),
-            .float(Self.back),
+            .float(Float(PageRoll.back)),
             .float(Float(PageRoll.radiusMax)),
             .float(Float(PageRoll.lean)),
             .float(Float(PageRoll.rim)),
@@ -244,11 +244,6 @@ struct CurledPages: View {
         }
     }
 
-    // MARK: - Constants, shared with the Android shader
-
-    private static let crease = 0.06
-    private static let shadow = 0.05
-    private static let back = 0.55
 }
 
 /// The curl, drawn at the value SwiftUI is actually interpolating.

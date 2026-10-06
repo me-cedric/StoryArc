@@ -1,6 +1,7 @@
 package app.storyarc.feature.epubreader
 
 import android.view.KeyEvent
+import app.storyarc.core.model.PageTransition
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
@@ -20,14 +21,14 @@ class EpubPageTurnsTest {
     private var turns = 0
     private var chrome = 0
 
-    private fun pageTurns(fadeOwnsTheTurn: Boolean = false) = EpubPageTurns(
+    private fun pageTurns(drawnTurn: PageTransition? = null) = EpubPageTurns(
         scope = CoroutineScope(Dispatchers.Unconfined),
         navigator = { turns++; null },
         dipHost = { error("no dip without a navigator") },
         dipIndex = 1,
         pageColour = { 0 },
         reduceMotion = { false },
-        fadeOwnsTheTurn = { fadeOwnsTheTurn },
+        drawnTurn = { drawnTurn },
     )
 
     @Test
@@ -66,12 +67,13 @@ class EpubPageTurnsTest {
     }
 
     @Test
-    fun `an edge tap turns in fast fade and in slide alike, and the middle reveals the chrome`() {
-        pageTurns(fadeOwnsTheTurn = true).tap(x = 1100f, width = 1200f, tapTurnsPages = true) { chrome++ }
-        pageTurns(fadeOwnsTheTurn = false).tap(x = 100f, width = 1200f, tapTurnsPages = true) { chrome++ }
+    fun `an edge tap turns in every mode alike, and the middle reveals the chrome`() {
+        pageTurns(drawnTurn = PageTransition.FAST_FADE).tap(x = 1100f, width = 1200f, tapTurnsPages = true) { chrome++ }
+        pageTurns(drawnTurn = PageTransition.PAGE_CURL).tap(x = 1100f, width = 1200f, tapTurnsPages = true) { chrome++ }
+        pageTurns(drawnTurn = null).tap(x = 100f, width = 1200f, tapTurnsPages = true) { chrome++ }
         pageTurns().tap(x = 600f, width = 1200f, tapTurnsPages = true) { chrome++ }
 
-        assertEquals(2, turns)
+        assertEquals(3, turns)
         assertEquals(1, chrome)
     }
 

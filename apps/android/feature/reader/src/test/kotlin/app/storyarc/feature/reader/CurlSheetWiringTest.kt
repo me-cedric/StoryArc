@@ -39,6 +39,19 @@ class CurlSheetWiringTest {
     }
 
     /**
+     * The same read, for a source that lives in `:core:model`.
+     *
+     * The shader and its projection left this module in task 8.12: two reading surfaces roll
+     * a page now, and no feature module may depend on another. Relative to this module's own
+     * directory, because the only path this test is handed is that one.
+     */
+    private fun modelSourceOf(name: String): String {
+        val file = File(module, "../../core/model/src/main/kotlin/app/storyarc/core/model/$name")
+        if (!file.isFile) error("$name is not under :core:model — has it moved?")
+        return file.readText()
+    }
+
+    /**
      * The curl's container, which left `ReaderScreen.kt` when that file reached the length
      * `scripts/line-cap.mjs` records for it. Everything this suite reads moved with it.
      */
@@ -189,7 +202,7 @@ class CurlSheetWiringTest {
     fun `the curl parses its shader once, not once a frame`() {
         // Task 8.7: `RuntimeShader(source)` parses the AGSL program. The draw block runs
         // once a frame, so the one construction has to sit behind a `remember`.
-        val constructions = sourceOf("PageCurl.kt").lines()
+        val constructions = modelSourceOf("PageCurl.kt").lines()
             .filter { it.contains("RuntimeShader(") && !it.trimStart().startsWith("*") }
         assertTrue(
             "PageCurl.kt constructs a RuntimeShader somewhere other than `newShader`: $constructions",

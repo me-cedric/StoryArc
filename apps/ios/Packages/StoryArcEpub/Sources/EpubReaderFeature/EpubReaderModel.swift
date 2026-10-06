@@ -285,28 +285,6 @@ public final class EpubReaderModel {
         applyTheme()
     }
 
-    /// Which page-turn rows to offer, and which of them this content cannot run.
-    ///
-    /// - Parameter reduceMotion: read from the environment by the view, because that is
-    ///   where a SwiftUI accessibility setting lives and where a change to it arrives.
-    public func transitions(reduceMotion: Bool) -> TransitionChoices {
-        TransitionChoices(
-            chosen: transition,
-            // Reflowing text scrolls the way it is read; the axis is not a choice here.
-            axis: .vertical,
-            reduceMotion: reduceMotion,
-            // The curl over reflowable text needs the page rastered first, which is why
-            // `isReflowable` refuses it below. D11 is a different refusal, about this
-            // device rather than this content, and the reader is told which they met.
-            canCurl: !CurlCapability().cannotCurl,
-            // True, because this reader does take the turn over: see
-            // `turnWithFade(forward:)`. A still of the outgoing page, then the navigator
-            // moves with no animation of its own, then the still fades.
-            canFade: true,
-            isReflowable: true
-        )
-    }
-
     /// Chooses a page turn, for this shelf, from now on.
     ///
     /// **Keeps the shelf's own theme, not whatever is in force.** `theme`/`values` hold

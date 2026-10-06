@@ -197,14 +197,6 @@ internal class FadeTurn(private val host: ViewGroup, private val index: Int) {
 }
 
 /**
- * Whether Fast fade draws the turn rather than Readium: `effective`, not the chosen mode.
- * Under Reduce Motion a chosen Slide runs as Fast fade, and the turn has to follow it --
- * it stayed Readium's animated Slide while this read the chosen mode.
- */
-internal val TransitionChoices.fadeOwnsTheTurn: Boolean
-    get() = effective == PageTransition.FAST_FADE
-
-/**
  * Readium's own resolved answer -- publisher metadata, then the publication's language,
  * then the app default -- so the reader never guesses at a rule Readium already owns.
  * Task 9.12: the edge taps, the d-pad/arrow keys and the Fast fade swipe are

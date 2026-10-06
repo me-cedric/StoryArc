@@ -3,6 +3,7 @@ internal import UIKit
 
 internal import ReadiumNavigator
 internal import ReadiumShared
+public import StoryArcCore
 
 // Taking the page turn over from Readium, so a transition StoryArc draws can run over
 // reflowable text.
@@ -38,10 +39,54 @@ enum PaginatedScroll {
 }
 
 extension EpubReaderModel {
-    /// Whether StoryArc draws the turn rather than Readium. True for Fast fade itself,
-    /// and for Slide once Reduce Motion has substituted it — `effective`, not `transition`,
-    /// which left Slide animating under Readium even with Reduce Motion on.
-    var ownsTheTurn: Bool { transitions(reduceMotion: reduceMotion).effective == .fastFade }
+    /// Which page-turn rows to offer, and which of them this content cannot run.
+    ///
+    /// Beside the turns it decides rather than on the model, which is at the line cap
+    /// `scripts/line-cap.mjs` holds. That is the better place for it anyway: this file
+    /// already holds ``drawnTurn``, which reads nothing else, and a reader of either has to
+    /// read both. Android's `transitions(reduceMotion:)` sits beside its own twin for the
+    /// same two reasons.
+    ///
+    /// - Parameter reduceMotion: read from the environment by the view, because that is
+    ///   where a SwiftUI accessibility setting lives and where a change to it arrives.
+    public func transitions(reduceMotion: Bool) -> TransitionChoices {
+        TransitionChoices(
+            chosen: transition,
+            // Reflowing text scrolls the way it is read; the axis is not a choice here.
+            axis: .vertical,
+            reduceMotion: reduceMotion,
+            // D11's refusal, about this device rather than this content: a device that
+            // dropped frames on its first curls keeps the choice and loses the mode. The
+            // reader is told which of the two refusals they met.
+            canCurl: !CurlCapability().cannotCurl,
+            // Both true, because this reader takes the turn over for both:
+            // `turnWithFade(forward:)` moves the navigator under a still and dips through
+            // the page colour, and `turnWithCurl(forward:)` photographs the page either
+            // side of the move and rolls the first off the second (task 8.12). The live web
+            // content is back the moment either ends.
+            canFade: true,
+            canCurlOverText: true,
+            isReflowable: true
+        )
+    }
+
+    /// The transition StoryArc itself draws over this page, or `nil` where Readium keeps the
+    /// turn.
+    ///
+    /// `effective`, not `transition`, which left Slide animating under Readium even with
+    /// Reduce Motion on. Two modes answer now: Fast fade, which needs the one raster it takes
+    /// before the navigator moves, and Curl, which needs the second one `turnWithCurl`
+    /// takes after it.
+    var drawnTurn: PageTransition? {
+        switch transitions(reduceMotion: reduceMotion).effective {
+        case .fastFade: .fastFade
+        case .pageCurl: .pageCurl
+        default: nil
+        }
+    }
+
+    /// Whether StoryArc draws the turn rather than Readium.
+    var ownsTheTurn: Bool { drawnTurn != nil }
 
     /// Whether Readium has resolved this publication's progression to right-to-left.
     ///

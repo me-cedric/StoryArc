@@ -196,7 +196,7 @@ struct ShelfMemoryTests {
         #expect(choices.isAvailable(.verticalScroll))
     }
 
-    @Test("Reflowable text refuses the two modes that need a picture of a page")
+    @Test("Reflowable text refuses the curl where the reader cannot take two rasters")
     func reflowableRefusesRasteredModes() {
         let choices = TransitionChoices(
             chosen: .pageCurl, axis: .vertical, reduceMotion: false,
@@ -207,8 +207,7 @@ struct ShelfMemoryTests {
         #expect(choices.offered.contains(.pageCurl))
         #expect(choices.unavailable[.pageCurl] == .reflowableText)
         // Fast fade is *not* refused. It needs one raster, a still of the page that is
-        // leaving, and the reader takes that before the navigator moves. Curl needs the
-        // incoming page as a second texture before it is on screen, which is task 4.3b.
+        // leaving, and the reader takes that before the navigator moves.
         #expect(choices.isAvailable(.fastFade))
         // Slide is Readium paginated and Scroll is its own preference, so both run.
         #expect(choices.isAvailable(.slide))
@@ -216,6 +215,25 @@ struct ShelfMemoryTests {
         #expect(choices.effective == .slide)
         // And the choice survives, so a comic still curls.
         #expect(choices.chosen == .pageCurl)
+    }
+
+    @Test("A reader that can take two rasters offers the curl over reflowable text")
+    func reflowableOffersTheCurlWhereTheReaderCan() {
+        // Task 8.12. `needsTwoRasters` says what the mode needs; `canCurlOverText` says
+        // whether the reader in front of the content can take them. Before the two were
+        // separated, a reflowable page refused the curl on every platform for ever.
+        let choices = TransitionChoices(
+            chosen: .pageCurl, axis: .vertical, reduceMotion: false,
+            canCurl: true, canCurlOverText: true, isReflowable: true
+        )
+        #expect(choices.isAvailable(.pageCurl))
+        #expect(choices.effective == .pageCurl)
+        // The device's own refusal is untouched by it: D11's recorded verdict still wins.
+        let stuttered = TransitionChoices(
+            chosen: .pageCurl, axis: .vertical, reduceMotion: false,
+            canCurl: false, canCurlOverText: true, isReflowable: true
+        )
+        #expect(stuttered.effective == .slide)
     }
 
     @Test("Reduced motion substitutes the fade, which reflowable text can now run")
