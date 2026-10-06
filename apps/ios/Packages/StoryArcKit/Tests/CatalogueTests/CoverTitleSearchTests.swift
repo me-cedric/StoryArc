@@ -27,7 +27,7 @@ struct CoverTitleSearchTests {
             #expect(request.httpMethod == "POST")
             #expect(request.url?.host() == provider.host)
             let body = try #require(request.httpBody)
-            #expect(String(decoding: body, as: UTF8.self).contains("Nausicaa"))
+            #expect(String(bytes: body, encoding: .utf8)?.contains("Nausicaa") == true)
         }
     }
 

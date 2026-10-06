@@ -11,7 +11,7 @@ struct KavitaCoverUploadTests {
         var method: String?
         var path: String?
         var body: String?
-        var count = 0
+        var requests = 0
     }
 
     private func client(_ asked: Asked, status: Int = 200) throws -> KavitaClient {
@@ -20,7 +20,7 @@ struct KavitaCoverUploadTests {
             if request.url?.path().contains("authenticate") == true {
                 return .response(status: 200, body: Data(#"{"username":"ada","token":"t"}"#.utf8))
             }
-            asked.count += 1
+            asked.requests += 1
             asked.method = request.httpMethod
             asked.path = request.url?.path()
             asked.body = KavitaStub.body(of: request)
@@ -39,7 +39,7 @@ struct KavitaCoverUploadTests {
 
         #expect(asked.method == "POST")
         #expect(asked.path == "/api/Upload/reading-list")
-        #expect(asked.count == 1)
+        #expect(asked.requests == 1)
         // Decoded rather than matched as text: Foundation escapes a forward slash in a JSON
         // string, and base64 is full of them, so a substring check reads a correct body as
         // wrong.
@@ -63,7 +63,7 @@ struct KavitaCoverUploadTests {
         await #expect(throws: KavitaError.imageTooLarge) {
             try await client.uploadReadingListCover(7, image: image)
         }
-        #expect(asked.count == 0)
+        #expect(asked.requests == 0)
     }
 
     @Test("An empty picture is refused too")
@@ -74,7 +74,7 @@ struct KavitaCoverUploadTests {
         await #expect(throws: KavitaError.imageRejected) {
             try await client.uploadReadingListCover(7, image: Data())
         }
-        #expect(asked.count == 0)
+        #expect(asked.requests == 0)
     }
 
     @Test("An older Kavita without the route says so once")
