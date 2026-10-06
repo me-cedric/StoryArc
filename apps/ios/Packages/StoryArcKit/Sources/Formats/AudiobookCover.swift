@@ -20,10 +20,12 @@ internal import AVFoundation
 /// comic page's — this only has to find them once and say where they are.
 public enum AudiobookCover {
     /// The names a folder's own cover is looked for by, in the order they are tried.
-    public static let folderCoverNames = [
-        "cover.jpg", "cover.jpeg", "cover.png",
-        "folder.jpg", "folder.jpeg", "folder.png",
-    ]
+    ///
+    /// ``LooseCover/fileNames`` since task 1.2: the same question is now asked for every
+    /// format rather than for audiobooks alone, so one list answers it. The audio names this
+    /// held before are the first six of that list, in the same order, and `poster` — which a
+    /// media server writes and which this did not know — is found now too.
+    public static let folderCoverNames = LooseCover.fileNames
 
     /// A single audio file's own embedded artwork, or `nil` where it carries none.
     ///
@@ -47,15 +49,7 @@ public enum AudiobookCover {
     /// The file itself, not its bytes: the image lives inside the reader's own library for
     /// as long as the folder does, exactly as a comic archive's own cover page does, so there
     /// is nothing here for ``AudiobookCoverStore`` to copy.
-    public static func inFolder(at url: URL) -> URL? {
-        for name in folderCoverNames {
-            let candidate = url.appending(path: name)
-            if FileManager.default.fileExists(atPath: candidate.path) {
-                return candidate
-            }
-        }
-        return nil
-    }
+    public static func inFolder(at url: URL) -> URL? { LooseCover.inFolder(at: url) }
 }
 
 /// Where embedded artwork is written once it has been read out of its container.

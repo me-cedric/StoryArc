@@ -84,6 +84,19 @@ extension LibraryModel {
     /// see ``catalogueIfOnShare(_:)``.
     public func cover(for publication: Publication, maxPixelSize: Int) async -> CGImage? {
         if let cached = covers[publication.id] { return cached }
+
+        // The reader's own picture, before anything else is read or fetched. Ahead of the
+        // disk cache because the cache is keyed by `publication.id` and size alone: a cover
+        // chosen after one was drawn would otherwise be answered with the one it replaced
+        // until something emptied the cache. Ahead of the server rungs below because a
+        // Kavita or OPDS row has no file on this device and would never reach the ladder.
+        if let chosen = await CoverLadder().chosenCover(
+            for: publication, maxPixelSize: maxPixelSize
+        ) {
+            covers[publication.id] = chosen
+            return chosen
+        }
+
         let publication = await catalogueIfOnShare(publication)
 
         // Disk before the archive. `sources` asks for a cover to be "stored on disk at
@@ -115,8 +128,13 @@ extension LibraryModel {
             return image
         }
 
+        // Task 1.3: the ladder, not `CoverLoader` directly. It is what puts the reader's
+        // own picture above the bytes and a loose image beside the file below them, and it
+        // is here rather than in each caller so the player and the media session get the
+        // same answer this shelf does.
+        let ladder = CoverLadder()
         let image = await Task.detached(priority: .utility) {
-            let decoded = try? await CoverLoader.anyCover(
+            let decoded = await ladder.cover(
                 for: publication, at: url, maxPixelSize: maxPixelSize
             )
             if let decoded { cache.store(decoded, for: identity, maxPixelSize: maxPixelSize) }

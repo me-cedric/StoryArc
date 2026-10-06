@@ -14,6 +14,11 @@ import java.io.File
  *
  * Its own file rather than another property in `LibraryViewModel.kt`: that file is already
  * past its line cap, and a cap already crossed may not grow further.
+ *
+ * **`filesDir`, not `cacheDir`, since task 1.1.** `StorageUsage.clearCache` empties the cache
+ * directories, and the cached shelf written beside them is not cleared with them — so artwork
+ * written to a cache directory left every audiobook in that shelf pointing at a file the
+ * system had removed, and the cover came back only on the next full rescan.
  */
 internal val LibraryViewModel.audiobookCoverCacheDir: File
-    get() = File(getApplication<Application>().cacheDir, "audio-covers")
+    get() = File(getApplication<Application>().filesDir, "audio-covers")

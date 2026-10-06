@@ -230,6 +230,7 @@ object LibraryScanner {
         resolver: ContentResolver,
         tree: Uri,
         skipping: Set<String> = emptySet(),
+        coverCacheDir: File? = null,
         onUnreadableFolder: (String) -> Unit = {},
     ): Flow<ScanEvent> = flow {
         // The library's own folder is never a publication, so it needs no date of
@@ -241,6 +242,7 @@ object LibraryScanner {
             seriesHint = null,
             modifiedAt = 0L,
             skipping = skipping,
+            coverCacheDir = coverCacheDir,
             onUnreadableFolder = onUnreadableFolder,
         ) { emit(it) }
         emit(ScanEvent.Finished(tally.found, tally.skipped))
@@ -301,6 +303,7 @@ object LibraryScanner {
         resolver: ContentResolver,
         tree: Uri,
         listed: Listed,
+        coverCacheDir: File? = null,
     ): Publication {
         val uri = SafTree.documentUri(tree, listed.documentId)
         if (listed.isFolder) {
@@ -318,6 +321,7 @@ object LibraryScanner {
                 name = listed.name,
                 identity = identityOf(uri),
                 seriesHint = listed.seriesHint,
+                coverCacheDir = coverCacheDir,
             )
         }
     }
@@ -496,6 +500,7 @@ object LibraryScanner {
         seriesHint: String?,
         modifiedAt: Long,
         skipping: Set<String>,
+        coverCacheDir: File?,
         onUnreadableFolder: (String) -> Unit,
         emit: suspend (ScanEvent) -> Unit,
     ): Tally {
@@ -527,7 +532,9 @@ object LibraryScanner {
         if (publications.isEmpty() && media.isNotEmpty()) {
             val folder = SafTree.documentUri(tree, documentId).toString()
             if (folder in skipping) return Tally()
-            return indexDocumentFolder(resolver, tree, documentId, seriesHint, modifiedAt, emit)
+            return indexDocumentFolder(
+                resolver, tree, documentId, seriesHint, modifiedAt, coverCacheDir, emit,
+            )
         }
 
         var tally = Tally()
@@ -536,13 +543,13 @@ object LibraryScanner {
             // Already done by the scan this one is picking up from, and identified the way
             // the library identifies a document: by the `Uri` its identity carries.
             if (SafTree.documentUri(tree, entry.documentId).toString() in skipping) continue
-            tally += indexDocument(resolver, tree, entry, seriesHint, emit)
+            tally += indexDocument(resolver, tree, entry, seriesHint, coverCacheDir, emit)
         }
         for (child in directories) {
             currentCoroutineContext().ensureActive()
             tally += walkTree(
                 resolver, tree, child.documentId, child.name, child.modifiedAtEpochMillis,
-                skipping, onUnreadableFolder, emit,
+                skipping, coverCacheDir, onUnreadableFolder, emit,
             )
         }
         return tally
@@ -567,6 +574,7 @@ object LibraryScanner {
         tree: Uri,
         entry: SafTree.Entry,
         seriesHint: String?,
+        coverCacheDir: File?,
         emit: suspend (ScanEvent) -> Unit,
     ): Tally {
         val uri = SafTree.documentUri(tree, entry.documentId)
@@ -582,6 +590,13 @@ object LibraryScanner {
                         name = entry.name,
                         identity = identityOf(uri),
                         seriesHint = seriesHint,
+                        // Task 1.1: this was the gap. An audiobook picked through the
+                        // Storage Access Framework reached the indexer with nowhere to
+                        // put the artwork it reads, so every such book drew a glyph even
+                        // when its own file carried a picture. `UriSource` already offers
+                        // the open descriptor's `/proc/self/fd/N`, which is the path
+                        // `MediaMetadataRetriever` needs.
+                        coverCacheDir = coverCacheDir,
                     ).withFileFacts(entry.size, entry.modifiedAtEpochMillis),
                 )
             }
@@ -602,6 +617,7 @@ object LibraryScanner {
         documentId: String,
         seriesHint: String?,
         modifiedAt: Long,
+        coverCacheDir: File?,
         emit: suspend (ScanEvent) -> Unit,
     ): Tally {
         val uri = SafTree.documentUri(tree, documentId)
@@ -624,6 +640,7 @@ object LibraryScanner {
                     identityOf(uri),
                     name,
                     seriesHint,
+                    looseCover(resolver, tree, entries, uri, coverCacheDir),
                 )
             } else {
                 PublicationIndexer.index(
@@ -656,6 +673,56 @@ object LibraryScanner {
      * would carry on, reporting the cancellation itself as a skipped file.
      * `CancellationException` is re-thrown for the same reason.
      */
+    /**
+     * A loose cover image among a picked folder's own children, copied to where the rest of
+     * the app can read it.
+     *
+     * Task 1.2's Storage Access Framework half. A `content://` child has no path for
+     * [LooseCover.beside] to look beside, and `Publication.coverPath` is read back as a file
+     * everywhere, so the bytes are copied once at index time rather than reached through the
+     * provider on every draw. [AudiobookCoverStore] is already where this app writes artwork
+     * it has read out of a container, and a copy out of a document tree is the same kind of
+     * thing.
+     *
+     * Null wherever anything is missing -- no cover among the names, no directory to write
+     * to, a provider that refused the read. The publication is then indexed exactly as it was
+     * before this existed, which is the right degradation for artwork.
+     */
+    private fun looseCover(
+        resolver: ContentResolver,
+        tree: Uri,
+        entries: List<SafTree.Entry>,
+        folder: Uri,
+        coverCacheDir: File?,
+    ): String? = looseCoverFrom(entries, folder.toString(), coverCacheDir) { documentId ->
+        SafTree.bytes(resolver, tree, documentId)
+    }
+
+    /**
+     * The same decision, free of the provider that answers it.
+     *
+     * `internal` and taking [read] as a parameter so the rule can be asserted on a plain JVM.
+     * A document tree is reached only through a `ContentResolver`, and standing one up in a
+     * unit test means writing a `DocumentsProvider` — so what is lifted out here is everything
+     * that is not the read itself: which of the listed names is the cover, and where the copy
+     * goes.
+     *
+     * @param key what the copy is filed under, which is the folder's own document `Uri`.
+     */
+    internal fun looseCoverFrom(
+        entries: List<SafTree.Entry>,
+        key: String,
+        coverCacheDir: File?,
+        read: (String) -> ByteArray?,
+    ): String? {
+        if (coverCacheDir == null) return null
+        val files = entries.filterNot { it.isDirectory }
+        val name = LooseCover.named(files.map { it.name }) ?: return null
+        val child = files.first { it.name == name }
+        val data = read(child.documentId) ?: return null
+        return AudiobookCoverStore(coverCacheDir).write(data, key)
+    }
+
     private suspend fun index(
         file: File,
         seriesHint: String?,

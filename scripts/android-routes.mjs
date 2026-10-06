@@ -274,6 +274,13 @@ export const ROUTES = [
     ['Publication page > overflow', [NAMES.library, ', CBZ', named('detail_more')]],
     ['Publication page > add to shelf', [NAMES.library, ', CBZ', named('detail_more'), named('detail_add_to_shelf')]],
     ['Publication page > PDF', [NAMES.library, ', PDF']],
+    // `cover-for-every-publication` task 2.6. `Sea Room.m4b` is the corpus's chaptered
+    // audiobook and carries no artwork of any kind, so its page is where the coverless well
+    // is drawn -- and, once a cover has been chosen for it, where that cover is drawn.
+    // Not through Search:
+    // at the largest text size the search field scrolls off the top of that screen, so the
+    // typing step types into nothing and the walk finds no result.
+    ['Publication page > no cover', [NAMES.library, 'Sea Room']],
     ['Publication page > series', [NAMES.library, 'Tidal Reach #2']],
 
     // --- The comic reader ------------------------------------------------------------

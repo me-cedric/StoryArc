@@ -22,6 +22,12 @@ struct DetailHero: View {
     /// `nil` until the cover has been decoded, and for a publication that has none.
     let cover: CGImage?
 
+    /// What tapping an empty well does, or nil where the page offers nothing.
+    ///
+    /// Task 2.3: ``DetailCoverChoice`` passes the picker here, so a reader meeting a glyph
+    /// can act on it where they met it rather than hunting for a control below the fold.
+    var onChooseCover: (() -> Void)?
+
     var body: some View {
         artwork
             .aspectRatio(2.0 / 3.0, contentMode: .fit)
@@ -42,9 +48,15 @@ struct DetailHero: View {
             .backgroundExtensionEffect()
             // One image with no label. The title is the next thing in the reading order and
             // it says everything this could; a second announcement of the same words is
-            // noise to anyone listening to the page rather than looking at it.
-            .accessibilityHidden(true)
+            // noise to anyone listening to the page rather than looking at it. A well that
+            // *acts* is not an image, though — task 2.3 makes it the cover chooser's own
+            // button — so that one keeps its label and stays reachable.
+            .accessibilityHidden(!offersChoice)
+            .accessibilityLabel(Text("cover.choose", bundle: .module))
     }
+
+    /// Whether the empty well is the cover chooser's own button on this page.
+    var offersChoice: Bool { cover == nil && onChooseCover != nil }
 
     /// How wide the cover is allowed to get.
     ///
@@ -74,7 +86,7 @@ struct DetailHero: View {
             // give an *audiobook* a book: `book.closed` was hard-coded. ``CoverlessWell`` is
             // the same two things chosen from the format, drawn on every surface that has a
             // cover-shaped hole in it.
-            CoverlessWell(format: publication.format)
+            CoverlessWell(format: publication.format, action: onChooseCover)
         }
     }
 }

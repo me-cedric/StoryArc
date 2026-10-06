@@ -47,8 +47,11 @@ class AudioSurfacesAreWiredTest {
                 " artwork stops at the app's own player: a head unit lists the book with no" +
                 " picture, and the lock screen of a book a car started shows none either." +
                 " What the rule decides is asserted in `CarArtworkUriTest`; this is only" +
-                " that the shelf still asks.",
-            read(CAR_SHELF).contains("artworkUri = carArtworkUri(publication.coverPath)"),
+                " that the shelf still asks." +
+                " Through `CoverLadder` since task 1.3 of `cover-for-every-publication`:" +
+                " reading `publication.coverPath` here skipped the rung above it, so a cover" +
+                " the reader chose showed on the shelf and not on the car's screen.",
+            read(CAR_SHELF).contains("artworkUri = carArtworkUri(ladder.coverFile("),
         )
     }
 

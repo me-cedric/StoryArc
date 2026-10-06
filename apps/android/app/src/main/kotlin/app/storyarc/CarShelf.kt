@@ -3,6 +3,8 @@ package app.storyarc
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
+import app.storyarc.core.format.CoverLadder
+import app.storyarc.core.format.CoverOverrideStore
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadingProgress
@@ -53,8 +55,15 @@ internal object CarShelf {
             // snapshot of two immutable values.
             val located = library.filter { it.format.isAudio }
                 .mapNotNull { publication -> locate(publication)?.let { publication to it } }
+            // Task 1.3: the car asks the same ladder the shelf does. It used to read
+            // `Publication.coverPath` itself, which is the rung below the reader's own
+            // picture — so a cover a reader chose appeared on the shelf and not on the
+            // car's screen, which is the fourth caller that made one place necessary.
+            val ladder = CoverLadder(
+                CoverOverrideStore(CoverOverrideStore.directoryIn(context.filesDir)),
+            )
             val books = withContext(Dispatchers.IO) {
-                located.mapNotNull { carBook(it, context.contentResolver, progress) }
+                located.mapNotNull { carBook(it, context.contentResolver, progress, ladder) }
             }
             PlaybackHost.publishCarLibrary(context, books)
         }
@@ -89,6 +98,7 @@ internal object CarShelf {
         located: Pair<Publication, String>,
         resolver: ContentResolver,
         progress: ProgressStore,
+        ladder: CoverLadder,
     ): CarBook? {
         val (publication, path) = located
         if (PublicationAccess.isRemote(path)) return null
@@ -98,7 +108,7 @@ internal object CarShelf {
             id = audiobook.id,
             title = audiobook.title,
             durationMillis = null,
-            artworkUri = carArtworkUri(publication.coverPath),
+            artworkUri = carArtworkUri(ladder.coverFile(publication, path)?.path),
             uris = audiobook.sources.map { it.uri },
             partIndex = resumeAt.partIndex,
             offsetMillis = resumeAt.offsetMillis,

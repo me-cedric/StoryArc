@@ -68,11 +68,15 @@ public struct CoverCache: Sendable {
     /// The identity is hashed rather than used directly. A publication id can carry a path,
     /// and a path carries separators — a file name is not a place to find that out.
     private func file(for id: String, maxPixelSize: Int) -> URL {
+        directory.appending(path: "\(hash(of: id))-\(maxPixelSize).jpg")
+    }
+
+    private func hash(of id: String) -> String {
         var hash: UInt64 = 0xcbf2_9ce4_8422_2325
         for byte in Data(id.utf8) {
             hash = (hash ^ UInt64(byte)) &* 0x0000_0100_0000_01b3
         }
-        return directory.appending(path: "\(String(hash, radix: 36))-\(maxPixelSize).jpg")
+        return String(hash, radix: 36)
     }
 
     /// The cover already on disk, if there is one at this size.
@@ -110,6 +114,22 @@ public struct CoverCache: Sendable {
             [kCGImageDestinationLossyCompressionQuality: Self.quality] as CFDictionary
         )
         CGImageDestinationFinalize(destination)
+    }
+
+    /// Forgets every size this publication was cached at.
+    ///
+    /// Task 2.2: a reader who chooses a cover replaces artwork this cache may already hold at
+    /// two or three sizes, and the cache is keyed by identity and size with no index from one
+    /// to the other. So the directory is swept for this identity's own prefix, which is the
+    /// one part of the name the size does not change.
+    public func removeEverySize(for id: String) {
+        let prefix = "\(hash(of: id))-"
+        let contents = (try? FileManager.default.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: nil
+        )) ?? []
+        for url in contents where url.lastPathComponent.hasPrefix(prefix) {
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 
     /// Forgets every cover. The Privacy screen's "Clear cache", and the tests.

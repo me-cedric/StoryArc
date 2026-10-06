@@ -3,6 +3,7 @@ package app.storyarc.feature.library
 import android.graphics.Bitmap
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,8 +11,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -77,6 +79,14 @@ internal fun DetailHero(
     layout: DetailHeroLayout,
     modifier: Modifier = Modifier,
     /**
+     * What this page can offer about the picture in the hero. See [CoverChoice].
+     *
+     * [CoverChoice.unavailable] — the default — draws the hero exactly as it was before task
+     * 2.3, which is what a pane with no view model behind it and every test that composes one
+     * gets.
+     */
+    coverChoice: CoverChoice = CoverChoice.unavailable,
+    /**
      * The primary action, drawn inside the container rather than under it.
      *
      * Not a layout preference: `CoverAccent` guarantees the accent clears the 3:1 floor
@@ -116,9 +126,15 @@ internal fun DetailHero(
                     Arrangement.spacedBy(StoryArcSpace.xl, Alignment.CenterHorizontally),
                 modifier = Modifier.fillMaxWidth().padding(layout.padding),
             ) {
-                DetailCover(publication = publication, cover = cover, height = layout.coverHeight)
+                DetailCover(
+                    publication = publication,
+                    cover = cover,
+                    height = layout.coverHeight,
+                    onChooseCover = coverChoice.onChoose.takeIf { cover == null },
+                )
                 Box(modifier = Modifier.weight(1f, fill = false).widthIn(max = ACTION_WIDTH)) {
                     action()
+                    CoverChoiceControls(choice = coverChoice, hasCover = cover != null)
                 }
             }
             return@Surface
@@ -128,8 +144,14 @@ internal fun DetailHero(
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xl),
             modifier = Modifier.fillMaxWidth().padding(layout.padding),
         ) {
-            DetailCover(publication = publication, cover = cover, height = layout.coverHeight)
+            DetailCover(
+                publication = publication,
+                cover = cover,
+                height = layout.coverHeight,
+                onChooseCover = coverChoice.onChoose.takeIf { cover == null },
+            )
             action()
+            CoverChoiceControls(choice = coverChoice, hasCover = cover != null)
         }
     }
 }
@@ -145,8 +167,21 @@ internal fun DetailHero(
  * twice reads as a stutter.
  */
 @Composable
-private fun DetailCover(publication: Publication, cover: Bitmap?, height: Dp) {
+private fun DetailCover(
+    publication: Publication,
+    cover: Bitmap?,
+    height: Dp,
+    /**
+     * What tapping an empty well does, or null where the page offers nothing.
+     *
+     * Task 2.3: the well drew a glyph and a format name and offered nothing at all, which
+     * made a publication with no artwork a dead end. A well that *acts* is not decoration, so
+     * it also keeps a label for a screen reader where the decorative one has none.
+     */
+    onChooseCover: (() -> Unit)? = null,
+) {
     val palette = LocalStoryArcPalette.current
+    val chooseLabel = stringResource(R.string.cover_choose)
     Surface(
         color = palette.surfaceSunken,
         shape = RoundedCornerShape(StoryArcRadius.cover),
@@ -155,7 +190,14 @@ private fun DetailCover(publication: Publication, cover: Bitmap?, height: Dp) {
             // Height first, so the bound above decides and the width follows the printed
             // proportion — the other way round the ratio would fight the cap and win.
             .aspectRatio(2f / 3f, matchHeightConstraintsFirst = true)
-            .clearAndSetSemantics {},
+            .then(
+                onChooseCover?.let {
+                    Modifier.clickable(onClickLabel = chooseLabel, onClick = it)
+                } ?: Modifier,
+            )
+            .then(
+                if (onChooseCover == null) Modifier.clearAndSetSemantics {} else Modifier,
+            ),
     ) {
         if (cover != null) {
             Image(
