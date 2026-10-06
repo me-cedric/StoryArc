@@ -156,6 +156,32 @@ from disk *and* carries its catalogue cursor. Verified on the merged tree: 2,586
 the Android unit suites, `pnpm lint` and `swiftlint --strict` all pass. 35 tasks stay open,
 in waves 8 to 10. smb3 and widgets stay paused.
 
+**Waves 8 to 11 landed on 2026-10-05 and 2026-10-06** (224 of 240 in all; 4 partial, 12
+open). Wave 8 closed five tasks and found that file fences block an agent, so later waves
+build in worktrees. Waves 9 and 10: a second share on the network no longer stops the Android
+app, a Kavita chapter downloads through the queue, a share row is catalogued from its own
+headers, a tap or a key curls a comic page, a double-page spread curls as one surface, a
+device that cannot curl withholds Curl, and Android wears the StoryArc palette by default.
+Wave 11 landed a pinned Kavita collection as a Home shelf of its own (17.10), a curl over
+reflowable text (8.12, partial), and the first parts of three new changes:
+`cover-for-every-publication` (one cover ladder, a chosen cover, a loose cover beside a
+file), `library-portability` (one versioned document, written and read on both platforms,
+with no secret in it) and the watermark fix that `library-sync` rests on.
+
+A review of wave 11 found 46 faults. It fixed 27 before the merge, each with a test that
+fails without the fix: a chosen cover now appears at once and upright, every audiobook in a
+picked folder keeps its own cover, the cover lookup reaches only the hosts its setting names
+and reads at most 8 MB, an iPhone's document no longer reads as new sources on Android, an
+import keeps a setting the other platform cannot express, a secret in a URL fragment is not
+exported, and the Android prose curl rolls onto the page that arrived. The rest are open
+tasks: section 6 of `cover-for-every-publication` (the lookup is not wired to the ladder,
+the candidate sheet, the web search and the write-back are on no screen, and six Android
+frames need a retake), section 6 of `library-portability` (chosen covers do not travel yet,
+and no screen draws the import preview, so tasks 2.1, 2.3 and 3.3 are partial again), and
+task 8.12 (an owner decision: the EPUB curl runs on a timer, and `page-transitions` says the
+finger drives it). The iOS `StoryArcKit` gate on CI now runs `xcodebuild`, because
+`swift test` on Xcode 26.6 copies an `.xcstrings` file without compiling it.
+
 **What this pass changes in the records below.**
 
 - **`offline-downloads` *Reading while downloading* is still Android-only.** Commit

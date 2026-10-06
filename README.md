@@ -75,16 +75,21 @@ watched working by nobody yet, which that document says row by row.
 | Format layer | ✅ CBZ, CBR, CBT, PDF, EPUB and image folders open on both platforms — see below |
 | Test corpus | ✅ 26 archives, 2 PDFs, 6 EPUBs and 7 audiobooks, one manifest, asserted by both suites |
 | Sources | 🟡 Folders, SMB, OPDS and Kavita connect, cache and diagnose on both; `source-lifecycle` has 21 of 27 tasks ticked |
-| Readers | 🟡 Paged comic reader and reflowable EPUB reader on both, six themes, four page transitions; `reader-theming-and-page-transitions` has 50 of 52 |
-| Playback | 🟡 Read-aloud and an audiobook player on both, behind one session; `audiobooks-and-playback` has 33 of 37 and calls itself unfinished |
+| Readers | 🟡 Paged comic reader and reflowable EPUB reader on both, six themes, four page transitions; `reader-theming-and-page-transitions` has 50 of 58 ticked and 6 partial |
+| Playback | 🟡 Read-aloud and an audiobook player on both, behind one session; `audiobooks-and-playback` has 68 of 91 ticked and calls itself unfinished |
+| Covers | 🟡 One cover ladder on both; a reader may choose a picture for any publication; the opt-in lookup is built and not yet wired in. `cover-for-every-publication` has 11 of 27 |
+| Portability | 🟡 One versioned library document, written and read on both platforms with no secret in it; no screen exports or imports it yet. `library-portability` has 9 of 26 |
 | Desktop | 📄 macOS, Windows and Linux documented; no code by design |
 
-Tests: **1961 on iOS** across 248 host suites, plus 35 more in `StoryArcEpub`
-that need a simulator; on Android, **2038 JVM plus 135 instrumented**, counted
-from their `@Test` attributes. The instrumented ones exist because image
+Tests: **about 3,570 on iOS** across 485 host suites, plus 144 more in
+`StoryArcEpub` that need a simulator; on Android, **about 4,070 JVM plus 170
+instrumented**, counted from their `@Test` attributes. The instrumented ones exist because image
 decoding, PDF rendering, Room and the RAR decoder cannot run on a host JVM.
 
-Nothing here is installable yet. There are no releases and no signed builds.
+Android builds are signed by CI, never on a laptop: each `vX.Y.Z` tag puts a
+signed APK on its GitHub release and the bundle on Play's closed testing track as
+a draft, which the owner rolls out from the Play Console. Nothing is in a public
+store, and iOS has no release lane yet.
 
 ### What the format layer actually does
 
@@ -138,12 +143,19 @@ landscape. Chrome that hides itself and never reflows the page. A separate
 reflowable reader for EPUB with **six named themes** — Original, Quiet, Paper,
 Bold, Calm, Focus — and per-axis control over typeface, size, line, character,
 word and paragraph spacing, margins, alignment and background colour, all with a
-live preview. Bookmarks, highlights and read-aloud — the platform's own voices on
+live preview. The same curl turns a reflowable EPUB page, on a tap, a key or a
+released swipe. Bookmarks, highlights and read-aloud — the platform's own voices on
 both sides ([ADR-0017]).
 
 **Library** — One view over every source. Search, filter and sort — respecting a
 reading list's curated order rather than forcing it alphabetical. Collections
-and reading lists, local or server-backed, presented side by side.
+and reading lists, local or server-backed, presented side by side, and any of them
+pinned to Home.
+
+**Covers** — Every publication has a cover. The file's own artwork comes first,
+then a `cover`, `folder` or `poster` image beside it. Where neither exists, the
+empty well is a button: choose any picture from your photos, cropped to the cover
+shape and kept on the device, where a cache clear does not reach it.
 
 **Offline** — Download a publication, a collection, or a whole reading list.
 Resumable, background-capable, Wi-Fi-only if you want it, with visible storage
@@ -265,7 +277,8 @@ else drew.
 - The accent is a **violet from the middle of the app's own mark**, so the icon and
   the chrome cannot drift apart — not another blue, and not the tonal purple a
   Material baseline hands out. One value on every appearance: it clears 3:1 on
-  book stock as well as on ink, which the mark's pink does not. Inside a
+  book stock as well as on ink, which the mark's pink does not. Android wears it
+  by default too; colours from the wallpaper are a setting. Inside a
   publication it defers to a colour derived from the cover art.
 - System sans for every piece of chrome, so the app reads as stock. A serif on
   publication titles is the whole of StoryArc's typographic voice — inside a
@@ -500,8 +513,11 @@ StoryArc has no backend. There is no account, no analytics, no crash reporting
 and no telemetry of any kind. Data leaves your device only to the servers you
 configured yourself. Credentials go to the iOS Keychain or the Android encrypted
 store, and are redacted from every log and diagnostic before the string leaves
-memory. What a publication's own HTML may reach is decided in [ADR-0015], and
-[SECURITY.md](SECURITY.md) says how to report a problem.
+memory. One switch is the exception, and it is off until you turn it on: a cover
+lookup that asks the open catalogues the switch names — Open Library, Cover Art
+Archive, Audnexus, AniList and MangaUpdates — and no host besides them. It is not
+connected to the library yet. What a publication's own HTML may reach is decided
+in [ADR-0015], and [SECURITY.md](SECURITY.md) says how to report a problem.
 
 ## Licence
 

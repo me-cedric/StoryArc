@@ -7,7 +7,12 @@ name: Android release
 # What it produces, in order:
 #   1. a signed App Bundle and a signed APK, both at the version the tag carries
 #   2. a GitHub release on that tag, with the APK attached for sideloading
-#   3. that bundle on Play's closed testing track
+#   3. that bundle on Play's closed testing track, as a draft release
+#
+# A draft, because the owner sends each release for review by hand: in the Play Console,
+# open the closed track, review the draft and start its rollout. That button is the one that
+# sends the build to Google for review and then to testers. A manual run may still choose
+# `completed`, which rolls it out at once.
 #
 # It never promotes. Moving a build from closed testing to production is
 # `android-promote.yml`, which reuses this artefact and never rebuilds.
@@ -29,10 +34,10 @@ on:
         options: [alpha, beta, internal]
         default: alpha
       releaseStatus:
-        description: 'completed hands the build to testers. draft only for the first upload of an app Play has never seen.'
+        description: 'draft waits for the owner to start the rollout in the Play Console. completed rolls it out and sends it for review at once.'
         type: choice
-        options: [completed, draft]
-        default: completed
+        options: [draft, completed]
+        default: draft
 
 concurrency:
   # Two uploads at once would race for the same version code. Queue them.
@@ -134,7 +139,7 @@ jobs:
       - name: Upload to closed testing
         env:
           TRACK: ${{ inputs.track || 'alpha' }}
-          RELEASE_STATUS: ${{ inputs.releaseStatus || 'completed' }}
+          RELEASE_STATUS: ${{ inputs.releaseStatus || 'draft' }}
           VERSION_NAME: ${{ steps.version.outputs.name }}
         # `alpha` is Play's name for the default closed track. A closed track you created
         # yourself has its own name; a manual run can name it.

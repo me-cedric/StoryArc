@@ -582,7 +582,9 @@ That command, and then the tag it pushes, produce:
 3. a signed App Bundle **and** a signed APK, built once by
    [`android-release.yml`](.github/workflows/android-release.yml) from that commit
 4. a GitHub release on the tag, carrying the APK
-5. that bundle on Play's **closed testing** track
+5. that bundle on Play's **closed testing** track, as a **draft** release. The owner
+   starts its rollout in the Play Console, and that is what sends it for review. Do not
+   start the rollout for them.
 
 **The rules that bind you:**
 

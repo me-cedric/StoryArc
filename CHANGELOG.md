@@ -10,6 +10,22 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 
 ### Added
 
+- **A cover for every publication, both platforms.** One cover ladder answers for the
+  shelf, the player, the media session, the publication page and the Android car shelf: the
+  reader's own picture, then the file's own artwork, then a `cover`, `folder` or `poster`
+  image beside the file. Where none exists, the empty well is a button that opens the
+  system photo picker, with no permission prompt. A chosen picture is turned upright,
+  cropped to 2:3, bounded to 1600 pixels and filed by content digest, so it survives a
+  rename, a move and a cache clear.
+- **A cover lookup, off by default and not wired in yet.** A switch on the Privacy screen
+  names every service it would let the app ask. The client behind it reaches only those
+  hosts, follows a redirect only to them, and reads at most 8 MB.
+- **One versioned library document, both platforms.** Sources, shelves, settings, themes and
+  reading progress in one file, written and read the same way on both platforms, with no
+  credential in it. No screen exports or imports it yet.
+- **A pinned Kavita collection is a Home shelf of its own**, beside pinned reading lists.
+- **A reflowable EPUB page curls**, on a tap, a key or a released swipe.
+
 - **Format layer, both platforms.** CBZ, CBT, CBR, PDF and plain image folders
   open from real files, asserted against one shared corpus of 22 archives and 2
   PDFs. Format is detected from content, never from the extension.
@@ -415,6 +431,13 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   which is not where a generator's only description belongs.
 
 ### Fixed
+
+- **A device that never synchronised no longer reports a false progress conflict.** An
+  absent watermark read as "the local side moved".
+- **Every audiobook in an Android picked folder keeps its own cover.** Each one wrote its
+  artwork over the one before.
+- **The Android prose curl rolls onto the page that arrived**, and does not play at the
+  last page.
 
 - **The app's global tint on iOS was the pink while its accent token was the violet.**
   `AccentColor.colorset` is `ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME`, so it is

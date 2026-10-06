@@ -19,13 +19,16 @@ a person moved a real library between two real devices.
 
 ## 2. Export
 
-- [x] 2.1 **Write the document** (both): sources and servers, collections and reading lists,
+- [~] 2.1 **Write the document** (both): sources and servers, collections and reading lists,
   pinned shelves, settings, reading themes, per-publication reader settings, reading progress,
   chosen covers.
+  **Reopened 2026-10-06 by the wave 11 review:** everything but the chosen covers. design.md
+  says a cover the reader chose travels as base64 in the body, and the body has no image
+  field and the export does not read `CoverOverrideStore`. See 6.7.
 - [x] 2.2 **No secret is written** (both). A test that exports a source carrying a password, a
   token and an API key, and asserts none of the three appears anywhere in the bytes — not in a
   field, not in a URL, not base64.
-- [x] 2.3 **A certificate pin travels** (both), and is flagged on import rather than applied
+- [~] 2.3 **A certificate pin travels** (both), and is flagged on import rather than applied
   silently.
 - [ ] 2.4 **The reader is told what it is not** (both): no publication files, no downloads, no
   cover cache. A sentence where the export is offered, in four languages.
@@ -47,7 +50,7 @@ a person moved a real library between two real devices.
   three is computed and asserted, and none of them is drawn. See task 2.5.
 - [x] 3.2 **Reading progress merges through `ProgressMerge`** (both), after task 1.4. The
   furthest position wins and finished stays finished, on a device that never synced too.
-- [x] 3.3 **A collection that exists on both sides merges its members** (both), and the reader
+- [~] 3.3 **A collection that exists on both sides merges its members** (both), and the reader
   is told how many were added.
 - [~] 3.4 **An imported source asks for its secret once, when it is first reached** (both), and
   stays listed and browsable until then.
@@ -106,3 +109,11 @@ source. These are what the review found and the wave did not close.
 - [ ] 6.6 **A platform name this build does not know is not fatal**. iOS types `writtenBy` as
   an enum, so a document written by a third platform is refused outright, while Android holds
   it as text. The field names who wrote the document; it decides nothing.
+- [ ] 6.7 **A chosen cover travels** (both), as base64 in the body, keyed by the override key
+  `CoverOverrideStore` files it under. Add one to both fixtures and to the round trip of 4.1.
+  It closes task 2.1.
+- [ ] 6.8 **The preview draws the pin and the member count** (both). Tasks 2.3 and 3.3 compute
+  `certificatePinsToAdd` and `shelvesToMerge` and assert them, and no screen draws either: an
+  import changes what the app trusts and says nothing. They close with the preview of 3.1, in
+  four languages. Until then both stay partial.
+

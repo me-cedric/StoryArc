@@ -15,6 +15,11 @@ once they have chosen one.
 | `ios-detail-coverless-well*.png` | The same before state on iOS |
 | `ios-detail-chosen-cover*.png` | The same after state on iOS |
 
+> **Not all of these are evidence yet.** The wave 11 review found that five of the eight
+> Android frames do not show the state their names claim: the emulator was failing under the
+> capture harness when they were taken. Task 2.6 is partial again, and task 6.5 retakes them.
+> The iOS frames stand.
+
 `-dark` is the dark appearance. `-largest` on Android and `-ax5` on iOS are the largest
 accessibility text size; the two platforms' capture harnesses name that condition differently
 and each keeps its own convention.

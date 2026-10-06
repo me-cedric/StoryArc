@@ -4,7 +4,7 @@ watched it on a device.
 
 ## 1. The rungs that need no network
 
-- [x] 1.1 **Finish embedded artwork on the Android Storage Access Framework paths** (android).
+- [~] 1.1 **Finish embedded artwork on the Android Storage Access Framework paths** (android).
   Task 16.9 of `close-the-audited-gaps` covers every path that holds a real file. It is open
   where Android indexes audio through SAF, because neither the single-file nor the folder SAF
   path can reach a file to read. Two call sites in `LibraryScanner.kt`, one reader for a SAF
@@ -17,6 +17,12 @@ watched it on a device.
   child out through the provider once. The directory is `filesDir` and not `cacheDir`: artwork
   written to a cache directory left the cached shelf beside it pointing at files the system had
   removed.
+  **Reopened 2026-10-06 by the wave 11 review.** Two faults were fixed: every audiobook in a
+  picked folder wrote its cover over the one before, because the cover was filed under the
+  reused `/proc/self/fd/N` path (`AudiobookCoverKeyTest`); and the incremental index passed no
+  cover directory and indexed an audiobook folder as comic pages. What is still owed is a test
+  that fails without the scanner plumbing: no test runs `LibraryScanner.scan` or `index` over
+  a content tree with a cover directory. That needs an instrumented test. See 6.6.
 - [x] 1.2 **A loose cover image beside the file becomes the cover** (both). `cover`, `folder`
   or `poster`, in the publication's own folder or an audiobook's folder, when the file carries
   no artwork. This is the cheapest rung after the bytes themselves and it is common in ripped
@@ -64,18 +70,21 @@ watched it on a device.
   against a real `Context` under Robolectric, and the iOS twin asserts the same two things: the
   clear empties the cover cache, and the store's own directory is not under any directory the
   clear reaches.
-- [x] 2.6 **Frames**: the coverless well before, and a publication with a chosen cover after, on
+- [~] 2.6 **Frames**: the coverless well before, and a publication with a chosen cover after, on
   both platforms, light and dark, default and largest text.
   **Done 2026-10-06.** Sixteen frames in
   `docs/designs/screenshots/cover-for-every-publication/`: the coverless well and a publication
   with a chosen cover, on both platforms, light and dark, at the default and the largest text
   size. The README there records how the *after* state was staged, because the system picker
   runs in another process and no test may fill the device's photo library.
+  **Reopened 2026-10-06 by the wave 11 review:** five of the eight Android frames do not show
+  the state their names claim. The emulator was failing under the capture harness when they
+  were taken. Retake them on a healthy emulator. See 6.5.
 
 ## 3. The lookup, off until it is turned on
 
-- [x] 3.1 **A setting that names its providers** (both), off by default, stating that one
-  identifier and nothing else leaves the device.
+- [~] 3.1 **A setting that names its providers** (both), off by default, stating what leaves
+  the device for each kind of request.
 
       `AppSettings.lookUpMissingCovers` on both platforms, false by default, and absent in a
       stored file reads as false rather than as consent. The row sits on the Privacy screen,
@@ -86,7 +95,14 @@ watched it on a device.
       be added without a word on the screen. `CoverLookupSettingsTests` and
       `CoverLookupRowTest` assert the default, the older-file read and the provider list.
       Frames: `docs/designs/screenshots/cover-lookup-2026-10-06/` -- iOS only, see 3.6.
-- [x] 3.2 **Lookup by identifier** (both): Open Library by ISBN, Cover Art Archive by MBID,
+
+      **Reopened 2026-10-06 by the wave 11 review.** The row named only the identifier
+      services and said one identifier "and nothing else" leaves the device, while the same
+      switch gates the title search, which sends the title and the author to AniList and
+      MangaUpdates as well. Fixed: the row is built from both lists, and the note says what
+      each kind of request sends, in four languages. Still owed: the Android frame of the
+      setting. See 6.5.
+- [~] 3.2 **Lookup by identifier** (both): Open Library by ISBN, Cover Art Archive by MBID,
   Audnexus by ASIN. One request per publication. Every answer cached to disk.
 
       `CoverLookupProvider.swift` and `CoverLookupProvider.kt` pair each identifier with the
@@ -95,15 +111,23 @@ watched it on a device.
       clients consult the cache first and write every answer after, so a publication is asked
       about once. The cache sits in the app's data directory rather than its cache directory:
       clearing decoded pages is not permission to crawl three catalogues again.
+
+      **Reopened 2026-10-06 by the wave 11 review: the client is built and nothing calls it.**
+      No indexer reads an ISBN, an MBID or an ASIN, and no rung of the ladder asks the client,
+      so a reader who turns the switch on gets no cover. The review also hardened the client:
+      every request and every redirect must land on a listed https host (`CoverImageHosts`),
+      an answer is read up to 8 MB and no further, and `coverImage` hands back the picture an
+      image provider already sent instead of fetching it twice. See 6.1.
 - [~] 3.3 **Lookup by title shows candidates and waits** (both). Never adopts a match on its
   own. Open Library `search.json`, AniList for manga, MangaUpdates — all keyless.
 
       **2026-10-06: built and tested; not reachable yet.** `CoverTitleSearch` builds all three
       requests and reads all three answers on both platforms, `candidates(title:)` returns
       them and applies none, and `CoverCandidateSheet` draws them with no best match and no
-      automatic dismissal. What is missing is the entry point: the coverless well that opens
-      the sheet is task 2.3, which another agent owns. The sheet takes `candidates` and an
-      `onChoose`, which is the seam the merge joins.
+      automatic dismissal. The blocker this note named is gone: the coverless well (task 2.3)
+      is on main. What is missing now is the call: no screen opens the sheet. Title-search
+      answers are now cached, filtered to listed hosts and de-duplicated by picture. See 6.2
+      and 6.3.
 - [x] 3.4 **A refusal is quiet** (both). 403, 404, 429 or silence leaves the cover as it was,
   shows the reader no error for something they did not ask about, and does not retry in a loop.
 
@@ -137,8 +161,8 @@ watched it on a device.
       **2026-10-06: built and tested; not reachable yet.** `CoverWebSearch` builds the address
       on both platforms. iOS wraps `SFSafariViewController` with no delegate; Android builds an
       `ACTION_VIEW` intent carrying the Custom Tabs session extra, which needs no new
-      dependency. The row that offers it is written and is placed on no screen, because the
-      coverless well that would hold it is task 2.3.
+      dependency. The row that offers it is written and is placed on no screen. The blocker
+      this note named, the coverless well of task 2.3, is on main now. See 6.2.
 
       The engine is DuckDuckGo, which design.md does not decide: the app has no analytics and
       no account, and an engine that profiles a signed-in reader would undo that at the one
@@ -154,7 +178,7 @@ watched it on a device.
       failed: !text.contains(forbidden)`, and a `WebView` string in the Kotlin file reports
       `CoverSearchHandoffTest > the hand-off is a Custom Tab, never a web view this app owns
       FAILED`.
-- [~] 4.3 **Frames**: the hand-off, and the publication afterwards with its new cover.
+- [ ] 4.3 **Frames**: the hand-off, and the publication afterwards with its new cover.
 
       **2026-10-06: neither frame exists.** Both need the entry point of task 2.3, and the
       second needs the override store of task 2.1 as well. The commits that add the drawing
@@ -176,8 +200,8 @@ watched it on a device.
       **The seam the merge has to join:** the button takes the chosen cover's bytes as
       `image: () async -> Data?`, and `suspend () -> ByteArray?` on Android, rather than
       reaching for them, because the override store that holds them is task 2.1. Nothing is
-      sent when it answers nothing. Placing the button on the server reading-list screen waits
-      on that store.
+      sent when it answers nothing. The store of task 2.1 is on main now, so the blocker this
+      note named is gone; the button is still placed on no screen. See 6.4.
 
       Proved able to fail: removing the ceiling check reports `KavitaCoverUploadTest > a
       picture above the ceiling is refused before anything is sent FAILED`.
@@ -196,3 +220,32 @@ watched it on a device.
 - [ ] 5.3 **Check the live server** (owner step, android and ios). The repo's Kavita client was
   built against documentation rather than a live instance for some routes. The owner has a
   Kavita server; the upload shape needs one real call before this is claimed to work.
+
+## 6. From the review of wave 11
+
+A review of wave 11 read sections 1 to 5 against `cover-art` and `AGENTS.md`. It fixed what a
+reader meets today: a chosen cover now appears at once and upright, every audiobook in a picked
+folder keeps its own cover, a loose cover beside a picked-folder document is found, a failed
+replacement is reported, a Kavita reading list draws a chosen cover, and the lookup reaches only
+listed hosts. These are what it did not close.
+
+- [ ] 6.1 **The lookup is a rung of the ladder** (both). Read the identifier at index time: an
+  ISBN from an EPUB's OPF, a MusicBrainz release-group id and an Audible ASIN from audio tags.
+  Ask `CoverLookupClient.coverImage` after the rungs that need no network, only while the
+  switch is on. Until then the switch does nothing, and task 3.2 stays partial.
+- [ ] 6.2 **The publication page offers the title search and the web search** (both). Put a
+  "Find a cover" action that opens `CoverCandidateSheet`, and the web hand-off of task 4.1,
+  beside the cover choice. The title search only while the switch is on; the hand-off always,
+  because the browser makes that request and the app does not.
+- [ ] 6.3 **The candidate sheet shows each picture, through the client** (both). The Android
+  sheet shows no picture, so the reader chooses blind. The iOS sheet loads pictures through
+  the shared session and not through `CoverLookupClient.image`, which is the one path that
+  checks the host. Key the Android rows on something two equal answers cannot share.
+- [ ] 6.4 **The write-back button is on the Kavita reading-list screen** (both), and only once a
+  cover is chosen. Today it is placed nowhere, and its own view draws it with no cover chosen,
+  where Send does nothing.
+- [ ] 6.5 **Retake the frames** (android). Five of the eight frames of task 2.6, and the setting
+  of task 3.1, on an emulator that stays responsive under the harness.
+- [ ] 6.6 **An instrumented test runs the scanner over a content tree** (android), with a cover
+  directory, and asserts each audiobook's own cover path. It closes task 1.1.
+
