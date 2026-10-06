@@ -12,7 +12,7 @@ a person moved a real library between two real devices.
   encoder and reads on the other's decoder, for each of the five.
 - [ ] 1.3 **An unknown field survives a decode** (both), and a decode of a newer version
   refuses by name without changing anything.
-- [ ] 1.4 **Fix `ProgressMerge` on a device with no watermark** (both). It reads
+- [x] 1.4 **Fix `ProgressMerge` on a device with no watermark** (both). It reads
   `local.syncedPosition` to decide whether the local side moved, and a never-synchronised
   device has none, which it reads as "moved". Every import onto a new phone takes that branch.
   **This is a prerequisite, not a nice-to-have**: do it before task 3.2.

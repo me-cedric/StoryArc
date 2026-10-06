@@ -93,14 +93,23 @@ class ProgressMergeTest {
     }
 
     @Test
-    fun `a never-synced local record is treated as moved`() {
+    fun `a never-synced local record takes the further position quietly`() {
+        // A device with no watermark has never exchanged a position with any source, so
+        // nothing here says the local side moved. This used to answer `Conflict`, which
+        // every import onto a new phone would have hit — `library-portability`'s *A device
+        // that never synced* is the requirement that forbids it.
         val local = progress(page = 20, synced = null)
         val remote = progress(page = 60)
 
-        assertEquals(
-            ProgressMergeOutcome.Conflict(remote, ReadingPosition.Page(20, 100)),
-            ProgressMerge.merge(local, remote),
-        )
+        assertEquals(ProgressMergeOutcome.AdoptRemote(remote), ProgressMerge.merge(local, remote))
+    }
+
+    @Test
+    fun `a never-synced local record that is further is kept`() {
+        val local = progress(page = 60, synced = null)
+        val remote = progress(page = 20)
+
+        assertEquals(ProgressMergeOutcome.KeepLocalAndPush(local), ProgressMerge.merge(local, remote))
     }
 
     @Test

@@ -142,6 +142,7 @@ public enum ProgressMergeOutcome: Sendable, Equatable {
 /// | Remote behind local | keep local, push |
 /// | Both changed since last sync | further wins, tell the user once |
 /// | One finished, one partial | finished wins |
+/// | No watermark at all | further wins, quietly |
 public enum ProgressMerge {
     public static func merge(local: ReadingProgress, remote: ReadingProgress) -> ProgressMergeOutcome {
         // Finished is sticky. Unmarking a finished publication is a deliberate
@@ -153,17 +154,23 @@ public enum ProgressMerge {
             return .keepLocalAndPush(local)
         }
 
-        let localMoved = local.syncedPosition.map { !$0.matches(local.position) } ?? true
         let remoteAhead = remote.position.fraction > local.position.fraction
 
-        if !localMoved {
+        // An absent watermark means this device has never exchanged a position with any
+        // source. That is not evidence that the local side moved, and reading it as such
+        // sent every import onto a new phone — the common case — down the conflict branch
+        // below. `library-portability`, *A device that never synced*, forbids exactly that.
+        guard let watermark = local.syncedPosition else {
+            return remoteAhead ? .adoptRemote(remote) : .keepLocalAndPush(local)
+        }
+
+        if watermark.matches(local.position) {
             // Nothing to lose locally: take whichever is further, quietly.
             return remoteAhead ? .adoptRemote(remote) : .keepLocalAndPush(local)
         }
 
         // Local moved since the last sync. Did remote move too?
-        let remoteMoved = local.syncedPosition.map { !$0.matches(remote.position) } ?? true
-        if !remoteMoved {
+        if watermark.matches(remote.position) {
             return .keepLocalAndPush(local)
         }
 
