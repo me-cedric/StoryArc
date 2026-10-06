@@ -26,6 +26,16 @@
     <string name="library_cell_finished">Terminé</string>
     <string name="library_cell_unavailable">Nécessite que sa bibliothèque soit accessible</string>
     <string name="library_section_other">Autres</string>
+    <string name="kavita_error_cover_refused">Cette image n\'a pas pu être envoyée. Choisissez-en une plus petite.</string>
+    <string name="covers_candidates">Choisir une couverture</string>
+    <string name="covers_candidates_none">Aucun candidat trouvé. Cherchez sur le web, ou choisissez votre propre image.</string>
+    <string name="covers_candidates_note">Un titre correspond à beaucoup de choses. Rien n\'est adopté avant votre choix.</string>
+    <string name="covers_candidates_from">De %1$s</string>
+    <string name="covers_web_search">Chercher une couverture sur le web</string>
+    <string name="covers_web_note">Votre navigateur ouvre une recherche d\'images. Enregistrez-y une image, puis choisissez-la ici. StoryArc ne télécharge rien.</string>
+    <string name="covers_write_back">Envoyer cette couverture au serveur</string>
+    <string name="covers_write_back_body">Cela change la couverture pour toute personne qui voit cette liste.</string>
+    <string name="covers_write_back_send">Envoyer</string>
     <plurals name="library_scanning">
         <item quantity="one">Ajout de vos bandes dessinées — %1$,d trouvée</item>
         <item quantity="other">Ajout de vos bandes dessinées — %1$,d trouvées</item>

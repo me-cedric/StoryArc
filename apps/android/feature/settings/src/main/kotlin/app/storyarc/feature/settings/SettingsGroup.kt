@@ -217,6 +217,8 @@ internal val SEARCHABLE: List<Pair<List<String>, SettingMatch>> = listOf(
     listOf("language", "locale", "translation") to SettingMatch.of(SettingsGroup.LANGUAGE),
     listOf("privacy", "analytics", "tracking", "account", "data") to
         SettingMatch.of(SettingsGroup.PRIVACY),
+    listOf("cover", "covers", "artwork", "lookup", "isbn") to
+        SettingMatch.of(SettingsAnchor.COVER_LOOKUP),
     listOf("cache", "clear") to SettingMatch.of(SettingsAnchor.CLEAR_CACHE),
     listOf("history", "progress", "position") to SettingMatch.of(SettingsAnchor.CLEAR_HISTORY),
     listOf("storage", "delete downloads") to SettingMatch.of(SettingsAnchor.CLEAR_DOWNLOADS),

@@ -54,13 +54,22 @@ public struct KavitaReadingList: Sendable, Equatable, Identifiable, Decodable {
     /// How many entries the server says the list holds, before any of them are fetched.
     public let itemCount: Int
 
+    /// Whether an administrator published this list to everyone on the server.
+    ///
+    /// The only ownership signal a client gets, and `cover-art` needs one. Kavita answers
+    /// `ReadingList/lists` with the lists the signed-in reader owns *plus* the promoted
+    /// ones, so a list that is not promoted in that answer is theirs, and a promoted one may
+    /// belong to anybody — which is why `CoverWriteBack` offers no write on a promoted list.
+    public let promoted: Bool
+
     public init(
         id: Int,
         title: String = "",
         summary: String? = nil,
         coverImage: String? = nil,
         coverImageLocked: Bool = false,
-        itemCount: Int = 0
+        itemCount: Int = 0,
+        promoted: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -68,6 +77,7 @@ public struct KavitaReadingList: Sendable, Equatable, Identifiable, Decodable {
         self.coverImage = coverImage
         self.coverImageLocked = coverImageLocked
         self.itemCount = itemCount
+        self.promoted = promoted
     }
 
     public init(from decoder: any Decoder) throws {
@@ -79,10 +89,15 @@ public struct KavitaReadingList: Sendable, Equatable, Identifiable, Decodable {
         coverImageLocked =
             try container.decodeIfPresent(Bool.self, forKey: .coverImageLocked) ?? false
         itemCount = try container.decodeIfPresent(Int.self, forKey: .itemCount) ?? 0
+        // Absent reads as not promoted, which is what a server that has never promoted
+        // anything means. It is also the reading that offers the write rather than hiding
+        // it, and the list came back from a route that answers only the reader's own lists
+        // and the promoted ones.
+        promoted = try container.decodeIfPresent(Bool.self, forKey: .promoted) ?? false
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, summary, coverImage, coverImageLocked, itemCount
+        case id, title, summary, coverImage, coverImageLocked, itemCount, promoted
     }
 }
 

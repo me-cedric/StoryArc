@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.SourceStore
@@ -54,6 +55,10 @@ import kotlinx.coroutines.launch
  */
 @Composable
 internal fun PrivacyGroup(
+    /** What the reader has chosen, because this screen now holds a switch as well. */
+    settings: AppSettings,
+    /** How the switch below records a change, the way every other settings group does. */
+    onChange: (AppSettings) -> Unit,
     modifier: Modifier = Modifier,
     /**
      * What the downloads weigh, asked of the filesystem by the caller — the same number the
@@ -194,6 +199,8 @@ internal fun PrivacyGroup(
             size = android.text.format.Formatter.formatShortFileSize(context, downloadBytes),
             onClear = { confirmingDownloads = true },
         )
+
+        CoverLookupRow(settings = settings, onChange = onChange, highlight = highlight)
 
         DiagnosticRow(highlight = highlight)
     }

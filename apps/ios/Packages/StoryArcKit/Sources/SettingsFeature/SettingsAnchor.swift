@@ -21,6 +21,7 @@ enum SettingsAnchor: String, CaseIterable, Identifiable, Sendable {
     case downloadsWiFiOnly
     case downloadsRemoveAfterFinishing
     case downloadsLimit
+    case coverLookup
     case clearCache
     case clearHistory
     case clearDownloads
@@ -35,7 +36,7 @@ enum SettingsAnchor: String, CaseIterable, Identifiable, Sendable {
         case .appIcon, .naturalTheme, .linkReadingTheme: .appearance
         case .volumeButtons, .readingDefaults: .reading
         case .downloadsWiFiOnly, .downloadsRemoveAfterFinishing, .downloadsLimit: .downloads
-        case .clearCache, .clearHistory, .clearDownloads, .diagnostic: .privacy
+        case .coverLookup, .clearCache, .clearHistory, .clearDownloads, .diagnostic: .privacy
         }
     }
 
@@ -51,6 +52,7 @@ enum SettingsAnchor: String, CaseIterable, Identifiable, Sendable {
         case .downloadsWiFiOnly: "downloads.wifiOnly"
         case .downloadsRemoveAfterFinishing: "downloads.removeAfter"
         case .downloadsLimit: "downloads.limit"
+        case .coverLookup: "covers.lookup"
         case .clearCache: "privacy.clear.cache"
         case .clearHistory: "privacy.clear.history"
         case .clearDownloads: "privacy.clear.downloads"

@@ -1,0 +1,75 @@
+package app.storyarc.core.catalogue
+
+import app.storyarc.core.model.CoverLookupProvider
+import java.io.File
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+
+/**
+ * What a provider answered about one publication.
+ *
+ * A refusal is recorded as well as a hit, and that is the point of the type. `cover-art`
+ * asks that "the same publication is never looked up twice, because a provider that asks not
+ * to be crawled is entitled to that" -- and a cache that remembered only the hits would
+ * re-ask every publication a provider has no cover for, which is most of them.
+ */
+@Serializable
+data class CoverLookupAnswer(
+    val provider: CoverLookupProvider,
+    /** Where the picture is, or null when the provider had none. */
+    val imageUrl: String? = null,
+)
+
+/**
+ * Every answer a provider has given, on disk, keyed by publication.
+ *
+ * **In the app's data directory rather than its cache directory.** `StorageUsage.clearCache`
+ * empties the cache directory, and a reader clearing decoded pages has not asked for
+ * permission to crawl three catalogues again. The file is small -- one entry per publication
+ * -- so it costs a reader nothing to keep.
+ *
+ * iOS's `CoverLookupCache` keeps the same file for the same reason.
+ */
+class CoverLookupCache(private val file: File) {
+
+    private companion object {
+        /**
+         * Lenient about fields it does not know, the way every store here is: a build that
+         * adds a field must still read what an earlier build wrote.
+         */
+        val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+    }
+
+    private val answers: MutableMap<String, CoverLookupAnswer> =
+        runCatching { json.decodeFromString<Map<String, CoverLookupAnswer>>(file.readText()) }
+            .getOrElse { emptyMap() }
+            .toMutableMap()
+
+    /** What this publication has already been told, or null when it has never been asked. */
+    fun answer(key: String): CoverLookupAnswer? = answers[key]
+
+    /** Records an answer, including a refusal, and writes the file. */
+    fun record(answer: CoverLookupAnswer, key: String) {
+        answers[key] = answer
+        write()
+    }
+
+    /**
+     * Forgets one publication's answer, so it may be asked once more.
+     *
+     * The escape hatch a cached refusal needs. A provider that answered 429 was asking for
+     * later rather than never, and a reader who asks for this publication again by hand is
+     * the "later" -- but nothing else re-asks, which is what keeps the app polite.
+     */
+    fun forget(key: String) {
+        answers.remove(key)
+        write()
+    }
+
+    private fun write() {
+        runCatching {
+            file.parentFile?.mkdirs()
+            file.writeText(json.encodeToString(answers.toMap()))
+        }
+    }
+}

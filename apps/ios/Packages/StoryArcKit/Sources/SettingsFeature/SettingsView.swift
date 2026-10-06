@@ -253,7 +253,7 @@ public struct SettingsView: View {
             ReadingSettings(settings: $settings, readerStore: readerStore, highlight: highlight)
         case .privacy:
             PrivacySettings(
-                settings: settings,
+                settings: $settings,
                 readerStore: readerStore,
                 downloadedBytes: bytesOnDisk,
                 onClearDownloads: onClearDownloads,

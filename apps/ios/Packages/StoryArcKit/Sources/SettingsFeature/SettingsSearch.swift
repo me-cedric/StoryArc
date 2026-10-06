@@ -90,6 +90,8 @@ extension SettingsGroup {
         Entry(terms: ["language", "locale", "translation"], match: SettingMatch(group: .language)),
         Entry(terms: ["privacy", "analytics", "tracking", "account", "data"],
               match: SettingMatch(group: .privacy)),
+        Entry(terms: ["cover", "covers", "artwork", "lookup", "isbn"],
+              match: SettingMatch(anchor: .coverLookup)),
         Entry(terms: ["cache", "clear"], match: SettingMatch(anchor: .clearCache)),
         Entry(terms: ["history", "progress", "position"], match: SettingMatch(anchor: .clearHistory)),
         Entry(terms: ["storage", "delete downloads"], match: SettingMatch(anchor: .clearDownloads)),

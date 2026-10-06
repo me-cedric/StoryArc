@@ -207,6 +207,10 @@ internal fun describeKavita(context: Context, error: KavitaError): String = when
     is KavitaError.KeyRejected -> context.getString(R.string.kavita_error_key_rejected)
     is KavitaError.BadAddress -> context.getString(R.string.kavita_error_not_an_address)
     is KavitaError.UnexpectedResponse -> context.getString(R.string.kavita_error_not_kavita)
+    // The reader chose a picture the client will not send. The only action either case
+    // leaves them is to choose another, so both say so in one sentence.
+    is KavitaError.ImageTooLarge, is KavitaError.ImageRejected ->
+        context.getString(R.string.kavita_error_cover_refused)
     is KavitaError.Http -> context.getString(R.string.catalogue_error_http, error.status)
 }
 

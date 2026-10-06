@@ -12,7 +12,9 @@ internal import StoryArcCore
 /// toggles would imply the opposite.
 struct PrivacySettings: View {
     /// Read rather than bound. The diagnostic reports what is stored; it never changes it.
-    let settings: AppSettings
+    /// A binding rather than a value, because this screen now holds a switch as well as a
+    /// set of clear buttons: the cover lookup is a privacy choice, so it lives here.
+    @Binding var settings: AppSettings
     let readerStore: ReaderPreferences
 
     /// What the downloads weigh, asked of the filesystem by the caller — the same number
@@ -122,6 +124,8 @@ struct PrivacySettings: View {
                     isEmpty: downloadBytes <= 0
                 ) { isConfirmingDownloads = true }
             }
+
+            CoverLookupSettings(settings: $settings, highlight: highlight)
 
             diagnosticSection
         }

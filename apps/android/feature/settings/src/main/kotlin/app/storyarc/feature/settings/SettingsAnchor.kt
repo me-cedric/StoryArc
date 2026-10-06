@@ -27,6 +27,7 @@ internal enum class SettingsAnchor {
     DOWNLOADS_WIFI_ONLY,
     DOWNLOADS_REMOVE_AFTER_FINISHING,
     DOWNLOADS_LIMIT,
+    COVER_LOOKUP,
     CLEAR_CACHE,
     CLEAR_HISTORY,
     CLEAR_DOWNLOADS,
@@ -43,7 +44,8 @@ internal enum class SettingsAnchor {
             VOLUME_BUTTONS, READING_DEFAULTS -> SettingsGroup.READING
             DOWNLOADS_WIFI_ONLY, DOWNLOADS_REMOVE_AFTER_FINISHING, DOWNLOADS_LIMIT ->
                 SettingsGroup.DOWNLOADS
-            CLEAR_CACHE, CLEAR_HISTORY, CLEAR_DOWNLOADS, DIAGNOSTIC -> SettingsGroup.PRIVACY
+            COVER_LOOKUP, CLEAR_CACHE, CLEAR_HISTORY, CLEAR_DOWNLOADS, DIAGNOSTIC ->
+                SettingsGroup.PRIVACY
         }
 
     /**
@@ -61,6 +63,7 @@ internal enum class SettingsAnchor {
             DOWNLOADS_WIFI_ONLY -> R.string.downloads_wifi_only
             DOWNLOADS_REMOVE_AFTER_FINISHING -> R.string.downloads_remove_after
             DOWNLOADS_LIMIT -> R.string.downloads_limit
+            COVER_LOOKUP -> R.string.covers_lookup
             CLEAR_CACHE -> R.string.privacy_clear_cache
             CLEAR_HISTORY -> R.string.privacy_clear_history
             CLEAR_DOWNLOADS -> R.string.privacy_clear_downloads

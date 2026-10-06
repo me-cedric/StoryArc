@@ -31,6 +31,10 @@ internal object KavitaMessage {
             context.getString(R.string.kavita_error_too_old_for_request)
         KavitaError.BadAddress, KavitaError.UnexpectedResponse ->
             context.getString(R.string.kavita_error_not_kavita)
+        // The reader chose a picture the client will not send. The only action either case
+        // leaves them is to choose another, so both say so in one sentence.
+        KavitaError.ImageTooLarge, KavitaError.ImageRejected ->
+            context.getString(R.string.kavita_error_cover_refused)
         // Any other status is the server being unwell rather than the reader being wrong, and
         // `sources` makes that a grey state with an offer to try again.
         else -> context.getString(R.string.source_offline_body, source)
