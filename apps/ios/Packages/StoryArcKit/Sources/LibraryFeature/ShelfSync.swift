@@ -4,7 +4,7 @@ internal import Kavita
 internal import Persistence
 internal import StoryArcCore
 
-/// Keeping a server-backed reading list and the edits owed to it in step.
+/// Keeping a server-backed shelf and the edits owed to it in step.
 ///
 /// `collections-and-reading-lists` asks for two things that are one round of work: an edit
 /// made while the server was away is "pushed on reconnection", and an edit the server has
@@ -16,33 +16,33 @@ internal import StoryArcCore
 /// answer down. Android's `ShelfSync` does the same three in the same order.
 enum ShelfSync {
 
-    /// One reading list, as the server currently has it.
+    /// One shelf, as the server currently has it.
     private struct Fetched {
         let shelf: ServerShelf
         let entries: [String]
     }
 
-    /// Reconciles every server reading list that will answer.
+    /// Reconciles every server shelf that will answer.
     ///
-    /// A list that does not answer is simply absent from what is merged, which leaves its
+    /// A shelf that does not answer is simply absent from what is merged, which leaves its
     /// edits queued and says nothing about them — that is the unreachable server, and
     /// `sources` is explicit that it is a normal state rather than a failure.
+    ///
+    /// **A collection is asked as well as a reading list, and only for its membership.** It
+    /// carries no pending edit — nothing offers one — so the merge finds nothing to push and
+    /// nothing to drop for it, and the whole of its round is the record it leaves behind.
+    /// That record is what `home-screen`'s *Pinned shelves* then draws a pinned collection
+    /// from without asking a server, which *The home surface never waits on a source* forbids.
     static func reconcile(
-        lists: [ServerShelf],
+        shelves: [ServerShelf],
         store: ShelfEditStore,
         progress: KavitaProgressStore,
         now: Date = Date()
     ) async {
         var fetched: [Fetched] = []
-        for shelf in lists {
-            let client = KavitaClient(address: shelf.server.address)
-            guard let items = try? await client.readingListItems(shelf.id) else { continue }
-            fetched.append(
-                Fetched(
-                    shelf: shelf,
-                    entries: items.sorted { $0.order < $1.order }.map { String($0.chapterId) }
-                )
-            )
+        for shelf in shelves {
+            guard let entries = await members(of: shelf) else { continue }
+            fetched.append(Fetched(shelf: shelf, entries: entries))
         }
         guard !fetched.isEmpty else { return }
 
@@ -63,7 +63,7 @@ enum ShelfSync {
             // The server won, so what it overrode must never be sent afterwards: the edit
             // leaves the transport queue as well as this one.
             forget(conflict.discarded, from: progress)
-            let named = lists.first { key($0) == conflict.shelf }?.title ?? ""
+            let named = shelves.first { key($0) == conflict.shelf }?.title ?? ""
             settled = settled.noting(
                 ShelfConflictNotice(
                     shelf: conflict.shelf,
@@ -75,7 +75,28 @@ enum ShelfSync {
         }
         store.save(settled)
 
-        await push(pull.toPush, of: lists, in: progress)
+        await push(pull.toPush, of: shelves, in: progress)
+    }
+
+    /// What one shelf holds, named the way the thing that reads the record back joins on.
+    ///
+    /// A reading list answers with its chapters, in the server's order, because the order is
+    /// the list's meaning. A collection answers with the *names* of its series, in the order
+    /// the server listed them, because a collection groups series and this library's own idea
+    /// of a series is its name — `LibraryRows` groups by nothing else, and a ``Publication``
+    /// carries the name and no server series number at all. A series renamed on the server
+    /// drops out of the pinned shelf until the next reconciliation, which then writes the new
+    /// name down: the record heals itself, where a pin keyed on a title would not.
+    ///
+    /// `nil` where the server did not answer, so the caller can tell that apart from a shelf
+    /// the server says is empty.
+    private static func members(of shelf: ServerShelf) async -> [String]? {
+        let client = KavitaClient(address: shelf.server.address)
+        guard shelf.isList else {
+            return (try? await client.collected(shelf.id))?.map(\.name)
+        }
+        guard let items = try? await client.readingListItems(shelf.id) else { return nil }
+        return items.sorted { $0.order < $1.order }.map { String($0.chapterId) }
     }
 
     /// Records an edit the server has not been told about yet.
@@ -102,9 +123,14 @@ enum ShelfSync {
         }
     }
 
-    /// How a server's reading list is named across a restart.
+    /// How a server's shelf is named across a restart. The kind is in it because one server
+    /// numbers its collections and its reading lists from one apiece.
     static func key(_ shelf: ServerShelf) -> ShelfKey {
-        ShelfKey(sourceID: shelf.server.id, shelfID: shelf.id)
+        ShelfKey(
+            sourceID: shelf.server.id,
+            shelfID: shelf.id,
+            kind: shelf.isList ? .readingList : .collection
+        )
     }
 
     // MARK: Ordering
@@ -189,13 +215,13 @@ enum ShelfSync {
     /// the shelves screen waited for a screen they had no reason to visit.
     private static func push(
         _ owed: [ShelfEdit],
-        of lists: [ServerShelf],
+        of shelves: [ServerShelf],
         in progress: KavitaProgressStore
     ) async {
         guard !owed.isEmpty else { return }
         let servers = Set(owed.map(\.shelf.sourceID))
         for id in servers {
-            guard let page = lists.first(where: { $0.server.id == id })?.server else { continue }
+            guard let page = shelves.first(where: { $0.server.id == id })?.server else { continue }
             await KavitaSync.flush(id, to: page.address, in: progress)
         }
     }

@@ -191,6 +191,31 @@ class ShelfPullTest {
     }
 
     @Test
+    fun `a key written before the kind existed is a reading list`() {
+        // Every shelf this type named before 2026-10-06 was a reading list: nothing had ever
+        // reconciled a collection. A queue written then must not be dropped for the field.
+        val json = Json { ignoreUnknownKeys = true }
+
+        assertEquals(
+            ShelfKey("server", 7, RememberedShelfKind.READING_LIST),
+            json.decodeFromString<ShelfKey>("""{"sourceId":"server","shelfId":7}"""),
+        )
+    }
+
+    @Test
+    fun `one server's collection 7 and reading list 7 are two shelves`() {
+        // A Kavita server numbers its collections and its reading lists from one apiece, so
+        // without the kind a collection's baseline is whatever the list of that number held.
+        val collection = ShelfKey("server", 7, RememberedShelfKind.COLLECTION)
+        val queue = ShelfEditQueue()
+            .recording(ShelfSnapshot(shelf, listOf("11")))
+            .recording(ShelfSnapshot(collection, listOf("Ashfall")))
+
+        assertEquals(listOf("11"), queue.baseline(shelf))
+        assertEquals(listOf("Ashfall"), queue.baseline(collection))
+    }
+
+    @Test
     fun `removing a source forgets its edits, its baselines and its notices`() {
         val queue = ShelfEditQueue()
             .queueing(edit("b"))

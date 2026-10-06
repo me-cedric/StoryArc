@@ -5,11 +5,25 @@ import kotlinx.serialization.Serializable
 /**
  * Which server-backed shelf something belongs to.
  *
- * A server and one of its shelves, because neither half identifies a shelf on its own: two
- * Kavita servers number their reading lists from one, and a reader may well have both.
+ * A server, one of its shelves, and which kind of shelf that is. None of the three identifies
+ * a shelf on its own: two Kavita servers number their reading lists from one, and one Kavita
+ * server numbers its collections and its reading lists from one apiece -- so without the kind,
+ * asking for collection 7's members answers with reading list 7's. Seen on a simulator on
+ * 2026-10-05: a pinned *Staff picks* drew *Start here*'s three covers, under its own name.
+ *
+ * The kind is defaulted, and that default is also what a record written before the field
+ * existed decodes as: every shelf this type named then was a reading list, because nothing had
+ * ever reconciled a collection.
  */
 @Serializable
-data class ShelfKey(val sourceId: String, val shelfId: Int)
+data class ShelfKey(
+    val sourceId: String,
+    val shelfId: Int,
+    val kind: RememberedShelfKind = RememberedShelfKind.READING_LIST,
+) {
+    /** What a shelf is called in an identifier two kinds would otherwise collide in. */
+    val token: String get() = "$sourceId/${kind.word}:$shelfId"
+}
 
 /**
  * One edit a reader made to a server-backed reading list that the server has not seen.
@@ -38,7 +52,7 @@ data class ShelfEdit(
      * What makes two queued edits the same edit. Adding the same entry to the same list
      * twice is one pending edit, not two.
      */
-    val id: String get() = "${shelf.sourceId}/${shelf.shelfId}/$entry"
+    val id: String get() = "${shelf.token}/$entry"
 }
 
 /**
@@ -84,7 +98,7 @@ data class ShelfConflictNotice(
      */
     val isOrder: Boolean = false,
 ) {
-    val id: String get() = "${shelf.sourceId}/${shelf.shelfId}/$at"
+    val id: String get() = "${shelf.token}/$at"
 }
 
 /**

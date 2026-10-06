@@ -222,6 +222,29 @@ struct ShelfPullTests {
         #expect(read == ShelfEditQueue())
     }
 
+    @Test("A key written before the kind existed is a reading list")
+    func keyWithoutAKindDecodes() throws {
+        // Every shelf this type named before 2026-10-06 was a reading list: nothing had ever
+        // reconciled a collection. A queue written then must not be dropped for the field.
+        let data = Data(#"{"sourceID":"server","shelfID":7}"#.utf8)
+        let read = try JSONDecoder().decode(ShelfKey.self, from: data)
+
+        #expect(read == ShelfKey(sourceID: "server", shelfID: 7, kind: .readingList))
+    }
+
+    @Test("One server's collection 7 and reading list 7 are two shelves")
+    func theKindSeparatesTwoShelves() {
+        // A Kavita server numbers its collections and its reading lists from one apiece, so
+        // without the kind a collection's baseline is whatever the list of that number held.
+        let collection = ShelfKey(sourceID: "server", shelfID: 7, kind: .collection)
+        let queue = ShelfEditQueue()
+            .recording(ShelfSnapshot(shelf: shelf, entries: ["11"]))
+            .recording(ShelfSnapshot(shelf: collection, entries: ["Ashfall"]))
+
+        #expect(queue.baseline(for: shelf) == ["11"])
+        #expect(queue.baseline(for: collection) == ["Ashfall"])
+    }
+
     @Test("Removing a source forgets its edits, its baselines and its notices")
     func removingASourceForgetsEverything() {
         let queue = ShelfEditQueue()

@@ -22,17 +22,15 @@ struct PinnedShelfRow: Identifiable {
 /// source* forbids one. ``ShelfSync`` writes down what each server reading list held the last
 /// time it answered, and `members` is that record read back.
 ///
-/// **A server *collection* has no such record**, because ``ShelfSync`` reconciles reading
-/// lists alone. A pinned one is still ordered ahead of the unpinned shelves on the home
-/// surface's Collections shelf, and it draws no row of its own until something writes a
-/// collection's membership down — which is *A shelf that would be empty* rather than a
-/// silent failure.
+/// **A server collection is asked by its own key**, which is safe because ``ShelfKey`` names
+/// the kind as well as the source and the number. It did not until 2026-10-06, and a Kavita
+/// server numbers its collections and its reading lists from one apiece — so a pinned *Staff
+/// picks* drew *Start here*'s three covers, under its own name, on a simulator on 2026-10-05.
 ///
-/// **A collection is never asked, and that is a correctness rule rather than an economy.**
-/// ``ShelfKey`` names a source and a number and not a kind, and a Kavita server numbers its
-/// collections and its reading lists from one apiece — so asking for collection 1's members
-/// returns reading list 1's. Seen on a simulator on 2026-10-05: a pinned *Staff picks* drew
-/// *Start here*'s three covers, under its own name.
+/// **A collection is filtered out of the library and a reading list is walked**, the same
+/// rule the two local kinds already follow. A collection's record names series rather than
+/// chapters, because that is what a collection groups and what a ``Publication`` carries —
+/// ``ShelfSync/members(of:)`` says why the name is the join.
 ///
 /// **A shelf that resolves to nothing is not returned**, per *A shelf that would be empty*.
 /// That covers more than a collection the reader emptied: a pinned shelf whose members are
@@ -89,17 +87,29 @@ func pinnedShelfRows(
     let server = remembered
         .filter { pinned.contains($0.pin) }
         .map { shelf in
-            let key = ShelfKey(sourceID: shelf.sourceID.uuidString, shelfID: shelf.serverID)
+            let key = ShelfKey(
+                sourceID: shelf.sourceID.uuidString,
+                shelfID: shelf.serverID,
+                kind: shelf.kind
+            )
+            let entries = members(key) ?? []
             return PinnedShelfRow(
                 id: shelf.id,
                 name: shelf.title,
-                // Ordered by the server's own order, as a local list is by the reader's: the
-                // record `ShelfSync` keeps is already sorted by the list's position.
                 publications: shelf.kind == .readingList
-                    ? (members(key) ?? []).compactMap {
-                        byRemote["\(shelf.sourceID.uuidString):chapter:\($0)"]
-                    }
-                    : []
+                    // Ordered by the server's own order, as a local list is by the reader's:
+                    // the record `ShelfSync` keeps is already sorted by the list's position.
+                    ? entries.compactMap { byRemote["\(shelf.sourceID.uuidString):chapter:\($0)"] }
+                    // A collection has no order of its own, so the library's order stands, as
+                    // it does for a local collection. Scoped to the shelf's own source: a
+                    // series name is unique on one server and says nothing about another.
+                    : {
+                        let named = Set(entries)
+                        return publications.filter {
+                            $0.identity.serverIdentifier?.sourceID == shelf.sourceID
+                                && $0.series.map(named.contains) == true
+                        }
+                    }()
             )
         }
 

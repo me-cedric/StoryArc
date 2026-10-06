@@ -179,14 +179,19 @@ fun ShelvesScreen(
     var queue by remember { mutableStateOf(ShelfEditQueue()) }
 
     LaunchedEffect(serverShelves) {
-        // Asks every server list what it holds, settles what has landed, and pushes what has
+        // Asks every server shelf what it holds, settles what has landed, and pushes what has
         // not -- the "on reconnection" half of the offline rule, driven by the one moment
         // this screen already knows a server answered.
         //
         // The queue is read either way. What is owed, and what is still to be said about a
         // conflict, are worth showing when no server answers at all -- which is exactly the
         // state the reader most wants an answer about.
-        ShelfSync.reconcile(serverShelves.filter { it.isList }, edits, progress)
+        //
+        // Collections are asked as well as lists, and this is the only screen that can ask:
+        // it is the one place that holds every shelf of every server at once. The membership
+        // it writes down is what a pinned collection draws from on the home surface, which
+        // may never ask a server itself.
+        ShelfSync.reconcile(serverShelves, edits, progress)
         queue = edits.queue()
     }
 

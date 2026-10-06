@@ -375,13 +375,15 @@ public struct ShelvesView: View {
         serverShelves.append(made)
     }
 
-    /// Asks every server list what it holds, settles what has landed, and pushes what has
+    /// Asks every server shelf what it holds, settles what has landed, and pushes what has
     /// not — the "on reconnection" half of the offline rule, driven by the one moment this
-    /// screen already knows a server answered.
+    /// screen already knows a server answered. Collections are asked too, and this is the one
+    /// screen that can ask: it alone holds every shelf of every server at once, and what it
+    /// writes down is what a pinned collection draws from on a home surface that may not ask.
     private func reconcile() async {
         let store = ShelfEditStore()
         await ShelfSync.reconcile(
-            lists: serverShelves.filter(\.isList),
+            shelves: serverShelves,
             store: store,
             progress: KavitaProgressStore()
         )
