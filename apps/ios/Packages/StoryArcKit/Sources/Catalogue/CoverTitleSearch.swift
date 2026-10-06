@@ -114,7 +114,7 @@ public enum CoverTitleSearch {
         // and most of it describes editions nobody here is choosing between.
         query.append(URLQueryItem(name: "fields", value: "title,author_name,cover_i"))
         components?.queryItems = query
-        guard let url = components?.url else { return nil }
+        guard let url = components?.plusEscapedURL else { return nil }
         var request = URLRequest(url: url)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         return request
@@ -137,6 +137,15 @@ public enum CoverTitleSearch {
     /// A malformed answer reads as no candidates rather than as an error: `cover-art` says a
     /// provider that does not answer leaves the publication with the cover it had, and a
     /// provider that answers nonsense has not answered.
+    /// What a title search is cached under: the words asked, not the publication asking.
+    static func cacheKey(title: String, author: String?, providers: [CoverTitleProvider]) -> String {
+        [
+            title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+            (author ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+            providers.map(\.rawValue).joined(separator: ","),
+        ].joined(separator: "|")
+    }
+
     public static func candidates(
         in data: Data, from provider: CoverTitleProvider
     ) -> [CoverCandidate] {
@@ -211,15 +220,24 @@ extension CoverLookupClient {
         from providers: [CoverTitleProvider] = CoverTitleProvider.allCases
     ) async -> [CoverCandidate] {
         guard isEnabled() else { return [] }
+        // Cached like an identifier lookup: `cover-art` asks that the same publication is
+        // never looked up twice, and a title search is a lookup.
+        let key = CoverTitleSearch.cacheKey(title: title, author: author, providers: providers)
+        if let known = await cache.candidates(for: key) { return known }
         var found: [CoverCandidate] = []
+        var seen = Set<URL>()
         for provider in providers {
             guard let request = CoverTitleSearch.request(provider, title: title, author: author),
-                  let (data, response) = try? await session.data(for: request),
-                  let http = response as? HTTPURLResponse,
+                  let (data, http) = await CoverFetch.send(request, in: session),
                   (200...299).contains(http.statusCode)
             else { continue }
-            found += CoverTitleSearch.candidates(in: data, from: provider)
+            // A picture is only ever fetched from a listed host, so a candidate elsewhere is
+            // one the reader could choose and never see. And one picture is one candidate.
+            found += CoverTitleSearch.candidates(in: data, from: provider).filter {
+                CoverImageHosts.allows($0.imageURL) && seen.insert($0.imageURL).inserted
+            }
         }
+        await cache.recordCandidates(found, for: key)
         return found
     }
 }

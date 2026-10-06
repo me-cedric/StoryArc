@@ -1,10 +1,13 @@
 package app.storyarc.core.catalogue
 
+import app.storyarc.core.model.CoverImageHosts
 import java.net.URLEncoder
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.int
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -50,6 +53,7 @@ enum class CoverTitleProvider {
  * silently adopts a match it is not certain of, because a wrong cover is worse than none".
  * So this type is what a search returns -- never what a search applies.
  */
+@Serializable
 data class CoverCandidate(
     /** The title the catalogue holds, which is what a reader compares against their file. */
     val title: String,
@@ -131,6 +135,14 @@ object CoverTitleSearch {
      * provider that does not answer leaves the publication with the cover it had, and a
      * provider that answers nonsense has not answered.
      */
+    /** What a title search is cached under: the words asked, not the publication asking. */
+    fun cacheKey(title: String, author: String?, providers: List<CoverTitleProvider>): String =
+        listOf(
+            title.trim().lowercase(),
+            author?.trim()?.lowercase().orEmpty(),
+            providers.joinToString(",") { it.name },
+        ).joinToString("|")
+
     fun candidates(body: ByteArray, provider: CoverTitleProvider): List<CoverCandidate> =
         runCatching {
             val root = json.parseToJsonElement(String(body)).jsonObject
@@ -146,13 +158,15 @@ object CoverTitleSearch {
             val document = element.jsonObject
             // A document with no `cover_i` has no picture, so it is not a candidate however
             // well its title matches.
-            val identifier = document["cover_i"]?.jsonPrimitive?.int ?: return@mapNotNull null
+            // `intOrNull` and `contentOrNull` throughout: Kotlin's `int` throws on a JSON null
+            // and empties the whole list, and `content` reads a JSON null as the word "null".
+            val identifier = document["cover_i"]?.jsonPrimitive?.intOrNull ?: return@mapNotNull null
             CoverCandidate(
-                title = document["title"]?.jsonPrimitive?.content.orEmpty(),
+                title = document["title"]?.jsonPrimitive?.contentOrNull.orEmpty(),
                 imageUrl = "https://covers.openlibrary.org/b/id/$identifier-L.jpg",
                 provider = CoverTitleProvider.OPEN_LIBRARY,
                 subtitle = document["author_name"]?.jsonArray?.firstOrNull()
-                    ?.jsonPrimitive?.content,
+                    ?.jsonPrimitive?.contentOrNull,
             )
         }
 
@@ -161,10 +175,10 @@ object CoverTitleSearch {
             .mapNotNull { element ->
                 val entry = element.jsonObject
                 val titles = entry["title"]?.jsonObject
-                val name = titles?.get("english")?.jsonPrimitive?.content
-                    ?: titles?.get("romaji")?.jsonPrimitive?.content.orEmpty()
+                val name = titles?.get("english")?.jsonPrimitive?.contentOrNull
+                    ?: titles?.get("romaji")?.jsonPrimitive?.contentOrNull.orEmpty()
                 val address = entry["coverImage"]?.jsonObject?.get("large")
-                    ?.jsonPrimitive?.content ?: return@mapNotNull null
+                    ?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
                 CoverCandidate(name, address, CoverTitleProvider.ANILIST)
             }
 
@@ -172,9 +186,9 @@ object CoverTitleSearch {
         root["results"]?.jsonArray.orEmpty().mapNotNull { element ->
             val record = element.jsonObject["record"]?.jsonObject ?: return@mapNotNull null
             val address = record["image"]?.jsonObject?.get("url")?.jsonObject?.get("original")
-                ?.jsonPrimitive?.content ?: return@mapNotNull null
+                ?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
             CoverCandidate(
-                title = record["title"]?.jsonPrimitive?.content.orEmpty(),
+                title = record["title"]?.jsonPrimitive?.contentOrNull.orEmpty(),
                 imageUrl = address,
                 provider = CoverTitleProvider.MANGA_UPDATES,
             )
@@ -194,7 +208,11 @@ suspend fun CoverLookupClient.candidates(
     providers: List<CoverTitleProvider> = CoverTitleProvider.entries,
 ): List<CoverCandidate> {
     if (!isEnabled()) return emptyList()
-    return providers.flatMap { provider ->
+    // Cached like an identifier lookup: `cover-art` asks that the same publication is never
+    // looked up twice, and a title search is a lookup.
+    val key = CoverTitleSearch.cacheKey(title, author, providers)
+    cache.candidates(key)?.let { return it }
+    val found = providers.flatMap { provider ->
         val request = CoverTitleSearch.request(provider, title, author)
             ?: return@flatMap emptyList()
         val answered = transport.send(request) ?: return@flatMap emptyList()
@@ -204,4 +222,11 @@ suspend fun CoverLookupClient.candidates(
             CoverTitleSearch.candidates(answered.body, provider)
         }
     }
+        // A picture is only ever fetched from a listed host, so a candidate elsewhere is one
+        // the reader could choose and never see. And one picture is one candidate: two rows
+        // for one address are one choice, and a list keyed on the address cannot hold both.
+        .filter { CoverImageHosts.allows(it.imageUrl) }
+        .distinctBy { it.imageUrl }
+    cache.recordCandidates(key, found)
+    return found
 }

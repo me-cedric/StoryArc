@@ -137,3 +137,52 @@ public enum CoverLookupRequest {
         }
     }
 }
+
+/// The hosts a cover lookup may reach: the providers the setting names, and the hosts their
+/// pictures live on.
+///
+/// `AGENTS.md` non-negotiable 2: data leaves the device only to sources the user configured.
+/// Turning the lookup on is that configuration, and the row names these providers. A redirect
+/// or an answer can name any address at all, so every request and every redirect is checked
+/// here before it is made — not after, when the request has already left. Android's
+/// `CoverImageHosts` holds the same list.
+public enum CoverImageHosts {
+
+    /// Each entry admits itself and its subdomains.
+    public static let suffixes = [
+        // Open Library: the search, the covers, and the archive its covers redirect to.
+        "openlibrary.org",
+        "archive.org",
+        // Cover Art Archive, which redirects to the same archive.
+        "coverartarchive.org",
+        // Audnexus, and the store its `image` field points at.
+        "audnex.us",
+        "media-amazon.com",
+        "ssl-images-amazon.com",
+        // AniList's API and its picture host.
+        "anilist.co",
+        // MangaUpdates' API and its picture host.
+        "mangaupdates.com",
+    ]
+
+    /// Whether `url` is https and on a listed host.
+    public static func allows(_ url: URL?) -> Bool {
+        guard let url, url.scheme?.lowercased() == "https",
+              var host = url.host?.lowercased()
+        else { return false }
+        if host.hasSuffix(".") { host.removeLast() }
+        return suffixes.contains { host == $0 || host.hasSuffix(".\($0)") }
+    }
+}
+
+extension URLComponents {
+    /// The query with `+` escaped. `URLQueryItem` leaves a `+` as it is, and every server
+    /// these requests reach reads a bare `+` in a query as a space — so "C++" was searched
+    /// as "C  ".
+    public var plusEscapedURL: URL? {
+        var copy = self
+        copy.percentEncodedQuery = copy.percentEncodedQuery?
+            .replacingOccurrences(of: "+", with: "%2B")
+        return copy.url
+    }
+}

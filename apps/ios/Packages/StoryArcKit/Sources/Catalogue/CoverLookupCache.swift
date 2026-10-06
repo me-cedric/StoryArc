@@ -29,6 +29,9 @@ public struct CoverLookupAnswer: Sendable, Equatable, Codable {
 public actor CoverLookupCache {
     private let file: URL
     private var answers: [String: CoverLookupAnswer]
+    /// Title-search answers, beside the identifier answers in a file of their own, so a cache
+    /// written before this existed reads exactly as it did.
+    private var titles: [String: [CoverCandidate]]
 
     /// The file this reads and writes, or nil when the system has no Application Support
     /// directory to offer. A cache with nowhere to live still answers; it just forgets.
@@ -40,6 +43,27 @@ public actor CoverLookupCache {
                 [String: CoverLookupAnswer].self, from: Data(contentsOf: url)
             )
         } ?? [:]
+        titles = (try? JSONDecoder().decode(
+            [String: [CoverCandidate]].self, from: Data(contentsOf: Self.titleFile(beside: self.file))
+        )) ?? [:]
+    }
+
+    public func candidates(for key: String) -> [CoverCandidate]? {
+        titles[key]
+    }
+
+    public func recordCandidates(_ found: [CoverCandidate], for key: String) {
+        titles[key] = found
+        guard let data = try? JSONEncoder().encode(titles) else { return }
+        try? FileManager.default.createDirectory(
+            at: file.deletingLastPathComponent(), withIntermediateDirectories: true
+        )
+        try? data.write(to: Self.titleFile(beside: file), options: .atomic)
+    }
+
+    private static func titleFile(beside file: URL) -> URL {
+        file.deletingLastPathComponent()
+            .appendingPathComponent(file.deletingPathExtension().lastPathComponent + "-titles.json")
     }
 
     /// What this publication has already been told, or nil when it has never been asked.

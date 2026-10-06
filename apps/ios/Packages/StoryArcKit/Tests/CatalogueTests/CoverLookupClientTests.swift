@@ -129,14 +129,61 @@ struct CoverLookupClientTests {
 
     @Test("Audnexus answers with a document, and the image field is read out of it")
     func readsADocumentAnswer() async throws {
-        let body = #"{"asin":"B08G9PRS1K","image":"https://m.media.example/cover.jpg"}"#
+        let body = #"{"asin":"B08G9PRS1K","image":"https://m.media-amazon.com/images/I/c.jpg"}"#
         let client = client(enabled: true, cache: cache()) { _ in
             .response(status: 200, headers: [:], body: Data(body.utf8))
         }
 
         let found = await client.cover(for: "pub", identifier: .audibleASIN("B08G9PRS1K"))
 
-        #expect(found?.absoluteString == "https://m.media.example/cover.jpg")
+        #expect(found?.absoluteString == "https://m.media-amazon.com/images/I/c.jpg")
+    }
+
+    @Test("An answer naming a host the setting does not name is not followed")
+    func refusesAnUnlistedHost() async {
+        // A provider's answer can name any address at all. Fetched, it would send a request
+        // to a host the reader never agreed to, which non-negotiable 2 forbids.
+        for image in ["https://tracker.example/c.jpg", "http://m.media-amazon.com/c.jpg"] {
+            let body = #"{"asin":"B08G9PRS1K","image":"\#(image)"}"#
+            let client = client(enabled: true, cache: cache()) { _ in
+                .response(status: 200, headers: [:], body: Data(body.utf8))
+            }
+
+            let found = await client.cover(for: "pub", identifier: .audibleASIN("B08G9PRS1K"))
+
+            #expect(found == nil, "Followed \(image)")
+        }
+    }
+
+    @Test("One picture is one candidate, a picture off the listed hosts is none, and a title is asked once")
+    func titleSearchIsDedupedFilteredAndCached() async {
+        let body = #"""
+        {"data":{"Page":{"media":[
+          {"title":{"romaji":"A"},"coverImage":{"large":"https://s4.anilist.co/1.jpg"}},
+          {"title":{"romaji":"B"},"coverImage":{"large":"https://s4.anilist.co/1.jpg"}},
+          {"title":{"romaji":"C"},"coverImage":{"large":"https://tracker.example/2.jpg"}}]}}}
+        """#
+        let asked = Asked()
+        let client = client(enabled: true, cache: cache()) { request in
+            asked.append(request.url)
+            return .response(status: 200, headers: [:], body: Data(body.utf8))
+        }
+
+        let first = await client.candidates(title: "Kaze", from: [.aniList])
+        let second = await client.candidates(title: "Kaze", from: [.aniList])
+
+        #expect(first.map(\.imageURL.absoluteString) == ["https://s4.anilist.co/1.jpg"])
+        #expect(second == first)
+        #expect(asked.value.count == 1)
+    }
+
+    @Test("A plus sign in a title is searched as a plus sign")
+    func plusIsEscaped() throws {
+        // `URLQueryItem` leaves `+` bare, and a server reads a bare `+` as a space.
+        let web = try #require(CoverWebSearch.url(title: "C++ Primer"))
+        #expect(web.absoluteString.contains("C%2B%2B"))
+        let search = try #require(CoverTitleSearch.request(.openLibrary, title: "C++ Primer")?.url)
+        #expect(search.absoluteString.contains("C%2B%2B"))
     }
 
     @Test("One publication is asked about once, whatever the answer was")

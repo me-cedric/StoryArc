@@ -1,5 +1,8 @@
 package app.storyarc.core.catalogue
 
+import java.io.File
+import kotlin.io.path.createTempDirectory
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -109,4 +112,69 @@ class CoverTitleSearchTest {
             assertTrue(provider.host.contains("."))
         }
     }
+
+    @Test
+    fun `a JSON null is no title, not the word null, and does not empty the list`() {
+        // `content` reads a JSON null as "null", and `int` throws on one -- which emptied the
+        // whole answer, so one coverless document cost the reader every candidate.
+        val aniList = """
+            {"data":{"Page":{"media":[
+              {"title":{"romaji":"Kaze no Tani","english":null},
+               "coverImage":{"large":"https://s4.anilist.co/1.jpg"}}]}}}
+        """.trimIndent()
+        assertEquals(
+            "Kaze no Tani",
+            CoverTitleSearch.candidates(aniList.toByteArray(), CoverTitleProvider.ANILIST)
+                .single().title,
+        )
+
+        val openLibrary = """
+            {"docs":[{"title":"Fine Print","cover_i":null},
+                     {"title":"Fine Print","author_name":[null],"cover_i":42}]}
+        """.trimIndent()
+        val found = CoverTitleSearch.candidates(
+            openLibrary.toByteArray(),
+            CoverTitleProvider.OPEN_LIBRARY,
+        )
+        assertEquals(1, found.size)
+        assertNull(found.single().subtitle)
+    }
+
+    @Test
+    fun `one picture is one candidate, and a picture off the listed hosts is none`() = runBlocking {
+        val body = """
+            {"data":{"Page":{"media":[
+              {"title":{"romaji":"A"},"coverImage":{"large":"https://s4.anilist.co/1.jpg"}},
+              {"title":{"romaji":"B"},"coverImage":{"large":"https://s4.anilist.co/1.jpg"}},
+              {"title":{"romaji":"C"},"coverImage":{"large":"https://tracker.example/2.jpg"}}]}}}
+        """.trimIndent()
+        val client = client { CoverFetched(200, body.toByteArray(), it.url) }
+
+        val found = client.candidates("Kaze", providers = listOf(CoverTitleProvider.ANILIST))
+
+        assertEquals(listOf("https://s4.anilist.co/1.jpg"), found.map { it.imageUrl })
+    }
+
+    @Test
+    fun `a title search is asked once and then read from the cache`() = runBlocking {
+        var asked = 0
+        val client = client {
+            asked++
+            CoverFetched(200, "{\"docs\":[]}".toByteArray(), it.url)
+        }
+
+        client.candidates("Fine Print", "Ada", listOf(CoverTitleProvider.OPEN_LIBRARY))
+        client.candidates("Fine Print", "Ada", listOf(CoverTitleProvider.OPEN_LIBRARY))
+
+        assertEquals(1, asked)
+    }
+
+    private fun client(transport: CoverTransport) = CoverLookupClient(
+        isEnabled = { true },
+        cache = CoverLookupCache(
+            File(createTempDirectory("title-search").toFile(), "cover-lookups.json"),
+        ),
+        transport = transport,
+    )
 }
+

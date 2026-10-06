@@ -61,6 +61,27 @@ class CoverLookupCache(private val file: File) {
      * later rather than never, and a reader who asks for this publication again by hand is
      * the "later" -- but nothing else re-asks, which is what keeps the app polite.
      */
+    /**
+     * Title-search answers, beside the identifier answers in a file of their own, so a cache
+     * written before this existed reads exactly as it did.
+     */
+    private val titleFile = File(file.parentFile, "${file.nameWithoutExtension}-titles.json")
+
+    private val titles: MutableMap<String, List<CoverCandidate>> =
+        runCatching {
+            json.decodeFromString<Map<String, List<CoverCandidate>>>(titleFile.readText())
+        }.getOrElse { emptyMap() }.toMutableMap()
+
+    fun candidates(key: String): List<CoverCandidate>? = titles[key]
+
+    fun recordCandidates(key: String, found: List<CoverCandidate>) {
+        titles[key] = found
+        runCatching {
+            titleFile.parentFile?.mkdirs()
+            titleFile.writeText(json.encodeToString(titles.toMap()))
+        }
+    }
+
     fun forget(key: String) {
         answers.remove(key)
         write()

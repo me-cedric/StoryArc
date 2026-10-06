@@ -70,12 +70,34 @@ class CoverLookupClientTest {
     @Test
     fun `Audnexus answers with a document, and the image field is read out of it`() =
         runBlocking {
-            val body = """{"asin":"B08G9PRS1K","image":"https://m.media.example/cover.jpg"}"""
+            val body = """{"asin":"B08G9PRS1K","image":"https://m.media-amazon.com/images/I/c.jpg"}"""
             val found = client(enabled = true, transport = transport(body = body))
                 .cover("pub", CoverIdentifier.AudibleAsin("B08G9PRS1K"))
 
-            assertEquals("https://m.media.example/cover.jpg", found)
+            assertEquals("https://m.media-amazon.com/images/I/c.jpg", found)
         }
+
+    @Test
+    fun `an answer naming a host the setting does not name is not followed`() = runBlocking {
+        // A provider's answer can name any address at all. Fetched, it would send a request to
+        // a host the reader never agreed to, which non-negotiable 2 forbids.
+        for (image in listOf("https://tracker.example/c.jpg", "http://m.media-amazon.com/c.jpg")) {
+            val body = """{"asin":"B08G9PRS1K","image":"$image"}"""
+            val found = client(enabled = true, transport = transport(body = body))
+                .cover("pub", CoverIdentifier.AudibleAsin("B08G9PRS1K"))
+
+            assertEquals("Followed $image", null, found)
+        }
+    }
+
+    @Test
+    fun `the image route refuses an unlisted host before anything is sent`() = runBlocking {
+        var sent = false
+        val client = client(enabled = true, transport = CoverTransport { sent = true; null })
+
+        assertEquals(null, client.image("https://tracker.example/c.jpg"))
+        assertEquals(false, sent)
+    }
 
     @Test
     fun `one publication is asked about once, whatever the answer was`() = runBlocking {

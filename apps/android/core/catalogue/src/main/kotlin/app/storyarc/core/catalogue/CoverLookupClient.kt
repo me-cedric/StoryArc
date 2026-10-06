@@ -1,12 +1,16 @@
 package app.storyarc.core.catalogue
 
 import app.storyarc.core.model.CoverIdentifier
+import app.storyarc.core.model.CoverImageHosts
 import app.storyarc.core.model.CoverLookupRequest
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -47,9 +51,31 @@ fun interface CoverTransport {
 object PlatformCoverTransport : CoverTransport {
     private const val TIMEOUT_MILLIS = 15_000
 
+    /** The largest answer read. A cover is not 8 MB, and an answer is untrusted input. */
+    const val MAX_BYTES = 8 * 1024 * 1024
+
+    private const val MAX_REDIRECTS = 5
+
     override suspend fun send(request: CoverFetch): CoverFetched? = withContext(Dispatchers.IO) {
+        // Redirects are followed here, one at a time, and only to a listed host. Followed by
+        // the connection, a redirect would reach whatever host it named before anything
+        // could look at it.
+        var current = request
+        repeat(MAX_REDIRECTS + 1) {
+            if (!CoverImageHosts.allows(current.url)) return@withContext null
+            val answered = once(current) ?: return@withContext null
+            val next = answered.redirect ?: return@withContext answered.fetched
+            current = CoverFetch(URL(URL(current.url), next).toString(), accept = request.accept)
+        }
+        null
+    }
+
+    private class Answered(val fetched: CoverFetched?, val redirect: String?)
+
+    private fun once(request: CoverFetch): Answered? =
         runCatching {
             val connection = URL(request.url).openConnection() as HttpURLConnection
+            connection.instanceFollowRedirects = false
             connection.requestMethod = request.method
             connection.connectTimeout = TIMEOUT_MILLIS
             connection.readTimeout = TIMEOUT_MILLIS
@@ -65,17 +91,28 @@ object PlatformCoverTransport : CoverTransport {
             }
             try {
                 val status = connection.responseCode
+                if (status in 300..399) {
+                    return@runCatching Answered(null, connection.getHeaderField("Location"))
+                }
                 val stream =
                     if (status in 200..299) connection.inputStream else connection.errorStream
-                CoverFetched(
-                    status,
-                    stream?.use { it.readBytes() } ?: ByteArray(0),
-                    connection.url.toString(),
-                )
+                val body = stream?.use { it.readAtMost(MAX_BYTES) } ?: ByteArray(0)
+                Answered(CoverFetched(status, body, request.url), redirect = null)
             } finally {
                 connection.disconnect()
             }
         }.getOrNull()
+
+    /** The stream's bytes; an answer over [limit] throws, and the caller reads that as none. */
+    private fun InputStream.readAtMost(limit: Int): ByteArray {
+        val out = ByteArrayOutputStream()
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+        while (true) {
+            val read = read(buffer)
+            if (read < 0) return out.toByteArray()
+            check(out.size() + read <= limit) { "answer over $limit bytes" }
+            out.write(buffer, 0, read)
+        }
     }
 }
 
@@ -104,7 +141,7 @@ class CoverLookupClient(
      * about by whichever client was already made.
      */
     internal val isEnabled: () -> Boolean,
-    private val cache: CoverLookupCache,
+    internal val cache: CoverLookupCache,
     internal val transport: CoverTransport = PlatformCoverTransport,
 ) {
     private companion object {
@@ -118,12 +155,35 @@ class CoverLookupClient(
      * built from `identifier` and from nothing else, which is what `cover-art` means by "no
      * library listing, no reading history, no device identifier".
      */
-    suspend fun cover(key: String, identifier: CoverIdentifier): String? {
+    suspend fun cover(key: String, identifier: CoverIdentifier): String? = lookUp(key, identifier)?.url
+
+    /**
+     * The looked-up cover's picture, or null. One call for the ladder: the lookup, then the
+     * picture. An image provider already answered with the picture, so it is not asked twice.
+     */
+    suspend fun coverImage(key: String, identifier: CoverIdentifier): ByteArray? {
+        val found = lookUp(key, identifier) ?: return null
+        return found.picture ?: image(found.url)
+    }
+
+    /**
+     * The picture at [url], or null. Only behind the setting, only from a listed host, and
+     * never more than [PlatformCoverTransport.MAX_BYTES].
+     */
+    suspend fun image(url: String): ByteArray? {
+        if (!isEnabled() || !CoverImageHosts.allows(url)) return null
+        val answered = transport.send(CoverFetch(url, accept = "image/*")) ?: return null
+        return answered.body.takeIf { answered.status in 200..299 && it.isNotEmpty() }
+    }
+
+    private class Found(val url: String, val picture: ByteArray?)
+
+    private suspend fun lookUp(key: String, identifier: CoverIdentifier): Found? {
         if (!isEnabled()) return null
-        cache.answer(key)?.let { return it.imageUrl }
+        cache.answer(key)?.let { answer -> return answer.imageUrl?.let { Found(it, null) } }
 
         val found = ask(identifier)
-        cache.record(CoverLookupAnswer(identifier.provider, found), key)
+        cache.record(CoverLookupAnswer(identifier.provider, found?.url), key)
         return found
     }
 
@@ -134,7 +194,7 @@ class CoverLookupClient(
      * reasons for the same outcome -- this publication keeps the cover it had -- and telling
      * them apart here would only create somewhere for a retry to be added later.
      */
-    private suspend fun ask(identifier: CoverIdentifier): String? {
+    private suspend fun ask(identifier: CoverIdentifier): Found? {
         val provider = identifier.provider
         val answered = transport.send(
             CoverFetch(
@@ -149,8 +209,8 @@ class CoverLookupClient(
         // keep: the Cover Art Archive's front route is a redirect to an Internet Archive
         // file, and storing the redirect rather than its target would ask twice on every
         // read.
-        if (provider.answersWithImage) return answered.url
-        return imageUrlInBookDocument(answered.body)
+        if (provider.answersWithImage) return Found(answered.url, answered.body)
+        return imageUrlInBookDocument(answered.body)?.let { Found(it, null) }
     }
 
     /**
@@ -161,6 +221,6 @@ class CoverLookupClient(
      * day the service adds a tenth.
      */
     internal fun imageUrlInBookDocument(body: ByteArray): String? = runCatching {
-        json.parseToJsonElement(String(body)).jsonObject["image"]?.jsonPrimitive?.content
-    }.getOrNull()
+        json.parseToJsonElement(String(body)).jsonObject["image"]?.jsonPrimitive?.contentOrNull
+    }.getOrNull()?.takeIf(CoverImageHosts::allows)
 }

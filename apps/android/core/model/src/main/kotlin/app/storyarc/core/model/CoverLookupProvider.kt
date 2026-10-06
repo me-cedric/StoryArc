@@ -146,3 +146,40 @@ object CoverLookupRequest {
             "https://api.audnex.us/books/${identifier.value}"
     }
 }
+
+/**
+ * The hosts a cover lookup may reach: the providers the setting names, and the hosts their
+ * pictures live on.
+ *
+ * `AGENTS.md` non-negotiable 2: data leaves the device only to sources the user configured.
+ * Turning the lookup on is that configuration, and the row names these providers. A redirect
+ * or an answer can name any address at all, so every request and every redirect is checked
+ * here before it is made -- not after, when the request has already left.
+ */
+object CoverImageHosts {
+
+    /** Each entry admits itself and its subdomains. */
+    val suffixes: List<String> = listOf(
+        // Open Library: the search, the covers, and the archive its covers redirect to.
+        "openlibrary.org",
+        "archive.org",
+        // Cover Art Archive, which redirects to the same archive.
+        "coverartarchive.org",
+        // Audnexus, and the store its `image` field points at.
+        "audnex.us",
+        "media-amazon.com",
+        "ssl-images-amazon.com",
+        // AniList's API and its picture host.
+        "anilist.co",
+        // MangaUpdates' API and its picture host.
+        "mangaupdates.com",
+    )
+
+    /** Whether [url] is https and on a listed host. */
+    fun allows(url: String): Boolean {
+        val parsed = runCatching { java.net.URI(url) }.getOrNull() ?: return false
+        if (!parsed.scheme.equals("https", ignoreCase = true)) return false
+        val host = parsed.host?.lowercase(Locale.ROOT)?.trimEnd('.') ?: return false
+        return suffixes.any { host == it || host.endsWith(".$it") }
+    }
+}

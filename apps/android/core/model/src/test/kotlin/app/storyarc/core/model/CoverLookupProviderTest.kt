@@ -96,4 +96,18 @@ class CoverLookupProviderTest {
         assertTrue(CoverLookupProvider.COVER_ART_ARCHIVE.answersWithImage)
         assertFalse(CoverLookupProvider.AUDNEXUS.answersWithImage)
     }
+
+    @Test
+    fun `a cover request reaches only a listed https host`() {
+        assertTrue(CoverImageHosts.allows("https://covers.openlibrary.org/b/isbn/1-L.jpg"))
+        assertTrue(CoverImageHosts.allows("https://ia800100.us.archive.org/view/c.jpg"))
+        assertTrue(CoverImageHosts.allows("https://s4.anilist.co/file/c.jpg"))
+        // Not https, not listed, or listed only as a suffix of a stranger's name.
+        assertFalse(CoverImageHosts.allows("http://covers.openlibrary.org/b/id/1-L.jpg"))
+        assertFalse(CoverImageHosts.allows("https://tracker.example/c.jpg"))
+        assertFalse(CoverImageHosts.allows("https://evilanilist.co/c.jpg"))
+        assertFalse(CoverImageHosts.allows("https://anilist.co.evil.example/c.jpg"))
+        assertFalse(CoverImageHosts.allows("not an address"))
+    }
 }
+

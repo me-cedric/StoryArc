@@ -41,6 +41,6 @@ public enum CoverWebSearch {
             URLQueryItem(name: "iax", value: "images"),
             URLQueryItem(name: "ia", value: "images"),
         ]
-        return components?.url
+        return components?.plusEscapedURL
     }
 }
