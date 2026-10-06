@@ -150,6 +150,7 @@ sealed interface ProgressMergeOutcome {
  * | Remote behind local | keep local, push |
  * | Both changed since last sync | further wins, tell the user once |
  * | One finished, one partial | finished wins |
+ * | No watermark at all | further wins, quietly |
  */
 object ProgressMerge {
     fun merge(local: ReadingProgress, remote: ReadingProgress): ProgressMergeOutcome {
@@ -162,20 +163,25 @@ object ProgressMerge {
             return ProgressMergeOutcome.KeepLocalAndPush(local)
         }
 
-        val localMoved = local.syncedPosition?.let { !it.matches(local.position) } ?: true
         val remoteAhead = remote.position.fraction > local.position.fraction
-
-        if (!localMoved) {
-            // Nothing to lose locally: take whichever is further, quietly.
-            return if (remoteAhead) {
-                ProgressMergeOutcome.AdoptRemote(remote)
-            } else {
-                ProgressMergeOutcome.KeepLocalAndPush(local)
-            }
+        val furthestQuietly = if (remoteAhead) {
+            ProgressMergeOutcome.AdoptRemote(remote)
+        } else {
+            ProgressMergeOutcome.KeepLocalAndPush(local)
         }
 
-        val remoteMoved = local.syncedPosition?.let { !it.matches(remote.position) } ?: true
-        if (!remoteMoved) {
+        // An absent watermark means this device has never exchanged a position with any
+        // source. That is not evidence that the local side moved, and reading it as such
+        // sent every import onto a new phone — the common case — down the conflict branch
+        // below. `library-portability`, *A device that never synced*, forbids exactly that.
+        val watermark = local.syncedPosition ?: return furthestQuietly
+
+        if (watermark.matches(local.position)) {
+            // Nothing to lose locally: take whichever is further, quietly.
+            return furthestQuietly
+        }
+
+        if (watermark.matches(remote.position)) {
             return ProgressMergeOutcome.KeepLocalAndPush(local)
         }
 

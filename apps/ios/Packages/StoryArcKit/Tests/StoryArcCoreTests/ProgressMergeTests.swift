@@ -90,14 +90,24 @@ struct ProgressMergeTests {
         #expect(ProgressMerge.merge(local: local, remote: remote) == .keepLocalAndPush(local))
     }
 
-    @Test("A never-synced local record is treated as moved")
-    func neverSynced() {
+    @Test("A never-synced local record takes the further position quietly")
+    func neverSyncedTakesTheFurther() {
+        // A device with no watermark has never exchanged a position with any source, so
+        // nothing here says the local side moved. This used to answer `.conflict`, which
+        // every import onto a new phone would have hit — `library-portability`'s *A device
+        // that never synced* is the requirement that forbids it.
         let local = progress(page: 20, synced: nil)
         let remote = progress(page: 60)
 
-        let outcome = ProgressMerge.merge(local: local, remote: remote)
+        #expect(ProgressMerge.merge(local: local, remote: remote) == .adoptRemote(remote))
+    }
 
-        #expect(outcome == .conflict(resolved: remote, discarded: .page(index: 20, of: 100)))
+    @Test("A never-synced local record that is further is kept")
+    func neverSyncedKeepsTheFurtherLocal() {
+        let local = progress(page: 60, synced: nil)
+        let remote = progress(page: 20)
+
+        #expect(ProgressMerge.merge(local: local, remote: remote) == .keepLocalAndPush(local))
     }
 
     @Test("A synced position a store kept as a bare fraction still counts as untouched")
