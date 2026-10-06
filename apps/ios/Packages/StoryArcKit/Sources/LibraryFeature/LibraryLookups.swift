@@ -78,8 +78,13 @@ extension LibraryModel {
     /// Called by a cell as it appears, which is what makes extraction lazy. A
     /// publication with no cover returns `nil` rather than throwing: a missing
     /// cover is a normal state and the cell draws a placeholder.
+    ///
+    /// D28: this appearance is also when a share row is catalogued from its own headers,
+    /// because a row built from a file name alone does not yet know where its cover is —
+    /// see ``catalogueIfOnShare(_:)``.
     public func cover(for publication: Publication, maxPixelSize: Int) async -> CGImage? {
         if let cached = covers[publication.id] { return cached }
+        let publication = await catalogueIfOnShare(publication)
 
         // Disk before the archive. `sources` asks for a cover to be "stored on disk at
         // display resolution", and the reason is what this skips: without it every launch

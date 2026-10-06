@@ -1500,6 +1500,7 @@ class LibraryViewModel(
 
     suspend fun cover(publication: Publication, maxPixelSize: Int): Bitmap? {
         covers[publication.id]?.let { return it }
+        @Suppress("NAME_SHADOWING") val publication = catalogueIfOnShare(publication)
 
         withContext(Dispatchers.IO) { coverCache.bitmap(publication.id, maxPixelSize) }?.let {
             covers[publication.id] = it

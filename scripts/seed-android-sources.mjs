@@ -24,6 +24,7 @@
 //   node scripts/seed-android-sources.mjs --device emulator-5554 --ports 4444,4447
 //   node scripts/seed-android-sources.mjs --clear               (forget every source)
 //   node scripts/seed-android-sources.mjs --refused-kavita      (one server needing sign-in)
+//   node scripts/seed-android-sources.mjs --share               (one guest SMB share)
 //
 // It needs `adb root`, which an emulator gives and a phone does not. The file it writes
 // belongs to the app's own uid, so the mode and the owner are restored after the copy — a
@@ -141,11 +142,41 @@ const refusedKavita = {
   tombstones: [],
 }
 
+/**
+ * One network share, served by `scripts/smb-server.sh` on the Mac.
+ *
+ * D28 / task 14.13 needs a frame of share rows catalogued from their own headers, and that
+ * state only exists on a device whose registry holds a share a walk can actually reach. No
+ * credential reference, so the source connects as a guest and needs nothing in the Keystore —
+ * which is what makes a share seedable at all, for the reason the file header gives about
+ * Kavita.
+ *
+ * `10.0.2.2` is the emulator's alias for the Mac, the same substitution every other host in
+ * this file makes.
+ */
+const fixtureShare = {
+  sources: [
+    {
+      id: '55555555-5555-4555-8555-555555555555',
+      displayName: 'Fixture NAS',
+      kind: 'NETWORK_SHARE',
+      lastSuccessfulSyncEpochMillis: null,
+      credentialReference: null,
+      locator: `smb://${HOST}:${flag('--share-port', '4445')}/Comics`,
+    },
+  ],
+  tombstones: [],
+}
+
 const escape = (text) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-/** Which registry to write: the three catalogues, or the one refused server. */
-const chosen = args.includes('--refused-kavita') ? refusedKavita : registry
+/** Which registry to write: the three catalogues, the one refused server, or the one share. */
+const chosen = args.includes('--refused-kavita')
+  ? refusedKavita
+  : args.includes('--share')
+    ? fixtureShare
+    : registry
 
 const xml = args.includes('--clear')
   ? "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n<map />\n"
@@ -165,8 +196,17 @@ adb('push', scratch, '/data/local/tmp/storyarc-sources.xml')
 // The owner and the mode of a neighbouring preference file, so this one is indistinguishable
 // from a file the app wrote itself. A root-owned file in that directory is a file the app
 // cannot open, and the shelf then reads "nothing here" for a reason nothing reports.
-const neighbour = `/data/data/${PACKAGE}/shared_prefs/app.storyarc.library.xml`
-const owner = adb('shell', `stat -c %u:%g ${neighbour}`)
+//
+// Whichever file is there, rather than `app.storyarc.library.xml` by name: that one is
+// written when a library preference first changes, so an app whose data was just cleared has
+// every other preference file and not that one — and this failed outright on it.
+const prefsDirectory = `/data/data/${PACKAGE}/shared_prefs`
+const neighbour = adb('shell', `ls ${prefsDirectory} | head -n 1`)
+if (!neighbour) {
+  console.error(`${prefsDirectory} holds no preference file to copy ownership from. Launch the app once first.`)
+  process.exit(1)
+}
+const owner = adb('shell', `stat -c %u:%g ${prefsDirectory}/${neighbour}`)
 adb('shell', `cp /data/local/tmp/storyarc-sources.xml ${PREFS}`)
 adb('shell', `chown ${owner} ${PREFS}`)
 adb('shell', `chmod 660 ${PREFS}`)
