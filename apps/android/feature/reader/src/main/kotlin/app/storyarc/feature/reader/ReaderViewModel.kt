@@ -98,8 +98,9 @@ class ReaderViewModel(
      *
      * The frame-rate half of that requirement is a *runtime* question, not a build-time
      * one: the same shader is fast on one device and not on another, and the spec frames
-     * the capability per device. Whether a curl holds the display's refresh rate is
-     * therefore measured where it runs, not asserted here.
+     * the capability per device. `CurlCapability` answers that half from the first few
+     * curls the device draws, and the caller narrows this with it -- this model holds no
+     * `Context`, which is deliberate, and the store needs one. D11.
      */
     private val canCurl: Boolean = canCurlOn(Build.VERSION.SDK_INT),
     /**

@@ -45,6 +45,7 @@ class CurlSheetWiringTest {
     private val curlSurface: String by lazy { sourceOf("CurlSurface.kt") }
     private val paging: String by lazy { sourceOf("Paging.kt") }
     private val curledPages: String by lazy { sourceOf("CurledPages.kt") }
+    private val spreadTexture: String by lazy { sourceOf("SpreadTexture.kt") }
 
     /**
      * Just the arguments of the one call that builds the curl.
@@ -105,14 +106,19 @@ class CurlSheetWiringTest {
 
         // `curlPage` is the accessor `viewModel.image` moved into: still a cache read, now
         // with the series' border trim baked in (task 8.1, `comic-reader` "Persisting
-        // adjustments").
+        // adjustments") and composited across the whole slot, so a spread curls as one
+        // sheet rather than as its leading page (task 8.13, D14).
         assertTrue(
             "curlPage no longer reads the reader's decoded-page cache.",
-            curlSurface.contains("val raw = viewModel.image(index) ?: return null"),
+            curlSurface.contains("pages = display?.let(slotPages).orEmpty(),"),
         )
         assertTrue(
-            "curlPage no longer bakes the series' border trim into the sheet it hands the curl.",
-            curlSurface.contains("raw.cropped(trims)"),
+            "curlPage no longer reads the reader's decoded-page cache.",
+            curlSurface.contains("raw = { viewModel.image(it) },"),
+        )
+        assertTrue(
+            "The sheet no longer bakes the series' border trim into what it hands the curl.",
+            spreadTexture.contains("page.cropped(trims[at])"),
         )
         // Task 8.4: a neighbour that has not decoded is a placeholder, not the outgoing page.
         assertTrue(

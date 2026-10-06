@@ -21,6 +21,7 @@ import app.storyarc.core.model.ReadingAddress
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.persistence.AnnotationStore
 import app.storyarc.core.persistence.KavitaOrigin
+import app.storyarc.core.persistence.canCurlHere
 import app.storyarc.core.playback.SpokenAudio
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.KavitaSync
@@ -55,6 +56,9 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
             activity.contentResolver,
             screen.path,
             dependencies.progress,
+            // The API floor, narrowed by what this device has shown about its own curl.
+            // D11: the model holds no `Context`, and the store needs one.
+            canCurl = canCurlHere(activity),
             // The same store the ebook reader uses, and a different scope inside it:
             // `reading-themes` gives comics and reflowable text separate defaults.
             shelfStore = dependencies.readerPreferences,

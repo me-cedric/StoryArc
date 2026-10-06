@@ -110,6 +110,23 @@ val PageTransition.needsTwoRasters: Boolean
  */
 fun canCurlOn(sdkInt: Int): Boolean = sdkInt >= 33
 
+/**
+ * Whether two facing pages may share the screen in this mode.
+ *
+ * `comic-reader` pairs in landscape, and a continuous scroll has no facing pages to pair --
+ * it has a strip. Curl pairs since D14: the slot's two pages are composited into one texture
+ * before the shader sees them, so the sheet it deforms *is* the spread. Before that it was
+ * excluded, and choosing Curl in landscape cost the reader their spread -- which is the other
+ * half of "never split across two turns".
+ *
+ * Written out rather than `!isScroll`, so a mode added later has to say which it is.
+ */
+val PageTransition.pairsPages: Boolean
+    get() = when (this) {
+        PageTransition.SLIDE, PageTransition.FAST_FADE, PageTransition.PAGE_CURL -> true
+        PageTransition.VERTICAL_SCROLL, PageTransition.HORIZONTAL_SCROLL -> false
+    }
+
 /** Whether this is the continuous mode, in either axis. */
 val PageTransition.isScroll: Boolean
     get() = this == PageTransition.VERTICAL_SCROLL || this == PageTransition.HORIZONTAL_SCROLL

@@ -94,6 +94,27 @@ internal class FrameRun(val isEnabled: Boolean) {
         isRecording = false
     }
 
+    /**
+     * How much longer a frame took than the display allowed for it, or null when the turn was
+     * too short to have an interval at all.
+     *
+     * 1 is every frame on time, and 2 is half of them. A ratio rather than a count of
+     * milliseconds, because the divisor is the panel's own interval and an Android panel
+     * changes its refresh rate while the app runs: 25 ms is a missed frame at 120 Hz and a
+     * kept one at 30 Hz. [dropped] already counts the frames the display had room for and this
+     * app did not fill, so the arithmetic needs no second accumulator.
+     *
+     * Null rather than 1 for a turn of one frame. One frame says nothing about a device, and
+     * an answer of 1 would read as *this device kept up* -- which is how a slow phone would
+     * have talked its way past `CurlVerdict`.
+     */
+    val strain: Double?
+        get() {
+            val drawn = delivered - 1
+            if (drawn <= 0) return null
+            return (drawn + dropped).toDouble() / drawn.toDouble()
+        }
+
     private companion object {
         /**
          * A gap wider than this many frames is not a dropped frame, it is a backgrounded app

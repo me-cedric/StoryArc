@@ -199,6 +199,22 @@ extension PageTransition {
     /// What is unsettled is the *timing*, not the source. 4.3b records the measurement.
     public var needsTwoRasters: Bool { self == .pageCurl }
 
+    /// Whether two facing pages may share the screen in this mode.
+    ///
+    /// `comic-reader` pairs in landscape, and a continuous scroll has no facing pages to
+    /// pair — it has a strip. Curl pairs since D14: the slot's two pages are composited
+    /// into one texture before the shader sees them, so the sheet it deforms *is* the
+    /// spread. Before that it was excluded, and choosing Curl in landscape cost the reader
+    /// their spread — which is the other half of "never split across two turns".
+    ///
+    /// Written out rather than `!isScroll`, so a mode added later has to say which it is.
+    public var pairsPages: Bool {
+        switch self {
+        case .slide, .fastFade, .pageCurl: true
+        case .verticalScroll, .horizontalScroll: false
+        }
+    }
+
     /// Whether this is the continuous mode, in either axis.
     public var isScroll: Bool { self == .verticalScroll || self == .horizontalScroll }
 

@@ -19,9 +19,14 @@ internal import Foundation
 /// face from that edge to the fold; the lip, from the fold to the rim a radius further
 /// right; and the page beneath, with the lip's shadow cast on it.
 ///
-/// **The fold leans**, by ``lean`` radii over the height, so the bottom corner runs ahead
-/// of the top one. Without it every edge in the picture is a vertical line, which is the
-/// difference between a page turning and a wipe.
+/// **The fold bows**, by ``lean`` radii over the height, so the bottom corner runs ahead of
+/// the top one. Without it every edge in the picture is a vertical line, which is the
+/// difference between a page turning and a wipe. The displacement is the *square* of the
+/// height fraction rather than the fraction itself, which anchors the bend at the lifted
+/// bottom corner: the fold barely moves at the head of the page and sweeps fastest at the
+/// corner the finger holds, the way a sheet gripped at one corner does. A displacement
+/// linear in `y` drew the fold, the rim and the cast shadow as three straight slanted
+/// lines, which is what `page-transitions` means by a sheet that creases rather than rolls.
 ///
 /// At a progress of 0 and 1 the radius is zero, every region collapses to the fold this
 /// replaces, and the ends of a turn are pixel-for-pixel what they were.
@@ -30,7 +35,10 @@ enum PageRoll {
     /// The lip's radius at its widest, as a fraction of the page's width.
     static let radiusMax: Double = 0.04
 
-    /// How far the fold leans over the page's height, in radii.
+    /// How far the fold bows over the page's height, in radii.
+    ///
+    /// The span from the head of the page to the foot, which the bend redistributes rather
+    /// than changes: the corner still runs this far ahead of the top.
     static let lean: Double = 1.5
 
     /// How much of the lip's brightness survives at the rim, where it is edge-on.
@@ -63,10 +71,15 @@ enum PageRoll {
     }
 
     /// Where the sheet leaves the page at this height.
+    ///
+    /// Quadratic in the height fraction, so the fold is a curve across the page rather than
+    /// a slanted line — and so the rim and the shadow, which are this plus a constant, bend
+    /// with it. See the bow paragraph above for why the square and not the fraction.
     static func fold(width: Double, height: Double, progress: Double, y: Double, radius: Double) -> Double {
         let flat = width * (1 - min(max(progress, 0), 1))
         guard height > 0 else { return flat }
-        return flat + lean * radius * (0.5 - y / height)
+        let bow = y / height
+        return flat + lean * radius * (0.5 - bow * bow)
     }
 
     // swiftlint:disable function_parameter_count

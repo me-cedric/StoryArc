@@ -102,7 +102,8 @@ internal object PageCurl {
         half4 main(float2 xy) {
             float x = direction > 0.0 ? xy.x : size.x - xy.x;
             float radius = max(radiusMax * size.x * sin(PI * progress), 0.0);
-            float fold = size.x * (1.0 - progress) + lean * radius * (0.5 - xy.y / size.y);
+            float bow = xy.y / size.y;
+            float fold = size.x * (1.0 - progress) + lean * radius * (0.5 - bow * bow);
             float lipRim = fold + radius;
 
             if (x > lipRim) {

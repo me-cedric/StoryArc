@@ -136,6 +136,7 @@ import app.storyarc.core.model.ReadingDirection
 import app.storyarc.core.model.ScrollAxis
 import app.storyarc.core.model.SearchMatch
 import app.storyarc.core.model.SpreadLayout
+import app.storyarc.core.model.pairsPages
 import app.storyarc.core.model.scrollAxis
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
@@ -315,13 +316,12 @@ private fun Pager(
     /**
      * Whether two pages can share the screen.
      *
-     * `comic-reader` scopes the pairing to landscape itself. Curl is out because the
-     * shader takes one decoded page and compositing two into a single texture is a
-     * different piece of work; a continuous scroll is out because it has no facing pages
-     * to pair — it has a strip.
+     * `comic-reader` scopes the pairing to landscape itself. Which modes pair is
+     * [pairsPages], so the two platforms answer it once. Curl is in since D14 -- the slot's
+     * two pages are composited into one texture before the shader sees them ([SpreadTexture]).
      */
     val isPairing = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE &&
-        (choices.effective == PageTransition.SLIDE || choices.effective == PageTransition.FAST_FADE)
+        choices.effective.pairsPages
 
     /**
      * How the pages are grouped on screen: one slot per screenful, and a slot may hold
@@ -939,6 +939,7 @@ private fun Pager(
                     adjustments = adjustments,
                     uncropped = uncropped,
                     modelIndex = ::modelIndex,
+                    slotPages = { layout.slotAt(slotIndex(it)).onScreen(isRightToLeft) },
                     viewModel = viewModel,
                     onTurn = { step -> scope.launch { paging.goTo(paging.current + step, animate = false) } },
                     onTap = ::handleTap,

@@ -59,7 +59,8 @@ static half sheen(float away, float2 area, float crease) {
     float x = direction > 0.0 ? position.x : area.x - position.x;
     float y = position.y;
     float radius = max(radiusMax * area.x * sin(PI * progress), 0.0);
-    float fold = area.x * (1.0 - progress) + lean * radius * (0.5 - y / area.y);
+    float bow = y / area.y;
+    float fold = area.x * (1.0 - progress) + lean * radius * (0.5 - bow * bow);
     float lipRim = fold + radius;
 
     if (x > lipRim) {

@@ -32,6 +32,14 @@ internal fun CurlSurface(
     uncropped: Set<Int>,
     /** A display position turned back into the publication's own page number. */
     modelIndex: (Int) -> Int,
+    /**
+     * The pages at a display position, in screen order: one, or two for a spread.
+     *
+     * A function rather than the layout itself, the way [modelIndex] already is. The curl
+     * needs to know how many pages make up the sheet it is turning (task 8.13, D14); it does
+     * not need to know what a slot is or which way the reading order runs.
+     */
+    slotPages: (Int) -> List<Int>,
     viewModel: ReaderViewModel,
     /**
      * Commits a turn the curl has already rolled, by a reading-order step.
@@ -45,21 +53,22 @@ internal fun CurlSurface(
     modifier: Modifier = Modifier,
 ) {
     /**
-     * The decoded page at a display position, with the border trim [SinglePage] applies
-     * baked in. Sharpness and colour are not baked: [CurledPages] draws them live.
+     * The sheet at a display position: one page, or a spread composited into the one texture
+     * a curl can turn (task 8.13, D14). The border trim [SinglePage] applies is baked in;
+     * sharpness and colour are not, because [CurledPages] draws those live.
      */
     @Composable
-    fun curlPage(display: Int?): Bitmap? {
-        val index = display?.let(modelIndex) ?: return null
-        val raw = viewModel.image(index) ?: return null
-        val trims = adjustments.trimmingBorders(index !in uncropped).cropsBorders
-        return remember(raw, trims) { raw.cropped(trims) }
-    }
+    fun curlPage(display: Int?): Bitmap? = rememberSpreadTexture(
+        pages = display?.let(slotPages).orEmpty(),
+        raw = { viewModel.image(it) },
+        trimsBorders = { adjustments.trimmingBorders(it !in uncropped).cropsBorders },
+    )
 
-    /** A neighbouring sheet, or a matte placeholder at its expected ratio while it decodes. */
+    /** A neighbouring sheet, or a matte placeholder at its ratio -- twice as wide for a pair. */
     @Composable
     fun curlSheet(display: Int?): Bitmap? = CurlPlaceholder.sheet(display, { curlPage(it) }) {
-        rememberCurlPlaceholder(PagePlaceholder.ratio(modelIndex(it), viewModel.decodedRatios()), matte)
+        val slot = slotPages(it).size.coerceAtLeast(1)
+        rememberCurlPlaceholder(PagePlaceholder.ratio(modelIndex(it), viewModel.decodedRatios()) * slot, matte)
     }
 
     CurledPages(

@@ -87,6 +87,24 @@ struct FrameRun {
         isRecording = false
     }
 
+    /// How much longer a frame took than the display allowed for it, or `nil` when the turn
+    /// was too short to have an interval at all.
+    ///
+    /// 1 is every frame on time, and 2 is half of them. A ratio rather than a count of
+    /// milliseconds, because the divisor is the panel's own interval and a panel changes its
+    /// refresh rate while the app runs: 25 ms is a missed frame at 120 Hz and a kept one at
+    /// 30 Hz. ``dropped`` already counts the frames the display had room for and this app did
+    /// not fill, so the arithmetic needs no second accumulator.
+    ///
+    /// `nil` rather than 1 for a turn of one frame. One frame says nothing about a device, and
+    /// an answer of 1 would read as *this device kept up* — which is how a slow phone would
+    /// have talked its way past `CurlVerdict`.
+    var strain: Double? {
+        let drawn = delivered - 1
+        guard drawn > 0 else { return nil }
+        return Double(drawn + dropped) / Double(drawn)
+    }
+
     /// A gap wider than this many frames is not a dropped frame, it is a suspended app or a
     /// display that reported nonsense. Counting it exactly could overflow `Int`; counting it
     /// as this keeps the report finite and obviously wrong.
