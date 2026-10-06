@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -19,9 +20,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import app.storyarc.core.designsystem.grid.isAccessibilityFontScale
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Publication
@@ -135,18 +139,30 @@ internal fun CoverChoiceControls(
     choice: CoverChoice,
     hasCover: Boolean,
     modifier: Modifier = Modifier,
+    /**
+     * The page's own accent, or null where the cover gave none.
+     *
+     * These controls sit **inside** the hero's wash, and the wash is taken from the cover —
+     * so once a reader has chosen a strongly coloured picture, a button drawn in the theme's
+     * own primary is that colour on itself and disappears. `android-chosen-cover-light-
+     * largest.png` caught exactly that before this parameter existed.
+     * [DetailAccent.accent] is the one colour this page guarantees clears the 3:1 floor
+     * against that wash, which is why it is the one used here.
+     */
+    accent: DetailAccent? = null,
 ) {
     if (choice.onChoose == null) return
     val palette = LocalStoryArcPalette.current
+    val content = accent?.accent ?: MaterialTheme.colorScheme.primary
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
-            // Said in words as well as offered on the well itself. A well that is silently
-            // tappable is a well that nobody taps: `design.md` rule 2 asks for a label beside
-            // anything a reader has to notice, and the glyph alone says only "no artwork".
-            TextButton(onClick = choice.onChoose) {
+        // Said in words as well as offered on the well itself. A well that is silently
+        // tappable is a well that nobody taps: `design.md` rule 2 asks for a label beside
+        // anything a reader has to notice, and the glyph alone says only "no artwork".
+        val buttons: @Composable () -> Unit = {
+            TextButton(onClick = choice.onChoose, colors = textButtonColors(content)) {
                 Text(
                     text = stringResource(
                         if (hasCover) R.string.cover_change else R.string.cover_choose,
@@ -154,16 +170,25 @@ internal fun CoverChoiceControls(
                 )
             }
             choice.onRemove?.let { remove ->
-                TextButton(onClick = remove) {
+                TextButton(onClick = remove, colors = textButtonColors(content)) {
                     Text(text = stringResource(R.string.cover_remove))
                 }
             }
+        }
+        // Side by side until the text stops fitting, then stacked. `design.md` §3 rule 3 asks
+        // every screen to survive the largest accessibility size, and two labels in a row at
+        // that size wrap into each other — iOS's own frame photographed *Cha nge cov er*
+        // across *Remove cover* before the two platforms grew this split.
+        if (isAccessibilityFontScale(LocalDensity.current.fontScale)) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) { buttons() }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) { buttons() }
         }
         if (choice.hasChosen && choice.isTiedToPath) {
             Text(
                 text = stringResource(R.string.cover_tied_to_path),
                 style = MaterialTheme.typography.labelSmall,
-                color = palette.textTertiary,
+                color = if (accent == null) palette.textTertiary else content,
                 textAlign = TextAlign.Center,
             )
         }
@@ -171,9 +196,14 @@ internal fun CoverChoiceControls(
             Text(
                 text = stringResource(R.string.cover_unreadable),
                 style = MaterialTheme.typography.labelSmall,
-                color = palette.textSecondary,
+                color = if (accent == null) palette.textSecondary else content,
                 textAlign = TextAlign.Center,
             )
         }
     }
 }
+
+/** A text button that writes in [content] rather than in the theme's own primary. */
+@Composable
+private fun textButtonColors(content: Color) =
+    ButtonDefaults.textButtonColors(contentColor = content)

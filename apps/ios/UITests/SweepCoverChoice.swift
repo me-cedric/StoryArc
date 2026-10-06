@@ -72,16 +72,25 @@ final class SweepCoverChoiceTests: XCTestCase {
     /// asserted by `CoverlessWellOffersAChoiceTests`; the frame is here to show it.
     private func openSeaRoom(in app: XCUIApplication) throws {
         try showTheShelf(in: app)
-        if !tapSeaRoom(prefix: "Sea Room, M4B", in: app) {
-            guard tapSeaRoom(prefix: "Sea Room", in: app) else {
-                throw XCTSkip(
-                    "This device's shelf never showed a cover for \u{201C}Sea Room\u{201D}."
-                        + " Seed the corpus: node scripts/corpus.mjs --simulator <udid>."
-                )
+        guard tapSeaRoom(prefix: "Sea Room", in: app) else {
+            throw XCTSkip(
+                "This device's shelf never showed a cover for \u{201C}Sea Room\u{201D}."
+                    + " Seed the corpus: node scripts/corpus.mjs --simulator <udid>."
+            )
+        }
+        // A group's own cell borrows its first member's spoken label, so the tap above
+        // cannot tell a group of two from the book itself. What tells them apart is what
+        // arrives: a publication page carries the primary action and a group does not. The
+        // corpus holds the same title three ways — a group, a folder and a file — so this
+        // taps on until a page answers rather than assuming how deep the shelf put it.
+        for _ in 0..<3 {
+            if app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 5) {
+                break
             }
-            if !app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 5) {
-                _ = tapSeaRoom(prefix: "Sea Room, M4B", in: app)
+            if !tapSeaRoom(prefix: "Sea Room, M4B", in: app) {
+                _ = tapSeaRoom(prefix: "Sea Room", in: app)
             }
+            hold(0.5)
         }
         XCTAssertTrue(
             app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 10),
@@ -95,12 +104,16 @@ final class SweepCoverChoiceTests: XCTestCase {
     /// it. False where the shelf never drew one, which the caller decides what to do about.
     private func tapSeaRoom(prefix: String, in app: XCUIApplication) -> Bool {
         let wanted = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", prefix))
-        for _ in 0..<15 {
+        // `.fast`, and enough of them to cross the whole shelf: `Sea Room` is late in the
+        // alphabet and at the largest text size a shelf of seventeen is several screens
+        // deeper than it is at the default one. A slow swipe there crossed four of them and
+        // the walk reported a title the shelf was holding as a title the shelf never drew.
+        for _ in 0..<25 {
             if let hit = wanted.allElementsBoundByIndex.first(where: \.isHittable) {
                 hit.tap()
                 return true
             }
-            app.swipeUp()
+            app.swipeUp(velocity: .fast)
         }
         return false
     }

@@ -134,7 +134,7 @@ internal fun DetailHero(
                 )
                 Box(modifier = Modifier.weight(1f, fill = false).widthIn(max = ACTION_WIDTH)) {
                     action()
-                    CoverChoiceControls(choice = coverChoice, hasCover = cover != null)
+                    CoverChoiceControls(choice = coverChoice, hasCover = cover != null, accent = accent)
                 }
             }
             return@Surface
@@ -151,7 +151,7 @@ internal fun DetailHero(
                 onChooseCover = coverChoice.onChoose.takeIf { cover == null },
             )
             action()
-            CoverChoiceControls(choice = coverChoice, hasCover = cover != null)
+            CoverChoiceControls(choice = coverChoice, hasCover = cover != null, accent = accent)
         }
     }
 }
