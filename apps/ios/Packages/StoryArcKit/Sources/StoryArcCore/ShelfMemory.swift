@@ -282,6 +282,57 @@ public struct ShelfMemory: Sendable, Equatable, Codable {
         shelves[key(scope, shelf)] != nil
     }
 
+    /// One remembered setup: a scope's default when ``shelf`` is `nil`, one shelf's own
+    /// choice otherwise.
+    public struct Entry: Sendable, Equatable {
+        public let scope: ThemeScope
+        public let shelf: String?
+        public let settings: ShelfSettings
+
+        public init(scope: ThemeScope, shelf: String?, settings: ShelfSettings) {
+            self.scope = scope
+            self.shelf = shelf
+            self.settings = settings
+        }
+    }
+
+    /// Everything the reader has actually chosen, so an export can walk it.
+    ///
+    /// The two dictionaries stay private because the walk from shelf to scope to built-in
+    /// default is this type's job and a caller reading the maps would reimplement it. What an
+    /// export needs is a different question — *what did the reader choose* — and this answers
+    /// that without handing out the keys, whose spelling is `ThemeScope`'s raw value and
+    /// therefore not the same string on the other platform.
+    ///
+    /// Ordered, so two runs over the same memory write the same file and a diff of two
+    /// exports is readable. Android's `ShelfMemory.entries` returns the same list.
+    public var entries: [Entry] {
+        let scopeDefaults = defaults.compactMap { raw, settings in
+            ThemeScope(rawValue: raw).map { Entry(scope: $0, shelf: nil, settings: settings) }
+        }
+        let shelfChoices = shelves.compactMap { stored, settings -> Entry? in
+            let parts = stored.split(separator: "/", maxSplits: 1, omittingEmptySubsequences: false)
+            guard parts.count == 2, let scope = ThemeScope(rawValue: String(parts[0])) else {
+                return nil
+            }
+            return Entry(scope: scope, shelf: String(parts[1]), settings: settings)
+        }
+        return (scopeDefaults + shelfChoices).sorted {
+            ($0.scope.rawValue, $0.shelf ?? "") < ($1.scope.rawValue, $1.shelf ?? "")
+        }
+    }
+
+    /// The same memory with one entry written into it.
+    ///
+    /// The two cases ``entries`` reads back, in one call, so an import does not have to
+    /// branch on a nullable shelf name at every call site.
+    public func recording(_ entry: Entry) -> ShelfMemory {
+        guard let shelf = entry.shelf else {
+            return settingDefault(entry.settings, for: entry.scope)
+        }
+        return remembering(entry.settings, for: entry.scope, shelf: shelf)
+    }
+
     private func key(_ scope: ThemeScope, _ shelf: String) -> String {
         "\(scope.rawValue)/\(shelf)"
     }

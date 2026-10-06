@@ -145,7 +145,53 @@ data class ShelfMemory(
     fun remembers(scope: ThemeScope, shelf: String): Boolean =
         shelves.containsKey(key(scope, shelf))
 
+    /**
+     * One remembered setup: a scope's default when [shelf] is null, one shelf's own choice
+     * otherwise.
+     */
+    data class Entry(val scope: ThemeScope, val shelf: String?, val settings: ShelfSettings)
+
+    /**
+     * Everything the reader has actually chosen, so an export can walk it.
+     *
+     * The two maps stay private because the walk from shelf to scope to built-in default is
+     * this type's job and a caller reading the maps would reimplement it. What an export
+     * needs is a different question — *what did the reader choose* — and this answers that
+     * without handing out the keys, whose spelling is [ThemeScope]'s own name and therefore
+     * not the same string on the other platform.
+     *
+     * Ordered, so two runs over the same memory write the same file and a diff of two
+     * exports is readable. iOS's `ShelfMemory.entries` returns the same list.
+     */
+    val entries: List<Entry>
+        get() {
+            val scopeDefaults = defaults.mapNotNull { (raw, settings) ->
+                themeScope(raw)?.let { Entry(it, null, settings) }
+            }
+            val shelfChoices = shelves.mapNotNull { (stored, settings) ->
+                val parts = stored.split("/", limit = 2)
+                if (parts.size != 2) return@mapNotNull null
+                themeScope(parts[0])?.let { Entry(it, parts[1], settings) }
+            }
+            return (scopeDefaults + shelfChoices).sortedWith(
+                compareBy({ it.scope.name }, { it.shelf ?: "" }),
+            )
+        }
+
+    /**
+     * The same memory with one entry written into it.
+     *
+     * The two cases [entries] reads back, in one call, so an import does not have to branch
+     * on a nullable shelf name at every call site.
+     */
+    fun recording(entry: Entry): ShelfMemory =
+        entry.shelf?.let { remembering(entry.settings, entry.scope, it) }
+            ?: settingDefault(entry.settings, entry.scope)
+
     private fun key(scope: ThemeScope, shelf: String) = "${scope.name}/$shelf"
+
+    private fun themeScope(raw: String): ThemeScope? =
+        runCatching { ThemeScope.valueOf(raw) }.getOrNull()
 
     companion object {
         /**
