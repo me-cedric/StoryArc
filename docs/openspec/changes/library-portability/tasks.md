@@ -19,7 +19,7 @@ a person moved a real library between two real devices.
 
 ## 2. Export
 
-- [ ] 2.1 **Write the document** (both): sources and servers, collections and reading lists,
+- [x] 2.1 **Write the document** (both): sources and servers, collections and reading lists,
   pinned shelves, settings, reading themes, per-publication reader settings, reading progress,
   chosen covers.
 - [x] 2.2 **No secret is written** (both). A test that exports a source carrying a password, a
@@ -34,21 +34,36 @@ a person moved a real library between two real devices.
 
 ## 3. Import
 
-- [ ] 3.1 **Read the document and state what will happen first** (both): what will be added,
+- [~] 3.1 **Read the document and state what will happen first** (both): what will be added,
   what merged, what will need a sign-in. Nothing changes until the reader agrees.
-- [ ] 3.2 **Reading progress merges through `ProgressMerge`** (both), after task 1.4. The
+  **The answer is built and the screen is not (2026-10-06).** `LibraryImportPlan` carries
+  every line the screen has to show — sources to add, sources needing a sign-in, shelves to
+  add, shelves to merge with how many members each gains, positions to add and to merge,
+  hosts gaining a pin and the source each arrived with, whether the settings change, and how
+  many themes arrive. `LibraryImport.plan` computes it and changes nothing, which
+  `planningChangesNothing` asserts on both platforms. What is missing is the screen that
+  draws it, and the four languages it draws it in. That one screen is also where task 2.3's
+  pin flag, task 3.3's member count and task 3.6's refusal reach the reader: each of the
+  three is computed and asserted, and none of them is drawn. See task 2.5.
+- [x] 3.2 **Reading progress merges through `ProgressMerge`** (both), after task 1.4. The
   furthest position wins and finished stays finished, on a device that never synced too.
 - [x] 3.3 **A collection that exists on both sides merges its members** (both), and the reader
   is told how many were added.
-- [ ] 3.4 **An imported source asks for its secret once, when it is first reached** (both), and
+- [~] 3.4 **An imported source asks for its secret once, when it is first reached** (both), and
   stays listed and browsable until then.
+  **The import half is built; the asking is not proved (2026-10-06).** An imported source
+  arrives with no `credentialReference`, is listed, and is named in
+  `LibraryImportPlan.sourcesNeedingSignIn` — asserted on both platforms, including the case
+  where this device already holds the secret and is therefore not asked. The asking itself is
+  `source-lifecycle`'s existing unauthorised-source flow, which nothing here exercises, so no
+  test says an imported source reaches it.
 - [x] 3.5 **An older document migrates** (both). The transform chain exists with nothing in it;
   a test adds a fake version 0 and proves the chain runs.
 - [x] 3.6 **A newer document is refused by name** (both), and the device is unchanged.
 
 ## 4. Proof
 
-- [ ] 4.1 **Round trip across platforms** (both). Export on Android, import on iOS, and the
+- [x] 4.1 **Round trip across platforms** (both). Export on Android, import on iOS, and the
   reverse. Assert every record kind survives, including the five from task 1.2.
 - [ ] 4.2 **Frames**: the export sheet, the import preview stating what will happen, and a
   source marked as needing a sign-in. Both platforms, light and dark, default and largest text.

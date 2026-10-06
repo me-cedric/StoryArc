@@ -224,4 +224,48 @@ class LibraryDocumentBoundaryTest {
             theirs.library.settings,
         )
     }
+
+    @Test
+    fun `a document iOS wrote imports onto an empty device, record kind by record kind`() {
+        // Task 4.1's round trip, in the direction this platform can assert: iOS's encoder
+        // wrote the file, this decoder read it, and this importer landed it.
+        val landed = LibraryImport.merging(readIosDocument(), LibrarySnapshot()).snapshot
+
+        assertEquals(
+            listOf(SourceKind.NETWORK_SHARE, SourceKind.LOCAL_FOLDER, SourceKind.KAVITA_SERVER),
+            landed.sources.sources.map { it.kind },
+        )
+        assertEquals(
+            1_767_139_445_000L,
+            landed.sources.sources.first().lastSuccessfulSyncEpochMillis,
+        )
+        assertEquals(mapOf("nas.local" to setOf("AB:CD:EF:01")), landed.certificatePins)
+        assertEquals("path:/b.cbz", landed.shelves.collections.first().coverMemberId)
+        assertEquals(listOf("path:/b.cbz", "path:/a.cbz"), landed.shelves.lists.first().entries)
+        assertEquals(
+            LibraryDocumentFixture.snapshot.pinnedShelves.tokens.toSet(),
+            landed.pinnedShelves.tokens.toSet(),
+        )
+        // iOS has no volume-button setting, so its document does not carry the field.
+        assertEquals(
+            LibraryDocumentFixture.snapshot.settings.copy(turnPagesWithVolumeButtons = false),
+            landed.settings,
+        )
+        assertEquals(
+            FontSizeStep.LARGE,
+            landed.themes.default(ThemeScope.REFLOWABLE).values.fontSize,
+        )
+        assertEquals(PageFit.WIDTH, landed.themes.theme(ThemeScope.FIXED_LAYOUT, "Bone").fit)
+        assertEquals("Midnight", landed.themes.customPalette?.name)
+        assertEquals(
+            listOf(
+                ReadingPosition.Page(12, 40),
+                ReadingPosition.Reflowable(0.375, """{"href":"ch3"}"""),
+                ReadingPosition.Listening(2, 9, 61_500L, 600_000L),
+            ),
+            landed.progress.map { it.position },
+        )
+        // Every source that held a secret arrives without one and asks for it.
+        assertTrue(landed.sources.sources.all { it.credentialReference == null })
+    }
 }

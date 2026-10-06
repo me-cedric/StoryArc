@@ -221,4 +221,32 @@ struct LibraryDocumentBoundaryTests {
         // Android carries one setting this platform does not have, which decodes away.
         #expect(theirs.library.settings == mine.library.settings)
     }
+
+    @Test("A document Android wrote imports onto an empty device, record kind by record kind")
+    func importingAndroidsDocument() throws {
+        // Task 4.1's round trip, in the direction this platform can assert: Android's
+        // encoder wrote the file, this decoder read it, and this importer landed it.
+        let landed = LibraryImport.merging(try readAndroidsDocument(), into: LibrarySnapshot())
+            .snapshot
+
+        #expect(landed.sources.sources.map(\.kind) == [.networkShare, .localFolder, .kavitaServer])
+        #expect(landed.sources.sources.first?.lastSuccessfulSync
+            == Date(timeIntervalSince1970: 1_767_139_445))
+        #expect(landed.certificatePins == ["nas.local": ["AB:CD:EF:01"]])
+        #expect(landed.shelves.collections.first?.coverMemberID == "path:/b.cbz")
+        #expect(landed.shelves.lists.first?.entries == ["path:/b.cbz", "path:/a.cbz"])
+        #expect(Set(landed.pinnedShelves.tokens)
+            == Set(LibraryDocumentFixture.snapshot.pinnedShelves.tokens))
+        #expect(landed.settings == LibraryDocumentFixture.snapshot.settings)
+        #expect(landed.themes.default(for: .reflowable).values.fontSize == .large)
+        #expect(landed.themes.theme(for: .fixedLayout, shelf: "Bone").fit == .width)
+        #expect(landed.themes.customPalette?.name == "Midnight")
+        #expect(landed.progress.map(\.position) == [
+            .page(index: 12, of: 40),
+            .reflowable(progression: 0.375, locator: "{\"href\":\"ch3\"}"),
+            .listening(part: 2, partCount: 9, offset: 61.5, of: 600),
+        ])
+        // Every source that held a secret arrives without one and asks for it.
+        #expect(landed.sources.sources.allSatisfy { $0.credentialReference == nil })
+    }
 }
