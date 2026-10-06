@@ -80,9 +80,11 @@ class HingeWiringTest {
 
     @Test
     fun `the curl keeps a page off the hinge too`() {
+        // Named by its coordinator rather than by the mode: `Paging.Curled` is the one the
+        // curl gets, and the branch reads it that way so `CurlSurface` is smart-cast.
         assertTrue(
             "The curl no longer draws inside HingeInsetPage.",
-            readerScreen.contains("PageTransition.PAGE_CURL) HingeInsetPage(hingeSurface.hinge) {"),
+            readerScreen.contains("if (paging is Paging.Curled) HingeInsetPage(hingeSurface.hinge) {"),
         )
     }
 

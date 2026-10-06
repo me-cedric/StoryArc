@@ -1,5 +1,8 @@
 package app.storyarc.feature.reader
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.PagerState
@@ -47,17 +50,53 @@ internal sealed interface Paging {
     }
 
     /**
-     * Fast fade and Curl: no container at all, just an index.
+     * Fast fade: no container at all, just an index.
      *
-     * Both modes draw one page at a time and own their own animation, so there is
-     * nothing to scroll and nothing to hold a scroll position. A `PagerState` was used
-     * for the curl first and quietly refused to move: a pager state with no pager laid
-     * out has nothing to scroll either, and asking it to animate does nothing at all.
+     * The mode draws one page at a time and owns its own dissolve, so there is nothing to
+     * scroll and nothing to hold a scroll position. A `PagerState` was used for the curl
+     * first and quietly refused to move: a pager state with no pager laid out has nothing
+     * to scroll either, and asking it to animate does nothing at all.
      */
     class Indexed(val index: MutableIntState) : Paging {
         override val current get() = index.intValue
         override suspend fun goTo(display: Int, animate: Boolean) {
             index.intValue = display
+        }
+    }
+
+    /**
+     * Curl: the same index, and the fold that runs between two of them.
+     *
+     * **[goTo] is the whole difference from [Indexed].** The curl keeps its motion in the
+     * drag gesture, so every turn a finger did not drag — an edge tap, an arrow key, a
+     * game controller, a volume button, VoiceOver's own action — set the index and the
+     * next page simply appeared. `page-transitions` gives Curl one motion, and that was a
+     * second one, in the mode a reader chooses *for* its fold. A move of one reading-order
+     * position now runs the same spring the released drag runs (task 8.3).
+     *
+     * [progress] is shared with [CurledPages], which draws it and drives it from the drag.
+     * The curl's own completed turn commits through `animate = false`, because the fold it
+     * would otherwise start is the fold that has just finished. iOS carries the same rule
+     * as `CurlRequest`, filed by `ReaderView.turnWithTransition(by:)`.
+     */
+    class Curled(
+        val index: MutableIntState,
+        val progress: Animatable<Float, AnimationVector1D>,
+        private val isRightToLeft: Boolean,
+    ) : Paging {
+        override val current get() = index.intValue
+
+        override suspend fun goTo(display: Int, animate: Boolean) {
+            val step = curlStep(index.intValue, display, isRightToLeft, animate)
+            if (step == 0) {
+                index.intValue = display
+                return
+            }
+            progress.animateTo(targetValue = step.toFloat(), animationSpec = spring())
+            // The page swap first, then the reset: the other order shows the outgoing page
+            // flat for a frame before it goes.
+            index.intValue = display
+            progress.snapTo(0f)
         }
     }
 
@@ -102,6 +141,24 @@ internal fun endSlotPosition(slotCount: Int, isRightToLeft: Boolean): Int =
  */
 internal fun readingOrderStep(step: Int, isRightToLeft: Boolean): Int =
     if (isRightToLeft) -step else step
+
+/**
+ * The fold a move from [from] to [to] rolls, in reading order, or 0 to cut to the page.
+ *
+ * Pulled out of [Paging.Curled.goTo] so it can be asserted without a frame clock, the way
+ * iOS's `CurlRequest.runsCurl` is: this is the whole rule, and the rest of `goTo` is the
+ * spring.
+ *
+ * A move of exactly one reading-order position rolls. A jump across the publication does
+ * not — it has no fold, and the slider, the thumbnail strip and the way back from a jump
+ * all arrive here. Nor does a move the caller asked to make instantly, which is how the
+ * curl's own completed turn commits the page it has just rolled.
+ */
+internal fun curlStep(from: Int, to: Int, isRightToLeft: Boolean, animate: Boolean): Int {
+    if (!animate) return 0
+    val step = readingOrderStep(to - from, isRightToLeft)
+    return if (step == 1 || step == -1) step else 0
+}
 
 /**
  * The display position one reading-order step from [from], or null past either end of
@@ -153,7 +210,12 @@ internal fun rememberPaging(
         }
         // Both container-less modes. Curl animates its own fold and Fast fade its own
         // dissolve; neither has anything for a scroll state to describe.
-        mode == PageTransition.FAST_FADE || mode == PageTransition.PAGE_CURL -> {
+        mode == PageTransition.PAGE_CURL -> {
+            val index = remember(mode) { mutableIntStateOf(position) }
+            val progress = remember(mode) { Animatable(0f) }
+            remember(index, progress) { Paging.Curled(index, progress, isRightToLeft) }
+        }
+        mode == PageTransition.FAST_FADE -> {
             val index = remember(mode) { mutableIntStateOf(position) }
             remember(index) { Paging.Indexed(index) }
         }

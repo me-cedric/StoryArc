@@ -4,7 +4,6 @@ import android.content.ClipData
 import android.content.ComponentCallbacks2
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
-import android.graphics.Bitmap
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -917,24 +916,6 @@ private fun Pager(
     }
 
     /**
-     * The decoded page at a display position, with the border trim [SinglePage] applies
-     * baked in. Sharpness and colour are not baked: [CurledPages] draws them live.
-     */
-    @Composable
-    fun curlPage(display: Int?): Bitmap? {
-        val index = display?.let(::modelIndex) ?: return null
-        val raw = viewModel.image(index) ?: return null
-        val trims = adjustments.trimmingBorders(index !in uncropped).cropsBorders
-        return remember(raw, trims) { raw.cropped(trims) }
-    }
-
-    /** A neighbouring sheet, or a matte placeholder at its expected ratio while it decodes. */
-    @Composable
-    fun curlSheet(display: Int?): Bitmap? = CurlPlaceholder.sheet(display, { curlPage(it) }) {
-        rememberCurlPlaceholder(PagePlaceholder.ratio(modelIndex(it), viewModel.decodedRatios()), matte)
-    }
-
-    /**
      * The page itself, and whatever container the transition asks for.
      *
      * A composable of its own so that it can be handed to a pane scaffold as a slot on a
@@ -949,19 +930,17 @@ private fun Pager(
             // as a property of the container, which is exactly what this is: the pager brings
             // its own gesture and edge resistance, the fade has no container at all, the scroll
             // is a lazy list, and the curl is a shader over two decoded pages.
-            if (choices.effective == PageTransition.PAGE_CURL) HingeInsetPage(hingeSurface.hinge) {
-                CurledPages(
-                    page = curlPage(paging.current),
-                    // Reading-order steps: under right-to-left `paging.current + 1` is the previous page.
-                    beneath = curlSheet(adjacentDisplayIndex(paging.current, 1, slotCount, isRightToLeft)),
-                    previous = curlSheet(adjacentDisplayIndex(paging.current, -1, slotCount, isRightToLeft)),
+            if (paging is Paging.Curled) HingeInsetPage(hingeSurface.hinge) {
+                CurlSurface(
+                    paging = paging,
+                    slotCount = slotCount,
                     isRightToLeft = isRightToLeft,
                     matte = matte,
                     adjustments = adjustments,
-                    isUnavailable = viewModel.isUnavailable(modelIndex(paging.current)),
-                    codecName = viewModel.codecName(modelIndex(paging.current)),
-                    onTurned = { turn(paging.current + readingOrderStep(1, isRightToLeft)) },
-                    onTurnedBack = { turn(paging.current + readingOrderStep(-1, isRightToLeft)) },
+                    uncropped = uncropped,
+                    modelIndex = ::modelIndex,
+                    viewModel = viewModel,
+                    onTurn = { step -> scope.launch { paging.goTo(paging.current + step, animate = false) } },
                     onTap = ::handleTap,
                     modifier = keyboard,
                 )

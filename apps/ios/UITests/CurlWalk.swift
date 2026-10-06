@@ -73,6 +73,24 @@ final class CurlWalkTests: XCTestCase {
         shutter(app, named: "ios-curl-settled")
     }
 
+    /// The same turn, asked for by a **tap** instead of by a finger that drags (task 8.3).
+    ///
+    /// `page-transitions` gives Curl one motion, and the drag above was the only thing that
+    /// ran it: an edge tap moved the page index and the next page simply appeared, in the one
+    /// mode a reader chooses for its fold. The settled frame this leaves looks like
+    /// ``testCaptureCurlSettled``'s on purpose — a curl at rest is a page, as this file's own
+    /// note says — so what separates them is the **recording** taken around this case, where
+    /// the fold stands in the middle of the screen with no finger anywhere near it. That frame
+    /// is what a tap could not produce before, and the command is in this walk's README.
+    func testCaptureCurlTurnedByATap() throws {
+        let app = sweepLaunch()
+        try openCurlingComic(in: app)
+        // The trailing third, which `comic-reader` gives to the next page.
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        hold(2)
+        shutter(app, named: "ios-curl-tapped")
+    }
+
     /// Opens the fixed-layout comic and puts it in Curl, proving the mode took.
     ///
     /// Through the app's own picker rather than an injected preference: the transition lives

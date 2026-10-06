@@ -70,9 +70,9 @@ extension ReaderView {
         // no tap turns a page". Not "no tap does anything" — the way back to the menu is
         // the one thing a reader still needs from a tap.
         if turns, location.x < edge {
-            turn(by: -1)
+            turnWithTransition(by: -1)
         } else if turns, location.x > size.width - edge {
-            turn(by: 1)
+            turnWithTransition(by: 1)
         } else {
             toggleChrome()
         }
@@ -116,9 +116,35 @@ extension ReaderView {
     /// display order point opposite ways, and the step has to flip to keep meaning
     /// "next".
     func turnInReadingOrder(by step: Int) {
-        turn(by: readingOrderStep(step, isRightToLeft: isRightToLeft))
+        turnWithTransition(by: readingOrderStep(step, isRightToLeft: isRightToLeft))
     }
 
+    /// A turn asked for by a tap zone, a key, a controller or VoiceOver, run through the
+    /// transition the reader chose.
+    ///
+    /// Only Curl needs this, and it needs it because its motion lives in the gesture
+    /// rather than in the container: Slide's pager animates `displayIndex` and Fast fade
+    /// dissolves on it, so for them a turn is already the mode. In Curl the page simply
+    /// appeared, which is the one mode the reader picked *for* its motion. Files a
+    /// ``CurlRequest`` and lets `CurledPages` roll the page over; `turn(by:)` commits the
+    /// page afterwards, from `onTurned`, which is why that path must not file one itself.
+    func turnWithTransition(by step: Int) {
+        guard CurlRequest.runsCurl(
+            mode: model.transitions(reduceMotion: reduceMotion).effective,
+            step: step,
+            hasDestination: model.pages.indices.contains(displayIndex + step)
+        ) else { return turn(by: step) }
+        curlRequest = CurlRequest(
+            isForward: readingOrderStep(step, isRightToLeft: isRightToLeft) > 0,
+            serial: (curlRequest?.serial ?? 0) + 1
+        )
+    }
+
+    /// Commits the turn: the page the reader asked for becomes the page on screen.
+    ///
+    /// Deliberately never files a ``CurlRequest``. `CurledPages` calls this from
+    /// `onTurned`, after it has already rolled the page over, and a request filed here
+    /// would roll the same page over again for ever.
     func turn(by step: Int) {
         let next = displayIndex + step
         // `comic-reader`: turning past the last page reaches an end screen rather

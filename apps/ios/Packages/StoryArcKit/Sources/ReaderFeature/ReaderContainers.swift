@@ -58,9 +58,13 @@ extension ReaderView {
             adjustments: adjustments,
             isUnavailable: model.isUnavailable(at: modelIndex(forDisplay: displayIndex)),
             codecName: model.codecName(at: modelIndex(forDisplay: displayIndex)),
-            onTurned: { turnInReadingOrder(by: 1) },
-            onTurnedBack: { turnInReadingOrder(by: -1) },
-            onTap: tapHandler()
+            // `turn(by:)` and not `turnInReadingOrder(by:)`: the curl has already rolled
+            // the page over by the time these are called, and the reading-order route
+            // files a fresh ``CurlRequest``, which would roll it over again.
+            onTurned: { turn(by: readingOrderStep(1, isRightToLeft: isRightToLeft)) },
+            onTurnedBack: { turn(by: readingOrderStep(-1, isRightToLeft: isRightToLeft)) },
+            onTap: tapHandler(),
+            request: $curlRequest
         )
     }
 

@@ -105,11 +105,45 @@ class CurlTurnTest {
     }
 
     @Test
-    fun `with no page beneath the forward range is left alone, because the end screen is a turn`() {
-        // `comic-reader` reaches an end screen by turning past the last page, so the last
-        // page's forward turn is a turn and not a nothing. Stated as a test because the
-        // symmetry is tempting and would take the end screen away.
-        assertEquals(1f, CurlTurn.progress(0f, -1200f, width, isRightToLeft = false), 0.001f)
+    fun `with no sheet beneath it the forward range collapses to nothing`() {
+        // D10. This read the other way until the curl was watched on a last page: the
+        // forward range was left open "because the end screen is a turn", and what the
+        // reader saw was the page lifting off *itself* — `PageCurl.update` stands the
+        // turning sheet in for a missing one, so the sheet revealed underneath was a copy
+        // of the sheet being lifted. `page-transitions` puts both ends under one sentence,
+        // "nothing lifts and the page stays where it is, rather than turning to an empty
+        // sheet", and the end screen is still reached: a tap or a key goes through
+        // `ReaderScreen`'s `turn`, which opens it.
+        assertEquals(
+            0f,
+            CurlTurn.progress(0f, -1200f, width, isRightToLeft = false, canTurnForward = false),
+            0.001f,
+        )
+        assertEquals(
+            0f,
+            CurlTurn.progress(0f, -100f, width, isRightToLeft = false, canTurnForward = false),
+            0.001f,
+        )
+    }
+
+    @Test
+    fun `a last page that cannot lift can still be turned back from`() {
+        // The two ends are independent, and collapsing the wrong one strands a reader on
+        // the last page of a publication they wanted to read again.
+        assertEquals(
+            -0.3f,
+            CurlTurn.progress(0f, 300f, width, isRightToLeft = false, canTurnForward = false),
+            0.001f,
+        )
+    }
+
+    @Test
+    fun `a settle caught past the fold is brought back when there is nothing beneath`() {
+        assertEquals(
+            0f,
+            CurlTurn.progress(0.8f, 0f, 0f, isRightToLeft = false, canTurnForward = false),
+            0.001f,
+        )
     }
 
     @Test

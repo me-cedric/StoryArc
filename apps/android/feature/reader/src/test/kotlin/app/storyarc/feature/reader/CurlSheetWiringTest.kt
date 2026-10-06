@@ -38,7 +38,11 @@ class CurlSheetWiringTest {
         return file.readText()
     }
 
-    private val readerScreen: String by lazy { sourceOf("ReaderScreen.kt") }
+    /**
+     * The curl's container, which left `ReaderScreen.kt` when that file reached the length
+     * `scripts/line-cap.mjs` records for it. Everything this suite reads moved with it.
+     */
+    private val curlSurface: String by lazy { sourceOf("CurlSurface.kt") }
     private val paging: String by lazy { sourceOf("Paging.kt") }
     private val curledPages: String by lazy { sourceOf("CurledPages.kt") }
 
@@ -52,20 +56,20 @@ class CurlSheetWiringTest {
      * against the whole file would pass with the curl's own copy missing.
      */
     private fun curlBuilder(): String {
-        val open = readerScreen.indexOf("CurledPages(").let {
-            check(it >= 0) { "ReaderScreen.kt no longer builds a CurledPages(...) — has it moved?" }
-            readerScreen.indexOf('(', it)
+        val open = curlSurface.indexOf("CurledPages(").let {
+            check(it >= 0) { "CurlSurface.kt no longer builds a CurledPages(...) — has it moved?" }
+            curlSurface.indexOf('(', it)
         }
         var depth = 1
         var i = open + 1
         while (depth > 0) {
-            when (readerScreen[i]) {
+            when (curlSurface[i]) {
                 '(' -> depth++
                 ')' -> depth--
             }
             i++
         }
-        return readerScreen.substring(open, i)
+        return curlSurface.substring(open, i)
     }
 
     @Test
@@ -104,17 +108,17 @@ class CurlSheetWiringTest {
         // adjustments").
         assertTrue(
             "curlPage no longer reads the reader's decoded-page cache.",
-            readerScreen.contains("val raw = viewModel.image(index) ?: return null"),
+            curlSurface.contains("val raw = viewModel.image(index) ?: return null"),
         )
         assertTrue(
             "curlPage no longer bakes the series' border trim into the sheet it hands the curl.",
-            readerScreen.contains("raw.cropped(trims)"),
+            curlSurface.contains("raw.cropped(trims)"),
         )
         // Task 8.4: a neighbour that has not decoded is a placeholder, not the outgoing page.
         assertTrue(
             "curlSheet no longer falls back to a placeholder for a neighbour still decoding.",
-            readerScreen.contains("CurlPlaceholder.sheet(display, { curlPage(it) }) {") &&
-                readerScreen.contains("rememberCurlPlaceholder(PagePlaceholder.ratio(modelIndex(it),"),
+            curlSurface.contains("CurlPlaceholder.sheet(display, { curlPage(it) }) {") &&
+                curlSurface.contains("rememberCurlPlaceholder(PagePlaceholder.ratio(modelIndex(it),"),
         )
     }
 
@@ -126,15 +130,13 @@ class CurlSheetWiringTest {
         // is -1 there.
         assertTrue(
             "A completed forward turn no longer turns the page by a reading-order step.",
-            builder.contains("onTurned = { turn(paging.current + readingOrderStep(1, isRightToLeft)) }"),
+            builder.contains("onTurned = { onTurn(readingOrderStep(1, isRightToLeft)) }"),
         )
         assertTrue(
             "A completed backwards turn no longer turns the page back by a reading-order" +
                 " step — which is the whole of what a reader reported as a curl that works" +
                 " in one direction.",
-            builder.contains(
-                "onTurnedBack = { turn(paging.current + readingOrderStep(-1, isRightToLeft)) }",
-            ),
+            builder.contains("onTurnedBack = { onTurn(readingOrderStep(-1, isRightToLeft)) }"),
         )
     }
 
