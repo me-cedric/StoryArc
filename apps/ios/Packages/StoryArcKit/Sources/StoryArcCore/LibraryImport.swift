@@ -155,10 +155,20 @@ public enum LibraryImport {
     }
 
     /// The source in the document whose address points at this host.
+    ///
+    /// The host is parsed out of the address rather than searched for inside it. `nas.local`
+    /// is a substring of `evil-nas.local`, so a search names whichever source sorts first and
+    /// can put a trusted name beside a stranger's fingerprint — on the one notice that asks
+    /// the reader to accept it.
     private static func sourceNaming(_ host: String, in document: LibraryDocument) -> String? {
         document.library.sources
-            .first { ($0.locator ?? "").contains(host) }?
+            .first { hostOf($0.locator) == host }?
             .displayName
+    }
+
+    /// The host an address names, or nil where it names none.
+    private static func hostOf(_ locator: String?) -> String? {
+        locator.flatMap { URL(string: $0)?.host }
     }
 
     private static func mergingPins(

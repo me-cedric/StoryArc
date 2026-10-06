@@ -1,5 +1,6 @@
 package app.storyarc.core.model
 
+import java.net.URI
 import java.util.UUID
 
 /**
@@ -15,18 +16,29 @@ import java.util.UUID
  */
 object LibraryImport {
 
+    /**
+     * The identifier a wire record carries, parsed, or null where it is not an identifier.
+     *
+     * Every comparison below reads this rather than the text. Swift renders a `UUID` in upper
+     * case and Java renders one in lower case, so a document an iPhone wrote names each
+     * source, collection and list in a spelling this device never matches. Compared as text,
+     * a source the reader already holds reads as a new one, and they are asked to sign in
+     * again to a server they are already signed in to.
+     */
+    private fun wireId(id: String): UUID? = runCatching { UUID.fromString(id) }.getOrNull()
+
     /** What an import would do, with nothing changed. */
     fun plan(document: LibraryDocument, device: LibrarySnapshot): LibraryImportPlan {
-        val held = device.sources.sources.map { it.id.toString() }.toSet()
-        val arriving = document.library.sources.filterNot { it.id in held }
+        val held = device.sources.sources.map { it.id }.toSet()
+        val arriving = document.library.sources.filterNot { wireId(it.id) in held }
 
-        val heldCollections = device.shelves.collections.associateBy { it.id.toString() }
-        val heldLists = device.shelves.lists.associateBy { it.id.toString() }
+        val heldCollections = device.shelves.collections.associateBy { it.id }
+        val heldLists = device.shelves.lists.associateBy { it.id }
 
         val shelvesToAdd = mutableListOf<String>()
         val shelvesToMerge = mutableListOf<ImportedShelf>()
         for (collection in document.library.collections) {
-            val mine = heldCollections[collection.id]
+            val mine = heldCollections[wireId(collection.id)]
             if (mine == null) {
                 shelvesToAdd += collection.name
             } else {
@@ -35,7 +47,7 @@ object LibraryImport {
             }
         }
         for (list in document.library.readingLists) {
-            val mine = heldLists[list.id]
+            val mine = heldLists[wireId(list.id)]
             if (mine == null) {
                 shelvesToAdd += list.name
             } else {
@@ -61,7 +73,7 @@ object LibraryImport {
             progressToAdd = arrivingProgress.first.size,
             progressToMerge = arrivingProgress.second.size,
             certificatePinsToAdd = pinsArriving(document, device),
-            settingsWillChange = document.library.settings.settings() != device.settings,
+            settingsWillChange = document.library.settings.settings(device.settings) != device.settings,
             themeEntriesToAdd = arrivingThemes.size,
         )
     }
@@ -84,7 +96,7 @@ object LibraryImport {
                 // merge would have to decide per field, and there is no honest rule for
                 // "which of two appearances did they mean" — unlike a reading position,
                 // where "furthest" is one.
-                settings = document.library.settings.settings(),
+                settings = document.library.settings.settings(device.settings),
                 themes = mergingThemes(document, device.themes),
                 progress = progress.first,
             ),
@@ -103,11 +115,11 @@ object LibraryImport {
      */
     private fun mergingSources(document: LibraryDocument, registry: SourceRegistry):
         SourceRegistry {
-        val held = registry.sources.map { it.id.toString() }.toSet()
+        val held = registry.sources.map { it.id }.toSet()
         return document.library.sources
-            .filterNot { it.id in held }
+            .filterNot { wireId(it.id) in held }
             .fold(registry) { carried, arriving ->
-                val id = runCatching { UUID.fromString(arriving.id) }.getOrNull()
+                val id = wireId(arriving.id)
                 // A kind this build does not know is dropped rather than guessed at, the same
                 // rule `SourceStore` already reads its own disk by.
                 val kind = wireEnumOrNull<SourceKind>(arriving.kind)
@@ -138,10 +150,10 @@ object LibraryImport {
     private fun signInsNeeded(document: LibraryDocument, device: LibrarySnapshot): List<String> {
         val signedIn = device.sources.sources
             .filter { it.credentialReference != null }
-            .map { it.id.toString() }
+            .map { it.id }
             .toSet()
         return document.library.sources
-            .filter { it.needsSignIn && it.id !in signedIn }
+            .filter { it.needsSignIn && wireId(it.id) !in signedIn }
             .map { it.displayName }
     }
 
@@ -159,9 +171,20 @@ object LibraryImport {
         }
         .sortedBy { it.host }
 
-    /** The source in the document whose address points at this host. */
+    /**
+     * The source in the document whose address points at this host.
+     *
+     * The host is parsed out of the address rather than searched for inside it. `nas.local`
+     * is a substring of `evil-nas.local`, so a search names whichever source sorts first and
+     * can put a trusted name beside a stranger's fingerprint -- on the one notice that asks
+     * the reader to accept it.
+     */
     private fun sourceNaming(host: String, document: LibraryDocument): String? =
-        document.library.sources.firstOrNull { it.locator.orEmpty().contains(host) }?.displayName
+        document.library.sources.firstOrNull { hostOf(it.locator) == host }?.displayName
+
+    /** The host an address names, or null where it names none. */
+    private fun hostOf(locator: String?): String? =
+        locator?.let { runCatching { URI(it).host }.getOrNull() }
 
     private fun mergingPins(document: LibraryDocument, held: Map<String, Set<String>>):
         Map<String, Set<String>> = document.library.certificatePins
@@ -175,7 +198,7 @@ object LibraryImport {
     private fun mergingShelves(document: LibraryDocument, shelves: Shelves): Shelves {
         var merged = shelves
         for (arriving in document.library.collections) {
-            val id = runCatching { UUID.fromString(arriving.id) }.getOrNull() ?: continue
+            val id = wireId(arriving.id) ?: continue
             val mine = merged.collections.firstOrNull { it.id == id }
             if (mine == null) {
                 merged = merged.adding(
@@ -195,7 +218,7 @@ object LibraryImport {
             }
         }
         for (arriving in document.library.readingLists) {
-            val id = runCatching { UUID.fromString(arriving.id) }.getOrNull() ?: continue
+            val id = wireId(arriving.id) ?: continue
             val mine = merged.lists.firstOrNull { it.id == id }
             if (mine == null) {
                 merged = merged.adding(

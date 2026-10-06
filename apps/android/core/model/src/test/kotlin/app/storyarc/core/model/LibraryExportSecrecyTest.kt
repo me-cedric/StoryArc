@@ -120,8 +120,10 @@ class ExportableAddressTest {
     @Test
     fun `every parameter name that means secret is dropped, and the others stay`() {
         val names = listOf(
-            "token", "password", "passwd", "secret", "key", "apikey", "api_key",
-            "auth", "authorization", "bearer", "accesstoken", "access_token",
+            "token", "password", "passwd", "pwd", "secret", "key", "apikey", "api_key",
+            "api-key", "x-api-key", "auth", "authorization", "bearer", "accesstoken",
+            "access_token", "refresh_token", "refreshtoken", "session", "sessionid",
+            "session_id", "sid", "credential", "credentials", "signature", "sig",
         )
         for (name in names) {
             assertEquals(
@@ -129,6 +131,28 @@ class ExportableAddressTest {
                 ExportableAddress.withoutSecret("https://h/f?$name=s&page=2"),
             )
         }
+    }
+
+    @Test
+    fun `a secret in a fragment is dropped, like one in a query`() {
+        // A fragment never reaches a server, so it reads as harmless. It is still text in a
+        // file the reader will carry to another device or hand to someone.
+        assertEquals(
+            "https://h/f",
+            ExportableAddress.withoutSecret("https://h/f#token=abc"),
+        )
+        assertEquals(
+            "https://h/f?page=2#chapter-3",
+            ExportableAddress.withoutSecret("https://h/f?page=2&apikey=s#chapter-3"),
+        )
+    }
+
+    @Test
+    fun `a fragment that names no secret is kept`() {
+        assertEquals(
+            "https://h/f#chapter-3",
+            ExportableAddress.withoutSecret("https://h/f#chapter-3"),
+        )
     }
 
     @Test

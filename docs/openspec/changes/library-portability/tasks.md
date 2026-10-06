@@ -75,3 +75,34 @@ a person moved a real library between two real devices.
   both of which name backups. The format already reserves the `secrets` object and design.md
   fixes the crypto — PBKDF2-HMAC-SHA256, AES-256-GCM, parameters in the document — so a yes is
   one change and no rework. **Do not implement this without that amendment.**
+
+## 6. From the review of wave 11
+
+A reviewer read sections 1 to 4 against this change's own spec and against `AGENTS.md`. Four
+findings were fixed in the same wave: identifiers are compared as parsed values rather than as
+text, a setting the writing platform cannot express keeps this device's answer, a secret in a
+fragment is stripped like one in a query, and a certificate-pin notice names the host's own
+source. These are what the review found and the wave did not close.
+
+- [ ] 6.1 **One unreadable record means one thing on both platforms**. iOS refuses the whole
+  document when `position.kind` is a word it does not know; Android drops that one record and
+  imports the rest. One document, two outcomes. Decide which is right, write it in the spec,
+  and make both do it. Android's reading is the better one — `library-portability` /
+  *A field this version does not know* already asks for the rest to be imported.
+- [ ] 6.2 **The preview counts records the merge will drop**. `LibraryImportPlan` counts every
+  arriving record; the merge silently discards any whose enum this build cannot read. The
+  reader is promised more than they get. Count what will land, not what arrived.
+- [ ] 6.3 **An import is all or nothing**. `LibraryArchive.apply` writes seven stores in
+  sequence on both platforms. A throw after the third leaves a half-imported library and
+  nothing rolls it back. Stage the writes, or record enough to undo them.
+- [ ] 6.4 **An adopted position keeps this device's watermark**. `ProgressPull` saves the
+  document's record whole, and that record carries no `syncedPosition`. A device that had
+  synchronised with Kavita forgets what it last synchronised after an import — which is the
+  state task 1 of `library-sync` exists to stop. Merge the watermark rather than overwrite it.
+- [ ] 6.5 **A document is bounded before it is parsed**. Neither platform limits the bytes it
+  will read, and iOS holds roughly three copies of the document while decoding — serialised,
+  re-serialised and decoded. A file a reader was handed can be any size. Refuse one that is
+  too large by name, the way a newer version is refused.
+- [ ] 6.6 **A platform name this build does not know is not fatal**. iOS types `writtenBy` as
+  an enum, so a document written by a third platform is refused outright, while Android holds
+  it as text. The field names who wrote the document; it decides nothing.

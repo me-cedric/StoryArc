@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.UUID
 
 /**
  * `library-portability` / *Import merges*, row by row.
@@ -91,6 +92,145 @@ class LibraryImportTest {
         // is listed with no secret rather than withheld until one is supplied.
         assertNull(arrived?.credentialReference)
         assertEquals("smb://reader@nas.local/comics", arrived?.locator)
+    }
+
+    @Test
+    fun `a document an iPhone wrote names this device's own sources, in upper case`() {
+        // Swift renders a `UUID` in upper case and Java renders one in lower case, so every
+        // identifier in a document an iPhone wrote arrives in the spelling this device never
+        // writes. Compared as text, each source, collection and list reads as a new one.
+        //
+        // The committed fixtures cannot catch this: every identifier in them is digits, which
+        // spells the same in both cases. This builds the same document with the same
+        // identifiers in the case Swift writes.
+        val fromIphone = upperCased(document)
+        val holder = holdingLettered(device)
+
+        val plan = LibraryImport.plan(fromIphone, holder)
+
+        assertTrue(
+            "A source this device holds was planned as an arrival: " + plan.sourcesToAdd,
+            plan.sourcesToAdd.none { it == "Shelf" },
+        )
+        assertTrue(
+            "A collection this device holds was planned as an arrival: " + plan.shelvesToAdd,
+            plan.shelvesToAdd.none { it == "Image Comics" },
+        )
+        assertEquals(
+            holder.sources.sources.size + 2,
+            LibraryImport.merging(fromIphone, holder).snapshot.sources.sources.size,
+        )
+    }
+
+    /**
+     * The same document, with the two identifiers this device also holds spelled the way
+     * Swift spells one.
+     *
+     * The identifiers are re-made with hex letters in them first. Every identifier in
+     * `LibraryDocumentFixture` is digits, and a digit spells the same in either case, so
+     * upper-casing the fixture's own identifiers changes nothing and proves nothing.
+     */
+    private fun upperCased(document: LibraryDocument): LibraryDocument {
+        val library = document.library
+        return document.copy(
+            library = library.copy(
+                sources = library.sources.map {
+                    if (it.id == LibraryDocumentFixture.folderId.toString()) {
+                        it.copy(id = LETTERED_FOLDER.toString().uppercase())
+                    } else {
+                        it
+                    }
+                },
+                collections = library.collections.map {
+                    if (it.id == LibraryDocumentFixture.collectionId.toString()) {
+                        it.copy(id = LETTERED_COLLECTION.toString().uppercase())
+                    } else {
+                        it
+                    }
+                },
+            ),
+        )
+    }
+
+    /** The same device, holding those two under the same identifiers. */
+    private fun holdingLettered(device: LibrarySnapshot): LibrarySnapshot = device.copy(
+        sources = SourceRegistry(
+            sources = device.sources.sources.map {
+                if (it.id == LibraryDocumentFixture.folderId) it.copy(id = LETTERED_FOLDER) else it
+            },
+        ),
+        shelves = device.shelves.copy(
+            collections = device.shelves.collections.map {
+                if (it.id == LibraryDocumentFixture.collectionId) {
+                    it.copy(id = LETTERED_COLLECTION)
+                } else {
+                    it
+                }
+            },
+        ),
+    )
+
+    private companion object {
+        val LETTERED_FOLDER: UUID = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+        val LETTERED_COLLECTION: UUID = UUID.fromString("ffffffff-aaaa-bbbb-cccc-dddddddddddd")
+    }
+
+    @Test
+    fun `a setting the writing platform cannot express is kept, not turned off`() {
+        // iOS has no volume-button page turn, so a document an iPhone writes carries no such
+        // field. Decoding that absence as `false` does not ignore the field, it turns the
+        // setting off — and the reader is never told. They would find the buttons dead.
+        val fromIphone = document.copy(
+            library = document.library.copy(
+                settings = document.library.settings.copy(turnPagesWithVolumeButtons = null),
+            ),
+        )
+        val holder = device.copy(settings = AppSettings(turnPagesWithVolumeButtons = true))
+
+        val merged = LibraryImport.merging(fromIphone, holder).snapshot
+
+        assertTrue(
+            "An import from a platform without this setting turned it off.",
+            merged.settings.turnPagesWithVolumeButtons,
+        )
+    }
+
+    @Test
+    fun `a setting the document does carry still wins`() {
+        val off = document.copy(
+            library = document.library.copy(
+                settings = document.library.settings.copy(turnPagesWithVolumeButtons = false),
+            ),
+        )
+        val holder = device.copy(settings = AppSettings(turnPagesWithVolumeButtons = true))
+
+        assertEquals(
+            false,
+            LibraryImport.merging(off, holder).snapshot.settings.turnPagesWithVolumeButtons,
+        )
+    }
+
+    @Test
+    fun `a pin notice names the host's own source, not one whose address merely contains it`() {
+        // `nas.local` is a substring of `evil-nas.local`. A notice that asks the reader to
+        // accept a fingerprint must not put a trusted name next to a stranger's.
+        val lookalike = document.copy(
+            library = document.library.copy(
+                sources = listOf(
+                    DocumentSource(
+                        id = UUID.randomUUID().toString(),
+                        displayName = "Not my NAS",
+                        kind = SourceKind.NETWORK_SHARE.name.toWireCase(),
+                        locator = "smb://evil-nas.local/comics",
+                    ),
+                ) + document.library.sources,
+            ),
+        )
+
+        val named = LibraryImport.plan(lookalike, device).certificatePinsToAdd
+            .firstOrNull { it.host == "nas.local" }
+
+        assertEquals("Comics NAS", named?.sourceName)
     }
 
     @Test

@@ -54,14 +54,29 @@ object ExportableAddress {
      * explain than a parameter that is simply not there.
      */
     private fun withoutSecretQueryItems(locator: String): String {
-        val separator = locator.indexOf('?')
-        if (separator < 0) return locator
-        val address = locator.substring(0, separator)
-        val kept = locator.substring(separator + 1)
-            .split('&')
-            .filterNot { it.substringBefore('=').lowercase() in SECRET_NAMES }
-        return if (kept.isEmpty()) address else "$address?${kept.joinToString("&")}"
+        // The fragment is cut first and filtered by the same rule. A fragment never reaches
+        // a server, so it reads as harmless, but it is still text in an exported file -- and
+        // `https://host/feed#token=abc` carries the whole token past a filter that only ever
+        // looks after a `?`.
+        val hash = locator.indexOf('#')
+        val beforeHash = if (hash < 0) locator else locator.substring(0, hash)
+        val fragment = if (hash < 0) null else keptItems(locator.substring(hash + 1))
+
+        val separator = beforeHash.indexOf('?')
+        val address = if (separator < 0) beforeHash else beforeHash.substring(0, separator)
+        val query = if (separator < 0) null else keptItems(beforeHash.substring(separator + 1))
+
+        return address +
+            query?.let { "?$it" }.orEmpty() +
+            fragment?.let { "#$it" }.orEmpty()
     }
+
+    /** The `a=1&b=2` items that name no secret, or null where none is left. */
+    private fun keptItems(items: String): String? = items
+        .split('&')
+        .filterNot { it.substringBefore('=').lowercase() in SECRET_NAMES }
+        .takeIf { it.isNotEmpty() }
+        ?.joinToString("&")
 
     private val USER_INFO = Regex("([a-zA-Z][a-zA-Z0-9+.\\-]*://)([^/\\s?#@]*)@")
 
@@ -73,7 +88,9 @@ object ExportableAddress {
      * holds the same words.
      */
     private val SECRET_NAMES = setOf(
-        "token", "password", "passwd", "secret", "key", "apikey", "api_key",
-        "auth", "authorization", "bearer", "accesstoken", "access_token",
+        "token", "password", "passwd", "pwd", "secret", "key", "apikey", "api_key", "api-key",
+        "x-api-key", "auth", "authorization", "bearer", "accesstoken", "access_token",
+        "refresh_token", "refreshtoken", "session", "sessionid", "session_id", "sid",
+        "credential", "credentials", "signature", "sig",
     )
 }

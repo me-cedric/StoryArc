@@ -49,14 +49,36 @@ public enum ExportableAddress {
     /// answering 401 to a literal `[redacted]` is a worse failure to explain than a parameter
     /// that is simply not there.
     private static func withoutSecretQueryItems(_ locator: String) -> String {
-        guard let separator = locator.firstIndex(of: "?") else { return locator }
-        let address = String(locator[locator.startIndex..<separator])
-        let query = String(locator[locator.index(after: separator)...])
-        let kept = query.split(separator: "&", omittingEmptySubsequences: false).filter { item in
+        // The fragment is cut first and filtered by the same rule. A fragment never reaches
+        // a server, so it reads as harmless, but it is still text in an exported file — and
+        // `https://host/feed#token=abc` carries the whole token past a filter that only ever
+        // looks after a `?`.
+        var beforeHash = locator
+        var fragment: String?
+        if let hash = locator.firstIndex(of: "#") {
+            beforeHash = String(locator[locator.startIndex..<hash])
+            fragment = keptItems(String(locator[locator.index(after: hash)...]))
+        }
+
+        var address = beforeHash
+        var query: String?
+        if let separator = beforeHash.firstIndex(of: "?") {
+            address = String(beforeHash[beforeHash.startIndex..<separator])
+            query = keptItems(String(beforeHash[beforeHash.index(after: separator)...]))
+        }
+
+        return address
+            + (query.map { "?\($0)" } ?? "")
+            + (fragment.map { "#\($0)" } ?? "")
+    }
+
+    /// The `a=1&b=2` items that name no secret, or nil where none is left.
+    private static func keptItems(_ items: String) -> String? {
+        let kept = items.split(separator: "&", omittingEmptySubsequences: false).filter { item in
             let name = item.split(separator: "=", maxSplits: 1).first.map(String.init) ?? ""
             return !secretNames.contains(name.lowercased())
         }
-        return kept.isEmpty ? address : "\(address)?\(kept.joined(separator: "&"))"
+        return kept.isEmpty ? nil : kept.joined(separator: "&")
     }
 
     /// The parameter names that introduce a secret.
@@ -66,7 +88,9 @@ public enum ExportableAddress {
     /// ``DiagnosticRedaction``'s rule 3 by `ExportableAddressTests`, which asserts both
     /// functions against the same words.
     static let secretNames: Set<String> = [
-        "token", "password", "passwd", "secret", "key", "apikey", "api_key",
-        "auth", "authorization", "bearer", "accesstoken", "access_token",
+        "token", "password", "passwd", "pwd", "secret", "key", "apikey", "api_key", "api-key",
+        "x-api-key", "auth", "authorization", "bearer", "accesstoken", "access_token",
+        "refresh_token", "refreshtoken", "session", "sessionid", "session_id", "sid",
+        "credential", "credentials", "signature", "sig",
     ]
 }

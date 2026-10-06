@@ -218,9 +218,10 @@ class LibraryDocumentBoundaryTest {
         assertEquals(mine.library.readingThemes, theirs.library.readingThemes)
         assertEquals(mine.library.progress, theirs.library.progress)
         // iOS has no volume-button setting, so its document does not carry the field and this
-        // one reads it back at its own default. `library-portability` allows exactly that.
+        // one reads it back as null — "the document says nothing", not "the reader turned it
+        // off". `LibraryImport` answers a null with the value this device already holds.
         assertEquals(
-            mine.library.settings.copy(turnPagesWithVolumeButtons = false),
+            mine.library.settings.copy(turnPagesWithVolumeButtons = null),
             theirs.library.settings,
         )
     }

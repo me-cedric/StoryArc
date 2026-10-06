@@ -15,12 +15,19 @@ import kotlinx.serialization.Serializable
  * writes does not carry the field and one it reads drops it. `library-portability` /
  * *A field this version does not know* allows exactly that — "the field is ignored and the
  * rest is imported, and a re-export does not have to carry it back".
+ *
+ * That clause is why the field is nullable rather than defaulted. A default answers the
+ * absent field with `false`, which is not ignoring it — it is turning the setting off. An
+ * Android reader who turns pages with the volume buttons, exports from their iPhone and
+ * imports here would find the buttons dead, and nothing would have gone wrong loudly enough
+ * to look at. Null means "the document says nothing", and [settings] keeps what the device
+ * already holds.
  */
 @Serializable
 data class DocumentSettings(
     val appearance: String = AppearanceMode.SYSTEM.name.toWireCase(),
     val language: String? = null,
-    val turnPagesWithVolumeButtons: Boolean = false,
+    val turnPagesWithVolumeButtons: Boolean? = null,
     val turnPagesByTappingTheEdges: Boolean = true,
     val linkReadingThemeToAppearance: Boolean = false,
     val lightReadingTheme: String = ThemePreset.PAPER.name.toWireCase(),
@@ -48,10 +55,12 @@ data class DocumentSettings(
      * A setting is a preference, and losing one is worth far less than refusing the whole
      * import — the same trade every store in this app already makes on unreadable data.
      */
-    fun settings(): AppSettings = AppSettings(
+    fun settings(onDevice: AppSettings = AppSettings()): AppSettings = AppSettings(
         appearance = wireEnum(appearance, AppearanceMode.SYSTEM),
         language = language,
-        turnPagesWithVolumeButtons = turnPagesWithVolumeButtons,
+        // A field the writing platform cannot express keeps this device's own answer.
+        turnPagesWithVolumeButtons =
+            turnPagesWithVolumeButtons ?: onDevice.turnPagesWithVolumeButtons,
         turnPagesByTappingTheEdges = turnPagesByTappingTheEdges,
         linkReadingThemeToAppearance = linkReadingThemeToAppearance,
         lightReadingTheme = wireEnum(lightReadingTheme, ThemePreset.PAPER),

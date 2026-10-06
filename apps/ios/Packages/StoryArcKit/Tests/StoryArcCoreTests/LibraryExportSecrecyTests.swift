@@ -126,6 +126,24 @@ struct ExportableAddressTests {
         }
     }
 
+    @Test("A secret in a fragment is dropped, like one in a query")
+    func fragmentItems() {
+        // A fragment never reaches a server, so it reads as harmless. It is still text in a
+        // file the reader will carry to another device or hand to someone.
+        #expect(ExportableAddress.withoutSecret("https://h/f#token=abc") == "https://h/f")
+        #expect(
+            ExportableAddress.withoutSecret("https://h/f?page=2&apikey=s#chapter-3")
+                == "https://h/f?page=2#chapter-3"
+        )
+    }
+
+    @Test("A fragment that names no secret is kept")
+    func fragmentKept() {
+        #expect(
+            ExportableAddress.withoutSecret("https://h/f#chapter-3") == "https://h/f#chapter-3"
+        )
+    }
+
     @Test("A parameter name is matched whatever its case")
     func queryItemCase() {
         #expect(ExportableAddress.withoutSecret("https://h/f?ApiKey=s") == "https://h/f")
