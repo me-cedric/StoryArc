@@ -33,38 +33,6 @@ public struct CoverCandidate: Sendable, Equatable, Identifiable, Codable {
     }
 }
 
-/// A keyless catalogue that answers a title with candidates.
-///
-/// Separate from ``CoverLookupProvider`` because these answer a question with several
-/// answers and that one answers a question with one. Joining them would give the exact
-/// lookup a "which of these did you mean" that it never has.
-public enum CoverTitleProvider: String, Sendable, Equatable, CaseIterable, Codable {
-    /// Books, by title and author.
-    case openLibrary
-
-    /// Manga and anime. Keyless, and the one most likely to know a volume by its series.
-    case aniList
-
-    /// Manga, including many series AniList has no entry for.
-    case mangaUpdates
-
-    public var displayName: String {
-        switch self {
-        case .openLibrary: "Open Library"
-        case .aniList: "AniList"
-        case .mangaUpdates: "MangaUpdates"
-        }
-    }
-
-    public var host: String {
-        switch self {
-        case .openLibrary: "openlibrary.org"
-        case .aniList: "graphql.anilist.co"
-        case .mangaUpdates: "api.mangaupdates.com"
-        }
-    }
-}
-
 /// How a title is asked about, and how each answer is read.
 ///
 /// Every function here is pure, so the three request shapes and the three response shapes

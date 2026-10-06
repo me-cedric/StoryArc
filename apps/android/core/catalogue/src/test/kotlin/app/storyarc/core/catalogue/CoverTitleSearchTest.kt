@@ -1,5 +1,6 @@
 package app.storyarc.core.catalogue
 
+import app.storyarc.core.model.CoverTitleProvider
 import java.io.File
 import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.runBlocking

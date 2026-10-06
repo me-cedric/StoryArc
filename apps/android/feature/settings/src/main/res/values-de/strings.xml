@@ -112,7 +112,7 @@
     <string name="sources_state_unauthorized">Anmeldung nötig</string>
     <string name="covers_lookup">Fehlende Cover nachschlagen</string>
     <string name="covers_lookup_providers">Fragt: %1$s</string>
-    <string name="covers_lookup_note">Aus, bis Sie es einschalten. StoryArc sendet dann eine einzige Kennung für eine Publikation ohne Cover — eine ISBN, eine MusicBrainz-Kennung oder eine ASIN — und sonst nichts. Keine Bibliotheksliste, keinen Leseverlauf, keine Gerätekennung.</string>
+    <string name="covers_lookup_note">Aus, bis Sie es einschalten. StoryArc fragt dann nur die oben genannten Dienste. Für eine Publikation ohne Cover sendet es eine einzige Kennung — eine ISBN, eine MusicBrainz-Kennung oder eine ASIN. Wenn Sie nach Titel suchen, sendet es den Titel und den Autor. Sonst nichts: keine Bibliotheksliste, kein Leseverlauf, keine Gerätekennung.</string>
     <plurals name="sources_detail">
         <item quantity="one">%1$,d Titel</item>
         <item quantity="other">%1$,d Titel</item>

@@ -183,3 +183,49 @@ object CoverImageHosts {
         return suffixes.any { host == it || host.endsWith(".$it") }
     }
 }
+
+/**
+ * A keyless catalogue that answers a title with candidates.
+ *
+ * Separate from `CoverLookupProvider` because these answer a question with several answers
+ * and that one answers a question with one. Joining them would give the exact lookup a
+ * "which of these did you mean" that it never has.
+ */
+enum class CoverTitleProvider {
+    /** Books, by title and author. */
+    OPEN_LIBRARY,
+
+    /** Manga and anime. Keyless, and the one most likely to know a volume by its series. */
+    ANILIST,
+
+    /** Manga, including many series AniList has no entry for. */
+    MANGA_UPDATES,
+    ;
+
+    val displayName: String
+        get() = when (this) {
+            OPEN_LIBRARY -> "Open Library"
+            ANILIST -> "AniList"
+            MANGA_UPDATES -> "MangaUpdates"
+        }
+
+    val host: String
+        get() = when (this) {
+            OPEN_LIBRARY -> "openlibrary.org"
+            ANILIST -> "graphql.anilist.co"
+            MANGA_UPDATES -> "api.mangaupdates.com"
+        }
+}
+
+/**
+ * Every service the cover-lookup switch lets the app ask, by the name a reader knows it by.
+ *
+ * Both lists, because one switch gates both: the identifier lookup and the title search.
+ * `cover-art` requires the app to name a provider before it asks one, so the switch's row is
+ * built from this and a provider added to either list appears on that row by construction.
+ */
+val coverLookupServiceNames: List<String>
+    get() = (
+        CoverLookupProvider.entries.map { it.displayName } +
+            CoverTitleProvider.entries.map { it.displayName }
+        ).distinct()

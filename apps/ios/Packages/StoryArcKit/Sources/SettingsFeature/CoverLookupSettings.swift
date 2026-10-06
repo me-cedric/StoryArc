@@ -16,14 +16,15 @@ struct CoverLookupSettings: View {
 
     @Environment(\.theme) private var theme
 
-    /// The three catalogues, written out for the reader.
+    /// Every service the switch lets the app ask, written out for the reader.
     ///
-    /// Joined with a comma rather than a localised list format: these are the catalogues'
-    /// own names, and the row's job is to let a reader recognise them. Static, so a test
-    /// can assert the row names every provider the lookup can reach — a fourth provider
-    /// added without a word on this screen would be a request a reader never agreed to.
+    /// Both the identifier lookup and the title search: one switch gates both, so the row
+    /// names both. Joined with a comma rather than a localised list format: these are the
+    /// services' own names. Static, so a test can assert the row names every service the
+    /// switch opens — one added without a word on this screen would be a request a reader
+    /// never agreed to.
     nonisolated static var providerNames: String {
-        CoverLookupProvider.allCases.map(\.displayName).joined(separator: ", ")
+        coverLookupServiceNames.joined(separator: ", ")
     }
 
     var body: some View {

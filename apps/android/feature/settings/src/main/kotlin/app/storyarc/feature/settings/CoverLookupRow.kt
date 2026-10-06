@@ -10,7 +10,7 @@ import androidx.compose.ui.res.stringResource
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
-import app.storyarc.core.model.CoverLookupProvider
+import app.storyarc.core.model.coverLookupServiceNames
 
 /**
  * The one switch that lets a cover request leave the device.
@@ -50,13 +50,12 @@ internal fun CoverLookupRow(
 }
 
 /**
- * The three catalogues, written out for the reader.
+ * Every service the switch lets the app ask, written out for the reader.
  *
- * Joined with a comma rather than a localised list format: these are the catalogues' own
+ * Both the identifier lookup and the title search: one switch gates both, so the row names
+ * both. Joined with a comma rather than a localised list format: these are the services' own
  * names, and the row's job is to let a reader recognise them. A function rather than a
- * literal, so a test can assert the row names every provider the lookup can reach -- a
- * fourth provider added without a word on this screen would be a request a reader never
- * agreed to.
+ * literal, so a test can assert the row names every service the switch opens -- one added
+ * without a word on this screen would be a request a reader never agreed to.
  */
-internal fun coverLookupProviderNames(): String =
-    CoverLookupProvider.entries.joinToString(", ") { it.displayName }
+internal fun coverLookupProviderNames(): String = coverLookupServiceNames.joinToString(", ")

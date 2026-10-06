@@ -32,6 +32,11 @@ struct CoverLookupSettingsTests {
         for provider in CoverLookupProvider.allCases {
             #expect(shown.contains(provider.displayName))
         }
+        // The title search sits behind the same switch, so its services are named too. Only
+        // the identifier lookup was named, while the switch also sent titles to two more.
+        for provider in CoverTitleProvider.allCases {
+            #expect(shown.contains(provider.displayName), "The row does not name \(provider.displayName).")
+        }
     }
 
     @Test("The setting lives on the Privacy screen, because it decides what leaves")

@@ -2,6 +2,7 @@ package app.storyarc.feature.settings
 
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.CoverLookupProvider
+import app.storyarc.core.model.CoverTitleProvider
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -45,6 +46,11 @@ class CoverLookupRowTest {
         val shown = coverLookupProviderNames()
         for (provider in CoverLookupProvider.entries) {
             assertTrue(shown.contains(provider.displayName))
+        }
+        // The title search sits behind the same switch, so its services are named too. Only
+        // the identifier lookup was named, while the switch also sent titles to two more.
+        for (provider in CoverTitleProvider.entries) {
+            assertTrue("The row does not name ${provider.displayName}.", shown.contains(provider.displayName))
         }
     }
 

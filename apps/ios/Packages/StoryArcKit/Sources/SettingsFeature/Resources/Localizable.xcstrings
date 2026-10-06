@@ -994,25 +994,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aus, bis Sie es einschalten. StoryArc sendet dann eine einzige Kennung für eine Publikation ohne Cover — eine ISBN, eine MusicBrainz-Kennung oder eine ASIN — und sonst nichts. Keine Bibliotheksliste, keinen Leseverlauf, keine Gerätekennung."
+            "value": "Aus, bis Sie es einschalten. StoryArc fragt dann nur die oben genannten Dienste. Für eine Publikation ohne Cover sendet es eine einzige Kennung — eine ISBN, eine MusicBrainz-Kennung oder eine ASIN. Wenn Sie nach Titel suchen, sendet es den Titel und den Autor. Sonst nichts: keine Bibliotheksliste, kein Leseverlauf, keine Gerätekennung."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Off until you turn it on. StoryArc then sends one identifier for a publication with no cover — an ISBN, a MusicBrainz id or an ASIN — and nothing else. No library listing, no reading history, no device identifier."
+            "value": "Off until you turn it on. StoryArc then asks only the services named above. For a publication with no cover, it sends one identifier — an ISBN, a MusicBrainz id or an ASIN. When you search by title, it sends the title and the author. Nothing else: no library listing, no reading history, no device identifier."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desactivado hasta que lo active. StoryArc envía entonces un solo identificador para una publicación sin portada — un ISBN, un identificador MusicBrainz o un ASIN — y nada más. Ninguna lista de biblioteca, ningún historial de lectura, ningún identificador de dispositivo."
+            "value": "Desactivado hasta que lo active. StoryArc consulta entonces solo los servicios nombrados arriba. Para una publicación sin portada, envía un solo identificador — un ISBN, un identificador MusicBrainz o un ASIN. Cuando busca por título, envía el título y el autor. Nada más: ninguna lista de biblioteca, ningún historial de lectura, ningún identificador de dispositivo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Désactivé tant que vous ne l'activez pas. StoryArc envoie alors un seul identifiant pour une publication sans couverture — un ISBN, un identifiant MusicBrainz ou un ASIN — et rien d'autre. Aucune liste de bibliothèque, aucun historique de lecture, aucun identifiant d'appareil."
+            "value": "Désactivé tant que vous ne l’activez pas. StoryArc n’interroge alors que les services nommés ci-dessus. Pour une publication sans couverture, il envoie un seul identifiant — un ISBN, un identifiant MusicBrainz ou un ASIN. Quand vous cherchez par titre, il envoie le titre et l’auteur. Rien d’autre : aucune liste de bibliothèque, aucun historique de lecture, aucun identifiant d’appareil."
           }
         }
       }
@@ -3718,6 +3718,7 @@
       }
     },
     "settings.reset.body": {
+      "comment": "one-vocabulary 4.1/15.11, D31: the same words as Android's settings_reset_body, which breaks them into two paragraphs. A confirmation body that stopped at \"No files\" at the largest text size does not scroll, so the blank line is not free here. A presentation difference, not a wording one.",
       "extractionState": "manual",
       "localizations": {
         "de": {
@@ -3744,8 +3745,7 @@
             "value": "L’apparence, les préférences de lecture et les réglages par défaut des nouvelles séries reviennent à leur état initial. Vos bibliothèques, téléchargements, progression de lecture et les thèmes choisis pendant la lecture ne sont pas touchés."
           }
         }
-      },
-      "comment": "one-vocabulary 4.1/15.11, D31: the same words as Android's settings_reset_body, which breaks them into two paragraphs. A confirmation body that stopped at \"No files\" at the largest text size does not scroll, so the blank line is not free here. A presentation difference, not a wording one."
+      }
     },
     "settings.reset.confirm": {
       "extractionState": "manual",
@@ -5090,6 +5090,7 @@
       }
     },
     "sources.remove.title %@": {
+      "comment": "one-vocabulary 4.1/15.11, D31: Android's confirmation titles name the source (sources_remove_title, sources_remove_downloads_title); iOS's do not. Reconciling would change a convention on both keys and an iOS Swift signature, which is a code change rather than a wording one -- left as each platform's own convention.",
       "extractionState": "manual",
       "localizations": {
         "de": {
@@ -5116,8 +5117,7 @@
             "value": "Retirer %@ ?"
           }
         }
-      },
-      "comment": "one-vocabulary 4.1/15.11, D31: Android's confirmation titles name the source (sources_remove_title, sources_remove_downloads_title); iOS's do not. Reconciling would change a convention on both keys and an iOS Swift signature, which is a code change rather than a wording one -- left as each platform's own convention."
+      }
     },
     "sources.removeDownloads.body %@": {
       "extractionState": "manual",
@@ -5149,6 +5149,7 @@
       }
     },
     "sources.removeDownloads.title": {
+      "comment": "one-vocabulary 4.1/15.11, D31: Android names the source here too (sources_remove_downloads_title) and iOS does not, the same divergence as sources.remove.title beside it. Reconciling changes a convention on both keys and an iOS Swift signature.",
       "extractionState": "manual",
       "localizations": {
         "de": {
@@ -5175,8 +5176,7 @@
             "value": "Supprimer les téléchargements ?"
           }
         }
-      },
-      "comment": "one-vocabulary 4.1/15.11, D31: Android names the source here too (sources_remove_downloads_title) and iOS does not, the same divergence as sources.remove.title beside it. Reconciling changes a convention on both keys and an iOS Swift signature."
+      }
     },
     "sources.rename": {
       "extractionState": "manual",

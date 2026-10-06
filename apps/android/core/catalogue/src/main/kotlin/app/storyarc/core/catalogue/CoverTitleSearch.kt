@@ -1,6 +1,7 @@
 package app.storyarc.core.catalogue
 
 import app.storyarc.core.model.CoverImageHosts
+import app.storyarc.core.model.CoverTitleProvider
 import java.net.URLEncoder
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -13,38 +14,6 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
-/**
- * A keyless catalogue that answers a title with candidates.
- *
- * Separate from `CoverLookupProvider` because these answer a question with several answers
- * and that one answers a question with one. Joining them would give the exact lookup a
- * "which of these did you mean" that it never has.
- */
-enum class CoverTitleProvider {
-    /** Books, by title and author. */
-    OPEN_LIBRARY,
-
-    /** Manga and anime. Keyless, and the one most likely to know a volume by its series. */
-    ANILIST,
-
-    /** Manga, including many series AniList has no entry for. */
-    MANGA_UPDATES,
-    ;
-
-    val displayName: String
-        get() = when (this) {
-            OPEN_LIBRARY -> "Open Library"
-            ANILIST -> "AniList"
-            MANGA_UPDATES -> "MangaUpdates"
-        }
-
-    val host: String
-        get() = when (this) {
-            OPEN_LIBRARY -> "openlibrary.org"
-            ANILIST -> "graphql.anilist.co"
-            MANGA_UPDATES -> "api.mangaupdates.com"
-        }
-}
 
 /**
  * A cover a title search found, which a reader may accept or ignore.
