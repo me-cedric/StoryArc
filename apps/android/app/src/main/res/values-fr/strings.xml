@@ -95,6 +95,9 @@
         <item quantity="many">Avancer de %1$d secondes</item>
         <item quantity="other">Avancer de %1$d secondes</item>
     </plurals>
+    <string name="player_skip_back_sentence">Phrase précédente</string>
+    <string name="player_skip_forward_sentence">Phrase suivante</string>
+    <string name="player_part_of">Partie %1$d sur %2$d</string>
     <string name="player_seconds">%1$d s</string>
     <string name="player_sleep">Minuteur de veille</string>
     <string name="player_sleep_in">Veille dans %1$s</string>

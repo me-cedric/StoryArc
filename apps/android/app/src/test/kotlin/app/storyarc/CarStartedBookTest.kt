@@ -24,6 +24,8 @@ class CarStartedBookTest {
         origin = MetadataOrigin.AUTHORITATIVE,
     )
 
+    private fun spokenBook(id: String) = book(id).copy(format = PublicationFormat.EPUB)
+
     @Test
     fun `a car's choice is resolved from the library it is already in`() {
         val sea = book("sea-room")
@@ -46,6 +48,20 @@ class CarStartedBookTest {
     @Test
     fun `an id the library does not hold resolves to nothing, the honest answer for a resumed book`() {
         assertNull(carStartedBook(followingId = null, playingId = "ghost", publications = listOf(book("a"))))
+    }
+
+    /**
+     * Task 13.2 puts the read-aloud voice on the same player, so a session can now arrive
+     * here that nothing in this object started and that is **not** an audiobook. Adopting
+     * one would point the listening writer at a reflowable book and write a part offset
+     * over its locator; the voice writes its own position, sentence by sentence, in
+     * `ReadAloudHost`.
+     */
+    @Test
+    fun `a publication being read aloud is not a car's choice, so it is not adopted`() {
+        val spoken = spokenBook("harbour-lights-01")
+
+        assertNull(carStartedBook(followingId = null, playingId = spoken.id, publications = listOf(spoken)))
     }
 
     @Test

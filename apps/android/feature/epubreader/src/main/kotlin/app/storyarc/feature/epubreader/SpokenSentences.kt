@@ -105,6 +105,22 @@ internal class SpokenSentences(private val publication: Publication) {
     }
 
     /**
+     * Points the walk at the start of a reading-order resource.
+     *
+     * What choosing a chapter in the player means for a voice: `audio-playback` asks that
+     * "choosing one moves there", and a resource is what a read-aloud session's chapter
+     * list is made of — see [SpokenParts]. False where the index names no resource, so the
+     * caller leaves the voice where it was rather than restarting it at the book's
+     * beginning.
+     */
+    fun restartAtResource(index: Int): Boolean {
+        val link = publication.readingOrder.getOrNull(index) ?: return false
+        val locator = publication.locatorFromLink(link) ?: return false
+        restart(locator)
+        return true
+    }
+
+    /**
      * The next sentence, or null at the end of the publication.
      *
      * The iterator spans the whole reading order, so the end of a resource is not the end

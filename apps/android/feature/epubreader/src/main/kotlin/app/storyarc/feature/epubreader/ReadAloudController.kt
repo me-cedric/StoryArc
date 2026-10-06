@@ -134,6 +134,7 @@ internal class ReadAloudController(
             return
         }
         becomingNoisy.register(context)
+        stoppingAtSentenceEnd = false
         sentences.restart(from)
         _session.value = _session.value.started()
         withEngine { speakNext(forward = true) }
@@ -141,6 +142,7 @@ internal class ReadAloudController(
 
     /** Pause and play, from the reader's own control or from the lock screen's. */
     override fun toggle() {
+        stoppingAtSentenceEnd = false
         if (_session.value.isPlaying) {
             pauseFor(interrupted = false)
         } else {
@@ -160,9 +162,77 @@ internal class ReadAloudController(
      */
     override fun skip(forward: Boolean) {
         if (!_session.value.isActive) return
+        stoppingAtSentenceEnd = false
         _session.value = _session.value.started()
         speakNext(forward = forward)
     }
+
+    /**
+     * How fast the voice speaks.
+     *
+     * `TextToSpeech.setSpeechRate` takes the same multiplier the player states, so there is
+     * no mapping to get wrong. It applies to the **next** utterance rather than to the one
+     * being said: the engine has already queued the current sentence, and a rate changed
+     * part way through it is a sentence that changes pace mid-word. A listener who moves
+     * the slider hears the new pace at the next sentence, which for spoken word is about a
+     * second away.
+     */
+    override fun setSpeed(rate: Double) {
+        speechRate = rate.toFloat()
+        engine?.setSpeechRate(speechRate)
+    }
+
+    /**
+     * The rate the engine is asked for, kept because the engine is built on the first press.
+     *
+     * A listener who chose a speed for the last book, or moved the slider before the engine
+     * had bound, would otherwise be given the device's default — the setting would appear to
+     * take and nothing would change pace.
+     */
+    private var speechRate = 1f
+
+    /**
+     * Moves the walk to a chapter the listener chose from the player's list.
+     *
+     * Speaking again afterwards, because choosing a chapter is choosing to hear it — the
+     * same reading a skip takes. A chapter the publication does not hold leaves the voice
+     * where it was rather than sending it back to the first page.
+     */
+    override fun jumpTo(resourceIndex: Int) {
+        if (!_session.value.isActive) return
+        stoppingAtSentenceEnd = false
+        walking?.cancel()
+        walking = scope.launch {
+            val moved = withContext(Dispatchers.IO) { sentences.restartAtResource(resourceIndex) }
+            if (!moved) return@launch
+            _session.value = _session.value.started()
+            speakNext(forward = true)
+        }
+    }
+
+    /**
+     * Goes quiet once the sentence being said has finished.
+     *
+     * The sleep timer's ending. `audio-playback` asks for a fade rather than a cut, and a
+     * voice has no gain to fade — so the sentence is allowed to finish and the next is not
+     * begun. [progress]'s `onDone` is where that is decided, because it is the one report
+     * that means the engine reached the end of an utterance of its own accord.
+     *
+     * Nothing is stopped here. A stop would be the cut this exists to avoid.
+     */
+    override fun stopAtSentenceEnd() {
+        if (!_session.value.isPlaying) return
+        stoppingAtSentenceEnd = true
+    }
+
+    /**
+     * Set by [stopAtSentenceEnd], and spent by the next sentence that finishes.
+     *
+     * Cleared by everything that means the listener wants to go on — a play, a skip, a
+     * chapter chosen — so a sleep timer the listener cancelled by pressing play does not
+     * silence the book one sentence later. iOS's `SpokenSource` holds the same flag.
+     */
+    private var stoppingAtSentenceEnd = false
 
     /** Stops: the listener closed it, or the book ran out of words. */
     override fun stop() = finish(_session.value.stopped())
@@ -250,6 +320,9 @@ internal class ReadAloudController(
             val ready = engine
             if (status == TextToSpeech.SUCCESS && ready != null) {
                 ready.setOnUtteranceProgressListener(progress)
+                // Before the first word, so a speed chosen while the engine was still
+                // binding is the speed the first sentence is said at.
+                ready.setSpeechRate(speechRate)
                 body()
             } else {
                 // No engine on this device, or none that would start. Nothing is said and
@@ -280,7 +353,17 @@ internal class ReadAloudController(
             // utterance and then fail it, and that start is not a sentence said.
             scope.launch {
                 consecutiveErrors = 0
-                if (_session.value.isPlaying) speakNext(forward = true)
+                if (!_session.value.isPlaying) return@launch
+                // The sleep timer asked for the sentence to finish, and it has. A listener
+                // pause rather than a stop, so the book is where they left it and play
+                // starts it again — `audio-playback` asks the position to be recorded and
+                // the session to stay, not to end.
+                if (stoppingAtSentenceEnd) {
+                    stoppingAtSentenceEnd = false
+                    pauseFor(interrupted = false)
+                    return@launch
+                }
+                speakNext(forward = true)
             }
         }
 

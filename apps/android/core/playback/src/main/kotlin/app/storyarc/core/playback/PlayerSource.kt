@@ -53,6 +53,15 @@ interface PlayerSource {
     val speed: PlaybackSpeed
 
     /**
+     * What one press of a skip control moves here. See [SkipUnit].
+     *
+     * Defaulted to seconds, because that is what a decoder moves by and every source that
+     * decodes a file wants it. A voice overrides it, and the player's transport reads it
+     * rather than asking what is speaking.
+     */
+    val skipUnit: SkipUnit get() = SkipUnit.SECONDS
+
+    /**
      * How many parts could not be decoded.
      *
      * `publication-formats`: a damaged audiobook "plays what it can and states how much
@@ -86,6 +95,35 @@ interface PlayerSource {
     fun stop()
     fun seek(to: PlaybackPosition)
     fun setSpeed(speed: PlaybackSpeed)
+
+    /**
+     * Moves to the start of a part, which is what choosing a chapter means.
+     *
+     * The default is the start of the part, and that is right wherever a position is already
+     * measured from a part's own zero. `AudiobookSource` overrides it because a single
+     * chaptered file is one item to the decoder, so the move is to the chapter's mark rather
+     * than to an item index.
+     */
+    fun seekToPart(index: Int) = seek(PlaybackPosition(index, 0))
+
+    /**
+     * How loud this source is, 0…1, for the sleep timer's fade and nothing else.
+     *
+     * A no-op by default: a source with no volume of its own fades by not fading, and
+     * `audio-playback` asks for the fade of the *audio*, which only a source that owns a
+     * gain can give. iOS defaults `PlaybackSource.setVolume` the same way.
+     */
+    fun setVolume(gain: Float) = Unit
+
+    /**
+     * Stops at a place a listener would not notice being cut off at.
+     *
+     * The sleep timer's ending. A decoder has no such place, so the default is the ordinary
+     * pause; a voice finishes the sentence it is saying, because `audio-playback` asks for a
+     * fade rather than a cut and a sentence severed mid-word is the cut. iOS's
+     * `PlaybackSource.stopAtSentenceEnd` carries the same default.
+     */
+    fun stopAtSentenceEnd() = pause()
 
     /**
      * Moves by an interval, carrying on into the neighbouring part where it has to.
@@ -126,6 +164,8 @@ data class NowPlaying(
     val partStartMillis: Long = 0,
     val session: PlaybackSession,
     val speed: PlaybackSpeed,
+    /** What a press of a skip control moves. See [SkipUnit]. */
+    val skipUnit: SkipUnit = SkipUnit.SECONDS,
     val skippedPartCount: Int = 0,
 ) {
 
@@ -246,6 +286,7 @@ data class NowPlaying(
             partStartMillis = source.partStartMillis,
             session = source.session,
             speed = source.speed,
+            skipUnit = source.skipUnit,
             skippedPartCount = source.skippedPartCount,
         )
     }

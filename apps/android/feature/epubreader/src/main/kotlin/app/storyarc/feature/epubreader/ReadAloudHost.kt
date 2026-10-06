@@ -4,6 +4,8 @@ import android.content.Context
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.TotalProgression
 import app.storyarc.core.persistence.ProgressStore
+import app.storyarc.core.playback.PlaybackHost
+import app.storyarc.core.playback.PlaybackPart
 import app.storyarc.core.playback.PlaybackSession
 import app.storyarc.core.playback.SpokenAudio
 import java.lang.ref.WeakReference
@@ -54,6 +56,21 @@ internal interface SpokenVoice {
     fun skip(forward: Boolean)
     fun stop()
     fun release()
+
+    /**
+     * How fast the voice speaks, as the rate the player states.
+     *
+     * `audio-playback` asks for speed on the player whatever is speaking, and 1.0 is the
+     * ordinary pace for both engines — `TextToSpeech.setSpeechRate` takes the same
+     * multiplier `media3` takes, so neither end needs a mapping.
+     */
+    fun setSpeed(rate: Double)
+
+    /** Moves the walk to the start of a reading-order resource. See [SpokenSentences.restart]. */
+    fun jumpTo(resourceIndex: Int)
+
+    /** Finishes the sentence being said, then goes quiet. The sleep timer's ending. */
+    fun stopAtSentenceEnd()
 }
 
 /**
@@ -148,6 +165,15 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
     private var watching: Job? = null
 
     /**
+     * The voice as the shared player sees it, while a session is running.
+     *
+     * Held here rather than inside the controller because it is the *session's* half: it
+     * outlives every screen exactly as the rest of this object does, and it is what
+     * [finish] has to take off the player when the voice goes quiet.
+     */
+    private var source: ReadAloudSource? = null
+
+    /**
      * The screen drawing the sentence, while one is on screen.
      *
      * Weak, and that is the whole of the ownership change: the session refers to the
@@ -181,7 +207,15 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
         position: SpokenPosition,
         from: Locator?,
         drawnBy: SpokenSentenceFollower,
-    ) = begin(book, position, from, drawnBy) { onSentence ->
+    ) = begin(
+        book = book,
+        position = position,
+        from = from,
+        drawnBy = drawnBy,
+        // The player's chapter list for a voice, read off the publication once. See
+        // [SpokenParts]: the reading order is the list and the contents are what name it.
+        parts = SpokenParts.of(position.readingOrder, SpokenParts.titles(publication.tableOfContents)),
+    ) { onSentence ->
         ReadAloudController(
             context = context.applicationContext,
             publication = publication,
@@ -211,6 +245,7 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
         position: SpokenPosition,
         from: Locator?,
         drawnBy: SpokenSentenceFollower,
+        parts: List<PlaybackPart> = emptyList(),
         voice: (onSentence: suspend (Sentence) -> Unit) -> SpokenVoice,
     ) {
         // Named, so restarting the book already being spoken is a restart and not a
@@ -229,6 +264,25 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
             override fun stop() = end()
         }
         speaking.start(from)
+        // The one session, drawn by the one player. `audio-playback`: "every source of
+        // spoken audio — a narrated audiobook and the read-aloud voice alike — SHALL drive
+        // that one surface". Built after the voice has started, because an idle source is
+        // one `PlaybackCentre` lets go of in the same breath — see [PlaybackHost.startVoice].
+        val listed = parts
+            .ifEmpty { position.readingOrder.map { PlaybackPart(title = "") } }
+            .ifEmpty { listOf(PlaybackPart(title = "")) }
+        val playing = ReadAloudSource(
+            voice = speaking,
+            book = book,
+            parts = listed,
+            readingOrder = position.readingOrder,
+            openingAt = from
+                ?.let { TotalProgression.indexOf(it.href.toString(), position.readingOrder) }
+                ?.coerceAtLeast(0)
+                ?: 0,
+        )
+        source = playing
+        if (speaking.session.value.isActive) PlaybackHost.startVoice(playing)
         watching = scope.launch {
             speaking.session.collect { next ->
                 // A session that has already been finished has nothing left to say. Without
@@ -237,6 +291,10 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
                 // write — and tear down the book that had just replaced it.
                 if (controller !== speaking) return@collect
                 _session.value = next
+                // The player draws a session's state, and a pause is a state change no
+                // sentence reports. The source carries no copy of it: it reads the voice,
+                // and this is what tells the surface to read the source again.
+                playing.refresh()
                 if (next.isActive) announce() else finish(speaking)
             }
         }
@@ -302,6 +360,10 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
     private fun finish(ending: SpokenVoice) {
         if (controller !== ending) return
         controller = null
+        // Before the player is told, so the stop it sends back down finds this session
+        // already given up and returns rather than coming round again.
+        source?.let { PlaybackHost.stopVoice(it) }
+        source = null
         position = null
         spoken = null
         val drawing = follower?.get()
@@ -320,6 +382,9 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
 
     private suspend fun sentenceSpoken(sentence: Sentence) {
         spoken = sentence
+        // The player's chapter mark, moved. A voice crosses into the next chapter by saying
+        // a sentence in it and reports nothing else, so this is the only crossing there is.
+        source?.reached(sentence.locator.href.toString())
         val was = _book.value
         _book.value = was?.copy(chapter = sentence.locator.title ?: was.chapter)
         // Only when the line actually changed. The transport shows a state, and saying a

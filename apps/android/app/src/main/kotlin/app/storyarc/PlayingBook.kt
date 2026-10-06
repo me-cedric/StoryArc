@@ -315,5 +315,10 @@ internal fun carStartedBook(
     publications: List<Publication>,
 ): Publication? {
     if (playingId == null || playingId == followingId) return null
-    return publications.firstOrNull { it.id == playingId }
+    // An audiobook, and nothing else. A car can only ever have started one, and the one
+    // other way a session arrives here unannounced is the read-aloud voice, which is a
+    // `PlayerSource` over an EPUB since task 13.2. Adopting that would point
+    // `reading-progress`' writer at a reflowable book and write a listening position over
+    // its locator -- the voice writes its own, sentence by sentence, in `ReadAloudHost`.
+    return publications.firstOrNull { it.id == playingId && it.format.isAudio }
 }

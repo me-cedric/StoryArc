@@ -43,6 +43,14 @@
         <item quantity="one">Forward %1$d second</item>
         <item quantity="other">Forward %1$d seconds</item>
     </plurals>
+    <!-- What a skip control says over a synthesised voice, which moves one sentence at a
+         time rather than a number of seconds. The same words iOS states under
+         player.skip.sentence.previous and player.skip.sentence.next. -->
+    <string name="player_skip_back_sentence">Previous sentence</string>
+    <string name="player_skip_forward_sentence">Next sentence</string>
+    <!-- Where a source with no stated duration is in the publication, in place of a
+         clock it has no way to move. The same words iOS states under player.part.of. -->
+    <string name="player_part_of">Part %1$d of %2$d</string>
     <string name="player_seconds">%1$d s</string>
     <string name="player_sleep">Sleep timer</string>
     <string name="player_sleep_in">Sleep in %1$s</string>

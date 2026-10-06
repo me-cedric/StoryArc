@@ -21,6 +21,8 @@ import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -65,6 +67,7 @@ import app.storyarc.core.playback.PlaybackPosition
 import app.storyarc.core.playback.PlaybackSpeed
 import app.storyarc.core.playback.SkipDirection
 import app.storyarc.core.playback.SkipIntervals
+import app.storyarc.core.playback.SkipUnit
 import app.storyarc.core.playback.SleepAfter
 import app.storyarc.core.playback.SleepTimer
 import app.storyarc.core.playback.SpokenAudio
@@ -180,7 +183,7 @@ internal fun PlayerScreen(
 
         playing.chapter?.let {
             Text(
-                text = it,
+                text = partName(it, playing.partIndex),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -202,7 +205,7 @@ internal fun PlayerScreen(
         }
 
         Position(playing, onSeek, onSeekSettled)
-        Transport(playing.isPlaying, onToggle, onSkip)
+        Transport(playing, onToggle, onSkip)
         Speed(playing.speed, onSpeed)
         Sleep(playing, sleep, onSleep)
 
@@ -242,12 +245,30 @@ internal fun PlayerScreen(
                 trailingContent = chapterMark(index, playing.partIndex)?.let { mark ->
                     { Text(stringResource(mark)) }
                 },
-                content = { Text(part.title) },
+                content = { Text(partName(part.title, index)) },
             )
         }
     }
     }
 }
+
+/**
+ * What a part is called in the list, for a part the publication did not name.
+ *
+ * A read-aloud session's parts are the reading order, and an EPUB's table of contents
+ * routinely names some resources and not others — a cover page, a title page, a book whose
+ * contents list only its chapters. `audio-playback` asks for every part to be listed, so a
+ * row with no name still has to read as something.
+ *
+ * The same words `AudiobookChapters` gives an unnamed chapter of a narrated book, so the
+ * app says one thing. The catalogue is here rather than with the source because a word is
+ * a word: `SpokenParts` states that the publication named nothing, and this is the surface
+ * that has the four languages. iOS splits it at the same seam — `SpokenParts` leaves the
+ * title nil and `PlayerText.chapter` answers with the number.
+ */
+@Composable
+internal fun partName(title: String, index: Int): String =
+    title.ifBlank { "${stringResource(R.string.player_chapter_word)} ${index + 1}" }
 
 /**
  * The word beside a chapter in the player's list, or none.
@@ -315,11 +336,30 @@ private fun Position(
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                text = clock(offset),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // **A clock, or where in the book this part is — never a clock that cannot move.**
+            // A source with no stated duration has no clock either: a read-aloud session
+            // reported `0:00` for as long as it spoke, which is a number that looks like a
+            // position and is not one. `audio-playback` allows a position with no total and
+            // forbids inventing one, and *Part 2 of 12* is the position such a source
+            // actually has. A publication of one part states nothing, because "Part 1 of 1"
+            // tells a listener nothing. iOS's `PlayerLabels.position(part:of:time:)` picks
+            // between the same three.
+            when {
+                total != null -> Text(
+                    text = clock(offset),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                playing.parts.size > 1 -> Text(
+                    text = stringResource(
+                        R.string.player_part_of,
+                        playing.partIndex + 1,
+                        playing.parts.size,
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             total?.let {
                 Text(
                     text = clock(it),
@@ -350,45 +390,61 @@ private fun Position(
  * name. The number here is read from [SkipIntervals], so the control states the distance
  * the audio actually moves. The two numbers are a **product decision**: media3's own are
  * 5 s and 15 s, and both are wrong for spoken word in the same direction.
+ *
+ * **A voice has no seconds to state, so it states none.** `audio-playback`, *Both sources
+ * look the same*: "every control the player offers works, or is absent — none is present
+ * and refusing". A synthesised voice moves one sentence at a time, so the control wears the
+ * glyph a reader already knows from the reader's own read-aloud bar and names itself by what
+ * it does. Decided from [NowPlaying.skipUnit], which the source declares as data — nothing
+ * here asks what is speaking. iOS's `PlayerLabels.skip(_:unit:)` branches on the same value.
  */
 @Composable
 private fun Transport(
-    isPlaying: Boolean,
+    playing: NowPlaying,
     onToggle: () -> Unit,
     onSkip: (SkipDirection) -> Unit,
 ) {
+    val bySentence = playing.skipUnit == SkipUnit.SENTENCE
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Skip(
-            icon = Icons.Filled.Replay,
-            seconds = SkipIntervals.BACK_SECONDS,
-            label = pluralStringResource(
-                R.plurals.player_skip_back,
-                SkipIntervals.BACK_SECONDS,
-                SkipIntervals.BACK_SECONDS,
-            ),
+            icon = if (bySentence) Icons.Filled.SkipPrevious else Icons.Filled.Replay,
+            seconds = SkipIntervals.BACK_SECONDS.takeUnless { bySentence },
+            label = if (bySentence) {
+                stringResource(R.string.player_skip_back_sentence)
+            } else {
+                pluralStringResource(
+                    R.plurals.player_skip_back,
+                    SkipIntervals.BACK_SECONDS,
+                    SkipIntervals.BACK_SECONDS,
+                )
+            },
             onClick = { onSkip(SkipDirection.BACK) },
         )
         FilledIconButton(onClick = onToggle, modifier = Modifier.size(64.dp)) {
             Icon(
-                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                imageVector = if (playing.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                 contentDescription = stringResource(
-                    if (isPlaying) R.string.player_pause else R.string.player_play,
+                    if (playing.isPlaying) R.string.player_pause else R.string.player_play,
                 ),
                 modifier = Modifier.size(32.dp),
             )
         }
         Skip(
-            icon = Icons.AutoMirrored.Filled.Redo,
-            seconds = SkipIntervals.FORWARD_SECONDS,
-            label = pluralStringResource(
-                R.plurals.player_skip_forward,
-                SkipIntervals.FORWARD_SECONDS,
-                SkipIntervals.FORWARD_SECONDS,
-            ),
+            icon = if (bySentence) Icons.Filled.SkipNext else Icons.AutoMirrored.Filled.Redo,
+            seconds = SkipIntervals.FORWARD_SECONDS.takeUnless { bySentence },
+            label = if (bySentence) {
+                stringResource(R.string.player_skip_forward_sentence)
+            } else {
+                pluralStringResource(
+                    R.plurals.player_skip_forward,
+                    SkipIntervals.FORWARD_SECONDS,
+                    SkipIntervals.FORWARD_SECONDS,
+                )
+            },
             onClick = { onSkip(SkipDirection.FORWARD) },
         )
     }
@@ -409,7 +465,8 @@ private fun Transport(
 @Composable
 private fun Skip(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    seconds: Int,
+    /** The interval under the glyph, or null where the source moves by something else. */
+    seconds: Int?,
     label: String,
     onClick: () -> Unit,
 ) {
@@ -422,11 +479,15 @@ private fun Skip(
         IconButton(onClick = onClick) {
             Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(32.dp))
         }
-        Text(
-            text = stringResource(R.string.player_seconds, seconds),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        // Absent rather than empty where the source moves by something that is not time —
+        // see [Transport]. The glyph names itself through the label above.
+        if (seconds != null) {
+            Text(
+                text = stringResource(R.string.player_seconds, seconds),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

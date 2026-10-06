@@ -344,6 +344,24 @@ export const ROUTES = [
     ['EPUB reader > voice stopped', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('readaloud_start'), '?=Allow|Autoriser|Zulassen|Permitir', '@back', '@back', 'Harbour Lights 02', '!' + NAMES.read, '!@wait']],
     ['Player > voice stopped', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('readaloud_start'), '?=Allow|Autoriser|Zulassen|Permitir', '@back', '@back', 'Audiobook folder|, M4B', '!' + NAMES.read + '|' + NAMES.listen]],
 
+    // --- The one player, driven by the voice -----------------------------------------
+    // Task 13.2. `audio-playback`: "every source of spoken audio -- a narrated audiobook and
+    // the read-aloud voice alike -- SHALL drive that one surface". The voice is started from
+    // the reader's menu and the reader is left with Back, so what these photograph is the
+    // shelf and the player with a *voice* behind them rather than a narrated file.
+    //
+    // **Reached through search**, for the reason `Search > one title two sources` gives: a
+    // shelf grouped by series shows `Harbour Lights` and not `Harbour Lights 01`, and a
+    // shelf of two hundred does not show H without scrolling. Search finds a title whatever
+    // the shelf is grouped or sorted by, which is the one thing a capture must not depend on.
+    //
+    // `?=Allow` answers the notification permission the first time a device is asked and is
+    // skipped afterwards -- without it the Back that should leave the reader dismisses the
+    // dialog instead.
+    ['Voice > compact bar', [NAMES.search, named('library_search'), '@type harbour', 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('readaloud_start'), '?=Allow|Autoriser|Zulassen|Permitir', '@back', '@back']],
+    ['Voice > player', [NAMES.search, named('library_search'), '@type harbour', 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('readaloud_start'), '?=Allow|Autoriser|Zulassen|Permitir', '@back', '@back', named('player_open')]],
+    ['Voice > player chapters', [NAMES.search, named('library_search'), '@type harbour', 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('readaloud_start'), '?=Allow|Autoriser|Zulassen|Permitir', '@back', '@back', named('player_open'), '@swipe-up', '@swipe-up']],
+
     // --- Reachable only once a source list is not empty ------------------------------
     ['Settings > source detail', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Audiobooks']],
 

@@ -157,6 +157,31 @@ class PlaybackCentre(
         publish()
     }
 
+    /**
+     * Moves to the start of a chapter the listener chose from a list.
+     *
+     * Through the source, like every other transport call, rather than through the one
+     * implementation the host happened to hold. The write is the requirement: choosing a
+     * chapter is `audio-playback`'s "a listener deciding where they are".
+     */
+    fun seekToPart(index: Int) {
+        val source = source ?: return
+        source.seekToPart(index)
+        recordReached()
+        publish()
+    }
+
+    /** The sleep timer's fade, given to whatever is making the sound. See [PlayerSource.setVolume]. */
+    fun setVolume(gain: Float) {
+        source?.setVolume(gain)
+    }
+
+    /** The sleep timer's ending. See [PlayerSource.stopAtSentenceEnd]. */
+    fun stopAtSentenceEnd() {
+        source?.stopAtSentenceEnd()
+        publish()
+    }
+
     /** Ends the session: the listener closed it, or the book ran out of words. */
     fun stop() {
         val ending = source ?: return
