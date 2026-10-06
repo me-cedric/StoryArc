@@ -110,6 +110,9 @@
     <string name="sources_state_connecting">Conectando</string>
     <string name="sources_state_unreachable">Sin respuesta</string>
     <string name="sources_state_unauthorized">Requiere acceso</string>
+    <string name="covers_lookup">Buscar portadas que faltan</string>
+    <string name="covers_lookup_providers">Consulta: %1$s</string>
+    <string name="covers_lookup_note">Desactivado hasta que lo active. StoryArc envía entonces un solo identificador para una publicación sin portada — un ISBN, un identificador MusicBrainz o un ASIN — y nada más. Ninguna lista de biblioteca, ningún historial de lectura, ningún identificador de dispositivo.</string>
     <plurals name="sources_detail">
         <item quantity="one">%1$,d título</item>
         <item quantity="other">%1$,d títulos</item>

@@ -103,6 +103,17 @@ data class AppSettings(
      * deliberately no counterpart in `AppSettings.swift`.
      */
     val useDynamicColor: Boolean = false,
+    /**
+     * Whether the app may ask an open catalogue for a cover it has no other way to find.
+     *
+     * False until a reader turns it on, and the default is the requirement rather than a
+     * taste: `cover-art` says the app "SHALL NOT request a cover from any third party until
+     * a reader turns the lookup on", and AGENTS.md non-negotiable 2 says data leaves the
+     * device only to sources the user configured. [CoverLookupProvider] names the three that
+     * would be asked. An older stored file lacks the field, and the default says what that
+     * means: off, which is never consent.
+     */
+    val lookUpMissingCovers: Boolean = false,
 ) {
     companion object {
         /**

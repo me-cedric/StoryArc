@@ -47,6 +47,15 @@ class KavitaClient(val address: KavitaAddress) {
         private set
 
     companion object {
+        /**
+         * The largest picture this client will send, in bytes of image.
+         *
+         * Eight megabytes, which `design.md` fixes. Base64 inflates a body by a third, so a
+         * request at this ceiling is about eleven megabytes -- comfortably inside a default
+         * ASP.NET Core body limit, and far above any cover a reader actually has.
+         */
+        const val COVER_UPLOAD_CEILING = 8 * 1024 * 1024
+
         private const val TIMEOUT_MILLIS = 20_000
 
         /** The filter that asks a listing route for everything it holds. */
@@ -456,7 +465,7 @@ class KavitaClient(val address: KavitaAddress) {
      * request shape would be a guess a reader pays for, so this refuses in a sentence the
      * screens can draw instead. iOS's `KavitaClient.sendVersioned` does the same.
      */
-    private suspend fun listing(path: String, body: String): ByteArray {
+    internal suspend fun listing(path: String, body: String): ByteArray {
         if (path in unsupported) throw KavitaError.RouteMissing(path)
         try {
             return request(address.endpoint(path), method = "POST", body = body)
@@ -628,6 +637,22 @@ sealed class KavitaError(message: String) : IOException(message) {
      * `KavitaClient.listing`.
      */
     data class RouteMissing(val path: String) : KavitaError("no route $path")
+
+    /**
+     * The picture is larger than [KavitaClient.COVER_UPLOAD_CEILING], so it is not sent.
+     *
+     * Refused by the client rather than by the server: a rejected body is a wasted upload on
+     * a connection a reader may be paying for, and the server's answer to one is a 413 that
+     * says nothing about which limit was passed.
+     */
+    data object ImageTooLarge : KavitaError("image too large") {
+        private fun readResolve(): Any = ImageTooLarge
+    }
+
+    /** The picture holds no bytes, so there is nothing to write. */
+    data object ImageRejected : KavitaError("image rejected") {
+        private fun readResolve(): Any = ImageRejected
+    }
 
     data class Http(val status: Int) : KavitaError("http $status")
 }

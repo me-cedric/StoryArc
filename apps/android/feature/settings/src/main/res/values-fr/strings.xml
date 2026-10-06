@@ -110,6 +110,9 @@
     <string name="sources_state_connecting">Connexion</string>
     <string name="sources_state_unreachable">Sans réponse</string>
     <string name="sources_state_unauthorized">Connexion requise</string>
+    <string name="covers_lookup">Rechercher les couvertures manquantes</string>
+    <string name="covers_lookup_providers">Interroge : %1$s</string>
+    <string name="covers_lookup_note">Désactivé tant que vous ne l\'activez pas. StoryArc envoie alors un seul identifiant pour une publication sans couverture — un ISBN, un identifiant MusicBrainz ou un ASIN — et rien d\'autre. Aucune liste de bibliothèque, aucun historique de lecture, aucun identifiant d\'appareil.</string>
     <plurals name="sources_detail">
         <item quantity="one">%1$,d titre</item>
         <item quantity="other">%1$,d titres</item>

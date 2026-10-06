@@ -123,6 +123,9 @@
     <string name="sources_state_connecting">Connecting</string>
     <string name="sources_state_unreachable">Not answering</string>
     <string name="sources_state_unauthorized">Needs sign-in</string>
+    <string name="covers_lookup">Look up missing covers</string>
+    <string name="covers_lookup_providers">Asks: %1$s</string>
+    <string name="covers_lookup_note">Off until you turn it on. StoryArc then sends one identifier for a publication with no cover — an ISBN, a MusicBrainz id or an ASIN — and nothing else. No library listing, no reading history, no device identifier.</string>
     <plurals name="sources_detail">
         <item quantity="one">%1$,d title</item>
         <item quantity="other">%1$,d titles</item>

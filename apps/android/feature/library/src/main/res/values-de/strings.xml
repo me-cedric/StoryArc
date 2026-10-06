@@ -26,6 +26,16 @@
     <string name="library_cell_finished">Gelesen</string>
     <string name="library_cell_unavailable">Die zugehörige Bibliothek muss erreichbar sein</string>
     <string name="library_section_other">Weitere</string>
+    <string name="kavita_error_cover_refused">Dieses Bild konnte nicht gesendet werden. Wählen Sie ein kleineres.</string>
+    <string name="covers_candidates">Ein Cover wählen</string>
+    <string name="covers_candidates_none">Kein Vorschlag gefunden. Suchen Sie im Web, oder wählen Sie ein eigenes Bild.</string>
+    <string name="covers_candidates_note">Ein Titel passt auf vieles. Nichts wird übernommen, bis Sie eines wählen.</string>
+    <string name="covers_candidates_from">Von %1$s</string>
+    <string name="covers_web_search">Ein Cover im Web suchen</string>
+    <string name="covers_web_note">Ihr Browser öffnet eine Bildersuche. Speichern Sie dort ein Bild, und wählen Sie es dann hier. StoryArc lädt nichts herunter.</string>
+    <string name="covers_write_back">Dieses Cover an den Server senden</string>
+    <string name="covers_write_back_body">Das ändert das Cover für jede Person, die diese Liste sieht.</string>
+    <string name="covers_write_back_send">Senden</string>
     <plurals name="library_scanning">
         <item quantity="one">Ihre Comics werden hinzugefügt – %1$,d gefunden</item>
         <item quantity="other">Ihre Comics werden hinzugefügt – %1$,d gefunden</item>

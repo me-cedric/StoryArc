@@ -49,6 +49,16 @@ data class KavitaReadingList(
     val coverImageLocked: Boolean = false,
     /** How many entries the server says the list holds, before any of them are fetched. */
     val itemCount: Int = 0,
+    /**
+     * Whether an administrator published this list to everyone on the server.
+     *
+     * The only ownership signal a client gets, and `cover-art` needs one. Kavita answers
+     * `ReadingList/lists` with the lists the signed-in reader owns *plus* the promoted ones,
+     * so a list that is not promoted in that answer is theirs, and a promoted one may belong
+     * to anybody -- which is why `CoverWriteBack` offers no write on a promoted list. Absent
+     * reads as not promoted, which is what a server that has never promoted anything means.
+     */
+    val promoted: Boolean = false,
 )
 
 /** One entry in a server reading list, in the order the server keeps. */

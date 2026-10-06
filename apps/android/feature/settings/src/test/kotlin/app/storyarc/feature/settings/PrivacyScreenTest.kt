@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.designsystem.theme.StoryArcTheme
+import app.storyarc.core.model.AppSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -51,7 +52,13 @@ class PrivacyScreenTest {
 
     private fun showPrivacy(downloadedBytes: Long = 0L) {
         compose.setContent {
-            StoryArcTheme { PrivacyGroup(downloadedBytes = downloadedBytes) }
+            StoryArcTheme {
+                PrivacyGroup(
+                    settings = AppSettings.Defaults,
+                    onChange = {},
+                    downloadedBytes = downloadedBytes,
+                )
+            }
         }
     }
 

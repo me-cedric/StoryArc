@@ -453,6 +453,8 @@ private fun GroupDetail(
                 SettingsGroup.READING ->
                     ReadingGroup(settings, onChange, readerStore, highlight = highlight)
                 SettingsGroup.PRIVACY -> PrivacyGroup(
+                    settings = settings,
+                    onChange = onChange,
                     downloadedBytes = bytesOnDisk,
                     onClearDownloads = onClearDownloads,
                     highlight = highlight,
