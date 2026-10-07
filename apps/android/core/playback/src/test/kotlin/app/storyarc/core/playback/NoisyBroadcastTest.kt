@@ -80,7 +80,21 @@ class NoisyBroadcastTest {
         exo.playWhenReady = true
         source.attach()
         centre.attach(source)
+        awaitNoisyReceiver()
         return listening
+    }
+
+    /**
+     * media3 registers its noisy receiver from a background looper, so a broadcast sent at once
+     * can arrive before anyone listens. Under a loaded suite run, that lost the first broadcast.
+     */
+    private fun awaitNoisyReceiver() {
+        val deadline = System.nanoTime() + RECEIVER_WAIT_NANOS
+        val noisy = AudioManager.ACTION_AUDIO_BECOMING_NOISY
+        while (shadowOf(context).registeredReceivers.none { it.intentFilter.hasAction(noisy) }) {
+            check(System.nanoTime() < deadline) { "the player never listened for the noisy broadcast" }
+            Thread.sleep(RECEIVER_POLL_MILLIS)
+        }
     }
 
     private fun noisy() {
@@ -135,5 +149,10 @@ class NoisyBroadcastTest {
 
         assertEquals("a second pull reported a second pause", before, listening.reasons.size)
         assertFalse(listening.exo.playWhenReady)
+    }
+
+    private companion object {
+        const val RECEIVER_WAIT_NANOS = 5_000_000_000L
+        const val RECEIVER_POLL_MILLIS = 10L
     }
 }
