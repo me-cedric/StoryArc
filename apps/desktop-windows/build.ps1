@@ -14,7 +14,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..' '..')
-$cargoFlags = if ($Configuration -eq 'Release') { @('--release') } else { @() }
+# @() keeps it an array: an if expression unrolls a one-item array into a string, and
+# splatting a string passes cargo one character per argument.
+$cargoFlags = @(if ($Configuration -eq 'Release') { '--release' })
 
 function Invoke-Step {
     param([string]$Name, [scriptblock]$Command)
