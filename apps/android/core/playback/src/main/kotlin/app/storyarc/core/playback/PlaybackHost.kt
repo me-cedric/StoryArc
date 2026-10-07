@@ -393,8 +393,8 @@ object PlaybackHost : SpokenAudio.Speaker {
         // Full volume again, whether the listener cleared a timer or replaced one part way
         // through its fade. Through the source rather than through the controller this host
         // holds: the fade belongs to whatever is making the sound, and a controller reaches
-        // only the decoder. A voice has no gain and fades by not fading — see
-        // [PlayerSource.setVolume].
+        // only the decoder. A voice applies it to its next sentence — see
+        // [SleepTimer.gainFor].
         centre.setVolume(1f)
         if (timer == null) return
 
@@ -407,7 +407,7 @@ object PlaybackHost : SpokenAudio.Speaker {
                 if (playing?.isPlaying != true) continue
                 val next = (_sleep.value ?: return@launch).ticked(TICK_MILLIS, playing)
                 _sleep.value = next
-                centre.setVolume(next.gain)
+                centre.setVolume(next.gainFor(playing.skipUnit))
                 if (next.hasElapsed) {
                     fellAsleep()
                     return@launch
@@ -440,9 +440,9 @@ object PlaybackHost : SpokenAudio.Speaker {
         // begin the chapter again rather than resume it a little earlier. iOS's
         // `sleepTimerElapsed` guards the same call with the same question.
         if (playing?.isScrubbable == true) rewound?.let(centre::seek)
-        // `audio-playback` asks the audio to fade rather than be cut. A voice has no fade to
-        // give, so it finishes the sentence it is saying instead, which is the same promise
-        // kept the only way a sentence can keep it.
+        // `audio-playback` asks the audio to fade rather than be cut. D19: a voice has faded
+        // sentence by sentence, and now finishes the sentence it is saying. It keeps the
+        // faded volume while it waits, so the volume reset below does not reach it.
         if (playing?.isPlaying == true) centre.stopAtSentenceEnd()
         centre.setVolume(1f)
         _sleep.value = null

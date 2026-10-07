@@ -139,4 +139,25 @@ class SleepTimerTest {
     fun `it is silent when it has elapsed`() {
         assertEquals(0f, SleepTimer(SleepAfter.Duration(900_000), 0).gain, 0f)
     }
+
+    /*
+     * Task 13.6, D19 and O20: a synthesised voice fades across the last ten seconds, and a
+     * narrated file keeps its thirty. iOS asserts the same windows in
+     * `SleepTimerRunningTests`.
+     */
+
+    @Test
+    fun `a voice keeps its full volume until the last ten seconds`() {
+        val twenty = SleepTimer(SleepAfter.Duration(900_000), 20_000)
+
+        assertEquals(1f, twenty.gainFor(SkipUnit.SENTENCE), 0f)
+        assertEquals("a narrated file lost its thirty-second fade", 2f / 3f, twenty.gainFor(SkipUnit.SECONDS), 0.01f)
+    }
+
+    @Test
+    fun `half of a voice's ten-second fade is half the volume`() {
+        val five = SleepTimer(SleepAfter.Duration(900_000), SleepTimer.VOICE_FADE_MILLIS / 2)
+
+        assertEquals(0.5f, five.gainFor(SkipUnit.SENTENCE), 0.01f)
+    }
 }

@@ -109,9 +109,9 @@ interface PlayerSource {
     /**
      * How loud this source is, 0…1, for the sleep timer's fade and nothing else.
      *
-     * A no-op by default: a source with no volume of its own fades by not fading, and
-     * `audio-playback` asks for the fade of the *audio*, which only a source that owns a
-     * gain can give. iOS defaults `PlaybackSource.setVolume` the same way.
+     * A no-op by default: a source with no volume of its own fades by not fading. A narrated
+     * file ramps its gain, and a voice applies the gain to its next sentence (D19). iOS
+     * defaults `PlaybackSource.setVolume` the same way.
      */
     fun setVolume(gain: Float) = Unit
 

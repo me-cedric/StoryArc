@@ -134,7 +134,7 @@ internal class ReadAloudController(
             return
         }
         becomingNoisy.register(context)
-        stoppingAtSentenceEnd = false
+        volume.goOn()
         sentences.restart(from)
         _session.value = _session.value.started()
         withEngine { speakNext(forward = true) }
@@ -142,7 +142,7 @@ internal class ReadAloudController(
 
     /** Pause and play, from the reader's own control or from the lock screen's. */
     override fun toggle() {
-        stoppingAtSentenceEnd = false
+        volume.goOn()
         if (_session.value.isPlaying) {
             pauseFor(interrupted = false)
         } else {
@@ -162,7 +162,7 @@ internal class ReadAloudController(
      */
     override fun skip(forward: Boolean) {
         if (!_session.value.isActive) return
-        stoppingAtSentenceEnd = false
+        volume.goOn()
         _session.value = _session.value.started()
         speakNext(forward = forward)
     }
@@ -200,7 +200,7 @@ internal class ReadAloudController(
      */
     override fun jumpTo(resourceIndex: Int) {
         if (!_session.value.isActive) return
-        stoppingAtSentenceEnd = false
+        volume.goOn()
         walking?.cancel()
         walking = scope.launch {
             val moved = withContext(Dispatchers.IO) { sentences.restartAtResource(resourceIndex) }
@@ -213,26 +213,31 @@ internal class ReadAloudController(
     /**
      * Goes quiet once the sentence being said has finished.
      *
-     * The sleep timer's ending. `audio-playback` asks for a fade rather than a cut, and a
-     * voice has no gain to fade — so the sentence is allowed to finish and the next is not
-     * begun. [progress]'s `onDone` is where that is decided, because it is the one report
-     * that means the engine reached the end of an utterance of its own accord.
+     * The sleep timer's ending. `audio-playback` asks for a fade rather than a cut, and D19
+     * asks a voice to finish the sentence it is saying — so the sentence is allowed to finish
+     * and the next is not begun. [progress]'s `onDone` is where that is decided, because it is
+     * the one report that means the engine reached the end of an utterance of its own accord.
      *
      * Nothing is stopped here. A stop would be the cut this exists to avoid.
      */
     override fun stopAtSentenceEnd() {
         if (!_session.value.isPlaying) return
-        stoppingAtSentenceEnd = true
+        volume.stopAtSentenceEnd()
     }
 
     /**
-     * Set by [stopAtSentenceEnd], and spent by the next sentence that finishes.
-     *
-     * Cleared by everything that means the listener wants to go on — a play, a skip, a
-     * chapter chosen — so a sleep timer the listener cancelled by pressing play does not
-     * silence the book one sentence later. iOS's `SpokenSource` holds the same flag.
+     * D19: the sleep timer's fade, applied to the next sentence. See [SpokenVolume].
      */
-    private var stoppingAtSentenceEnd = false
+    override fun setVolume(gain: Float) = volume.fade(gain)
+
+    /**
+     * The volume of the next sentence, and the stop that waits for the sentence end.
+     *
+     * The wait is ended by everything that means the listener wants to go on — a play, a
+     * skip, a chapter chosen — so a sleep timer the listener cancelled by pressing play does
+     * not silence the book one sentence later. iOS's `SpokenSource` holds the same state.
+     */
+    private val volume = SpokenVolume()
 
     /** Stops: the listener closed it, or the book ran out of words. */
     override fun stop() = finish(_session.value.stopped())
@@ -358,8 +363,7 @@ internal class ReadAloudController(
                 // pause rather than a stop, so the book is where they left it and play
                 // starts it again — `audio-playback` asks the position to be recorded and
                 // the session to stay, not to end.
-                if (stoppingAtSentenceEnd) {
-                    stoppingAtSentenceEnd = false
+                if (volume.sentenceFinished()) {
                     pauseFor(interrupted = false)
                     return@launch
                 }
@@ -425,7 +429,7 @@ internal class ReadAloudController(
         val queued = engine.speak(
             sentence.text,
             TextToSpeech.QUEUE_FLUSH,
-            null,
+            speechParams(volume.gain),
             sentence.locator.href.toString(),
         )
         // A refused call gets neither `onStart` nor `onError`: nothing else will ever end

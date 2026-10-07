@@ -71,6 +71,9 @@ internal interface SpokenVoice {
 
     /** Finishes the sentence being said, then goes quiet. The sleep timer's ending. */
     fun stopAtSentenceEnd()
+
+    /** The sleep timer's fade, 0…1, for the next sentence. See [SpokenVolume]. */
+    fun setVolume(gain: Float)
 }
 
 /**

@@ -50,12 +50,25 @@ data class SleepTimer(
      * straight ramp over the last [FADE_MILLIS], because a listener who is nearly asleep
      * should not be woken by silence arriving all at once.
      */
-    val gain: Float
-        get() = when {
-            remainingMillis >= FADE_MILLIS -> 1f
-            remainingMillis <= 0 -> 0f
-            else -> (remainingMillis.toFloat() / FADE_MILLIS.toFloat()).coerceIn(0f, 1f)
-        }
+    val gain: Float get() = gain(fadingOverMillis = FADE_MILLIS)
+
+    /** How loud the audio should be, 0…1, for a fade that lasts [fadingOverMillis]. */
+    fun gain(fadingOverMillis: Long): Float = when {
+        remainingMillis >= fadingOverMillis -> 1f
+        remainingMillis <= 0 -> 0f
+        else -> (remainingMillis.toFloat() / fadingOverMillis.toFloat()).coerceIn(0f, 1f)
+    }
+
+    /**
+     * How loud a source that moves by [unit] should be.
+     *
+     * D19 and O20: a synthesised voice fades across the last [VOICE_FADE_MILLIS], and a
+     * narrated file keeps its [FADE_MILLIS]. A voice can change its volume only between
+     * sentences, so a long ramp would be a few loud steps. iOS's `PlayerSleep` asks the same
+     * question of the same `SkipUnit`.
+     */
+    fun gainFor(unit: SkipUnit): Float =
+        gain(fadingOverMillis = if (unit == SkipUnit.SENTENCE) VOICE_FADE_MILLIS else FADE_MILLIS)
 
     /**
      * The timer a moment later.
@@ -85,6 +98,9 @@ data class SleepTimer(
          * decision** with no guideline behind it.
          */
         const val FADE_MILLIS: Long = 30_000
+
+        /** D19: a synthesised voice fades in steps across the last ten seconds. See [gainFor]. */
+        const val VOICE_FADE_MILLIS: Long = 10_000
 
         /**
          * The durations offered, in minutes.

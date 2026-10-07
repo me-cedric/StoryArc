@@ -81,6 +81,7 @@ class ReadAloudHostTest {
         override fun setSpeed(rate: Double) { this.rate = rate }
         override fun jumpTo(resourceIndex: Int) { jumpedTo = resourceIndex }
         override fun stopAtSentenceEnd() { stoppedAtSentenceEnd = true }
+        override fun setVolume(gain: Float) = Unit
 
         override fun stop() {
             _session.value = _session.value.stopped()

@@ -67,6 +67,9 @@ class ReadAloudSourceTest {
         override fun setSpeed(rate: Double) { this.rate = rate }
         override fun jumpTo(resourceIndex: Int) { jumpedTo = resourceIndex }
         override fun stopAtSentenceEnd() { stoppedAtSentenceEnd = true }
+
+        var volume: Float? = null
+        override fun setVolume(gain: Float) { volume = gain }
     }
 
     private val readingOrder = listOf("cover.xhtml", "ch1.xhtml", "ch2.xhtml")
@@ -228,5 +231,15 @@ class ReadAloudSourceTest {
         source(voice).stopAtSentenceEnd()
 
         assertTrue(voice.stoppedAtSentenceEnd)
+    }
+
+    /** Task 13.6, D19: the sleep timer's fade reaches the voice rather than stopping here. */
+    @Test
+    fun `the sleep timer's fade reaches the voice`() {
+        val voice = Voice()
+
+        source(voice).setVolume(0.4f)
+
+        assertEquals(0.4f, voice.volume ?: 1f, 0f)
     }
 }

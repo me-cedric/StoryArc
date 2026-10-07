@@ -1,11 +1,14 @@
 package app.storyarc.core.playback
 
+import android.os.Looper
+import java.time.Duration
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
@@ -31,12 +34,15 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34])
 class PlaybackHostVoiceTest {
 
-    private class Voice : PlayerSource {
+    private class Voice(override val skipUnit: SkipUnit = SkipUnit.SENTENCE) : PlayerSource {
         override val publicationId = "harbour-lights"
         override val title = "Harbour Lights"
         override val parts = listOf(PlaybackPart("Chapter One"))
         override val position = PlaybackPosition(0, 0)
-        override val skipUnit = SkipUnit.SENTENCE
+
+        /** Every volume the sleep timer asked for, in order. */
+        val volumes = mutableListOf<Float>()
+        override fun setVolume(gain: Float) { volumes += gain }
         var state = PlaybackSession().started()
         override val session: PlaybackSession get() = state
         override val speed = PlaybackSpeed.NORMAL
@@ -88,5 +94,40 @@ class PlaybackHostVoiceTest {
         PlaybackHost.stopVoice(displaced)
 
         assertEquals("harbour-lights", PlaybackHost.nowPlaying.value?.publicationId)
+    }
+
+    // MARK: - The sleep timer's fade
+
+    /*
+     * Task 13.6, D19 and O20. The countdown is the host's, and it asks the source for its
+     * volume on every tick. A voice fades across the last ten seconds; a source that moves by
+     * seconds keeps the thirty-second fade. Twenty seconds on the timer, ten and a half of
+     * them gone: nine and a half are left.
+     */
+
+    private fun tenAndAHalfSecondsInto(source: Voice): Float {
+        PlaybackHost.startVoice(source)
+        PlaybackHost.setSleepTimer(SleepAfter.Duration(20_000))
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(10_500))
+        return source.volumes.last()
+    }
+
+    @Test
+    fun `a voice fades across the last ten seconds`() {
+        val gain = tenAndAHalfSecondsInto(voice)
+
+        assertEquals(0.95f, gain, 0.01f)
+    }
+
+    @Test
+    fun `a source that moves by seconds keeps the thirty-second fade`() {
+        val narrated = Voice(SkipUnit.SECONDS)
+        try {
+            val gain = tenAndAHalfSecondsInto(narrated)
+
+            assertEquals(9_500f / 30_000f, gain, 0.01f)
+        } finally {
+            PlaybackHost.stopVoice(narrated)
+        }
     }
 }

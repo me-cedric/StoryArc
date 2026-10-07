@@ -131,11 +131,15 @@ internal class ReadAloudSource(
     /**
      * The sleep timer's ending, kept at a place a listener would not notice being cut off at.
      *
-     * A voice has no gain to fade, so `audio-playback`'s "fades out rather than cutting off"
-     * is kept the only way a sentence can keep it: the one being said is finished, and the
-     * next is not begun.
+     * D19: the one sentence being said is finished, and the next is not begun.
      */
     override fun stopAtSentenceEnd() = voice.stopAtSentenceEnd()
+
+    /**
+     * The sleep timer's fade. D19: a voice fades in steps, one sentence at a time, because
+     * the engine takes a volume for the next utterance and never for the one being said.
+     */
+    override fun setVolume(gain: Float) = voice.setVolume(gain)
 
     // MARK: - What the session reports back
 
