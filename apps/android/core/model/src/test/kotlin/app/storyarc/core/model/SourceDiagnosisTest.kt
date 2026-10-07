@@ -42,6 +42,42 @@ class SourceDiagnosisTest {
         downloadedBytes = bytes,
     )
 
+    // The transport a share's last session negotiated
+
+    @Test
+    fun `a share carries what its last session negotiated`() {
+        val negotiated = ShareTransport(dialect = "SMB 3.1.1", isEncrypted = true)
+        val diagnosis = SourceDiagnosis.of(
+            source(kind = SourceKind.NETWORK_SHARE),
+            itemCount = 0,
+            downloads = emptyList(),
+            transport = negotiated,
+        )
+        assertEquals(negotiated, diagnosis.transport)
+    }
+
+    @Test
+    fun `no other kind carries a share's transport, even when one is handed in`() {
+        val negotiated = ShareTransport(dialect = "SMB 3.1.1", isEncrypted = true)
+        for (kind in SourceKind.entries.filter { it != SourceKind.NETWORK_SHARE }) {
+            val diagnosis = SourceDiagnosis.of(
+                source(kind = kind),
+                itemCount = 0,
+                downloads = emptyList(),
+                transport = negotiated,
+            )
+            assertNull("$kind", diagnosis.transport)
+        }
+    }
+
+    @Test
+    fun `the newest session of a share is the one kept`() {
+        val share = UUID.randomUUID()
+        ShareSessions.record(share, ShareTransport("SMB 2.1", isEncrypted = false))
+        ShareSessions.record(share, ShareTransport("SMB 3.1.1", isEncrypted = true))
+        assertEquals(ShareTransport("SMB 3.1.1", isEncrypted = true), ShareSessions.all.value[share])
+    }
+
     // The five fields
 
     @Test

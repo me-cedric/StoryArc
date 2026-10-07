@@ -63,11 +63,11 @@ class AcknowledgementsTest {
      * Everything the APK carries beyond AndroidX and Kotlin, named.
      *
      * `settings-and-about` asks for *every* third-party library, and the inventory listed the
-     * two toolkits and the fonts only. These nine are the rest of the release runtime
-     * classpath: `jcifs-ng` and `bcprov` come from `apps/android/core/smb/build.gradle.kts`,
-     * `desugar_jdk_libs` from the two `coreLibraryDesugaring` lines, `jsoup`, `Timber` and
-     * `Koi` arrive through the Readium toolkit, `SLF4J` through `jcifs-ng`, `Guava` through
-     * media3 and `JSpecify` through `jsoup` and `Guava`.
+     * two toolkits and the fonts only. These eleven are the rest of the release runtime
+     * classpath: `smbj` comes from `apps/android/core/smb/build.gradle.kts` and brings
+     * `bcprov`, `asn-one`, MBassador and `SLF4J`, `desugar_jdk_libs` comes from the two
+     * `coreLibraryDesugaring` lines, `jsoup`, `Timber` and `Koi` arrive through the Readium
+     * toolkit, `Guava` through media3 and `JSpecify` through `jsoup` and `Guava`.
      *
      * `media3` itself is deliberately absent: it is `androidx.media3`, which the AndroidX
      * entry already covers.
@@ -75,7 +75,9 @@ class AcknowledgementsTest {
     @Test
     fun `every library the APK carries beyond AndroidX and Kotlin has an entry`() {
         val shipped = mapOf(
-            "jcifs-ng" to "eu.agno3.jcifs",
+            "smbj" to "com.hierynomus:smbj",
+            "ASN.1 (asn-one)" to "com.hierynomus:asn-one",
+            "MBassador" to "net.engio",
             "Bouncy Castle" to "org.bouncycastle",
             "desugar_jdk_libs" to "com.android.tools",
             "jsoup" to "org.jsoup",
@@ -96,26 +98,23 @@ class AcknowledgementsTest {
     }
 
     /**
-     * The one copyleft component carries its own text.
+     * No component is LGPL any more.
      *
-     * `jcifs-ng` is LGPL-2.1-or-later and every other entry is permissive, so this is the one
-     * row whose text a reader has a legal right to. The general check above only asks that
-     * *some* text exists; this one asks that it is the LGPL.
+     * `jcifs-ng` was the one LGPL-2.1-or-later entry, and ADR-0018 replaced it with `smbj`,
+     * which is Apache-2.0. An LGPL row that came back would bring back the relinking duty
+     * the replacement removed, so it fails here by name.
      */
     @Test
-    fun `the LGPL component ships the LGPL text`() {
-        val jcifs = notices.firstOrNull { it.name == "jcifs-ng" }
-            ?: error("jcifs-ng has no entry, so there is no LGPL row to read a text from.")
-        val text = Notices.text(context.assets, jcifs).orEmpty()
+    fun `no component is LGPL, and the SMB client is under the Apache licence`() {
+        val lesser = notices.filter { it.licence.startsWith("LGPL") }.map { it.name }
+        assertTrue("LGPL components are listed: $lesser", lesser.isEmpty())
 
+        val smbj = notices.firstOrNull { it.name == "smbj" }
+            ?: error("smbj has no entry, so the SMB client the APK runs is not acknowledged.")
+        assertTrue("smbj declares ${smbj.licence}", smbj.licence == "Apache-2.0")
         assertTrue(
-            "jcifs-ng declares ${jcifs.licence} rather than an LGPL identifier.",
-            jcifs.licence.startsWith("LGPL"),
-        )
-        assertTrue(
-            "The ${jcifs.licence} row opens on ${text.length} characters that do not name the" +
-                " Lesser General Public License, so the app ships LGPL code without its terms.",
-            text.contains("LESSER GENERAL PUBLIC LICENSE", ignoreCase = true),
+            "The smbj row opens on text that is not the Apache licence.",
+            Notices.text(context.assets, smbj).orEmpty().contains("Apache License", ignoreCase = true),
         )
     }
 

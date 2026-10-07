@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +36,7 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadLibrary
+import app.storyarc.core.model.ShareSessions
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceAction
 import app.storyarc.core.model.SourceDiagnosis
@@ -157,6 +159,9 @@ fun SettingsScreen(
     // different figures for one source. "On this device" is the app's own imported copies,
     // not a source the reader added, so it is not one they can remove: the same exception
     // the list makes, asked in the same place so the two cannot disagree.
+    // What each share's last session negotiated, so the detail screen's sentence follows a
+    // test of the connection the moment it ends.
+    val negotiated by ShareSessions.all.collectAsState()
     val diagnose: (Source) -> SourceDiagnosis = { source ->
         SourceDiagnosis.of(
             source,
@@ -166,6 +171,7 @@ fun SettingsScreen(
             isPartial = isPartial(source),
             readCount = readCount(source),
             readTotal = readTotal(source),
+            transport = negotiated[source.id],
         )
     }
 

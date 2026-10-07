@@ -58,6 +58,11 @@ data class SourceDiagnosis(
     val downloadedBytes: Long,
     /** In the order the screen shows them, destructive last. */
     val actions: List<SourceAction>,
+    /**
+     * What the last session with this source negotiated, for a network share. Null for any
+     * other kind, and for a share the app has not reached since it started.
+     */
+    val transport: ShareTransport? = null,
 ) {
     companion object {
         /**
@@ -75,6 +80,7 @@ data class SourceDiagnosis(
             isPartial: Boolean = false,
             readCount: Int? = null,
             readTotal: Int? = null,
+            transport: ShareTransport? = null,
         ): SourceDiagnosis {
             val mine = downloads.filter { it.sourceId == source.id && it.state.isFinished }
             val actions = buildList {
@@ -105,6 +111,9 @@ data class SourceDiagnosis(
                 downloadCount = mine.size,
                 downloadedBytes = mine.sumOf { it.downloadedBytes },
                 actions = actions,
+                // A share's own, and nobody else's: a transport handed in for a catalogue
+                // would put an SMB sentence on a screen about HTTP.
+                transport = transport.takeIf { source.kind == SourceKind.NETWORK_SHARE },
             )
         }
     }

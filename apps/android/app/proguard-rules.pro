@@ -4,8 +4,21 @@
 # Compose and AndroidX ship their own consumer rules — nothing needed here yet.
 # Serialization and reflection-based rules land with the connector layer.
 
-# jcifs-ng logs through slf4j, and slf4j 1.x looks for a binding class that no
-# dependency here provides — the library falls back to a no-op logger at run time.
-# R8 sees the reference and refuses to finish, so the warning is suppressed rather
-# than the class kept: keeping it is impossible, it does not exist.
--dontwarn org.slf4j.impl.StaticLoggerBinder
+# smbj (ADR-0018) and the libraries it brings.
+#
+# MBassador finds an event handler by its @Handler annotation, at run time. smbj's
+# SMBClient, Connection and Session each subscribe one, and a handler R8 renamed
+# or stripped would leave a closed session in the client's tables. So the
+# annotation is kept, with every method that carries it.
+-keepattributes RuntimeVisibleAnnotations
+-keepclassmembers class * {
+    @net.engio.mbassy.listener.Handler <methods>;
+}
+-keep @interface net.engio.mbassy.listener.**
+# MBassador's expression-language filters use javax.el, which Android does not
+# have and no StoryArc subscription uses. The classes cannot be kept; they do
+# not exist, so the warning is suppressed.
+-dontwarn javax.el.**
+# smbj's Kerberos path uses GSS-API, which Android does not have. smbj checks
+# for android.os.Build and never registers that authenticator on Android.
+-dontwarn org.ietf.jgss.**

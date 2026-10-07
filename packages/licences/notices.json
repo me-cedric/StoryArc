@@ -108,7 +108,7 @@
       "platforms": [
         "ios"
       ],
-      "why": "SMB 2/3, which iOS has no API for. ADR-0010.",
+      "why": "SMB 2 and SMB 3, which iOS has no API for. Vendored in third_party/SMBClient, with SMB 3 dialects and transport encryption added. ADR-0010, ADR-0018.",
       "copyright": "Copyright (c) 2024 Kishikawa Katsumi"
     },
     {
@@ -178,36 +178,58 @@
       "copyright": "Copyright 2018-2020 The JSpecify Authors."
     },
     {
-      "name": "jcifs-ng",
-      "version": "2.1.10",
-      "licence": "LGPL-2.1-or-later",
-      "url": "https://github.com/AgNO3/jcifs-ng",
+      "name": "smbj",
+      "version": "0.15.0",
+      "licence": "Apache-2.0",
+      "url": "https://github.com/hierynomus/smbj",
       "platforms": [
         "android"
       ],
-      "why": "SMB 2/3, which Android has no API for. ADR-0010. The only LGPL component: it is linked unmodified and is replaceable.",
-      "copyright": "Copyright (C) 2000 \"Michael B. Allen\" <jcifs at samba dot org>\n© 2016 AgNO3 Gmbh & Co. KG"
+      "why": "SMB 2 and SMB 3 with transport encryption, which Android has no API for. ADR-0010, ADR-0018.",
+      "copyright": "Copyright (C) 2016 - SMBJ Contributors"
+    },
+    {
+      "name": "ASN.1 (asn-one)",
+      "version": "0.6.0",
+      "licence": "Apache-2.0",
+      "url": "https://github.com/hierynomus/asn-one",
+      "platforms": [
+        "android"
+      ],
+      "why": "SPNEGO token parsing inside smbj. ADR-0018.",
+      "copyright": "Copyright 2016 Jeroen van Erp <jeroen@hierynomus.com>"
+    },
+    {
+      "name": "MBassador",
+      "version": "1.3.2",
+      "licence": "MIT",
+      "url": "https://github.com/bennidi/mbassador",
+      "platforms": [
+        "android"
+      ],
+      "why": "The event bus inside smbj. ADR-0018.",
+      "copyright": "Copyright (c) 2012 Benjamin Diedrichsen"
     },
     {
       "name": "SLF4J API",
-      "version": "1.7.36",
+      "version": "2.0.18",
       "licence": "MIT",
       "url": "https://www.slf4j.org",
       "platforms": [
         "android"
       ],
-      "why": "The logging facade jcifs-ng writes to. ADR-0010.",
+      "why": "The logging facade smbj writes to. ADR-0018.",
       "copyright": "Copyright (c) 2004-2022 QOS.ch Sarl (Switzerland)"
     },
     {
       "name": "Bouncy Castle",
-      "version": "1.84",
+      "version": "1.85.2",
       "licence": "MIT",
       "url": "https://www.bouncycastle.org",
       "platforms": [
         "android"
       ],
-      "why": "SPNEGO token parsing inside jcifs-ng. Raised from 1.76 for CVE-2025-8885.",
+      "why": "The ciphers, MACs and key derivation inside smbj, for SMB signing and SMB 3 encryption. ADR-0018.",
       "copyright": "Copyright (c) 2000-2026 The Legion of the Bouncy Castle Inc. (https://www.bouncycastle.org)."
     },
     {

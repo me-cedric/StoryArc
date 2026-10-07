@@ -13,15 +13,9 @@ coreKtx = "1.19.0"
 # mainline module, and these are the only way to tell lint that a check on the
 # extension level is a real guard rather than a boolean. ADR-0012.
 androidxAnnotation = "1.10.0"
-jcifsNg = "2.1.10"
-# Not a library this app calls. jcifs-ng declares 1.76 and hands it the SPNEGO
-# tokens an SMB server sends during session setup, and 1.76 is inside the
-# CVE-2025-8885 range: an object identifier with an oversized arc makes
-# ASN1ObjectIdentifier allocate without bound, so a hostile or spoofed NAS can
-# have the app killed for memory pressure whenever the reader opens that share.
-# Fixed in 1.78; 1.84 is current. Applied as a constraint in :core:smb rather
-# than as a dependency, because nothing here imports BouncyCastle.
-bouncycastle = "1.84"
+# SMB 2 and SMB 3 with transport encryption (AES-128-GCM and AES-128-CCM).
+# Replaced jcifs-ng, which carried no cipher and was LGPL. ADR-0018.
+smbj = "0.15.0"
 lifecycle = "2.11.0"
 activityCompose = "1.13.0"
 # ADR-0005: Readium renders reflowable EPUB. iOS pins the same 3.x line.
@@ -135,11 +129,8 @@ androidx-test-runner = { group = "androidx.test", name = "runner", version.ref =
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
-# `network-share` needs SMB 2/3, which Android has no API for. ADR-0010.
-jcifs-ng = { group = "eu.agno3.jcifs", name = "jcifs-ng", version.ref = "jcifsNg" }
-# Declared only so :core:smb can constrain what jcifs-ng drags in. See the
-# version note above — this is never added as a dependency.
-bouncycastle-bcprov = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
+# `network-share` needs SMB 2/3, which Android has no API for. ADR-0010, ADR-0018.
+smbj = { group = "com.hierynomus", name = "smbj", version.ref = "smbj" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

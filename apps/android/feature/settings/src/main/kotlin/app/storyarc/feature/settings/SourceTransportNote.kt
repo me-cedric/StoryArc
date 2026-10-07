@@ -1,6 +1,7 @@
 package app.storyarc.feature.settings
 
 import androidx.annotation.StringRes
+import app.storyarc.core.model.ShareTransport
 import app.storyarc.core.model.SourceKind
 
 /**
@@ -17,17 +18,22 @@ import app.storyarc.core.model.SourceKind
  * pass both answers in and watch the drawn sentence follow.
  *
  * **It names encryption and never signing, and that is a decision rather than an omission.**
- * ADR-0016 refuses a signing line on iOS, because that client verifies no response and
- * cannot answer the question. jcifs-ng can answer it, and the add-share sheet says so. This
- * screen is drawn the same way on both platforms, so a signed session reads like an
- * unsigned one here.
+ * ADR-0016 refuses a signing line on iOS. This screen is drawn the same way on both
+ * platforms, so a signed session reads like an unsigned one here.
  *
- * @param isEncrypted what the app measured, which is `ShareTransport.IS_ENCRYPTED` today.
- * @return the string to draw, or `null` when this kind of source has no transport to state.
+ * Three whole sentences, one per state, never a clause added to another: French, German and
+ * Spanish order the words differently.
+ *
+ * @param transport what the last session with this share negotiated, or `null` when the app
+ *   has not reached it since it started.
+ * @return the sentence to draw, or `null` when this kind of source has no transport to state.
  */
-@StringRes
-internal fun transportNote(kind: SourceKind, isEncrypted: Boolean): Int? = when {
+internal fun transportNote(kind: SourceKind, transport: ShareTransport?): TransportNote? = when {
     kind != SourceKind.NETWORK_SHARE -> null
-    isEncrypted -> R.string.sources_detail_transport_encrypted
-    else -> R.string.sources_detail_transport_plain
+    transport == null -> TransportNote(R.string.sources_detail_transport_unknown)
+    transport.isEncrypted -> TransportNote(R.string.sources_detail_transport_encrypted, transport.dialect)
+    else -> TransportNote(R.string.sources_detail_transport_plain, transport.dialect)
 }
+
+/** One sentence, and the dialect it names when it names one. */
+internal data class TransportNote(@StringRes val text: Int, val dialect: String? = null)

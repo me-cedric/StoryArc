@@ -21,8 +21,8 @@ android {
 
     packaging {
         resources {
-            // jcifs-ng and its logging facade each ship one, and two of the same file
-            // is a packaging error rather than a choice to make.
+            // Two libraries can each ship one, and two of the same file is a packaging
+            // error rather than a choice to make.
             excludes += "META-INF/DEPENDENCIES"
         }
     }
@@ -42,22 +42,14 @@ tasks.withType<Test>().configureEach {
 }
 
 dependencies {
-    // jcifs-ng was built against BouncyCastle 1.76 and parses the SPNEGO tokens the
-    // server chooses with it. 1.76 is inside CVE-2025-8885, so it is raised here rather
-    // than added as a dependency: no source in this module imports BouncyCastle, and
-    // declaring it would say otherwise. jcifs-ng touches only long-stable ASN.1, HMAC
-    // and KDF APIs, so the newer artifact is a drop-in.
-    constraints {
-        implementation(libs.bouncycastle.bcprov) {
-            because("CVE-2025-8885: unbounded allocation parsing a server's SPNEGO ASN.1 object identifier")
-        }
-    }
-
     api(project(":core:format"))
-    // `ShareTransport`, so that this client and the two screens that state what it does
-    // read one declaration. `:core:model` is pure Kotlin and depends on nothing here.
-    implementation(project(":core:model"))
-    implementation(libs.jcifs.ng)
+    // `ShareTransport`, which `SmbIdentity` hands to callers, so that this client and the
+    // two screens that state what it negotiated read one type. Pure Kotlin.
+    api(project(":core:model"))
+    // SMB 2 and 3, with SMB 3 transport encryption. Its own runtime dependencies are
+    // Bouncy Castle (the ciphers), asn-one (SPNEGO), MBassador (events) and the SLF4J API.
+    // ADR-0018 records the swap from jcifs-ng.
+    implementation(libs.smbj)
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.junit)

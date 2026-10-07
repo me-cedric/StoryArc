@@ -1,5 +1,6 @@
 package app.storyarc.core.smb
 
+import app.storyarc.core.model.ShareTransport
 import java.io.File
 
 /**
@@ -24,7 +25,7 @@ data class SmbAddress(
     /** What to show a reader who is looking at a list of sources. */
     val displayName: String get() = "$host/$share"
 
-    /** A `smb://` URL for jcifs, with the path it was given. */
+    /** A `smb://` URL, with the path it was given. The client checks the host with it. */
     fun url(inside: String = path): String {
         val authority = if (port == DEFAULT_PORT) host else "$host:$port"
         val trimmed = inside.trim('/')
@@ -134,7 +135,10 @@ data class SmbIdentity(
      * share is entitled to know that before they save it.
      */
     val isSigned: Boolean,
-)
+) {
+    /** What this session negotiated, in the form the source detail screen reads. */
+    val transport: ShareTransport get() = ShareTransport(dialect, isEncrypted)
+}
 
 /**
  * Where this entry's bytes may be written under [directory], or `null` when the server's

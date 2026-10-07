@@ -12,10 +12,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.ShareTransport
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceDiagnosis
 import app.storyarc.core.model.SourceKind
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
@@ -39,9 +41,10 @@ import org.robolectric.annotation.GraphicsMode
  * each measurement and read back which sentence appeared. Against the old screen the first
  * one fails, because the old screen drew the same sentence for both answers.
  *
- * **Neither client encrypts today**, so a reader only ever sees the plain sentence. The
- * encrypted answer is still drawn here, because the point of the change is that the screen
- * follows the value instead of repeating an answer.
+ * **The value is the session's.** smbj encrypts a session when the server agreed SMB 3 with a
+ * cipher, so the screen reads [SourceDiagnosis.transport], which the last probe of the share
+ * wrote. A share the app has not reached since it started gets a third sentence that claims
+ * neither answer.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w400dp-h1600dp")
@@ -51,8 +54,8 @@ class SourceTransportNoteTest {
     @get:Rule
     val compose = createComposeRule()
 
-    /** The two sentences, as this composition resolves them. */
-    private data class Sentences(val plain: String, val encrypted: String)
+    /** The three sentences, as this composition resolves them, for [DIALECT]. */
+    private data class Sentences(val plain: String, val encrypted: String, val unknown: String)
 
     /**
      * Draws the screen once and reports both sentences.
@@ -63,14 +66,15 @@ class SourceTransportNoteTest {
     private fun show(
         kind: SourceKind,
         state: SourceConnectionState = SourceConnectionState.Connected,
-        isEncrypted: Boolean = false,
+        transport: ShareTransport? = PLAIN,
         fontScale: Float = 1f,
     ): Sentences {
-        var sentences = Sentences("", "")
+        var sentences = Sentences("", "", "")
         compose.setContent {
             sentences = Sentences(
-                plain = stringResource(R.string.sources_detail_transport_plain),
-                encrypted = stringResource(R.string.sources_detail_transport_encrypted),
+                plain = stringResource(R.string.sources_detail_transport_plain, DIALECT),
+                encrypted = stringResource(R.string.sources_detail_transport_encrypted, DIALECT),
+                unknown = stringResource(R.string.sources_detail_transport_unknown),
             )
             CompositionLocalProvider(
                 LocalDensity provides Density(density = 1f, fontScale = fontScale),
@@ -83,10 +87,10 @@ class SourceTransportNoteTest {
                             source,
                             itemCount = 3,
                             downloads = emptyList(),
+                            transport = transport,
                         ),
                         onAction = {},
                         onBack = {},
-                        isTransportEncrypted = isEncrypted,
                     )
                 }
             }
@@ -96,32 +100,51 @@ class SourceTransportNoteTest {
     }
 
     @Test
-    fun `a share whose connection is encrypted states that it is encrypted`() {
-        val sentences = show(SourceKind.NETWORK_SHARE, isEncrypted = true)
+    fun `a share whose connection is encrypted states that it is encrypted, and the dialect`() {
+        val sentences = show(SourceKind.NETWORK_SHARE, transport = ENCRYPTED)
         compose.onNodeWithText(sentences.encrypted).assertIsDisplayed()
         compose.onNodeWithText(sentences.plain).assertDoesNotExist()
+        assertTrue(sentences.encrypted, sentences.encrypted.contains(DIALECT))
     }
 
     @Test
     fun `a share whose connection is not encrypted says so`() {
-        val sentences = show(SourceKind.NETWORK_SHARE, isEncrypted = false)
+        val sentences = show(SourceKind.NETWORK_SHARE, transport = PLAIN)
         compose.onNodeWithText(sentences.plain).assertIsDisplayed()
         compose.onNodeWithText(sentences.encrypted).assertDoesNotExist()
     }
 
     @Test
+    fun `a share not reached since the app started claims neither answer`() {
+        val sentences = show(SourceKind.NETWORK_SHARE, transport = null)
+        compose.onNodeWithText(sentences.unknown).assertIsDisplayed()
+        compose.onNodeWithText(sentences.plain).assertDoesNotExist()
+        compose.onNodeWithText(sentences.encrypted).assertDoesNotExist()
+    }
+
+    @Test
     fun `the rule answers a different sentence for each measurement`() {
+        val notes = listOf(ENCRYPTED, PLAIN, null)
+            .map { transportNote(SourceKind.NETWORK_SHARE, it)?.text }
+        assertEquals(notes.toString(), 3, notes.toSet().size)
+    }
+
+    @Test
+    fun `the rule names the dialect the session negotiated`() {
+        val older = ShareTransport("SMB 2.1", isEncrypted = false)
+        assertEquals("SMB 2.1", transportNote(SourceKind.NETWORK_SHARE, older)?.dialect)
         assertNotEquals(
-            transportNote(SourceKind.NETWORK_SHARE, isEncrypted = true),
-            transportNote(SourceKind.NETWORK_SHARE, isEncrypted = false),
+            transportNote(SourceKind.NETWORK_SHARE, older)?.dialect,
+            transportNote(SourceKind.NETWORK_SHARE, PLAIN)?.dialect,
         )
     }
 
     @Test
     fun `no other kind of source has a transport to state`() {
         for (kind in SourceKind.entries.filter { it != SourceKind.NETWORK_SHARE }) {
-            assertNull("$kind", transportNote(kind, isEncrypted = false))
-            assertNull("$kind", transportNote(kind, isEncrypted = true))
+            assertNull("$kind", transportNote(kind, PLAIN))
+            assertNull("$kind", transportNote(kind, ENCRYPTED))
+            assertNull("$kind", transportNote(kind, null))
         }
     }
 
@@ -141,6 +164,7 @@ class SourceTransportNoteTest {
         val sentences = show(kind)
         compose.onNodeWithText(sentences.plain).assertDoesNotExist()
         compose.onNodeWithText(sentences.encrypted).assertDoesNotExist()
+        compose.onNodeWithText(sentences.unknown).assertDoesNotExist()
     }
 
     @Test
@@ -199,6 +223,7 @@ class SourceTransportNoteTest {
             assertFalse("the plain sentence mentions $claim", plain.contains(claim))
             assertFalse("the encrypted sentence mentions $claim", encrypted.contains(claim))
         }
+        assertFalse("the unknown sentence reads \"${sentences.unknown}\"", sentences.unknown.lowercase().contains(denial))
         assertTrue(
             "\"$encrypted\" is ${encrypted.length} long, \"$plain\" is ${plain.length}",
             encrypted.length < plain.length,
@@ -247,6 +272,10 @@ class SourceTransportNoteTest {
     }
 
     private companion object {
+        const val DIALECT = "SMB 3.1.1"
+        val PLAIN = ShareTransport(DIALECT, isEncrypted = false)
+        val ENCRYPTED = ShareTransport(DIALECT, isEncrypted = true)
+
         val SIGNING = listOf(
             "signed", "signing", "signé", "signature", "signiert", "signatur", "firmad", "firma",
         )

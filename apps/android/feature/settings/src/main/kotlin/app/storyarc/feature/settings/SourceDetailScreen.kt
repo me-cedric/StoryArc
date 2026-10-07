@@ -37,7 +37,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
-import app.storyarc.core.model.ShareTransport
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceAction
 import app.storyarc.core.model.SourceConnectionState
@@ -69,15 +68,6 @@ internal fun SourceDetailScreen(
     onAction: (SourceAction) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    /**
-     * Whether the app encrypts what it reads from a share, as [ShareTransport] measured it.
-     *
-     * A parameter so that a test can draw both answers. Today one client cannot encrypt and
-     * the other refuses a share that demands it, so the default is the only value a reader
-     * ever sees. When a client does negotiate SMB 3 encryption this parameter carries the
-     * answer for that connection, and the sentence follows without further work.
-     */
-    isTransportEncrypted: Boolean = ShareTransport.IS_ENCRYPTED,
 ) {
     val palette = LocalStoryArcPalette.current
     val context = LocalContext.current
@@ -226,12 +216,13 @@ internal fun SourceDetailScreen(
             // the connection is encrypted". The sentence lived only in the add-share sheet,
             // which a reader sees once, before the source exists.
             //
-            // [transportNote] chooses it, and it chooses from [isTransportEncrypted]. This
-            // block used to draw one fixed string, so the screen stated a fact about a
-            // reader's security that no code had measured.
-            transportNote(source.kind, isTransportEncrypted)?.let { note ->
+            // [transportNote] chooses it, from what the last session with this share
+            // negotiated. This block used to draw one fixed string, so the screen stated a
+            // fact about a reader's security that no code had measured.
+            transportNote(source.kind, diagnosis.transport)?.let { note ->
                 Text(
-                    text = stringResource(note),
+                    text = note.dialect?.let { stringResource(note.text, it) }
+                        ?: stringResource(note.text),
                     style = MaterialTheme.typography.bodySmall,
                     color = palette.textSecondary,
                 )

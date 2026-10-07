@@ -36,7 +36,7 @@ class SmbAddressTest {
     }
 
     @Test
-    fun `builds a url that jcifs accepts`() {
+    fun `builds a url that names the share`() {
         val address = SmbAddress(host = "nas", share = "Comics", path = "Manga")
         assertEquals("smb://nas/Comics/Manga/", address.url())
         assertEquals("smb://nas/Comics/", address.url(""))

@@ -1,48 +1,54 @@
 package app.storyarc.core.smb
 
+import com.hierynomus.mssmb.SMB1NotSupportedException
+import com.hierynomus.protocol.transport.TransportException
+import com.hierynomus.smbj.common.SMBRuntimeException
 import java.net.ConnectException
 import java.net.NoRouteToHostException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
-import jcifs.CIFSException
-import jcifs.smb.SmbException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * A server that offers only SMB 1 is refused, and named.
+ * A failure is named as one of the failures `network-share` names, and not guessed.
  *
- * `network-share` wants the refusal to say which server setting to change, rather than a
- * fifth way of saying "could not connect". jcifs never reaches an NT status for it -- the
- * two ends fail to agree a dialect before the server answers with one -- so the reading is
- * of what jcifs itself said. The three sentences asserted here are jcifs-ng 2.1.10's own,
- * read out of the shipped classes rather than guessed.
+ * smbj fails a connect in three shapes: an NT status from the server, a cause buried under
+ * its own wrapper, or a sentence. Each is read here in that order.
  *
- * Mirrored case for case by `SmbProtocolRefusalTests.swift`, which reads NT statuses
- * instead because the Swift client does reach one.
+ * Mirrored case for case by `SmbProtocolRefusalTests.swift`, which reads NT statuses.
  */
 class SmbProtocolRefusalTest {
 
     @Test
-    fun `a server that would not agree a dialect is named as SMB 1`() {
-        assertEquals(SmbError.ProtocolUnsupported, fromMessage("Server returned an unknown dialect"))
-        assertEquals(
-            SmbError.ProtocolUnsupported,
-            fromMessage("Server selected an disallowed dialect version SMB1 (min: SMB202 max: SMB311)"),
-        )
-        assertEquals(
-            SmbError.ProtocolUnsupported,
-            fromMessage("Server returned invalid dialect verison in multi protocol negotiation"),
-        )
+    fun `a refused password is named from its NT status`() {
+        assertEquals(SmbError.AuthenticationRejected, meaning(0xC000006DL))
+        assertEquals(SmbError.AuthenticationRejected, meaning(0xC000006AL))
+        assertEquals(SmbError.AuthenticationRejected, meaning(0xC0000022L))
     }
 
     @Test
-    fun `a failure that is not about the dialect is not named as SMB 1`() {
+    fun `a missing share is named from its NT status, and a missing file is not`() {
+        assertEquals(SmbError.ShareNotFound, meaning(0xC00000CCL))
+        assertEquals(SmbError.ShareNotFound, meaning(0xC000003AL))
+        // OBJECT_NAME_NOT_FOUND is a missing file, not a missing share.
+        assertNull(meaning(0xC0000034L))
+    }
+
+    @Test
+    fun `a server that speaks only SMB 1 is named as such, from smbj's own exception`() {
+        val wrapped = SMBRuntimeException(TransportException(SMB1NotSupportedException()))
+        assertEquals(SmbError.ProtocolUnsupported, fromCauseChain(wrapped))
+        assertEquals(SmbError.ProtocolUnsupported, translate(wrapped))
+    }
+
+    @Test
+    fun `a session that cannot meet a demand for encryption is named as such`() {
         assertEquals(
             SmbError.EncryptionRequired,
-            fromMessage("Server requires encryption, not yet supported."),
+            fromMessage("Message encryption is required, but no encryption key is negotiated"),
         )
     }
 
@@ -59,36 +65,21 @@ class SmbProtocolRefusalTest {
 
     @Test
     fun `an unreachable host is read from a cause the outer wrapper does not name`() {
-        val refusedConnect = SmbException(
-            "Failed to connect: 192.168.1.50/445",
-            ConnectException("Connection refused"),
-        )
+        val refusedConnect = SMBRuntimeException(ConnectException("Connection refused"))
         assertEquals(SmbError.HostUnreachable, fromCauseChain(refusedConnect))
 
-        val unknownHost = SmbException("Failed to connect to server", UnknownHostException("nas.invalid"))
+        val unknownHost = TransportException(UnknownHostException("nas.invalid"))
         assertEquals(SmbError.HostUnreachable, fromCauseChain(unknownHost))
 
-        val noRoute = SmbException("Failed to connect: 10.0.0.9/445", NoRouteToHostException("No route to host"))
+        val noRoute = SMBRuntimeException(NoRouteToHostException("No route to host"))
         assertEquals(SmbError.HostUnreachable, fromCauseChain(noRoute))
 
-        val timedOut = SmbException("Failed to connect: 10.0.0.9/445", SocketTimeoutException("connect timed out"))
+        val timedOut = SMBRuntimeException(SocketTimeoutException("connect timed out"))
         assertEquals(SmbError.HostUnreachable, fromCauseChain(timedOut))
     }
 
     @Test
-    fun `an SMB1-only server is read from a cause, not only from the outer message`() {
-        val noSmb2 = SmbException(
-            "Failed to connect: 10.0.0.9/445",
-            CIFSException("Server does not support SMB2"),
-        )
-        assertEquals(SmbError.ProtocolUnsupported, fromCauseChain(noSmb2))
-
-        val noDialect = SmbException("Failed to connect.", SmbException("This client is not compatible with the server."))
-        assertEquals(SmbError.ProtocolUnsupported, fromCauseChain(noDialect))
-    }
-
-    @Test
     fun `a cause chain with nothing recognisable answers nothing, rather than guessing`() {
-        assertNull(fromCauseChain(SmbException("Failed to connect: 10.0.0.9/445", RuntimeException("weird"))))
+        assertNull(fromCauseChain(SMBRuntimeException(RuntimeException("weird"))))
     }
 }

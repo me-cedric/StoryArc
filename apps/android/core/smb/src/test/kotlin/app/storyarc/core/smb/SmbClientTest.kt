@@ -12,8 +12,8 @@ import org.junit.Test
 /**
  * Driven against a real SMB2 server rather than a stub.
  *
- * `scripts/smb-server.py` serves the fixture corpus. A stub would prove the code compiles
- * against jcifs' types and nothing about whether the two ends agree, which is the only
+ * `scripts/smb-server.sh` serves the fixture corpus. A stub would prove the code compiles
+ * against smbj's types and nothing about whether the two ends agree, which is the only
  * interesting question a protocol client raises.
  *
  * Skipped when the server is not running, so a checkout without it still builds.
@@ -39,7 +39,11 @@ class SmbClientTest {
         assumeTrue(isServerRunning())
         SmbClient(address).use { client ->
             val identity = client.connect()
-            assertTrue(identity.dialect.startsWith("SMB "))
+            // The fixture serves SMB 2.0.2 to SMB 3.1.1 and offers encryption without
+            // demanding it. `network-share`: "WHEN the server supports SMB 3 encryption THEN
+            // the app negotiates it".
+            assertEquals("SMB 3.1.1", identity.dialect)
+            assertTrue("the session is encrypted", identity.isEncrypted)
             // The server runs with `server signing = mandatory`, so a session that reports
             // itself unsigned here means the client stopped asking -- which is exactly the
             // regression `SmbSigningTest` guards the configuration against, seen from the
@@ -80,10 +84,8 @@ class SmbClientTest {
     /**
      * A share that is not there fails as one of this app's named failures.
      *
-     * Not as `ShareNotFound` specifically: impacket drops the connection on an unknown tree
-     * connect rather than answering `STATUS_BAD_NETWORK_NAME`, so the branch that reads that
-     * status cannot be reached from here. What this does prove is that a jcifs exception
-     * never escapes the seam -- which is the part a caller depends on.
+     * Samba answers `STATUS_BAD_NETWORK_NAME`, so the share is named as missing, and no
+     * smbj exception escapes the seam -- which is the part a caller depends on.
      */
     @Test
     fun `a wrong password is rejected, and says so`() {
@@ -107,8 +109,8 @@ class SmbClientTest {
     @Test
     fun `a host that refuses the connection is named as unreachable`() {
         // Port 4999 is kept free on purpose (AGENTS.md, the fixture port table): a refused
-        // connect is what a host that does not answer looks like. jcifs wraps it in an
-        // `SmbException` whose own message names nothing, so only the cause says which.
+        // connect is what a host that does not answer looks like. smbj wraps it in its own
+        // exception, so only the cause says which.
         SmbClient(address.copy(host = "127.0.0.1", port = REFUSED_PORT)).use { client ->
             assertThrows(SmbError.HostUnreachable::class.java) {
                 runBlocking { client.connect() }
@@ -117,10 +119,10 @@ class SmbClientTest {
     }
 
     @Test
-    fun `a share that is not there fails as a named error, not a raw jcifs one`() {
+    fun `a share that is not there fails as a named error, not a raw smbj one`() {
         assumeTrue(isServerRunning())
         SmbClient(address.copy(share = "NoSuchShare")).use { client ->
-            assertThrows(SmbError::class.java) {
+            assertThrows(SmbError.ShareNotFound::class.java) {
                 runBlocking { client.connect() }
             }
         }

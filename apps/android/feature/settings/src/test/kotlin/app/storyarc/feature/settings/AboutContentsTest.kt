@@ -122,7 +122,7 @@ class AboutContentsTest {
         compose.onNodeWithText(string(R.string.about_acknowledgements)).assertExists()
         notices.forEach { notice ->
             // The title exactly, not the name as a substring. One component's reason names
-            // another component — SLF4J's reason names jcifs-ng, because that is the honest
+            // another component — SLF4J's reason names smbj, because that is the honest
             // answer to "why is it in the app" — and a substring finder counted that reason
             // as a second row.
             //

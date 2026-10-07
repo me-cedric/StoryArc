@@ -21,17 +21,18 @@ and the SIL Open Font Licence requires its text to accompany the fonts.
 Copyright (c) 2016-2025 Nabil Chatbi (Swift port) | HTML parsing inside the Readium toolkit. ADR-0005. |
 | [Zip 2.1.2](https://github.com/marmelroy/Zip) | `MIT` | iOS | Copyright (c) 2015 Roy Marmelstein | Its Minizip module reads EPUB entries inside Readium. Zip.unzipFile is never called; see ADR-0014. |
 | [ZIPFoundation 3.0.1](https://github.com/readium/ZIPFoundation) | `MIT` | iOS | Copyright (c) 2017-2024 Thomas Zoechling (https://www.peakstep.com) | ZIP reading inside the Readium toolkit. ADR-0005. |
-| [SMBClient 0.3.1](https://github.com/kishikawakatsumi/SMBClient) | `MIT` | iOS | Copyright (c) 2024 Kishikawa Katsumi | SMB 2/3, which iOS has no API for. ADR-0010. |
+| [SMBClient 0.3.1](https://github.com/kishikawakatsumi/SMBClient) | `MIT` | iOS | Copyright (c) 2024 Kishikawa Katsumi | SMB 2 and SMB 3, which iOS has no API for. Vendored in third_party/SMBClient, with SMB 3 dialects and transport encryption added. ADR-0010, ADR-0018. |
 | [Readium Kotlin Toolkit 3.3](https://github.com/readium/kotlin-toolkit) | `BSD-3-Clause` | Android | Copyright (c) 2017, Readium | Reflowable EPUB rendering. ADR-0005. |
 | [jsoup 1.22.2](https://jsoup.org) | `MIT` | Android | Copyright (c) 2009-2026 Jonathan Hedley <https://jsoup.org/> | HTML parsing inside the Readium toolkit. ADR-0005. |
 | [Timber 5.0.1](https://github.com/JakeWharton/timber) | `Apache-2.0` | Android | Copyright 2013 Jake Wharton | Logging inside the Readium toolkit. ADR-0005. |
 | [Koi 0.5.5](https://github.com/mcxiaoke/kotlin-koi) | `Apache-2.0` | Android | Copyright 2015, 2016 Xiaoke Zhang | Utilities inside the Readium streamer. ADR-0005. |
 | [Guava 33.3.1-android](https://github.com/google/guava) | `Apache-2.0` | Android | Copyright (C) The Guava Authors | Listenable futures inside media3, the audiobook player. |
 | [JSpecify 1.0.0](https://jspecify.dev) | `Apache-2.0` | Android | Copyright 2018-2020 The JSpecify Authors. | The nullness annotations jsoup and Guava carry. |
-| [jcifs-ng 2.1.10](https://github.com/AgNO3/jcifs-ng) | `LGPL-2.1-or-later` | Android | Copyright (C) 2000 "Michael B. Allen" <jcifs at samba dot org>
-© 2016 AgNO3 Gmbh & Co. KG | SMB 2/3, which Android has no API for. ADR-0010. The only LGPL component: it is linked unmodified and is replaceable. |
-| [SLF4J API 1.7.36](https://www.slf4j.org) | `MIT` | Android | Copyright (c) 2004-2022 QOS.ch Sarl (Switzerland) | The logging facade jcifs-ng writes to. ADR-0010. |
-| [Bouncy Castle 1.84](https://www.bouncycastle.org) | `MIT` | Android | Copyright (c) 2000-2026 The Legion of the Bouncy Castle Inc. (https://www.bouncycastle.org). | SPNEGO token parsing inside jcifs-ng. Raised from 1.76 for CVE-2025-8885. |
+| [smbj 0.15.0](https://github.com/hierynomus/smbj) | `Apache-2.0` | Android | Copyright (C) 2016 - SMBJ Contributors | SMB 2 and SMB 3 with transport encryption, which Android has no API for. ADR-0010, ADR-0018. |
+| [ASN.1 (asn-one) 0.6.0](https://github.com/hierynomus/asn-one) | `Apache-2.0` | Android | Copyright 2016 Jeroen van Erp <jeroen@hierynomus.com> | SPNEGO token parsing inside smbj. ADR-0018. |
+| [MBassador 1.3.2](https://github.com/bennidi/mbassador) | `MIT` | Android | Copyright (c) 2012 Benjamin Diedrichsen | The event bus inside smbj. ADR-0018. |
+| [SLF4J API 2.0.18](https://www.slf4j.org) | `MIT` | Android | Copyright (c) 2004-2022 QOS.ch Sarl (Switzerland) | The logging facade smbj writes to. ADR-0018. |
+| [Bouncy Castle 1.85.2](https://www.bouncycastle.org) | `MIT` | Android | Copyright (c) 2000-2026 The Legion of the Bouncy Castle Inc. (https://www.bouncycastle.org). | The ciphers, MACs and key derivation inside smbj, for SMB signing and SMB 3 encryption. ADR-0018. |
 | [desugar_jdk_libs 2.1.5](https://github.com/google/desugar_jdk_libs) | `GPL-2.0-with-classpath-exception` | Android | Copyright (c) Oracle and/or its affiliates. All rights reserved. | Core library desugaring, which the Readium AAR requires. The Classpath Exception is what lets the app link it. |
 | [libarchive 3.8.9](https://github.com/libarchive/libarchive) | `BSD-2-Clause` | iOS, Android | The libarchive distribution as a whole is Copyright by Tim Kientzle | Decompressing RAR entries. 26 of 132 sources vendored; see third_party/libarchive/VENDORING.md. |
 | [AndroidX and Jetpack Compose](https://developer.android.com/jetpack/androidx) | `Apache-2.0` | Android | Copyright (C) The Android Open Source Project | The UI toolkit, lifecycle, Room, media3 and the activity host. |
@@ -56,23 +57,15 @@ documents and the library ships them as one.
 Platform SDKs. Apple's frameworks and the Android platform are not redistributed by
 this app and carry their own terms with the operating system.
 
-## jcifs-ng, the one copyleft component
+## No copyleft SMB client
 
-`jcifs-ng` is LGPL-2.1-or-later and every other component here is permissive, so it is
-the one entry whose terms reach back into this app. Section 6 of the LGPL lets a work
-that merely *uses* the library ship under any terms, provided the reader can relink the
-work against a modified version of that library. StoryArc meets that the plain way:
-the APK links the published `eu.agno3.jcifs:jcifs-ng:2.1.10` artifact **unmodified**,
-`apps/android/core/smb/build.gradle.kts` is the one place that declares it, and the whole
-app is open source — so a reader who wants their own jcifs-ng changes the version there
-and rebuilds. Nothing is statically inlined and nothing is patched.
+Android used `jcifs-ng`, which is LGPL-2.1-or-later. It is replaced by `smbj`, which is
+Apache-2.0, so no component in this inventory is LGPL. `smbj` brings Bouncy Castle (MIT),
+`asn-one` (Apache-2.0), MBassador (MIT) and the SLF4J API (MIT). See
+[ADR-0018](docs/decisions/0018-smb-3-encryption-clients.md).
 
-Bouncy Castle is raised to 1.84 by a *constraint* rather than a fork, for the same reason:
-a constraint selects a different published artifact and leaves jcifs-ng itself untouched.
-
-`desugar_jdk_libs` is GPL-2.0 and would raise the same question, except that its
-Classpath Exception exists for exactly this: linking it produces no obligation on the
-app's own code.
+`desugar_jdk_libs` is GPL-2.0, and its Classpath Exception exists for exactly this case:
+linking it produces no obligation on the app's own code.
 
 ## libarchive, specifically
 
