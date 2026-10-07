@@ -373,7 +373,7 @@
     <string name="smb_download_first_body">“%1$s” cannot be opened straight from the share: this format needs a file on the device. It is %2$s.</string>
     <string name="smb_download_first_body_unstated">“%1$s” cannot be opened straight from the share: this format needs a file on the device. The share does not state its size.</string>
     <string name="smb_found">On this network</string>
-    <string name="smb_error_encryption">This server requires SMB 3 encryption, which StoryArc cannot do yet. Set encryption on the server to enabled rather than required.</string>
+    <string name="smb_error_encryption">This server requires SMB 3 encryption, and this connection could not be encrypted. A guest connection cannot be encrypted: sign in with a user name and password.</string>
     <string name="downloads_undo">Undo</string>
     <string name="downloads_removed_after_finishing">“%1$s” removed from this device. Your place is kept.</string>
     <string name="downloads_channel">Downloads</string>

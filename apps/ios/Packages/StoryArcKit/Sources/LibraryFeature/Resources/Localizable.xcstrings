@@ -11601,25 +11601,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dieser Server verlangt SMB-3-Verschlüsselung, die StoryArc noch nicht beherrscht. Stellen Sie die Verschlüsselung auf dem Server auf „aktiviert“ statt „erforderlich“."
+            "value": "Dieser Server verlangt SMB-3-Verschlüsselung, und diese Verbindung konnte nicht verschlüsselt werden. Eine Gastverbindung kann nicht verschlüsselt werden: Melden Sie sich mit Benutzername und Passwort an."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This server requires SMB 3 encryption, which StoryArc cannot do yet. Set encryption on the server to enabled rather than required."
+            "value": "This server requires SMB 3 encryption, and this connection could not be encrypted. A guest connection cannot be encrypted: sign in with a user name and password."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Este servidor requiere cifrado SMB 3, que StoryArc aún no admite. Configura el cifrado del servidor como activado en lugar de obligatorio."
+            "value": "Este servidor requiere cifrado SMB 3 y esta conexión no se pudo cifrar. Una conexión de invitado no se puede cifrar: inicia sesión con un nombre de usuario y una contraseña."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ce serveur exige le chiffrement SMB 3, que StoryArc ne sait pas encore faire. Réglez le chiffrement du serveur sur activé plutôt qu’obligatoire."
+            "value": "Ce serveur exige le chiffrement SMB 3, et cette connexion n’a pas pu être chiffrée. Une connexion invité ne peut pas être chiffrée : connectez-vous avec un nom d’utilisateur et un mot de passe."
           }
         }
       }

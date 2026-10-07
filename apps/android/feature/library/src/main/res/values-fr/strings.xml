@@ -342,7 +342,7 @@
     <string name="smb_download_first_body">« %1$s » ne peut pas s’ouvrir directement depuis le partage : ce format exige un fichier sur l’appareil. Il pèse %2$s.</string>
     <string name="smb_download_first_body_unstated">« %1$s » ne peut pas s’ouvrir directement depuis le partage : ce format exige un fichier sur l’appareil. Le partage n’indique pas sa taille.</string>
     <string name="smb_found">Sur ce réseau</string>
-    <string name="smb_error_encryption">Ce serveur exige le chiffrement SMB 3, que StoryArc ne sait pas encore faire. Réglez le chiffrement du serveur sur activé plutôt qu’obligatoire.</string>
+    <string name="smb_error_encryption">Ce serveur exige le chiffrement SMB 3, et cette connexion n’a pas pu être chiffrée. Une connexion invité ne peut pas être chiffrée : connectez-vous avec un nom d’utilisateur et un mot de passe.</string>
     <string name="downloads_undo">Annuler</string>
     <string name="downloads_removed_after_finishing">« %1$s » supprimé de cet appareil. Votre place est conservée.</string>
     <string name="downloads_channel">Téléchargements</string>
