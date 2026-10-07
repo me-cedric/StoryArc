@@ -512,7 +512,8 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   filed or the fallback recorded.
 - [ ] 6.6 **[P] AUR `PKGBUILD`** and a documented source build per distro. Verify: `container-build.sh` passes for Arch and
   Manjaro with the `PKGBUILD`.
-- [ ] 6.7 **[P] Windows MSIX**, a Store dry run with the `runFullTrust` friction written down. Verify:
+- [ ] 6.7 **[P] Windows MSIX**, a Store dry run with the `runFullTrust` friction written down. Decide the publish
+  settings here: trimming and ReadyToRun need a self-contained app (NETSDK1102), so the base sets neither. Verify:
   `docs/delivery/desktop-spike-store.md`.
 - [ ] 6.8 **[X] Owner: Apple Developer Program and notarisation**, and the Windows signing identity. Deferral: builds stay ad
   hoc and unsigned until the owner decides. Verify: the decision is in `design.md`.

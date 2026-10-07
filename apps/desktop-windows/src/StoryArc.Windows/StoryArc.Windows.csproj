@@ -48,13 +48,6 @@
     <ProjectReference Include="..\StoryArc.Interop\StoryArc.Interop.csproj" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
-    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-    <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
-    <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
-  </PropertyGroup>
-
   <!-- The Rust core: build it for this platform, then copy storyarc_ffi.dll next to the app. -->
   <PropertyGroup>
     <CargoTarget Condition="'$(Platform)' == 'ARM64'">aarch64-pc-windows-msvc</CargoTarget>
