@@ -33,7 +33,8 @@ public enum LibraryImport {
             settingsWillChange: document.library.settings.settings != device.settings,
             themeEntriesToAdd: document.library.readingThemes.entries
                 .filter { !themes.contains("\($0.scope)/\($0.shelf ?? "")") }
-                .count
+                .count,
+            coversToAdd: coversArriving(document, onto: device).count
         )
     }
 
@@ -87,6 +88,7 @@ public enum LibraryImport {
         // they mean" — unlike a reading position, where "furthest" is one.
         merged.settings = document.library.settings.settings
         merged.themes = mergingThemes(document, into: device.themes)
+        merged.covers = device.covers + coversArriving(document, onto: device)
 
         let outcome = mergingProgress(document, into: device)
         merged.progress = outcome.progress
@@ -259,6 +261,30 @@ public enum LibraryImport {
 
     private static func themeKey(_ entry: ShelfMemory.Entry) -> String {
         "\(entry.scope.rawValue)/\(entry.shelf ?? "")"
+    }
+
+    // MARK: Covers
+
+    /// The largest image an import accepts, decoded. A cover is shaped to a few hundred
+    /// kilobytes, so this is a ceiling for a document that is not an export of this app.
+    /// Android's `LibraryImport.MAXIMUM_COVER_BYTES` holds the same number.
+    public static let maximumCoverBytes = 8 * 1024 * 1024
+
+    /// The covers the merge will write: readable, within the ceiling, and not chosen already.
+    ///
+    /// A cover the device holds under the same key stands, for the reason a theme the device
+    /// chose stands: it is the one the reader is holding. The one decode step the preview and
+    /// the merge share, so the count the reader is shown is the count that lands.
+    private static func coversArriving(_ document: LibraryDocument, onto device: LibrarySnapshot)
+        -> [ChosenCover] {
+        var seen = Set(device.covers.map(\.key))
+        return document.library.covers.compactMap { cover in
+            guard let image = Data(base64Encoded: cover.image),
+                  !image.isEmpty, image.count <= maximumCoverBytes,
+                  seen.insert(cover.key).inserted
+            else { return nil }
+            return ChosenCover(key: cover.key, image: image)
+        }
     }
 
     // MARK: Progress

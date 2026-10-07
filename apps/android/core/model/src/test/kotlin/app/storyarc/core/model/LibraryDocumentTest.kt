@@ -270,6 +270,7 @@ class LibraryDocumentBoundaryTest {
         assertEquals(mine.library.readingLists, theirs.library.readingLists)
         assertEquals(mine.library.readingThemes, theirs.library.readingThemes)
         assertEquals(mine.library.progress, theirs.library.progress)
+        assertEquals(mine.library.covers, theirs.library.covers)
         // iOS has no volume-button setting, so its document does not carry the field and this
         // one reads it back as null — "the document says nothing", not "the reader turned it
         // off". `LibraryImport` answers a null with the value this device already holds.
@@ -321,5 +322,10 @@ class LibraryDocumentBoundaryTest {
         )
         // Every source that held a secret arrives without one and asks for it.
         assertTrue(landed.sources.sources.all { it.credentialReference == null })
+        // The cover iOS's reader chose arrives as the same bytes, under the same key.
+        assertEquals(
+            listOf(ChosenCover(LibraryDocumentFixture.COVER_KEY, LibraryDocumentFixture.coverImage)),
+            landed.covers,
+        )
     }
 }

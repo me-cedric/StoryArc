@@ -1,15 +1,19 @@
 package app.storyarc.core.persistence
 
 import android.content.Context
+import app.storyarc.core.model.ChosenCover
+import app.storyarc.core.model.ChosenCoverStore
 import app.storyarc.core.model.LibrarySnapshot
 import app.storyarc.core.model.PinnedShelves
 import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.model.ShelfPin
+import app.storyarc.core.model.coverOverrideKey
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
 /**
- * The seven stores a [LibrarySnapshot] is made of, read together and written together.
+ * The seven stores a [LibrarySnapshot] is made of, read together and written together, and the
+ * cover store when one is handed in.
  *
  * `library-portability` names what an export carries, and what it names is spread across six
  * preference files and one Room database. This is the only place that knows which store holds
@@ -26,9 +30,17 @@ class LibraryArchive(
     private val settings: SettingsStore,
     private val reader: ReaderPreferences,
     private val progress: ProgressLedger,
+    /**
+     * Where chosen covers are kept. `:core:persistence` cannot see `:core:format`, so the app
+     * hands the store in; an archive built without one neither reads nor writes covers.
+     */
+    private val covers: ChosenCoverStore? = null,
 ) {
+    /** The failure an import reports when a cover could not be written. */
+    class CoverNotWritten(val key: String) : Exception("cover not written: $key")
+
     companion object {
-        fun open(context: Context): LibraryArchive = LibraryArchive(
+        fun open(context: Context, covers: ChosenCoverStore? = null): LibraryArchive = LibraryArchive(
             sources = SourceStore.open(context),
             certificatePins = CertificatePinStore.open(context),
             shelves = ShelvesStore.open(context),
@@ -36,11 +48,26 @@ class LibraryArchive(
             settings = SettingsStore.open(context),
             reader = ReaderPreferences.open(context),
             progress = ProgressStore.open(context),
+            covers = covers,
         )
     }
 
     /** Everything the export carries, as it stands right now. */
-    suspend fun snapshot(): LibrarySnapshot = LibrarySnapshot(
+    suspend fun snapshot(): LibrarySnapshot {
+        val library = held()
+        return library.copy(covers = covers?.chosen(coverKeys(library)).orEmpty())
+    }
+
+    /**
+     * Every key a cover could be filed under for what the library holds, for the covers a store
+     * has no key file for.
+     */
+    private fun coverKeys(library: LibrarySnapshot): Set<String> =
+        library.progress.map { it.identity.coverOverrideKey }.toSet() +
+            library.shelves.collections.flatMap { it.members } +
+            library.shelves.lists.flatMap { it.entries }
+
+    private suspend fun held(): LibrarySnapshot = LibrarySnapshot(
         sources = sources.registry(),
         certificatePins = certificatePins.pins(),
         shelves = shelves.shelves(),
@@ -66,18 +93,42 @@ class LibraryArchive(
      */
     suspend fun apply(merged: LibrarySnapshot) {
         val before = snapshot()
+        val replacedCovers = mutableListOf<Pair<String, ByteArray?>>()
         try {
+            writeCovers(merged.covers, replacedCovers)
             writeStores(merged)
             writeProgress(merged.progress)
         } catch (failure: Exception) {
             // Undone even when the import was cancelled, or the cancel would be the half import.
             withContext(NonCancellable) {
+                restoreCovers(replacedCovers)
                 writeStores(before)
                 // The failure the reader needs is the first one. A second one while undoing
                 // cannot be shown better than that, so it does not replace it.
                 runCatching { restoreProgress(before.progress, over = merged.progress) }
             }
             throw failure
+        }
+    }
+
+    /** Each cover the device does not hold already, with what it replaced noted for the undo. */
+    private fun writeCovers(
+        chosen: List<ChosenCover>,
+        replaced: MutableList<Pair<String, ByteArray?>>,
+    ) {
+        val store = covers ?: return
+        for (cover in chosen) {
+            val previous = store.image(cover.key)
+            if (previous != null && previous.contentEquals(cover.image)) continue
+            if (!store.store(cover.key, cover.image)) throw CoverNotWritten(cover.key)
+            replaced += cover.key to previous
+        }
+    }
+
+    private fun restoreCovers(replaced: List<Pair<String, ByteArray?>>) {
+        val store = covers ?: return
+        for ((key, previous) in replaced) {
+            if (previous != null) store.store(key, previous) else store.remove(key)
         }
     }
 

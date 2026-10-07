@@ -1,5 +1,7 @@
 package app.storyarc.core.model
 
+import java.util.Base64
+
 /**
  * Everything a [LibraryDocument] carries, as the device holds it.
  *
@@ -15,6 +17,7 @@ data class LibrarySnapshot(
     val settings: AppSettings = AppSettings(),
     val themes: ShelfMemory = ShelfMemory(),
     val progress: List<ReadingProgress> = emptyList(),
+    val covers: List<ChosenCover> = emptyList(),
 )
 
 /**
@@ -91,6 +94,10 @@ object LibraryExport {
                 finishedAt = it.finishedAtEpochMillis?.let(::wireMoment),
                 updatedAt = wireMoment(it.updatedAtEpochMillis),
             )
+        },
+        // Sorted for the reason collections are: two exports of one library should not differ.
+        covers = snapshot.covers.sortedBy { it.key }.map {
+            DocumentCover(it.key, Base64.getEncoder().encodeToString(it.image))
         },
     )
 

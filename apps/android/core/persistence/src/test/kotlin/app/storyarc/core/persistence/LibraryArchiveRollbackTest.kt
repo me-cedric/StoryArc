@@ -2,6 +2,8 @@ package app.storyarc.core.persistence
 
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.AppearanceMode
+import app.storyarc.core.model.ChosenCover
+import app.storyarc.core.model.ChosenCoverStore
 import app.storyarc.core.model.LibrarySnapshot
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReadingPosition
@@ -130,5 +132,114 @@ class LibraryArchiveRollbackTest {
         assertEquals(before, after)
         assertFalse(after.progress.first { it.identity.contentDigest == "d1" }.isFinished)
         assertEquals(1, after.progress.size)
+    }
+
+    /** A cover store in memory, which can be told to refuse one key. */
+    private class MemoryCovers(
+        initial: Map<String, ByteArray> = emptyMap(),
+        private val refusing: String? = null,
+    ) : ChosenCoverStore {
+        val held = initial.toMutableMap()
+        var candidatesAsked: Collection<String> = emptyList()
+
+        override fun chosen(candidates: Collection<String>): List<ChosenCover> {
+            candidatesAsked = candidates
+            return held.toSortedMap().map { ChosenCover(it.key, it.value) }
+        }
+
+        override fun image(key: String) = held[key]
+
+        override fun store(key: String, image: ByteArray): Boolean {
+            if (key == refusing) return false
+            held[key] = image
+            return true
+        }
+
+        override fun remove(key: String) {
+            held.remove(key)
+        }
+
+        fun contents() = held.mapValues { it.value.toList() }
+    }
+
+    private fun archiveWith(
+        covers: MemoryCovers,
+        progress: ProgressLedger,
+        preferences: Map<String, FakePreferences> = fresh(),
+    ) = LibraryArchive(
+        sources = SourceStore(preferences.getValue("sources")),
+        certificatePins = CertificatePinStore(preferences.getValue("pins")),
+        shelves = ShelvesStore(preferences.getValue("shelves")),
+        library = LibraryPreferences(preferences.getValue("library")),
+        settings = SettingsStore(preferences.getValue("settings")),
+        reader = ReaderPreferences(preferences.getValue("reader")),
+        progress = progress,
+        covers = covers,
+    )
+
+    private fun fresh() = listOf("sources", "pins", "shelves", "library", "settings", "reader")
+        .associateWith { FakePreferences() }
+
+    @Test
+    fun `the archive reads the chosen covers and offers the store the keys it can try`() = runTest {
+        val covers = MemoryCovers(mapOf("sha:d1" to byteArrayOf(1)))
+        val archive = archiveWith(covers, ProgressStore.inMemory(RuntimeEnvironment.getApplication()))
+        archive.apply(
+            LibrarySnapshot(
+                progress = listOf(record("d1", page = 1)),
+                covers = listOf(ChosenCover("sha:d1", byteArrayOf(1))),
+            ),
+        )
+
+        val read = archive.snapshot()
+
+        assertEquals(listOf(ChosenCover("sha:d1", byteArrayOf(1))), read.covers)
+        // A cover chosen before the store filed keys is found by a key the library implies.
+        assertTrue("sha:d1" in covers.candidatesAsked)
+    }
+
+    @Test
+    fun `a failed import puts the covers back, a replaced one returns and a new one goes`() = runTest {
+        val covers = MemoryCovers(mapOf("sha:held" to byteArrayOf(1)))
+        val store = ProgressStore.inMemory(RuntimeEnvironment.getApplication())
+        val preferences = fresh()
+        val device = archiveWith(covers, store, preferences)
+        val before = device.snapshot()
+
+        val incoming = LibrarySnapshot(
+            progress = listOf(record("d1", page = 1), record("d2", page = 2)),
+            covers = listOf(
+                ChosenCover("sha:held", byteArrayOf(2)),
+                ChosenCover("sha:new", byteArrayOf(3)),
+            ),
+        )
+        val failing = archiveWith(covers, FailingLedger(store, failingSave = 2), preferences)
+
+        val refused = runCatching { failing.apply(incoming) }.exceptionOrNull()
+
+        assertTrue(refused is FailingLedger.Refused)
+        assertEquals(mapOf("sha:held" to listOf<Byte>(1)), covers.contents())
+        assertEquals(before, device.snapshot())
+    }
+
+    @Test
+    fun `a cover that cannot be written fails the import and undoes the covers before it`() = runTest {
+        val covers = MemoryCovers(mapOf("sha:held" to byteArrayOf(1)), refusing = "sha:b")
+        val archive = archiveWith(covers, ProgressStore.inMemory(RuntimeEnvironment.getApplication()))
+        val before = archive.snapshot()
+
+        val incoming = LibrarySnapshot(
+            covers = listOf(
+                ChosenCover("sha:a", byteArrayOf(2)),
+                ChosenCover("sha:b", byteArrayOf(3)),
+            ),
+        )
+
+        val refused = runCatching { archive.apply(incoming) }.exceptionOrNull()
+
+        assertTrue(refused is LibraryArchive.CoverNotWritten)
+        assertEquals("sha:b", (refused as LibraryArchive.CoverNotWritten).key)
+        assertEquals(mapOf("sha:held" to listOf<Byte>(1)), covers.contents())
+        assertEquals(before, archive.snapshot())
     }
 }

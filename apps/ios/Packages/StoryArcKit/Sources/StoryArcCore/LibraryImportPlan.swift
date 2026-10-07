@@ -47,6 +47,9 @@ public struct LibraryImportPlan: Sendable, Equatable {
     /// Reading themes and per-publication reader settings the device does not hold.
     public var themeEntriesToAdd: Int
 
+    /// Chosen covers the device does not hold, and that arrive as readable images.
+    public var coversToAdd: Int
+
     public init(
         sourcesToAdd: [String] = [],
         sourcesNeedingSignIn: [String] = [],
@@ -56,7 +59,8 @@ public struct LibraryImportPlan: Sendable, Equatable {
         progressToMerge: Int = 0,
         certificatePinsToAdd: [CertificatePinNotice] = [],
         settingsWillChange: Bool = false,
-        themeEntriesToAdd: Int = 0
+        themeEntriesToAdd: Int = 0,
+        coversToAdd: Int = 0
     ) {
         self.sourcesToAdd = sourcesToAdd
         self.sourcesNeedingSignIn = sourcesNeedingSignIn
@@ -67,6 +71,7 @@ public struct LibraryImportPlan: Sendable, Equatable {
         self.certificatePinsToAdd = certificatePinsToAdd
         self.settingsWillChange = settingsWillChange
         self.themeEntriesToAdd = themeEntriesToAdd
+        self.coversToAdd = coversToAdd
     }
 }
 

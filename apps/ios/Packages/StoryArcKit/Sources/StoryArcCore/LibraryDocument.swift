@@ -135,6 +135,12 @@ public struct LibraryBody: Sendable, Equatable, Codable {
     public var readingThemes: DocumentThemes
     public var progress: [DocumentProgress]
 
+    /// The covers the reader chose, each filed under the key the cover store uses.
+    ///
+    /// Images in base64, because a chosen cover has no other source: a publication's own cover
+    /// is read from the publication, and the cover cache is recreated.
+    public var covers: [DocumentCover]
+
     public init(
         sources: [DocumentSource] = [],
         certificatePins: [String: [String]] = [:],
@@ -143,7 +149,8 @@ public struct LibraryBody: Sendable, Equatable, Codable {
         pinnedShelves: [String] = [],
         settings: DocumentSettings = DocumentSettings(),
         readingThemes: DocumentThemes = DocumentThemes(),
-        progress: [DocumentProgress] = []
+        progress: [DocumentProgress] = [],
+        covers: [DocumentCover] = []
     ) {
         self.sources = sources
         self.certificatePins = certificatePins
@@ -153,6 +160,7 @@ public struct LibraryBody: Sendable, Equatable, Codable {
         self.settings = settings
         self.readingThemes = readingThemes
         self.progress = progress
+        self.covers = covers
     }
 
     /// Decodes what is there and defaults what is not.
@@ -184,7 +192,8 @@ public struct LibraryBody: Sendable, Equatable, Codable {
                 DocumentThemes.self, forKey: .readingThemes
             ) ?? DocumentThemes(),
             progress: try container.decodeIfPresent([DocumentProgress].self, forKey: .progress)
-                ?? []
+                ?? [],
+            covers: try container.decodeIfPresent([DocumentCover].self, forKey: .covers) ?? []
         )
     }
 }

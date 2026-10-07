@@ -1,6 +1,7 @@
 package app.storyarc.core.model
 
 import java.net.URI
+import java.util.Base64
 import java.util.UUID
 
 /**
@@ -75,6 +76,7 @@ object LibraryImport {
             certificatePinsToAdd = pinsArriving(document, device),
             settingsWillChange = document.library.settings.settings(device.settings) != device.settings,
             themeEntriesToAdd = arrivingThemes.size,
+            coversToAdd = coversArriving(document, device).size,
         )
     }
 
@@ -99,6 +101,7 @@ object LibraryImport {
                 settings = document.library.settings.settings(device.settings),
                 themes = mergingThemes(document, device.themes),
                 progress = progress.first,
+                covers = device.covers + coversArriving(document, device),
             ),
             conflicts = progress.second,
         )
@@ -270,6 +273,36 @@ object LibraryImport {
 
     private fun themeKey(entry: ShelfMemory.Entry): String =
         "${entry.scope.name.toWireCase()}/${entry.shelf.orEmpty()}"
+
+    // Covers.
+
+    /**
+     * The largest image an import accepts, decoded. A cover is shaped to a few hundred
+     * kilobytes, so this is a ceiling for a document that is not an export of this app. iOS's
+     * `LibraryImport.maximumCoverBytes` holds the same number.
+     */
+    const val MAXIMUM_COVER_BYTES = 8 * 1024 * 1024
+
+    /**
+     * The covers the merge will write: readable, within the ceiling, and not chosen already.
+     *
+     * A cover the device holds under the same key stands, for the reason a theme the device
+     * chose stands: it is the one the reader is holding. The one decode step the preview and
+     * the merge share, so the count the reader is shown is the count that lands.
+     */
+    private fun coversArriving(document: LibraryDocument, device: LibrarySnapshot): List<ChosenCover> {
+        val seen = device.covers.map { it.key }.toMutableSet()
+        return document.library.covers.mapNotNull { cover ->
+            val image = runCatching { Base64.getDecoder().decode(cover.image) }.getOrNull()
+            if (image == null || image.isEmpty() || image.size > MAXIMUM_COVER_BYTES ||
+                !seen.add(cover.key)
+            ) {
+                null
+            } else {
+                ChosenCover(cover.key, image)
+            }
+        }
+    }
 
     // Progress.
 

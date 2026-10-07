@@ -38,6 +38,15 @@ object LibraryDocumentFixture {
         File(System.getProperty("storyarc.repoRootDir"), "packages/test-fixtures/library/$name")
             .readText()
 
+    /**
+     * The cover the reader chose for the first publication: a one-pixel PNG, the same bytes on
+     * both platforms, filed under the key the cover store uses for a digest.
+     */
+    const val COVER_KEY = "sha:d1"
+    val coverImage: ByteArray = java.util.Base64.getDecoder().decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==",
+    )
+
     /** The library both platforms export. */
     val snapshot: LibrarySnapshot
         get() = LibrarySnapshot(
@@ -127,6 +136,7 @@ object LibraryDocumentFixture {
                     updatedAtEpochMillis = 1_767_120_000_000L,
                 ),
             ),
+            covers = listOf(ChosenCover(COVER_KEY, coverImage)),
         )
 
     private val themes: ShelfMemory

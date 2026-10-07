@@ -109,6 +109,13 @@ data class LibraryBody(
     val settings: DocumentSettings = DocumentSettings(),
     val readingThemes: DocumentThemes = DocumentThemes(),
     val progress: List<DocumentProgress> = emptyList(),
+    /**
+     * The covers the reader chose, each filed under the key the cover store uses.
+     *
+     * Images in base64, because a chosen cover has no other source: a publication's own cover
+     * is read from the publication, and the cover cache is recreated.
+     */
+    val covers: List<DocumentCover> = emptyList(),
 )
 
 /**

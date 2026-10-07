@@ -13,6 +13,7 @@ public struct LibrarySnapshot: Sendable, Equatable {
     public var settings: AppSettings
     public var themes: ShelfMemory
     public var progress: [ReadingProgress]
+    public var covers: [ChosenCover]
 
     public init(
         sources: SourceRegistry = SourceRegistry(),
@@ -21,7 +22,8 @@ public struct LibrarySnapshot: Sendable, Equatable {
         pinnedShelves: PinnedShelves = PinnedShelves(),
         settings: AppSettings = .defaults,
         themes: ShelfMemory = ShelfMemory(),
-        progress: [ReadingProgress] = []
+        progress: [ReadingProgress] = [],
+        covers: [ChosenCover] = []
     ) {
         self.sources = sources
         self.certificatePins = certificatePins
@@ -30,6 +32,7 @@ public struct LibrarySnapshot: Sendable, Equatable {
         self.settings = settings
         self.themes = themes
         self.progress = progress
+        self.covers = covers
     }
 }
 
@@ -105,6 +108,11 @@ public enum LibraryExport {
                     finishedAt: record.finishedAt,
                     updatedAt: record.updatedAt
                 )
+            },
+            // Sorted for the reason collections are: two exports of one library should not
+            // differ.
+            covers: snapshot.covers.sorted { $0.key < $1.key }.map {
+                DocumentCover(key: $0.key, image: $0.image.base64EncodedString())
             }
         )
     }

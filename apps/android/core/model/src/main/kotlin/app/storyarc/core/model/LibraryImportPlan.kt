@@ -45,6 +45,8 @@ data class LibraryImportPlan(
     val settingsWillChange: Boolean = false,
     /** Reading themes and per-publication reader settings the device does not hold. */
     val themeEntriesToAdd: Int = 0,
+    /** Chosen covers the device does not hold, and that arrive as readable images. */
+    val coversToAdd: Int = 0,
 )
 
 /** One shelf that exists on both sides. */

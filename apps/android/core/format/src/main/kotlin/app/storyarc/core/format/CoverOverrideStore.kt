@@ -1,6 +1,9 @@
 package app.storyarc.core.format
 
+import app.storyarc.core.model.ChosenCover
+import app.storyarc.core.model.ChosenCoverStore
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.coverOverrideKey
 import java.io.File
 
 /**
@@ -25,9 +28,11 @@ import java.io.File
  * @param directory where the images are kept. The caller decides, because this module has no
  *   `Context`; `LibraryViewModel.coverOverrideDirectory` is the production answer.
  */
-class CoverOverrideStore(private val directory: File) {
+class CoverOverrideStore(private val directory: File) : ChosenCoverStore {
 
     companion object {
+        private const val KEY_EXTENSION = "key"
+
         /**
          * Where chosen covers live, under an app's own data directory.
          *
@@ -68,17 +73,58 @@ class CoverOverrideStore(private val directory: File) {
      *   quietly would leave them tapping a button that does nothing.
      */
     fun store(data: ByteArray, publication: Publication): File? {
+        val key = publication.identity.coverOverrideKey
+        return if (store(key, data)) location(key) else null
+    }
+
+    /**
+     * Records [image] under [key], replacing whatever was filed there.
+     *
+     * The key is written beside the image, because the file name is a hash and a hash cannot be
+     * turned back into the key an export has to name. [chosen] reads them.
+     */
+    override fun store(key: String, image: ByteArray): Boolean {
         directory.mkdirs()
-        val file = location(publication)
-        // Written beside and renamed into place, as iOS's atomic write does. Written straight
-        // to the final file, a write that failed part of the way deleted the earlier choice
-        // and left a truncated image the store still reported as chosen.
+        val file = location(key)
+        // The image first and the key second, so a failure between the two leaves an image no
+        // export can name rather than a name with no image.
+        return write(image, file) && write(key.toByteArray(), keyFile(file))
+    }
+
+    /**
+     * Written beside and renamed into place, as iOS's atomic write does. Written straight to the
+     * final file, a write that failed part of the way deleted the earlier choice and left a
+     * truncated image the store still reported as chosen.
+     */
+    private fun write(data: ByteArray, file: File): Boolean {
         val partial = File(directory, "${file.name}.partial")
         return runCatching {
             partial.writeBytes(data)
             check(partial.renameTo(file)) { "rename failed" }
-            file
-        }.onFailure { partial.delete() }.getOrNull()
+        }.onFailure { partial.delete() }.isSuccess
+    }
+
+    override fun image(key: String): ByteArray? =
+        location(key).takeIf { it.isFile }?.let { runCatching { it.readBytes() }.getOrNull() }
+
+    override fun remove(key: String) {
+        val file = location(key)
+        file.delete()
+        keyFile(file).delete()
+    }
+
+    /**
+     * Every chosen cover, by the key it was filed with.
+     *
+     * A cover chosen before keys were written has an image and no key file, so [candidates] are
+     * tried too: a key whose location holds an image is a cover this store can name.
+     */
+    override fun chosen(candidates: Collection<String>): List<ChosenCover> {
+        val keys = candidates.toMutableSet()
+        directory.listFiles { file -> file.extension == KEY_EXTENSION }?.forEach { file ->
+            runCatching { file.readText() }.getOrNull()?.let(keys::add)
+        }
+        return keys.sorted().mapNotNull { key -> image(key)?.let { ChosenCover(key, it) } }
     }
 
     /**
@@ -88,7 +134,7 @@ class CoverOverrideStore(private val directory: File) {
      * below, and the stored image is deleted rather than orphaned.
      */
     fun remove(publication: Publication) {
-        location(publication).delete()
+        remove(publication.identity.coverOverrideKey)
     }
 
     /** Every chosen cover, by byte count, for the storage page. */
@@ -101,9 +147,13 @@ class CoverOverrideStore(private val directory: File) {
      * that out. The key's own kind is folded in so a publication that gains a digest later
      * cannot read back the file its path wrote.
      */
-    private fun location(publication: Publication): File {
-        val identity = publication.identity
-        val key = identity.contentDigest?.let { "sha:$it" } ?: identity.stableId
+    private fun location(publication: Publication): File =
+        location(publication.identity.coverOverrideKey)
+
+    /** The file that names the key an image is filed under. */
+    private fun keyFile(image: File): File = File(image.parentFile, "${image.name}.$KEY_EXTENSION")
+
+    private fun location(key: String): File {
         var hash = -0x340d631b7bdddcdbL // FNV-1a offset basis
         key.toByteArray().forEach { byte -> hash = (hash xor byte.toLong()) * 0x100000001b3L }
         return File(directory, hash.toString(36))

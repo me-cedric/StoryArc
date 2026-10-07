@@ -18,6 +18,12 @@
         "name" : "Image Comics"
       }
     ],
+    "covers" : [
+      {
+        "image" : "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==",
+        "key" : "sha:d1"
+      }
+    ],
     "pinnedShelves" : [
       "collection:33333333-3333-3333-3333-333333333333",
       "list:44444444-4444-4444-4444-444444444444"

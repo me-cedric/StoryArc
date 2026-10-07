@@ -219,4 +219,108 @@ struct LibraryArchiveTests {
         #expect(after.progress.first { $0.identity.contentDigest == "d1" }?.isFinished == false)
         #expect(after.progress.count == 1)
     }
+
+    // MARK: Covers
+
+    /// A cover store in memory, which can be told to refuse one key.
+    private final class MemoryCovers: ChosenCoverStore, @unchecked Sendable {
+        private let lock = NSLock()
+        private var images: [String: Data]
+        private var asked: [String] = []
+        let refusing: String?
+
+        init(_ images: [String: Data] = [:], refusing: String? = nil) {
+            self.images = images
+            self.refusing = refusing
+        }
+
+        var held: [String: Data] { lock.withLock { images } }
+        var candidatesAsked: [String] { lock.withLock { asked } }
+
+        func chosen(including candidates: [String]) -> [ChosenCover] {
+            lock.withLock {
+                asked = candidates
+                return images.sorted { $0.key < $1.key }.map { ChosenCover(key: $0.key, image: $0.value) }
+            }
+        }
+
+        func image(forKey key: String) -> Data? { lock.withLock { images[key] } }
+
+        func store(_ image: Data, forKey key: String) -> Bool {
+            lock.withLock {
+                if key == refusing { return false }
+                images[key] = image
+                return true
+            }
+        }
+
+        func remove(forKey key: String) { lock.withLock { images[key] = nil } }
+    }
+
+    private func coverArchive(
+        covers: MemoryCovers,
+        progress: any ProgressLedger
+    ) throws -> LibraryArchive {
+        let defaults = UserDefaults(suiteName: "app.storyarc.tests.\(UUID().uuidString)") ?? .standard
+        return LibraryArchive(defaults: defaults, progress: progress, covers: covers)
+    }
+
+    @Test("The archive reads the chosen covers, and offers the store the keys it can try")
+    func theArchiveReadsCovers() async throws {
+        let covers = MemoryCovers(["sha:d1": Data([1])])
+        let archive = try coverArchive(covers: covers, progress: try ProgressStore.inMemory())
+        var written = library
+        written.covers = [ChosenCover(key: "sha:d1", image: Data([1]))]
+        try await archive.apply(written)
+
+        let read = try await archive.snapshot()
+
+        #expect(read.covers == [ChosenCover(key: "sha:d1", image: Data([1]))])
+        // A cover chosen before the store filed keys is found by a key the library implies.
+        #expect(covers.candidatesAsked.contains("sha:d1"))
+        #expect(covers.candidatesAsked.contains("path:/a.cbz"))
+    }
+
+    @Test("A failed import puts the covers back: a replaced one returns and a new one goes")
+    func aFailedImportRestoresCovers() async throws {
+        let covers = MemoryCovers(["sha:held": Data([1])])
+        let store = try ProgressStore.inMemory()
+        let device = try coverArchive(covers: covers, progress: store)
+        let before = try await device.snapshot()
+
+        var incoming = library
+        incoming.covers = [
+            ChosenCover(key: "sha:held", image: Data([2])),
+            ChosenCover(key: "sha:new", image: Data([3])),
+        ]
+        incoming.progress = [record("d1", page: 1), record("d2", page: 2)]
+        let failing = try coverArchive(covers: covers, progress: FailingLedger(store, failingSave: 2))
+
+        await #expect(throws: FailingLedger.Refused.self) {
+            try await failing.apply(incoming)
+        }
+
+        #expect(covers.held == ["sha:held": Data([1])])
+        #expect(try await device.snapshot() == before)
+    }
+
+    @Test("A cover that cannot be written fails the import and undoes the covers before it")
+    func aCoverThatWillNotWriteFailsTheImport() async throws {
+        let covers = MemoryCovers(["sha:held": Data([1])], refusing: "sha:b")
+        let archive = try coverArchive(covers: covers, progress: try ProgressStore.inMemory())
+        let before = try await archive.snapshot()
+
+        var incoming = library
+        incoming.covers = [
+            ChosenCover(key: "sha:a", image: Data([2])),
+            ChosenCover(key: "sha:b", image: Data([3])),
+        ]
+
+        await #expect(throws: LibraryArchive.CoverNotWritten(key: "sha:b")) {
+            try await archive.apply(incoming)
+        }
+
+        #expect(covers.held == ["sha:held": Data([1])])
+        #expect(try await archive.snapshot() == before)
+    }
 }

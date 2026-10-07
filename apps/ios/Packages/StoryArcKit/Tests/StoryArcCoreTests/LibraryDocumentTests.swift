@@ -260,6 +260,7 @@ struct LibraryDocumentBoundaryTests {
         #expect(theirs.library.readingLists == mine.library.readingLists)
         #expect(theirs.library.readingThemes == mine.library.readingThemes)
         #expect(theirs.library.progress == mine.library.progress)
+        #expect(theirs.library.covers == mine.library.covers)
         // Android carries one setting this platform does not have, which decodes away.
         #expect(theirs.library.settings == mine.library.settings)
     }
@@ -290,5 +291,9 @@ struct LibraryDocumentBoundaryTests {
         ])
         // Every source that held a secret arrives without one and asks for it.
         #expect(landed.sources.sources.allSatisfy { $0.credentialReference == nil })
+        // The cover Android's reader chose arrives as the same bytes, under the same key.
+        #expect(landed.covers == [
+            ChosenCover(key: LibraryDocumentFixture.coverKey, image: LibraryDocumentFixture.coverImage),
+        ])
     }
 }

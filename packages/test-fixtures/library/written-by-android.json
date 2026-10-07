@@ -226,6 +226,12 @@
                 "finishedAt": null,
                 "updatedAt": "2025-12-30T18:40:00Z"
             }
+        ],
+        "covers": [
+            {
+                "key": "sha:d1",
+                "image": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg=="
+            }
         ]
     },
     "secrets": null

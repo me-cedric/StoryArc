@@ -2,7 +2,8 @@ public import Foundation
 
 public import StoryArcCore
 
-/// The seven stores a ``LibrarySnapshot`` is made of, read together and written together.
+/// The seven stores a ``LibrarySnapshot`` is made of, read together and written together, and
+/// the cover store when one is handed in.
 ///
 /// `library-portability` names what an export carries, and what it names is spread across
 /// `UserDefaults` and one SwiftData store. This is the only place that knows which store holds
@@ -13,15 +14,29 @@ public import StoryArcCore
 public struct LibraryArchive {
     private let defaults: UserDefaults
     private let progress: any ProgressLedger
+    private let covers: (any ChosenCoverStore)?
 
-    public init(defaults: UserDefaults = .standard, progress: any ProgressLedger) {
+    /// - Parameter covers: where chosen covers are kept. `Persistence` cannot see `Formats`,
+    ///   so the app hands the store in; an archive built without one neither reads nor writes
+    ///   covers.
+    public init(
+        defaults: UserDefaults = .standard,
+        progress: any ProgressLedger,
+        covers: (any ChosenCoverStore)? = nil
+    ) {
         self.defaults = defaults
         self.progress = progress
+        self.covers = covers
+    }
+
+    /// The failure an import reports when a cover could not be written.
+    public struct CoverNotWritten: Error, Equatable {
+        public let key: String
     }
 
     /// Everything the export carries, as it stands right now.
     public func snapshot() async throws -> LibrarySnapshot {
-        LibrarySnapshot(
+        var library = LibrarySnapshot(
             sources: SourceStore(defaults: defaults).registry(),
             certificatePins: CertificatePinStore(defaults: defaults).pins(),
             shelves: ShelvesStore(defaults: defaults).shelves(),
@@ -35,6 +50,16 @@ public struct LibraryArchive {
             // "Continue reading" row would show.
             progress: try await progress.recent(limit: .max)
         )
+        library.covers = covers?.chosen(including: Self.coverKeys(in: library)) ?? []
+        return library
+    }
+
+    /// Every key a cover could be filed under for what the library holds, for the covers a
+    /// store has no key file for.
+    private static func coverKeys(in library: LibrarySnapshot) -> [String] {
+        library.progress.map { $0.identity.coverOverrideKey }
+            + library.shelves.collections.flatMap(\.members)
+            + library.shelves.lists.flatMap(\.entries)
     }
 
     /// Writes a merged snapshot back, all or nothing.
@@ -46,15 +71,44 @@ public struct LibraryArchive {
     /// library that is neither the old one nor the new one, and nothing to say so.
     public func apply(_ snapshot: LibrarySnapshot) async throws {
         let before = try await self.snapshot()
+        var replacedCovers: [(key: String, previous: Data?)] = []
         do {
+            try writeCovers(snapshot.covers, replaced: &replacedCovers)
             writeStores(snapshot)
             try await writeProgress(snapshot.progress)
         } catch {
+            restoreCovers(replacedCovers)
             writeStores(before)
             // The failure the reader needs is the first one. A second one while undoing
             // cannot be shown better than that, so it does not replace it.
             await restoreProgress(before.progress, over: snapshot.progress)
             throw error
+        }
+    }
+
+    /// Each cover the device does not hold already, with what it replaced noted for the undo.
+    private func writeCovers(
+        _ chosen: [ChosenCover],
+        replaced: inout [(key: String, previous: Data?)]
+    ) throws {
+        guard let covers else { return }
+        for cover in chosen {
+            let previous = covers.image(forKey: cover.key)
+            guard previous != cover.image else { continue }
+            guard covers.store(cover.image, forKey: cover.key) else {
+                throw CoverNotWritten(key: cover.key)
+            }
+            replaced.append((cover.key, previous))
+        }
+    }
+
+    private func restoreCovers(_ replaced: [(key: String, previous: Data?)]) {
+        for (key, previous) in replaced {
+            if let previous {
+                covers?.store(previous, forKey: key)
+            } else {
+                covers?.remove(forKey: key)
+            }
         }
     }
 
