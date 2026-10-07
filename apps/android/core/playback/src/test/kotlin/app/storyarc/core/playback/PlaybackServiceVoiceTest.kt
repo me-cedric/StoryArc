@@ -63,8 +63,17 @@ class PlaybackServiceVoiceTest {
     private val voice = Voice()
     private var service: ServiceController<PlaybackService>? = null
 
-    private val reopen: PendingIntent =
-        PendingIntent.getActivity(context, 0, Intent(), PendingIntent.FLAG_IMMUTABLE)
+    /**
+     * Not equal to the service's own `openApp()` intent. Robolectric gives back the same
+     * instance for equal pending intents, so an equal one lets a session that opens the app
+     * pass for one that opens the book.
+     */
+    private val reopen: PendingIntent = PendingIntent.getActivity(
+        context,
+        0,
+        Intent("app.storyarc.test.REOPEN_THE_BOOK"),
+        PendingIntent.FLAG_IMMUTABLE,
+    )
 
     @Before
     fun noServiceToBind() {
