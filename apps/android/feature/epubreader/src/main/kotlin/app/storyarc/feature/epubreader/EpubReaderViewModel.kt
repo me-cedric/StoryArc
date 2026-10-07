@@ -6,6 +6,7 @@ import app.storyarc.core.designsystem.theme.observeReduceMotion
 import app.storyarc.core.designsystem.theme.systemReduceMotion
 import app.storyarc.core.model.Annotation
 import app.storyarc.core.model.Bookmark
+import app.storyarc.core.model.CoverColours
 import app.storyarc.core.model.HighlightColour
 import app.storyarc.core.model.Excerpt
 import app.storyarc.core.model.SearchMatch
@@ -360,6 +361,11 @@ class EpubReaderViewModel(
      * the navigator needs Readium's own `Publication`, and parsing an EPUB twice to
      * avoid that would be worse than parsing it once each for two purposes.
      */
+    private val _coverColours = MutableStateFlow<CoverColours?>(null)
+
+    /** The cover's own colours, for the end of the book. D21. See [epubCoverColours]. */
+    val coverColours: StateFlow<CoverColours?> = _coverColours.asStateFlow()
+
     suspend fun open(): Publication? = withContext(Dispatchers.IO) {
         val publication = when (val opening = openEpub(application, location)) {
             EpubOpening.Unreachable -> {
@@ -375,6 +381,7 @@ class EpubReaderViewModel(
         readingOrder = publication.readingOrder.map { it.href.toString() }
         opened = publication
         _tableOfContents.value = publication.tableOfContents
+        _coverColours.value = epubCoverColours(publication)
         publication
     }
 
