@@ -180,7 +180,7 @@ extension StoryArcApp {
     /// `progress.recent` is already ordered newest first, so the first unfinished listening
     /// position whose publication a car can start (``CarShelf/playable(_:at:)``) is the
     /// answer. The most recent entry may be a download since removed, which has no file.
-    func lastListenedBook() async -> SpokenBook? {
+    static func lastListenedBook(progress: ProgressStore?, library: LibraryModel) async -> SpokenBook? {
         guard let progress, let recent = try? await progress.recent(limit: 50) else { return nil }
         for entry in recent {
             guard case .listening = entry.position, !entry.isFinished,

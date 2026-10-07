@@ -11,8 +11,8 @@ import Testing
 /// **Source text, and that is the second choice**, for the reason `ShellWiringTests` records:
 /// `apps/ios/project.yml` declares no app unit-test target, so nothing in this package can
 /// construct a scene delegate. It is a tripwire, not a proof — it asserts the wiring is
-/// written, never that a car drew a list. Task 12.6 is the proof, and it needs an Apple
-/// development team this project does not have.
+/// written, never that a car drew a list. `CarSimulatorOnlyTests` holds the files that switch
+/// the scene on for the simulator build, and the CarPlay Simulator window is the proof.
 @Suite("Car scene wiring")
 struct CarSceneWiringTests {
 
@@ -58,6 +58,43 @@ struct CarSceneWiringTests {
             scene.contains("CPNowPlayingTemplate"),
             "choosing a row no longer reaches the now-playing template"
         )
+    }
+
+    /// The text of `StoryArcApp.init`, up to the `body` that follows it.
+    private func initBody() throws -> (initializer: String, scene: String) {
+        let app = try source("App/StoryArcApp.swift")
+        let start = try #require(app.range(of: "    init() {"), "StoryArcApp has no init()")
+        let end = try #require(
+            app.range(of: "    var body: some Scene", range: start.upperBound..<app.endIndex),
+            "StoryArcApp.body has moved"
+        )
+        return (String(app[start.upperBound..<end.lowerBound]), String(app[end.lowerBound...]))
+    }
+
+    @Test("A cold start from a car installs the seams and restores the library in init")
+    func theSeamsAreInstalledInInit() throws {
+        let (initializer, scene) = try initBody()
+
+        for seam in ["CarScene.onDevice =", "CarScene.onListen =", "CarScene.lastListened ="] {
+            #expect(initializer.contains(seam), "\(seam) is no longer set in StoryArcApp.init")
+            #expect(
+                !scene.contains(seam),
+                "\(seam) is set under body again, which a car that starts the app never builds"
+            )
+        }
+        #expect(
+            initializer.contains("library.restoreFolders()"),
+            "init no longer restores the library, so a car's list is empty"
+        )
+        #expect(
+            !scene.contains("restoreFolders()"),
+            "restoreFolders() is called under body again, which a car never runs"
+        )
+    }
+
+    @Test("The shell no longer restores the library, so the call is not made twice")
+    func theShellDoesNotRestore() throws {
+        #expect(!(try source("App/AppShell.swift")).contains("restoreFolders()"))
     }
 
     @Test("The car file compiles without the entitlement this project cannot have")

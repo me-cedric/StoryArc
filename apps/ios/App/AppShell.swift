@@ -277,9 +277,9 @@ struct AppShell: View {
         // could land somewhere else: home opened onto an empty library until they had
         // visited the library tab at least once. `home-screen` says home is assembled
         // from what the device already knows, so what the device knows has to be read
-        // before home is drawn.
+        // before home is drawn. The folders themselves are restored in `StoryArcApp.init`, so
+        // a car that starts the app without this scene has a library too.
         .task {
-            model.restoreFolders()
             await model.refreshProgress()
             // 10.12: the 30-day retention `sources` promises, finally asked about. Once
             // per launch is enough — nothing expires between here and the next one.

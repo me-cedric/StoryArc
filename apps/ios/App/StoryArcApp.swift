@@ -185,6 +185,19 @@ struct StoryArcApp: App {
         // see `wirePlayerSpeed`. After `library` exists: its lock-screen artwork reads the
         // library's own cover cache.
         Self.wirePlayerSpeed(library: library)
+
+        // Task 12.4: a car that starts the app has no phone scene, so nothing under `body`
+        // runs. The library is restored and the three seams a `CarSceneDelegate` reads are
+        // installed here, which every launch passes through. `AppShell` no longer restores.
+        // `CarSceneDelegate` reads them from here because a car scene is not SwiftUI's scene,
+        // so it has no environment.
+        library.restoreFolders()
+        let app = self
+        CarScene.onDevice = {
+            library.publications.compactMap { CarShelf.playable($0, at: library.location(of: $0)) }
+        }
+        CarScene.onListen = { book in app.listen(to: book.publication, at: book.url) }
+        CarScene.lastListened = { await Self.lastListenedBook(progress: store, library: library) }
     }
 
     var body: some Scene {
@@ -239,16 +252,6 @@ struct StoryArcApp: App {
                 await sweepFinishedDownload()
             }
             .onOpenURL { url in Task { await openHandedOver(url) } }
-            // Task 16.4: what a CarPlay scene asks the app for, installed once `library`
-            // and `progress` both exist. `CarSceneDelegate` reaches none of these directly
-            // — a car scene is not SwiftUI's scene, so it has no environment to read.
-            .task {
-                CarScene.onDevice = {
-                    library.publications.compactMap { CarShelf.playable($0, at: library.location(of: $0)) }
-                }
-                CarScene.onListen = { book in listen(to: book.publication, at: book.url) }
-                CarScene.lastListened = { await lastListenedBook() }
-            }
             // Closing the reader is not the only way a reader leaves it. A phone is
             // usually closed by going home, and a position that only travelled on a
             // clean exit would be the evening's reading lost.

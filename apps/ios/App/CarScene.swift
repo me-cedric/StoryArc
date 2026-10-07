@@ -15,17 +15,17 @@ import StoryArcCore
 /// One provider and two actions, in the shape ``PlayerCentre`` already uses for the facts
 /// only the app layer holds — `onArtwork`, `onRecord`, `onRecallSpeed`. A car scene is not
 /// SwiftUI's scene, so it can read no environment; a seam the app installs once is how the
-/// other three cross the same boundary. `StoryArcApp.body` installs all three, task 16.4.
+/// other three cross the same boundary. `StoryArcApp.init` installs all three, task 16.4.
 ///
-/// **Installed, and still unreachable from a car.** The rows are only observable in a car,
-/// and the scene itself cannot activate without `com.apple.developer.carplay-audio` — which
-/// needs an Apple development team this project does not have, ADR-0011. That is the one
-/// step left of `design.md`'s "The day an Apple team exists", and it is the owner's.
+/// **Reachable in the simulator, not yet in a car.** The simulator build carries
+/// `com.apple.developer.carplay-audio` and the scene manifest, so the CarPlay Simulator opens
+/// the scene. A device build carries neither, because the entitlement needs an Apple
+/// development team this project does not have, ADR-0011. The last step is the owner's, in
+/// `design.md`'s "The day an Apple team exists".
 ///
-/// **A cold start from a car is not covered yet.** The seams are installed by a `.task` on the
-/// `WindowGroup` content, and `restoreFolders()` fills the library from `AppShell`. A car that
-/// launches the app with no phone scene runs neither, so the list is empty. Move both into
-/// `StoryArcApp.init` when the entitlement lands and the scene can be tested in a car.
+/// **A cold start from a car is covered.** The seams are installed, and `restoreFolders()` is
+/// called, in `StoryArcApp.init`. A car that launches the app with no phone scene never builds
+/// the `WindowGroup`, so a `.task` there would leave the list empty.
 @MainActor
 enum CarScene {
 
