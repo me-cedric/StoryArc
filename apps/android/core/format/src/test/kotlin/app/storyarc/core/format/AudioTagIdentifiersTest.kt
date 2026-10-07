@@ -40,6 +40,14 @@ class AudioTagIdentifiersTest {
     }
 
     @Test
+    fun `a text frame that ends in a NUL still names the identifier`() {
+        // ffmpeg writes ID3v2.4 text frames this way, and a UUID with a NUL on it is no UUID.
+        val tag = id3(4, frame("TXXX", 4, txxx(3, "MusicBrainz Release Group Id", "$releaseGroup\u0000")))
+
+        assertEquals(CoverIdentifier.MusicBrainzReleaseGroup(releaseGroup), read(tag))
+    }
+
+    @Test
     fun `an ID3 tag that names neither identifier reads none`() {
         val tag = id3(3, frame("TXXX", 3, txxx(0, "ENCODEDBY", "someone")))
 
