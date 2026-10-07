@@ -9,10 +9,14 @@ import StoryArcCore
 ///
 /// Tasks 3.9 and 4.1. `AudioSessionEventTests` in `StoryArcKit` raises each notification on the
 /// host, with the numbers and spellings written out in ``AudioSessionEvent``. These compare
-/// each of those with Apple's constant, and post the real notification, from the real sender,
-/// with the real keys, into the real ``PlaybackAudioSession``. They live in this package
-/// because it is the one whose tests run on a simulator, in CI as well as here:
-/// `pnpm test:ios:epub`.
+/// each of those with Apple's constant, and post the real notification, with the real keys,
+/// into the real ``PlaybackAudioSession``. They live in this package because it is the one
+/// whose tests run on a simulator, in CI as well as here: `pnpm test:ios:epub`.
+///
+/// **A sender of each test's own, not the shared `AVAudioSession`.** Every session in the
+/// process hears a notification the shared one posts, `PlayerCentre.shared` included, and
+/// suites run side by side. A headphones-out posted from it paused the voice that
+/// `SpokenReturnTests` waits on, and the two cases here paused each other.
 @MainActor
 @Suite("The real audio session")
 struct AudioSessionEventPlatformTests {
@@ -126,13 +130,15 @@ struct AudioSessionEventPlatformTests {
             url: URL(fileURLWithPath: "/a")
         )
         centre.begin(book, source: source)
-        let audio = PlaybackAudioSession(driving: centre)
+        let audio = PlaybackAudioSession(driving: centre, postedBy: sender)
         audio.begin()
         return Rig(centre: centre, source: source, audio: audio)
     }
 
+    private let sender = NSObject()
+
     private func post(_ name: Notification.Name, _ info: [AnyHashable: Any]) {
-        NotificationCenter.default.post(name: name, object: AVAudioSession.sharedInstance(), userInfo: info)
+        NotificationCenter.default.post(name: name, object: sender, userInfo: info)
     }
 
     private func delivered() async {
