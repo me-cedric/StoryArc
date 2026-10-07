@@ -25,7 +25,8 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 /** Where `build:ios:ui` leaves the app. The two must agree, so both name the same path. */
 const PRODUCTS = join(ROOT, '.build/ios-ui/Build/Products')
 
-const DEVICE = 'iPhone 17 Pro'
+// A name is ambiguous when two runtimes hold the same model, so pass a UDID when you can.
+const DEVICE = process.argv[2] ?? 'iPhone 17 Pro'
 
 const run = (file, args) => execFileSync(file, args, { encoding: 'utf8', stdio: 'inherit' })
 const read = (file, args) => execFileSync(file, args, { encoding: 'utf8' }).trim()
