@@ -15,12 +15,10 @@ import Testing
 /// the server sets `SMB2_SHAREFLAG_ENCRYPT_DATA` in `ShareFlags` to say that this share's
 /// traffic must be encrypted. `SmbClient.connect()` threw that response away. It reads it now.
 ///
-/// **The end-to-end path is unproven here, and this suite does not claim it.** No SMB server
-/// runs in this suite, so what is asserted is the mapping from the share flags to the case,
-/// not that a real NAS sets the bit. What would prove it: a Samba container with
-/// `smb encrypt = required` on one share and `smb encrypt = disabled` on another, and one
-/// connection to each — the first reporting `encryptionRequired`, the second connecting.
-/// Android's own half is proved the same way, from jcifs' message, and no further.
+/// **A session that seals its messages meets the demand.** The vendored client negotiates SMB 3
+/// encryption, so the refusal is for a session that cannot seal: an SMB 2 server, or a guest
+/// session with no key. `SmbEncryptionTests` connects to a Samba share with `smb encrypt =
+/// required` end to end. ADR-0018.
 @Suite("A share that demands encryption is named")
 struct SmbEncryptionRequiredTests {
 
@@ -31,6 +29,11 @@ struct SmbEncryptionRequiredTests {
     @Test("A share whose flags demand encryption is refused as such")
     func namesTheDemand() {
         #expect(SmbClient.refusal(forShareFlags: Self.encryptData) == .encryptionRequired)
+    }
+
+    @Test("A session that seals its messages is refused nothing")
+    func aSealedSessionMeetsTheDemand() {
+        #expect(SmbClient.refusal(forShareFlags: Self.encryptData, isEncrypting: true) == nil)
     }
 
     @Test("And is not read as a refused password, which is the sentence it used to get")

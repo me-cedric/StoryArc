@@ -44,7 +44,7 @@ commit the new resolution in the same change.
 | `Persistence` | Every store on disk: settings, reader preferences, sources, downloads, progress, annotations, bookmarks, certificate pins | `StoryArcCore`, `Playback` |
 | `Catalogue` | OPDS: the client, Atom parsing, acquisition | `StoryArcCore` |
 | `Kavita` | A Kavita server: client, address, exchange | `StoryArcCore`, `Catalogue` |
-| `Smb` | A network share on `SMBClient`, behind `RandomAccessSource` ([ADR-0010](../../docs/decisions/0010-smb-clients.md)) | `Formats`, `StoryArcCore`, `SMBClient` |
+| `Smb` | A network share on `SMBClient`, vendored with SMB 3 encryption under `third_party/SMBClient`, behind `RandomAccessSource` ([ADR-0010](../../docs/decisions/0010-smb-clients.md), [ADR-0018](../../docs/decisions/0018-smb-3-encryption-clients.md)) | `Formats`, `StoryArcCore`, `SMBClient` |
 | `LibraryFeature` | `LibraryView`, home, search, shelves, the publication page, the download queue's rules, `Localizable.xcstrings` | `DesignSystem`, `StoryArcCore`, `Formats`, `Persistence`, `Catalogue`, `Kavita`, `Smb` |
 | `ReaderFeature` | The comic and PDF reader: paging, the curl, adjustments, chrome | `DesignSystem`, `StoryArcCore`, `Formats`, `Persistence` |
 | `PlayerFeature` | The player dock and the full player | `DesignSystem`, `Playback`, `StoryArcCore` |

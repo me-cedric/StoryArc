@@ -17,9 +17,10 @@ import StoryArcCore
 /// measurement and read back which key it looked up. Against the old view the first one
 /// fails, because the old view looked up the same key for both answers.
 ///
-/// **Neither client encrypts today**, so a reader only ever sees the plain sentence. The
-/// encrypted answer is still exercised here, because the point of the change is that the
-/// screen follows the value instead of repeating an answer.
+/// **The value is the session's.** The vendored client seals a session when the server agreed
+/// SMB 3 with a cipher, so the screen reads ``SourceDiagnosis/transport``, which the last probe
+/// of the share wrote. A share the app has not reached since it started gets a third sentence
+/// that claims neither answer.
 ///
 /// **The sentence names encryption and never signing, and that is [ADR-0016][adr]'s rule
 /// rather than an omission.** That ADR refuses a signing line on iOS, because this client
@@ -32,16 +33,23 @@ import StoryArcCore
 @Suite("The iOS source detail screen states a share's transport")
 struct SourceTransportNoteTests {
 
-    private static let plain = "sources.detail.transport.plain"
-    private static let encrypted = "sources.detail.transport.encrypted"
+    private static let plain = "sources.detail.transport.plain %@"
+    private static let encrypted = "sources.detail.transport.encrypted %@"
+    private static let unknown = "sources.detail.transport.unknown"
     private static let anyField = "sources.detail.status"
 
-    private static func lookups(for source: Source, isEncrypted: Bool = false) -> Set<String> {
+    private static let dialect = "SMB 3.1.1"
+    private static let plainSession = ShareTransport(dialect: dialect, isEncrypted: false)
+    private static let sealedSession = ShareTransport(dialect: dialect, isEncrypted: true)
+
+    private static func lookups(
+        for source: Source,
+        transport: ShareTransport? = plainSession
+    ) -> Set<String> {
         let view = SourceDetail(
             source: source,
-            diagnosis: SourceDiagnosis.of(source, itemCount: 3, downloads: []),
-            perform: { _ in },
-            isTransportEncrypted: isEncrypted
+            diagnosis: SourceDiagnosis.of(source, itemCount: 3, downloads: [], transport: transport),
+            perform: { _ in }
         )
 
         var found: Set<String> = []
@@ -99,23 +107,42 @@ struct SourceTransportNoteTests {
 
     @Test("A share whose connection is encrypted states that it is encrypted")
     func anEncryptedShareSaysSo() {
-        let keys = Self.lookups(for: Self.source(.networkShare), isEncrypted: true)
+        let keys = Self.lookups(for: Self.source(.networkShare), transport: Self.sealedSession)
         #expect(keys.contains(Self.encrypted), "the share looked up \(keys.sorted())")
         #expect(!keys.contains(Self.plain), "the share looked up \(keys.sorted())")
     }
 
     @Test("A share whose connection is not encrypted says so")
     func aPlaintextShareSaysSo() {
-        let keys = Self.lookups(for: Self.source(.networkShare), isEncrypted: false)
+        let keys = Self.lookups(for: Self.source(.networkShare), transport: Self.plainSession)
         #expect(keys.contains(Self.plain), "the share looked up \(keys.sorted())")
+        #expect(!keys.contains(Self.encrypted), "the share looked up \(keys.sorted())")
+    }
+
+    @Test("A share not reached since the app started claims neither answer")
+    func anUnreachedShareClaimsNothing() {
+        let keys = Self.lookups(for: Self.source(.networkShare), transport: nil)
+        #expect(keys.contains(Self.unknown), "the share looked up \(keys.sorted())")
+        #expect(!keys.contains(Self.plain), "the share looked up \(keys.sorted())")
         #expect(!keys.contains(Self.encrypted), "the share looked up \(keys.sorted())")
     }
 
     @Test("The rule answers a different sentence for each measurement")
     func theRuleFollowsTheMeasurement() {
+        let sealed = transportNote(for: .networkShare, transport: Self.sealedSession)
+        let plain = transportNote(for: .networkShare, transport: Self.plainSession)
+        let unknown = transportNote(for: .networkShare, transport: nil)
+        #expect(sealed != plain)
+        #expect(sealed != unknown)
+        #expect(plain != unknown)
+    }
+
+    @Test("The rule names the dialect the session negotiated")
+    func theRuleNamesTheDialect() {
+        let older = ShareTransport(dialect: "SMB 2.1", isEncrypted: false)
         #expect(
-            transportNote(for: .networkShare, isEncrypted: true)
-                != transportNote(for: .networkShare, isEncrypted: false)
+            transportNote(for: .networkShare, transport: older)
+                != transportNote(for: .networkShare, transport: Self.plainSession)
         )
     }
 
@@ -124,13 +151,15 @@ struct SourceTransportNoteTests {
         arguments: [SourceKind.localFolder, .opdsCatalog, .kavitaServer]
     )
     func noOtherKindStatesATransport(for kind: SourceKind) {
-        #expect(transportNote(for: kind, isEncrypted: false) == nil)
-        #expect(transportNote(for: kind, isEncrypted: true) == nil)
+        #expect(transportNote(for: kind, transport: Self.plainSession) == nil)
+        #expect(transportNote(for: kind, transport: Self.sealedSession) == nil)
+        #expect(transportNote(for: kind, transport: nil) == nil)
 
         let keys = Self.lookups(for: Self.source(kind))
         #expect(keys.contains(Self.anyField), "the walk found nothing: \(keys.sorted())")
         #expect(!keys.contains(Self.plain), "\(kind) looked up \(keys.sorted())")
         #expect(!keys.contains(Self.encrypted), "\(kind) looked up \(keys.sorted())")
+        #expect(!keys.contains(Self.unknown), "\(kind) looked up \(keys.sorted())")
     }
 
     @Test(
@@ -170,11 +199,13 @@ struct SourceTransportNoteTests {
             !encrypted.contains(claim),
             "the \(language) encrypted sentence reads \"\(encrypted)\""
         )
+        let unknown = try Self.value(of: Self.unknown, in: language).lowercased()
+        #expect(!unknown.contains(claim), "the \(language) unknown sentence reads \"\(unknown)\"")
     }
 
     @Test("Neither sentence claims anything about signing", arguments: ["en", "fr", "de", "es"])
     func noLanguageNamesSigning(_ language: String) throws {
-        for key in [Self.plain, Self.encrypted] {
+        for key in [Self.plain, Self.encrypted, Self.unknown] {
             let sentence = try Self.value(of: key, in: language).lowercased()
             for claim in Self.signing {
                 #expect(!sentence.contains(claim), "the \(language) \(key) mentions \(claim)")

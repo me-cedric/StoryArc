@@ -37,6 +37,37 @@ struct SourceDiagnosisTests {
         )
     }
 
+    // MARK: - The transport a share's last session negotiated
+
+    @Test("A share carries what its last session negotiated")
+    func aShareCarriesItsTransport() {
+        let negotiated = ShareTransport(dialect: "SMB 3.1.1", isEncrypted: true)
+        let diagnosis = SourceDiagnosis.of(
+            source(kind: .networkShare), itemCount: 0, downloads: [], transport: negotiated
+        )
+        #expect(diagnosis.transport == negotiated)
+    }
+
+    @Test(
+        "No other kind carries a share's transport, even when one is handed in",
+        arguments: [SourceKind.localFolder, .opdsCatalog, .kavitaServer]
+    )
+    func noOtherKindCarriesATransport(_ kind: SourceKind) {
+        let negotiated = ShareTransport(dialect: "SMB 3.1.1", isEncrypted: true)
+        let diagnosis = SourceDiagnosis.of(source(kind: kind), itemCount: 0, downloads: [], transport: negotiated)
+        #expect(diagnosis.transport == nil)
+    }
+
+    @Test("The newest session of a share is the one kept")
+    @MainActor
+    func theNewestSessionIsKept() {
+        let sessions = ShareSessions()
+        let share = UUID()
+        sessions.record(ShareTransport(dialect: "SMB 2.1", isEncrypted: false), for: share)
+        sessions.record(ShareTransport(dialect: "SMB 3.1.1", isEncrypted: true), for: share)
+        #expect(sessions.negotiated[share] == ShareTransport(dialect: "SMB 3.1.1", isEncrypted: true))
+    }
+
     // MARK: - The five fields
 
     @Test("The state and the last successful sync are the source's own")

@@ -134,6 +134,11 @@ public struct SmbIdentity: Sendable, Equatable {
         self.dialect = dialect
         self.isEncrypted = isEncrypted
     }
+
+    /// What this session negotiated, in the form the source detail screen reads.
+    public var transport: ShareTransport {
+        ShareTransport(dialect: dialect, isEncrypted: isEncrypted)
+    }
 }
 
 extension SmbEntry {

@@ -40,10 +40,8 @@ let package = Package(
         // Exact, not `from:`. A pre-1.0 package is free to change behaviour in a
         // patch release, and this one speaks a protocol to a server the reader
         // configured. The version moves in a reviewed diff or it does not move.
-        .package(
-            url: "https://github.com/kishikawakatsumi/SMBClient.git",
-            exact: "0.3.1"
-        )
+        // SMBClient 0.3.1, vendored with SMB 3 encryption added. ADR-0018.
+        .package(path: "../../../../third_party/SMBClient"),
     ],
     targets: [
         .target(name: "DesignSystem", dependencies: ["StoryArcCore"]),
@@ -154,7 +152,8 @@ let package = Package(
         ),
         .testTarget(
             name: "SmbTests",
-            dependencies: ["Smb"]
+            // The vendored client too, so its SMB 3 ciphers and dialects are tested directly.
+            dependencies: ["Smb", .product(name: "SMBClient", package: "SMBClient")]
         ),
         .testTarget(name: "DesignSystemTests", dependencies: ["DesignSystem"]),
         .testTarget(name: "StoryArcCoreTests", dependencies: ["StoryArcCore"]),

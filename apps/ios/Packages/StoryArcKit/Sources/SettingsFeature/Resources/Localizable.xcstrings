@@ -4732,60 +4732,89 @@
         }
       }
     },
-    "sources.detail.transport.encrypted": {
+    "sources.detail.transport.encrypted %@": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "StoryArc liest diese Freigabe über SMB. Die Verbindung ist verschlüsselt."
+            "value": "StoryArc liest diese Freigabe über %@. Die Verbindung ist verschlüsselt."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "StoryArc reads this share over SMB. The connection is encrypted."
+            "value": "StoryArc reads this share over %@. The connection is encrypted."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "StoryArc lee este recurso compartido por SMB. La conexión está cifrada."
+            "value": "StoryArc lee este recurso compartido por %@. La conexión está cifrada."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "StoryArc lit ce partage en SMB. La connexion est chiffrée."
+            "value": "StoryArc lit ce partage en %@. La connexion est chiffrée."
           }
         }
       }
     },
-    "sources.detail.transport.plain": {
+    "sources.detail.transport.plain %@": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "StoryArc liest diese Freigabe über SMB. Die Verbindung ist nicht verschlüsselt."
+            "value": "StoryArc liest diese Freigabe über %@. Die Verbindung ist nicht verschlüsselt."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "StoryArc reads this share over SMB. The connection is not encrypted."
+            "value": "StoryArc reads this share over %@. The connection is not encrypted."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "StoryArc lee este recurso compartido por SMB. La conexión no está cifrada."
+            "value": "StoryArc lee este recurso compartido por %@. La conexión no está cifrada."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "StoryArc lit ce partage en SMB. La connexion n’est pas chiffrée."
+            "value": "StoryArc lit ce partage en %@. La connexion n’est pas chiffrée."
+          }
+        }
+      }
+    },
+    "sources.detail.transport.unknown": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc liest diese Freigabe über SMB. Seit dem Start von StoryArc wurde keine Verbindung hergestellt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc reads this share over SMB. No connection has been made since StoryArc started."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc lee este recurso compartido por SMB. No se ha establecido ninguna conexión desde que se abrió StoryArc."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc lit ce partage en SMB. Aucune connexion n’a été établie depuis le lancement de StoryArc."
           }
         }
       }

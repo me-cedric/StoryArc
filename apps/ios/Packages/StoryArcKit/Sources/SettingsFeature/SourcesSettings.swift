@@ -297,7 +297,10 @@ struct SourcesSettings: View {
             isRemovable: source.id != ImportedCopies.sourceID,
             isPartial: isPartial(source.id),
             readCount: readCount(source.id),
-            readTotal: readTotal(source.id)
+            readTotal: readTotal(source.id),
+            // Read in the body, so the detail screen redraws when a test of the connection
+            // records a new session.
+            transport: ShareSessions.shared.negotiated[source.id]
         )
     }
 }

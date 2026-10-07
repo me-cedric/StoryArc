@@ -24,13 +24,6 @@ struct SourceDetail: View {
     let diagnosis: SourceDiagnosis
     /// Runs one action. Confirmation for the two that delete bytes happens here first.
     let perform: (SourceAction) async -> Void
-    /// Whether the app encrypts what it reads from a share, as ``ShareTransport`` measured it.
-    ///
-    /// A property so that a test can draw both answers. Today this client cannot encrypt and
-    /// refuses a share that demands it, so the default is the only value a reader ever sees.
-    /// When a client does negotiate SMB 3 encryption this carries the answer for that
-    /// connection, and the sentence follows without further work.
-    var isTransportEncrypted: Bool = ShareTransport.isEncrypted
 
     @State private var confirming: SourceAction?
     @State private var isWorking = false
@@ -241,11 +234,11 @@ struct SourceDetail: View {
     /// What this screen states about how the source is reached, or `nil` when it states
     /// nothing.
     ///
-    /// `transportNote(for:isEncrypted:)` holds the rule, and it reads ``isTransportEncrypted``.
-    /// This property used to draw one fixed key, so the screen stated a fact about a reader's
-    /// security that no code had measured.
+    /// `transportNote(for:transport:)` holds the rule, and it reads what the last session with
+    /// this share negotiated. This property used to draw one fixed key, so the screen stated a
+    /// fact about a reader's security that no code had measured.
     private var transportKey: LocalizedStringKey? {
-        transportNote(for: source.kind, isEncrypted: isTransportEncrypted)
+        transportNote(for: source.kind, transport: diagnosis.transport)
     }
 
     /// What the item row says: the exact count once a continued read has finished, "at

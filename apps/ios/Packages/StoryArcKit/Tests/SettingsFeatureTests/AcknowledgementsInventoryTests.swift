@@ -102,7 +102,9 @@ struct AcknowledgementsInventoryTests {
         )
         let pins = try #require(resolved["pins"] as? [[String: Any]], "Package.resolved has no pins")
         let locations = pins.compactMap { $0["location"] as? String }
-        #expect(locations.count >= 10, "only \(locations.count) pins were read — has the format changed?")
+        // Nine: Readium and its eight. SMBClient is vendored under third_party and pinned by
+        // no lockfile, so the next test names it instead.
+        #expect(locations.count >= 9, "only \(locations.count) pins were read — has the format changed?")
 
         let listed = try inventory()
         for location in locations {
@@ -138,29 +140,27 @@ struct AcknowledgementsInventoryTests {
         }
     }
 
-    /// The one copyleft component carries its own text.
+    /// No component is LGPL, and the vendored SMB client keeps its own notice.
     ///
-    /// `jcifs-ng` ships on Android only, and this suite still owns the claim: the texts are in
-    /// `packages/licences`, which both apps stage, so a missing LGPL text is this package's
-    /// gap rather than that app's.
-    @Test("The one copyleft component carries the LGPL text")
-    func theCopyleftComponentCarriesItsTerms() throws {
-        let jcifs = try #require(
-            try everyEntry().first { $0["name"] as? String == "jcifs-ng" },
-            "jcifs-ng has no entry, so there is no LGPL row to read a text from"
-        )
-        let licence = try #require(jcifs["licence"] as? String)
-        #expect(licence.hasPrefix("LGPL"), "jcifs-ng declares \(licence)")
+    /// `jcifs-ng` was the one LGPL entry, and ADR-0018 replaced it with `smbj`, which is
+    /// Apache-2.0. The iOS client is vendored under `third_party/SMBClient`, so no lockfile
+    /// names it: its row and its licence file are checked here instead.
+    @Test("No component is LGPL, and the vendored SMB client carries its MIT notice")
+    func noCopyleftAndTheVendoredClientIsAcknowledged() throws {
+        let entries = try everyEntry()
+        let lesser = entries.compactMap { entry -> String? in
+            (entry["licence"] as? String)?.hasPrefix("LGPL") == true ? entry["name"] as? String : nil
+        }
+        #expect(lesser.isEmpty, "LGPL components are listed: \(lesser)")
 
-        let body = try source("packages/licences/texts/\(licence).txt")
-
-        #expect(
-            body.localizedCaseInsensitiveContains("LESSER GENERAL PUBLIC LICENSE"),
-            """
-            The \(licence) text does not name the Lesser General Public License, so the app
-            ships LGPL code without its terms.
-            """
+        let smb = try #require(
+            entries.first { $0["name"] as? String == "SMBClient" },
+            "the vendored SMB client has no row, so the reader is running a library nobody names"
         )
+        #expect(smb["licence"] as? String == "MIT")
+        let copyright = try #require(smb["copyright"] as? String)
+        let vendored = try source("third_party/SMBClient/LICENSE")
+        #expect(vendored.contains(copyright), "the vendored LICENSE does not carry \(copyright)")
     }
 
     @Test("A build that cannot read its inventory says so instead of drawing nothing")

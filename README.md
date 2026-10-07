@@ -270,6 +270,7 @@ testable on the host in milliseconds. Full map in
 | [0016](docs/decisions/0016-ios-smb-response-signing.md) | iOS SMB responses are unsigned and unverified — extends 0010 *(risk accepted)* |
 | [0017](docs/decisions/0017-android-text-to-speech.md) | Android reads aloud with the platform engine, not a new Readium artifact |
 | [0018](docs/decisions/0018-desktop-clients.md) | Desktop: macOS in Swift, Windows and Linux on one Rust core — supersedes the timing of 0004 |
+| [0018](docs/decisions/0018-smb-3-encryption-clients.md) | SMB 3 encryption on both platforms: smbj on Android, a vendored SMBClient on iOS |
 
 New to the project? **0001 → 0002 → 0003.** The rest answer specific questions
 when you reach them.

@@ -38,15 +38,6 @@
       }
     },
     {
-      "identity" : "smbclient",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/kishikawakatsumi/SMBClient.git",
-      "state" : {
-        "revision" : "e636c2b2458930770932a36d311ec9d478575b90",
-        "version" : "0.3.1"
-      }
-    },
-    {
       "identity" : "sqlite.swift",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/stephencelis/SQLite.swift.git",

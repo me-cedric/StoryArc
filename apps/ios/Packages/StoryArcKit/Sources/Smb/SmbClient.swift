@@ -11,6 +11,7 @@ internal import class SMBClient.SMBClient
 internal import class SMBClient.Session
 internal import struct SMBClient.NTStatus
 internal import struct SMBClient.ErrorResponse
+internal import enum SMBClient.SMB3Error
 
 /// A share, as StoryArc talks to it.
 ///
@@ -42,31 +43,30 @@ public actor SmbClient {
     @discardableResult
     public func connect() async throws -> SmbIdentity {
         try await translating(isHandshake: true) {
-            // `login` negotiates and sets up the session in one call. Reaching into
-            // `client.session` to learn the exact dialect would send a non-Sendable value
-            // out of this actor, so the dialect is reported as the range this client offers
-            // rather than the one it landed on. Android reports the exact figure.
+            // `login` negotiates and sets up the session in one call. The vendored client
+            // offers SMB 2.0.2 to SMB 3.1.1, and seals every later message in an SMB 3
+            // transform when the two ends agreed a cipher. ADR-0018.
             try await client.login(
                 username: address.isGuest ? nil : address.username,
                 password: address.isGuest ? nil : address.password
             )
-            // The response, not just the act. `network-share` wants the specific failure
-            // named, and the tree-connect response is the one place this connection learns
-            // that the share demands encryption it cannot give. Thrown before `isConnected`
-            // is set, so a share this client may not read is never treated as reachable.
+            // The response, not just the act. A share can demand encryption in the
+            // tree-connect response's flags, and a session that cannot encrypt refuses it
+            // there. Thrown before `isConnected` is set, so a share this client may not read
+            // is never treated as reachable.
             let tree = try await client.connectShare(address.share)
-            if let refusal = Self.refusal(forShareFlags: tree.shareFlags.rawValue) {
+            let session = client.session
+            let flags = tree.shareFlags.rawValue
+            if let refusal = Self.refusal(forShareFlags: flags, isEncrypting: session.isEncrypting) {
                 throw refusal
             }
             isConnected = true
 
+            // What this session negotiated, read off the session itself: the dialect the
+            // server chose, and whether every message after the setup is sealed.
             return SmbIdentity(
-                dialect: Self.offeredDialects,
-                // ``StoryArcCore/ShareTransport`` holds the answer and the evidence for it,
-                // so that the add-share sheet and the source detail screen read one value.
-                // SMBClient 0.3.1 offers SMB 2.0.2 and SMB 2.1 only, and SMB 3 is where
-                // transport encryption starts. ADR-0010 records the split with Android.
-                isEncrypted: ShareTransport.isEncrypted
+                dialect: Self.name(of: session.dialect?.rawValue),
+                isEncrypted: session.isEncrypting
             )
         }
     }
@@ -148,6 +148,8 @@ public actor SmbClient {
             throw Self.meaning(of: error.header.status, isHandshake: isHandshake)
         } catch let error as NTStatus {
             throw Self.meaning(of: error.rawValue, isHandshake: isHandshake)
+        } catch SMB3Error.encryptionRequired {
+            throw SmbError.encryptionRequired
         } catch let error as URLError {
             throw error.code == .userAuthenticationRequired
                 ? SmbError.authenticationRejected
@@ -218,8 +220,8 @@ public actor SmbClient {
         // client that cannot encrypt. Those two are indistinguishable *from a status*, so
         // the commoner reading wins here. The share-level demand is not read from a status
         // at all: the tree-connect response carries it as a flag, and
-        // ``refusal(forShareFlags:)`` names it. Android reads the same demand out of jcifs'
-        // own message.
+        // ``refusal(forShareFlags:isEncrypting:)`` names it. A session-level demand the
+        // session cannot meet is the vendored client's own `SMB3Error.encryptionRequired`.
         switch status {
         case 0xC000_006D, 0xC000_006A, 0xC000_0022: return .authenticationRejected
         // BAD_NETWORK_NAME and OBJECT_PATH_NOT_FOUND only. OBJECT_NAME_NOT_FOUND means a
@@ -235,13 +237,27 @@ public actor SmbClient {
     ///
     /// One flag matters to this client: `SMB2_SHAREFLAG_ENCRYPT_DATA`. MS-SMB2 has a server
     /// set it to tell the client that this share's traffic must be encrypted, and has the
-    /// client fail the operation when it cannot encrypt. This client cannot, so it fails it
-    /// here, where the demand is a fact rather than a guess -- ``meaning(of:isHandshake:)``
-    /// sees only `ACCESS_DENIED`, which a refused password sends too.
+    /// client fail the operation when it cannot encrypt. A session that seals its messages
+    /// meets the demand. One that cannot -- an SMB 2 server, or a guest session with no key --
+    /// fails here, where the demand is a fact rather than a guess:
+    /// ``meaning(of:isHandshake:)`` sees only `ACCESS_DENIED`, which a refused password
+    /// sends too.
     ///
-    /// `nil` when the share demands nothing this client cannot give.
-    static func refusal(forShareFlags flags: UInt32) -> SmbError? {
-        flags & encryptDataShareFlag == 0 ? nil : .encryptionRequired
+    /// `nil` when the share demands nothing this session cannot give.
+    static func refusal(forShareFlags flags: UInt32, isEncrypting: Bool = false) -> SmbError? {
+        flags & encryptDataShareFlag == 0 || isEncrypting ? nil : .encryptionRequired
+    }
+
+    /// How a dialect revision is written in the sheet and on the detail screen.
+    static func name(of revision: UInt16?) -> String {
+        switch revision {
+        case 0x0202: "SMB 2.0.2"
+        case 0x0210: "SMB 2.1"
+        case 0x0300: "SMB 3.0"
+        case 0x0302: "SMB 3.0.2"
+        case 0x0311: "SMB 3.1.1"
+        default: "SMB 2"
+        }
     }
 
     /// `SMB2_SHAREFLAG_ENCRYPT_DATA`, from MS-SMB2 2.2.10.
@@ -258,9 +274,6 @@ public actor SmbClient {
     private static let cifsErrorClassRefusals: Set<UInt32> = [
         0x0001_0002, 0x0016_0002, 0x0005_0002, 0x005B_0002, 0x00FB_0002,
     ]
-
-    /// What this client offers. The library negotiates SMB 2.0.2 and 2.1 and no more.
-    private static let offeredDialects = "SMB 2"
 
     /// Whether a share is reachable at all, without keeping the session.
     ///

@@ -56,6 +56,10 @@ public struct SourceDiagnosis: Sendable, Equatable {
     /// In the order the screen shows them, destructive last.
     public let actions: [SourceAction]
 
+    /// What the last session with this source negotiated, for a network share. `nil` for any
+    /// other kind, and for a share the app has not reached since it started.
+    public let transport: ShareTransport?
+
     public init(
         state: SourceConnectionState,
         lastSuccessfulSync: Date?,
@@ -66,7 +70,8 @@ public struct SourceDiagnosis: Sendable, Equatable {
         readTotal: Int? = nil,
         downloadCount: Int,
         downloadedBytes: Int64,
-        actions: [SourceAction]
+        actions: [SourceAction],
+        transport: ShareTransport? = nil
     ) {
         self.state = state
         self.lastSuccessfulSync = lastSuccessfulSync
@@ -78,6 +83,7 @@ public struct SourceDiagnosis: Sendable, Equatable {
         self.downloadCount = downloadCount
         self.downloadedBytes = downloadedBytes
         self.actions = actions
+        self.transport = transport
     }
 
     /// Everything the detail screen needs about one source.
@@ -92,7 +98,8 @@ public struct SourceDiagnosis: Sendable, Equatable {
         isRemovable: Bool = true,
         isPartial: Bool = false,
         readCount: Int? = nil,
-        readTotal: Int? = nil
+        readTotal: Int? = nil,
+        transport: ShareTransport? = nil
     ) -> SourceDiagnosis {
         let mine = downloads.filter { $0.sourceID == source.id && $0.state.isFinished }
         var actions: [SourceAction] = []
@@ -117,7 +124,10 @@ public struct SourceDiagnosis: Sendable, Equatable {
             readTotal: readTotal,
             downloadCount: mine.count,
             downloadedBytes: mine.reduce(0) { $0 + $1.downloadedBytes },
-            actions: actions
+            actions: actions,
+            // A share's own, and nobody else's: a transport handed in for a catalogue would
+            // put an SMB sentence on a screen about HTTP.
+            transport: source.kind == .networkShare ? transport : nil
         )
     }
 }

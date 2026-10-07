@@ -1,24 +1,45 @@
-/// What this build does to the traffic between the app and a network share.
+public import Foundation
+public import Observation
+
+/// What one session with a network share negotiated.
 ///
-/// `network-share`'s *Encrypted transport* requires the source detail screen to state
-/// whether the connection is encrypted. That sentence must follow a value. Before this file
-/// the screen drew one fixed string, so it made a claim about a reader's security that no
-/// code had measured.
+/// `network-share`'s *Encrypted transport* requires the source detail screen to state whether
+/// the connection is encrypted. That sentence must follow a measured value, and the value
+/// belongs to a session, not to the app: the client encrypts a session only when the server
+/// agreed SMB 3 with a cipher in common, so two shares can give two answers. ADR-0018.
 ///
-/// The value belongs to the client, not to one share, because neither SMB client encrypts:
+/// Android's `ShareTransport` is the mirror of this type.
+public struct ShareTransport: Sendable, Equatable {
+    /// The dialect the two ends agreed, such as `SMB 3.1.1`.
+    public let dialect: String
+    /// Whether every message of the session is encrypted.
+    public let isEncrypted: Bool
+
+    public init(dialect: String, isEncrypted: Bool) {
+        self.dialect = dialect
+        self.isEncrypted = isEncrypted
+    }
+}
+
+/// The last session each network-share source negotiated, since the app started.
 ///
-/// - iOS uses SMBClient 0.3.1. `Session` offers the dialects SMB 2.0.2 and SMB 2.1 only.
-///   SMB 3 is where transport encryption starts, so that client never reaches the question.
-/// - Android uses jcifs-ng 2.1.10. Its `Configuration` documents
-///   `jcifs.smb.client.encryptionEnabled` as an option that only indicates "support during
-///   protocol negotiation, SMB encryption is not implemented yet". No source file in that
-///   release writes an SMB 3 transform header.
-///
-/// Give either client encryption and change this value with it. The screen reads the value;
-/// it does not repeat the answer. `SmbClient.connect()` reports the same value, so the
-/// add-share sheet and the detail screen cannot disagree. Android's `ShareTransport` is the
-/// mirror of this file.
-public enum ShareTransport {
-    /// True when the app encrypts what it reads from a network share.
-    public static let isEncrypted = false
+/// Kept in memory only. A transport describes a connection, and a value read from disk is a
+/// claim about a connection that no longer exists — the same argument that keeps a source's
+/// connection state off disk. Every probe of a share records here, and the source detail
+/// screen reads it through ``SourceDiagnosis/transport``. Observable, so the sentence follows
+/// a test of the connection the moment it ends.
+@MainActor
+@Observable
+public final class ShareSessions {
+    public static let shared = ShareSessions()
+
+    /// Every source's last session, keyed by the source's id.
+    public private(set) var negotiated: [UUID: ShareTransport] = [:]
+
+    public init() {}
+
+    /// Records what the newest session with `sourceID` negotiated.
+    public func record(_ transport: ShareTransport, for sourceID: UUID) {
+        negotiated[sourceID] = transport
+    }
 }
