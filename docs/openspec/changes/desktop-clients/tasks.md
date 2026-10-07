@@ -41,7 +41,7 @@ better place moves the file and says so in the task. Estimates are not written h
 - [x] 0.8 **Per-platform designs.** Verify: `docs/designs/desktop/macos.md`, `windows.md` and `linux.md` exist.
 - [x] 0.9 **Rust workspace base.** Root `Cargo.toml`, `storyarc-core`, `storyarc-ffi` with `storyarc_core_version()`.
   Verify: `pnpm test:desktop:core` passes.
-- [x] 0.10 **macOS base.** `apps/desktop-macos/project.yml` and a window that opens. Verify: `pnpm build:macos` passes. **Built 2026-10-07.** `pnpm build:macos` exits 0 and the app launches. **Owed: the light and dark frames.** This session has no macOS Screen Recording permission, so `screencapture` returns "could not create image from window".
+- [x] 0.10 **macOS base.** `apps/desktop-macos/project.yml` and a window that opens. Verify: `pnpm build:macos` passes. **Built 2026-10-07.** `pnpm build:macos` exits 0 and the app launches. **Owed: the light and dark frames.** This session has no macOS Screen Recording permission, so `screencapture` returns "could not create image from window". The owner deferred the frames to Wave 1 on 2026-10-07: the first lane M task that changes a screen captures the base window too.
 - [x] 0.11 **Linux base.** `storyarc-linux` opens an empty libadwaita window. Verify: `pnpm build:linux` passes on
   `ubuntu-24.04` or in `container-build.sh ubuntu-24.04`. **Built 2026-10-07.** `container-build.sh` passes on `ubuntu-24.04` (GTK 4.14.5, libadwaita 1.5.0, with `--clippy`), `arch` (4.24.1 / 1.10.0), `manjaro` (4.22.4 / 1.9.3) and `fedora` (4.22.5 / 1.9.4). Frames on Wayland: `docs/designs/screenshots/desktop-linux-base-2026-10-07/`.
 - [~] 0.12 **Windows base.** The WinUI project, `StoryArc.Interop` and its tests. Verify: `pnpm test:desktop:interop`
