@@ -107,7 +107,7 @@ model {
 
       smb = module 'Smb' {
         description 'The SMB seam. Everything above it works against RandomAccessSource and learns nothing about the protocol.'
-        technology 'SMBClient 0.3.1 (ADR-0010)'
+        technology 'SMBClient 0.3.1, vendored with SMB 3 (ADR-0010, ADR-0018)'
       }
 
       libraryFeature = module 'LibraryFeature' 'Library browsing, source management, downloads.'
