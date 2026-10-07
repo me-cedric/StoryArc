@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <ProjectReference Include="..\..\src\StoryArc.Interop\StoryArc.Interop.csproj" />
+  </ItemGroup>
+
+  <!-- The native library that cargo built: debug for Debug, release for Release. The name depends on the OS. -->
+  <PropertyGroup>
+    <NativeLibraryFile Condition="$([MSBuild]::IsOSPlatform('Windows'))">storyarc_ffi.dll</NativeLibraryFile>
+    <NativeLibraryFile Condition="$([MSBuild]::IsOSPlatform('Linux'))">libstoryarc_ffi.so</NativeLibraryFile>
+    <NativeLibraryFile Condition="$([MSBuild]::IsOSPlatform('OSX'))">libstoryarc_ffi.dylib</NativeLibraryFile>
+    <NativeLibraryPath>$(RepoRoot)target/$(CargoProfile)/$(NativeLibraryFile)</NativeLibraryPath>
+  </PropertyGroup>
+
+  <Target Name="RequireNativeLibrary" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('$(NativeLibraryPath)')"
+           Text="Missing $(NativeLibraryPath). Run cargo build -p storyarc-ffi first (add --release for a Release test run)." />
+  </Target>
+
+  <ItemGroup>
+    <None Include="$(NativeLibraryPath)" Link="$(NativeLibraryFile)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)Cargo.toml" Link="workspace.Cargo.toml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

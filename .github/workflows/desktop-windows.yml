@@ -1,0 +1,61 @@
+name: Desktop Windows
+
+# Desktop work stays in its own paths so the mobile lanes do not run for it.
+on:
+  pull_request:
+    paths: &paths
+      - Cargo.toml
+      - Cargo.lock
+      - apps/desktop-core/**
+      - apps/desktop-windows/**
+      - .github/workflows/desktop-windows.yml
+  push:
+    branches: [main]
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Proves the C# to Rust seam on a second and a third OS before any Windows run.
+  interop-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: apps/desktop-windows/global.json
+      - run: cargo build --locked -p storyarc-ffi
+      - run: dotnet test apps/desktop-windows/tests/StoryArc.Interop.Tests
+
+  interop-macos:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: apps/desktop-windows/global.json
+      - run: cargo build --locked -p storyarc-ffi
+      - run: dotnet test apps/desktop-windows/tests/StoryArc.Interop.Tests
+
+  # Pinned image: the windows-latest label moves, and an older readme still describes Visual Studio 2022.
+  build-windows:
+    runs-on: windows-2025-vs2026
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: apps/desktop-windows/global.json
+      - run: pwsh apps/desktop-windows/build.ps1 -Platform x64 -Configuration Release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: storyarc-windows-x64
+          path: apps/desktop-windows/src/StoryArc.Windows/bin/x64/Release/
+          if-no-files-found: error

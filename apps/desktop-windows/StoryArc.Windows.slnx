@@ -1,0 +1,20 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/src/">
+    <Project Path="src/StoryArc.Interop/StoryArc.Interop.csproj">
+      <Platform Solution="*|ARM64" Project="Any CPU" />
+      <Platform Solution="*|x64" Project="Any CPU" />
+    </Project>
+    <Project Path="src/StoryArc.Windows/StoryArc.Windows.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/StoryArc.Interop.Tests/StoryArc.Interop.Tests.csproj">
+      <Platform Solution="*|ARM64" Project="Any CPU" />
+      <Platform Solution="*|x64" Project="Any CPU" />
+    </Project>
+  </Folder>
+</Solution>
