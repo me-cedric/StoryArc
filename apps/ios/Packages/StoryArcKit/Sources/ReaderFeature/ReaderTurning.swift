@@ -148,13 +148,16 @@ extension ReaderView {
     /// Deliberately never files a ``CurlRequest``. `CurledPages` calls this from
     /// `onTurned`, after it has already rolled the page over, and a request filed here
     /// would roll the same page over again for ever.
-    func turn(by step: Int) {
+    ///
+    /// - Parameter curled: true when a curl has just lifted the page. See
+    ///   ``EndOfPublication/arrival(afterCurl:)``.
+    func turn(by step: Int, curled: Bool = false) {
         let next = displayIndex + step
         // `comic-reader`: turning past the last page reaches an end screen rather
         // than nothing. In right-to-left the last *page* is the first display
         // position, which is why this asks the model rather than the pager.
         if !model.pages.indices.contains(next), model.currentIndex == model.pages.count - 1 {
-            withAnimation(.easeInOut(duration: 0.2)) { hasReachedEnd = true }
+            withAnimation(EndOfPublication.arrival(afterCurl: curled)) { hasReachedEnd = true }
             return
         }
         guard model.pages.indices.contains(next) else {

@@ -142,6 +142,17 @@ struct EndOfPublication: View {
     }
 }
 
+extension EndOfPublication {
+    /// How the end screen comes up over the reader.
+    ///
+    /// A fade, except after a curl. The curl has already drawn the end screen in full under
+    /// the page it lifted (D10). A fade from nothing then draws that last page again for
+    /// its first frames.
+    nonisolated static func arrival(afterCurl: Bool) -> Animation? {
+        afterCurl ? nil : .easeInOut(duration: 0.2)
+    }
+}
+
 extension ReaderView {
     /// The end screen, built once for the two places that draw it: over the reader once the
     /// last page has turned, and under the last page while a curl lifts it (D10).

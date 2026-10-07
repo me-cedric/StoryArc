@@ -206,7 +206,7 @@ struct CurlOverImagePagesTests {
         // the same step through a route that would ask the curl to roll the page over a
         // second time. Task 8.3 and `CurlRequestTests` own that half.
         #expect(
-            builder.contains("onTurned: { turn(by: readingOrderStep(1, isRightToLeft: isRightToLeft)) }")
+            builder.contains("onTurned: { turn(by: readingOrderStep(1, isRightToLeft: isRightToLeft), curled: true) }")
                 && builder.contains(
                     "onTurnedBack: { turn(by: readingOrderStep(-1, isRightToLeft: isRightToLeft)) }"
                 ),

@@ -75,7 +75,7 @@ extension ReaderView {
             // `turn(by:)` and not `turnInReadingOrder(by:)`: the curl has already rolled
             // the page over by the time these are called, and the reading-order route
             // files a fresh ``CurlRequest``, which would roll it over again.
-            onTurned: { turn(by: readingOrderStep(1, isRightToLeft: isRightToLeft)) },
+            onTurned: { turn(by: readingOrderStep(1, isRightToLeft: isRightToLeft), curled: true) },
             onTurnedBack: { turn(by: readingOrderStep(-1, isRightToLeft: isRightToLeft)) },
             request: $curlRequest
         )

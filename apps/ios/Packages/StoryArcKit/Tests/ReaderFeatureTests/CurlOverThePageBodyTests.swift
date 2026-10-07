@@ -161,6 +161,16 @@ struct CurlOverThePageBodyTests {
         #expect(!CurlRequest.endsAhead(isForward: true, page: 0, pageCount: 0))
     }
 
+    @Test("After a curl the end screen is up at once, and every other way fades it in")
+    func endScreenArrivesAtOnce() throws {
+        // A fade from nothing after the curl drew the last page flat again under the end
+        // screen for its first frames.
+        #expect(EndOfPublication.arrival(afterCurl: true) == nil)
+        #expect(EndOfPublication.arrival(afterCurl: false) != nil)
+        let turning = try source("ReaderTurning.swift")
+        #expect(turning.contains("withAnimation(EndOfPublication.arrival(afterCurl: curled))"))
+    }
+
     @Test("The clear sheet is transparent, so the end screen shows through it")
     func clearSheetIsClear() throws {
         let image = try #require(CurlSheetFrame.clear)
