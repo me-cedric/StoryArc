@@ -331,4 +331,37 @@ class ReadAloudHostTest {
 
         assertEquals("Chapter Nine", ReadAloudHost.book.value?.label?.detail)
     }
+
+    // MARK: - Returning to the session
+
+    /**
+     * Task 6.2. `ebook-reader`: returning to a voice session resumes "at the sentence being
+     * spoken then, not at the position from when they left, because the voice did not wait".
+     *
+     * The reader leaves, the voice says two more sentences with nobody drawing, and a new
+     * reader adopts the session. The new reader draws the third sentence. It does not draw the
+     * opening locator, and the reader that left draws nothing more.
+     */
+    @Test
+    fun `a reader that adopts the session draws the sentence the voice is on`() {
+        val voice = Voice()
+        val opening = sentence("/chapter-1.xhtml", "Chapter One", "The tide was out.")
+        val left = Page()
+        begin(voice, from = opening.locator, drawnBy = left)
+        val said = requireNotNull(voice.said)
+        runBlocking { said(opening) }
+        ReadAloudHost.release(left)
+        val third = sentence("/chapter-3.xhtml", "Chapter Three", "Sea room.")
+
+        runBlocking {
+            said(sentence("/chapter-2.xhtml", "Chapter Two", "The boat lay on its side."))
+            said(third)
+        }
+        val returned = Page()
+        ReadAloudHost.adopt(returned)
+        runBlocking { ReadAloudHost.redrawSpokenSentence() }
+
+        assertEquals(listOf(third), returned.drawn)
+        assertEquals("the reader that left was drawn on", listOf(opening), left.drawn)
+    }
 }
