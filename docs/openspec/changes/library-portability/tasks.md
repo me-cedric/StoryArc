@@ -111,7 +111,7 @@ source. These are what the review found and the wave did not close.
 - [ ] 6.3 **An import is all or nothing**. `LibraryArchive.apply` writes seven stores in
   sequence on both platforms. A throw after the third leaves a half-imported library and
   nothing rolls it back. Stage the writes, or record enough to undo them.
-- [ ] 6.4 **An adopted position keeps this device's watermark**. `ProgressPull` saves the
+- [x] 6.4 **An adopted position keeps this device's watermark**. `ProgressPull` saves the **Verified built on 2026-10-07** against the source: ProgressStore.save keeps the stored syncedPosition when the incoming record has none, on both platforms; SyncedPositionSurvivesTest and LibraryImportTest assert it.
   document's record whole, and that record carries no `syncedPosition`. A device that had
   synchronised with Kavita forgets what it last synchronised after an import — which is the
   state task 1 of `library-sync` exists to stop. Merge the watermark rather than overwrite it.

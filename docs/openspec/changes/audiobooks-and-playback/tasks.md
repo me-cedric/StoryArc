@@ -301,7 +301,7 @@ creep — see [`design.md`](design.md).
       "damaged beyond opening" instead of "plays what it can", and `+faststart`
       fixed it; and `protected.aax` still holds a **decodable** stream, so the
       refusal has to come from the brand rather than from a decoder choking.
-- [~] 2.7 iOS: `AVURLAsset` + `loadChapterMetadataGroups`. Android: media3 ExoPlayer.
+- [x] 2.7 iOS: `AVURLAsset` + `loadChapterMetadataGroups`. Android: media3 ExoPlayer. **Verified built on 2026-10-07** against the source: PlaybackResumeInstrumentedTest and ChapterMarksInstrumentedTest drive ExoPlayer over chaptered.m4b; the paragraph below that says no test exists is stale.
       **iOS done** — `AudiobookReader`, asserted against all five audio fixtures read from
       disk. **`design.md`'s API claim needs one correction and it is load-bearing.** The
       method it names is right; the obvious argument is not. Passing the reader's preferred
@@ -2003,12 +2003,12 @@ Added on 2026-09-07. Android already runs a media3 `MediaLibraryService` with
 `automotive_app_desc.xml` and a browse tree, and **no requirement described it**, so a
 shipped surface had no specification. iOS has nothing.
 
-- [ ] 12.1 Spec first: the car requirement now exists, so record that Android's existing
+- [x] 12.1 Spec first: the car requirement now exists, so record that Android's existing **Verified built on 2026-10-07** against the source: specs/audio-playback/spec.md "Listening in a car" exists and design.md records the Android surface; the read-aloud clause waits on close-the-audited-gaps 13.2.
       surface is what it describes rather than building it twice.
-- [ ] 12.2 Android: the browse tree offers the book in progress first, then the audiobooks on
+- [x] 12.2 Android: the browse tree offers the book in progress first, then the audiobooks on **Verified built on 2026-10-07** against the source: PlaybackService builds rows with CarShelf.children, asserted by CarLibraryTest and PlayerBrowseTreeTest.
       the device, and nothing else. Assert it as `PlayerBrowseTreeTest` already asserts the
       tree.
-- [ ] 12.3 Android: a car's next-track control moves a chapter, not a file.
+- [x] 12.3 Android: a car's next-track control moves a chapter, not a file. **Verified built on 2026-10-07** against the source: ChapterSeekingPlayer maps next and previous to chapter marks, asserted by ChapterSeekTargetTest.
 - [~] 12.4 iOS: a CarPlay scene with a now-playing template and a list of audiobooks, built
       against `CPTemplateApplicationScene`. **Written, and it cannot activate.**
       `App/CarScene.swift` holds the scene delegate: it turns `CarShelf`'s rows into a

@@ -841,7 +841,7 @@ when a cover was the resume affordance. Whoever syncs should add a
       library the reader added", and it **is** also on this device. Neither suite
       asserts the other's answer. One reader, one file, two sentences: pick one and
       mirror it.
-- [~] **3.2** The same-publication-in-two-places case: the line names the copy
+- [x] **3.2** The same-publication-in-two-places case: the line names the copy **Verified built on 2026-10-07** against the source: the frame is in docs/designs/screenshots/source-lifecycle-2026-09-11/ (android-two-sources-page, light, dark and large).
       this page will open and says another exists. Test with one publication
       present locally and on a server.
 

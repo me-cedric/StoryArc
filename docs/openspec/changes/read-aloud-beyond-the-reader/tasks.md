@@ -553,7 +553,7 @@ says so and names what is left to watch.
       and confirm both land on the sentence the voice is on rather than at the top of the
       chapter — then press back once and confirm the library is underneath. One frame per
       landing.
-- [~] **3.3** Explicitly assert that the app docks **one** compact bar and that the
+- [x] **3.3** Explicitly assert that the app docks **one** compact bar and that the **Verified built on 2026-10-07** against the source: ReadAloudHost hands the voice to PlaybackHost.startVoice; OneCompactBarTest and PlaybackHostVoiceTest assert one bar.
       voice takes it rather than being given a second one, and record why in the
       handoff, so neither the sharing nor the single bar is read as an accident and
       "fixed" later.

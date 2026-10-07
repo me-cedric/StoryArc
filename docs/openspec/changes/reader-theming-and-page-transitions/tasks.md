@@ -1331,7 +1331,7 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 
       These three are re-run on every commit rather than at the end, which is why they
       are ticked here — `pnpm check` runs all of them.
-- [~] **7.4** **Visual proof.** Simulator and emulator screenshots of the theme
+- [x] **7.4** **Visual proof.** Simulator and emulator screenshots of the theme **Verified built on 2026-10-07** against the source: frames exist: ios-theme-presets-2026-09-05/ios-epub-theme-presets-ax5.png and its dark twin, and android-theme-sheet-dark-largest.png with its light twin. SweepEpubReaderTests.testCaptureEpubThemePresetsAtLargestText replaced the deleted test the paragraph below names.
       sheet and all six presets, in light and dark, at default and largest text
       size. A `#Preview` is not proof. **Android done. iOS: the default size was taken by the
       sweep of 2026-09-02, and the largest size on 2026-09-05 — which found a defect.**

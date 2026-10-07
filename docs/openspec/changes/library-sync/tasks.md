@@ -4,13 +4,13 @@ synced two real devices through a real cloud folder.
 
 ## 1. The watermark, which everything else rests on
 
-- [ ] 1.1 **Production writes the last-synchronised position** (both). `reading-progress`'s
+- [x] 1.1 **Production writes the last-synchronised position** (both). `reading-progress`'s **Verified built on 2026-10-07** against the source: KavitaExchange.settled stamps the watermark on every Kavita pull, push, open-seed and EPUB report path, on both platforms.
   *Conflict resolution* asks four times whether a side changed "since the last sync", and
   nothing writes what the last sync was. `STATUS.md` records that every conflict notice the app
   shows is therefore false. Write it wherever a position is synchronised, in either direction.
-- [ ] 1.2 **An absent watermark means "nothing is known", not "the local side moved"** (both).
+- [x] 1.2 **An absent watermark means "nothing is known", not "the local side moved"** (both). **Verified built on 2026-10-07** against the source: ProgressMerge returns the further position quietly when syncedPosition is absent; neverSyncedTakesTheFurther and neverSyncedKeepsTheFurtherLocal on both platforms.
   A device that never synchronised is the common case — it is a new phone. Test both readings.
-- [ ] 1.3 **A false conflict notice stops appearing** (both). A test that reconciles a
+- [x] 1.3 **A false conflict notice stops appearing** (both). A test that reconciles a **Verified built on 2026-10-07** against the source: ProgressPullTest, ProgressPullTests and both LibraryImport suites reconcile a never-synchronised device with no conflict notice.
   never-synchronised device against a further remote position and asserts the position is
   adopted silently, with no notice.
 

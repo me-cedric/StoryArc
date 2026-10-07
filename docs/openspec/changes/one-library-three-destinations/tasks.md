@@ -1360,7 +1360,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       offers them: `opds-spec.org/image` and `/image/thumbnail` are on every entry of the
       mock catalogue, and `opds-catalog` asks for "its cover at a size worth looking at".
       Task 3.6 below is that gap.
-- [ ] **3.6** A publication from an OPDS catalogue draws the cover the feed offers.
+- [x] **3.6** A publication from an OPDS catalogue draws the cover the feed offers. **Verified built on 2026-10-07** against the source: built as close-the-audited-gaps 11.7 under D29: ServerLibraryOpdsCoverTest and OpdsCoverTests.
 
       **Found on 2026-09-12 while taking 3.3's frame**, and recorded there with the
       measurements. Every OPDS row on the shelf is a coverless well today.
