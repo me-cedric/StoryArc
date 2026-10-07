@@ -114,8 +114,9 @@ struct SpokenSleepStopTests {
 /// A speech engine that holds each sentence until the test finishes it.
 ///
 /// `@unchecked Sendable`: Readium calls it from its own task and the test reads it from the
-/// main actor, and every stored value is behind the one lock.
-private final class HeldEngine: TTSEngine, @unchecked Sendable {
+/// main actor, and every stored value is behind the one lock. Shared with
+/// `SpokenReturnTests`.
+final class HeldEngine: TTSEngine, @unchecked Sendable {
 
     private struct Held {
         var said: [String] = []

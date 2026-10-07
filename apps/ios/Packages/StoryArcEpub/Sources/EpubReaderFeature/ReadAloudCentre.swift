@@ -51,7 +51,7 @@ public final class ReadAloudCentre {
     ///
     /// Weak, and that is the whole of the ownership rule: the session refers to the screen,
     /// never the other way round, so a reader going away cannot take the voice with it.
-    @ObservationIgnored weak var follower: EpubReaderModel?
+    @ObservationIgnored weak var follower: (any SpokenSentenceFollower)?
 
     /// The voice, as the player sees it. `nil` when nothing is being read aloud.
     @ObservationIgnored private var source: SpokenSource?
@@ -86,7 +86,7 @@ public final class ReadAloudCentre {
         _ book: SpokenBook,
         speaking source: SpokenSource,
         recording position: SpokenPosition,
-        drawnBy follower: EpubReaderModel
+        drawnBy follower: any SpokenSentenceFollower
     ) {
         source.onSentence = { [weak self] locator in
             Task { await self?.reached(locator) }
@@ -103,8 +103,8 @@ public final class ReadAloudCentre {
     }
 
     /// A reader has opened the book that is being spoken, and will draw its sentence.
-    func adopt(_ follower: EpubReaderModel) {
-        guard speaking == follower.publication.id else { return }
+    func adopt(_ follower: any SpokenSentenceFollower) {
+        guard speaking == follower.followedPublicationID else { return }
         self.follower = follower
     }
 
@@ -113,7 +113,7 @@ public final class ReadAloudCentre {
     /// The session is not touched. That is the point: `onDisappear` used to end it, and now
     /// it only says that nobody is drawing. The highlight goes with the navigator that held
     /// it, and comes back when a reader adopts the session again.
-    func release(_ follower: EpubReaderModel) {
+    func release(_ follower: any SpokenSentenceFollower) {
         guard self.follower === follower else { return }
         self.follower = nil
     }
@@ -165,6 +165,29 @@ public final class ReadAloudCentre {
         guard reached.isRecordable else { return }
         Task { await position.record(reached) }
     }
+}
+
+/// The screen drawing the sentence being spoken, while one is on screen.
+///
+/// Everything here needs a navigator, which is why none of it belongs to the session: a
+/// listener who closes the book still hears the voice, and there is nothing to draw until they
+/// open it again. A protocol rather than ``EpubReaderModel`` itself, so the return to a session
+/// is a test with a page that records what it was asked to draw — a decoration inside a
+/// `WKWebView` is out of XCUITest's reach. Android's `SpokenSentenceFollower` is the same seam.
+@MainActor
+protocol SpokenSentenceFollower: AnyObject {
+    /// The publication on screen. Only the reader of the book being spoken may adopt it.
+    var followedPublicationID: String { get }
+
+    /// Draws the sentence and brings the page to it.
+    func drawSpokenSentence(_ sentence: Locator) async
+
+    /// Takes the spoken highlight off the page when the voice stops.
+    func withdrawSpokenHighlight()
+}
+
+extension EpubReaderModel: SpokenSentenceFollower {
+    var followedPublicationID: String { publication.id }
 }
 
 /// Where a session's position goes, with no screen involved.
