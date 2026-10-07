@@ -168,7 +168,7 @@ public struct EpubReaderView: View {
             transientOverlays
 
             if model.isAtEnd, let next { // Task 7.2's end-of-book offer.
-                EpubEndOfPublication(next: next, onOpenNext: onOpenNext)
+                EpubEndOfPublication(next: next, colours: model.coverColours, onOpenNext: onOpenNext)
             }
         }
         // The controls take themselves away, which until now only the comic reader did.

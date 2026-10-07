@@ -173,6 +173,9 @@ public final class EpubReaderModel {
     /// appear only when something else happened to redraw the chrome.
     public internal(set) var canReadAloud = false
 
+    /// The cover's own colours, for the end of the book. D21. See ``deriveCoverColours()``.
+    public internal(set) var coverColours: CoverColours?
+
     /// The word owed for a voice this book's opening stopped, held while the page says it once.
     /// Taken from the centre in `prepareReadAloud`; see ``VoiceStoppedBanner``.
     var voiceStopped: VoiceStoppedNotice = .none

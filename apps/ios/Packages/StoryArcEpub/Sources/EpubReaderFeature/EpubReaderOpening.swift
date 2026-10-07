@@ -90,6 +90,7 @@ extension EpubReaderModel {
             // Built here rather than on the first press, because whether this book can be
             // read aloud at all decides whether the control appears.
             await prepareReadAloud(opened)
+            await deriveCoverColours()
         } catch {
             failure = String(localized: "epub.failure.unreadable", bundle: .module, locale: .storyArc)
         }
