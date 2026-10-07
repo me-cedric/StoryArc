@@ -1,23 +1,26 @@
-internal import CoreGraphics
-
-internal import StoryArcCore
+public import CoreGraphics
 
 /// Where a page stands mid-turn, and what a finger does to it from there.
 ///
 /// Pulled out of the gesture so it can be tested without a touch screen, the way
 /// `SpreadLayout` and `PrefetchWindow` are: this is the whole rule, and the rest of
-/// ``CurledPages`` is SwiftUI's gesture plumbing. Android's `CurlTurn` is its twin.
+/// `CurledPages` is SwiftUI's gesture plumbing. Android's `CurlTurn` is its twin.
 ///
 /// In a file of its own because `CurledPages.swift` reached the 400-line cap this project
-/// enforces when the curl learned to answer a tap (``CurlRequest``). The arithmetic is the
+/// enforces when the curl learned to answer a tap (`CurlRequest`). The arithmetic is the
 /// half of that file nothing on screen depends on, so it is the half that moved.
-enum CurlTurn {
+///
+/// In `StoryArcCore` rather than `ReaderFeature` because two readers turn a page with it: the
+/// comic reader's `CurledPages`, and the EPUB reader's finger-driven curl over prose (task
+/// 8.12), which cannot import a feature module. One rule for both is what makes a page of
+/// prose and a page of a comic settle at the same point and spring with the same spring.
+public enum CurlTurn {
 
     /// Travel in turn-space: positive is towards a completed turn.
     ///
     /// A right-to-left publication turns forward when the finger moves the other way, so
     /// one sign carries the whole mirroring.
-    static func forward(travel: Double, isRightToLeft: Bool) -> Double {
+    public static func forward(travel: Double, isRightToLeft: Bool) -> Double {
         isRightToLeft ? travel : -travel
     }
 
@@ -42,7 +45,7 @@ enum CurlTurn {
     ///   - canTurnForward: false where ``under(beneath:endsHere:)`` answers `.nothing`.
     ///     D10: the last page of a publication lifts off its end screen, which is the next
     ///     sheet, and nothing lifts where there is no sheet of any kind beneath.
-    static func progress(
+    public static func progress(
         base: Double,
         travel: Double,
         width: Double,
@@ -66,7 +69,7 @@ enum CurlTurn {
     ///
     /// - Parameter velocity: the finger's predicted travel in turn-space, positive
     ///   towards a completed forward turn. SwiftUI's own flick model supplies it.
-    static func flicks(velocity: Double, progress: Double) -> Bool {
+    public static func flicks(velocity: Double, progress: Double) -> Bool {
         progress < 0 ? velocity < -flickPoints : velocity > flickPoints
     }
 
@@ -80,7 +83,7 @@ enum CurlTurn {
     /// carries the whole of it, and the shader needs no second direction.
     ///
     /// Generic over the image type so the mapping can be asserted without a bitmap.
-    static func sheets<T>(
+    public static func sheets<T>(
         progress: Double,
         page: T?,
         beneath: T?,
@@ -92,24 +95,24 @@ enum CurlTurn {
     }
 
     /// What ``sheets(progress:page:beneath:previous:)`` decided.
-    struct Sheets<T> {
-        let turning: T?
-        let under: T?
-        let progress: Double
+    public struct Sheets<T> {
+        public let turning: T?
+        public let under: T?
+        public let progress: Double
     }
 
     /// How far a finger has to be predicted to travel for the turn to complete anyway.
     ///
     /// `predictedEndTranslation` is SwiftUI's own flick model, so this is a threshold on
     /// its answer rather than a velocity calculation of ours.
-    static let flickPoints: Double = 40
+    public static let flickPoints: Double = 40
 
     /// Whether a released turn completes rather than springing back.
     ///
     /// Past halfway it completes; before it, it springs back. A flick completes whatever
     /// the distance, because a fast finger has already said what it meant — and a page
     /// that never left flat is not a turn at all, however fast the finger left it.
-    static func settles(progress: Double, isFlick: Bool) -> Bool {
+    public static func settles(progress: Double, isFlick: Bool) -> Bool {
         abs(progress) > 0.5 || (isFlick && abs(progress) > 0.05)
     }
 
@@ -118,15 +121,21 @@ enum CurlTurn {
     /// The page's own pan recogniser reports a velocity in points per second, not
     /// SwiftUI's predicted end. A twentieth of a second of it puts the flick at 800 points
     /// per second, which is the number Android's `CurlTurn.flicks` thresholds in dp.
-    static func predictedTravel(velocity: Double) -> Double {
+    public static func predictedTravel(velocity: Double) -> Double {
         velocity * flickSeconds
     }
 
     /// See ``predictedTravel(velocity:)``.
-    static let flickSeconds: Double = 0.05
+    public static let flickSeconds: Double = 0.05
+
+    /// How long the spring takes that completes a released turn or springs it back.
+    ///
+    /// `.spring(duration:)` in SwiftUI. A tap, a key and a released finger all settle with it,
+    /// in the comic reader and over prose, so a reader feels one page whatever turned it.
+    public static let settleDuration: Double = 0.3
 
     /// What a forward turn lifts the page off.
-    enum Under: Equatable {
+    public enum Under: Equatable, Sendable {
         /// The next sheet of the publication, or its placeholder.
         case sheet
         /// The end-of-publication screen. D10: past the last page the end screen is the
@@ -140,7 +149,7 @@ enum CurlTurn {
     ///
     /// - Parameter endsHere: true when no slot follows this one in reading order, so the
     ///   publication's end screen comes next.
-    static func under<T>(beneath: T?, endsHere: Bool) -> Under {
+    public static func under<T>(beneath: T?, endsHere: Bool) -> Under {
         if beneath != nil { return .sheet }
         return endsHere ? .endScreen : .nothing
     }
@@ -153,7 +162,7 @@ enum CurlTurn {
     /// use, so the curve is the shader's own.
     ///
     /// - Parameter steps: how many segments approximate the rim from top to foot.
-    static func sheetOutline(
+    public static func sheetOutline(
         width: Double,
         height: Double,
         progress: Double,

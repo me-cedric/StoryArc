@@ -298,7 +298,7 @@ struct CurledPages<Content: View, Underneath: View>: View {
     /// So a settle a later drag took over is that drag's to finish, not this one's.
     private func settle(to target: Double, then landed: @escaping () -> Void) {
         let ticket = settle
-        withAnimation(.spring(duration: 0.3)) {
+        withAnimation(.spring(duration: CurlTurn.settleDuration)) {
             progress = target
         } completion: {
             guard settle == ticket else { return }

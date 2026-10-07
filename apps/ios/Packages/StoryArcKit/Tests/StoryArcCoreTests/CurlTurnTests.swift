@@ -1,6 +1,6 @@
 import Testing
 
-@testable import ReaderFeature
+@testable import StoryArcCore
 
 /// The arithmetic behind a page turn, and the one part of it a screenshot cannot show.
 ///

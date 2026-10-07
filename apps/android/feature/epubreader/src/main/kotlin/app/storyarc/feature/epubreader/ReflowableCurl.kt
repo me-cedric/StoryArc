@@ -130,7 +130,7 @@ internal class CurlSheet(context: Context) : View(context) {
  *   step 4, and a raster of [host] would then photograph the sheet rather than the page.
  */
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal class CurlTurn(
+internal class ProseCurl(
     private val host: ViewGroup,
     private val index: Int,
     private val book: View,
@@ -240,7 +240,7 @@ internal fun EpubReaderViewModel.transitions(reduceMotion: Boolean): TransitionC
         reduceMotion = reduceMotion,
         canCurl = canCurl,
         // The activity takes the turn over from Readium for both: `TurnInterceptor` steals
-        // the drag, `FadeTurn` draws the dip, and `CurlTurn` rasters the page either side of
+        // the drag, `FadeTurn` draws the dip, and `ProseCurl` rasters the page either side of
         // the move and rolls the first off the second (task 8.12). Either was false until its
         // turn existed, because offering a mode that quietly gave a Slide instead would have
         // been worse than saying it was not available yet.

@@ -153,7 +153,7 @@ internal class EpubPageTurns(
     /**
      * Turns a page by rolling a picture of it off a picture of the next one. Task 8.12.
      *
-     * [CurlTurn] carries the order the five steps run in and why. What is here is the guard
+     * [ProseCurl] carries the order the five steps run in and why. What is here is the guard
      * every drawn turn needs -- one turn at a time, because a second roll begun during one
      * would raster a page that is already under a sheet -- and the API floor: AGSL's
      * `RuntimeShader` arrives at API 33, and below it `EpubReaderViewModel.canCurl` has
@@ -174,7 +174,7 @@ internal class EpubPageTurns(
 
         scope.launch {
             try {
-                CurlTurn(dipHost(), dipIndex, book).run(isRightToLeft(navigator)) {
+                ProseCurl(dipHost(), dipIndex, book).run(isRightToLeft(navigator)) {
                     movedTo(navigator.currentLocator) {
                         if (forward) {
                             navigator.goForward(animated = false)
