@@ -21,7 +21,7 @@ struct LibraryDocumentTests {
 
         #expect(written.formatVersion == 1)
         #expect(written.appVersion == "10.14.0")
-        #expect(written.writtenBy == .ios)
+        #expect(written.writtenBy == WritingPlatform.ios)
         #expect(written.writtenAt == LibraryDocumentFixture.writtenAt)
         // Reserved and never filled: see `LibraryDocument.secrets` and design.md.
         #expect(written.secrets == nil)
@@ -64,6 +64,48 @@ struct LibraryDocumentTests {
         )
 
         #expect(read == document())
+    }
+
+    @Test("A document written by a platform this build has never heard of still reads and imports")
+    func anUnknownWritingPlatformIsNotFatal() throws {
+        var parsed = try #require(
+            try JSONSerialization.jsonObject(
+                with: LibraryDocumentCoder.encode(document())
+            ) as? [String: Any]
+        )
+        parsed["writtenBy"] = "windows"
+
+        let read = try LibraryDocumentCoder.decode(
+            try JSONSerialization.data(withJSONObject: parsed)
+        )
+        let landed = LibraryImport.merging(read, into: LibrarySnapshot()).snapshot
+
+        #expect(read.writtenBy == "windows")
+        #expect(landed.sources.sources.count == LibraryDocumentFixture.snapshot.sources.sources.count)
+    }
+
+    @Test("A document over the size limit is refused by name, and one at the limit reads")
+    func anOversizedDocumentIsRefused() throws {
+        let bytes = try LibraryDocumentCoder.encode(document())
+
+        #expect(throws: LibraryDocumentFailure.tooLarge(found: bytes.count, limit: bytes.count - 1)) {
+            try LibraryDocumentCoder.decode(bytes, limit: bytes.count - 1)
+        }
+        #expect(try LibraryDocumentCoder.decode(bytes, limit: bytes.count) == document())
+    }
+
+    @Test("The size is checked before the parse, so bytes that are not JSON are named too large")
+    func theSizeIsCheckedBeforeTheParse() {
+        // Not a document at all. Were the parse first, this would be `notALibraryDocument`.
+        let oversized = Data(count: LibraryDocumentCoder.maximumBytes + 1)
+
+        #expect(throws: LibraryDocumentFailure.tooLarge(
+            found: oversized.count,
+            limit: LibraryDocumentCoder.maximumBytes
+        )) {
+            try LibraryDocumentCoder.decode(oversized)
+        }
+        #expect(LibraryDocumentCoder.declaredVersion(of: oversized) == nil)
     }
 
     @Test("A newer document is refused by name and nothing is read out of it")
@@ -212,7 +254,7 @@ struct LibraryDocumentBoundaryTests {
         )
 
         // The envelope differs by the platform that wrote it, and by nothing else.
-        #expect(theirs.writtenBy == .android)
+        #expect(theirs.writtenBy == WritingPlatform.android)
         #expect(theirs.library.certificatePins == mine.library.certificatePins)
         #expect(theirs.library.collections == mine.library.collections)
         #expect(theirs.library.readingLists == mine.library.readingLists)

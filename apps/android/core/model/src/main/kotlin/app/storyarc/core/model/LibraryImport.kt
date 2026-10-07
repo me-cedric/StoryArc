@@ -58,8 +58,8 @@ object LibraryImport {
             }
         }
 
-        val arrivingProgress = document.library.progress
-            .partition { heldProgress(it.identity.identity(), device) == null }
+        val arrivingProgress = readableProgress(document)
+            .partition { heldProgress(it.identity, device) == null }
 
         val heldThemes = device.themes.entries.map(::themeKey).toSet()
         val arrivingThemes = document.library.readingThemes.entries
@@ -286,15 +286,7 @@ object LibraryImport {
      */
     private fun mergingProgress(document: LibraryDocument, device: LibrarySnapshot):
         Pair<List<ReadingProgress>, List<ProgressPull.Conflict>> {
-        val arriving = document.library.progress.mapNotNull { record ->
-            ReadingProgress(
-                identity = record.identity.identity(),
-                position = record.position.position() ?: return@mapNotNull null,
-                isFinished = record.isFinished,
-                finishedAtEpochMillis = epochMillis(record.finishedAt),
-                updatedAtEpochMillis = epochMillis(record.updatedAt) ?: return@mapNotNull null,
-            )
-        }
+        val arriving = readableProgress(document)
         val pull = ProgressPull.merging(arriving) { identity -> heldProgress(identity, device) }
 
         val merged = device.progress.toMutableList()
@@ -304,6 +296,24 @@ object LibraryImport {
         }
         return merged to pull.conflicts
     }
+
+    /**
+     * The records the merge will keep: the one decode step the preview and the merge share.
+     *
+     * A record whose position or whose update time this build cannot read is dropped here, so
+     * the count the reader is shown is the count that lands. iOS's
+     * `LibraryImport.readableProgress` is the same step, and drops the same records for an unreadable position.
+     */
+    private fun readableProgress(document: LibraryDocument): List<ReadingProgress> =
+        document.library.progress.mapNotNull { record ->
+            ReadingProgress(
+                identity = record.identity.identity(),
+                position = record.position.position() ?: return@mapNotNull null,
+                isFinished = record.isFinished,
+                finishedAtEpochMillis = epochMillis(record.finishedAt),
+                updatedAtEpochMillis = epochMillis(record.updatedAt) ?: return@mapNotNull null,
+            )
+        }
 
     private fun heldProgress(identity: PublicationIdentity, device: LibrarySnapshot):
         ReadingProgress? = device.progress.firstOrNull { it.identity.matches(identity) }

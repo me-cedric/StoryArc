@@ -30,6 +30,14 @@ sealed interface LibraryDocumentFailure {
 
     /** The document declared a known version and then did not match it. */
     data class Malformed(val reason: String) : LibraryDocumentFailure
+
+    /**
+     * The document holds more bytes than this build reads.
+     *
+     * Refused by name, before any parse, the way a newer version is. A file a reader was handed
+     * can be any size, and parsing is where the memory goes.
+     */
+    data class TooLarge(val found: Long, val limit: Long) : LibraryDocumentFailure
 }
 
 /**
@@ -59,6 +67,15 @@ class LibraryDocumentTransform(
 object LibraryDocumentCoder {
 
     /**
+     * The most bytes this build reads: 64 MiB.
+     *
+     * The text of a very large library is a few megabytes. The rest of the room is for the
+     * covers a reader chose, which travel as base64 (task 6.7): a few hundred of them fit.
+     * iOS's `LibraryDocumentCoder.maximumBytes` holds the same number.
+     */
+    const val MAXIMUM_BYTES = 64L * 1024 * 1024
+
+    /**
      * The transforms this build ships. Empty: version 1 is the first, and the chain exists
      * from the start so the second version has somewhere to go.
      */
@@ -83,13 +100,20 @@ object LibraryDocumentCoder {
     /**
      * A document read back, migrated forward if it is older.
      *
+     * The size is checked first, in bytes as UTF-8 would hold the text, before anything is
+     * parsed.
+     *
+     * @param limit the size ceiling, injectable so a test need not allocate 64 MiB.
      * @param transforms the chain, injectable so a test can prove it runs. Production passes
      *   [LibraryDocumentCoder.transforms].
      */
     fun decode(
         text: String,
+        limit: Long = MAXIMUM_BYTES,
         transforms: List<LibraryDocumentTransform> = LibraryDocumentCoder.transforms,
     ): Result<LibraryDocument> {
+        val size = utf8Size(text)
+        if (size > limit) return failure(LibraryDocumentFailure.TooLarge(size, limit))
         val parsed = runCatching { json.parseToJsonElement(text) as JsonObject }.getOrNull()
             ?: return failure(LibraryDocumentFailure.NotALibraryDocument)
         val declared = (parsed["formatVersion"] as? JsonPrimitive)?.intOrNull
@@ -119,10 +143,29 @@ object LibraryDocumentCoder {
      * What an import preview asks first: a document it is going to refuse should be refused
      * before the reader is shown a list of what it would have done.
      */
-    fun declaredVersion(text: String): Int? =
-        runCatching { (json.parseToJsonElement(text) as JsonObject)["formatVersion"] }
+    fun declaredVersion(text: String, limit: Long = MAXIMUM_BYTES): Int? =
+        if (utf8Size(text) > limit) null else runCatching { (json.parseToJsonElement(text) as JsonObject)["formatVersion"] }
             .getOrNull()
             ?.let { (it as? JsonPrimitive)?.intOrNull }
+
+    /** The bytes UTF-8 gives [text], counted without making them. */
+    private fun utf8Size(text: String): Long {
+        var size = 0L
+        var index = 0
+        while (index < text.length) {
+            val unit = text[index].code
+            size += when {
+                unit < 0x80 -> 1
+                unit < 0x800 -> 2
+                // A surrogate pair is four bytes together, so the low half adds none.
+                unit in 0xD800..0xDBFF -> 4
+                unit in 0xDC00..0xDFFF -> 0
+                else -> 3
+            }
+            index++
+        }
+        return size
+    }
 
     private fun failure(reason: LibraryDocumentFailure): Result<LibraryDocument> =
         Result.failure(LibraryDocumentRefusal(reason))

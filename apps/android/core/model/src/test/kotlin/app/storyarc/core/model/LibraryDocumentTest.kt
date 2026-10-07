@@ -71,6 +71,59 @@ class LibraryDocumentTest {
     }
 
     @Test
+    fun `a document written by a platform this build has never heard of still reads and imports`() {
+        val parsed = parse(LibraryDocumentCoder.encode(document()))
+        val foreign = JsonObject(parsed + ("writtenBy" to JsonPrimitive("windows")))
+
+        val read = LibraryDocumentCoder.decode(foreign.toString()).getOrThrow()
+        val landed = LibraryImport.merging(read, LibrarySnapshot()).snapshot
+
+        assertEquals("windows", read.writtenBy)
+        assertEquals(LibraryDocumentFixture.snapshot.sources.sources.size, landed.sources.sources.size)
+    }
+
+    @Test
+    fun `a document over the size limit is refused by name and one at the limit reads`() {
+        val text = LibraryDocumentCoder.encode(document())
+        val size = text.toByteArray().size.toLong()
+
+        assertEquals(
+            LibraryDocumentFailure.TooLarge(size, size - 1),
+            refusal(LibraryDocumentCoder.decode(text, limit = size - 1)),
+        )
+        assertEquals(document(), LibraryDocumentCoder.decode(text, limit = size).getOrThrow())
+    }
+
+    @Test
+    fun `the size counts bytes as UTF-8 holds them, so a wide character is not one byte`() {
+        val wide = LibraryDocumentCoder.encode(document().copy(appVersion = "10.14.0 \u00e9\u4e16\ud83d\ude00"))
+        val size = wide.toByteArray().size.toLong()
+
+        assertEquals(
+            LibraryDocumentFailure.TooLarge(size, size - 1),
+            refusal(LibraryDocumentCoder.decode(wide, limit = size - 1)),
+        )
+        assertEquals(
+            "10.14.0 \u00e9\u4e16\ud83d\ude00",
+            LibraryDocumentCoder.decode(wide, limit = size).getOrThrow().appVersion,
+        )
+    }
+
+    @Test
+    fun `the size is checked before the parse so text that is not JSON is named too large`() {
+        val oversized = " ".repeat((LibraryDocumentCoder.MAXIMUM_BYTES + 1).toInt())
+
+        assertEquals(
+            LibraryDocumentFailure.TooLarge(
+                LibraryDocumentCoder.MAXIMUM_BYTES + 1,
+                LibraryDocumentCoder.MAXIMUM_BYTES,
+            ),
+            refusal(LibraryDocumentCoder.decode(oversized)),
+        )
+        assertNull(LibraryDocumentCoder.declaredVersion(oversized))
+    }
+
+    @Test
     fun `a newer document is refused by name and nothing is read out of it`() {
         val parsed = parse(LibraryDocumentCoder.encode(document()))
         val newer = JsonObject(parsed + ("formatVersion" to JsonPrimitive(99)))

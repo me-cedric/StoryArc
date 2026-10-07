@@ -21,6 +21,12 @@ public enum LibraryDocumentFailure: Error, Sendable, Equatable {
 
     /// The document declared a known version and then did not match it.
     case malformed(String)
+
+    /// The document holds more bytes than this build reads.
+    ///
+    /// Refused by name, before any parse, the way a newer version is. A file a reader was
+    /// handed can be any size, and parsing is where the memory goes.
+    case tooLarge(found: Int, limit: Int)
 }
 
 /// One step up the version ladder.
@@ -53,6 +59,13 @@ public struct LibraryDocumentTransform: Sendable {
 /// Android's `LibraryDocumentCoder` is the same three operations and the same refusals.
 public enum LibraryDocumentCoder {
 
+    /// The most bytes this build reads: 64 MiB.
+    ///
+    /// The text of a very large library is a few megabytes. The rest of the room is for the
+    /// covers a reader chose, which travel as base64 (task 6.7): a few hundred of them fit.
+    /// Android's `LibraryDocumentCoder.MAXIMUM_BYTES` holds the same number.
+    public static let maximumBytes = 64 * 1024 * 1024
+
     /// The transforms this build ships. Empty: version 1 is the first, and the chain exists
     /// from the start so the second version has somewhere to go.
     public static let transforms: [LibraryDocumentTransform] = []
@@ -71,14 +84,22 @@ public enum LibraryDocumentCoder {
 
     /// A document read back, migrated forward if it is older.
     ///
+    /// The size is checked first, before a byte is parsed. A document of the current version
+    /// decodes straight from `data`, so the bytes and the decoded value are the only two
+    /// copies; only an older one is parsed into a tree to be migrated and written out again.
+    ///
+    /// - Parameter limit: the size ceiling, injectable so a test need not allocate 32 MiB.
     /// - Parameter transforms: the chain, injectable so a test can prove it runs. Production
     ///   passes ``transforms``.
     public static func decode(
         _ data: Data,
+        limit: Int = LibraryDocumentCoder.maximumBytes,
         transforms: [LibraryDocumentTransform] = LibraryDocumentCoder.transforms
     ) throws -> LibraryDocument {
-        guard let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let declared = parsed["formatVersion"] as? Int
+        guard data.count <= limit else {
+            throw LibraryDocumentFailure.tooLarge(found: data.count, limit: limit)
+        }
+        guard let declared = declaredVersion(of: data, limit: limit)
         else { throw LibraryDocumentFailure.notALibraryDocument }
 
         let current = LibraryDocument.currentFormatVersion
@@ -86,8 +107,9 @@ public enum LibraryDocumentCoder {
             throw LibraryDocumentFailure.newerThanThisApp(found: declared, understood: current)
         }
 
-        let migrated = try migrating(parsed, from: declared, to: current, through: transforms)
-        let body = try JSONSerialization.data(withJSONObject: migrated)
+        let body = declared == current
+            ? data
+            : try migrated(data, from: declared, to: current, through: transforms)
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom(Self.readingAMoment)
@@ -101,12 +123,18 @@ public enum LibraryDocumentCoder {
     /// The version a document declares, without decoding it.
     ///
     /// What an import preview asks first: a document it is going to refuse should be refused
-    /// before the reader is shown a list of what it would have done.
-    public static func declaredVersion(of data: Data) -> Int? {
-        guard let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return nil
-        }
-        return parsed["formatVersion"] as? Int
+    /// before the reader is shown a list of what it would have done. Nil also for a document
+    /// over `limit`, which ``decode(_:limit:transforms:)`` refuses by name.
+    public static func declaredVersion(
+        of data: Data,
+        limit: Int = LibraryDocumentCoder.maximumBytes
+    ) -> Int? {
+        guard data.count <= limit else { return nil }
+        return (try? JSONDecoder().decode(DeclaredVersion.self, from: data))?.formatVersion
+    }
+
+    private struct DeclaredVersion: Decodable {
+        let formatVersion: Int
     }
 
     /// An ISO 8601 moment, with or without a fraction of a second.
@@ -126,21 +154,27 @@ public enum LibraryDocumentCoder {
         throw LibraryDocumentFailure.malformed("not an ISO 8601 moment: \(text)")
     }
 
-    private static func migrating(
-        _ document: [String: Any],
+    /// An older document, parsed, carried up the chain and written out again.
+    private static func migrated(
+        _ data: Data,
         from declared: Int,
         to current: Int,
         through transforms: [LibraryDocumentTransform]
-    ) throws -> [String: Any] {
-        var migrated = document
+    ) throws -> Data {
+        guard var document = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { throw LibraryDocumentFailure.notALibraryDocument }
         var version = declared
         while version < current {
             guard let step = transforms.first(where: { $0.from == version }) else {
                 throw LibraryDocumentFailure.noMigrationPath(from: version)
             }
-            migrated = step(migrated)
+            document = step(document)
             version += 1
         }
-        return migrated
+        do {
+            return try JSONSerialization.data(withJSONObject: document)
+        } catch {
+            throw LibraryDocumentFailure.malformed(String(describing: error))
+        }
     }
 }

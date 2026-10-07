@@ -50,7 +50,7 @@ public enum LibraryExport {
     ) -> LibraryDocument {
         LibraryDocument(
             appVersion: appVersion,
-            writtenBy: .ios,
+            writtenBy: WritingPlatform.ios,
             writtenAt: writtenAt,
             library: body(of: snapshot)
         )

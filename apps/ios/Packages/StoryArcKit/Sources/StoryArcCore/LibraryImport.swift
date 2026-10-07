@@ -18,9 +18,8 @@ public enum LibraryImport {
         let arriving = document.library.sources.filter { !held.contains($0.id) }
 
         let shelves = shelvesArriving(document, onto: device)
-        let progressToAdd = document.library.progress.count {
-            heldProgress(for: $0.identity.identity, in: device) == nil
-        }
+        let readable = readableProgress(document)
+        let progressToAdd = readable.count { heldProgress(for: $0.identity, in: device) == nil }
         let themes = Set(device.themes.entries.map(themeKey))
 
         return LibraryImportPlan(
@@ -29,7 +28,7 @@ public enum LibraryImport {
             shelvesToAdd: shelves.toAdd,
             shelvesToMerge: shelves.toMerge,
             progressToAdd: progressToAdd,
-            progressToMerge: document.library.progress.count - progressToAdd,
+            progressToMerge: readable.count - progressToAdd,
             certificatePinsToAdd: pinsArriving(document, onto: device),
             settingsWillChange: document.library.settings.settings != device.settings,
             themeEntriesToAdd: document.library.readingThemes.entries
@@ -275,15 +274,7 @@ public enum LibraryImport {
     /// function is why it had to be fixed first.
     private static func mergingProgress(_ document: LibraryDocument, into device: LibrarySnapshot)
         -> (progress: [ReadingProgress], conflicts: [ProgressPull.Conflict]) {
-        let arriving = document.library.progress.compactMap { record -> ReadingProgress? in
-            ReadingProgress(
-                identity: record.identity.identity,
-                position: record.position.position,
-                isFinished: record.isFinished,
-                finishedAt: record.finishedAt,
-                updatedAt: record.updatedAt
-            )
-        }
+        let arriving = readableProgress(document)
         let pull = ProgressPull.merging(remote: arriving) { identity in
             heldProgress(for: identity, in: device)
         }
@@ -297,6 +288,26 @@ public enum LibraryImport {
             }
         }
         return (merged, pull.conflicts)
+    }
+
+    /// The records the merge will keep: the one decode step the preview and the merge share.
+    ///
+    /// A record whose position this build cannot read is dropped here, so the count the
+    /// reader is shown is the count that lands. Android's `LibraryImport.readableProgress` is
+    /// the same step, and drops the same records for an unreadable position. A date this build
+    /// cannot read is refused earlier, by the decoder, for the whole document.
+    private static func readableProgress(_ document: LibraryDocument) -> [ReadingProgress] {
+        document.library.progress.compactMap { record in
+            record.position.position.map { position in
+                ReadingProgress(
+                    identity: record.identity.identity,
+                    position: position,
+                    isFinished: record.isFinished,
+                    finishedAt: record.finishedAt,
+                    updatedAt: record.updatedAt
+                )
+            }
+        }
     }
 
     private static func heldProgress(for identity: PublicationIdentity, in device: LibrarySnapshot)

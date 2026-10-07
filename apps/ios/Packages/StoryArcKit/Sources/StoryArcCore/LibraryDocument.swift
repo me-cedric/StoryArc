@@ -27,7 +27,7 @@ public struct LibraryDocument: Sendable, Equatable, Codable {
 
     public var formatVersion: Int
     public var appVersion: String
-    public var writtenBy: WritingPlatform
+    public var writtenBy: String
     public var writtenAt: Date
     public var library: LibraryBody
 
@@ -47,7 +47,7 @@ public struct LibraryDocument: Sendable, Equatable, Codable {
     public init(
         formatVersion: Int = LibraryDocument.currentFormatVersion,
         appVersion: String,
-        writtenBy: WritingPlatform,
+        writtenBy: String,
         writtenAt: Date,
         library: LibraryBody,
         secrets: LibrarySecrets? = nil
@@ -61,15 +61,16 @@ public struct LibraryDocument: Sendable, Equatable, Codable {
     }
 }
 
-/// Which app wrote a document.
+/// The two names this build writes and knows, for the field ``LibraryDocument/writtenBy``.
 ///
 /// Recorded because a reader asking why a record did not arrive is asking about a pair of
-/// builds, and the document is the only place that can answer. Not a behaviour switch: an
+/// builds, and the document is the only place that can answer. The field is text, not a
+/// closed set: a document from a third platform names it, and the name decides nothing. An
 /// importer that read a record one way for iOS and another for Android would be two formats
 /// wearing one version number.
-public enum WritingPlatform: String, Sendable, Codable, CaseIterable {
-    case ios
-    case android
+public enum WritingPlatform {
+    public static let ios = "ios"
+    public static let android = "android"
 }
 
 /// The passphrase-encrypted credential block, which this writer never produces.
