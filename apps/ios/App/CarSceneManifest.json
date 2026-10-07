@@ -1,0 +1,16 @@
+{
+  "UIApplicationSupportsMultipleScenes": true,
+  "UISceneConfigurations": {
+    "UIWindowSceneSessionRoleApplication": [
+      {
+        "UISceneConfigurationName": "Default Configuration"
+      }
+    ],
+    "CPTemplateApplicationSceneSessionRoleApplication": [
+      {
+        "UISceneConfigurationName": "CarPlay",
+        "UISceneDelegateClassName": "$(PRODUCT_MODULE_NAME).CarSceneDelegate"
+      }
+    ]
+  }
+}

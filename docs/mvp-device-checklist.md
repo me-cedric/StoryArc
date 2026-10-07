@@ -148,12 +148,14 @@ chapter.
 be provisioned without one. See [ADR-0011](decisions/0011-home-screen-widgets.md). No code
 change removes this.
 
-**CarPlay needs the same team, for the same reason.** Apple grants
-`com.apple.developer.carplay-audio` against a development team, and the scene does not
-activate without it. So iOS cannot be driven in a car or in the CarPlay simulator here. The
-rows a car draws are built and asserted on the host as `CarShelf` and `CarShelfTests`, and
-`App/CarScene.swift` holds the two templates. `audiobooks-and-playback`'s design note "The
-day an Apple team exists" lists the four steps the owner takes.
+**CarPlay on a device needs the same team, for the same reason.** Apple grants
+`com.apple.developer.carplay-audio` against a development team, and a device build with the
+key cannot be signed without one. The simulator build carries the entitlement and the scene
+manifest already (`App/StoryArc.simulator.entitlements`, `App/Info.simulator.plist`), and
+the device build carries neither. A guard test, `CarSimulatorOnlyTests`, asserts both. To see
+the scene, open the iOS Simulator's CarPlay window (I/O, External Displays, CarPlay), open
+StoryArc there, and check the list, the resume row and now-playing. In a car, the owner takes
+the four steps in `audiobooks-and-playback`'s design note "The day an Apple team exists".
 
 ## Suggested order
 

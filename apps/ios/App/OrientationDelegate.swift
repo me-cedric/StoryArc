@@ -30,10 +30,10 @@ final class OrientationDelegate: NSObject, UIApplicationDelegate {
     /// The configuration is otherwise the system's own, so SwiftUI still builds the phone's
     /// scene and owns everything in it.
     ///
-    /// **A car scene reaches here and never connects.** `com.apple.developer.carplay-audio`
-    /// and a scene manifest entry are what let the system open one, and ADR-0011's missing
-    /// Apple development team blocks the entitlement. The branch is written now so the day
-    /// the grant arrives is a plist change rather than a search for where this belongs.
+    /// **A car scene reaches here only in the simulator build.** That build carries
+    /// `com.apple.developer.carplay-audio` and a scene manifest; a device build carries
+    /// neither, because ADR-0011's missing Apple development team blocks the entitlement.
+    /// The day a team exists is a plist change, not a search for where this belongs.
     func application(
         _ application: UIApplication,
         configurationForConnecting connectingSceneSession: UISceneSession,

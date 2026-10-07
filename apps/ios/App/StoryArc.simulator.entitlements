@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      The simulator build only: `project.yml` points `CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]`
+      here and every other SDK at `StoryArc.entitlements`. The CarPlay Simulator reads this key
+      from the app and needs no provisioning profile; a device build with it and no Apple team
+      would fail to sign. Keep the keychain group identical to the other file, and nothing
+      else. `CarSceneWiringTests` fails if the two drift or if the device file gains the key.
+    -->
+    <key>com.apple.developer.carplay-audio</key>
+    <true/>
+    <key>keychain-access-groups</key>
+    <array>
+        <string>$(AppIdentifierPrefix)com.mecedric.storyarc</string>
+    </array>
+</dict>
+</plist>

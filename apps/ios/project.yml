@@ -12,6 +12,16 @@ options:
   createIntermediateGroups: true
   groupSortPosition: top
   generateEmptyDirectories: true
+  # Task 12.6, owner answer O13. The CarPlay scene needs a scene manifest and the
+  # `carplay-audio` entitlement, and this project has no Apple team to grant the entitlement
+  # to a device build. So the simulator build alone carries both, and the CarPlay Simulator
+  # (I/O, External Displays, CarPlay) can prove the scene. `Info.simulator.plist` is
+  # `Info.plist` plus `CarSceneManifest.json`, written here on every generate. A device build
+  # uses `Info.plist` and `StoryArc.entitlements`, which hold neither.
+  # `CarSceneWiringTests` fails if either file gains a car key.
+  postGenCommand: >-
+    plutil -insert UIApplicationSceneManifest -json "$(cat App/CarSceneManifest.json)"
+    -o App/Info.simulator.plist App/Info.plist
 
 settings:
   base:
@@ -36,6 +46,10 @@ settings:
     CODE_SIGNING_REQUIRED: YES
     CODE_SIGNING_ALLOWED: YES
     CODE_SIGN_ENTITLEMENTS: App/StoryArc.entitlements
+    # This line and `INFOPLIST_FILE[sdk=iphonesimulator*]` on the target are the only places
+    # the CarPlay scene is switched on. See the note on `postGenCommand`. The device SDK
+    # has no override of its own, on purpose.
+    "CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]": App/StoryArc.simulator.entitlements
 
 packages:
   StoryArcKit:
@@ -51,6 +65,11 @@ targets:
     platform: iOS
     sources:
       - path: App
+        # Build inputs, not resources: a plist named by `INFOPLIST_FILE` in a Copy Bundle
+        # Resources phase draws a warning, and the manifest JSON would ship in the bundle.
+        excludes:
+          - Info.simulator.plist
+          - CarSceneManifest.json
     dependencies:
       - package: StoryArcKit
         product: DesignSystem
@@ -197,6 +216,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mecedric.storyarc
+        "INFOPLIST_FILE[sdk=iphonesimulator*]": App/Info.simulator.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # The four alternate faces `settings-and-about` lets a reader choose, and the reason
         # `setAlternateIconName` can find them at all: an `.appiconset` sitting in the
