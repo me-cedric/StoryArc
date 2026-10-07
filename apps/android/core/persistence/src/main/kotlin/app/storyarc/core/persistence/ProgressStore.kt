@@ -224,7 +224,8 @@ internal val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
-class ProgressStore internal constructor(private val database: ProgressDatabase) {
+class ProgressStore internal constructor(private val database: ProgressDatabase) :
+    ProgressLedger {
 
     companion object {
         /**
@@ -288,7 +289,7 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
      * Last write wins *locally* — this is one device, and the interesting conflict
      * rules apply between devices, not within one.
      */
-    suspend fun save(progress: ReadingProgress): Unit =
+    override suspend fun save(progress: ReadingProgress): Unit =
         withContext(Dispatchers.IO) { writes.withLock { write(progress) } }
 
     private suspend fun write(progress: ReadingProgress) {
@@ -366,7 +367,7 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
      *
      * What `library-browsing`'s "Continue reading" row is built from.
      */
-    suspend fun recent(limit: Int = 50): List<ReadingProgress> =
+    override suspend fun recent(limit: Int): List<ReadingProgress> =
         withContext(Dispatchers.IO) { database.progress().recent(limit).map(::toDomain) }
 
     /**
@@ -376,10 +377,10 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
      * unmark a publication. `reading-progress` calls unmarking "a deliberate act", and this
      * is the deliberate act -- a reader choosing the state, not a page turn implying it.
      */
-    suspend fun mark(
+    override suspend fun mark(
         identity: PublicationIdentity,
         isFinished: Boolean,
-        at: Long = System.currentTimeMillis(),
+        at: Long,
     ): Unit = withContext(Dispatchers.IO) {
         val dao = database.progress()
         val row = existing(identity)
@@ -415,7 +416,7 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
     }
 
     /** Forgets one publication's position. A deliberate act, per ADR-0006. */
-    suspend fun forget(identity: PublicationIdentity): Unit = withContext(Dispatchers.IO) {
+    override suspend fun forget(identity: PublicationIdentity): Unit = withContext(Dispatchers.IO) {
         existing(identity)?.let { database.progress().delete(it.id) }
     }
 

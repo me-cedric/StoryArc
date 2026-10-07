@@ -3,7 +3,10 @@ package app.storyarc.core.persistence
 import android.content.Context
 import app.storyarc.core.model.LibrarySnapshot
 import app.storyarc.core.model.PinnedShelves
+import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.model.ShelfPin
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 /**
  * The seven stores a [LibrarySnapshot] is made of, read together and written together.
@@ -22,7 +25,7 @@ class LibraryArchive(
     private val library: LibraryPreferences,
     private val settings: SettingsStore,
     private val reader: ReaderPreferences,
-    private val progress: ProgressStore,
+    private val progress: ProgressLedger,
 ) {
     companion object {
         fun open(context: Context): LibraryArchive = LibraryArchive(
@@ -53,24 +56,72 @@ class LibraryArchive(
     )
 
     /**
-     * Writes a merged snapshot back, store by store.
+     * Writes a merged snapshot back, all or nothing.
      *
-     * Reading progress goes through [ProgressStore.save] one record at a time rather than
-     * being written wholesale, because that method is where finished stays sticky — a bulk
-     * write that bypassed it could unmark a publication the merge had just decided was
-     * finished.
+     * `library-portability` / *Import merges*: a throw part-way leaves the device as it was.
+     * The device is read first. On a failure the six small stores are written back from that
+     * reading and the progress records are put back one by one, and then the failure is
+     * thrown again. An import that stopped after the third store would otherwise leave a
+     * library that is neither the old one nor the new one, and nothing to say so.
      */
-    suspend fun apply(snapshot: LibrarySnapshot) {
+    suspend fun apply(merged: LibrarySnapshot) {
+        val before = snapshot()
+        try {
+            writeStores(merged)
+            writeProgress(merged.progress)
+        } catch (failure: Exception) {
+            // Undone even when the import was cancelled, or the cancel would be the half import.
+            withContext(NonCancellable) {
+                writeStores(before)
+                // The failure the reader needs is the first one. A second one while undoing
+                // cannot be shown better than that, so it does not replace it.
+                runCatching { restoreProgress(before.progress, over = merged.progress) }
+            }
+            throw failure
+        }
+    }
+
+    private fun writeStores(snapshot: LibrarySnapshot) {
         sources.save(snapshot.sources)
         certificatePins.save(snapshot.certificatePins)
         shelves.save(snapshot.shelves)
         library.savePinnedShelves(snapshot.pinnedShelves.tokens)
         settings.save(snapshot.settings)
         reader.save(snapshot.themes)
-        for (record in snapshot.progress) {
+    }
+
+    /**
+     * Reading progress goes through [ProgressLedger.save] one record at a time rather than
+     * being written wholesale, because that method is where finished stays sticky — a bulk
+     * write that bypassed it could unmark a publication the merge had just decided was
+     * finished.
+     */
+    private suspend fun writeProgress(records: List<ReadingProgress>) {
+        for (record in records) {
             progress.save(record)
             if (record.isFinished) {
                 progress.mark(record.identity, isFinished = true, at = record.updatedAtEpochMillis)
+            }
+        }
+    }
+
+    /**
+     * Puts every record the import may have touched back as [before] held it.
+     *
+     * A record [before] did not hold is forgotten. One it held is saved again, and then marked
+     * unfinished when it was unfinished: [ProgressLedger.save] keeps finished sticky, so saving
+     * alone would leave the flag the import turned on.
+     */
+    private suspend fun restoreProgress(before: List<ReadingProgress>, over: List<ReadingProgress>) {
+        for (record in over) {
+            val prior = before.firstOrNull { it.identity.matches(record.identity) }
+            if (prior == null) {
+                progress.forget(record.identity)
+            } else {
+                progress.save(prior)
+                if (!prior.isFinished) {
+                    progress.mark(prior.identity, isFinished = false, at = prior.updatedAtEpochMillis)
+                }
             }
         }
     }

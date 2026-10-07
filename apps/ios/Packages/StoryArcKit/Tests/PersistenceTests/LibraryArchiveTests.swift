@@ -131,4 +131,92 @@ struct LibraryArchiveTests {
         // only called it would quietly land every finished publication as unfinished.
         #expect(try await archive.snapshot().progress.first?.isFinished == true)
     }
+
+    // MARK: All or nothing
+
+    /// A progress store that fails on its `failingSave`th save, counting from one.
+    private actor FailingLedger: ProgressLedger {
+        struct Refused: Error {}
+
+        private let inner: ProgressStore
+        private let failingSave: Int
+        private var saves = 0
+
+        init(_ inner: ProgressStore, failingSave: Int) {
+            self.inner = inner
+            self.failingSave = failingSave
+        }
+
+        func recent(limit: Int) async throws -> [ReadingProgress] {
+            try await inner.recent(limit: limit)
+        }
+
+        func save(_ progress: ReadingProgress) async throws {
+            saves += 1
+            if saves == failingSave { throw Refused() }
+            try await inner.save(progress)
+        }
+
+        func mark(_ identity: PublicationIdentity, finished: Bool, at: Date) async throws {
+            try await inner.mark(identity, finished: finished, at: at)
+        }
+
+        func forget(_ identity: PublicationIdentity) async throws {
+            try await inner.forget(identity)
+        }
+    }
+
+    private func record(
+        _ digest: String,
+        page: Int,
+        finished: Bool = false,
+        at seconds: TimeInterval = 1_767_100_000
+    ) -> ReadingProgress {
+        ReadingProgress(
+            identity: PublicationIdentity(contentDigest: digest),
+            position: .page(index: page, of: 20),
+            isFinished: finished,
+            finishedAt: finished ? Date(timeIntervalSince1970: seconds) : nil,
+            updatedAt: Date(timeIntervalSince1970: seconds)
+        )
+    }
+
+    @Test("A write that fails part-way leaves the device exactly as it was")
+    func aFailedImportChangesNothing() async throws {
+        let defaults = UserDefaults(suiteName: "app.storyarc.tests.\(UUID().uuidString)") ?? .standard
+        let store = try ProgressStore.inMemory()
+
+        // The device before: one source, one position that is not finished.
+        let device = LibraryArchive(defaults: defaults, progress: store)
+        var held = LibrarySnapshot()
+        held.sources = SourceRegistry(sources: [
+            Source(displayName: "Old NAS", kind: .networkShare, locator: "smb://old/comics"),
+        ])
+        held.settings = AppSettings(appearance: .oledDark, language: "de")
+        held.progress = [record("d1", page: 3)]
+        try await device.apply(held)
+        let before = try await device.snapshot()
+
+        // The import: everything else changes, d1 moves on and is finished, d2 and d3 are new,
+        // and the third save is refused. Two saves have landed when it throws.
+        var incoming = library
+        incoming.progress = [
+            record("d1", page: 19, finished: true, at: 1_767_200_000),
+            record("d2", page: 4),
+            record("d3", page: 5),
+        ]
+        let failing = LibraryArchive(
+            defaults: defaults,
+            progress: FailingLedger(store, failingSave: 3)
+        )
+
+        await #expect(throws: FailingLedger.Refused.self) {
+            try await failing.apply(incoming)
+        }
+
+        let after = try await device.snapshot()
+        #expect(after == before)
+        #expect(after.progress.first { $0.identity.contentDigest == "d1" }?.isFinished == false)
+        #expect(after.progress.count == 1)
+    }
 }
