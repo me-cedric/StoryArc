@@ -140,12 +140,12 @@ Universal readings. These apply everywhere and the tables do not repeat them:
 | Requirement | Mobile i/a | macOS | Windows | Linux | Note |
 | --- | --- | --- | --- | --- | --- |
 | Platform-native interface | P/P | READ | PART | PART | SwiftUI (Liquid Glass), WinUI 3 (Fluent), GTK4/libadwaita. Quick actions become Dock menu, Jump List, GtkRecentManager and static .desktop actions. Win and Linux drop Continuity (Handoff). |
-| Dynamic colour | P/P | PART | PART | PART | Drops the Android scenario. Cover-derived accent stays in readers. Chrome accent: decide brand colour or OS accent (open question). |
+| Dynamic colour | P/P | PART | PART | PART | Drops the Android scenario. Cover-derived accent stays in readers. Chrome accent: brand colour by default, with a settings choice for the OS accent that is absent where the OS offers none (owner, 2026-10-07). |
 | Adaptive layout | B/P | PART | PART | PART | Drops Split View, Slide Over, foldables, orientation. Sidebar is permanent. Multi-window and resize stay. |
 | Reader chrome material | B/B | INH | READ | READ | Windows: Acrylic or Mica, opaque when transparency is off. Linux: libadwaita has no blur, so opaque overlay. |
 | Theme sheet reachability | B/B | INH | INH | INH | Popover anchored to its control. |
 | Accessibility | P/P | READ | READ | READ | VoiceOver, UI Automation, AT-SPI/Orca. Dynamic Type becomes OS text scaling (macOS: the reader's own size control). Touch target becomes pointer target. |
-| Performance and responsiveness | B/B | INH | INH | INH | Cold launch budget needs a desktop number. |
+| Performance and responsiveness | B/B | INH | INH | INH | Cold launch budget on a desktop: interactive within 1 second, on a mid-range laptop, with 5,000 publications (owner, 2026-10-07). |
 | Visual proof of interface changes | P/P | READ | READ | READ | Captures per desktop, both appearances. Linux adds compositor and DE matrix. |
 | The icon a reader chose | B/B | DROP | DROP | DROP | No supported runtime icon switch that persists on desktops. |
 | Chrome for a mode a reader is in | B/B | READ | READ | READ | Selection mode uses a toolbar swap and modifier-click. |
@@ -184,7 +184,7 @@ Universal readings. These apply everywhere and the tables do not repeat them:
 | Transition modes | B/B | INH | INH | INH | - |
 | The curl | P/P | READ | READ | READ | Finger becomes pointer drag, trackpad or key. macOS reuses the Metal shader. Win: custom shader in WinUI. Linux: GtkGLArea. On X11 the curl is absent until the Linux spike shows it holds the frame budget there (honest-absence scenario). EPUB curl still on a timer (task 8.12). |
 | Reduced motion | B/B | INH | INH | INH | macOS flag, SPI_GETCLIENTAREAANIMATION, gtk-enable-animations. |
-| Turn triggers | B/B | PART | PART | PART | Drops volume buttons. Edge click zones sit beside text selection and window drag: keep them off by default on desktop. |
+| Turn triggers | B/B | PART | PART | PART | Drops volume buttons. Edge click zones sit beside text selection and window drag. They stay on by default on desktop, as on a phone (owner, 2026-10-07). |
 | Transition performance | B/B | READ | READ | READ | 120 Hz becomes the display's own rate, per monitor. X11 is measured by the Linux curl spike. |
 
 ### `publication-formats`
@@ -391,7 +391,7 @@ Ranked by value to a reader. Verdict: ACCEPT (goes in `desktop-experience`), LAT
 | 3 | Full screen reading | ACCEPT | Matches "nothing on screen while reading". | Native on all three. Linux needs a compositor-safe path (Hyprland, tiling). |
 | 4 | Multiple reader windows | ACCEPT | Compare issues. Read while the library stays open. Restore on relaunch. | SwiftUI window scenes. WinUI needs one `Window` per reader. GTK needs one `AdwApplicationWindow` per reader. |
 | 5 | Open from the file manager: file association, drag and drop, argv | ACCEPT | The main way to open one file on a desktop. | UTI, ProgID, `.desktop` MIME. Flatpak passes file paths through the portal. |
-| 6 | Pointer reading: wheel and trackpad zoom and pan, hover reveals chrome, right-click menus, cursor hides | ACCEPT | Replaces every touch gesture. | Conflict: edge click zones against window drag and text selection. Keep zones off by default. |
+| 6 | Pointer reading: wheel and trackpad zoom and pan, hover reveals chrome, right-click menus, cursor hides | ACCEPT | Replaces every touch gesture. | Conflict: edge click zones against window drag and text selection. Zones stay on by default (owner, 2026-10-07); a drag never turns a page. |
 | 7 | Live folder watching | ACCEPT | Desktop apps stay open. Spec has Watched changes. Mobile caps it at 96 directories. | `inotify` limit on Linux. Network shares do not report changes. |
 | 8 | Media keys and system media controls | ACCEPT | Read-aloud and audiobooks need play, pause and skip from the keyboard. | `MPNowPlayingInfoCenter`, SMTC, MPRIS. Needs the `Playback` split on macOS. |
 | 9 | Recent items in Dock menu, Jump List, `GtkRecentManager` and static `.desktop` actions | ACCEPT | Mirrors the mobile quick actions that already exist. | `NSDockTile` menu, `ICustomDestinationList`, `GtkRecentManager`. A `.desktop` file cannot name a publication, so its actions are static. |
@@ -418,8 +418,8 @@ Also watch: HEIC and AVIF page decoding on Windows and Linux, and Orca and UI Au
 
 ## 8. Open questions for the lead
 
-1. Chrome accent: keep the single StoryArc brand colour, or follow the OS accent colour? The spec Dynamic colour is silent for desktops.
-2. Edge click zones: off by default on desktop? The spec Turn triggers says they are on until a reader says otherwise.
+1. Chrome accent: keep the single StoryArc brand colour, or follow the OS accent colour? The spec Dynamic colour is silent for desktops. Answered by the owner on 2026-10-07: the brand colour by default, with a settings choice to follow the OS accent. Where the OS offers no accent colour, the choice is absent and the brand colour stays.
+2. Edge click zones: which default on desktop? The spec Turn triggers says they are on until a reader says otherwise. Answered by the owner on 2026-10-07: on by default, as on a phone.
 3. Should the shared app-shell code move into a package for macOS and iOS? It needs a change under `apps/ios`.
-4. Does the Linux floor (GTK 4.14, libadwaita 1.5) offer the accent colour? `AdwAboutDialog` arrived in libadwaita 1.5. The system accent API is, I believe, 1.6. Not checked in this audit. Research item.
+4. Does the Linux floor (GTK 4.14, libadwaita 1.5) offer the accent colour? `AdwAboutDialog` arrived in libadwaita 1.5. The system accent API is, I believe, 1.6. Not checked in this audit. Research item. The owner's answer to question 1 covers it: below 1.6 the choice is absent.
 5. Which Rust crate opens SMB 3 with encryption for Windows and Linux? Answered by ADR-0018: the in-app `smb` crate on both, not the OS client.

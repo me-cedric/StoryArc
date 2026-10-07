@@ -160,8 +160,8 @@ search. Pages: **Sources, Appearance, Reading, Downloads, Language, Privacy.** A
 | Page | Rows |
 |---|---|
 | Sources | One `AdwActionRow` per source with a state icon and last sync. Offline rows use `dim-label`. Add and edit push a sub-page (Inferred for 1.5). Remove asks with `AdwAlertDialog`, verb "Remove", naming the source. |
-| Appearance | `AdwComboRow`: System, Light, Dark, OLED Dark, Natural. Accent: StoryArc or System. Cover size. |
-| Reading | `AdwComboRow` and `AdwSwitchRow` for direction, layout, fit, edge click zones (off), page transition, reading theme. |
+| Appearance | `AdwComboRow`: System, Light, Dark, OLED Dark, Natural. Accent: StoryArc or System, with System shown only where the system offers an accent colour. Cover size. |
+| Reading | `AdwComboRow` and `AdwSwitchRow` for direction, layout, fit, edge click zones (on), page transition, reading theme. |
 | Downloads | Storage bar, metered-link rule, clear cache. |
 | Language | Content language rule. The app follows the session locale. |
 | Privacy | What is stored, clear history, export a diagnostic. |
@@ -321,10 +321,11 @@ CSS. It holds the four classes above and the accent override. Use style classes 
 named colours elsewhere (`card`, `boxed-list`, `title-1`, `heading`, `caption`, `dimmed`,
 `osd`; `@accent_bg_color`, `@window_bg_color`). No hand-made shadows.
 
-**Accent colours.** On 1.5 the System choice is Adwaita blue, and StoryArc violet is the
-default (README section 5). From libadwaita 1.6, guard a call to
-`AdwStyleManager::accent_color` and offer **System** with the platform's accent. The
-cover-derived accent inside a publication overrides both.
+**Accent colours.** StoryArc violet is the default (README section 5). On 1.5 the system
+offers no accent colour, so the **System** choice is absent and violet stays. From libadwaita
+1.6, guard a call to `AdwStyleManager::accent_color` and offer **System** with the platform's
+accent, only where the system offers one. The cover-derived accent inside a publication
+overrides both.
 
 ## 12. Compositor notes
 

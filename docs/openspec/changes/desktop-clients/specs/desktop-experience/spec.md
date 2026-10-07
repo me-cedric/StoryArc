@@ -61,7 +61,23 @@ chrome is for navigation and never competes with a cover or a page.
 ### Requirement: The interface accent and the system appearance
 
 The app SHALL follow the system light and dark appearance while it runs, and SHALL change it without a restart.
-The accent of the library chrome SHALL be [NEEDS CLARIFICATION: does the desktop chrome keep the single StoryArc brand colour or follow the accent colour the system offers?]. A colour taken from a cover SHALL remain inside the readers.
+The accent of the library chrome SHALL be the StoryArc brand colour by default. The settings SHALL offer a choice to follow the
+system accent colour instead, and SHALL offer it only where the system offers an accent colour. A colour taken from a cover
+SHALL remain inside the readers.
+
+#### Scenario: The default accent
+- **WHEN** a reader has never chosen an accent
+- **THEN** the library chrome uses the StoryArc brand colour, whatever accent colour the system has
+
+#### Scenario: Following the system accent
+- **WHEN** a reader chooses the system accent colour in the settings
+- **THEN** the library chrome takes the system's accent colour at once, with no restart
+- **AND** a later change of the system accent recolours the chrome while the app is open, and no window needs to be reopened
+
+#### Scenario: A system with no accent colour
+- **WHEN** the system offers no accent colour, as on the oldest Linux releases the app supports
+- **THEN** the settings do not show the choice to follow the system accent
+- **AND** the library chrome keeps the StoryArc brand colour
 
 #### Scenario: The system switches appearance
 - **WHEN** the system changes between light and dark while the app is open
@@ -270,7 +286,7 @@ pointer SHALL hide after the pointer rests, and a context menu SHALL be availabl
 
 #### Scenario: Edge click zones
 - **WHEN** a reader clicks the leading or trailing edge of a page
-- **THEN** the page turns only where the zones are on, and the default is [NEEDS CLARIFICATION: off, as the design proposes, or on, as the page-transitions Turn triggers requirement says for a phone? The owner answers in task 1.26. When the owner answers, this scenario states that it overrides Turn triggers on a desktop.]
+- **THEN** the page turns only where the zones are on, and the zones are on by default
 - **AND** a reader can turn the zones on or off in the reader's settings, and with the zones on a click on the leading or trailing edge turns the page, with a click in the middle toggling the chrome
 
 #### Scenario: Selecting text and moving the window
@@ -899,8 +915,8 @@ that ships in the desktop build.
 The app SHALL feel immediate on a desktop. The library window SHALL appear before any source answers.
 
 #### Scenario: Cold launch
-- **WHEN** the app is launched cold on a mid-range desktop of the last four years
-- **THEN** the library is interactive within [NEEDS CLARIFICATION: what is the cold-launch budget on a desktop?]
+- **WHEN** the app is launched cold on a mid-range laptop of the last four years, with a library of 5,000 publications
+- **THEN** the library is interactive within 1 second
 
 #### Scenario: Resizing and scrolling
 - **WHEN** a reader resizes a window or scrolls a library of 10,000 publications

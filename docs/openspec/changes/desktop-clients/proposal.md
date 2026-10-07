@@ -31,8 +31,6 @@ a small build base in place. It implements no feature.
 - **A `Desktop` section in `docs/openspec/STATUS.md`,** one row per target, each marked base only.
 - **No existing requirement changes.** The delta holds `ADDED` requirements only, so nothing
   collides with the mobile changes in flight.
-  One scenario waits on the owner: the default of the edge click zones (task 1.26). Its answer is
-  stated in the delta as holding on a desktop only, and it modifies no requirement text.
 
 ## Capabilities
 

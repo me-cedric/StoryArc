@@ -262,7 +262,8 @@ File access uses `GtkFileDialog`, which goes through the portal. Where no portal
 
 **Accessibility.** GTK 4 exposes AT-SPI to Orca. Custom widgets (page surface, spread, zoom) need accessible roles,
 labels and live announcements. High contrast follows the system. The 1.5 floor has no system accent API (libadwaita
-accent colour arrived later: Inferred), so the open question on the chrome accent is also constrained by the floor.
+accent colour arrived later: Inferred), so on the floor the choice to follow the system accent is absent and the
+StoryArc brand colour stays (Open Question 1, answered).
 
 **Packaging.**
 
@@ -532,13 +533,16 @@ Nothing migrates for a reader: no desktop app exists today. Rollback is deletion
 
 ## Open Questions
 
-1. **Chrome accent.** Does the desktop chrome keep the single StoryArc brand colour or follow the system accent? The spec
-   marks it. The Linux floor may not offer the accent API at all. Owner decision.
-2. **Edge click zones.** The spec carries a marker. Off by default is the audit's recommendation (the zones conflict with
-   text selection and window drag). The mobile Turn triggers requirement has them on. When the owner answers, the spec
-   states that the answer overrides Turn triggers on a desktop. Owner confirms.
-3. **Cold-launch budget on a desktop.** The spec marks it. Mobile uses 1.5 seconds on a mid-range device. A desktop number
-   needs a measurement from the first running shell.
+1. **Chrome accent. Answered by the owner on 2026-10-07.** The library chrome uses the StoryArc brand colour by default.
+   The settings offer a choice to follow the system accent instead. Where the system offers no accent colour, as on a
+   Linux system whose libadwaita is older than 1.6 (the floor is 1.5), the choice is absent and the brand colour stays.
+   A colour taken from a cover stays inside the readers. Built by tasks 2.23e, 2.35e and 2.47e.
+2. **Edge click zones. Answered by the owner on 2026-10-07: on.** The zones are on by default on a desktop, as the
+   page-transitions Turn triggers requirement has them on for a phone. The desktop does not override Turn triggers. A
+   reader turns them off in the reader's settings.
+3. **Cold-launch budget on a desktop. Answered by the owner on 2026-10-07.** The library is interactive within 1 second of
+   a cold launch, on a mid-range laptop, with a library of 5,000 publications. Mobile uses 1.5 seconds on a mid-range
+   device. Task 5.9 measures each first running shell against this number.
 4. **Shared shell code.** Move the iOS composition code into a package that both iOS and macOS use? It needs a change under
    `apps/ios`. Wave 5 parent task.
 5. **Async runtime** for the core and `oo7` (tokio is the `oo7` default, `async-io` is the alternative).

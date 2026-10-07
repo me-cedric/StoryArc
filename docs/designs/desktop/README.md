@@ -63,8 +63,9 @@ Pointer rules:
 1. A click selects. A double-click or Return reads. Right-click opens the context menu.
 2. Hover never hides information. It reveals chrome only.
 3. The cursor hides after 3 s of idle time, together with the reader chrome.
-4. Edge click zones are **off by default** on desktop. They fight window drag and
-   text selection. The setting exists in Reading. This answers parity question 2 as a proposal.
+4. Edge click zones are **on by default** on desktop, as on a phone (owner, 2026-10-07).
+   A drag still selects text or moves the window and never turns a page. The setting in
+   Reading turns the zones off.
 5. Pointer targets are at least 24 by 24 px (WCAG 2.5.8). Toolbar controls aim at 32.
    A touch-capable Windows device gets 40.
 
@@ -143,19 +144,20 @@ for legible titles under covers.
 A thin progress rail on the bottom edge. A small filled mark in one corner when
 downloaded. Title below. Never a progress ring over the art.
 
-## 5. Chrome accent (Proposed)
+## 5. Chrome accent (decided 2026-10-07)
 
 Parity audit question 1 asked whether chrome follows the OS accent or the StoryArc accent.
 
-Proposal: **StoryArc violet by default on all three**, with a setting in Appearance:
+The owner answered: **StoryArc violet by default on all three**, with a setting in Appearance:
 *Accent: StoryArc or System*. This keeps one accent to reason about
-(`design.md`, section 2). The proposal needs an owner answer.
+(`design.md`, section 2). Where the system offers no accent colour, as on Linux below
+libadwaita 1.6, the System choice is absent and violet stays.
 
 | Platform | How the default is applied | What the OS still draws |
 |---|---|---|
 | macOS | `AccentColor` asset set to `brand/accent`. | A person who picked a fixed accent in System Settings keeps it in sidebar selection and text selection. This follows Apple. |
 | Windows | Override `SystemAccentColor` and its shades in app resources. | High Contrast ignores the override. |
-| Linux | Override `accent_bg_color`, `accent_color` and `accent_fg_color` with named colours on 1.5. From 1.6 use `AdwStyleManager::accent_color` for the System choice. | High Contrast. |
+| Linux | Override `accent_bg_color`, `accent_color` and `accent_fg_color` with named colours on 1.5, where the System choice is absent. From 1.6, where the system offers an accent, use `AdwStyleManager::accent_color` for the System choice. | High Contrast. |
 
 Cover-derived accent applies inside a publication (detail page and reader) on all three,
 after the lightness adjustment from `design.md`. Raw extracted colour is never used.
@@ -345,10 +347,10 @@ A visible change owes a capture from a running app, as on mobile.
 
 ## 11. Open decisions
 
-| # | Question | Proposed answer |
+| # | Question | Answer or proposal |
 |---|---|---|
-| O1 | Chrome accent: brand or OS | Brand by default, setting for System (section 5). |
-| O2 | Edge click zones | Off by default (section 2). |
+| O1 | Chrome accent: brand or OS | Decided 2026-10-07: brand by default, setting for System, absent where the system has no accent (section 5). |
+| O2 | Edge click zones | Decided 2026-10-07: on by default (section 2). |
 | O3 | Shared app shell between iOS and macOS | Later wave. Needs a change under `apps/ios`. |
-| O4 | Linux accent on the 1.5 floor | CSS named-colour override. Re-check on 1.6 and newer. |
+| O4 | Linux accent on the 1.5 floor | CSS named-colour override for the brand colour. The System choice is absent below 1.6. Re-check on 1.6 and newer. |
 | O5 | Curl on Windows and Linux | Spike in wave 1. Slide is the honest fallback for a missing curl. Reduce Motion gives Fast fade. |

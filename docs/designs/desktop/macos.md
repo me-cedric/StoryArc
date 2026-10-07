@@ -142,7 +142,7 @@ the system panel in the StoryArc menu. What's New and Acknowledgements are Help 
   says that downloads and progress stay.
 - Appearance: System, Light, Dark, OLED Dark, Natural. Accent: StoryArc or System.
   Cover size default. Reduce Motion note when the system flag is on.
-- Reading: defaults for direction, layout (Auto), fit, edge click zones (off), page
+- Reading: defaults for direction, layout (Auto), fit, edge click zones (on), page
   transition, reading theme. A per-series choice is never overwritten.
 - Downloads: storage bar, Wi-Fi rule shown as "not on a metered link", clear cache.
 - Language: the app language note with a button to open System Settings, plus the
