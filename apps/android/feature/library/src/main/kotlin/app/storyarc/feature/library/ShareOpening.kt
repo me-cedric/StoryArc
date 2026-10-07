@@ -3,6 +3,7 @@ package app.storyarc.feature.library
 import app.storyarc.core.format.IndexException
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.StreamingCapability
 import app.storyarc.core.model.StreamingOffer
 
 /**
@@ -24,15 +25,17 @@ import app.storyarc.core.model.StreamingOffer
 /**
  * Whether a format's decoder insists on a real file.
  *
- * `PdfRenderer` needs a descriptor and libarchive needs a path, so those two are offered as a
- * download. Everything else is read where it lies.
+ * `PdfRenderer` needs a descriptor, so a PDF is offered as a download. Everything else is read
+ * where it lies. A CBR reads where it lies too: a non-solid one decodes each page from its own
+ * ranged bytes, and a solid one says so through its [StreamingCapability], which
+ * [StreamingOffer] reads first.
  *
  * The platform half of [StreamingOffer]'s `readsWhereItLies`: what a container reported about
  * itself is the same question on both apps, and which decoders can work from a source is not.
  * iOS's list is longer -- its EPUB reader wants a file of its own as well.
  */
 internal fun needsLocalFile(format: PublicationFormat): Boolean =
-    format == PublicationFormat.PDF || format == PublicationFormat.CBR
+    format == PublicationFormat.PDF
 
 /**
  * Whether a catalogue acquisition of this format can be read from its address before the
@@ -41,10 +44,12 @@ internal fun needsLocalFile(format: PublicationFormat): Boolean =
  * [readsFromAnAddress] answers the same question for a publication already indexed, and
  * knows whether an EPUB is fixed-layout. A catalogue entry has neither yet -- only a media
  * type -- so an EPUB is excluded here too: the common case is reflowable, and [needsLocalFile]
- * alone would stream a format this screen cannot yet tell apart from one it can.
+ * alone would stream a format this screen cannot yet tell apart from one it can. A CBR is
+ * excluded for the same reason: only its headers say whether it is solid.
  */
 internal fun catalogueReadsWhereItLies(format: PublicationFormat?): Boolean =
-    format != null && format != PublicationFormat.EPUB && !format.isAudio && !needsLocalFile(format)
+    format != null && format != PublicationFormat.EPUB && format != PublicationFormat.CBR &&
+        !format.isAudio && !needsLocalFile(format)
 
 /**
  * Whether the reader this publication opens in can read from an address rather than a file.
@@ -59,9 +64,11 @@ internal fun catalogueReadsWhereItLies(format: PublicationFormat?): Boolean =
  * cannot open from an address is worse than offering the download it already had.
  *
  * A fixed-layout EPUB is a comic to this app and is on the readable side, which is the one
- * case [needsLocalFile] alone would get wrong in either direction.
+ * case [needsLocalFile] alone would get wrong in either direction. A publication whose
+ * container said it does not stream -- a solid RAR5 -- never reads from an address.
  */
 internal fun readsFromAnAddress(publication: Publication): Boolean = when {
+    publication.streaming != StreamingCapability.STREAMS -> false
     publication.format.isAudio -> false
     publication.format == PublicationFormat.EPUB && !publication.isFixedLayout -> false
     else -> !needsLocalFile(publication.format)

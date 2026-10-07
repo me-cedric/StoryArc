@@ -56,6 +56,32 @@ static struct archive *open_rar(const char *path)
  * reported as failure rather than returned as a truncated page: handing half an
  * image to the decoder would surface as "corrupt file" and hide the real cause.
  */
+/*
+ * Zero bytes after an isolated entry's packed bytes. libarchive's RAR5 reader
+ * asks for 4 bytes past each compressed block, because its bit reader loads a
+ * word at a time; in a whole file those bytes are the next header. iOS's
+ * RarDecoder.isolatedPadding is the same number.
+ */
+#define ISOLATED_PADDING 8
+
+/* A buffer handed to libarchive as one block: all of it once, then nothing. */
+struct memory_block {
+	const unsigned char *base;
+	size_t count;
+	int given;
+};
+
+static la_ssize_t memory_read(struct archive *a, void *context, const void **out)
+{
+	(void)a;
+	struct memory_block *block = context;
+	if (block->given)
+		return 0;
+	block->given = 1;
+	*out = block->base;
+	return (la_ssize_t)block->count;
+}
+
 static jbyteArray read_entry(JNIEnv *env, struct archive *a, jlong declared)
 {
 	if (declared < 0 || declared > MAX_ENTRY_BYTES)
@@ -305,5 +331,43 @@ Java_app_storyarc_core_format_RarDecoder_nativeEntriesData(
 		}
 	}
 	archive_read_free(a);
+	return out;
+}
+
+/*
+ * The one entry in a buffer RarReader.isolated() built: the main header, then a
+ * single entry header and its packed bytes. archive_read_open_memory lives in a
+ * libarchive source this project does not vendor, so archive_read_open with
+ * memory_read does the same.
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_app_storyarc_core_format_RarDecoder_nativeIsolatedEntryData(
+	JNIEnv *env, jclass clazz, jbyteArray archive)
+{
+	(void)clazz;
+	jsize length = (*env)->GetArrayLength(env, archive);
+	if (length <= 0)
+		return NULL;
+	unsigned char *buffer = calloc((size_t)length + ISOLATED_PADDING, 1);
+	if (buffer == NULL)
+		return NULL;
+	(*env)->GetByteArrayRegion(env, archive, 0, length, (jbyte *)buffer);
+
+	struct memory_block block = { buffer, (size_t)length + ISOLATED_PADDING, 0 };
+	struct archive *a = archive_read_new();
+	jbyteArray out = NULL;
+	if (a != NULL) {
+		archive_read_support_format_rar(a);
+		archive_read_support_format_rar5(a);
+		archive_read_support_filter_none(a);
+		struct archive_entry *entry;
+		if (archive_read_open(a, &block, NULL, memory_read, NULL) == ARCHIVE_OK) {
+			int status = archive_read_next_header(a, &entry);
+			if (status == ARCHIVE_OK || status == ARCHIVE_WARN)
+				out = read_entry(env, a, (jlong)archive_entry_size(entry));
+		}
+		archive_read_free(a);
+	}
+	free(buffer);
 	return out;
 }

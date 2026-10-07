@@ -141,6 +141,24 @@ class RarDecoderInstrumentedTest {
     }
 
     @Test
+    fun aNonSolidRar5EntryDecodesFromItsOwnRangedBytes() = runBlocking {
+        // The remote route (14.14): the main header and one entry, read by range, then
+        // handed to libarchive from memory. The same bytes the whole-file route gives.
+        val reader = RarReader.open(DataSource(fixture("comics/rar5-compressed.cbr").readBytes()))
+        val entry = reader.entries.single()
+        val data = RarDecoder.isolatedData(reader.isolated(entry), entry.path)
+        assertArrayEquals(expectedBinContent(1200), data)
+    }
+
+    @Test
+    fun aRar4EntryDecodesFromItsOwnRangedBytes() = runBlocking {
+        val reader = RarReader.open(DataSource(fixture("comics/rar4-compressed.cbr").readBytes()))
+        val nested = reader.entries.single { it.path == "testdir\\test.txt" }
+        val data = RarDecoder.isolatedData(reader.isolated(nested), nested.path)
+        assertEquals("test text document\r\n", String(data))
+    }
+
+    @Test
     fun aStoredCbrStillReadsThroughTheHeaderReaderRatherThanTheDecoder() = runBlocking {
         // The split this whole design rests on: a stored entry never reaches
         // libarchive, so the cheap path stays cheap.

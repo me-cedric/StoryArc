@@ -14,6 +14,11 @@ data class RarEntry(
     /** Solid entries cannot be decompressed without the entries before them. */
     val isSolid: Boolean,
     val isEncrypted: Boolean,
+    /**
+     * Where the entry's own header block starts. With [dataOffset] and [packedSize] it bounds
+     * everything a decoder needs for a non-solid entry.
+     */
+    val headerOffset: Long = 0,
 )
 
 /**
@@ -70,6 +75,8 @@ class RarReader private constructor(
      * saying so rather than prompting for a password.
      */
     val isEncrypted: Boolean,
+    /** Where the blocks before the first entry end: the signature and the main header. */
+    internal val mainHeaderEnd: Long = 0,
 ) {
     /**
      * True when any entry cannot be reached without decompressing the ones before
@@ -122,6 +129,7 @@ class RarReader private constructor(
             val entries = mutableListOf<RarEntry>()
             var solidArchive = false
             var encrypted = false
+            var mainHeaderEnd = 0L
             var offset = RAR4_SIGNATURE.size.toLong()
 
             while (offset + 7 <= source.length) {
@@ -143,6 +151,7 @@ class RarReader private constructor(
                             return RarReader(source, RarGeneration.RAR4, emptyList(), solidArchive, true)
                         }
                         offset += headerSize
+                        mainHeaderEnd = offset
                         continue
                     }
 
@@ -192,12 +201,13 @@ class RarReader private constructor(
                         isStored = method == 0x30,
                         isSolid = flags and 0x0010 != 0,
                         isEncrypted = entryEncrypted,
+                        headerOffset = offset,
                     )
                 }
                 offset = dataOffset + maxOf(packed, 0)
             }
 
-            return RarReader(source, RarGeneration.RAR4, entries, solidArchive, encrypted)
+            return RarReader(source, RarGeneration.RAR4, entries, solidArchive, encrypted, mainHeaderEnd)
         }
 
         /** A non-file block's payload size, directly after its 7-byte head. */
@@ -244,6 +254,7 @@ class RarReader private constructor(
             val entries = mutableListOf<RarEntry>()
             var solidArchive = false
             var encrypted = false
+            var mainHeaderEnd = 0L
             var offset = RAR5_SIGNATURE.size.toLong()
 
             while (offset + 8 <= source.length) {
@@ -271,7 +282,10 @@ class RarReader private constructor(
                 val nextOffset = dataOffset + maxOf(dataSize, 0)
 
                 when (type) {
-                    1L -> vint(bytes, cursor)?.let { solidArchive = it and 0x0004L != 0L }
+                    1L -> {
+                        vint(bytes, cursor)?.let { solidArchive = it and 0x0004L != 0L }
+                        mainHeaderEnd = nextOffset
+                    }
 
                     // Encrypted headers: nothing past this point can be parsed.
                     4L -> return RarReader(
@@ -279,7 +293,7 @@ class RarReader private constructor(
                     )
 
                     5L -> return RarReader(
-                        source, RarGeneration.RAR5, entries, solidArchive, encrypted,
+                        source, RarGeneration.RAR5, entries, solidArchive, encrypted, mainHeaderEnd,
                     )
 
                     2L, 3L -> {
@@ -317,6 +331,7 @@ class RarReader private constructor(
                                 isStored = (compression shr 7) and 0x07L == 0L,
                                 isSolid = compression and 0x40L != 0L,
                                 isEncrypted = entryEncrypted,
+                                headerOffset = offset,
                             )
                         }
                     }
@@ -328,7 +343,7 @@ class RarReader private constructor(
                 offset = nextOffset
             }
 
-            return RarReader(source, RarGeneration.RAR5, entries, solidArchive, encrypted)
+            return RarReader(source, RarGeneration.RAR5, entries, solidArchive, encrypted, mainHeaderEnd)
         }
 
         /**
@@ -388,5 +403,30 @@ class RarReader private constructor(
             throw RarException.Malformed("entry lies outside the source")
         }
         return source.readExactly(entry.dataOffset, entry.packedSize.toInt())
+    }
+
+    /**
+     * One non-solid entry as an archive of its own: the signature and main header, then the
+     * entry's header and packed bytes. Nothing between them and nothing after is read.
+     *
+     * A non-solid entry decodes without the entries before it, so these bytes are all
+     * libarchive needs. Two ranged reads replace the whole file, which is what lets a
+     * compressed CBR stream from a share (`publication-formats`, *Streaming capability per
+     * format*). Every length here comes from a header, so each is bounded first. iOS's
+     * `RarReader.isolated(_:)` reads the same two ranges.
+     */
+    suspend fun isolated(entry: RarEntry): ByteArray {
+        val headerLength = entry.dataOffset - entry.headerOffset
+        if (mainHeaderEnd <= 0 || mainHeaderEnd > MAX_HEADER_SIZE ||
+            mainHeaderEnd > entry.headerOffset ||
+            headerLength <= 0 || headerLength > MAX_HEADER_SIZE ||
+            entry.packedSize < 0 || entry.packedSize > RarDecoder.MAX_ENTRY_BYTES ||
+            entry.dataOffset + entry.packedSize > source.length
+        ) {
+            throw RarException.Malformed("entry lies outside the source")
+        }
+        val head = source.readExactly(0, mainHeaderEnd.toInt())
+        val body = source.readExactly(entry.headerOffset, (headerLength + entry.packedSize).toInt())
+        return head + body
     }
 }

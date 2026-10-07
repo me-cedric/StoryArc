@@ -166,11 +166,12 @@ class ComicArchiveTest {
     fun `a compressed entry with no decoder is listed from its header, and marks the archive download-only`() =
         runTest {
             // Same method-byte flip `RarReaderTest` uses, read through
-            // `RarComicArchive` with no file — the remote-share shape.
-            // `publication-formats` requires this to list every page from the
-            // headers rather than throwing `UnsupportedContainer`, with the
-            // archive itself saying it needs a download before the compressed
-            // page can be read.
+            // `RarComicArchive` with no file — the remote-share shape — on a host
+            // JVM, which has no native decoder. `publication-formats` requires
+            // this to list every page from the headers rather than throwing
+            // `UnsupportedContainer`. With no decoder at all, the archive says it
+            // cannot read the compressed page; `RarStreamingTest` covers the
+            // device case, where a non-solid archive streams.
             val bytes = FixtureCorpus.file("comics/rar4-store.cbr").readBytes()
             val methodOffset = RarReader.RAR4_SIGNATURE.size + 13 + 25
             assertEquals("expected the store method byte here", 0x30, bytes[methodOffset].toInt())
@@ -184,12 +185,12 @@ class ComicArchiveTest {
                 assertEquals(0, archive.skippedPageCount)
                 assertTrue(archive.isDownloadOnly)
 
-                // The flipped entry cannot be read without a decoder yet…
+                // The flipped entry cannot be read without a decoder…
                 val compressedPage = archive.pages.first { it.path == "page1.png" }
                 val failure = runCatching { archive.data(compressedPage) }.exceptionOrNull()
                 assertTrue(
-                    "expected UnsupportedContainer, got $failure",
-                    failure is ComicArchiveException.UnsupportedContainer,
+                    "expected NeedsDecoder, got $failure",
+                    failure is RarException.NeedsDecoder,
                 )
                 // …but the other two are still stored, and still read.
                 val storedPage = archive.pages.first { it.path == "page2.png" }

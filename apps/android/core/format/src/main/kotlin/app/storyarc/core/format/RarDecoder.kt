@@ -11,20 +11,27 @@ import java.io.File
  * cannot do is undo RAR's LZ and PPMd coding, which is a real codec and the one
  * thing worth a C dependency (ADR-0005).
  *
- * So the seam is deliberately narrow: a path in, entry bytes out. Nothing above
- * this object knows libarchive exists, which is what makes the dependency
- * replaceable and keeps the untrusted-input surface to a single call. iOS's
- * `RarDecoder` has the same shape for the same reason.
+ * So the seam is deliberately narrow: a path or a buffer in, entry bytes out.
+ * Nothing above this object knows libarchive exists, which is what makes the
+ * dependency replaceable and keeps the untrusted-input surface to a single call.
+ * iOS's `RarDecoder` has the same shape for the same reason.
  *
- * ponytail: takes a [File] rather than a [RandomAccessSource]. Decompressing an
- * entry is sequential by nature, and a remote publication is downloaded before it
- * is read anyway — [RarReader] is what makes *indexing* a remote CBR cheap. Wire
- * libarchive's callback API through JNI if streaming a compressed remote CBR ever
- * becomes a real requirement.
+ * A remote non-solid entry comes in as a buffer: [RarReader.isolated] reads the
+ * main header and that one entry by range, and libarchive opens the result from
+ * memory. libarchive's read callbacks are synchronous and every source here is
+ * suspending, so handing it bytes already read avoids a thread bridge. A solid
+ * archive still needs the whole file, because each entry depends on the ones
+ * before it.
  */
 object RarDecoder {
     /** Whether the native library loaded. False on a host JVM, where there is none. */
     val isAvailable: Boolean = runCatching { System.loadLibrary("storyarc_rar") }.isSuccess
+
+    /**
+     * A ceiling on one entry's unpacked size, and on the packed bytes [RarReader.isolated]
+     * reads. The same number as `MAX_ENTRY_BYTES` in `rar_decoder.c`.
+     */
+    const val MAX_ENTRY_BYTES = 512L * 1024 * 1024
 
     /** One entry, as libarchive reports it. */
     data class NativeEntry(val path: String, val size: Long)
@@ -64,6 +71,18 @@ object RarDecoder {
     }
 
     /**
+     * Unpacked bytes of the one entry in [archive], which [RarReader.isolated] built.
+     *
+     * The buffer holds the main header and a single entry, so the first header is the
+     * entry: no name match is needed. [entryName] only names the entry in an error.
+     */
+    fun isolatedData(archive: ByteArray, entryName: String): ByteArray {
+        require()
+        return nativeIsolatedEntryData(archive)
+            ?: throw RarException.Malformed("libarchive could not read '$entryName' from its ranged bytes")
+    }
+
+    /**
      * Entry names and sizes as *libarchive* sees them.
      *
      * Not used for indexing — [RarReader] does that without a C library. This
@@ -93,6 +112,8 @@ object RarDecoder {
     private external fun nativeEntryNames(archivePath: String): Array<String>?
 
     private external fun nativeEntryData(archivePath: String, entryName: String): ByteArray?
+
+    private external fun nativeIsolatedEntryData(archive: ByteArray): ByteArray?
 
     private external fun nativeEntriesData(
         archivePath: String,

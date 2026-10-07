@@ -134,12 +134,35 @@ class ShareOpeningTest {
     }
 
     @Test
-    fun `a compressed CBR on a share is offered rather than streamed`() = runTest {
-        // libarchive wants a path. The container reported STREAMS, which is true of the
-        // headers and not of the entries this platform can reach.
+    fun `a non-solid CBR on a share is read where it lies`() = runTest {
+        // Each compressed page decodes from its own ranged bytes (`RarReader.isolated`).
         val answers = openingFromShare(publication(format = PublicationFormat.CBR))
 
-        assertTrue("A CBR on a share was opened rather than offered.", answers.offerMade)
+        assertEquals(REMOTE_PATH, answers.opened?.second)
+        assertTrue("A non-solid CBR was offered as a download.", !answers.offerMade)
+    }
+
+    @Test
+    fun `a solid RAR5 on a share is offered with its size, not streamed`() = runTest {
+        val answers = openingFromShare(
+            publication(format = PublicationFormat.CBR, streaming = StreamingCapability.DOWNLOAD_ONLY),
+            length = 2_048L,
+        )
+
+        assertTrue("A solid RAR5 on a share was opened rather than offered.", answers.offerMade)
+        assertEquals(2_048L, answers.offered)
+        assertNull(answers.opened)
+    }
+
+    @Test
+    fun `only a CBR whose container said it streams reads from an address`() {
+        assertTrue(readsFromAnAddress(publication(format = PublicationFormat.CBR)))
+        assertTrue(
+            "A solid RAR5 still arriving was offered an address it cannot be read from.",
+            !readsFromAnAddress(
+                publication(format = PublicationFormat.CBR, streaming = StreamingCapability.DOWNLOAD_ONLY),
+            ),
+        )
     }
 
     @Test
@@ -273,11 +296,11 @@ class ShareOpeningTest {
     fun `only the formats whose decoder wants a file need one`() {
         // `publication-formats`' capability table says CBZ, CBT, EPUB, PDF and non-solid CBR
         // all stream. What is true of the *format* is not true of this platform's decoders:
-        // `PdfRenderer` wants a descriptor and libarchive wants a path, and those two are the
-        // whole list here. iOS's list also holds EPUB, because its reader wants a file of its
-        // own.
+        // `PdfRenderer` wants a descriptor. A CBR is not on the list: a non-solid one decodes
+        // page by page from ranged bytes. iOS's list also holds EPUB, because its reader
+        // wants a file of its own.
         assertEquals(
-            listOf(PublicationFormat.CBR, PublicationFormat.PDF),
+            listOf(PublicationFormat.PDF),
             PublicationFormat.entries.filter(::needsLocalFile).sortedBy { it.name },
         )
     }
@@ -290,7 +313,7 @@ class ShareOpeningTest {
     }
 
     @Test
-    fun `a PDF, CBR or EPUB acquisition does not, because the decoder wants a file`() {
+    fun `a PDF, CBR or EPUB acquisition does not, because a decoder wants a file or a CBR may be solid`() {
         assertTrue(!catalogueReadsWhereItLies(PublicationFormat.PDF))
         assertTrue(!catalogueReadsWhereItLies(PublicationFormat.CBR))
         assertTrue(!catalogueReadsWhereItLies(PublicationFormat.EPUB))
