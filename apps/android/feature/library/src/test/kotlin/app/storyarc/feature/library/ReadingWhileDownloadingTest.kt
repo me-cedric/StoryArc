@@ -113,25 +113,25 @@ class ReadingWhileDownloadingTest {
     }
 
     @Test
-    fun `a PDF still downloading asks for a copy, because it is drawn from a file`() {
+    fun `a PDF still downloading opens, because PdfRenderer reads it through a proxy descriptor`() {
         val action = actionFor(
             book(format = PublicationFormat.PDF),
             local = null,
             transfer = transfer(Download.State.Running),
         )
 
-        assertEquals(PrimaryAction.NEEDS_DOWNLOAD, action)
+        assertEquals(PrimaryAction.READ, action)
     }
 
     @Test
-    fun `a reflowable EPUB still downloading asks for a copy, because Readium is given a file`() {
+    fun `a reflowable EPUB still downloading opens, because Readium reads it through a resource`() {
         val action = actionFor(
             book(format = PublicationFormat.EPUB),
             local = null,
             transfer = transfer(Download.State.Running),
         )
 
-        assertEquals(PrimaryAction.NEEDS_DOWNLOAD, action)
+        assertEquals(PrimaryAction.READ, action)
     }
 
     @Test

@@ -23,56 +23,35 @@ import app.storyarc.core.model.StreamingOffer
  */
 
 /**
- * Whether a format's decoder insists on a real file.
- *
- * `PdfRenderer` needs a descriptor, so a PDF is offered as a download. Everything else is read
- * where it lies. A CBR reads where it lies too: a non-solid one decodes each page from its own
- * ranged bytes, and a solid one says so through its [StreamingCapability], which
- * [StreamingOffer] reads first.
- *
- * The platform half of [StreamingOffer]'s `readsWhereItLies`: what a container reported about
- * itself is the same question on both apps, and which decoders can work from a source is not.
- * iOS's list is longer -- its EPUB reader wants a file of its own as well.
- */
-internal fun needsLocalFile(format: PublicationFormat): Boolean =
-    format == PublicationFormat.PDF
-
-/**
  * Whether a catalogue acquisition of this format can be read from its address before the
  * download finishes.
  *
- * [readsFromAnAddress] answers the same question for a publication already indexed, and
- * knows whether an EPUB is fixed-layout. A catalogue entry has neither yet -- only a media
- * type -- so an EPUB is excluded here too: the common case is reflowable, and [needsLocalFile]
- * alone would stream a format this screen cannot yet tell apart from one it can. A CBR is
- * excluded for the same reason: only its headers say whether it is solid.
+ * [readsFromAnAddress] answers the same question for a publication already indexed. A
+ * catalogue entry has only a media type, so two formats are decided here on the format
+ * alone: audio, because the player wants a file, and a CBR, because only its headers say
+ * whether it is solid. Every reader on this platform reads from a source: `PdfRenderer`
+ * through a proxy descriptor, Readium through a resource, and the comic reader directly.
  */
 internal fun catalogueReadsWhereItLies(format: PublicationFormat?): Boolean =
-    format != null && format != PublicationFormat.EPUB && format != PublicationFormat.CBR &&
-        !format.isAudio && !needsLocalFile(format)
+    format != null && format != PublicationFormat.CBR && !format.isAudio
 
 /**
  * Whether the reader this publication opens in can read from an address rather than a file.
  *
- * The same three-way choice `AppShell` makes when a publication is opened, asked before the
- * reader is reached: the player wants a file, Readium is handed a `File` for a reflowable
- * book, and everything else goes to the comic reader, which reads through a source and
- * therefore reads over a range request.
+ * The same choice `AppShell` makes when a publication is opened, asked before the reader is
+ * reached: the player wants a file, and every reader reads through a source -- a PDF through a
+ * proxy descriptor, a reflowable EPUB through a Readium resource, and a comic, a fixed-layout
+ * EPUB and a non-solid CBR directly. iOS fetches a PDF whole instead, so its rule is longer.
  *
  * `offline-downloads`' *Reading while downloading* needs this answered here, because a
  * publication still arriving has an address and no file: offering *Read* for one the reader
  * cannot open from an address is worse than offering the download it already had.
  *
- * A fixed-layout EPUB is a comic to this app and is on the readable side, which is the one
- * case [needsLocalFile] alone would get wrong in either direction. A publication whose
- * container said it does not stream -- a solid RAR5 -- never reads from an address.
+ * A publication whose container said it does not stream -- a solid RAR5 -- never reads from
+ * an address.
  */
-internal fun readsFromAnAddress(publication: Publication): Boolean = when {
-    publication.streaming != StreamingCapability.STREAMS -> false
-    publication.format.isAudio -> false
-    publication.format == PublicationFormat.EPUB && !publication.isFixedLayout -> false
-    else -> !needsLocalFile(publication.format)
-}
+internal fun readsFromAnAddress(publication: Publication): Boolean =
+    publication.streaming == StreamingCapability.STREAMS && !publication.format.isAudio
 
 /**
  * What the share said the file weighs, or null when it said nothing worth repeating.
@@ -91,10 +70,8 @@ internal fun statedLength(length: Long): Long? = length.takeIf { it > 0L }
  * Nothing is transferred here: [index] reads headers over the share, which is what lets the
  * caller state a size while it asks whether the transfer may happen at all.
  *
- * `readsWhereItLies` comes from [readsFromAnAddress], not from [needsLocalFile] alone: a
- * reflowable EPUB cannot be read from an address either, and [needsLocalFile] does not know
- * that -- it answers "does this *format*'s decoder want a file", and a fixed-layout EPUB is
- * read through the comic path regardless of format.
+ * `readsWhereItLies` comes from [readsFromAnAddress], which also reads what the container
+ * reported about itself.
  *
  * The [CANNOT_OPEN] branch is reachable here now: `RarComicArchive` detects a solid RAR4 from
  * its headers alone, so [StreamingOffer.of] believes `REFUSED` whether or not the bytes are

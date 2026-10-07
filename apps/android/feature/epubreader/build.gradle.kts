@@ -110,6 +110,8 @@ tasks.withType<Test>().configureEach {
 
 dependencies {
     implementation(project(":core:designsystem"))
+    // `PublicationAccess`: a book on a share or a server is read through its ranged source.
+    implementation(project(":core:format"))
     implementation(project(":core:kavita"))
     implementation(project(":core:model"))
     implementation(project(":core:persistence"))

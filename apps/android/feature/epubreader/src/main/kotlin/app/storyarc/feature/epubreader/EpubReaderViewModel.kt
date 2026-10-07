@@ -1,7 +1,6 @@
 package app.storyarc.feature.epubreader
 
 import android.app.Application
-import android.net.Uri
 import android.os.Build
 import app.storyarc.core.designsystem.theme.observeReduceMotion
 import app.storyarc.core.designsystem.theme.systemReduceMotion
@@ -54,16 +53,7 @@ import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
 import org.readium.r2.shared.publication.services.locateProgression
 import org.readium.r2.shared.publication.services.search.search
-import org.readium.r2.shared.util.AbsoluteUrl
 import org.readium.r2.shared.util.Url
-import org.readium.r2.shared.util.asset.AssetRetriever
-import org.readium.r2.shared.util.getOrElse
-import org.readium.r2.shared.util.http.DefaultHttpClient
-import org.readium.r2.shared.util.toAbsoluteUrl
-import org.readium.r2.shared.util.toUrl
-import org.readium.r2.streamer.PublicationOpener
-import org.readium.r2.streamer.parser.DefaultPublicationParser
-import java.io.File
 
 /**
  * What the EPUB screen knows. Deliberately not an `AndroidViewModel`: the activity owns it
@@ -365,44 +355,22 @@ class EpubReaderViewModel(
     /**
      * Opens the book.
      *
-     * Two steps, both Readium's: an `AssetRetriever` reaches the bytes, and a
-     * `PublicationOpener` parses them. Our own `EpubReader` is not reused here —
+     * [openEpub] does it, and streams a book on a share or a server. Our own
+     * `EpubReader` is not reused here —
      * the navigator needs Readium's own `Publication`, and parsing an EPUB twice to
      * avoid that would be worse than parsing it once each for two purposes.
      */
     suspend fun open(): Publication? = withContext(Dispatchers.IO) {
-        val url: AbsoluteUrl? =
-            if (location.startsWith("content://")) {
-                Uri.parse(location).toAbsoluteUrl()
-            } else {
-                File(location).toUrl(isDirectory = false)
+        val publication = when (val opening = openEpub(application, location)) {
+            EpubOpening.Unreachable -> {
+                _failure.value = R.string.epub_failure_unreachable
+                return@withContext null
             }
-        if (url == null) {
-            _failure.value = R.string.epub_failure_unreachable
-            return@withContext null
-        }
-
-        val httpClient = DefaultHttpClient()
-        val assetRetriever = AssetRetriever(application.contentResolver, httpClient)
-        val asset = assetRetriever.retrieve(url).getOrElse {
-            _failure.value = R.string.epub_failure_unreachable
-            return@withContext null
-        }
-
-        val opener = PublicationOpener(
-            DefaultPublicationParser(
-                context = application,
-                httpClient = httpClient,
-                assetRetriever = assetRetriever,
-                // No PDF factory: a PDF opens in the comic reader, which renders it
-                // with the platform's own `PdfRenderer`. Wiring a second PDF engine
-                // in here would ship two.
-                pdfFactory = null,
-            ),
-        )
-        val publication = opener.open(asset, allowUserInteraction = false).getOrElse {
-            _failure.value = R.string.epub_failure_unreadable
-            return@withContext null
+            EpubOpening.Unreadable -> {
+                _failure.value = R.string.epub_failure_unreadable
+                return@withContext null
+            }
+            is EpubOpening.Opened -> opening.publication
         }
         readingOrder = publication.readingOrder.map { it.href.toString() }
         opened = publication

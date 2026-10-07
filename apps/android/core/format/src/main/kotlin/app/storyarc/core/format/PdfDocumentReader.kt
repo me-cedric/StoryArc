@@ -36,7 +36,7 @@ sealed class PdfException(message: String) : Exception(message) {
  * Not thread-safe, and not made to look like it is: [PdfRenderer] permits one
  * open page at a time, so a caller must serialise access. Close it when done.
  */
-class PdfDocumentReader private constructor(
+class PdfDocumentReader internal constructor(
     private val descriptor: ParcelFileDescriptor,
 ) : AutoCloseable {
 

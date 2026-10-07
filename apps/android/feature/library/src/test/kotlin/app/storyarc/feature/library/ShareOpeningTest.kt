@@ -123,14 +123,12 @@ class ShareOpeningTest {
     }
 
     @Test
-    fun `a PDF on a share is offered with the size the share stated`() = runTest {
-        // `PdfRenderer` wants a descriptor, so the whole file has to come across -- and
-        // `publication-formats` asks the app to state the size and offer it, not take it.
+    fun `a PDF on a share is read where it lies`() = runTest {
+        // `PdfRenderer` reads it through a proxy descriptor over the source (14.15).
         val answers = openingFromShare(publication(format = PublicationFormat.PDF), length = 1_050L)
 
-        assertTrue("A PDF on a share was opened rather than offered.", answers.offerMade)
-        assertEquals(1_050L, answers.offered)
-        assertNull(answers.opened)
+        assertEquals(REMOTE_PATH, answers.opened?.second)
+        assertTrue("A PDF on a share was offered as a download.", !answers.offerMade)
     }
 
     @Test
@@ -166,19 +164,15 @@ class ShareOpeningTest {
     }
 
     @Test
-    fun `a reflowable EPUB on a share is offered rather than opened by its address`() = runTest {
-        // `offerOrOpen` used to compute `readsWhereItLies` from `needsLocalFile(format)`
-        // alone, which does not know about EPUB at all on this platform. The reader opens
-        // a reflowable EPUB from a `File`, not from an `smb://` address, so this used to
-        // call `onOpen` with a path `EpubReaderActivity` then failed to read.
+    fun `a reflowable EPUB on a share is read where it lies`() = runTest {
+        // `EpubReaderActivity` hands Readium a resource over the share's source (14.15).
         val answers = openingFromShare(
             publication(format = PublicationFormat.EPUB, isFixedLayout = false),
             length = 2_000L,
         )
 
-        assertTrue("A reflowable EPUB on a share was opened by its smb:// address.", answers.offerMade)
-        assertEquals(2_000L, answers.offered)
-        assertNull(answers.opened)
+        assertEquals(REMOTE_PATH, answers.opened?.second)
+        assertTrue("A reflowable EPUB on a share was offered as a download.", !answers.offerMade)
     }
 
     @Test
@@ -195,7 +189,10 @@ class ShareOpeningTest {
         // than as a zero", and a directory entry's length is a non-null Long -- so a zero is
         // the only shape "the server said nothing" can arrive in. `0 B` in a download offer
         // reads as a free download.
-        val answers = openingFromShare(publication(format = PublicationFormat.PDF), length = 0L)
+        val answers = openingFromShare(
+            publication(format = PublicationFormat.CBR, streaming = StreamingCapability.DOWNLOAD_ONLY),
+            length = 0L,
+        )
 
         assertTrue("A publication needing a transfer was not offered at all.", answers.offerMade)
         assertNull("A zero-length entry was offered as a size.", answers.offered)
@@ -293,16 +290,13 @@ class ShareOpeningTest {
     // --- The fact the rule is fed ---------------------------------------------------------
 
     @Test
-    fun `only the formats whose decoder wants a file need one`() {
-        // `publication-formats`' capability table says CBZ, CBT, EPUB, PDF and non-solid CBR
-        // all stream. What is true of the *format* is not true of this platform's decoders:
-        // `PdfRenderer` wants a descriptor. A CBR is not on the list: a non-solid one decodes
-        // page by page from ranged bytes. iOS's list also holds EPUB, because its reader
-        // wants a file of its own.
-        assertEquals(
-            listOf(PublicationFormat.PDF),
-            PublicationFormat.entries.filter(::needsLocalFile).sortedBy { it.name },
-        )
+    fun `every reader on this platform reads from an address`() {
+        // `publication-formats`' capability table: CBZ, CBT, EPUB, PDF and non-solid CBR all
+        // stream, and Android streams a PDF as well (O4). Only audio waits for a file.
+        for (format in PublicationFormat.entries.filterNot { it.isAudio }) {
+            assertTrue("$format", readsFromAnAddress(publication(format = format)))
+        }
+        assertTrue(!readsFromAnAddress(publication(format = PublicationFormat.M4B)))
     }
 
     // --- Reading while downloading, from a catalogue entry --------------------------------
@@ -313,10 +307,10 @@ class ShareOpeningTest {
     }
 
     @Test
-    fun `a PDF, CBR or EPUB acquisition does not, because a decoder wants a file or a CBR may be solid`() {
-        assertTrue(!catalogueReadsWhereItLies(PublicationFormat.PDF))
+    fun `a PDF or EPUB acquisition streams, and a CBR does not because it may be solid`() {
+        assertTrue(catalogueReadsWhereItLies(PublicationFormat.PDF))
+        assertTrue(catalogueReadsWhereItLies(PublicationFormat.EPUB))
         assertTrue(!catalogueReadsWhereItLies(PublicationFormat.CBR))
-        assertTrue(!catalogueReadsWhereItLies(PublicationFormat.EPUB))
     }
 
     @Test

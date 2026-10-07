@@ -88,16 +88,20 @@ class ShareReadTest {
     }
 
     @Test
-    fun `a format that needs a local file is offered with its stated size`() = runTest {
+    fun `a publication that cannot stream is offered with its stated size`() = runTest {
         // `publication-formats`: the app "says the format has to be downloaded before it can
-        // be read, states the size, and offers to download it". A PDF opened at an `smb://`
-        // address would be handed to `PdfRenderer` as a path that is not one.
-        assertEquals(ShareAsk.Download(400_000_000L), step(row(format = PublicationFormat.PDF)))
+        // be read, states the size, and offers to download it". A solid RAR5 is that case.
+        assertEquals(
+            ShareAsk.Download(400_000_000L),
+            step(row(format = PublicationFormat.CBR, streaming = StreamingCapability.DOWNLOAD_ONLY)),
+        )
     }
 
     @Test
     fun `a share that stated no length is offered with no size rather than nought`() = runTest {
-        val ask = step(row(format = PublicationFormat.PDF, fileSize = null))
+        val ask = step(
+            row(format = PublicationFormat.CBR, streaming = StreamingCapability.DOWNLOAD_ONLY, fileSize = null),
+        )
 
         assertEquals(ShareAsk.Download(null), ask)
     }

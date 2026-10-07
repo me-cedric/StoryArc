@@ -152,7 +152,7 @@ interface PdfTextReading : AutoCloseable {
          * refuses to open a second time for its text is a PDF the reader still shows, without
          * the controls it cannot honour.
          */
-        private fun openDescriptor(open: () -> ParcelFileDescriptor?): PdfTextReading? {
+        internal fun openDescriptor(open: () -> ParcelFileDescriptor?): PdfTextReading? {
             if (!isSupported) return null
             val descriptor = runCatching { open() }.getOrNull() ?: return null
             val renderer = runCatching { PdfRendererPreV(descriptor) }.getOrNull()

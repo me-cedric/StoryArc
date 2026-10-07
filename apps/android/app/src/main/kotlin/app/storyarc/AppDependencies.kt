@@ -1,6 +1,7 @@
 package app.storyarc
 
 import android.content.Context
+import android.os.storage.StorageManager
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.catalogue.OpdsCredential
 import app.storyarc.core.catalogue.OpdsOrigin
@@ -185,6 +186,9 @@ internal class AppDependencies private constructor(private val context: Context)
         // catalogue behind Basic, Bearer or a pinned self-signed certificate answers 401 or
         // fails TLS the moment a reader opens a book while it is still arriving -- dl-core 1.6.
         HttpSource.register { SourceRangeTransport(pins, credentials) { sources.registry().sources } }
+
+        // A remote PDF streams through a proxy descriptor (close-the-audited-gaps 14.15).
+        context.getSystemService(StorageManager::class.java)?.let(PublicationAccess::streamPdfsThrough)
 
         PublicationAccess.register("smb") { path ->
             val (source, inside) = sources.registry().sources

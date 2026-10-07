@@ -62,7 +62,7 @@ class EpubFailureSpeaksTheReadersLanguageTest {
         assertTrue(
             "No `$FAILURE.value =` line found in $VIEW_MODEL. Has the failure state been" +
                 " renamed? Rename it here too, or this guard protects nothing.",
-            assignments.size >= 3,
+            assignments.size >= 2,
         )
     }
 

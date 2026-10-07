@@ -3,6 +3,7 @@ package app.storyarc.core.format
 import android.content.ContentResolver
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.storage.StorageManager
 import app.storyarc.core.model.Publication
 import java.io.File
 
@@ -25,6 +26,21 @@ object PublicationAccess {
      * the app registers an opener for the scheme, and the branch below stays one line.
      */
     private val remote = mutableMapOf<String, suspend (String) -> RandomAccessSource>()
+
+    /**
+     * Where a remote PDF gets the file descriptor `PdfRenderer` needs. The app sets it once,
+     * because this object holds no `Context`. See [SourceDescriptor].
+     */
+    @Volatile
+    private var storage: StorageManager? = null
+
+    /** Lets a remote PDF stream through proxy descriptors from [storage]. */
+    fun streamPdfsThrough(storage: StorageManager) {
+        this.storage = storage
+    }
+
+    private fun proxies(): StorageManager =
+        storage ?: throw PdfException.Unreadable("no proxy descriptors for a remote pdf")
 
     /** Registers how to open a path with the given scheme, such as `smb`. */
     fun register(scheme: String, opener: suspend (String) -> RandomAccessSource) {
@@ -58,13 +74,20 @@ object PublicationAccess {
         }
     }
 
-    /** A PDF, opened wherever it lives. */
-    fun openPdf(resolver: ContentResolver, path: String): PdfDocumentReader =
-        if (isDocument(path)) {
+    /**
+     * A PDF, opened wherever it lives. A remote one streams: `PdfRenderer` reads it through a
+     * proxy descriptor over the source, a range at a time (`publication-formats`).
+     */
+    suspend fun openPdf(resolver: ContentResolver, path: String): PdfDocumentReader {
+        remoteSource(path)?.let { source ->
+            return PdfDocumentReader(SourceDescriptor.open(proxies(), source))
+        }
+        return if (isDocument(path)) {
             PdfDocumentReader(resolver, path.toUri())
         } else {
             PdfDocumentReader(File(path))
         }
+    }
 
     /**
      * A PDF's text layer, opened wherever the file lives, or null when there is none to open.
@@ -74,12 +97,19 @@ object PublicationAccess {
      * drawing but not for reading. Either way there is no text, and `ebook-reader` requires
      * the controls that depend on it to be absent rather than broken.
      */
-    fun openPdfText(resolver: ContentResolver, path: String): PdfTextReading? =
-        if (isDocument(path)) {
+    suspend fun openPdfText(resolver: ContentResolver, path: String): PdfTextReading? {
+        if (isRemote(path)) {
+            if (!PdfTextReading.isSupported) return null
+            val storage = storage ?: return null
+            val source = runCatching { remoteSource(path) }.getOrNull() ?: return null
+            return PdfTextReading.openDescriptor { SourceDescriptor.open(storage, source) }
+        }
+        return if (isDocument(path)) {
             PdfTextReading.open(resolver, path.toUri())
         } else {
             PdfTextReading.open(File(path))
         }
+    }
 
     /**
      * The publication's cover, however it has to be produced.
