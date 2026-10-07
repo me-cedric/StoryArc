@@ -61,12 +61,19 @@ public actor CoverLookupClient {
 
     /// The looked-up cover's picture, or nil. One call for the ladder: the lookup, then the
     /// picture. An image provider already answered with the picture, so it is not asked twice.
+    /// A picture that does not come is recorded as a refusal, so a shelf that draws this cover
+    /// again asks nothing.
     public func coverImage(for key: String, identifier: CoverIdentifier) async -> Data? {
         guard let found = await lookUp(key, identifier) else { return nil }
         if let kept = await cache.picture(for: key) { return kept }
         var fetched = found.picture
         if fetched == nil { fetched = await image(at: found.url) }
-        guard let picture = fetched, !picture.isEmpty else { return nil }
+        guard let picture = fetched, !picture.isEmpty else {
+            await cache.record(
+                CoverLookupAnswer(provider: identifier.provider, imageURL: nil), for: key
+            )
+            return nil
+        }
         await cache.recordPicture(picture, for: key)
         return picture
     }

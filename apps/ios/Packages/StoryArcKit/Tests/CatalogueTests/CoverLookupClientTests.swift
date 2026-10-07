@@ -262,6 +262,28 @@ struct CoverLookupClientTests {
         #expect(asked.value.compactMap { $0.host() } == ["api.audnex.us", "m.media-amazon.com"])
     }
 
+    @Test("A document answer whose picture is refused is not asked for again")
+    func refusedPictureIsRecorded() async {
+        let asked = Asked()
+        let shared = cache()
+        let refused = client(enabled: true, cache: shared) { request in
+            asked.append(request.url)
+            guard request.url?.host() == "api.audnex.us" else {
+                return .response(status: 404, headers: [:], body: Data())
+            }
+            let document = #"{"image":"https://m.media-amazon.com/images/I/c.jpg"}"#
+            return .response(status: 200, headers: [:], body: Data(document.utf8))
+        }
+        let asin = CoverIdentifier.audibleASIN("B08G9PRS1K")
+
+        let first = await refused.coverImage(for: "pub", identifier: asin)
+        let again = await refused.coverImage(for: "pub", identifier: asin)
+
+        #expect(first == nil)
+        #expect(again == nil)
+        #expect(asked.value.compactMap { $0.host() } == ["api.audnex.us", "m.media-amazon.com"])
+    }
+
     @Test("A kept picture is not handed out while the setting is off")
     func keptPictureIsGatedToo() async {
         let file = URL(fileURLWithPath: NSTemporaryDirectory())
