@@ -94,7 +94,7 @@ class ProseCurlTest {
         }
     }
 
-    private class Book(private val canMove: Boolean = true) : ProsePage {
+    private class Book(private val canMove: Boolean = true, private val canGoBack: Boolean = true) : ProsePage {
         val moves = mutableListOf<Boolean>()
         var sheet: Sheet? = null
 
@@ -102,7 +102,7 @@ class ProseCurlTest {
 
         override suspend fun move(forward: Boolean): Boolean {
             moves += forward
-            return canMove
+            return canMove && (forward || canGoBack)
         }
 
         override suspend fun arrived(): Bitmap? = null
@@ -225,6 +225,37 @@ class ProseCurlTest {
 
         assertEquals(listOf(1f), spring.targets)
         assertEquals(listOf(true), book.moves)
+        assertFalse(curl.isTurning)
+    }
+
+    @Test
+    fun `a spring that outlives its own sheet leaves the next turn alone`() = runTest {
+        val spring = Spring().apply { gate = CompletableDeferred() }
+        val curl = driver(spring)
+        val book = Book(canGoBack = false)
+
+        // At the first page: a drag back is released short, and its sheet goes while it springs.
+        curl.drag(ProseDrag.Began(10f), book, isRightToLeft = false)
+        curl.drag(ProseDrag.Changed(60f), book, isRightToLeft = false)
+        curl.drag(ProseDrag.Ended(60f, 0f), book, isRightToLeft = false)
+        advanceUntilIdle()
+        assertFalse(curl.isTurning)
+
+        // A drag forward starts while that spring still runs, and then the spring lands.
+        val lateSpring = spring.gate!!
+        spring.gate = null
+        curl.drag(ProseDrag.Began(-10f), book, isRightToLeft = false)
+        advanceUntilIdle()
+        lateSpring.complete(Unit)
+        advanceUntilIdle()
+
+        assertTrue("the late spring must not take the new sheet off", curl.isTurning)
+        assertEquals("one move back that failed, then one forward", listOf(false, true), book.moves)
+
+        curl.drag(ProseDrag.Changed(-300f), book, isRightToLeft = false)
+        curl.drag(ProseDrag.Ended(-300f, 0f), book, isRightToLeft = false)
+        advanceUntilIdle()
+        assertEquals(listOf(false, true), book.moves)
         assertFalse(curl.isTurning)
     }
 

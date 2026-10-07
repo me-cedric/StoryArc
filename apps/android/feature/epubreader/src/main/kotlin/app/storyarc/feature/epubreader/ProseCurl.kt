@@ -227,6 +227,9 @@ internal class ProseCurlDriver(
         val turn = turn ?: return
         settling = scope.launch {
             spring(sheet.progress, target) { sheet.progress = it }
+            // The sheet went while it sprang, at the first or the last page, and a later turn
+            // may own the driver now. iOS's `ProseCurlDriver.settle` holds the same guard.
+            if (this@ProseCurlDriver.sheet !== sheet) return@launch
             isClosing = true
             val moved = move?.await() ?: false
             if (target == 0f && moved) page.move(!turn.isForward)
