@@ -174,6 +174,14 @@ class ProseCurlTest {
 
         assertEquals(listOf(1f), spring.targets)
         assertEquals(listOf(true), book.moves)
+
+        // 1200 px/s is past 800 as pixels, and short of it as dp at a density of 2.
+        curl.drag(ProseDrag.Began(-10f), book, isRightToLeft = false)
+        curl.drag(ProseDrag.Changed(-50f), book, isRightToLeft = false)
+        curl.drag(ProseDrag.Ended(-50f, -1200f), book, isRightToLeft = false)
+        advanceUntilIdle()
+
+        assertEquals(listOf(1f, 0f), spring.targets)
     }
 
     @Test
