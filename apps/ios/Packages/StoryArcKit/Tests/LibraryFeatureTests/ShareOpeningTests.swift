@@ -130,6 +130,26 @@ struct ShareOpeningTests {
         #expect(!answers.offerMade, "A streamable comic was offered as a download.")
     }
 
+    @Test("A non-solid CBR on a share is read where it lies")
+    func nonSolidCbrStaysRemote() async {
+        // Each compressed page decodes from its own ranged bytes (`RarReader.isolated`).
+        let answers = await openingFromShare(publication(format: .cbr, streaming: .streams))
+
+        #expect(answers.opened?.1 == Self.remote)
+        #expect(!answers.offerMade, "A non-solid CBR was offered as a download.")
+    }
+
+    @Test("A solid RAR5 on a share is offered with its size, not streamed")
+    func solidRar5OnAShareIsOffered() async {
+        let answers = await openingFromShare(
+            publication(format: .cbr, streaming: .downloadOnly), length: 2_048
+        )
+
+        #expect(answers.offerMade, "A solid RAR5 on a share was opened rather than offered.")
+        #expect(answers.offered == 2_048)
+        #expect(answers.opened == nil)
+    }
+
     @Test("A PDF on a share is offered with the size the share stated")
     func pdfIsOfferedWithItsSize() async {
         // PDFKit wants a file, so the whole thing has to come across — and
@@ -285,6 +305,18 @@ struct ShareOpeningTests {
         )
     }
 
+    @Test("A non-solid CBR still arriving streams, and a solid RAR5 does not")
+    func onlyANonSolidCbrStreamsWhileArriving() {
+        let nonSolid = ShareOpening.address(
+            for: publication(format: .cbr, streaming: .streams), local: nil, transfer: transfer(.running)
+        )
+        let solid = ShareOpening.address(
+            for: publication(format: .cbr, streaming: .downloadOnly), local: nil, transfer: transfer(.running)
+        )
+        #expect(nonSolid?.scheme == "http", "a non-solid CBR offered no address to stream from")
+        #expect(solid == nil, "a solid RAR5 was offered an address it cannot be read from")
+    }
+
     /// Finished with no local copy means the file went away, and failed is a state the spec
     /// requires to be stated with a retry rather than read past. Neither is an address.
     @Test("A transfer that is over is not an address, whichever way it ended")
@@ -308,10 +340,10 @@ struct ShareOpeningTests {
     func theDecoderListIsTheDecoderList() {
         // `publication-formats`' capability table says CBZ, CBT, EPUB, PDF and non-solid CBR
         // all stream. What is true of the *format* is not true of this platform's decoders:
-        // PDFKit wants a file, libarchive wants a path, and the EPUB reader opens one of its
-        // own. Android's list is shorter, because its EPUB reader takes a source.
+        // PDFKit wants a file, and the EPUB reader opens one of its own. A CBR is not on the
+        // list: a non-solid one decodes page by page from ranged bytes.
         #expect(
-            PublicationFormat.allCases.filter(ShareOpening.needsLocalFile) == [.cbr, .epub, .pdf]
+            PublicationFormat.allCases.filter(ShareOpening.needsLocalFile) == [.epub, .pdf]
         )
     }
 
@@ -322,7 +354,7 @@ struct ShareOpeningTests {
         #expect(ShareOpening.catalogueReadsWhereItLies(.cbz))
     }
 
-    @Test("A PDF or CBR acquisition does not, because the decoder wants a file")
+    @Test("A PDF or CBR acquisition does not: a PDF decoder wants a file, and a CBR may be solid")
     func fileDecodersDoNotStreamFromTheCatalogue() {
         #expect(!ShareOpening.catalogueReadsWhereItLies(.pdf))
         #expect(!ShareOpening.catalogueReadsWhereItLies(.cbr))

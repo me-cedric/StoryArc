@@ -187,9 +187,9 @@ struct PublicationIndexerTests {
         // Before this fix, `index(source:...)` with no `decoderPath` returned a
         // bare `record(.cbr, ...)` for *every* remote RAR, never opening its
         // headers. `publication-formats` requires a remote CBR to be catalogued —
-        // pages, cover, streaming capability — without transferring it, and a
-        // compressed page with no decoder to be marked download-only rather than
-        // making the whole publication a bare, pageless record.
+        // pages, cover, streaming capability — without transferring it. A
+        // compressed page of a non-solid archive decodes from its own ranged
+        // bytes, so the publication streams (close-the-audited-gaps 14.14).
         var bytes = [UInt8](try Data(contentsOf: FixtureCorpus.url("comics/rar4-store.cbr")))
         let methodOffset = RarReader.rar4Signature.count + 13 + 25
         #expect(bytes[methodOffset] == 0x30)
@@ -203,7 +203,7 @@ struct PublicationIndexerTests {
 
         #expect(publication.format == .cbr)
         #expect(publication.pageCount == 3)
-        #expect(publication.streaming == .downloadOnly)
+        #expect(publication.streaming == .streams)
     }
 
     @Test("A solid RAR4 is listed and marked unopenable, not dropped")

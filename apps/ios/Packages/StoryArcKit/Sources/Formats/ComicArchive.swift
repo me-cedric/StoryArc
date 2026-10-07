@@ -290,8 +290,9 @@ public enum ComicArchiveOpener {
         case .tar:
             return try await TarComicArchive(source: source)
         case .rar:
-            // No URL here, so compressed pages are reported as skipped. The
-            // file-based entry point below passes one.
+            // No URL here: a non-solid archive decodes each compressed page
+            // from its own ranged bytes, and a solid one needs the file-based
+            // entry point below.
             return try await RarComicArchive(source: source)
         case .sevenZip, .pdf, .mp4, .mp3, .flac, .ogg, .protectedAudiobook:
             // `publication-formats` requires a *named* refusal, never a generic

@@ -5,14 +5,15 @@ public import Foundation
 /// Indexes on headers alone: `RarReader` parses names, sizes and flags without a
 /// decoder, so a remote CBR is catalogued without downloading it. Reading a
 /// *compressed* page needs `RarDecoder`, which is the only place libarchive is
-/// used and the only part that needs a local file.
+/// used.
 ///
-/// That split is why this type takes an optional URL. Given one, every page is
-/// readable. Without one — a remote source not yet downloaded — every page is
-/// still listed from its header: a stored one reads straight away, and a
-/// compressed one sets ``isDownloadOnly`` rather than being dropped or failing
-/// the whole archive, which is what `publication-formats` means by cataloguing
-/// a publication without transferring it.
+/// This type takes an optional URL. Given one, every page decodes from the file.
+/// Without one — a remote source not yet downloaded — a stored page reads by
+/// range, and a compressed page of a non-solid archive decodes from its own
+/// ranged bytes (`RarReader.isolated(_:)`). Only a solid archive needs the whole
+/// file: its compressed pages set ``isDownloadOnly`` rather than being dropped or
+/// failing the whole archive, which is what `publication-formats` means by
+/// cataloguing a publication without transferring it.
 ///
 /// Split out of `ComicArchive.swift`, which had reached the 400-line cap this
 /// project enforces.
@@ -31,8 +32,8 @@ public struct RarComicArchive: ComicArchiveReading {
     /// `Streaming capability per format` requires flagging that before the user
     /// taps a remote publication, rather than discovering it mid-read.
     public let isStreamable: Bool
-    /// True when at least one listed page is compressed and there is no local
-    /// file yet to hand to `RarDecoder`.
+    /// True when at least one listed page is compressed in a solid archive and
+    /// there is no local file yet to hand to `RarDecoder`.
     ///
     /// Set only in index-only mode — a remote CBR catalogued from its headers
     /// alone. `publication-formats`' streaming table marks such a publication
@@ -81,12 +82,12 @@ public struct RarComicArchive: ComicArchiveReading {
                 skipped += 1
                 continue
             }
-            // A compressed entry is readable only with a local file to hand to
-            // libarchive. Without one — index-only mode, over a share — it is
-            // still a real page: it is listed from the header, and the archive
-            // flags itself as download-only so the caller can mark the
-            // publication that way instead of lying about streaming it.
-            if !entry.isStored, fileURL == nil {
+            // A compressed entry of a solid archive is readable only with a local
+            // file to hand to libarchive. Without one — index-only mode, over a
+            // share — it is still a real page: it is listed from the header, and
+            // the archive flags itself as download-only so the caller can mark
+            // the publication that way instead of lying about streaming it.
+            if !entry.isStored, fileURL == nil, reader.isSolid {
                 undecodable += 1
             }
             candidates.append(PageEntry(path: entry.path, byteCount: Int(entry.size)))
@@ -105,16 +106,24 @@ public struct RarComicArchive: ComicArchiveReading {
         self.comicInfo = comicInfoData.flatMap(ComicInfo.init(data:))
     }
 
-    /// `ComicInfo.xml`'s raw bytes, read by range when it is stored and through
-    /// `RarDecoder` when a local file exists and it is not — `nil` in index-only mode
-    /// when the entry is compressed, same as a compressed page.
+    /// `ComicInfo.xml`'s raw bytes, read like a page — `nil` when it cannot be read,
+    /// which in index-only mode is a compressed entry of a solid archive.
     private static func comicInfoData(
         for entry: RarEntry?, reader: RarReader, fileURL: URL?
     ) async -> Data? {
         guard let entry else { return nil }
-        if entry.isStored { return try? await reader.data(for: entry) }
-        guard let fileURL else { return nil }
-        return try? RarDecoder.data(forEntryAt: entry.path, inArchiveAt: fileURL)
+        return try? await data(for: entry, reader: reader, fileURL: fileURL)
+    }
+
+    /// One entry's bytes: by range when stored, from the file when there is one, and
+    /// from the entry's own ranged bytes when the archive is not solid.
+    private static func data(
+        for entry: RarEntry, reader: RarReader, fileURL: URL?
+    ) async throws -> Data {
+        if entry.isStored { return try await reader.data(for: entry) }
+        if let fileURL { return try RarDecoder.data(forEntryAt: entry.path, inArchiveAt: fileURL) }
+        guard !reader.isSolid else { throw ComicArchiveError.unsupportedContainer(.rar) }
+        return try RarDecoder.data(ofIsolated: entry.path, in: try await reader.isolated(entry))
     }
 
     public var coverPage: PageEntry? {
@@ -133,9 +142,7 @@ public struct RarComicArchive: ComicArchiveReading {
 
     public func data(for page: PageEntry) async throws -> Data {
         guard let entry = pathToEntry[page.path] else { throw ComicArchiveError.unreadable }
-        if entry.isStored { return try await reader.data(for: entry) }
-        guard let fileURL else { throw ComicArchiveError.unsupportedContainer(.rar) }
-        return try RarDecoder.data(forEntryAt: entry.path, inArchiveAt: fileURL)
+        return try await Self.data(for: entry, reader: reader, fileURL: fileURL)
     }
 
     /// Every listed page's bytes in one pass over the archive.

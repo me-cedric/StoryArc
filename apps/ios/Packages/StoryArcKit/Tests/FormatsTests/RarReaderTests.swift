@@ -135,13 +135,12 @@ struct RarReaderTests {
         }
     }
 
-    @Test("A compressed entry with no decoder is listed from its header, and marks the archive download-only")
-    func compressedEntryIndexesWithoutADecoder() async throws {
+    @Test("A compressed entry of a non-solid archive is listed from its header, and decodes by range")
+    func compressedEntryIndexesWithoutAFile() async throws {
         // Same flip as above, read through `RarComicArchive` with no file — the
         // remote-share shape. `publication-formats` requires this to list every
-        // page from the headers rather than throwing `unsupportedContainer`, with
-        // the archive itself saying it needs a download before the compressed
-        // page can be read.
+        // page from the headers. A non-solid archive streams, so the archive is
+        // not download-only, and the compressed page goes to the decoder.
         var bytes = [UInt8](try Data(contentsOf: FixtureCorpus.url("comics/rar4-store.cbr")))
         let methodOffset = RarReader.rar4Signature.count + 13 + 25
         #expect(bytes[methodOffset] == 0x30, "expected the store method byte here")
@@ -151,11 +150,12 @@ struct RarReaderTests {
 
         #expect(archive.pages.map(\.path) == ["page1.png", "page2.png", "page3.png"])
         #expect(archive.skippedPageCount == 0)
-        #expect(archive.isDownloadOnly)
+        #expect(!archive.isDownloadOnly)
 
-        // The flipped entry cannot be read without a decoder yet…
+        // The flip broke the header CRC, so the decoder refuses the entry. It is
+        // refused as a decode failure, not as a container that needs a file.
         let compressedPage = try #require(archive.pages.first { $0.path == "page1.png" })
-        await #expect(throws: ComicArchiveError.unsupportedContainer(.rar)) {
+        await #expect(throws: RarDecoder.DecodeError.self) {
             _ = try await archive.data(for: compressedPage)
         }
         // …but the other two are still stored, and still read.

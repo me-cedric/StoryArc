@@ -26,21 +26,22 @@ enum ShareOpening {
 
     /// Whether a format's decoder insists on a file of its own.
     ///
-    /// PDFKit wants a file, libarchive wants a path, and the EPUB reader opens a file of its
-    /// own — so those three are offered as a download and everything else is read where it
-    /// lies.
+    /// PDFKit wants a file and the EPUB reader opens a file of its own, so those two are
+    /// offered as a download and everything else is read where it lies. A CBR reads where it
+    /// lies too: a non-solid one decodes each page from its own ranged bytes, and a solid one
+    /// says so through its ``StreamingCapability``, which ``StreamingOffer`` reads first.
     ///
     /// The platform half of ``StreamingOffer``'s `readsWhereItLies`, and deliberately stated
     /// as a fact about decoders rather than derived from what the container reported. The
     /// derivation it replaces — `catalogued.streaming != .refused` — happened to give the
-    /// same three formats, because `PublicationIndexer.index(source:name:identity:)` returns a
+    /// same formats, because `PublicationIndexer.index(source:name:identity:)` returns a
     /// record marked `refused` for exactly them. That is a coincidence of two lists rather
     /// than one fact: `refused` means "no decoder will open this" everywhere else in the app,
     /// and reading it here as "this decoder wants a file" is how a *streaming* sentence came
     /// to be built out of it. Android's list is shorter — its EPUB reader takes a source.
     static func needsLocalFile(_ format: PublicationFormat) -> Bool {
         switch format {
-        case .pdf, .epub, .cbr: true
+        case .pdf, .epub: true
         default: false
         }
     }
@@ -52,16 +53,18 @@ enum ShareOpening {
     /// A catalogue entry has none yet — only a media type — so audio is excluded here as
     /// well: the entry above decides it from a `Publication`'s ``StreamingCapability``,
     /// which does not exist until a source has been opened and read, and `AVURLAsset` wants
-    /// a file regardless of what that read would say.
+    /// a file regardless of what that read would say. A CBR is excluded for the same reason:
+    /// only its headers say whether it is solid, and a solid one reads only once local.
     static func catalogueReadsWhereItLies(_ format: PublicationFormat?) -> Bool {
-        guard let format, !format.isAudio else { return false }
+        guard let format, !format.isAudio, format != .cbr else { return false }
         return !needsLocalFile(format)
     }
 
     /// Where a publication's own page opens it from.
     ///
     /// The page's whole rule, in one call: a copy on this device wins, otherwise the address
-    /// a transfer is fetching, and only for a format whose decoder can read from a source.
+    /// a transfer is fetching, and only for a format whose decoder can read from a source and
+    /// a publication whose container said it streams. A solid RAR5 is the second case.
     ///
     /// Here rather than inside ``PublicationDetailView`` for the reason this file exists: a
     /// rule inside a view can only be checked by reading its text. ``ShareOpeningTests``
@@ -71,6 +74,7 @@ enum ShareOpening {
             local: local,
             transfer: transfer,
             readsWhereItLies: !needsLocalFile(publication.format)
+                && publication.streaming == .streams
         )
     }
 

@@ -10,15 +10,16 @@ internal import CLibarchive
 /// cannot do is undo RAR's LZ and PPMd coding, which is a real codec and the one
 /// thing worth a C dependency (ADR-0005).
 ///
-/// So the seam is deliberately narrow: a path in, entry bytes out. Nothing above
-/// this type knows libarchive exists, which is what makes the dependency
-/// replaceable and keeps the untrusted-input surface to a single call.
+/// So the seam is deliberately narrow: a path or a buffer in, entry bytes out.
+/// Nothing above this type knows libarchive exists, which is what makes the
+/// dependency replaceable and keeps the untrusted-input surface to a single call.
 ///
-/// ponytail: takes a file path rather than a `RandomAccessSource`. Decompressing
-/// an entry is sequential by nature, and a remote publication is downloaded
-/// before it is read anyway — `RarReader` is what makes *indexing* a remote CBR
-/// cheap. Wire the callback API in if streaming a compressed remote CBR ever
-/// becomes a real requirement.
+/// A remote non-solid entry comes in as a buffer: `RarReader.isolated(_:)` reads
+/// the main header and that one entry by range, and libarchive opens the result
+/// from memory. libarchive's read callbacks are synchronous and every source here
+/// is async, so handing it bytes already read avoids a thread bridge. A solid
+/// archive still needs the whole file, because each entry depends on the ones
+/// before it.
 public enum RarDecoder {
     public enum DecodeError: Error, Equatable {
         /// libarchive refused to open the archive at all.
@@ -103,6 +104,51 @@ public enum RarDecoder {
         return found
     }
 
+    /// Unpacked bytes of the one entry in `archive`, which `RarReader.isolated(_:)` built.
+    ///
+    /// The buffer holds the main header and a single entry, so the first header is the
+    /// entry: no name match is needed, and none can miss on a name libarchive spells
+    /// differently. `path` only names the entry in an error.
+    public static func data(ofIsolated path: String, in archive: Data) throws -> Data {
+        guard !archive.isEmpty else { throw DecodeError.cannotOpen("empty archive buffer") }
+        var padded = archive
+        padded.append(Data(count: isolatedPadding))
+        return try padded.withUnsafeBytes { buffer in
+            guard let base = buffer.baseAddress else {
+                throw DecodeError.cannotOpen("empty archive buffer")
+            }
+            let block = MemoryBlock(base: base, count: buffer.count)
+            let handle = try open { handle in
+                archive_read_open(
+                    handle, Unmanaged.passUnretained(block).toOpaque(), nil,
+                    { _, context, out in
+                        guard let context, let out else { return -1 }
+                        return Unmanaged<MemoryBlock>.fromOpaque(context)
+                            .takeUnretainedValue().next(out)
+                    },
+                    nil
+                )
+            }
+            defer { archive_read_free(handle); withExtendedLifetime(block) {} }
+            var entry: OpaquePointer?
+            let status = archive_read_next_header(handle, &entry)
+            if status == ARCHIVE_EOF { throw DecodeError.entryNotFound(path) }
+            guard status == ARCHIVE_OK || status == ARCHIVE_WARN, let entry else {
+                throw DecodeError.libarchive(message(handle))
+            }
+            return try readCurrentEntry(
+                handle, path: path, declaredSize: Int(archive_entry_size(entry))
+            )
+        }
+    }
+
+    /// Zero bytes after an isolated entry's packed bytes.
+    ///
+    /// libarchive's RAR5 reader asks for 4 bytes past each compressed block, because its
+    /// bit reader loads a word at a time. In a whole file those bytes are the next header.
+    /// It sizes its own merge buffer 8 bytes past the block for the same reason.
+    static let isolatedPadding = 8
+
     /// Entry names and sizes as *libarchive* sees them.
     ///
     /// Not used for indexing — `RarReader` does that without a C library. This
@@ -134,6 +180,12 @@ public enum RarDecoder {
     /// the whole attack surface, which is also why the other 106 sources are not
     /// vendored.
     private static func open(_ url: URL) throws -> OpaquePointer {
+        try open { handle in
+            url.path.withCString { path in archive_read_open_filename(handle, path, blockSize) }
+        }
+    }
+
+    private static func open(with opener: (OpaquePointer) -> Int32) throws -> OpaquePointer {
         guard let handle = archive_read_new() else {
             throw DecodeError.cannotOpen("could not allocate an archive reader")
         }
@@ -141,9 +193,7 @@ public enum RarDecoder {
         archive_read_support_format_rar5(handle)
         archive_read_support_filter_none(handle)
 
-        let status = url.path.withCString { path in
-            archive_read_open_filename(handle, path, blockSize)
-        }
+        let status = opener(handle)
         guard status == ARCHIVE_OK else {
             let text = message(handle)
             archive_read_free(handle)
@@ -194,6 +244,30 @@ public enum RarDecoder {
             throw DecodeError.truncated(path: path, expected: declaredSize, got: out.count)
         }
         return out
+    }
+
+    /// A buffer handed to libarchive as one block, through its read callback.
+    ///
+    /// `archive_read_open_memory` lives in a libarchive source this project does not
+    /// vendor, and `archive_read_open` with this callback is the same thing in four
+    /// lines. The first call gives the whole buffer, and every later call says it ended.
+    private final class MemoryBlock {
+        let base: UnsafeRawPointer
+        let count: Int
+        var given = false
+
+        init(base: UnsafeRawPointer, count: Int) {
+            self.base = base
+            self.count = count
+        }
+
+        /// The next block for libarchive: the whole buffer once, then nothing.
+        func next(_ out: UnsafeMutablePointer<UnsafeRawPointer?>) -> Int {
+            if given { return 0 }
+            given = true
+            out.pointee = base
+            return count
+        }
     }
 
     private static func message(_ handle: OpaquePointer) -> String {

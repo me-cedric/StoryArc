@@ -1,38 +1,5 @@
 public import Foundation
 
-/// One file inside a RAR archive.
-public struct RarEntry: Sendable, Equatable {
-    public let path: String
-    /// Size after decompression. What the page decoder will see.
-    public let size: Int64
-    /// Size on disk. Equal to `size` when the entry is stored.
-    public let packedSize: Int64
-    /// Where the entry's packed bytes start.
-    public let dataOffset: Int64
-    /// Stored entries carry their bytes verbatim, so they need no decoder at all.
-    public let isStored: Bool
-    /// Solid entries cannot be decompressed without the entries before them.
-    public let isSolid: Bool
-    public let isEncrypted: Bool
-}
-
-/// Which RAR format an archive uses. They share an extension and nothing else:
-/// different signatures, different header layouts, different integer encodings.
-public enum RarGeneration: String, Sendable {
-    case rar4, rar5
-}
-
-public enum RarError: Error, Equatable {
-    case malformed(String)
-    case notRar
-    /// The entry is compressed, and decompressing it needs a decoder StoryArc
-    /// does not carry yet. Distinct from `malformed`: the archive is fine.
-    case needsDecoder(method: Int)
-    /// More headers than any real publication has. A guard against a crafted
-    /// file that would otherwise be read into an unbounded array.
-    case tooManyEntries
-}
-
 /// Reads RAR *headers*, and the bytes of stored entries.
 ///
 /// Deliberately not a RAR decoder. Everything the library needs in order to
@@ -58,6 +25,8 @@ public struct RarReader: Sendable {
     /// Set when headers or entries are encrypted. `publication-formats` requires
     /// saying so rather than prompting for a password.
     public let isEncrypted: Bool
+    /// Where the blocks before the first entry end: the signature and the main header.
+    let mainHeaderEnd: Int64
 
     private let source: any RandomAccessSource
 
@@ -98,12 +67,14 @@ public struct RarReader: Sendable {
             entries = parsed.entries
             isSolidArchive = parsed.isSolid
             isEncrypted = parsed.isEncrypted
+            mainHeaderEnd = parsed.mainHeaderEnd
         } else if bytes.starts(with: Self.rar4Signature) {
             self.generation = .rar4
             let parsed = try await Self.parseRar4(source: source)
             entries = parsed.entries
             isSolidArchive = parsed.isSolid
             isEncrypted = parsed.isEncrypted
+            mainHeaderEnd = parsed.mainHeaderEnd
         } else {
             throw RarError.notRar
         }
@@ -120,12 +91,35 @@ public struct RarReader: Sendable {
         return try await source.readExactly(offset: entry.dataOffset, count: Int(entry.packedSize))
     }
 
-    /// What a header walk found: the entries, and the two flags that decide whether
-    /// the archive can be read at all.
+    /// One non-solid entry as an archive of its own: the signature and main header, then
+    /// the entry's header and packed bytes. Nothing between them and nothing after is read.
+    ///
+    /// A non-solid entry decodes without the entries before it, so these bytes are all
+    /// libarchive needs. Two ranged reads replace the whole file, which is what lets a
+    /// compressed CBR stream from a share (`publication-formats`, *Streaming capability
+    /// per format*). Every length here comes from a header, so each is bounded first.
+    public func isolated(_ entry: RarEntry) async throws -> Data {
+        let headerLength = entry.dataOffset - entry.headerOffset
+        guard mainHeaderEnd > 0, mainHeaderEnd <= Int64(Self.maxHeaderSize),
+              mainHeaderEnd <= entry.headerOffset,
+              headerLength > 0, headerLength <= Int64(Self.maxHeaderSize),
+              entry.packedSize >= 0, entry.packedSize <= Int64(RarDecoder.maxEntryBytes),
+              entry.dataOffset + entry.packedSize <= source.length
+        else { throw RarError.malformed("entry lies outside the source") }
+        var out = try await source.readExactly(offset: 0, count: Int(mainHeaderEnd))
+        out.append(try await source.readExactly(
+            offset: entry.headerOffset, count: Int(headerLength + entry.packedSize)
+        ))
+        return out
+    }
+
+    /// What a header walk found: the entries, the two flags that decide whether the
+    /// archive can be read at all, and where the main header ends.
     struct Scan {
         let entries: [RarEntry]
         let isSolid: Bool
         let isEncrypted: Bool
+        var mainHeaderEnd: Int64 = 0
     }
 
     // MARK: - RAR4
@@ -138,6 +132,7 @@ public struct RarReader: Sendable {
         var entries: [RarEntry] = []
         var solidArchive = false
         var encrypted = false
+        var mainHeaderEnd: Int64 = 0
         var offset = Int64(rar4Signature.count)
 
         while offset + 7 <= source.length {
@@ -157,6 +152,7 @@ public struct RarReader: Sendable {
                     return Scan(entries: [], isSolid: solidArchive, isEncrypted: true)
                 }
                 offset += Int64(headerSize)
+                mainHeaderEnd = offset
                 continue
             }
             if type == 0x7B { break }  // end of archive
@@ -198,18 +194,18 @@ public struct RarReader: Sendable {
                         dataOffset: dataOffset,
                         isStored: method == 0x30,
                         isSolid: flags & 0x0010 != 0,
-                        isEncrypted: entryEncrypted
+                        isEncrypted: entryEncrypted,
+                        headerOffset: offset
                     )
                 )
             }
             offset = dataOffset + max(packed, 0)
         }
 
-        guard !entries.isEmpty || solidArchive || encrypted else {
-            // A signature and nothing parseable behind it.
-            return Scan(entries: [], isSolid: solidArchive, isEncrypted: encrypted)
-        }
-        return Scan(entries: entries, isSolid: solidArchive, isEncrypted: encrypted)
+        return Scan(
+            entries: entries, isSolid: solidArchive, isEncrypted: encrypted,
+            mainHeaderEnd: mainHeaderEnd
+        )
     }
 
     /// A non-file block's payload size, which sits directly after its 7-byte head.
@@ -249,6 +245,7 @@ public struct RarReader: Sendable {
         var entries: [RarEntry] = []
         var solidArchive = false
         var encrypted = false
+        var mainHeaderEnd: Int64 = 0
         var offset = Int64(rar5Signature.count)
 
         while offset + 8 <= source.length {
@@ -281,10 +278,14 @@ public struct RarReader: Sendable {
             switch type {
             case 1:  // main archive header
                 if let archiveFlags = vint(bytes, &read) { solidArchive = archiveFlags & 0x0004 != 0 }
+                mainHeaderEnd = nextOffset
             case 4:  // encrypted headers: nothing past this point can be parsed
                 return Scan(entries: [], isSolid: solidArchive, isEncrypted: true)
             case 5:  // end of archive
-                return Scan(entries: entries, isSolid: solidArchive, isEncrypted: encrypted)
+                return Scan(
+                    entries: entries, isSolid: solidArchive, isEncrypted: encrypted,
+                    mainHeaderEnd: mainHeaderEnd
+                )
             case 2, 3:  // file, and service headers such as the archive comment
                 guard let fileFlags = vint(bytes, &read),
                       let unpacked = vint(bytes, &read),
@@ -319,7 +320,8 @@ public struct RarReader: Sendable {
                             // CompressionInfo bits 7-9 hold the method; 0 is store.
                             isStored: (compression >> 7) & 0x07 == 0,
                             isSolid: compression & 0x40 != 0,
-                            isEncrypted: entryEncrypted
+                            isEncrypted: entryEncrypted,
+                            headerOffset: offset
                         )
                     )
                 }
@@ -330,7 +332,10 @@ public struct RarReader: Sendable {
             guard nextOffset > offset else { break }  // never move backwards
             offset = nextOffset
         }
-        return Scan(entries: entries, isSolid: solidArchive, isEncrypted: encrypted)
+        return Scan(
+            entries: entries, isSolid: solidArchive, isEncrypted: encrypted,
+            mainHeaderEnd: mainHeaderEnd
+        )
     }
 
     /// Whether a file header's extra area declares encryption (record type 1).

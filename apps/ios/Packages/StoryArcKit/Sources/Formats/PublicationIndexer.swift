@@ -141,11 +141,11 @@ public enum PublicationIndexer {
     /// what ADR-0008 put that interface there for. A share supplies one, so a comic on a NAS
     /// is catalogued from its headers rather than fetched.
     ///
-    /// - Parameter decoderPath: a local copy, for the two decoders that cannot take a
-    ///   source. PDFKit wants a file and libarchive wants a path; without one, those
-    ///   formats are catalogued as records with their pages marked refused rather than
-    ///   failing outright — the same honest degradation the file path already gives a
-    ///   solid archive.
+    /// - Parameter decoderPath: a local copy, for the decoders that cannot take a source.
+    ///   PDFKit wants a file, and libarchive wants one for a solid RAR; without one, a PDF
+    ///   is catalogued as a record and a solid RAR5 as download-only, rather than failing
+    ///   outright — the same honest degradation the file path already gives a solid
+    ///   archive.
     public static func index(
         source: any RandomAccessSource,
         name: String,
@@ -225,9 +225,9 @@ public enum PublicationIndexer {
         case .rar:
             // `RarComicArchive` reads headers alone, so a remote CBR is
             // catalogued — pages, cover, streaming capability — without
-            // transferring it. With no `decoderPath` a compressed page cannot be
-            // read yet, and the archive says so through `isDownloadOnly` rather
-            // than this needing a bare record.
+            // transferring it. With no `decoderPath` a compressed page of a solid
+            // archive cannot be read yet, and the archive says so through
+            // `isDownloadOnly` rather than this needing a bare record.
             return try await rarArchive(
                 source: source, fileURL: decoderPath, identity: found, name: name,
                 fallback: fallback
