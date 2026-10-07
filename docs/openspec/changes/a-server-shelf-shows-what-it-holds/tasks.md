@@ -110,7 +110,8 @@ section is why the change is not archived yet.
   and the choice belongs to whoever knows the design intent: a formatless initialiser that
   draws the generic glyph, or the first member's format, which reads well for a collection of
   comics and oddly for a mixed one. Android sidesteps it because its own well takes a nullable
-  format. `ShelfCover.swift:88` is the site.
+  format. `ShelfCover.swift:88` is the site. **Owner decision, 2026-10-07:** the formatless
+  initialiser, which draws the generic glyph, as Android's nullable format already does.
 - [x] 5b.3 **A server-defined collection could not show the cover a reader locked on the
   server, and now it can.** The delta extends "unless the user sets a specific one" to a
   collection a server defines. The model dropped the field for exactly that kind, so

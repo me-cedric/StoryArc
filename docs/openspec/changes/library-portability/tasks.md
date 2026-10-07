@@ -73,11 +73,24 @@ a person moved a real library between two real devices.
 
 ## 5. The owner's decision
 
-- [ ] 5.1 **Decide whether credentials travel** (owner step). Saying yes means amending
-  `docs/openspec/specs/sources/spec.md` *Credential storage* and `AGENTS.md` non-negotiable 4,
-  both of which name backups. The format already reserves the `secrets` object and design.md
-  fixes the crypto — PBKDF2-HMAC-SHA256, AES-256-GCM, parameters in the document — so a yes is
-  one change and no rework. **Do not implement this without that amendment.**
+- [x] 5.1 **Decide whether credentials travel** (owner step). **The owner said yes on
+  2026-10-07**, knowing it amends two rules. Both are amended: this change now carries a delta
+  on `sources` *Credential storage* (`specs/sources/spec.md`), and `AGENTS.md` non-negotiable 4
+  names the one exception. The requirement is *Secrets travel only sealed, and only when asked*.
+- [ ] 5.2 **Seal and open a secret** (both). PBKDF2-HMAC-SHA256 at 600,000 iterations and
+  AES-256-GCM with a 12-byte nonce and a 128-bit tag: CommonCrypto `CCKeyDerivationPBKDF` and
+  CryptoKit `AES.GCM` on iOS, `SecretKeyFactory("PBKDF2WithHmacSHA256")` and
+  `Cipher("AES/GCM/NoPadding")` on Android. No dependency. Every parameter goes in the
+  document's `secrets` object. One fixed test vector, sealed once, is opened by both platforms'
+  tests, so the two cannot drift.
+- [ ] 5.3 **The export asks, and is off by default** (both). A switch "Include passwords" on the
+  export sheet; turning it on asks for a passphrase twice. The sheet states that anyone with the
+  file and the passphrase can sign in to these servers. Four languages.
+- [ ] 5.4 **The import asks for the passphrase** (both), only when the document carries secrets.
+  The right one writes each secret to the secure store. A wrong one is stated and may be retried;
+  skipping imports the rest and marks those sources as needing a sign-in.
+- [ ] 5.5 **Frames**: the export switch with its warning, and the import passphrase prompt. Both
+  platforms, light and dark.
 
 ## 6. From the review of wave 11
 

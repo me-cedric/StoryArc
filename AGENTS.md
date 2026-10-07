@@ -42,7 +42,10 @@ wrong even if it compiles and passes tests.
 3. **Offline is a normal state, not an error.** An unreachable source is grey,
    never red. The library stays browsable; downloads stay readable.
 4. **Secrets go to the platform secure store.** Never preferences, logs,
-   backups, or diagnostics. Redact before any string leaves memory.
+   backups, or diagnostics. Redact before any string leaves memory. One
+   exception: a library export the reader asked to carry secrets holds each
+   secret sealed under the reader's passphrase, never in clear
+   (`library-portability`, *Secrets travel only sealed, and only when asked*).
 5. **The artwork is the interface.** Chrome recedes, auto-hides, never tints.
 
 ## 3. Before you write code

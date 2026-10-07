@@ -47,14 +47,34 @@ name what it leaves out.
 - **THEN** every record is understood, including the records whose stores disagree on the wire today: the source timestamp, the source kind, the shelf cover key, the reading position and the pinned-shelf container
 - **AND** the document's own shape is the agreed one, and each platform converts at its own boundary
 
-### Requirement: Secrets do not travel
+### Requirement: Secrets travel only sealed, and only when asked
 
-The app SHALL NOT write a source secret into an export, and SHALL make a re-import possible
-without one.
+The app SHALL NOT write a source secret into an export unless the reader chooses to carry
+secrets and gives a passphrase. A secret that travels SHALL be sealed with AES-256-GCM under a
+key derived from that passphrase with PBKDF2-HMAC-SHA256, and the document SHALL carry every
+parameter: the KDF and cipher names, the iteration count, the salt and each nonce. The app SHALL
+make a re-import possible without the passphrase.
 
 #### Scenario: A server in the export
-- **WHEN** a source with a password, a token or an API key is exported
+- **WHEN** a source with a password, a token or an API key is exported, and the reader did not choose to carry secrets
 - **THEN** its address, its name, its username and its settings travel, and its secret does not
+
+#### Scenario: Carrying secrets under a passphrase
+- **WHEN** the reader chooses to carry secrets, and gives a passphrase twice that matches
+- **THEN** each secret is written only as ciphertext in the document's `secrets` object, keyed by its source
+- **AND** the iteration count is at least 600,000, and the passphrase itself is written nowhere
+
+#### Scenario: Importing sealed secrets
+- **WHEN** a document with sealed secrets is imported, and the reader gives the right passphrase
+- **THEN** each secret goes straight to the platform secure store, and its source reaches its server with no sign-in
+
+#### Scenario: A wrong or missing passphrase
+- **WHEN** the reader gives a wrong passphrase, or chooses to import without one
+- **THEN** the app states that the secrets could not be opened, imports everything else, and marks each such source as needing a sign-in
+
+#### Scenario: One document, both platforms
+- **WHEN** a document sealed on one platform is imported on the other with the right passphrase
+- **THEN** every secret opens
 
 #### Scenario: Signing in again after an import
 - **WHEN** an imported source needs a secret to reach its server

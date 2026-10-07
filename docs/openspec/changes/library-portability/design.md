@@ -61,10 +61,10 @@ The owner chose to encrypt credentials into the export. Two standing rules forbi
 `sources` capability's *Credential storage* requirement, and `AGENTS.md` non-negotiable 4,
 which both name backups explicitly. An encrypted secret in a file is a secret in a file.
 
-Rather than amend a non-negotiable inside an unrelated change, the document reserves an optional
-`secrets` object that the writer never fills. Turning it on is one change: fill it, flip a
-setting, and amend the two rules. The crypto is decided here so that change is a decision and
-not a design:
+The first build reserved an optional `secrets` object that the writer never filled. On
+2026-10-07 the owner confirmed the yes with the cost stated, so this change fills it, asks for
+it on each export, and amends the two rules (tasks 5.1 to 5.5). The crypto was decided here
+first, so the yes was a decision and not a design:
 
 - **PBKDF2-HMAC-SHA256**, because both platforms ship it with no dependency. Argon2id and
   scrypt reach neither without one — Apple CryptoKit offers neither, and Android's
@@ -101,7 +101,8 @@ in it, so the second version has somewhere to go.
 
 ## Open Questions
 
-**One, and it is the owner's.** Should credentials travel, encrypted under a passphrase? The
-owner has already said yes once. This change records that saying yes means amending the
-`sources` capability and an `AGENTS.md` non-negotiable, which was not known when they said it.
-The format is built so the answer can be yes later with no rework.
+**None.** The owner was asked again on 2026-10-07, with the cost stated: credentials travel,
+encrypted under a passphrase. This change now amends the `sources` capability's *Credential
+storage* (a delta in `specs/sources/`) and `AGENTS.md` non-negotiable 4. Carrying secrets is
+off by default and asked for on each export. The iteration count is 600,000, OWASP's figure
+for PBKDF2-HMAC-SHA256 when this was written.
