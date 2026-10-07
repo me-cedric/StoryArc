@@ -136,7 +136,7 @@ class SmbConnection(
         }
 
         _step.value = Step.Connecting
-        // On IO from the first line: jcifs resolves names while it builds a client, and
+        // On IO from the first line: the client resolves the host while it connects, and
         // doing that on the main thread is an ANR rather than a slow screen.
         viewModelScope.launch(Dispatchers.IO) {
             try {

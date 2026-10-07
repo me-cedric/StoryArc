@@ -10,8 +10,8 @@ import Testing
 /// server with no dialect in common answers the SMB 2 NEGOTIATE with `STATUS_NOT_SUPPORTED`,
 /// and an older one answers in the CIFS error classes, which an SMB 2 server cannot send.
 ///
-/// Mirrored case for case by `SmbProtocolRefusalTest.kt`, which reads jcifs' own sentences
-/// instead because that client fails before the server answers with a status.
+/// Mirrored by `SmbProtocolRefusalTest.kt`, which reads smbj's own exception for an SMB 1
+/// server instead, because that client fails before the server answers with a status.
 @Suite("SMB 1 refusal")
 struct SmbProtocolRefusalTests {
 
@@ -49,7 +49,7 @@ struct SmbProtocolRefusalTests {
         #expect(!detail.isEmpty)
     }
 
-    /// No Android counterpart, and none is possible: jcifs only ever says "dialect" while
+    /// No Android counterpart, and none is possible: smbj only ever says "dialect" while
     /// the two ends are negotiating one, so its probe is scoped by what produces it. This
     /// client reads a status that means something far narrower once a share is open, so the
     /// scope has to be stated rather than inherited.

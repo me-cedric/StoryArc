@@ -157,7 +157,7 @@ fun SmbBrowserScreen(
     }
 
     LaunchedEffect(path) {
-        // On IO: the first call is what builds jcifs' context, and that blocks.
+        // On IO: the first call is what opens the SMB connection, and that blocks.
         runCatching { withContext(Dispatchers.IO) { client.list(path) } }
             .onSuccess { entries = it; failure = null }
             .onFailure { failure = R.string.smb_error_unexpected }
@@ -427,8 +427,8 @@ private suspend fun fetchAndIndex(
             ?: throw SmbError.Unexpected("unusable entry name")
         if (destination.length() != entry.length) {
             // Chunked rather than one read of the whole length in a single call: that count
-            // overflows an Int above 2 GiB before the request is even sent, and jcifs's own
-            // reply is capped by its wire format before that anyway -- a solid archive worth
+            // overflows an Int above 2 GiB before the request is even sent, and one SMB
+            // reply is capped by the server's read size before that anyway -- a solid archive worth
             // downloading is exactly the file large enough to hit either limit.
             ChunkedCopy.copy(source, destination)
         }

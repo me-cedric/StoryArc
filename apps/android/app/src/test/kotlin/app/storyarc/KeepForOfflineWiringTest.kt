@@ -11,7 +11,7 @@ import org.junit.Test
  * The regression: `file.writeBytes(source.read(0, source.length.toInt()))` reads a share's
  * whole file in a single call and holds it in memory to write it back out.
  * `source.length.toInt()` is the sharper half — a `Long` truncated to `Int` overflows above
- * 2 GiB, and jcifs's own read is capped by its wire format well before that, so a share file
+ * 2 GiB, and one SMB read is capped by the server's read size well before that, so a share file
  * larger than either limit wrote nothing and was indexed as an empty file.
  * `ChunkedCopyTest` pins the fixed-chunk copy itself; this is the wiring, that
  * `keepForOffline` actually calls it.
@@ -38,7 +38,7 @@ class KeepForOfflineWiringTest {
     fun `nothing reads the whole file into memory in one call`() {
         assertFalse(
             "keepForOffline reads the whole file in one call again — source.length.toInt()" +
-                " overflows above 2 GiB and a single read is refused by jcifs before that",
+                " overflows above 2 GiB and a single SMB read is capped by the server before that",
             withoutComments(code()).contains("source.read(0, source.length.toInt())"),
         )
     }
