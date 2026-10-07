@@ -165,6 +165,9 @@ struct ProseCurlOnABookTests {
         try await Task.sleep(for: .milliseconds(60))
         reader.curlDrag(.began(travel: 10))
         reader.curlDrag(.changed(travel: 600))
+        // The finger holds the page past the time the caught spring would have landed in.
+        try await Task.sleep(for: .milliseconds(600))
+        #expect(reader.proseCurl.isTurning)
         reader.curlDrag(.ended(travel: 600, velocity: 0))
 
         let end = try await place(of: navigator, reader: reader)
