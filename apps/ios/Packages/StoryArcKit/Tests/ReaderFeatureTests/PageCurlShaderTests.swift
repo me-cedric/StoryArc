@@ -1,6 +1,8 @@
 import Foundation
 import Testing
 
+import StoryArcCore
+
 /// That the two shaders are the same shader.
 ///
 /// `design.md` asks for one projection "expressed twice rather than solved twice", and
@@ -144,9 +146,15 @@ struct PageCurlShaderTests {
     func theConstantsComeFromOnePlace() throws {
         // `PageRoll` owns the numbers and both shaders receive them. A literal that looked
         // like one of them, written into a shader, is how the two platforms drift apart
-        // while every test passes.
+        // while every test passes. All six, read from `PageRoll` itself, so a seventh
+        // constant or a changed value cannot leave the check behind.
+        let constants = [
+            PageRoll.radiusMax, PageRoll.lean, PageRoll.rim,
+            PageRoll.crease, PageRoll.shadow, PageRoll.back,
+        ].map { String(describing: $0) }
+        #expect(Set(constants).count == 6)
         for text in [try metal(), try reflowableMetal(), try agsl()] {
-            for constant in ["0.04", "1.5", "0.35"] {
+            for constant in constants {
                 #expect(
                     !text.contains(constant),
                     "A shader spells the constant \(constant) itself instead of taking it as a parameter from PageRoll."
