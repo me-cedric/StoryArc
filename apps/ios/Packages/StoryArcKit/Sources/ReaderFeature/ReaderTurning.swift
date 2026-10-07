@@ -129,15 +129,18 @@ extension ReaderView {
     /// ``CurlRequest`` and lets `CurledPages` roll the page over; `turn(by:)` commits the
     /// page afterwards, from `onTurned`, which is why that path must not file one itself.
     func turnWithTransition(by step: Int) {
+        let isForward = readingOrderStep(step, isRightToLeft: isRightToLeft) > 0
         guard CurlRequest.runsCurl(
             mode: model.transitions(reduceMotion: reduceMotion).effective,
             step: step,
+            // D10: past the last page the end screen is the destination, and the curl
+            // lifts the page off it as it does off any other sheet.
             hasDestination: model.pages.indices.contains(displayIndex + step)
+                || CurlRequest.endsAhead(
+                    isForward: isForward, page: model.currentIndex, pageCount: model.pages.count
+                )
         ) else { return turn(by: step) }
-        curlRequest = CurlRequest(
-            isForward: readingOrderStep(step, isRightToLeft: isRightToLeft) > 0,
-            serial: (curlRequest?.serial ?? 0) + 1
-        )
+        curlRequest = CurlRequest(isForward: isForward, serial: (curlRequest?.serial ?? 0) + 1)
     }
 
     /// Commits the turn: the page the reader asked for becomes the page on screen.

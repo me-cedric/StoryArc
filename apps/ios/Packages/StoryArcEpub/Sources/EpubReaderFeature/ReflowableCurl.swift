@@ -80,6 +80,9 @@ struct ReflowableCurl: View {
                 .float(Float(PageRoll.lean)),
                 .float(Float(PageRoll.rim)),
                 .float2(size.width, size.height),
+                // Both rasters fill the whole area: a prose page has no fit and no zoom.
+                .float4(0, 0, size.width, size.height),
+                .float4(0, 0, size.width, size.height),
                 .image(Image(decorative: page, scale: scale)),
                 .image(Image(decorative: beneath, scale: scale))
             )

@@ -41,30 +41,42 @@ extension ReaderView {
     /// already mirrors the crease for right-to-left; handing it `displayIndex + 1` as the
     /// forward reveal on top of that mirrored the gesture twice, so a drag that lifted the
     /// page the reader expects opened the page behind them instead.
+    ///
+    /// **At rest the curl is the normal page body** (D33): `page(at:)`, with its fit, its
+    /// pinch and its PDF marks, and its taps routed as the page routes them. The shader
+    /// stands over it only while a turn runs.
     var curled: some View {
-        CurledPages(
+        let next = adjacentDisplayIndex(
+            from: displayIndex, steps: 1, slotCount: layout.count, isRightToLeft: isRightToLeft
+        )
+        let behind = adjacentDisplayIndex(
+            from: displayIndex, steps: -1, slotCount: layout.count, isRightToLeft: isRightToLeft
+        )
+        return CurledPages(
             // One page, or a spread composited into one texture. See `ReaderCurlSheets`.
             page: curlTexture(forDisplay: displayIndex),
-            beneath: curlSheet(at: adjacentDisplayIndex(
-                from: displayIndex, steps: 1, slotCount: layout.count, isRightToLeft: isRightToLeft
-            )),
+            beneath: curlSheet(at: next),
             // The page behind, for the other direction. The reader met a curl that "only
             // seems to work in one direction": the shader had nothing to turn backwards
             // because nothing was handed to it.
-            previous: curlSheet(at: adjacentDisplayIndex(
-                from: displayIndex, steps: -1, slotCount: layout.count, isRightToLeft: isRightToLeft
-            )),
+            previous: curlSheet(at: behind),
             isRightToLeft: isRightToLeft,
             matte: model.matte,
             adjustments: adjustments,
             isUnavailable: model.isUnavailable(at: modelIndex(forDisplay: displayIndex)),
             codecName: model.codecName(at: modelIndex(forDisplay: displayIndex)),
+            // D10: past the last page the end screen is the next sheet.
+            endsHere: next == nil,
+            isSpread: layout[slotIndex(forDisplay: displayIndex)]?.trailing != nil,
+            beneathOpens: curlOpening(forDisplay: next),
+            previousOpens: curlOpening(forDisplay: behind),
+            content: page(at: displayIndex),
+            underneath: endOfPublication,
             // `turn(by:)` and not `turnInReadingOrder(by:)`: the curl has already rolled
             // the page over by the time these are called, and the reading-order route
             // files a fresh ``CurlRequest``, which would roll it over again.
             onTurned: { turn(by: readingOrderStep(1, isRightToLeft: isRightToLeft)) },
             onTurnedBack: { turn(by: readingOrderStep(-1, isRightToLeft: isRightToLeft)) },
-            onTap: tapHandler(),
             request: $curlRequest
         )
     }

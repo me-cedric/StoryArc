@@ -5,11 +5,17 @@ using namespace metal;
 
 constexpr constant float PI = 3.14159265;
 
-static half4 fitted(texture2d<half> page, float2 area, float2 point) {
+/// The page fitted, centred, inside `frame`: x, y, width and height in view points.
+///
+/// The frame is where the reader's own page body draws the page: the whole area at
+/// fit-to-screen, or the zoomed content's rectangle at any other fit or pinch. Fitting
+/// inside it is what the body's own aspect-fit image view does, so a turn starts and ends
+/// on the page the reader was looking at.
+static half4 fitted(texture2d<half> page, float4 frame, float2 point) {
     float2 dimensions = float2(page.get_width(), page.get_height());
-    float scale = min(area.x / dimensions.x, area.y / dimensions.y);
+    float scale = min(frame.z / dimensions.x, frame.w / dimensions.y);
     float2 size = dimensions * scale;
-    float2 origin = (area - size) * 0.5;
+    float2 origin = frame.xy + (frame.zw - size) * 0.5;
     float2 uv = (point - origin) / size;
     if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
         return half4(0.0);
@@ -21,13 +27,14 @@ static half4 fitted(texture2d<half> page, float2 area, float2 point) {
 /// The sheet's own texture, in turn-space, mirrored back for a right-to-left publication.
 static half4 pageAt(
     texture2d<half> page,
+    float4 frame,
     float2 area,
     float direction,
     float turnX,
     float y
 ) {
     float actual = direction > 0.0 ? turnX : area.x - turnX;
-    return fitted(page, area, float2(actual, y));
+    return fitted(page, frame, float2(actual, y));
 }
 
 /// The sheen along the top of the lip and the fold, as a Gaussian in distance.
@@ -53,6 +60,8 @@ static half sheen(float away, float2 area, float crease) {
     float lean,
     float rim,
     float2 area,
+    float4 pageFrame,
+    float4 beneathFrame,
     texture2d<half> page,
     texture2d<half> beneath
 ) {
@@ -66,7 +75,7 @@ static half sheen(float away, float2 area, float crease) {
     if (x > lipRim) {
         float beyond = (x - lipRim) / (area.x * shadow);
         half dark = half(1.0 - 0.45 * exp(-beyond * beyond));
-        half4 under = fitted(beneath, area, position);
+        half4 under = fitted(beneath, beneathFrame, position);
         return half4(under.rgb * dark, under.a);
     }
 
@@ -74,7 +83,7 @@ static half sheen(float away, float2 area, float crease) {
         float across = clamp((x - fold) / radius, 0.0, 1.0);
         float angle = PI - asin(across);
         float lambert = -cos(angle);
-        half4 curved = pageAt(page, area, direction, fold + radius * angle, y);
+        half4 curved = pageAt(page, pageFrame, area, direction, fold + radius * angle, y);
         half3 rolled = curved.rgb * half(back * (rim + (1.0 - rim) * lambert));
         return half4(saturate(rolled + sheen(x - fold, area, crease)), curved.a);
     }
@@ -82,10 +91,10 @@ static half sheen(float away, float2 area, float crease) {
     float edge = 2.0 * fold - area.x + PI * radius;
 
     if (x < edge) {
-        return pageAt(page, area, direction, x, y);
+        return pageAt(page, pageFrame, area, direction, x, y);
     }
 
-    half4 face = pageAt(page, area, direction, 2.0 * fold - x + PI * radius, y);
+    half4 face = pageAt(page, pageFrame, area, direction, 2.0 * fold - x + PI * radius, y);
     half3 dimmed = face.rgb * half(back);
     return half4(saturate(dimmed + sheen(fold - x, area, crease)), face.a);
 }

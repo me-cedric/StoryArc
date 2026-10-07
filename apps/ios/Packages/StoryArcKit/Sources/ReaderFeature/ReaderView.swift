@@ -288,17 +288,7 @@ public struct ReaderView: View {
                     GlassEffectContainer(spacing: StoryArcSpace.md) { chrome }
                 }
 
-                if hasReachedEnd {
-                    EndOfPublication(
-                        title: model.publication.displayTitle,
-                        colours: model.coverColours,
-                        next: nextInSeries,
-                        onOpenNext: onOpen,
-                        onBack: { hasReachedEnd = false; snapBackFromEndSlot() },
-                        onClose: { dismiss() },
-                        downloadCleanup: downloadCleanup
-                    )
-                }
+                if hasReachedEnd { endOfPublication }
             }
             // `comic-reader`: the chrome fades out again "after 4 seconds of no
             // interaction". Keyed on the index too, so turning a page while the

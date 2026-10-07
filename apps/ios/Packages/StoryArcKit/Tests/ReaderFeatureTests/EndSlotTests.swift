@@ -93,7 +93,8 @@ struct EndSlotTests {
 
     @Test("Going back off the end screen snaps off the extra slot")
     func goingBackSnapsOff() throws {
-        let view = try code(of: "ReaderView.swift")
+        // The end screen is built in one place since task 8.5 drew it under the curl too.
+        let view = try code(of: "EndOfPublication.swift")
         #expect(
             view.contains("snapBackFromEndSlot()"),
             """

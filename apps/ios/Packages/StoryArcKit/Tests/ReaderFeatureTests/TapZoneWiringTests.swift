@@ -72,11 +72,17 @@ struct TapZoneWiringTests {
             """
         )
         #expect(
-            text.components(separatedBy: "tapHandler").count - 1 >= 4,
+            text.components(separatedBy: "tapHandler").count - 1 >= 3,
             """
-            A container stopped using tapHandler. There are four tap routes — curl, single
-            page, each half of a spread, and the stitched scroll — and each needs it.
+            A container stopped using tapHandler. There are three tap routes — single page,
+            each half of a spread, and the stitched scroll — and each needs it.
             """
+        )
+        // Task 8.16: the curl has no tap route of its own any more. At rest it is the page
+        // body, so its taps are the single page's and the spread's.
+        #expect(
+            text.contains("content: page(at: displayIndex),"),
+            "The curl no longer stands over the page body, so its taps skip tapHandler."
         )
     }
 }

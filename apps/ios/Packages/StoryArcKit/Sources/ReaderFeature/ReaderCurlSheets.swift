@@ -35,6 +35,28 @@ extension ReaderView {
         }
     }
 
+    /// Where the sheet at `display` lies flat once it is the page on screen (task 8.16).
+    ///
+    /// A single page opens at the reader's fit, so the turn lands on exactly the rectangle
+    /// the page body then draws. A spread is two scroll views side by side, and its one
+    /// composited sheet is fitted to the whole area instead.
+    func curlOpening(forDisplay display: Int?) -> (CGImage, CGSize) -> CGRect {
+        let isSingle = display.flatMap { layout[slotIndex(forDisplay: $0)] }?.trailing == nil
+        let fit = fit
+        let carried = fit == .width ? carriedZoomScale : nil
+        let isRightToLeft = isRightToLeft
+        return { sheet, size in
+            guard isSingle else { return CGRect(origin: .zero, size: size) }
+            return CurlSheetFrame.opening(
+                imageSize: CGSize(width: sheet.width, height: sheet.height),
+                viewport: size,
+                fit: fit,
+                carried: carried,
+                isRightToLeft: isRightToLeft
+            )
+        }
+    }
+
     /// The shape the sheet at `display` will turn out to be.
     ///
     /// A pair is twice as wide as one page, because the halves are equal — so a placeholder

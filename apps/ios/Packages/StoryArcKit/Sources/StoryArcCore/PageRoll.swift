@@ -83,7 +83,7 @@ public enum PageRoll {
     /// and is back to nothing when the page lands. Floored at zero because `sin` of a
     /// float pi is a hair below it, and a negative radius puts the rim to the left of the
     /// fold — which drew the page beneath across a page that had just landed.
-    static func radius(width: Double, progress: Double) -> Double {
+    public static func radius(width: Double, progress: Double) -> Double {
         max(radiusMax * width * sin(.pi * min(max(progress, 0), 1)), 0)
     }
 
@@ -92,7 +92,7 @@ public enum PageRoll {
     /// Quadratic in the height fraction, so the fold is a curve across the page rather than
     /// a slanted line — and so the rim and the shadow, which are this plus a constant, bend
     /// with it. See the bow paragraph above for why the square and not the fraction.
-    static func fold(width: Double, height: Double, progress: Double, y: Double, radius: Double) -> Double {
+    public static func fold(width: Double, height: Double, progress: Double, y: Double, radius: Double) -> Double {
         let flat = width * (1 - min(max(progress, 0), 1))
         guard height > 0 else { return flat }
         let bow = y / height

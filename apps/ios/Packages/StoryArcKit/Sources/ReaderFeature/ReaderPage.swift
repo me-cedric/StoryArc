@@ -38,6 +38,7 @@ struct PageView: View {
     var onSelect: ((CGPoint, CGPoint, Bool) -> Void)?
 
     @Environment(\.swipeTurn) private var swipeTurn
+    @Environment(\.curlDrag) private var curlDrag
 
     var body: some View {
         let onSwipe = swipeTurn
@@ -80,6 +81,15 @@ struct PageView: View {
                         if step != 0 { onSwipe?(step) }
                     },
                     isEnabled: onSwipe != nil
+                )
+                // Task 8.16: and in Curl, the drag a zoomable page reports from its own pan.
+                .gesture(
+                    DragGesture(minimumDistance: 8)
+                        .onChanged { value in curlDrag?.follow(value.translation.width) }
+                        .onEnded { value in
+                            curlDrag?.end(travel: value.translation.width, velocity: value.velocity.width)
+                        },
+                    isEnabled: curlDrag != nil
                 )
             }
         }

@@ -21,8 +21,6 @@ internal import UIKit
 /// Taps are handled here too, for the same reason: a SwiftUI tap layered over a
 /// scroll view is a second recogniser competing with the first.
 struct ZoomablePage: View {
-    /// A quarter of the width each side: hittable on a phone, and the centre still
-    /// has room. Shared with the reader, which decides what an edge tap means.
     /// How much of the width each turn zone takes.
     ///
     /// A third, so the three zones are equal and the middle one is where a thumb lands on
@@ -69,11 +67,13 @@ struct ZoomablePage: View {
     var onSelect: ((CGPoint, CGPoint, Bool) -> Void)?
 
     @Environment(\.swipeTurn) private var swipeTurn
+    @Environment(\.curlDrag) private var curlDrag
 
     var body: some View {
         #if os(iOS)
         // Read here, in the body pass. See `tapHandler` for what a later read returns.
         let onSwipe = swipeTurn
+        let onCurl = curlDrag
         // The size the fit is computed from comes from SwiftUI rather than from the
         // scroll view's bounds: `updateUIView` runs before the first layout, so
         // `bounds` is still zero on the way in. The scroll view's own bounds are
@@ -91,7 +91,8 @@ struct ZoomablePage: View {
                 onZoom: onZoom,
                 decoration: decoration,
                 onSelect: onSelect,
-                onSwipe: onSwipe
+                onSwipe: onSwipe,
+                onCurl: onCurl
             )
         }
         #else
@@ -120,6 +121,7 @@ struct ScrollingPage: UIViewRepresentable {
     let decoration: PdfPageDecoration
     let onSelect: ((CGPoint, CGPoint, Bool) -> Void)?
     let onSwipe: SwipeTurn?
+    let onCurl: CurlDrag?
 
     /// How far a double-tap zooms in. Enough to read the lettering on a dense
     /// page, not so far that the reader loses the panel they tapped.
@@ -139,10 +141,12 @@ struct ScrollingPage: UIViewRepresentable {
             coordinator?.applyFit(to: view)
         }
         scrollView.minimumZoomScale = 1
-        scrollView.maximumZoomScale = 6
+        scrollView.maximumZoomScale = OwedFit.zoomCeiling
         scrollView.showsHorizontalScrollIndicator = false
         scrollView.showsVerticalScrollIndicator = false
-        scrollView.backgroundColor = .black
+        // Clear, so the reader's matte shows around the page, as `reading-themes` asks and
+        // as the curl draws it while a turn runs.
+        scrollView.backgroundColor = .clear
         // The pager owns the horizontal swipe, and it only gets it if this view
         // stops bouncing horizontally at minimum zoom.
         scrollView.bounces = false
@@ -203,6 +207,7 @@ struct ScrollingPage: UIViewRepresentable {
     func updateUIView(_ scrollView: UIScrollView, context: Context) {
         context.coordinator.onTap = onTap
         context.coordinator.onSwipe = onSwipe
+        context.coordinator.reportSheet(to: onCurl)
         context.coordinator.onZoom = onZoom
         context.coordinator.onSelect = onSelect
         context.coordinator.overlay?.decoration = decoration
@@ -254,6 +259,7 @@ struct ScrollingPage: UIViewRepresentable {
         weak var overlay: PdfPageOverlayView?
         var onSelect: ((CGPoint, CGPoint, Bool) -> Void)?
         var onSwipe: SwipeTurn?
+        var onCurl: CurlDrag?
         weak var swipe: UIPanGestureRecognizer?
         /// Where the press started, normalised to the page. The drag extends from it.
         /// Not `private`: `ZoomablePageSelection.swift` reads and sets it.

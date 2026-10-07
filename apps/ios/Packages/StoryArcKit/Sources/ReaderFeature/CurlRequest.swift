@@ -33,4 +33,14 @@ extension CurlRequest {
     static func runsCurl(mode: PageTransition, step: Int, hasDestination: Bool) -> Bool {
         mode == .pageCurl && abs(step) == 1 && hasDestination
     }
+
+    /// Whether a turn forward from `page` reaches the end screen rather than a page.
+    ///
+    /// `page-transitions` "Reaching the end while curling": a tap or a key past the last
+    /// page opens the end screen "with the chosen transition", which in Curl is the curl
+    /// lifting the last page off it. Only forward: a turn back from the last page has a page
+    /// behind it, and a turn back from the only page has nothing.
+    static func endsAhead(isForward: Bool, page: Int, pageCount: Int) -> Bool {
+        isForward && pageCount > 0 && page == pageCount - 1
+    }
 }

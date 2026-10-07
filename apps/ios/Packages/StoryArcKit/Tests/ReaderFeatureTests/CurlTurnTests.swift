@@ -108,14 +108,12 @@ struct CurlTurnTests {
 
     @Test("With no sheet beneath it the forward range collapses to nothing")
     func lastPageCannotLiftOffNothing() {
-        // D10. This read the other way until the curl was watched on a last page: the
-        // forward range was left open "because the end screen is a turn", and what the
-        // reader saw was the page lifting off *itself* — the shader stands the turning
-        // sheet in for a missing one, so the sheet revealed underneath was a copy of the
-        // sheet being lifted. `page-transitions` puts both ends under one sentence,
-        // "nothing lifts and the page stays where it is, rather than turning to an empty
-        // sheet", and the end screen is still reached: a tap, a key or a controller goes
-        // through `turn(by:)`, which opens it (`ReaderTurning.turn(by:)`).
+        // D10. A page with nothing of any kind beneath it — no next sheet and no end
+        // screen — once lifted off *itself*: the shader stands the turning sheet in for a
+        // missing one, so the sheet revealed underneath was a copy of the sheet being
+        // lifted. "Nothing lifts into an empty sheet". The last page of a publication is
+        // not this case any more: its end screen is the next sheet, and
+        // `lastPageLiftsOffTheEndScreen` below is that half.
         #expect(
             CurlTurn.progress(
                 base: 0, travel: -1200, width: width, isRightToLeft: false, canTurnForward: false
@@ -126,6 +124,28 @@ struct CurlTurnTests {
                 base: 0, travel: -100, width: width, isRightToLeft: false, canTurnForward: false
             ) == 0
         )
+    }
+
+    @Test("The last page lifts off the end screen, the next sheet past it (D10)")
+    func lastPageLiftsOffTheEndScreen() {
+        // `page-transitions` "Reaching the end while curling": the curl lifts the last page
+        // "to reveal the end-of-publication screen beneath it, as the next sheet".
+        let under = CurlTurn.under(beneath: nil as String?, endsHere: true)
+        #expect(under == .endScreen)
+        #expect(
+            CurlTurn.progress(
+                base: 0, travel: -300, width: width, isRightToLeft: false,
+                canTurnForward: under != .nothing
+            ) == 0.3
+        )
+    }
+
+    @Test("A sheet beneath is the sheet, and nothing beneath mid-publication is nothing")
+    func whatLiesUnder() {
+        #expect(CurlTurn.under(beneath: "next", endsHere: false) == .sheet)
+        // A sheet beneath wins even where the slot is the last one: never two next sheets.
+        #expect(CurlTurn.under(beneath: "next", endsHere: true) == .sheet)
+        #expect(CurlTurn.under(beneath: nil as String?, endsHere: false) == .nothing)
     }
 
     @Test("A last page that cannot lift can still be turned back from")

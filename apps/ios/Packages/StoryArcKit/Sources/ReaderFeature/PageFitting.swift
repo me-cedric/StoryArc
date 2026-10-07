@@ -78,6 +78,9 @@ struct OwedFit {
         self.isRightToLeft = isRightToLeft
     }
 
+    /// How far a page may be magnified: the scroll view's maximum zoom scale.
+    static let zoomCeiling: CGFloat = 6
+
     /// The zoom scale the page opens at, never past what the view will hold.
     func scale(upTo ceiling: CGFloat) -> CGFloat {
         min(openingScale(fitScale: fitScale(upTo: .greatestFiniteMagnitude), carried: carried, mode: mode), ceiling)

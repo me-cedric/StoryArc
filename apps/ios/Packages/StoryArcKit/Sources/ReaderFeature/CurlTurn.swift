@@ -1,3 +1,7 @@
+internal import CoreGraphics
+
+internal import StoryArcCore
+
 /// Where a page stands mid-turn, and what a finger does to it from there.
 ///
 /// Pulled out of the gesture so it can be tested without a touch screen, the way
@@ -35,12 +39,9 @@ enum CurlTurn {
     ///   - width: what a whole turn is measured against. A width nothing has measured yet
     ///     leaves the page where it stands rather than dividing by it.
     ///   - canTurnBack: false at the first page, where a backwards drag moves nothing.
-    ///   - canTurnForward: false at the last page, where there is no sheet beneath. D10:
-    ///     the lifted page would show the outgoing page again underneath itself, because
-    ///     the shader stands the turning sheet in for a missing one. `page-transitions`
-    ///     puts the two ends under one sentence — "nothing lifts and the page stays where
-    ///     it is, rather than turning to an empty sheet" — and the end screen is still
-    ///     reached, by the tap or the key that asked for the turn.
+    ///   - canTurnForward: false where ``under(beneath:endsHere:)`` answers `.nothing`.
+    ///     D10: the last page of a publication lifts off its end screen, which is the next
+    ///     sheet, and nothing lifts where there is no sheet of any kind beneath.
     static func progress(
         base: Double,
         travel: Double,
@@ -110,5 +111,64 @@ enum CurlTurn {
     /// that never left flat is not a turn at all, however fast the finger left it.
     static func settles(progress: Double, isFlick: Bool) -> Bool {
         abs(progress) > 0.5 || (isFlick && abs(progress) > 0.05)
+    }
+
+    /// The travel a finger's velocity predicts, in points, for ``flicks(velocity:progress:)``.
+    ///
+    /// The page's own pan recogniser reports a velocity in points per second, not
+    /// SwiftUI's predicted end. A twentieth of a second of it puts the flick at 800 points
+    /// per second, which is the number Android's `CurlTurn.flicks` thresholds in dp.
+    static func predictedTravel(velocity: Double) -> Double {
+        velocity * flickSeconds
+    }
+
+    /// See ``predictedTravel(velocity:)``.
+    static let flickSeconds: Double = 0.05
+
+    /// What a forward turn lifts the page off.
+    enum Under: Equatable {
+        /// The next sheet of the publication, or its placeholder.
+        case sheet
+        /// The end-of-publication screen. D10: past the last page the end screen is the
+        /// next sheet, so the page lifts off it rather than off nothing.
+        case endScreen
+        /// Nothing, so nothing lifts.
+        case nothing
+    }
+
+    /// What lies under a forward turn of this page.
+    ///
+    /// - Parameter endsHere: true when no slot follows this one in reading order, so the
+    ///   publication's end screen comes next.
+    static func under<T>(beneath: T?, endsHere: Bool) -> Under {
+        if beneath != nil { return .sheet }
+        return endsHere ? .endScreen : .nothing
+    }
+
+    /// The outline of the turning sheet: every point with x at or before the lip's rim.
+    ///
+    /// Past the rim the shader draws the page beneath. When that is the end screen, the
+    /// shader leaves it transparent and the matte has to stop at the same curve, or the end
+    /// screen shows through only where the matte was not. `PageRoll` is the one model both
+    /// use, so the curve is the shader's own.
+    ///
+    /// - Parameter steps: how many segments approximate the rim from top to foot.
+    static func sheetOutline(
+        width: Double,
+        height: Double,
+        progress: Double,
+        isRightToLeft: Bool,
+        steps: Int = 24
+    ) -> [CGPoint] {
+        let radius = PageRoll.radius(width: width, progress: progress)
+        let count = max(steps, 1)
+        let rim = (0...count).map { step -> CGPoint in
+            let y = height * Double(step) / Double(count)
+            let fold = PageRoll.fold(width: width, height: height, progress: progress, y: y, radius: radius)
+            let x = min(max(fold + radius, 0), width)
+            return CGPoint(x: isRightToLeft ? width - x : x, y: y)
+        }
+        let spine: Double = isRightToLeft ? width : 0
+        return [CGPoint(x: spine, y: 0)] + rim + [CGPoint(x: spine, y: height)]
     }
 }

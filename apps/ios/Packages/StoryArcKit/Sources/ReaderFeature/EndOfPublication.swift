@@ -141,3 +141,19 @@ struct EndOfPublication: View {
         }
     }
 }
+
+extension ReaderView {
+    /// The end screen, built once for the two places that draw it: over the reader once the
+    /// last page has turned, and under the last page while a curl lifts it (D10).
+    var endOfPublication: some View {
+        EndOfPublication(
+            title: model.publication.displayTitle,
+            colours: model.coverColours,
+            next: nextInSeries,
+            onOpenNext: onOpen,
+            onBack: { hasReachedEnd = false; snapBackFromEndSlot() },
+            onClose: { dismiss() },
+            downloadCleanup: downloadCleanup
+        )
+    }
+}
