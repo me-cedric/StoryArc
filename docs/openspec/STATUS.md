@@ -853,3 +853,22 @@ for by name. There is no device matrix written down, no baseline directory and n
 script; the thirty-five committed captures are ad hoc, and thirty-two of them are Android
 settings screens. The pseudo-locale walk and the accessibility sweep both stop at the two
 readers, because a reader needs a publication on the device and the emulator has none.
+
+## Desktop: `desktop-clients`, 2026-10-07
+
+Wave 0 is a preparation wave. It holds the research, the parity audit, ADR-0018, the change `desktop-clients` with its new
+capability `desktop-experience`, and a minimal base per target. No desktop feature is built. Every row below is **base only**:
+a project that compiles and shows an empty window, and nothing a reader can use. The plan for the waves that follow is in
+`changes/desktop-clients/tasks.md`. Mobile rows above are not affected.
+
+| Target | Stack | State | Next |
+| --- | --- | --- | --- |
+| macOS | SwiftUI app in `apps/desktop-macos`, StoryArcKit by path, macOS 26, App Sandbox | base only | Wave 1 task 1.11 to 1.14: entitlements, bookmarks, keychain, the shell |
+| Windows | WinUI 3 on Windows App SDK 2.5.1, C#, .NET 10, Windows 11 24H2, over the Rust core | base only | Wave 1 tasks 1.8, 1.18 to 1.20: the seam, the shell, the D3D11 curl spike |
+| Linux | GTK 4.14 and libadwaita 1.5 in Rust, Wayland first, Flatpak first | base only | Wave 1 tasks 1.15 to 1.17: window state, the shell, the Wayland curl spike |
+| Shared core | `storyarc-core` and `storyarc-ffi` (Rust, no UI), for Windows and Linux | base only | Wave 1 tasks 1.1 to 1.8: the format layer against `packages/test-fixtures` |
+| EPUB bundle | Readium ts-toolkit, pinned, in a system web view on each desktop | not started | Wave 1 tasks 1.9 and 1.10: the pin check and the egress page |
+
+Requirements of the new capability: 42, with 161 scenarios. None is built. Two carry a `[NEEDS CLARIFICATION]` for the owner:
+the chrome accent, and the cold-launch budget on a desktop. The edge click zones default is the audit's recommendation and waits
+for the owner's confirmation (design.md Open Question 2).
