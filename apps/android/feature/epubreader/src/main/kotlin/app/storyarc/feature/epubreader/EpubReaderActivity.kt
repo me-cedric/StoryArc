@@ -250,7 +250,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
 
     private lateinit var container: FragmentContainerView
 
-    /// The navigator's parent, which steals a horizontal drag only while Fast fade is on.
+    /// The navigator's parent, which steals a horizontal drag while StoryArc draws the turn.
     private lateinit var interceptor: TurnInterceptor
 
     /// What the dip is added to, above the book and below the chrome.
@@ -442,7 +442,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     // ownership follows `effective` and the swipe is armed, not one mode.
                     val drawnTurn = model.transitions(reduceMotion).drawnTurn
                     LaunchedEffect(drawnTurn) {
-                        interceptor.onTurn = if (drawnTurn != null) turns::swipe else null
+                        interceptor.arm(drawnTurn, turns)
                     }
 
                     // `ebook-reader`: a footnote "opens in place". A bottom sheet is the

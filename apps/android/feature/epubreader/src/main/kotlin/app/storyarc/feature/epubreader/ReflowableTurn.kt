@@ -5,6 +5,7 @@ import android.animation.AnimatorListenerAdapter
 import android.content.Context
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.VelocityTracker
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
@@ -25,8 +26,8 @@ import org.readium.r2.navigator.preferences.ReadingProgression
 // paginated pager, and nothing in StoryArc was ever holding a turn between two pages.
 //
 // This is the Android half of what `EpubReaderModel.turnWithFade(forward:)` does on iOS:
-// one dip through the page colour, which is Fast fade. Curl needs the *incoming* page as
-// a second texture before it is on screen, and that is a separate problem on both.
+// one dip through the page colour, which is Fast fade. Curl takes the same drag and hands
+// every phase of it to `ProseCurlDriver`, which rolls a raster of the page (`ProseCurl.kt`).
 //
 // The two platforms take the turn over differently, and the difference is deliberate.
 // iOS has to disable Readium's paginated scroll and then put back the swipe it just took
@@ -72,11 +73,16 @@ internal object TurnDrag {
  * actually moved, which is also when Readium's pager would have decided.
  *
  * [onTurn] is `null` while Readium owns the turn, and then this view never intercepts
- * anything and the reader gets Readium's own Slide. Only Fast fade sets it.
+ * anything and the reader gets Readium's own Slide. Fast fade reads the drag once, when the
+ * finger lifts. Curl sets [onDrag] as well and reads every phase, because the finger drives
+ * the fold (task 8.12).
  */
 internal class TurnInterceptor(context: Context) : FrameLayout(context) {
 
     var onTurn: ((Boolean) -> Unit)? = null
+
+    /** Non-null while Curl owns the turn: every phase of the drag goes here. */
+    var onDrag: ((ProseDrag) -> Unit)? = null
 
     /** Mirrors the drag, the way [EdgeTap] and [EpubTurnKey] mirror a tap and a key. */
     var isRightToLeft: () -> Boolean = { false }
@@ -84,20 +90,28 @@ internal class TurnInterceptor(context: Context) : FrameLayout(context) {
     private val slop = ViewConfiguration.get(context).scaledTouchSlop
     private val threshold = THRESHOLD_DP_PX(context)
     private var downX = 0f
+    private var downY = 0f
     private var isOwningGesture = false
+    private var velocity: VelocityTracker? = null
+
+    /**
+     * Arms the drag for the turn this reader draws: none for Readium's own, the swipe for Fast
+     * fade, and the swipe and every phase of the finger for Curl. One call, because the reader
+     * picks a page turn after the book is open and both have to follow it together.
+     */
+    fun arm(drawnTurn: PageTransition?, turns: EpubPageTurns) {
+        onTurn = if (drawnTurn != null) turns::swipe else null
+        onDrag = if (drawnTurn == PageTransition.PAGE_CURL) turns::drag else null
+    }
 
     override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
         if (onTurn == null) return false
         when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                downX = event.x
-                isOwningGesture = false
+            MotionEvent.ACTION_DOWN -> pressed(event)
+            MotionEvent.ACTION_MOVE -> {
+                velocity?.addMovement(event)
+                moved(event)
             }
-            MotionEvent.ACTION_MOVE ->
-                // Past the slop and this is a drag, not a tap. Taking it here is what
-                // stops the pager taking it, and taking it no earlier is what leaves a
-                // tap on a link to the web view.
-                if (abs(event.x - downX) > slop) isOwningGesture = true
         }
         return isOwningGesture
     }
@@ -107,15 +121,68 @@ internal class TurnInterceptor(context: Context) : FrameLayout(context) {
         when (event.actionMasked) {
             // Only reached when this view was the one touched — the container fills it,
             // so in practice the intercept above is the way in.
-            MotionEvent.ACTION_DOWN -> downX = event.x
-            MotionEvent.ACTION_UP ->
-                TurnDrag.direction(event.x - downX, threshold, isRightToLeft())?.let(turn)
+            MotionEvent.ACTION_DOWN -> pressed(event)
+            MotionEvent.ACTION_MOVE -> {
+                velocity?.addMovement(event)
+                moved(event)
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                velocity?.addMovement(event)
+                released(event, turn)
+            }
         }
         return true
     }
 
+    private fun pressed(event: MotionEvent) {
+        downX = event.x
+        downY = event.y
+        isOwningGesture = false
+        velocity?.recycle()
+        velocity = VelocityTracker.obtain().apply { addMovement(event) }
+    }
+
+    /**
+     * Past the slop, and sideways: this is a turn, not a tap and not a finger going down the
+     * page. Taking it here is what stops the pager taking it, and taking it no earlier is what
+     * leaves a tap on a link to the web view. From then on every move is the curl's.
+     */
+    private fun moved(event: MotionEvent) {
+        val travel = event.x - downX
+        if (isOwningGesture) {
+            onDrag?.invoke(ProseDrag.Changed(travel))
+        } else if (abs(travel) > slop && abs(travel) >= abs(event.y - downY)) {
+            isOwningGesture = true
+            onDrag?.invoke(ProseDrag.Began(travel))
+        }
+    }
+
+    private fun released(event: MotionEvent, turn: (Boolean) -> Unit) {
+        val travel = event.x - downX
+        val drag = onDrag
+        if (drag != null) {
+            // A cancelled drag lets go of the page like a finger that lifted, so the page
+            // settles rather than staying lifted.
+            if (isOwningGesture) drag(ProseDrag.Ended(travel, releaseVelocity()))
+        } else if (event.actionMasked == MotionEvent.ACTION_UP) {
+            TurnDrag.direction(travel, threshold, isRightToLeft())?.let(turn)
+        }
+        isOwningGesture = false
+        velocity?.recycle()
+        velocity = null
+    }
+
+    /** The finger's horizontal speed as it left, in pixels per second. */
+    private fun releaseVelocity(): Float {
+        val tracker = velocity ?: return 0f
+        tracker.computeCurrentVelocity(MILLIS_PER_SECOND)
+        return tracker.xVelocity
+    }
+
     @Suppress("FunctionName")
     private companion object {
+        const val MILLIS_PER_SECOND = 1000
+
         fun THRESHOLD_DP_PX(context: Context): Float =
             TurnDrag.THRESHOLD_DP * context.resources.displayMetrics.density
     }

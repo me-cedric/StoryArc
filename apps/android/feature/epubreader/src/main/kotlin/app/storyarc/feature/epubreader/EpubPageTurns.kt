@@ -150,14 +150,22 @@ internal class EpubPageTurns(
         }
     }
 
+    /** The finger-driven curl. One per reader, so a drag can catch a tap's settle. */
+    private val curl by lazy {
+        ProseCurlDriver(
+            scope = scope,
+            density = { dipHost().resources.displayMetrics.density },
+            probe = { ProseCurlProbe.report(dipHost().context, it) },
+        )
+    }
+
     /**
-     * Turns a page by rolling a picture of it off a picture of the next one. Task 8.12.
+     * Turns a page by rolling a picture of it off a picture of the next one, from a tap, a key
+     * or a volume press: the same spring a released drag runs. Task 8.12.
      *
-     * [ProseCurl] carries the order the five steps run in and why. What is here is the guard
-     * every drawn turn needs -- one turn at a time, because a second roll begun during one
-     * would raster a page that is already under a sheet -- and the API floor: AGSL's
-     * `RuntimeShader` arrives at API 33, and below it `EpubReaderViewModel.canCurl` has
-     * already withheld the mode, so this branch is unreachable rather than merely unused.
+     * [ProseCurlDriver] carries the order of the lift and why. What is here is the API floor:
+     * AGSL's `RuntimeShader` arrives at API 33, and below it `EpubReaderViewModel.canCurl` has
+     * already withheld the mode, so the fade branch is unreachable rather than merely unused.
      */
     @OptIn(ExperimentalReadiumApi::class)
     fun withCurl(forward: Boolean, resolvedNavigator: EpubNavigatorFragment? = navigator()) {
@@ -166,26 +174,16 @@ internal class EpubPageTurns(
             withFade(forward, resolvedNavigator)
             return
         }
-        // The fragment's own view, not the dip's host: the sheet is in that host while the
-        // second raster is taken, so a raster of the host would photograph the sheet.
-        val book = navigator.view ?: return
-        if (isTurning) return
-        isTurning = true
-
-        scope.launch {
-            try {
-                ProseCurl(dipHost(), dipIndex, book).run(isRightToLeft(navigator)) {
-                    movedTo(navigator.currentLocator) {
-                        if (forward) {
-                            navigator.goForward(animated = false)
-                        } else {
-                            navigator.goBackward(animated = false)
-                        }
-                    }
-                }
-            } finally {
-                isTurning = false
-            }
+        val page = NavigatorProsePage(dipHost(), dipIndex, navigator)
+        if (!curl.request(forward, page, isRightToLeft(navigator))) {
+            if (forward) navigator.goForward(animated = false) else navigator.goBackward(animated = false)
         }
+    }
+
+    /** A finger on the page while Curl draws the turn: the fold follows it. Task 8.12. */
+    fun drag(phase: ProseDrag) {
+        val navigator = navigator() ?: return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        curl.drag(phase, NavigatorProsePage(dipHost(), dipIndex, navigator), isRightToLeft(navigator))
     }
 }

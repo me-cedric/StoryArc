@@ -1,8 +1,5 @@
 package app.storyarc.feature.epubreader
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
-import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -12,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.RequiresApi
 import androidx.core.graphics.createBitmap
+import app.storyarc.core.model.CurlTurn
 import app.storyarc.core.model.PageCurl
 import app.storyarc.core.model.PageTransition
 import app.storyarc.core.model.ScrollAxis
@@ -21,6 +19,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
+import org.readium.r2.navigator.epub.EpubNavigatorFragment
+import org.readium.r2.shared.ExperimentalReadiumApi
 
 // The curl over reflowable text, which is task 4.3b of `reader-theming-and-page-transitions`.
 //
@@ -60,32 +60,36 @@ internal fun View.raster(): Bitmap? {
  *
  * A plain [View] rather than a Compose island: this goes into the same `FrameLayout` the Fast
  * fade dip goes into, at the same index, and a `ComposeView` raised and torn down per turn
- * would cost a composition for one rectangle filled with a shader.
+ * would cost a composition for one rectangle filled with a shader. The finger and the spring
+ * live in [ProseCurlDriver]; this draws where they put the page.
  *
  * The shader is parsed once, in the constructor, for the reason `CurledPages` parses it once:
  * `RuntimeShader(source)` compiles the whole AGSL program, which is cheap once and wasteful on
  * every frame of every turn.
  */
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal class CurlSheet(context: Context) : View(context) {
+internal class CurlSheet(context: Context, private val page: Bitmap) : View(context), ProseSheet {
 
     private val shader = PageCurl.newShader()
     private val paint = Paint()
 
-    /** The page being turned away, rastered before the pager moved. */
-    var page: Bitmap? = null
-
-    /** The page underneath it, rastered after the pager moved and before this was shown. */
-    var beneath: Bitmap? = null
-
-    var isRightToLeft: Boolean = false
-
-    /** Where the roll stands: 0 for a flat page, 1 for a whole turn. */
-    var progress: Float = 0f
+    /** The page arriving, once it has been rastered. Until then the page lies flat. */
+    override var other: Bitmap? = null
         set(value) {
             field = value
             invalidate()
         }
+
+    var isRightToLeft: Boolean = false
+
+    /** Signed, as the comic reader's is: 0 to 1 for a forward turn, 0 to -1 for a turn back. */
+    override var progress: Float = 0f
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    override val turnWidth: Float get() = page.width.toFloat()
 
     init {
         // The sheet is a picture of the page. A reader touching it would be touching a
@@ -94,16 +98,20 @@ internal class CurlSheet(context: Context) : View(context) {
         isFocusable = false
     }
 
+    override fun remove() {
+        (parent as? ViewGroup)?.removeView(this)
+    }
+
     override fun onDraw(canvas: Canvas) {
-        val turning = page ?: return
+        val sheets = proseSheets(progress, page, other)
         PageCurl.update(
             shader,
             width = width.toFloat(),
             height = height.toFloat(),
-            progress = progress,
+            progress = sheets.progress,
             isRightToLeft = isRightToLeft,
-            page = turning,
-            beneath = beneath,
+            page = sheets.turning ?: page,
+            beneath = sheets.under,
         )
         paint.shader = shader
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
@@ -111,101 +119,63 @@ internal class CurlSheet(context: Context) : View(context) {
 }
 
 /**
- * A page turn drawn as one sheet rolling off the next.
+ * Which raster turns, which lies under it, and at what forward progress.
  *
- * The order is the whole trick, and it is one pager move rather than three:
- *
- * 1. the outgoing page is rastered while it is still the only thing on screen;
- * 2. the sheet goes up at a progress of zero, where the shader draws that raster flat and
- *    whole -- so the sheet is indistinguishable from the page under it;
- * 3. the pager moves with no animation of its own, hidden under the sheet;
- * 4. the page that arrived is rastered and becomes the sheet beneath;
- * 5. the roll runs, and the sheet comes off, leaving the live page it was hiding.
- *
- * iOS's `ReflowableCurl.swift` runs the same five steps in the same order.
+ * The comic reader's own choice, [CurlTurn.sheets], with the arriving page as both
+ * neighbours: a turn back rolls the arriving page in over the leaving one. With no arriving
+ * page yet the leaving page lies flat and whole, which is what is under the sheet, so the sheet
+ * cannot show a page that is not there. iOS's `ReflowableCurl.sheets` is the twin.
+ */
+internal fun <T> proseSheets(progress: Float, page: T, other: T?): CurlTurn.Sheets<T> =
+    CurlTurn.sheets(if (other == null) 0f else progress, page, other, other)
+
+/**
+ * The navigator's page, as the prose curl uses it: raised under a sheet, moved, rastered.
  *
  * @param host what the sheet is added to, above the book and below the chrome.
  * @param index where in [host] the sheet goes, which is where the dip goes.
- * @param book the view the two rasters are taken of. Not [host]: the sheet is in [host] by
- *   step 4, and a raster of [host] would then photograph the sheet rather than the page.
+ * @param navigator the book. Its own view is what is rastered: the sheet is in [host] by the
+ *   time the arriving page is photographed, and a raster of [host] would photograph the sheet.
  */
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal class ProseCurl(
+internal class NavigatorProsePage(
     private val host: ViewGroup,
     private val index: Int,
-    private val book: View,
-) {
+    private val navigator: EpubNavigatorFragment,
+) : ProsePage {
 
-    /**
-     * Turns, and reports whether the page actually changed.
-     *
-     * [move] is called once, under the sheet. When it says the book did not move -- the last
-     * page, the first page -- the sheet comes straight back off rather than rolling, because a
-     * roll onto the page it started from reads as a turn that did happen.
-     *
-     * A raster that does not arrive leaves the turn as a cut: by then the pager has moved, so
-     * the reader loses the transition and never the page.
-     */
-    suspend fun run(isRightToLeft: Boolean, move: suspend () -> Boolean): Boolean {
-        val outgoing = book.raster() ?: return move()
-
-        val sheet = CurlSheet(host.context).apply {
+    override fun raise(isRightToLeft: Boolean): ProseSheet? {
+        val book = navigator.view ?: return null
+        val outgoing = book.raster() ?: return null
+        val sheet = CurlSheet(host.context, outgoing).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
             )
-            page = outgoing
-            // Stood in by the outgoing page until step 4 has one. The shader samples the
-            // sheet beneath only past the fold, and at a progress of zero there is no past
-            // the fold.
-            beneath = outgoing
             this.isRightToLeft = isRightToLeft
         }
         host.addView(sheet, index)
-        try {
-            if (!move()) return false
-            // Two frames: one for the moved page to lay out, one for it to draw. A raster
-            // taken sooner photographs the page the reader is leaving.
-            book.nextFrame()
-            book.nextFrame()
-            sheet.beneath = book.raster() ?: return true
-            sheet.roll()
-            return true
-        } finally {
-            host.removeView(sheet)
-        }
+        return sheet
+    }
+
+    @OptIn(ExperimentalReadiumApi::class)
+    override suspend fun move(forward: Boolean): Boolean = movedTo(navigator.currentLocator) {
+        if (forward) navigator.goForward(animated = false) else navigator.goBackward(animated = false)
+    }
+
+    /**
+     * Two frames after the move: one for the moved page to lay out, one for it to draw. A
+     * raster taken sooner photographs the page the reader is leaving.
+     */
+    override suspend fun arrived(): Bitmap? {
+        val book = navigator.view ?: return null
+        book.nextFrame()
+        book.nextFrame()
+        return book.raster()
     }
 
     private suspend fun View.nextFrame() =
         suspendCancellableCoroutine { continuation -> postOnAnimation { continuation.resume(Unit) } }
-
-    /** Runs the roll and returns when it has finished. */
-    private suspend fun CurlSheet.roll() = suspendCancellableCoroutine { continuation ->
-        val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = DURATION_MS
-            addUpdateListener { progress = it.animatedValue as Float }
-            addListener(
-                object : AnimatorListenerAdapter() {
-                    override fun onAnimationEnd(animation: Animator) {
-                        if (!continuation.isCompleted) continuation.resume(Unit)
-                    }
-                },
-            )
-        }
-        animator.start()
-        continuation.invokeOnCancellation { animator.cancel() }
-    }
-
-    internal companion object {
-        /**
-         * How long one roll takes.
-         *
-         * Longer than [FadeTurn.DURATION_MS], and deliberately: a dip is meant not to read as
-         * an animation, and a roll is the one transition a reader chooses *because* they want
-         * to watch it. iOS's `EpubReaderModel.curlDuration` is the same number in seconds.
-         */
-        const val DURATION_MS: Long = 340
-    }
 }
 
 /**
@@ -240,8 +210,8 @@ internal fun EpubReaderViewModel.transitions(reduceMotion: Boolean): TransitionC
         reduceMotion = reduceMotion,
         canCurl = canCurl,
         // The activity takes the turn over from Readium for both: `TurnInterceptor` steals
-        // the drag, `FadeTurn` draws the dip, and `ProseCurl` rasters the page either side of
-        // the move and rolls the first off the second (task 8.12). Either was false until its
+        // the drag, `FadeTurn` draws the dip, and `ProseCurlDriver` lets the finger roll a
+        // raster of the page off a raster of the next one (task 8.12). Either was false until its
         // turn existed, because offering a mode that quietly gave a Slide instead would have
         // been worse than saying it was not available yet.
         canFade = true,
