@@ -180,7 +180,6 @@ extension PublicationIndexer {
     /// See ``EpubSpineCover``.
     static func book(
         _ epub: EpubReader,
-        at url: URL,
         identity: PublicationIdentity,
         filename: String,
         fallback: FilenameMetadata
@@ -308,17 +307,13 @@ extension PublicationIndexer {
         source: any RandomAccessSource,
         identity: PublicationIdentity,
         name: String,
-        decoderPath: URL?,
         fallback: FilenameMetadata
     ) async throws -> Publication {
-        // An EPUB is a ZIP too, and only its contents tell the two apart.
+        // An EPUB is a ZIP too, and only its contents tell the two apart. A remote one is
+        // a whole book, read from the share: Readium streams it through the source
+        // (close-the-audited-gaps 14.15), and the comic reader reads a fixed-layout one.
         if let epub = try? await EpubReader(source: source) {
-            // The EPUB reader wants a file of its own, so a remote one is a record
-            // until it has been fetched. Its metadata is still read from the share.
-            guard let decoderPath else { return record(.epub, identity, name, fallback) }
-            return await book(
-                epub, at: decoderPath, identity: identity, filename: name, fallback: fallback
-            )
+            return await book(epub, identity: identity, filename: name, fallback: fallback)
         }
         return comic(
             try await ComicArchiveOpener.open(source: source),
@@ -343,9 +338,7 @@ extension PublicationIndexer {
     ) async throws -> Publication {
         // An EPUB is a ZIP too, and only its contents tell the two apart.
         if let epub = try? await EpubReader(source: source) {
-            return await book(
-                epub, at: url, identity: identity, filename: filename, fallback: fallback
-            )
+            return await book(epub, identity: identity, filename: filename, fallback: fallback)
         }
         return try await comicArchive(
             url: url, identity: identity, format: .cbz, filename: filename, fallback: fallback

@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.Uri
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.format.RandomAccessSource
-import app.storyarc.core.format.readExactly
+import app.storyarc.core.format.SourceUnreadableException
 import org.readium.r2.shared.publication.Publication
 import org.readium.r2.shared.util.AbsoluteUrl
 import org.readium.r2.shared.util.Error
@@ -102,10 +102,26 @@ internal class SourceResource(
         try {
             val start = (range?.first ?: 0L).coerceIn(0L, source.length)
             val end = (range?.let { it.last + 1 } ?: source.length).coerceIn(start, source.length)
-            Try.success(if (end == start) ByteArray(0) else source.readExactly(start, (end - start).toInt()))
+            Try.success(readWhole(start, end))
         } catch (cause: Exception) {
             Try.failure(ReadError.Access(SourceAccessError(cause)))
         }
+
+    /**
+     * The bytes from [start] to [end]. A transport may answer with less than it was asked for,
+     * as SMB does past its own reply cap, so the read goes on until the range is whole.
+     */
+    private suspend fun readWhole(start: Long, end: Long): ByteArray {
+        val out = ByteArray((end - start).toInt())
+        var filled = 0
+        while (filled < out.size) {
+            val chunk = source.read(start + filled, out.size - filled)
+            if (chunk.isEmpty()) throw SourceUnreadableException("short read at ${start + filled}")
+            chunk.copyInto(out, filled, 0, minOf(chunk.size, out.size - filled))
+            filled += chunk.size
+        }
+        return out
+    }
 
     override fun close() = source.close()
 }

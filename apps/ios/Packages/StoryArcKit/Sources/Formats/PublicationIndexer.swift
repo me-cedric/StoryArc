@@ -209,8 +209,7 @@ public enum PublicationIndexer {
 
         case .zip:
             return try await zipPublication(
-                source: source, identity: found, name: name,
-                decoderPath: decoderPath, fallback: fallback
+                source: source, identity: found, name: name, fallback: fallback
             )
 
         case .tar:

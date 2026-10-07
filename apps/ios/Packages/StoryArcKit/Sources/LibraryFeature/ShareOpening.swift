@@ -26,10 +26,10 @@ enum ShareOpening {
 
     /// Whether a format's decoder insists on a file of its own.
     ///
-    /// PDFKit wants a file and the EPUB reader opens a file of its own, so those two are
-    /// offered as a download and everything else is read where it lies. A CBR reads where it
-    /// lies too: a non-solid one decodes each page from its own ranged bytes, and a solid one
-    /// says so through its ``StreamingCapability``, which ``StreamingOffer`` reads first.
+    /// PDFKit opens a whole file only, so a PDF is fetched whole first (O4). Everything else
+    /// is read where it lies: Readium reads an EPUB through a resource over the source, and a
+    /// non-solid CBR decodes each page from its own ranged bytes. A solid one says so through
+    /// its ``StreamingCapability``, which ``StreamingOffer`` reads first.
     ///
     /// The platform half of ``StreamingOffer``'s `readsWhereItLies`, and deliberately stated
     /// as a fact about decoders rather than derived from what the container reported. The
@@ -38,12 +38,10 @@ enum ShareOpening {
     /// record marked `refused` for exactly them. That is a coincidence of two lists rather
     /// than one fact: `refused` means "no decoder will open this" everywhere else in the app,
     /// and reading it here as "this decoder wants a file" is how a *streaming* sentence came
-    /// to be built out of it. Android's list is shorter — its EPUB reader takes a source.
+    /// to be built out of it. Android's list is empty — `PdfRenderer` reads a PDF through a
+    /// proxy descriptor.
     static func needsLocalFile(_ format: PublicationFormat) -> Bool {
-        switch format {
-        case .pdf, .epub: true
-        default: false
-        }
+        format == .pdf
     }
 
     /// Whether a catalogue acquisition of this format can be read from its address before
@@ -112,10 +110,18 @@ enum ShareOpening {
     /// ``StreamingOffer/of(streaming:isLocal:readsWhereItLies:bytes:)`` believes `refused`
     /// whether or not the bytes are local, and a solid RAR4 on a share is refused before the
     /// whole file is transferred.
-    static func offerOrOpen(
+    ///
+    /// A PDF that streams everywhere else is fetched whole here without an offer, through
+    /// `onFetch`: `publication-formats` says iOS "fetches the whole file first, shows how far
+    /// the fetch has come, and opens the PDF reader when it ends".
+    ///
+    /// One callback per answer, so a test watches which one fires. Folding two of them into
+    /// an enum would put the switch back at each caller.
+    static func offerOrOpen( // swiftlint:disable:this function_parameter_count
         file: (name: String, length: Int64),
         index: () async throws -> (Publication, URL),
         onOpen: (Publication, URL) -> Void,
+        onFetch: () -> Void,
         onOffer: (Int64?) -> Void,
         onSay: (LocalizedStringResource) -> Void
     ) async {
@@ -128,6 +134,7 @@ enum ShareOpening {
                 bytes: statedLength(file.length)
             ) {
             case .open: onOpen(publication, remote)
+            case .download where publication.streaming == .streams: onFetch()
             case .download(let bytes): onOffer(bytes)
             case .refuse: onSay(cannotOpen)
             }

@@ -45,6 +45,7 @@ struct RefusalSentenceTests {
             file: ("Lantern Green 043.cb7", 10),
             index: { throw PublicationIndexer.IndexError.unsupported(format: "7-Zip") },
             onOpen: { _, _ in },
+            onFetch: {},
             onOffer: { _ in },
             onSay: { said = $0 }
         )

@@ -26,6 +26,7 @@ struct ShareOpeningTests {
         var opened: (Publication, URL)?
         var offered: Int64?
         var offerMade = false
+        var fetched = false
         var said: LocalizedStringResource?
     }
 
@@ -56,6 +57,7 @@ struct ShareOpeningTests {
             file: (name, length),
             index: { (publication, Self.remote) },
             onOpen: { found, url in answers.opened = (found, url) },
+            onFetch: { answers.fetched = true },
             onOffer: { bytes in answers.offerMade = true; answers.offered = bytes },
             onSay: { said in answers.said = said }
         )
@@ -150,23 +152,25 @@ struct ShareOpeningTests {
         #expect(answers.opened == nil)
     }
 
-    @Test("A PDF on a share is offered with the size the share stated")
-    func pdfIsOfferedWithItsSize() async {
-        // PDFKit wants a file, so the whole thing has to come across — and
-        // `publication-formats` asks the app to state the size and offer it, not take it.
+    @Test("A PDF on a share is fetched whole, without an offer")
+    func pdfIsFetchedWhole() async {
+        // PDFKit opens a whole file only (O4). `publication-formats`: iOS "fetches the whole
+        // file first, shows how far the fetch has come, and opens the PDF reader when it ends".
         let answers = await openingFromShare(publication(format: .pdf), length: 1_050)
 
-        #expect(answers.offerMade, "A PDF on a share was opened rather than offered.")
-        #expect(answers.offered == 1_050)
+        #expect(answers.fetched, "A PDF on a share was not fetched.")
+        #expect(!answers.offerMade, "A PDF on a share was offered rather than fetched.")
         #expect(answers.opened == nil)
     }
 
-    @Test("An EPUB on a share is offered rather than streamed")
-    func epubIsOffered() async {
-        // The EPUB reader opens a file of its own. `publication-formats`' table says the format
-        // streams, which is true of its index and not of this platform's reader.
+    @Test("An EPUB on a share is read where it lies")
+    func epubStreams() async {
+        // Readium reads it through a resource over the share's source (14.15).
         let answers = await openingFromShare(publication(format: .epub))
-        #expect(answers.offerMade)
+
+        #expect(answers.opened?.1 == Self.remote)
+        #expect(!answers.offerMade, "An EPUB on a share was offered as a download.")
+        #expect(!answers.fetched, "An EPUB on a share was fetched whole.")
     }
 
     @Test("A share that states no length offers an absence rather than a zero")
@@ -175,7 +179,9 @@ struct ShareOpeningTests {
         // as a zero", and a directory entry's length is a non-optional `Int64` — so a zero is
         // the only shape "the server said nothing" can arrive in, and a zero in a download
         // offer reads as a free download.
-        let answers = await openingFromShare(publication(format: .pdf), length: 0)
+        let answers = await openingFromShare(
+            publication(format: .cbr, streaming: .downloadOnly), length: 0
+        )
 
         #expect(answers.offerMade, "A publication needing a transfer was not offered at all.")
         #expect(answers.offered == nil, "A zero-length entry was offered as a size.")
@@ -192,6 +198,7 @@ struct ShareOpeningTests {
             file: ("Lantern Green 043.cb7", 10),
             index: { throw PublicationIndexer.IndexError.unsupported(format: "7-Zip") },
             onOpen: { found, url in answers.opened = (found, url) },
+            onFetch: { answers.fetched = true },
             onOffer: { bytes in answers.offerMade = true; answers.offered = bytes },
             onSay: { said in answers.said = said }
         )
@@ -208,6 +215,7 @@ struct ShareOpeningTests {
             file: ("Solid.cbr", 10),
             index: { throw PublicationIndexer.IndexError.archivePasswordProtected },
             onOpen: { found, url in answers.opened = (found, url) },
+            onFetch: { answers.fetched = true },
             onOffer: { bytes in answers.offerMade = true; answers.offered = bytes },
             onSay: { said in answers.said = said }
         )
@@ -223,6 +231,7 @@ struct ShareOpeningTests {
             file: ("Solid.cbr", 10),
             index: { throw PublicationIndexer.IndexError.archiveUnreadable },
             onOpen: { found, url in answers.opened = (found, url) },
+            onFetch: { answers.fetched = true },
             onOffer: { bytes in answers.offerMade = true; answers.offered = bytes },
             onSay: { said in answers.said = said }
         )
@@ -238,6 +247,7 @@ struct ShareOpeningTests {
             file: ("Solid.cbr", 10),
             index: { throw CancellationError() },
             onOpen: { found, url in answers.opened = (found, url) },
+            onFetch: { answers.fetched = true },
             onOffer: { bytes in answers.offerMade = true; answers.offered = bytes },
             onSay: { said in answers.said = said }
         )
@@ -340,10 +350,10 @@ struct ShareOpeningTests {
     func theDecoderListIsTheDecoderList() {
         // `publication-formats`' capability table says CBZ, CBT, EPUB, PDF and non-solid CBR
         // all stream. What is true of the *format* is not true of this platform's decoders:
-        // PDFKit wants a file, and the EPUB reader opens one of its own. A CBR is not on the
-        // list: a non-solid one decodes page by page from ranged bytes.
+        // PDFKit wants a file. An EPUB is not on the list: Readium reads it through a
+        // resource. Nor is a CBR: a non-solid one decodes page by page from ranged bytes.
         #expect(
-            PublicationFormat.allCases.filter(ShareOpening.needsLocalFile) == [.epub, .pdf]
+            PublicationFormat.allCases.filter(ShareOpening.needsLocalFile) == [.pdf]
         )
     }
 
@@ -358,7 +368,7 @@ struct ShareOpeningTests {
     func fileDecodersDoNotStreamFromTheCatalogue() {
         #expect(!ShareOpening.catalogueReadsWhereItLies(.pdf))
         #expect(!ShareOpening.catalogueReadsWhereItLies(.cbr))
-        #expect(!ShareOpening.catalogueReadsWhereItLies(.epub))
+        #expect(ShareOpening.catalogueReadsWhereItLies(.epub))
     }
 
     @Test("An audio acquisition does not stream, even though AVURLAsset is not asked")

@@ -32,6 +32,8 @@ public struct SmbBrowserView: View {
     /// the whole of the feedback. An alert is announced, and cannot be scrolled away from.
     @State private var notice: LocalizedStringResource?
     @State private var opening: String?
+    /// How far a whole-file fetch has come, from 0 to 1, while one runs.
+    @State private var fetched: Double?
     /// `network-share`: on a metered connection the reader confirms before the app spends
     /// their data. Held rather than acted on, because the answer is theirs to give.
     @State private var confirming: SmbEntry?
@@ -116,7 +118,9 @@ public struct SmbBrowserView: View {
                                 }
                             }
                             Spacer(minLength: 0)
-                            if opening == entry.path { ProgressView() }
+                            if opening == entry.path {
+                                if let fetched { ProgressView(value: fetched) } else { ProgressView() }
+                            }
                         }
                         .contentShape(.rect)
                     }
@@ -237,7 +241,7 @@ public struct SmbBrowserView: View {
     /// a share came across in silence with its length already in hand.
     /// `publication-formats` asks for the opposite — "the app says the format has to be
     /// downloaded before it can be read, states the size, and offers to download it" — and
-    /// ``ShareOpening/offerOrOpen(index:length:onOpen:onOffer:onRefuse:onFailure:)`` is where
+    /// ``ShareOpening/offerOrOpen(file:index:onOpen:onFetch:onOffer:onSay:)`` is where
     /// that is decided, so that a test can drive the decision without a share.
     private func open(_ entry: SmbEntry) async {
         opening = entry.path
@@ -255,6 +259,7 @@ public struct SmbBrowserView: View {
                 return (catalogued, remote)
             },
             onOpen: onOpen,
+            onFetch: { Task { await transfer(entry) } },
             onOffer: { bytes in transferring = TransferAsk(entry: entry, bytes: bytes) },
             onSay: { said in notice = said }
         )
@@ -282,7 +287,9 @@ public struct SmbBrowserView: View {
     /// was taken to a reader that could not render page one.
     private func transfer(_ entry: SmbEntry) async {
         opening = entry.path
-        defer { opening = nil }
+        fetched = 0
+        defer { opening = nil; fetched = nil }
+        let total = Double(max(entry.length, 1))
 
         await ShareOpening.openWhatArrived(
             fetch: {
@@ -304,7 +311,9 @@ public struct SmbBrowserView: View {
                     // length before this file's size ever enters into it, and a solid
                     // archive worth downloading is exactly the file large enough to hit
                     // that cap.
-                    try await ChunkedCopy.copy(source, to: local)
+                    try await ChunkedCopy.copy(source, to: local) { copied in
+                        Task { @MainActor in fetched = min(Double(copied) / total, 1) }
+                    }
                 }
                 return (try await PublicationIndexer.index(fileAt: local), local)
             },

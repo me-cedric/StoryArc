@@ -50,6 +50,19 @@ struct ChunkedCopyTests {
         #expect(written == bytes)
     }
 
+    @Test("Each chunk reports how far the copy has come, ending at the whole length")
+    func reportsProgress() async throws {
+        let bytes = Data(repeating: 0x42, count: 2_500)
+        let source = CountingSource(bytes: bytes, maxPerRead: 2_500)
+        let destination = Self.temporaryFile()
+        defer { try? FileManager.default.removeItem(at: destination) }
+        let heard = Heard()
+
+        try await ChunkedCopy.copy(source, to: destination, chunkSize: 1_000) { heard.append($0) }
+
+        #expect(heard.values == [1_000, 2_000, 2_500])
+    }
+
     @Test("A source larger than the chunk size is read more than once")
     func readsInChunksRatherThanOneShot() async throws {
         // The property a one-shot `read(offset: 0, count: Int(source.length))` cannot have:
@@ -116,4 +129,14 @@ struct ChunkedCopyTests {
         #expect(!FileManager.default.fileExists(atPath: destination.path))
         #expect(!FileManager.default.fileExists(atPath: destination.appendingPathExtension("partial").path))
     }
+}
+
+/// What a progress callback said, in order.
+private final class Heard: @unchecked Sendable {
+    private let lock = NSLock()
+    private var heard: [Int64] = []
+
+    var values: [Int64] { lock.withLock { heard } }
+
+    func append(_ value: Int64) { lock.withLock { heard.append(value) } }
 }

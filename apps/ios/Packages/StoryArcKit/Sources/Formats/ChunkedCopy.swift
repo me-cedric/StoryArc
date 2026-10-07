@@ -20,10 +20,14 @@ public enum ChunkedCopy {
     /// landed, so a reader who looks at `destination` mid-copy — or a copy the app is killed
     /// during — sees either the previous file or the finished one, never a truncated one
     /// under the name the rest of the app already trusts.
+    ///
+    /// `progress` hears the bytes copied so far after each chunk, so a screen can show how far
+    /// the fetch has come (`publication-formats`, *Opening a remote PDF on iOS*).
     public static func copy(
         _ source: any RandomAccessSource,
         to destination: URL,
-        chunkSize: Int = defaultChunkSize
+        chunkSize: Int = defaultChunkSize,
+        progress: (@Sendable (Int64) -> Void)? = nil
     ) async throws {
         try FileManager.default.createDirectory(
             at: destination.deletingLastPathComponent(), withIntermediateDirectories: true
@@ -45,6 +49,7 @@ public enum ChunkedCopy {
                 guard !bytes.isEmpty else { throw SourceError.unreadable }
                 try handle.write(contentsOf: bytes)
                 offset += Int64(bytes.count)
+                progress?(offset)
             }
         } catch {
             try? handle.close()

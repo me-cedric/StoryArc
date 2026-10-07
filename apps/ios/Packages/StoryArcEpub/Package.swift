@@ -38,6 +38,9 @@ let package = Package(
             dependencies: [
                 .product(name: "DesignSystem", package: "StoryArcKit"),
                 .product(name: "StoryArcCore", package: "StoryArcKit"),
+                // `ComicArchiveOpener.source(for:)`: a book on a share or a server is read
+                // through its ranged source.
+                .product(name: "Formats", package: "StoryArcKit"),
                 .product(name: "Persistence", package: "StoryArcKit"),
                 // The player's model. `ReadAloudCentre` used to own its own pause
                 // table; `audiobooks-and-playback` gives the same table to a narrated
@@ -50,7 +53,15 @@ let package = Package(
             ],
             resources: [.process("Resources")]
         ),
-        .testTarget(name: "EpubReaderFeatureTests", dependencies: ["EpubReaderFeature"]),
+        .testTarget(
+            name: "EpubReaderFeatureTests",
+            dependencies: [
+                "EpubReaderFeature",
+                .product(name: "Formats", package: "StoryArcKit"),
+                .product(name: "ReadiumShared", package: "swift-toolkit"),
+                .product(name: "ReadiumStreamer", package: "swift-toolkit"),
+            ]
+        ),
     ]
 )
 

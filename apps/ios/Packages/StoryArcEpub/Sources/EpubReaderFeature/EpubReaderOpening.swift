@@ -26,11 +26,6 @@ extension EpubReaderModel {
     public func open() async {
         guard navigator == nil, failure == nil else { return }
 
-        guard let fileURL = FileURL(url: url) else {
-            failure = String(localized: "epub.failure.unreachable", bundle: .module, locale: .storyArc)
-            return
-        }
-
         let assetRetriever = AssetRetriever(httpClient: DefaultHTTPClient())
         let opener = PublicationOpener(
             parser: DefaultPublicationParser(
@@ -40,16 +35,15 @@ extension EpubReaderModel {
             )
         )
 
-        switch await assetRetriever.retrieve(url: fileURL) {
-        case let .success(asset):
-            switch await opener.open(asset: asset, allowUserInteraction: false) {
-            case let .success(opened):
-                await start(opened)
-            case .failure:
-                failure = String(localized: "epub.failure.unreadable", bundle: .module, locale: .storyArc)
-            }
-        case .failure:
+        guard let asset = await Self.asset(for: url, retriever: assetRetriever) else {
             failure = String(localized: "epub.failure.unreachable", bundle: .module, locale: .storyArc)
+            return
+        }
+        switch await opener.open(asset: asset, allowUserInteraction: false) {
+        case let .success(opened):
+            await start(opened)
+        case .failure:
+            failure = String(localized: "epub.failure.unreadable", bundle: .module, locale: .storyArc)
         }
     }
 

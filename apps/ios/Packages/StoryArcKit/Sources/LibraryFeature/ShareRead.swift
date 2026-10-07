@@ -12,7 +12,7 @@ internal import StoryArcCore
 /// downloading" on such a link, and `publication-formats` requires a format that cannot be
 /// read where it lies to state its size and offer a download rather than open and fail.
 ///
-/// ``ShareOpening/offerOrOpen(file:index:onOpen:onOffer:onSay:)`` is the browser's own rule,
+/// ``ShareOpening/offerOrOpen(file:index:onOpen:onFetch:onOffer:onSay:)`` is the browser's own rule,
 /// asked here with the shelf's row in place of a ranged index read: ``SmbContributor`` already
 /// took the format, the streaming capability and the length from the share's directory entry,
 /// so a second round trip would only ask the share what the shelf already knows. Android's
@@ -77,6 +77,8 @@ enum ShareRead {
             file: (publication.displayTitle, publication.fileSize ?? 0),
             index: { (publication, address) },
             onOpen: { _, _ in opened = true },
+            // The page offers the fetch through the download queue, which shows its progress.
+            onFetch: { ask = .download(bytes: publication.fileSize) },
             onOffer: { bytes in ask = .download(bytes: bytes) },
             onSay: { said in ask = .said(said) }
         )
