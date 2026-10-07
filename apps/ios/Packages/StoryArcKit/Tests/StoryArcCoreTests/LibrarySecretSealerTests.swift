@@ -187,8 +187,9 @@ struct LibrarySecretSealerTests {
         let bytes = try LibraryDocumentCoder.encode(document)
         let read = try LibraryDocumentCoder.decode(bytes)
 
-        #expect(!String(decoding: bytes, as: UTF8.self).contains(secret))
-        #expect(!String(decoding: bytes, as: UTF8.self).contains("battery staple"))
+        let text = String(bytes: bytes, encoding: .utf8) ?? ""
+        #expect(!text.contains(secret))
+        #expect(!text.contains("battery staple"))
         #expect(read.secrets == sealed)
         #expect(try LibrarySecretSealer.open(try #require(read.secrets), passphrase: "battery staple")
             == [LibraryDocumentFixture.networkShareID: secret])

@@ -53,7 +53,10 @@ enum LibraryDocumentFixture {
     /// The cover the reader chose for the first publication: a one-pixel PNG, the same bytes
     /// on both platforms, filed under the key the cover store uses for a digest.
     static let coverKey = "sha:d1"
-    static let coverImage = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==") ?? Data()
+    static let coverImage = Data(
+        base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAf"
+            + "FcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg=="
+    ) ?? Data()
 
     /// The library both platforms export.
     static var snapshot: LibrarySnapshot {

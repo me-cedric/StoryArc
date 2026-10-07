@@ -4,6 +4,39 @@ import Testing
 import StoryArcCore
 @testable import Persistence
 
+/// What a failing ledger throws.
+private struct LedgerRefused: Error {}
+
+/// A progress store that fails on its `failingSave`th save, counting from one.
+private actor FailingLedger: ProgressLedger {
+    private let inner: ProgressStore
+    private let failingSave: Int
+    private var saves = 0
+
+    init(_ inner: ProgressStore, failingSave: Int) {
+        self.inner = inner
+        self.failingSave = failingSave
+    }
+
+    func recent(limit: Int) async throws -> [ReadingProgress] {
+        try await inner.recent(limit: limit)
+    }
+
+    func save(_ progress: ReadingProgress) async throws {
+        saves += 1
+        if saves == failingSave { throw LedgerRefused() }
+        try await inner.save(progress)
+    }
+
+    func mark(_ identity: PublicationIdentity, finished: Bool, at: Date) async throws {
+        try await inner.mark(identity, finished: finished, at: at)
+    }
+
+    func forget(_ identity: PublicationIdentity) async throws {
+        try await inner.forget(identity)
+    }
+}
+
 /// The seven stores an export reads, written and read back as one.
 ///
 /// `LibraryExport` and `LibraryImport` are asserted without a disk in `StoryArcCoreTests`;
@@ -134,38 +167,6 @@ struct LibraryArchiveTests {
 
     // MARK: All or nothing
 
-    /// A progress store that fails on its `failingSave`th save, counting from one.
-    private actor FailingLedger: ProgressLedger {
-        struct Refused: Error {}
-
-        private let inner: ProgressStore
-        private let failingSave: Int
-        private var saves = 0
-
-        init(_ inner: ProgressStore, failingSave: Int) {
-            self.inner = inner
-            self.failingSave = failingSave
-        }
-
-        func recent(limit: Int) async throws -> [ReadingProgress] {
-            try await inner.recent(limit: limit)
-        }
-
-        func save(_ progress: ReadingProgress) async throws {
-            saves += 1
-            if saves == failingSave { throw Refused() }
-            try await inner.save(progress)
-        }
-
-        func mark(_ identity: PublicationIdentity, finished: Bool, at: Date) async throws {
-            try await inner.mark(identity, finished: finished, at: at)
-        }
-
-        func forget(_ identity: PublicationIdentity) async throws {
-            try await inner.forget(identity)
-        }
-    }
-
     private func record(
         _ digest: String,
         page: Int,
@@ -210,7 +211,7 @@ struct LibraryArchiveTests {
             progress: FailingLedger(store, failingSave: 3)
         )
 
-        await #expect(throws: FailingLedger.Refused.self) {
+        await #expect(throws: LedgerRefused.self) {
             try await failing.apply(incoming)
         }
 
@@ -296,7 +297,7 @@ struct LibraryArchiveTests {
         incoming.progress = [record("d1", page: 1), record("d2", page: 2)]
         let failing = try coverArchive(covers: covers, progress: FailingLedger(store, failingSave: 2))
 
-        await #expect(throws: FailingLedger.Refused.self) {
+        await #expect(throws: LedgerRefused.self) {
             try await failing.apply(incoming)
         }
 
