@@ -19,12 +19,12 @@ a person moved a real library between two real devices.
 
 ## 2. Export
 
-- [~] 2.1 **Write the document** (both): sources and servers, collections and reading lists,
+- [x] 2.1 **Write the document** (both): sources and servers, collections and reading lists,
   pinned shelves, settings, reading themes, per-publication reader settings, reading progress,
   chosen covers.
   **Reopened 2026-10-06 by the wave 11 review:** everything but the chosen covers. design.md
   says a cover the reader chose travels as base64 in the body, and the body has no image
-  field and the export does not read `CoverOverrideStore`. See 6.7.
+  field and the export does not read `CoverOverrideStore`. See 6.7. **Closed 2026-10-07** by 6.7: both fixtures carry a cover. The export screen of 2.5 must pass the real cover store in.
 - [x] 2.2 **No secret is written** (both). A test that exports a source carrying a password, a
   token and an API key, and asserts none of the three appears anywhere in the bytes — not in a
   field, not in a URL, not base64.
@@ -77,12 +77,12 @@ a person moved a real library between two real devices.
   2026-10-07**, knowing it amends two rules. Both are amended: this change now carries a delta
   on `sources` *Credential storage* (`specs/sources/spec.md`), and `AGENTS.md` non-negotiable 4
   names the one exception. The requirement is *Secrets travel only sealed, and only when asked*.
-- [ ] 5.2 **Seal and open a secret** (both). PBKDF2-HMAC-SHA256 at 600,000 iterations and
+- [x] 5.2 **Seal and open a secret** (both). PBKDF2-HMAC-SHA256 at 600,000 iterations and
   AES-256-GCM with a 12-byte nonce and a 128-bit tag: CommonCrypto `CCKeyDerivationPBKDF` and
   CryptoKit `AES.GCM` on iOS, `SecretKeyFactory("PBKDF2WithHmacSHA256")` and
   `Cipher("AES/GCM/NoPadding")` on Android. No dependency. Every parameter goes in the
   document's `secrets` object. One fixed test vector, sealed once, is opened by both platforms'
-  tests, so the two cannot drift.
+  tests, so the two cannot drift. **Built and verified 2026-10-07.** `LibrarySecretSealer` on both platforms; both suites open `packages/test-fixtures/library/sealed-secrets.json` and seal its inputs to its bytes. Android ran on the host JVM only.
 - [ ] 5.3 **The export asks, and is off by default** (both). A switch "Include passwords" on the
   export sheet; turning it on asks for a passphrase twice. The sheet states that anyone with the
   file and the passphrase can sign in to these servers. Four languages.
@@ -100,31 +100,31 @@ text, a setting the writing platform cannot express keeps this device's answer, 
 fragment is stripped like one in a query, and a certificate-pin notice names the host's own
 source. These are what the review found and the wave did not close.
 
-- [ ] 6.1 **One unreadable record means one thing on both platforms**. iOS refuses the whole
+- [x] 6.1 **One unreadable record means one thing on both platforms**. iOS refuses the whole
   document when `position.kind` is a word it does not know; Android drops that one record and
   imports the rest. One document, two outcomes. Decide which is right, write it in the spec,
   and make both do it. Android's reading is the better one — `library-portability` /
-  *A field this version does not know* already asks for the rest to be imported.
-- [ ] 6.2 **The preview counts records the merge will drop**. `LibraryImportPlan` counts every
+  *A field this version does not know* already asks for the rest to be imported. **Built and verified 2026-10-07.** iOS reads `position.kind` as text; an unknown kind drops that record alone, as on Android. Spec scenario: *A record this version cannot read*.
+- [x] 6.2 **The preview counts records the merge will drop**. `LibraryImportPlan` counts every
   arriving record; the merge silently discards any whose enum this build cannot read. The
-  reader is promised more than they get. Count what will land, not what arrived.
-- [ ] 6.3 **An import is all or nothing**. `LibraryArchive.apply` writes seven stores in
+  reader is promised more than they get. Count what will land, not what arrived. **Built and verified 2026-10-07.** Plan and merge share one `readableProgress` step. A bad `updatedAt` still differs: iOS refuses the document in the decoder, and Android drops that record.
+- [x] 6.3 **An import is all or nothing**. `LibraryArchive.apply` writes seven stores in
   sequence on both platforms. A throw after the third leaves a half-imported library and
-  nothing rolls it back. Stage the writes, or record enough to undo them.
+  nothing rolls it back. Stage the writes, or record enough to undo them. **Built and verified 2026-10-07.** The apply reads a snapshot, undoes every write on a throw, and throws the first failure again. The test fails the progress write, because the preference stores cannot throw.
 - [x] 6.4 **An adopted position keeps this device's watermark**. `ProgressPull` saves the **Verified built on 2026-10-07** against the source: ProgressStore.save keeps the stored syncedPosition when the incoming record has none, on both platforms; SyncedPositionSurvivesTest and LibraryImportTest assert it.
   document's record whole, and that record carries no `syncedPosition`. A device that had
   synchronised with Kavita forgets what it last synchronised after an import — which is the
   state task 1 of `library-sync` exists to stop. Merge the watermark rather than overwrite it.
-- [ ] 6.5 **A document is bounded before it is parsed**. Neither platform limits the bytes it
+- [x] 6.5 **A document is bounded before it is parsed**. Neither platform limits the bytes it
   will read, and iOS holds roughly three copies of the document while decoding — serialised,
   re-serialised and decoded. A file a reader was handed can be any size. Refuse one that is
-  too large by name, the way a newer version is refused.
-- [ ] 6.6 **A platform name this build does not know is not fatal**. iOS types `writtenBy` as
+  too large by name, the way a newer version is refused. **Built and verified 2026-10-07.** The limit is 64 MiB, checked before the parse (spec scenario *A document that is too large*). The import screen of 3.1 must check the file size before it reads the file.
+- [x] 6.6 **A platform name this build does not know is not fatal**. iOS types `writtenBy` as
   an enum, so a document written by a third platform is refused outright, while Android holds
-  it as text. The field names who wrote the document; it decides nothing.
-- [ ] 6.7 **A chosen cover travels** (both), as base64 in the body, keyed by the override key
+  it as text. The field names who wrote the document; it decides nothing. **Built and verified 2026-10-07.** `writtenBy` is text on both platforms.
+- [x] 6.7 **A chosen cover travels** (both), as base64 in the body, keyed by the override key
   `CoverOverrideStore` files it under. Add one to both fixtures and to the round trip of 4.1.
-  It closes task 2.1.
+  It closes task 2.1. **Built and verified 2026-10-07** (spec scenario *A chosen cover travels*). No screen gives `LibraryArchive` the real cover store yet: tasks 2.5 and 3.1 must pass it in. A cover chosen before this change has no key file, and the export finds it only through a progress record or a shelf member.
 - [ ] 6.8 **The preview draws the pin and the member count** (both). Tasks 2.3 and 3.3 compute
   `certificatePinsToAdd` and `shelvesToMerge` and assert them, and no screen draws either: an
   import changes what the app trusts and says nothing. They close with the preview of 3.1, in

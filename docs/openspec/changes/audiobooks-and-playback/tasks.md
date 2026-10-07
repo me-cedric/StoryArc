@@ -1208,7 +1208,7 @@ creep — see [`design.md`](design.md).
       the voice still going, against `after-2026-09-01-ios-player/ios-library-nothing-playing.png`
       for the four destinations at the same height. The narrated half is the same folder's
       `ios-compact-player.png`.
-- [~] 6.2 Both: returning to a read-aloud session resumes at the sentence being
+- [x] 6.2 Both: returning to a read-aloud session resumes at the sentence being
       spoken **then**, not where the reader left.
       **iOS: written, and blocked from being seen by a defect older than this change.** The
       path is `SpokenSource.reached` → `ReadAloudCentre.spoken` → `redrawSpokenSentence()`,
@@ -1239,6 +1239,7 @@ creep — see [`design.md`](design.md).
       sentence is drawn on return needs the walk to read a decoration inside a `WKWebView`,
       which XCUITest does not expose. A person going back into the reader and seeing the
       highlight on the sentence being spoken is the only proof available.
+      **Built and verified 2026-10-07 (close-all-yellow, wave 1).** Both halves are tested. iOS: `ReadAloudCentre` draws through the new `SpokenSentenceFollower` protocol, and `SpokenReturnTests` runs the case through Readium's real synthesizer over the fixture book (the StoryArcEpub suite: 147 tests passed). Android: `ReadAloudHostTest` "a reader that adopts the session draws the sentence the voice is on". Each test failed by name when its line was removed. Android reached this through 13.2. The reader's own look at the highlight is one line in `device-checklist.md`.
 - [x] 6.3 Both: reaching the end withdraws the highlight, dismisses the media
       controls and removes the compact bar.
       **Android: written, and seen happening.** `PlaybackCentre.publish` drops the surface

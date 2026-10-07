@@ -28,6 +28,16 @@ version, and SHALL be able to read every version it has ever written.
 - **WHEN** a document of a known version carries a field this build does not know
 - **THEN** the field is ignored and the rest is imported, and a re-export does not have to carry it back
 
+#### Scenario: A record this version cannot read
+- **WHEN** a position record carries a kind this version does not know, or lacks a field its kind needs
+- **THEN** that record alone is dropped and the rest is imported
+- **AND** the preview counts only the records the import will keep
+- **AND** a document written by a platform this version has never heard of is read like any other, because the platform name decides nothing
+
+#### Scenario: A document that is too large
+- **WHEN** a document larger than 64 MiB is imported
+- **THEN** the app refuses it by name, before it parses a byte, and changes nothing
+
 ### Requirement: What an export carries
 
 The app SHALL export every durable store that describes the reader's own choices, and SHALL
@@ -46,6 +56,11 @@ name what it leaves out.
 - **WHEN** an export written on one platform is imported on the other
 - **THEN** every record is understood, including the records whose stores disagree on the wire today: the source timestamp, the source kind, the shelf cover key, the reading position and the pinned-shelf container
 - **AND** the document's own shape is the agreed one, and each platform converts at its own boundary
+
+#### Scenario: A chosen cover travels
+- **WHEN** an export is written and the reader has chosen covers
+- **THEN** each one is carried in a `covers` list as its override key and its image in base64, sorted by key
+- **AND** an import keeps a cover this device already holds, and drops one with bad base64, an empty image, or an image over 8 MB
 
 ### Requirement: Secrets travel only sealed, and only when asked
 
