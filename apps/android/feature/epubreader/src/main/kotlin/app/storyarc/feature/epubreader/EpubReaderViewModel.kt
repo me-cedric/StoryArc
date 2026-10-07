@@ -353,6 +353,11 @@ class EpubReaderViewModel(
         _isChromeVisible.value = !_isChromeVisible.value
     }
 
+    private val _coverColours = MutableStateFlow<CoverColours?>(null)
+
+    /** The cover's own colours, for the end of the book. D21. See [epubCoverColours]. */
+    val coverColours: StateFlow<CoverColours?> = _coverColours.asStateFlow()
+
     /**
      * Opens the book.
      *
@@ -360,12 +365,10 @@ class EpubReaderViewModel(
      * `EpubReader` is not reused here —
      * the navigator needs Readium's own `Publication`, and parsing an EPUB twice to
      * avoid that would be worse than parsing it once each for two purposes.
+     *
+     * The cover's colours are read after the book is open, not before it shows: the end of
+     * the book needs them, and the first page must not wait for a cover to decode.
      */
-    private val _coverColours = MutableStateFlow<CoverColours?>(null)
-
-    /** The cover's own colours, for the end of the book. D21. See [epubCoverColours]. */
-    val coverColours: StateFlow<CoverColours?> = _coverColours.asStateFlow()
-
     suspend fun open(): Publication? = withContext(Dispatchers.IO) {
         val publication = when (val opening = openEpub(application, location)) {
             EpubOpening.Unreachable -> {
@@ -381,7 +384,7 @@ class EpubReaderViewModel(
         readingOrder = publication.readingOrder.map { it.href.toString() }
         opened = publication
         _tableOfContents.value = publication.tableOfContents
-        _coverColours.value = epubCoverColours(publication)
+        scope.launch { _coverColours.value = epubCoverColours(publication) }
         publication
     }
 

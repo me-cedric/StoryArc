@@ -1,7 +1,9 @@
 package app.storyarc.feature.epubreader
 
+import android.os.Looper
 import androidx.compose.ui.graphics.Color
 import app.storyarc.core.model.CoverColours
+import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReadingContrast
 import java.io.File
 import kotlinx.coroutines.runBlocking
@@ -9,10 +11,12 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -36,6 +40,28 @@ class EpubCoverAccentTest {
         val opening = openEpub(RuntimeEnvironment.getApplication(), path)
         val publication = (opening as? EpubOpening.Opened)?.publication ?: error("$book did not open: $opening")
         epubCoverColours(publication)
+    }
+
+    @Test
+    fun `the reader reads the cover's colours once the book is open`() {
+        val path = File(
+            System.getProperty("storyarc.epubreader.projectDir"),
+            "../../../../packages/test-fixtures/ebooks/fixture.epub",
+        ).canonicalPath
+        val model = EpubReaderViewModel(
+            application = RuntimeEnvironment.getApplication(),
+            location = path,
+            identity = PublicationIdentity(normalizedPath = path),
+            progress = null,
+        )
+        requireNotNull(runBlocking { model.open() }) { "fixture.epub did not open" }
+
+        repeat(POLLS) {
+            shadowOf(Looper.getMainLooper()).idle()
+            if (model.coverColours.value != null) return
+            Thread.sleep(POLL_MILLIS)
+        }
+        fail("the reader never published the cover's colours")
     }
 
     @Test
@@ -63,5 +89,10 @@ class EpubCoverAccentTest {
 
         val button = endButtonColours(null, brand = Color.Magenta)
         assertEquals(EndButtonColours(Color.Magenta, Color.White), button)
+    }
+
+    private companion object {
+        const val POLLS = 100
+        const val POLL_MILLIS = 50L
     }
 }
