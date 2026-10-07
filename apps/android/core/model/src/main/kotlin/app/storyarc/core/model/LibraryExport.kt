@@ -32,16 +32,20 @@ object LibraryExport {
      * What this build writes. `library-portability` / *What the document declares*.
      *
      * @param appVersion the app's own version, which only the app layer knows.
+     * @param secrets the sealed credentials, when the reader chose to carry them. Sealed by
+     *   [LibrarySecretSealer]; null is what the writer does unless it was asked.
      */
     fun document(
         snapshot: LibrarySnapshot,
         appVersion: String,
         writtenAtEpochMillis: Long,
+        secrets: LibrarySecrets? = null,
     ): LibraryDocument = LibraryDocument(
         appVersion = appVersion,
         writtenBy = LibraryDocument.THIS_PLATFORM,
         writtenAt = wireMoment(writtenAtEpochMillis),
         library = body(snapshot),
+        secrets = secrets,
     )
 
     /**

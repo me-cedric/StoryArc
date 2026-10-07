@@ -31,17 +31,12 @@ public struct LibraryDocument: Sendable, Equatable, Codable {
     public var writtenAt: Date
     public var library: LibraryBody
 
-    /// Reserved, and never filled by this writer.
+    /// The sealed credentials, present only when the reader chose to carry them.
     ///
-    /// The owner asked for credentials to travel encrypted under a passphrase. Two standing
-    /// rules forbid it and both name backups by name: the `sources` capability's *Credential
-    /// storage* requirement, and `AGENTS.md` non-negotiable 4. An encrypted secret in a file
-    /// is still a secret in a file, so turning this on is an amendment the owner makes
-    /// knowingly rather than a thing an unrelated change slips in.
-    ///
-    /// The field exists so that saying yes later is one change and no rework: fill it, and
-    /// amend the two rules. design.md fixes the crypto — PBKDF2-HMAC-SHA256, AES-256-GCM,
-    /// every parameter in the document — so the decision is a yes or a no.
+    /// `library-portability` / *Secrets travel only sealed, and only when asked*: the writer
+    /// leaves this nil unless the reader switched passwords on and gave a passphrase twice.
+    /// What it holds is ciphertext, with every parameter needed to open it. See
+    /// ``LibrarySecrets`` and ``LibrarySecretSealer``.
     public var secrets: LibrarySecrets?
 
     public init(
@@ -71,35 +66,6 @@ public struct LibraryDocument: Sendable, Equatable, Codable {
 public enum WritingPlatform {
     public static let ios = "ios"
     public static let android = "android"
-}
-
-/// The passphrase-encrypted credential block, which this writer never produces.
-///
-/// Its parameters are all in the document on purpose: a hard-coded iteration count cannot be
-/// raised later without breaking every file already written. See ``LibraryDocument/secrets``.
-public struct LibrarySecrets: Sendable, Equatable, Codable {
-    public var kdf: String
-    public var iterations: Int
-    public var salt: String
-    public var cipher: String
-    public var nonce: String
-    public var ciphertext: String
-
-    public init(
-        kdf: String,
-        iterations: Int,
-        salt: String,
-        cipher: String,
-        nonce: String,
-        ciphertext: String
-    ) {
-        self.kdf = kdf
-        self.iterations = iterations
-        self.salt = salt
-        self.cipher = cipher
-        self.nonce = nonce
-        self.ciphertext = ciphertext
-    }
 }
 
 /// Everything the export carries.

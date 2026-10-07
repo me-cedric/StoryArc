@@ -46,16 +46,20 @@ public enum LibraryExport {
     /// What this build writes. `library-portability` / *What the document declares*.
     ///
     /// - Parameter appVersion: the app's own version, which only the app layer knows.
+    /// - Parameter secrets: the sealed credentials, when the reader chose to carry them. Sealed
+    ///   by ``LibrarySecretSealer``; nil is what the writer does unless it was asked.
     public static func document(
         _ snapshot: LibrarySnapshot,
         appVersion: String,
-        writtenAt: Date
+        writtenAt: Date,
+        secrets: LibrarySecrets? = nil
     ) -> LibraryDocument {
         LibraryDocument(
             appVersion: appVersion,
             writtenBy: WritingPlatform.ios,
             writtenAt: writtenAt,
-            library: body(of: snapshot)
+            library: body(of: snapshot),
+            secrets: secrets
         )
     }
 
