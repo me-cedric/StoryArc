@@ -6,6 +6,7 @@ import androidx.media3.common.Format
 import androidx.media3.common.Label
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Metadata
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
@@ -268,6 +269,19 @@ internal class FakePlayer(
             playing = false
             suppression = Player.PLAYBACK_SUPPRESSION_REASON_NONE
         }
+    }
+
+    /**
+     * The decoder gave up on the file under the current item, as media3 reports it: a fatal
+     * error, after which a real player is idle until it is prepared again. Task 2.5.
+     */
+    fun fail() {
+        val error = PlaybackException(
+            "the part could not be decoded",
+            null,
+            PlaybackException.ERROR_CODE_DECODING_FAILED,
+        )
+        listeners.toList().forEach { it.onPlayerError(error) }
     }
 
     /** Applies a change and reports it the way media3 reports one. */

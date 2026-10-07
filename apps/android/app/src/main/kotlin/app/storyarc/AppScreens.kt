@@ -271,10 +271,14 @@ internal fun HostedScreen(
                 // offers what comes next, read from the book `PlayingBook` kept past
                 // its own teardown.
                 val lastPlayed = PlayingBook.lastPlayed.collectAsStateWithLifecycle().value
+                // And how much of that book could not be played, which only counts for the
+                // book the screen is about: a count left by an earlier one is not this one's.
+                val ended = PlaybackHost.ended.collectAsStateWithLifecycle().value
                 PlayerFinishedScreen(
                     onBack = back,
                     next = lastPlayed?.let { host.library.offeredNext(it) },
                     onOpenNext = host::openEntry,
+                    unplayedParts = ended?.takeIf { it.publicationId == lastPlayed?.id }?.unplayedParts ?: 0,
                 )
             } else {
                 val publications = host.library.publications.collectAsStateWithLifecycle().value

@@ -27,6 +27,18 @@ class PlaybackCentre(
     /** Told whenever [nowPlaying] changes, so a surface can redraw. */
     var onChange: ((NowPlaying?) -> Unit)? = null
 
+    /**
+     * What the last session to end left unplayed, kept past the teardown that clears
+     * [nowPlaying]. Task 2.5, owner answer O12: a book whose last or only part fails ends here,
+     * and the finished state of the player still states how much could not be played. Cleared
+     * when the next source is held.
+     */
+    var lastEnding: Ending? = null
+        private set
+
+    /** A session that has ended: which publication, and how many of its parts did not play. */
+    data class Ending(val publicationId: String, val unplayedParts: Int)
+
     /** The id of the publication being played, or null. Feeds [SessionHandover.opening]. */
     val playingId: String? get() = source?.publicationId
 
@@ -69,6 +81,7 @@ class PlaybackCentre(
     /** What [start] and [attach] share: displace whatever was playing, and hold the new one. */
     private fun hold(source: PlayerSource) {
         displace()
+        lastEnding = null
         this.source = source
         source.onChange = { publish() }
         source.onInterruptionEnd = { mayResume -> endInterruption(mayResume) }
@@ -216,6 +229,7 @@ class PlaybackCentre(
     private fun recordAndRelease(ending: PlayerSource) {
         if (source !== ending) return
         record(ending, ending.position)
+        lastEnding = Ending(ending.publicationId, ending.skippedPartCount)
         // Detached before the stop, so the stop's own change does not republish a source
         // this centre has already given up.
         ending.onChange = null

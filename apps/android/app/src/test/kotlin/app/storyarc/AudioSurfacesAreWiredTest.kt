@@ -227,6 +227,22 @@ class AudioSurfacesAreWiredTest {
         )
     }
 
+    /** Task 2.5, O12: a book that ends on a failed part still states the loss where it ends. */
+    @Test
+    fun `the finished screen is handed how much of the book could not be played`() {
+        val screens = read(APP_SCREENS)
+        assertTrue(
+            "The finished screen no longer reads PlaybackHost.ended, so a count the centre kept" +
+                " past the teardown never reaches it.",
+            screens.contains("PlaybackHost.ended.collectAsStateWithLifecycle()"),
+        )
+        assertTrue(
+            "The finished screen is no longer passed the count, so a book that ended on a" +
+                " failed part says nothing of it. `PlayerFinishedLossTest` draws what it is given.",
+            screens.contains("unplayedParts = ended?.takeIf { it.publicationId == lastPlayed?.id }"),
+        )
+    }
+
     /**
      * D18: opening a comic or a PDF silences a voice (`ReaderVoiceHandoverTest` pins that),
      * and the listener is told once, over the page. The word is drawn by the reader's host.

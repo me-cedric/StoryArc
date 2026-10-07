@@ -45,6 +45,15 @@ object PlaybackHost : SpokenAudio.Speaker {
     /** What every playback surface draws, or null when nothing is playing. */
     val nowPlaying: StateFlow<NowPlaying?> = _nowPlaying.asStateFlow()
 
+    private val _ended = MutableStateFlow<PlaybackCentre.Ending?>(null)
+
+    /**
+     * What the session that just ended left unplayed. The finished state of the player reads
+     * it once [nowPlaying] is null, to say how much could not be played. See
+     * [PlaybackCentre.lastEnding].
+     */
+    val ended: StateFlow<PlaybackCentre.Ending?> = _ended.asStateFlow()
+
     /**
      * Where a position goes when a session gives it up.
      *
@@ -71,6 +80,9 @@ object PlaybackHost : SpokenAudio.Speaker {
         },
     ).apply {
         onChange = { playing ->
+            // Before the surface goes null, so a screen that sees nothing playing already has
+            // the count to state.
+            _ended.value = lastEnding
             _nowPlaying.value = playing
             voicePlayer?.changed()
             wakeAtPartEnd(playing)

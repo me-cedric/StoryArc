@@ -591,6 +591,9 @@ internal fun PlayerFinishedScreen(
     next: Publication?,
     onOpenNext: (Publication) -> Unit,
     modifier: Modifier = Modifier,
+    // Task 2.5, owner answer O12: a book whose last or only part failed ends here, and the
+    // screen it ends on says how much could not be played, in words and never in a dialog.
+    unplayedParts: Int = 0,
 ) {
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
@@ -602,6 +605,13 @@ internal fun PlayerFinishedScreen(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (unplayedParts > 0) {
+            Text(
+                text = pluralStringResource(R.plurals.player_skipped_parts, unplayedParts, unplayedParts),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         if (next != null) {
             FilledTonalButton(onClick = { onOpenNext(next) }) {
                 Text(stringResource(R.string.player_finished_next, next.displayTitle))
