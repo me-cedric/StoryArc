@@ -30,7 +30,8 @@ which pins the same session table and the same three duration cases.
 | `PlayerSleep.swift` | The sleep timer's own transitions, and the only thing that moves them |
 | `PlayerInterruption.swift` | What the *platform* does to a session: a call, a route lost, audio taken for good |
 | `SleepTimer.swift` | A duration or end-of-chapter, as one remaining time |
-| `PlaybackAudioSession.swift` | `AVAudioSession` at `.spokenAudio`, and the notifications the file above acts on |
+| `PlaybackAudioSession.swift` | `AVAudioSession` at `.spokenAudio`, and the observers that route the two notifications to the file above |
+| `AudioSessionEvent.swift` | The two notifications' `userInfo` read as one plain event. No platform dependency, so a host test raises them |
 | `NowPlaying.swift` | `MPNowPlayingInfoCenter` and `MPRemoteCommandCenter`, fed by the one centre |
 | `PlaybackPlatform.swift` | The four moments the platform half needs, as a protocol — which is what makes the rest host-testable |
 | `PlaybackClock.swift` | A length as digits and as words. Both surfaces that state one read it from here |
@@ -93,7 +94,10 @@ swift test --filter PlaybackTests              # from apps/ios/Packages/StoryArc
 Every test here runs on the host with no simulator, which is the reason the session table
 lives in this target rather than beside the read-aloud engine in `StoryArcEpub`.
 
-**Two things no host test reaches, and neither is asserted anywhere else.** An audio session
-cannot be interrupted from one — `PlaybackAudioSession` raises the notifications and everything
-downstream of them is `PlayerInterruptionTests` — and **none of this has been heard**. No call
-has been taken, no headphones pulled out, and no book listened to on a device.
+**What no host test reaches.** The real `AVAudioSession` cannot be interrupted from one. The two
+notifications are read by `AudioSessionEvent` and raised by `AudioSessionEventTests`, with the
+`userInfo` the platform fills in, through the observers `PlaybackAudioSession` registers.
+`AudioSessionEventPlatformTests` in `StoryArcEpub` compares the numbers and spellings those tests
+use with Apple's constants, and posts the real notifications, on a simulator. **None of this has
+been heard**: no call has been taken, no headphones pulled out, and no book listened to on a
+device.

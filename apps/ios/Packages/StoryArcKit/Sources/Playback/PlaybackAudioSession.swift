@@ -24,9 +24,9 @@ internal import AVFoundation
 ///
 /// It compiles on macOS with the audio-session calls absent: `AVAudioSession` is an iOS
 /// type, and `StoryArcKit` builds for the host so its pure targets can be tested without a
-/// simulator. Nothing here is asserted by a host test — an audio session cannot be
-/// interrupted from one — and what *is* asserted is everything downstream of it, in
-/// ``PlaybackSession`` and ``PlayerCentre``.
+/// simulator. The two notifications are read by ``AudioSessionEvent``, which has no
+/// platform dependency, so a host test posts each one and asserts the session it reaches
+/// (`AudioSessionEventTests`). Only the activation of the session itself is iOS-only.
 @MainActor
 public final class PlaybackAudioSession {
 
@@ -34,8 +34,21 @@ public final class PlaybackAudioSession {
     private var interruptions: (any NSObjectProtocol)?
     private var routes: (any NSObjectProtocol)?
 
-    public init(driving centre: PlayerCentre) {
+    /// The sender the two notifications must name. The shared `AVAudioSession` on iOS; a host
+    /// test passes its own object, so tests that run side by side do not hear each other.
+    private let sender: AnyObject?
+
+    public convenience init(driving centre: PlayerCentre) {
+        #if os(iOS)
+        self.init(driving: centre, postedBy: AVAudioSession.sharedInstance())
+        #else
+        self.init(driving: centre, postedBy: nil)
+        #endif
+    }
+
+    init(driving centre: PlayerCentre, postedBy sender: AnyObject?) {
         self.centre = centre
+        self.sender = sender
     }
 
     // No `deinit`, for the reason `NarratedSource` has none: Swift 6 forbids a nonisolated
@@ -72,45 +85,40 @@ public final class PlaybackAudioSession {
     }
 
     private func observe() {
-        #if os(iOS)
         guard interruptions == nil else { return }
-        let session = AVAudioSession.sharedInstance()
 
         interruptions = NotificationCenter.default.addObserver(
-            forName: AVAudioSession.interruptionNotification,
-            object: session,
+            forName: AudioSessionEvent.interruptionName,
+            object: sender,
             queue: .main
         ) { [weak self] note in
-            guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
-                  let type = AVAudioSession.InterruptionType(rawValue: raw)
-            else { return }
-            let optionsRaw = note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
-            let mayResume = AVAudioSession.InterruptionOptions(rawValue: optionsRaw)
-                .contains(.shouldResume)
-            MainActor.assumeIsolated { self?.interrupted(type, mayResume: mayResume) }
+            guard let event = AudioSessionEvent(interruption: note.userInfo) else { return }
+            MainActor.assumeIsolated { self?.handle(event) }
         }
 
         routes = NotificationCenter.default.addObserver(
-            forName: AVAudioSession.routeChangeNotification,
-            object: session,
+            forName: AudioSessionEvent.routeChangeName,
+            object: sender,
             queue: .main
         ) { [weak self] note in
-            guard let raw = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
-                  let reason = AVAudioSession.RouteChangeReason(rawValue: raw)
-            else { return }
-            MainActor.assumeIsolated { self?.routeChanged(reason) }
+            guard let event = AudioSessionEvent(routeChange: note.userInfo) else { return }
+            MainActor.assumeIsolated { self?.handle(event) }
         }
-        #endif
     }
 
-    #if os(iOS)
-    private func interrupted(_ type: AVAudioSession.InterruptionType, mayResume: Bool) {
+    /// What each event means for the running session. The decisions are
+    /// ``PlaybackSession``'s; this only routes them to ``PlayerCentre``.
+    ///
+    /// `audio-playback`: headphones removed pauses, "because a book suddenly playing out
+    /// loud is never what was intended", and "it does not resume by itself when they are
+    /// reconnected" — a pause recorded as the listener's.
+    private func handle(_ event: AudioSessionEvent) {
         guard let centre else { return }
-        switch type {
-        case .began:
+        switch event {
+        case .interruptionBegan:
             centre.interrupt()
 
-        case .ended:
+        case .interruptionEnded(let mayResume):
             // The three answers are `PlaybackSession.endingInterruption(mayResume:)`'s, not
             // this method's. Two branches here is the shape that left a session paused for
             // ever with no position written, and the only way out was to force-quit.
@@ -120,22 +128,8 @@ public final class PlaybackAudioSession {
             case .lost: centre.lostAudio()
             }
 
-        @unknown default:
-            return
+        case .routeLost:
+            centre.routeLost()
         }
     }
-
-    /// `audio-playback`: headphones removed pauses, "because a book suddenly playing out
-    /// loud is never what was intended", and "it does not resume by itself when they are
-    /// reconnected".
-    ///
-    /// Only `.oldDeviceUnavailable`. The notification fires for every route change there
-    /// is — a new device arriving, a category change, the app waking — and pausing on all of
-    /// them would stop the book when the listener *plugged headphones in*, which is the
-    /// opposite of what this exists for.
-    private func routeChanged(_ reason: AVAudioSession.RouteChangeReason) {
-        guard reason == .oldDeviceUnavailable else { return }
-        centre?.routeLost()
-    }
-    #endif
 }

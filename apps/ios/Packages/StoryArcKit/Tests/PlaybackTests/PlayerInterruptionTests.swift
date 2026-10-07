@@ -20,8 +20,8 @@ final class Positions {
 /// The transitions themselves are `PlaybackTransitionTests`'. These assert the layer above:
 /// that ``PlayerCentre`` acts on them — pausing the engine, resuming it, writing the
 /// position — and that it does the same thing whichever source is behind it. The
-/// notification that triggers each is `PlaybackAudioSession`'s and cannot be raised from a
-/// host test; everything downstream of it is here.
+/// notification that triggers each is `AudioSessionEventTests`'; everything downstream of it
+/// is here.
 @MainActor
 struct PlayerInterruptionTests {
 
