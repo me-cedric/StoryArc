@@ -1,0 +1,22 @@
+[package]
+name = "storyarc-ffi"
+description = "C ABI over storyarc-core, consumed by the Windows app."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[lib]
+name = "storyarc_ffi"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+storyarc-core = { path = "../storyarc-core" }
+
+# This crate is the one place unsafe code is allowed: the C ABI needs it.
+[lints.rust]
+unsafe_code = "allow"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }

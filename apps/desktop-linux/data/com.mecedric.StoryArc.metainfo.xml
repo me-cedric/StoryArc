@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.mecedric.StoryArc</id>
+  <name>StoryArc</name>
+  <summary>Read comics, ebooks and audiobooks</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="com.mecedric">
+    <name>Cédric Meyer</name>
+  </developer>
+  <description>
+    <p>StoryArc is a native reader for comics, ebooks and audiobooks. It opens files from local folders, SMB shares, OPDS catalogues and Kavita servers.</p>
+    <p>The artwork is the interface. StoryArc has no account, no tracking and no backend.</p>
+  </description>
+  <launchable type="desktop-id">com.mecedric.StoryArc.desktop</launchable>
+  <url type="homepage">https://github.com/me-cedric/StoryArc</url>
+  <url type="bugtracker">https://github.com/me-cedric/StoryArc/issues</url>
+  <provides>
+    <binary>storyarc</binary>
+  </provides>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <content_rating type="oars-1.1" />
+  <categories>
+    <category>Office</category>
+    <category>Viewer</category>
+    <category>Graphics</category>
+  </categories>
+  <releases>
+    <release version="0.1.0" date="2026-10-07">
+      <description>
+        <p>Base shell. No reading features yet.</p>
+      </description>
+    </release>
+  </releases>
+</component>

@@ -1,0 +1,39 @@
+{
+  "app-id": "com.mecedric.StoryArc",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "51",
+  "sdk": "org.gnome.Sdk",
+  "sdk-extensions": ["org.freedesktop.Sdk.Extension.rust-stable"],
+  "command": "storyarc",
+  "x-note": "cargo-sources.json is not generated yet. Later task: run flatpak-cargo-generator.py Cargo.lock -o apps/desktop-linux/build-aux/cargo-sources.json. Until then this manifest does not build offline. Also add libarchive and pdfium modules when the format layer lands. A human writes the copy that goes to Flathub.",
+  "finish-args": [
+    "--share=ipc",
+    "--socket=wayland",
+    "--socket=fallback-x11",
+    "--device=dri",
+    "--share=network"
+  ],
+  "build-options": {
+    "append-path": "/usr/lib/sdk/rust-stable/bin",
+    "env": {
+      "CARGO_HOME": "/run/build/storyarc/cargo"
+    }
+  },
+  "modules": [
+    {
+      "name": "storyarc",
+      "buildsystem": "simple",
+      "build-commands": [
+        "cargo --offline build --release --locked -p storyarc-linux",
+        "install -Dm755 target/release/storyarc /app/bin/storyarc",
+        "install -Dm644 apps/desktop-linux/data/com.mecedric.StoryArc.desktop /app/share/applications/com.mecedric.StoryArc.desktop",
+        "install -Dm644 apps/desktop-linux/data/com.mecedric.StoryArc.metainfo.xml /app/share/metainfo/com.mecedric.StoryArc.metainfo.xml",
+        "install -Dm644 apps/desktop-linux/data/icons/hicolor/scalable/apps/com.mecedric.StoryArc.svg /app/share/icons/hicolor/scalable/apps/com.mecedric.StoryArc.svg"
+      ],
+      "sources": [
+        { "type": "dir", "path": "../../..", "skip": [".git", "node_modules", "target", "build-flatpak", ".flatpak-builder"] },
+        "cargo-sources.json"
+      ]
+    }
+  ]
+}

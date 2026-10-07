@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=StoryArc
+GenericName=Comic, ebook and audiobook reader
+Comment=Read comics, ebooks and audiobooks from folders, shares and servers
+Exec=storyarc
+Icon=com.mecedric.StoryArc
+Terminal=false
+Categories=Office;Viewer;Graphics;
+Keywords=comics;cbz;epub;ebook;audiobook;reader;
+StartupNotify=true

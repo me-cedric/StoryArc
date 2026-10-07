@@ -1,0 +1,22 @@
+[package]
+name = "storyarc-linux"
+description = "StoryArc for Linux: GTK 4 and libadwaita."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "storyarc"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+# Floor: GTK 4.14 and libadwaita 1.5 (Ubuntu 24.04, Pop!_OS 24.04).
+# Never enable a feature above the floor.
+[dependencies]
+storyarc-core = { path = "../desktop-core/storyarc-core" }
+gtk = { package = "gtk4", version = "0.11", features = ["v4_14"] }
+adw = { package = "libadwaita", version = "0.9", features = ["v1_5"] }

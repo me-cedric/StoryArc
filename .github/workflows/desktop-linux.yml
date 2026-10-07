@@ -1,0 +1,42 @@
+name: Desktop Linux
+
+# Desktop work stays in its own paths so the mobile lanes do not run for it.
+on:
+  pull_request:
+    paths: &paths
+      - Cargo.toml
+      - Cargo.lock
+      - apps/desktop-core/**
+      - apps/desktop-linux/**
+      - .github/workflows/desktop-linux.yml
+  push:
+    branches: [main]
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-linux-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup component add rustfmt clippy
+      - run: cargo fmt --all --check
+      - run: cargo clippy --locked -p storyarc-core -p storyarc-ffi --all-targets -- -D warnings
+
+  distro:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [ubuntu-24.04, arch, manjaro, fedora]
+    steps:
+      - uses: actions/checkout@v4
+      # Installs the distro's own GTK and libadwaita, then runs cargo test and cargo build.
+      # Only the ubuntu-24.04 row lints storyarc-linux, because its toolchain comes from rustup.
+      - run: apps/desktop-linux/scripts/container-build.sh ${{ matrix.distro }} ${{ matrix.distro == 'ubuntu-24.04' && '--clippy' || '' }}
