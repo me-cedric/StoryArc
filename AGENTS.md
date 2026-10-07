@@ -14,7 +14,9 @@ git submodule update --init --recursive   # after cloning
 
 Two independent native reading apps in one repository. iOS is Swift and SwiftUI.
 Android is Kotlin and Compose. They share a written contract, design tokens and
-test fixtures — and nothing else.
+test fixtures — and nothing else. Desktop clients are in preparation
+([ADR-0018](docs/decisions/0018-desktop-clients.md)): macOS reuses the iOS
+packages, and Windows and Linux share one Rust core with no UI in it.
 
 | Path | What lives there |
 | --- | --- |
@@ -22,7 +24,10 @@ test fixtures — and nothing else.
 | `docs/openspec/changes/` | In-flight proposals. Created with `/opsx:propose`. |
 | `apps/ios/` | Swift + SwiftUI. XcodeGen spec, one SPM package with three targets. |
 | `apps/android/` | Kotlin + Compose. Gradle with a version catalog, four modules. |
-| `apps/desktop-*/` | Planning documents only. **No code.** See [ADR-0004](docs/decisions/0004-desktop-strategy.md). |
+| `apps/desktop-macos/` | SwiftUI, own XcodeGen project, `StoryArcKit` by path. Base only. [ADR-0018](docs/decisions/0018-desktop-clients.md). |
+| `apps/desktop-windows/` | C# + WinUI 3. Base only. Builds on Windows; the interop tests also run on macOS. |
+| `apps/desktop-linux/` | Rust + GTK4 + libadwaita. Base only. |
+| `apps/desktop-core/` | The Rust core Windows and Linux share (`storyarc-core`, `storyarc-ffi`). **No UI, ever.** |
 | `packages/design-tokens/` | OKLCH token source → generated Swift and Kotlin. |
 | `packages/test-fixtures/` | Shared publication corpus, **generated then committed**. Both suites read its `manifest.json` and assert the same expectations. |
 | `docs/decisions/` | ADRs. Read 0001 before proposing any architecture change. |
@@ -33,7 +38,8 @@ test fixtures — and nothing else.
 These are product requirements, not preferences. A change that breaks one is
 wrong even if it compiles and passes tests.
 
-1. **No cross-platform UI, ever.** Every pixel is SwiftUI or Compose. No web
+1. **No cross-platform UI, ever.** Every pixel is the platform's own toolkit:
+   SwiftUI, Compose, WinUI 3, or GTK4 with libadwaita. No web
    view, no shared UI abstraction, no cross-platform toolkit — the single
    exception is reflowable EPUB content, which is HTML by definition.
    ([ADR-0001](docs/decisions/0001-independent-native-cores.md))
@@ -240,6 +246,9 @@ the whole config fails to parse, and the CLI's answer is the misleading
 | --- | --- | --- |
 | iOS | 26.1 | latest SDK |
 | Android | API 31 (Android 12) | API 37 |
+| macOS | 26 | latest SDK |
+| Windows | 11 24H2 (build 26100) | latest Windows App SDK 2.x |
+| Linux | GTK 4.14 + libadwaita 1.5 (Ubuntu 24.04, Pop!_OS 24.04) | the current GNOME runtime |
 
 iOS has **no compatibility shims** — Liquid Glass is used directly. Android has
 one conditional, `dynamicColorScheme`, available on every supported version.
@@ -262,6 +271,10 @@ change** — never the whole repository when one module moved.
 | One Android module | `pnpm gradle :<module>:lint :<module>:testDebugUnitTest` |
 | Android across modules | `pnpm lint:android && pnpm test:android` |
 | `packages/design-tokens` | `pnpm tokens:sync` — then **commit the regenerated app copies in the same change** |
+| `apps/desktop-macos` | `pnpm build:macos` |
+| `apps/desktop-core` | `pnpm test:desktop:core && pnpm lint:desktop` |
+| `apps/desktop-linux` | `apps/desktop-linux/scripts/container-build.sh ubuntu-24.04` — the floor distro; `arch`, `manjaro` and `fedora` also work. GTK is not installed on the Mac host |
+| `apps/desktop-windows` | `pnpm test:desktop:interop` on any host; the WinUI app builds only on Windows, so its proof is the `desktop-windows` CI workflow |
 | `docs/openspec/specs` | `pnpm spec:validate` |
 | `docs/openspec/changes` | `pnpm spec:validate && pnpm spec:guard` — validate checks the files that are there, the guard checks the ones that should be |
 | A `[~]` partial in a task list | `pnpm partial:tasks` — part of `pnpm lint`. `openspec-guard`'s `taskProgress` counts `- [ ]` and `- [x]` and **nothing else**, so a partial sits in neither the numerator nor the denominator: `audiobooks-and-playback` reports 15/29 where the honest figure is 15 of 51, and `[ready]` fires on the last `[ ]` even with twenty `[~]` open — announcing a change as archivable, which is the one action that is expensive to undo. This prints the three-way count and fails on that shape. The guard is vendored, so it is not edited |

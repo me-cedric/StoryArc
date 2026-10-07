@@ -6,6 +6,8 @@ deciders: Cédric Meyer
 
 # ADR-0004 — Desktop strategy: documented now, built later
 
+**Superseded in part by [ADR-0018](0018-desktop-clients.md).** ADR-0018 replaces the timing and settles the open stack questions. The rest of this record stays as history.
+
 **Accepted as planning only. No implementation.**
 
 ## Context and problem statement

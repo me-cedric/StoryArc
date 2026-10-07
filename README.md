@@ -79,7 +79,9 @@ watched working by nobody yet, which that document says row by row.
 | Playback | 🟡 Read-aloud and an audiobook player on both, behind one session; `audiobooks-and-playback` has 68 of 91 ticked and calls itself unfinished |
 | Covers | 🟡 One cover ladder on both; a reader may choose a picture for any publication; the opt-in lookup is built and not yet wired in. `cover-for-every-publication` has 11 of 27 |
 | Portability | 🟡 One versioned library document, written and read on both platforms with no secret in it; no screen exports or imports it yet. `library-portability` has 9 of 26 |
-| Desktop | 📄 macOS, Windows and Linux documented; no code by design |
+| Desktop: macOS | 🟡 Base only: a SwiftUI app in its own project opens an empty window and links `StoryArcKit`; no reading feature yet |
+| Desktop: Windows | 🟡 Base only: a WinUI 3 shell, an interop library and its tests; not yet run on Windows; no reading feature yet |
+| Desktop: Linux | 🟡 Base only: a GTK4 and libadwaita window on the shared Rust core; no reading feature yet |
 
 Tests: **about 3,570 on iOS** across 485 host suites, plus 144 more in
 `StoryArcEpub` that need a simulator; on Android, **about 4,070 JVM plus 170
@@ -180,9 +182,11 @@ storyarc/
 ├── apps/
 │   ├── ios/                       Swift · SwiftUI · XcodeGen · two SPM packages
 │   ├── android/                   Kotlin · Compose · Gradle version catalog · 13 modules
-│   ├── desktop-macos/             documented, not implemented
-│   ├── desktop-windows/           documented, not implemented
-│   └── desktop-linux/             documented, not implemented
+│   ├── desktop-core/              Rust · storyarc-core (no UI) and storyarc-ffi (C ABI for C#)
+│   ├── desktop-macos/             Swift · SwiftUI · own XcodeGen project · base only
+│   ├── desktop-windows/           C# · WinUI 3 · .NET 10 · base only
+│   └── desktop-linux/             Rust · GTK4 + libadwaita · base only
+├── Cargo.toml                     Rust workspace: desktop-core and desktop-linux
 ├── packages/
 │   ├── design-tokens/             OKLCH source → generated Swift + Kotlin
 │   ├── test-fixtures/             one publication corpus, two test suites
@@ -206,8 +210,11 @@ storyarc/
 └── scripts/                       the gates, the test library, the mock servers, the cameras
 ```
 
-There is **no root build**. `apps/ios` builds with `xcodebuild`, `apps/android`
-with `./gradlew`, and neither needs Node to compile. The workspace at the root is
+There is **no root build** for the mobile apps. `apps/ios` builds with `xcodebuild`,
+`apps/android` with `./gradlew`, and neither needs Node to compile. The root
+`Cargo.toml` is a Rust workspace for the desktop core and the Linux app only; the
+macOS and Windows apps build with their own tools
+([ADR-0018](docs/decisions/0018-desktop-clients.md)). The workspace at the root is
 the tooling around them: the spec and token gates, the fixture generator, a
 library to test against with three servers to serve it, the screenshot
 harnesses, and `pnpm check`, which runs all of it and then both apps' lint,
@@ -248,7 +255,7 @@ testable on the host in milliseconds. Full map in
 | [0001](docs/decisions/0001-independent-native-cores.md) | Two independent native cores, not a shared one |
 | [0002](docs/decisions/0002-monorepo-layout.md) | One repository for two independent apps |
 | [0003](docs/decisions/0003-platform-floors.md) | iOS 26 and Android 12 as the minimum versions |
-| [0004](docs/decisions/0004-desktop-strategy.md) | Desktop: documented now, built later |
+| [0004](docs/decisions/0004-desktop-strategy.md) | Desktop: documented now, built later *(superseded in part by ADR-0018)* |
 | [0005](docs/decisions/0005-format-and-rendering-libraries.md) | Format and rendering libraries per platform *(proposed)* |
 | [0006](docs/decisions/0006-progress-storage-and-sync.md) | Local-first progress with content-addressed identity |
 | [0007](docs/decisions/0007-design-token-pipeline.md) | One OKLCH token source, generated into Swift and Kotlin |
@@ -262,6 +269,7 @@ testable on the host in milliseconds. Full map in
 | [0015](docs/decisions/0015-epub-webview-network-egress.md) | A publication's own network access: deny it, admit it, or narrow it |
 | [0016](docs/decisions/0016-ios-smb-response-signing.md) | iOS SMB responses are unsigned and unverified — extends 0010 *(risk accepted)* |
 | [0017](docs/decisions/0017-android-text-to-speech.md) | Android reads aloud with the platform engine, not a new Readium artifact |
+| [0018](docs/decisions/0018-desktop-clients.md) | Desktop: macOS in Swift, Windows and Linux on one Rust core — supersedes the timing of 0004 |
 
 New to the project? **0001 → 0002 → 0003.** The rest answer specific questions
 when you reach them.
@@ -316,6 +324,9 @@ Full system in [`docs/design.md`](docs/design.md).
 | --- | --- |
 | iOS | macOS 26+, Xcode 26+, `brew install xcodegen swiftlint` |
 | Android | JDK 21, Android SDK with platform 37 and build-tools |
+| macOS app | macOS 26+, Xcode 26+, `brew install xcodegen` |
+| Windows app | Windows 11 24H2, Visual Studio 2026 or the .NET 10 SDK with the `winapp` CLI, Rust with the MSVC target |
+| Linux app | Rust 1.92+, GTK 4.14+ and libadwaita 1.5+ development packages — see [Linux](#linux) |
 | Contract, tokens and the harnesses | Node 22 or newer (`.nvmrc` says 24), pnpm 11, Python 3 for the fixture generator |
 
 ### Everything
@@ -361,6 +372,80 @@ before it can read any property file:
 export JAVA_HOME=$(/usr/libexec/java_home -v 21)
 export ANDROID_HOME=${ANDROID_HOME:-$HOME/Library/Android/sdk}
 cd apps/android && ./gradlew lint test assembleDebug
+```
+
+### macOS
+
+The Mac app is a native SwiftUI app with its own project. It consumes
+`apps/ios/Packages/StoryArcKit` by path and leaves `apps/ios` untouched. It is
+base only: an empty window.
+
+```bash
+brew install xcodegen
+pnpm build:macos          # xcodegen generate, then xcodebuild build, scheme StoryArc
+```
+
+Builds are ad-hoc signed and run locally. See
+[`apps/desktop-macos`](apps/desktop-macos/README.md).
+
+### Windows
+
+A WinUI 3 app on .NET 10, over the shared Rust core. Windows 11 24H2 is the floor.
+The base has not yet been run on Windows. The interop library and its tests build
+and run on any OS that has the .NET 10 SDK and Rust.
+
+```bash
+pnpm test:desktop:core        # cargo test -p storyarc-core -p storyarc-ffi
+pnpm test:desktop:interop     # builds storyarc-ffi, then dotnet test
+```
+
+```powershell
+pwsh apps/desktop-windows/build.ps1      # on Windows: core, interop tests, WinUI project
+```
+
+See [`apps/desktop-windows`](apps/desktop-windows/README.md).
+
+### Linux
+
+A GTK4 and libadwaita app in Rust, over the same core. The floor is GTK 4.14 and
+libadwaita 1.5, which is Ubuntu 24.04 and Pop!_OS 24.04. Every other target is
+newer. You need Rust 1.92 or newer: install it with `rustup`, because Ubuntu 24.04
+packages an older one.
+
+| Distro | Install the build dependencies |
+| --- | --- |
+| Arch, Manjaro | `sudo pacman -S --needed base-devel gtk4 libadwaita libarchive rustup`, then `rustup default stable` |
+| Ubuntu 24.04, Pop!_OS 24.04 | `sudo apt install build-essential pkg-config libgtk-4-dev libadwaita-1-dev libarchive-dev curl`, then install `rustup` and run `rustup default stable` |
+| Fedora | `sudo dnf install gcc gcc-c++ make pkgconf-pkg-config gtk4-devel libadwaita-devel libarchive-devel rustup`, then `rustup default stable` |
+
+For running, add `xdg-desktop-portal-gtk` (file picker, dark mode) and
+`gnome-keyring` (secrets). Later waves also link WebKitGTK 6.0
+(`libwebkitgtk-6.0-dev`, `webkitgtk-6.0`, `webkitgtk6.0-devel`).
+
+```bash
+pnpm build:linux              # cargo build -p storyarc-linux
+cargo run -p storyarc-linux   # run it
+pnpm test:desktop:core        # the shared core's tests
+```
+
+**Wayland first.** The page curl runs on Wayland and is absent on X11. On
+**Hyprland**, install `xdg-desktop-portal-hyprland`, `xdg-desktop-portal-gtk` and
+a Secret Service daemon, and set dark mode with
+`gsettings set org.gnome.desktop.interface color-scheme prefer-dark`. The window
+class is `com.mecedric.StoryArc`. On NVIDIA, `GSK_RENDERER=ngl` is the fallback.
+Details for GNOME, KDE Plasma, COSMIC and Hyprland are in
+[`apps/desktop-linux`](apps/desktop-linux/README.md).
+
+Prove a distro build inside a container with that distro's own packages:
+
+```bash
+apps/desktop-linux/scripts/container-build.sh ubuntu-24.04    # or: arch | manjaro | fedora
+```
+
+The Flatpak manifest is a skeleton until `cargo-sources.json` is generated:
+
+```bash
+flatpak-builder --user --install --force-clean build-flatpak apps/desktop-linux/build-aux/com.mecedric.StoryArc.json
 ```
 
 ### Accessibility

@@ -1,240 +1,128 @@
-# StoryArc for Windows — planned, not implemented
+# StoryArc for Windows
 
-**Status:** documented only. No code. The framework choice remains **Assumed**
-— WinUI 3 — but the spike questions have now been researched on paper
-(August 2026), so the spike is smaller and more sharply aimed. See
-[ADR-0004](../../docs/decisions/0004-desktop-strategy.md).
+**Status: wave 0, base only.** The base has three parts: a WinUI 3 shell that
+opens an empty window, an interop library, and interop tests. They prove that
+the C# side loads the Rust core. No reading feature exists yet. The author of
+wave 0 had no .NET SDK and no Windows machine, so **nothing here has run on
+Windows**. Every Windows claim is **Known** (read in vendor text) or **Inferred**
+until a spike runs it.
 
-Confidence labels follow
-[ADR-0005](../../docs/decisions/0005-format-and-rendering-libraries.md):
-**Known** is verified against the vendor's own documentation or source,
-**Reported** is a credible secondary source, and nothing below is **Proven**
-until a spike runs it on real hardware.
+[ADR-0018](../../docs/decisions/0018-desktop-clients.md) supersedes the timing in
+[ADR-0004](../../docs/decisions/0004-desktop-strategy.md) and chooses WinUI 3.
 
-## What changed since ADR-0004 wrote the questions
+- Plan: [`docs/openspec/changes/desktop-clients`](../../docs/openspec/changes/desktop-clients)
+- Design: [`docs/designs/desktop/windows.md`](../../docs/designs/desktop/windows.md)
+- Research: [`desktop-research-windows-2026-10-07.md`](../../docs/delivery/desktop-research-windows-2026-10-07.md)
+  (sources, the full seam comparison, every spike) and
+  [`desktop-parity-2026-10-07.md`](../../docs/delivery/desktop-parity-2026-10-07.md)
 
-Three decisions landed after this document was first written, and each one
-reshapes a Windows question:
+## Stack
 
-- [ADR-0009](../../docs/decisions/0009-page-curl-as-a-fragment-shader.md) —
-  the curl is one fragment shader over two decoded page textures, no mesh, no
-  re-raster. "Does WinUI 3 hold 120 Hz" narrows to "can it run a custom
-  two-texture fragment shader, driven per-frame by pointer input, at monitor
-  refresh". That narrower question is answerable on paper, and is answered
-  below.
-- [ADR-0008](../../docs/decisions/0008-ranged-reads-and-own-zip-reader.md) —
-  the format layer is ranged reads over `RandomAccessSource`, with our own ZIP
-  and TAR readers, mirrored deliberately between the two mobile apps. A
-  Windows implementation is a **third mirror of the drift hotspot, in a third
-  language**. That is the real recurring cost of this target, and it is also
-  the strongest argument Avalonia has (one new mirror instead of two).
-- [ADR-0005](../../docs/decisions/0005-format-and-rendering-libraries.md) —
-  the RAR answer is vendored libarchive, chosen because everything
-  UnRAR-derived carries a non-OSI licence. The same criterion disqualifies the
-  obvious .NET library — see the format table.
-
-## Leading candidate: WinUI 3 (Windows App SDK)
-
-Healthier in 2026 than its 2024 reputation, with the caveats named. Windows
-App SDK 2.0 shipped April 2026 on semantic versioning with monthly servicing
-(**Known**); Build 2026 recommitted to WinUI as the path for new native
-Windows apps, and the open-sourcing plan reached Phase 3 in May 2026
-(**Reported**). Against that: issue triage is backlogged, there is no visual
-designer, and users still report XAML-side animation jank in 2026
-(**Reported**). The curl path below routes around the janky layer rather than
-depending on it.
-
-### The curl question, answered on paper
-
-The obvious route is the wrong one, and the right one is documented:
-
-- **Composition brushes are a dead end.** `CompositionEffectBrush` cannot host
-  custom shaders — effect graphs compile only against the built-in effect set,
-  and Win2D's `PixelShaderEffect` is marked `[NoComposition]` (**Known**).
-- **A D2D1 custom pixel shader is first-class.** Win2D's `PixelShaderEffect`
-  takes up to 8 texture inputs and per-frame constants; the curl's non-1:1
-  sampling is covered by its `SamplerCoordinateMapping` modes (**Known**).
-  ComputeSharp.D2D1 authors the same shaders in C# and is production-proven in
-  Paint.NET (**Known**).
-- **The host is a swap chain, not the XAML frame timer.** `SwapChainPanel`
-  exists precisely so real-time content can present independently of the XAML
-  refresh timer, and `CreateCoreIndependentInputSource` delivers pointer, pen
-  and touch on a background thread — input and render both off the UI thread
-  (**Known**). The 2021-era 60 Hz cap bugs are closed; a Win2D swap chain has
-  been reported running far above monitor rate while XAML struggled in the
-  same app (**Reported**).
-
-So the shape is: two decoded pages as textures → the ADR-0009 projection as a
-D2D1 pixel shader → presented each frame from a dedicated render thread fed by
-the independent input source. This is more machinery than iOS's
-`Rectangle().fill(shader)` — a real cost, recorded rather than smoothed over.
-
-**The sharpest risk is version skew, not capability:** Win2D 1.4.0
-(March 2026) still targets Windows App SDK 1.8, and WinAppSDK packages enforce
-same-major dependency ranges — so the least-machinery shader path currently
-pins the app to the 1.8 line, or forces raw D3D11 on 2.x (**Known/Inferred**).
-The spike must settle which line StoryArc-Windows starts on.
-
-### The format layer on .NET
-
-| Need | Answer | Licence | Confidence |
-| --- | --- | --- | --- |
-| ZIP (CBZ, EPUB container) | **Our own reader**, third mirror: `System.IO.RandomAccess` offset reads + raw-inflate `DeflateStream` over a self-written bounded sub-stream — the BCL's own internal `ZipArchive` pattern | — | **Known** — primitives verified; pitfalls listed below |
-| TAR (CBT) | **Our own `TarReader`**, third mirror | — | **Known** — trivial by design |
-| RAR (CBR) | **Vendored libarchive** behind a small custom P/Invoke layer (~300 lines: `archive_read_open2` + read/seek/skip callbacks bridging `RandomAccessSource`) | BSD-2-Clause | **Known** — same library, same reasoning as mobile |
-| 7-Zip (CB7) | — | — | **Not supported**, per ADR-0005. Refused by name |
-| EPUB | **Readium ts-toolkit** (`@readium/navigator`) inside **WebView2**, resources served in-process via virtual-host mapping — inside the one sanctioned web-view exception | BSD-3-Clause | **Reported** — actively released; locator model shared with the Swift and Kotlin toolkits |
-| PDF | **`Windows.Data.Pdf`** (system) — render-to-image only, exactly Android's `PdfRenderer` posture | Windows SDK | **Known** — no text layer, ever; PDFium (BSD) is the upgrade path if that changes |
-| Image decoding | **WIC** via `BitmapDecoder` + `BitmapTransform` — decode-time downsampling, the ImageIO/`ImageDecoder` analogue | Windows SDK | **Known** — but AVIF/HEIC/JXL are optional Store extensions, HEVC is paid; feature-detect at runtime |
-| SMB | **No client library.** UNC paths through the OS redirector; `RandomAccess.Read` at offsets is the ranged read | — | **Inferred** — see below |
-
-**SharpCompress is disqualified for RAR, checked at the source.** Its RAR5
-decoder is a mechanical port of the official unrar C++ sources — the files are
-named after unrar's own (`Unpack.unpack50_cpp.cs`, …), the repository vendors
-`reference/unrar` as the porting reference, and its legacy RAR path descends
-from the NUnrar/JUnrar lineage (**Known**). That is the exact heritage this
-project rejected junrar for, and the top-level MIT licence does not launder
-it. The libarchive row above is the answer, mirroring mobile.
-
-**Own-ZIP-reader pitfalls found in advance** (**Known**): the BCL's bounded
-`SubReadStream` is internal, so we write our own or `DeflateStream` reads past
-the slice; no public `DeflateStream` overload takes an expected size, so
-decompression bombs are bounded by capping bytes read out; Deflate64 has no
-public raw API — refused by name like CB7; CRC-32 comes from
-`System.IO.Hashing`, not the BCL core.
-
-### SMB — the OS does it, with one spec tension
-
-A full-trust Windows app opens `\\server\share\file.cbz` with plain file I/O;
-offset reads map to SMB READ-at-offset natively, so ADR-0008 costs nothing
-here (**Inferred**). Credentials follow the platform idiom: prompt with
-`CredUIPromptForWindowsCredentials`, persist via `CredWrite` as a domain
-credential, and the redirector uses it from then on — the app never touches
-the password again (**Reported**). Persist UNC paths, never drive letters.
-
-The tension: [`network-share`](../../docs/openspec/specs/network-share/spec.md)
-requires stating whether the connection is encrypted and refusing SMB 1 with a
-named remedy — obligations written for an in-app client with protocol
-visibility. Whether the OS redirector surfaces dialect and encryption to the
-app (WMI `MSFT_SmbConnection` or equivalent) is **unverified** and belongs in
-the spike; if it cannot, that is a spec conversation, not a silent softening.
-
-### Packaging, signing, and the one hard constraint
-
-MSIX packaging is **not** a sandbox problem: a packaged WinUI 3 app runs full
-trust — raw Win32 paths after a folder pick, no `FutureAccessList`, no
-`broadFileSystemAccess`, and the WASDK 2.0 pickers return plain path strings
-(**Known**). Scanning avoids `Windows.Storage` entirely for its documented
-bulk-enumeration slowness (**Known**). `FileSystemWatcher` overflows discard
-changes and demand a rescan — which is the architecture the specs already
-require — and the USN journal is disqualified outright (requires
-administrator) (**Known**).
-
-The hard constraint is **code signing, not sandboxing**:
-
-| Channel | Cost | Catch |
-| --- | --- | --- |
-| Microsoft Store | Free — registration fees removed in 2025, Store signs the MSIX | Certification discretion; the cheapest respectable channel (**Known**) |
-| winget → Store package | Free | Rides the Store signature (**Known**) |
-| Sideloaded MSIX / `.appinstaller` | Needs a publicly trusted certificate | Azure Artifact Signing is **closed to EU-based individuals** (US/Canada only; organisations need 3 years of tax history) (**Known**) |
-| SignPath Foundation | Free for qualifying OSS | Publisher name shows as SignPath Foundation, not StoryArc (**Known**) |
-
-Posture to validate in the spike: Store-signed MSIX as canonical, the same
-package through winget, direct download later only if a signing identity
-materialises.
-
-### Spec reinterpretations this target owes
-
-The capability specs are platform-neutral in obligation and mobile in
-vocabulary. The Windows readings, to be proposed as spec deltas when this
-target starts (`/opsx:propose`, per the workflow):
-
-| Spec wording | Windows reading |
+| Part | Choice |
 | --- | --- |
-| Finger-tracked curl, pinch, tap zones | Pointer drag; Ctrl+scroll / trackpad pinch; click zones — keyboard is already mandated |
-| Screen does not auto-lock while reading | `SetThreadExecutionState` display-required |
-| Backgrounded / killed by the system | Window close, focus loss, quit, crash — the 15 s progress-write cadence stays load-bearing |
-| Secrets in the platform secure store | Credential Manager via `CredWrite` (`CRED_TYPE_GENERIC` for Kavita tokens); `PasswordVault` adds nothing at full trust (**Known**) |
-| Share sheet for diagnostic export | Save-to-file + reveal in Explorer; the show-before-it-leaves and redaction rules stand |
-| Metered / data saver | The Windows metered-connection flag |
-| Excluded from device backups | No API equivalent — a location choice plus documentation |
-| Media controls for read-aloud | System Media Transport Controls |
-| File handling | `windows.fileTypeAssociation` in the manifest; UCPD means the app can register but never set itself default programmatically (**Known**) |
-| Screen readers | Narrator and NVDA replace VoiceOver/TalkBack |
+| UI | WinUI 3 on Windows App SDK **2.5.1** (stable, 2026-09-16). 1.8 left servicing on 2026-09-24, so no start on 1.x. |
+| Language | C# on **.NET 10 LTS** (end of life 2028-11-14). TFM `net10.0-windows10.0.26100.0`. Platforms x64 and ARM64. |
+| Shape | One single-project packaged WinUI app. Release builds use ReadyToRun and trimming. Native AOT is not enabled. |
+| Floor | Windows 11 24H2, build 26100. `TargetPlatformMinVersion` and the manifest `MinVersion` are `10.0.26100.0`. |
+| Chrome | `TitleBar`, Mica through `SystemBackdrop`, `NavigationView`. Chrome only: the artwork stays the interface. |
+| Core | The shared Rust core, `storyarc-core`, through the C ABI crate `storyarc-ffi` (cdylib `storyarc_ffi`). |
+| Seam | A hand-designed C ABI. `csbindgen` generates the `DllImport` file. C# wrappers use `SafeHandle`. Not uniffi: its C# generator lags one minor behind. Revisit above about 40 functions. |
+| Page curl | Direct3D 11 swap chain in a `SwapChainPanel`, ADR-0009 shader as HLSL, input from `CreateCoreIndependentInputSource`. **Not Win2D**: 1.4.0 targets Windows App SDK 1.8 and nothing says it runs on 2.x. |
+| EPUB | `WebView2` with the pinned Readium ts-toolkit renderer. Archive resources come through a custom scheme and `WebResourceRequested`. Virtual-host mapping serves folders only, so it cannot serve archive bytes. |
+| PDF | `pdfium-render` with a bundled PDFium (`chromium/7881`). `Windows.Data.Pdf` has no text, search or outline API, so it fails the `ebook-reader` spec. |
+| RAR | Vendored libarchive, compiled by the `cc` crate. The MSVC build needs its own config header, kept under `apps/desktop-core` so `third_party/` stays untouched. This is the largest risk of that item. |
+| SMB | An in-app Rust client (`smb`, with `smb2` as the swap-in). Not the OS redirector: it hides encryption and dialect, and Windows 11 24H2 requires signing by default. |
+| Secrets | `keyring` v4 with `windows-native-keyring-store` (Credential Manager, `CredWrite`) behind a `SecretStore` trait. Keep each blob under 2,560 bytes. |
+| Packaging | MSIX. The Microsoft Store is the canonical channel. Registration is free and the Store signs the package. |
 
-One more inherited cost: `packages/design-tokens` gains a third emitter
-(`StoryArcTokens.cs`), per
-[ADR-0007](../../docs/decisions/0007-design-token-pipeline.md)'s pattern.
+Not chosen: Avalonia (draws every control itself), .NET MAUI (renders through
+WinUI 3 anyway), WPF (maintenance mode), Electron and Tauri (the
+`native-experience` spec forbids web-view UI outside EPUB reflow).
 
-## Runner-up: Avalonia
+## Folder layout
 
-Stronger in 2026 than when ADR-0004 recorded it: MIT, funded (a three-year
-Devolutions sponsorship), the 60 FPS render cap lifted in 12.1 for
-non-default Windows modes, a WebView open-sourced in 12.0 (WebView2 on
-Windows), and the curl is expressible as an SKSL `SKRuntimeEffect` with two
-image children inside a render-thread `CompositionCustomVisualHandler` — an
-officially documented pattern (**Known**).
+```
+apps/desktop-windows/
+├── build.ps1                       the Windows build entry
+├── global.json                     pins .NET SDK 10.0.401
+├── Directory.Build.props           shared build properties
+├── StoryArc.Windows.slnx           the solution
+├── src/
+│   ├── StoryArc.Windows/           WinUI 3 app (the only Windows-only project)
+│   └── StoryArc.Interop/           net10.0 library: DllImport + wrappers, no WinUI reference
+├── tests/
+│   └── StoryArc.Interop.Tests/     net10.0 tests; run on Windows, Linux and macOS
+└── README.md
+```
 
-Still the wrong default for StoryArc, for the original reason sharpened by
-research: every control is a Skia-drawn lookalike — context menus, scrollbars,
-popups, text rasterisation — and the **default** Windows composition mode has
-conflicting evidence about ever compositing above 60 Hz (**Known**,
-unresolved). Its real argument is unchanged and honest: one C# implementation
-would cover Windows *and* Linux, making one new format-layer mirror instead of
-two. If the WinUI 3 spike fails its exit criteria, Avalonia's spike (in
-[the Linux document](../desktop-linux/README.md), which it would share) is the
-fallback — run against the same criteria.
+The Rust side lives in `apps/desktop-core/` (`storyarc-core`, `storyarc-ffi`) at
+the repository root workspace.
 
-## Rejected — unchanged
+## Build and run
 
-| Option | Why |
+```powershell
+pwsh apps/desktop-windows/build.ps1      # core, interop tests, then the WinUI project
+```
+
+On any OS with the .NET 10 SDK and Rust, the interop layer builds and tests
+without Windows:
+
+```bash
+pnpm test:desktop:core        # cargo test -p storyarc-core -p storyarc-ffi
+pnpm test:desktop:interop     # cargo build -p storyarc-ffi && dotnet test apps/desktop-windows/tests/StoryArc.Interop.Tests
+```
+
+Requirements on Windows: Windows 11 24H2, Visual Studio 2026 (or the .NET SDK and
+the `winapp` CLI), the Rust toolchain with `x86_64-pc-windows-msvc`, and Developer
+Mode for `winapp run`. Unsigned dev builds run through `winapp run` or an
+unpackaged `dotnet publish`. A sideloaded MSIX needs a trusted certificate:
+`winapp cert generate`.
+
+CI: `.github/workflows/desktop-windows.yml` on `windows-2025-vs2026`. It is
+path-filtered, so mobile CI is unaffected.
+
+## What it inherits
+
+Everything in the 17 capability specs holds. The parity audit finds 60 of 95 main
+requirements hold as written on Windows, and 27 need a desktop reading. The
+format layer, connectors, download queue and progress merge come from the Rust
+core, not from a Windows implementation. `packages/design-tokens` gains a C#
+emitter, `StoryArcTokens.cs` ([ADR-0007](../../docs/decisions/0007-design-token-pipeline.md)).
+
+## What drops or changes
+
+| Mobile feature | On Windows |
 | --- | --- |
-| .NET MAUI | On Windows it renders through WinUI 3 anyway — an extra layer, no extra capability |
-| Electron / Tauri + web UI | Fails the native-feel requirement, and `native-experience` forbids web-view UI outside reflowable EPUB |
-| WPF | Maintenance mode for new Fluent work |
+| CarPlay, Android Auto | Dropped. |
+| App icon chooser | Dropped. |
+| Haptics, brightness, orientation lock | Dropped. |
+| Volume-key page turns | Dropped. Arrow keys replace them. |
+| Cellular data | The Windows metered-connection flag. |
+| Screen stays awake while reading | `SetThreadExecutionState`. |
+| Share sheet for the diagnostic export | Save to file, reveal in Explorer. Redaction stays. |
+| Media controls for read-aloud | System Media Transport Controls. |
+| File handling | `windows.fileTypeAssociation` in the manifest. The app can register but never set itself as default. |
+| Screen readers | Narrator and NVDA through UI Automation. |
+| Excluded from device backup | No API. A location choice plus documentation. |
 
-## The spike, sharpened
+## Desktop-new features
 
-Each item has an exit criterion; together they settle the ADR-0004 "assumed".
+Menu and keyboard reading, two-page spreads by window shape, full screen, one
+window per reader, open from Explorer (file association, drag and drop, command
+line), pointer reading (wheel zoom, hover chrome, right-click), live folder
+watching, media keys, Jump List recent items. Later: Explorer thumbnails (a shell
+extension cannot run on managed .NET, so it needs a native shim), `storyarc://`.
 
-1. **Curl loop** — SwapChainPanel + independent input source + two-texture
-   D2D1 shader on a dedicated thread. *Exit:* sustained presents at monitor
-   rate on a 120 Hz display during continuous drag, unaffected by a XAML
-   flyout animating simultaneously.
-2. **Shader port** — the ADR-0009 projection as HLSL (Win2D) and as
-   ComputeSharp.D2D1, `SamplerCoordinateMapping` chosen deliberately. *Exit:*
-   output matches the iOS reference render; constants update per frame without
-   allocation.
-3. **SDK line** — Win2D 1.4 against WinAppSDK 2.x: record the failure or
-   success, and the migration cost of starting on 1.8 vs raw D3D11 on 2.x.
-   *Exit:* a written decision.
-4. **Format layer** — libarchive P/Invoke over `RandomAccessSource` (local +
-   ranged HTTP), own ZIP reader against the shared corpus in
-   `packages/test-fixtures`, including the hostile fixtures. *Exit:*
-   byte-identical pages versus both mobile implementations.
-5. **EPUB** — `@readium/navigator` in WebView2, archive-served resources, no
-   localhost socket. *Exit:* pagination works and a saved locator round-trips
-   against the locator the mobile toolkits produce.
-6. **SMB + credentials** — packaged app, UNC ranged reads on a real NAS, the
-   CredUI → `CredWrite` flow, dialect/encryption visibility. *Exit:* zero
-   prompts after reboot; a definitive answer on the encryption-status
-   obligation.
-7. **Distribution** — free Store registration → signed MSIX → winget manifest.
-   *Exit:* install and auto-update on a clean VM; certification friction
-   recorded.
+## Open questions
 
-## Open questions research could not close
+1. Does the D3D11 curl hold monitor rate on a 120 Hz display while a XAML flyout animates? This is the first spike.
+2. Does `dotnet build` compile the WinUI project on the runner without `setup-msbuild`? **Inferred**: yes. The MSIX step uses VS `msbuild` until a spike proves `dotnet`.
+3. Can a single-project app produce an MSIX bundle? Two Microsoft pages conflict.
+4. Does Store review accept `runFullTrust` for a comic reader, and does it ask for more on user-provided content?
+5. Which RAR corpus results does the MSVC libarchive build give, on x64 and ARM64?
+6. Is `PublishAot` workable across WinUI 3 and the interop layer? Try it only after the curl and the seam run.
+7. Does 23H2 matter? The floor is 24H2. Reopen if users report 23H2 devices.
+8. Signing for direct download: Azure Artifact Signing is closed to individuals outside the US and Canada. Direct download waits on a signing identity. The Store route needs none.
 
-1. When Win2D ships a WinAppSDK 2.x build — no public roadmap (**unknown**).
-2. The Windows floor: docs still say Windows 10 1809+, but Windows 10 left
-   support in October 2025. Likely Windows 11 only; needs an ADR-0003-style
-   decision when the target starts.
-3. Native AOT across the full stack (WinUI 3 + Win2D/ComputeSharp together) —
-   each claims support, the combination is unproven.
-4. Whether Store certification treats a comic reader's user-provided content
-   as needing extra review.
-
-## Do not start this
-
-Until both mobile apps have shipped a 1.0. The research above makes the spike
-cheaper; it does not make it due sooner.
+The full spike list, with exit criteria, is in the research file and in the
+`tasks.md` of the change.

@@ -29,6 +29,7 @@ ADR that supersedes it rather than quietly doing something else.
 | [0015](0015-epub-webview-network-egress.md) | A publication's own network access: deny it, admit it, or narrow it | Accepted |
 | [0016](0016-ios-smb-response-signing.md) | iOS SMB responses are unsigned and unverified — extends 0010 | Accepted — risk accepted |
 | [0017](0017-android-text-to-speech.md) | Android reads aloud with the platform engine, not a new Readium artifact | Accepted |
+| [0018](0018-desktop-clients.md) | Desktop: macOS in Swift, Windows and Linux on one Rust core — supersedes the timing of 0004 | Accepted |
 
 ## Considered options
 
