@@ -85,7 +85,7 @@ struct ReflowableCurlTests {
         let page = try #require(context.makeImage())
 
         let curl = ReflowableCurl(
-            page: page, beneath: page, isRightToLeft: false, progress: 0, scale: 2
+            page: page, other: page, isRightToLeft: false, progress: 0, scale: 2
         )
 
         #expect(curl.size == CGSize(width: 300, height: 450))

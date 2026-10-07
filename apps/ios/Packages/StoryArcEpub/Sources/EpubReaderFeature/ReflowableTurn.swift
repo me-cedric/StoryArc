@@ -13,9 +13,9 @@ public import StoryArcCore
 // paginated scroll, `EpubReaderModel.goForward()` had no callers, and nothing in StoryArc
 // was ever holding a turn at a fraction between two pages.
 //
-// Apple Books does curl over reflowable text, so the approach is proven. This is the first
-// half of it: one raster, one cross-fade, which is Fast fade. Curl needs the *incoming*
-// page as a second texture before it is on screen, and that is a separate problem.
+// Apple Books does curl over reflowable text, so the approach is proven. Fast fade spends the
+// turn on one raster and a dip; Curl spends it on two rasters and a sheet the finger rolls
+// (`ProseCurl.swift`).
 
 /// Readium's paginated scroll view, found by walking the hierarchy.
 ///
@@ -151,13 +151,18 @@ enum TurnDrag {
 /// focus is: the navigator takes the first responder when it appears, and a web view that
 /// takes it later hands its key events to the same observers.
 ///
-/// **The pan is StoryArc's own, and only for Fast fade.** Readium's paginated scroll is
+/// **The pan is StoryArc's own, for Fast fade and Curl.** Readium's paginated scroll is
 /// what animates a Slide, so it has to stop for a transition StoryArc draws. Stopping it
-/// takes the swipe away, and a reader who chose Fast fade should not also lose swiping.
+/// takes the swipe away, and a reader who chose either should not also lose swiping. Fast
+/// fade reads the pan once, when it ends. Curl reads every phase of it, because the finger
+/// drives the fold (task 8.12).
 @MainActor
 final class TurnGestures: NSObject {
-    /// Non-nil only while Fast fade owns the turn. See ``EpubReaderModel/ownsTheTurn``.
+    /// Non-nil only while StoryArc owns the turn. See ``EpubReaderModel/ownsTheTurn``.
     private var turn: ((Bool) -> Void)?
+    /// Non-nil only while Curl owns the turn: every phase of the pan goes here, and the swipe
+    /// rule of Fast fade is not used.
+    private var drag: ((ProseDrag) -> Void)?
     /// Readium's own, animated turn — used wherever Fast fade is not drawing the turn, so
     /// Slide and Scroll answer a tap or a key the same way the comic reader does.
     private var animatedTurn: ((Bool) -> Void)?
@@ -213,9 +218,11 @@ final class TurnGestures: NSObject {
         reveal: @escaping () -> Void,
         tapTurnsPages: Bool,
         isRightToLeft: Bool = false,
+        drag: ((ProseDrag) -> Void)? = nil,
         on view: UIView
     ) {
         self.turn = turn
+        self.drag = drag
         self.animatedTurn = animatedTurn
         self.reveal = reveal
         self.tapTurnsPages = tapTurnsPages
@@ -258,10 +265,28 @@ final class TurnGestures: NSObject {
     }
 
     @objc private func panned(_ recogniser: UIPanGestureRecognizer) {
-        guard recogniser.state == .ended else { return }
         let travel = recogniser.translation(in: recogniser.view).x
+        if let drag {
+            guard let phase = Self.phase(
+                of: recogniser.state, travel: travel, velocity: recogniser.velocity(in: recogniser.view).x
+            ) else { return }
+            drag(phase)
+            return
+        }
+        guard recogniser.state == .ended else { return }
         guard let forward = TurnDrag.direction(travel: travel, isRightToLeft: isRightToLeft) else { return }
         turn?(forward)
+    }
+
+    /// What a pan recogniser's state means to the curl. A cancelled or failed pan lets go of
+    /// the page like a finger that lifted, so the page settles rather than staying lifted.
+    static func phase(of state: UIGestureRecognizer.State, travel: Double, velocity: Double) -> ProseDrag? {
+        switch state {
+        case .began: .began(travel: travel)
+        case .changed: .changed(travel: travel)
+        case .ended, .cancelled, .failed: .ended(travel: travel, velocity: velocity)
+        default: nil
+        }
     }
 }
 
@@ -274,4 +299,12 @@ extension TurnGestures: @MainActor UIGestureRecognizerDelegate {
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
     ) -> Bool { true }
+
+    /// Only a sideways pan turns a page. A finger that moves down the page is not asking for a
+    /// turn, and with Curl it would otherwise lift the page.
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return true }
+        let velocity = pan.velocity(in: pan.view)
+        return abs(velocity.x) >= abs(velocity.y)
+    }
 }

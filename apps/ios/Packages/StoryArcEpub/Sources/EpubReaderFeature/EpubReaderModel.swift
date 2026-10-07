@@ -204,6 +204,9 @@ public final class EpubReaderModel {
     /// nothing outside learns which engine is rendering the page.
     @ObservationIgnored var observer: NavigatorObserver?
 
+    /// The finger-driven curl over prose. See ``ProseCurlDriver``.
+    @ObservationIgnored let proseCurl = ProseCurlDriver()
+
     /// - Parameter preferences: the store the theme is read from and written back
     ///   to. Passing `nil` gives a reader that forgets, which is what a test wants
     ///   and what the app had before themes persisted.

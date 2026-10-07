@@ -53,15 +53,16 @@ extension UIView {
 /// The rolling sheet, drawn over the navigator while a turn runs.
 ///
 /// A `View` rather than a layer of its own, because the shader is a SwiftUI `Shader` and
-/// `ReaderFeature/CurledPages.swift` already fills a rectangle with exactly this one. There is
-/// no gesture here and no spring: a reflowable turn is discrete — a tap, a key, a released
-/// swipe — and `progress` is driven by the animation the caller starts.
+/// `ReaderFeature/CurledPages.swift` already fills a rectangle with exactly this one. The
+/// finger and the spring live in ``ProseCurlDriver``; this draws where they put the page.
 struct ReflowableCurl: View {
     /// The page that is leaving, rastered before the navigator moved.
     let page: CGImage
-    /// The page that is arriving, rastered after it moved and before this was shown.
-    let beneath: CGImage
+    /// The page that is arriving: rastered ahead of the turn at a chapter end, or after the
+    /// navigator moved inside one. `nil` until then, and the page lies flat until it comes.
+    let other: CGImage?
     let isRightToLeft: Bool
+    /// Signed, as the comic reader's is: 0 to 1 for a forward turn, 0 to -1 for a turn back.
     var progress: Double
     /// The scale the rasters were taken at, passed with them from the view that took them, so
     /// a texture and the scale it was made at cannot drift apart. `UIScreen.main` answered
@@ -69,9 +70,10 @@ struct ReflowableCurl: View {
     let scale: CGFloat
 
     var body: some View {
+        let sheets = Self.sheets(progress: progress, page: page, other: other)
         Rectangle().fill(
             ShaderLibrary.bundle(.module).pageCurl(
-                .float(progress),
+                .float(sheets.progress),
                 .float(Float(PageRoll.crease)),
                 .float(Float(PageRoll.shadow)),
                 .float(isRightToLeft ? -1 : 1),
@@ -83,10 +85,21 @@ struct ReflowableCurl: View {
                 // Both rasters fill the whole area: a prose page has no fit and no zoom.
                 .float4(0, 0, size.width, size.height),
                 .float4(0, 0, size.width, size.height),
-                .image(Image(decorative: page, scale: scale)),
-                .image(Image(decorative: beneath, scale: scale))
+                .image(Image(decorative: sheets.turning ?? page, scale: scale)),
+                .image(Image(decorative: sheets.under ?? page, scale: scale))
             )
         )
+    }
+
+    /// Which raster turns, which lies under it, and at what forward progress.
+    ///
+    /// The comic reader's own choice, ``CurlTurn/sheets(progress:page:beneath:previous:)``,
+    /// with the arriving page as both neighbours: a turn back rolls the arriving page in over
+    /// the leaving one, which is the forward projection run on the page behind. With no
+    /// arriving page yet the leaving page lies flat and whole, which is what is under the
+    /// sheet, so the sheet cannot show a page that is not there.
+    static func sheets(progress: Double, page: CGImage, other: CGImage?) -> CurlTurn.Sheets<CGImage> {
+        CurlTurn.sheets(progress: other == nil ? 0 : progress, page: page, beneath: other, previous: other)
     }
 
     /// The size the shader works in, which is the raster's size in points.
@@ -99,75 +112,10 @@ struct ReflowableCurl: View {
     }
 }
 
-extension EpubReaderModel {
-
-    /// How long one curl takes. The comic reader's spring settles in about this, and a turn
-    /// of prose that took longer would read as the page having stuck.
-    static let curlDuration = 0.34
-
-    /// Turns a page by rolling a picture of it off a picture of the next one.
-    ///
-    /// The order is the whole trick, and it is one navigator move rather than three:
-    ///
-    /// 1. the outgoing page is rastered while it is still on screen;
-    /// 2. the overlay goes up at a progress of zero, where the shader draws that raster flat
-    ///    and whole — so the overlay is indistinguishable from the page under it;
-    /// 3. the navigator moves with no animation of its own, hidden under the overlay;
-    /// 4. the page that arrived is rastered and becomes the sheet beneath;
-    /// 5. the roll runs, and the overlay comes off, leaving the live page it was hiding.
-    ///
-    /// **The overlay is added to the navigator view's superview, not to the navigator view.**
-    /// Step 4 rasters the navigator, and an overlay inside it would be in that picture — the
-    /// turn would then roll the outgoing page off a photograph of itself.
-    ///
-    /// A raster that does not arrive leaves the turn as a cut: the navigator has already
-    /// moved by then, so the reader loses the transition and never the page.
-    func turnWithCurl(forward: Bool) async {
-        guard let navigator, let page = navigator.view, let host = page.superview,
-              let outgoing = page.raster(afterScreenUpdates: false)
-        else {
-            await plainTurn(forward: forward)
-            return
-        }
-
-        let curl = CurlOverlay(
-            page: outgoing,
-            // Stood in by the outgoing page until step 4 has one. The shader samples it only
-            // past the fold, and at a progress of zero there is no past the fold.
-            beneath: outgoing,
-            isRightToLeft: isRightToLeft,
-            scale: page.rasterScale
-        )
-        curl.view.frame = page.frame
-        host.addSubview(curl.view)
-
-        let moved = forward
-            ? await navigator.goForward(options: NavigatorGoOptions(animated: false))
-            : await navigator.goBackward(options: NavigatorGoOptions(animated: false))
-
-        guard moved, let incoming = page.raster(afterScreenUpdates: true) else {
-            // At the end of the book, or with nothing to photograph. Both go at once rather
-            // than rolling, because a roll onto the page it started from reads as a turn that
-            // did not happen.
-            curl.view.removeFromSuperview()
-            return
-        }
-
-        curl.beneath = incoming
-        await curl.roll(over: Self.curlDuration)
-        curl.view.removeFromSuperview()
-    }
-
-    /// Readium's own turn, for the branches above that have no curl to draw.
-    private func plainTurn(forward: Bool) async {
-        if forward { await goForward() } else { await goBackward() }
-    }
-}
-
-/// The hosting controller the overlay lives in, and the one piece of state the roll drives.
+/// The hosting controller the overlay lives in, and the state the finger and the spring drive.
 ///
-/// A class because the overlay outlives the call that made it by exactly one animation, and
-/// because a `UIHostingController` that nothing retains takes its view down with it.
+/// A class because the overlay outlives the call that made it, and because a
+/// `UIHostingController` that nothing retains takes its view down with it.
 @MainActor
 final class CurlOverlay {
     private let state: Progress
@@ -175,13 +123,21 @@ final class CurlOverlay {
 
     var view: UIView { controller.view }
 
-    var beneath: CGImage {
-        get { state.beneath }
-        set { state.beneath = newValue }
+    /// The arriving page, once there is one. See ``ReflowableCurl/other``.
+    var other: CGImage? {
+        get { state.other }
+        set { state.other = newValue }
     }
 
-    init(page: CGImage, beneath: CGImage, isRightToLeft: Bool, scale: CGFloat) {
-        state = Progress(beneath: beneath)
+    /// Where the page is drawn this frame, which mid-spring is not where it is heading.
+    var drawn: Double { state.stand.value }
+
+    /// The width a whole turn is measured against, in points.
+    let width: Double
+
+    init(page: CGImage, other: CGImage?, isRightToLeft: Bool, scale: CGFloat) {
+        state = Progress(other: other)
+        width = Double(page.width) / scale
         controller = UIHostingController(
             rootView: ReflowableCurlHost(
                 page: page, isRightToLeft: isRightToLeft, scale: scale, state: state
@@ -194,30 +150,49 @@ final class CurlOverlay {
         controller.view.isUserInteractionEnabled = false
     }
 
-    /// Runs the roll and returns when it has finished.
-    func roll(over duration: Double) async {
+    /// Puts the page where the finger is, at once. No animation: an animation between finger
+    /// positions is a page lagging behind it.
+    func follow(_ progress: Double) {
+        state.value = progress
+        state.stand.value = progress
+    }
+
+    /// Springs the page to `target` and returns when the spring is done or was taken over.
+    ///
+    /// The comic reader's spring, ``CurlTurn/settleDuration``. SwiftUI runs the completion
+    /// when the animation is removed, which a drag that takes the page over does, so the
+    /// caller decides by its own ticket whether the turn is still its own to finish.
+    func settle(to target: Double) async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            withAnimation(.easeInOut(duration: duration)) {
-                state.value = 1
+            withAnimation(.spring(duration: CurlTurn.settleDuration)) {
+                state.value = target
             } completion: {
                 continuation.resume()
             }
         }
     }
 
-    /// Where the roll stands, and which page is under it.
+    /// Where the roll is heading, which page is under it, and where it is drawn this frame.
     ///
-    /// Observable rather than a binding, so the hosting controller is built once and the two
+    /// Observable rather than a binding, so the hosting controller is built once and the
     /// values that change after it is on screen can change without rebuilding it.
     @MainActor
     @Observable
     final class Progress {
         var value: Double = 0
-        var beneath: CGImage
+        var other: CGImage?
+        /// Written on every frame of a spring, so it is not observed. See ``Curling``.
+        @ObservationIgnored let stand = Stand()
 
-        init(beneath: CGImage) {
-            self.beneath = beneath
+        init(other: CGImage?) {
+            self.other = other
         }
+    }
+
+    /// Where the roll is drawn this frame, which a drag that takes over a spring starts from.
+    @MainActor
+    final class Stand {
+        var value: Double = 0
     }
 }
 
@@ -229,13 +204,36 @@ struct ReflowableCurlHost: View {
     @State var state: CurlOverlay.Progress
 
     var body: some View {
-        ReflowableCurl(
-            page: page,
-            beneath: state.beneath,
-            isRightToLeft: isRightToLeft,
-            progress: state.value,
-            scale: scale
-        )
+        Curling(progress: state.value, stand: state.stand) { drawn in
+            ReflowableCurl(
+                page: page,
+                other: state.other,
+                isRightToLeft: isRightToLeft,
+                progress: drawn,
+                scale: scale
+            )
+        }
         .ignoresSafeArea()
     }
+}
+
+/// The curl, drawn at the value SwiftUI is actually interpolating.
+///
+/// The comic reader's `Curling`, for the same reason: a view that conforms to `Animatable` is
+/// handed every step of the spring, which is the only way to know where a settle stands, so a
+/// drag that catches it can pick the page up there rather than at its destination.
+private struct Curling<Content: View>: View, @MainActor Animatable {
+    var progress: Double
+    let stand: CurlOverlay.Stand
+    @ViewBuilder let content: (Double) -> Content
+
+    var animatableData: Double {
+        get { progress }
+        set {
+            progress = newValue
+            stand.value = newValue
+        }
+    }
+
+    var body: some View { content(progress) }
 }

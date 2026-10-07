@@ -124,6 +124,8 @@ public struct EpubReaderView: View {
         let turn: ((Bool) -> Void)? = model.ownsTheTurn ? { forward in
             Task { await model.turn(forward: forward) }
         } : nil
+        // Curl alone reads every phase of the finger: the fold follows it (task 8.12).
+        let drag: ((ProseDrag) -> Void)? = model.drawnTurn == .pageCurl ? { model.curlDrag($0) } : nil
         let animatedTurn: (Bool) -> Void = { forward in
             Task { forward ? await model.goForward() : await model.goBackward() }
         }
@@ -142,6 +144,7 @@ public struct EpubReaderView: View {
                     // is a preview or a test, and the zones are on for them.
                     tapTurnsPages: settings?.turnPagesByTappingTheEdges ?? true,
                     isRightToLeft: model.isRightToLeft,
+                    drag: drag,
                     onTap: toggleChromeOrCloseTheme
                 )
                 .ignoresSafeArea()

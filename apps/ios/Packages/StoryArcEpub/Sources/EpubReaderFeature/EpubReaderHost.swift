@@ -28,6 +28,8 @@ struct NavigatorHost: UIViewControllerRepresentable {
     let tapTurnsPages: Bool
     /// Mirrors the edge-tap band and the Fast fade swipe. Task 9.12.
     var isRightToLeft: Bool = false
+    /// Non-nil while Curl draws the turn: the finger drives the fold. Task 8.12.
+    var drag: ((ProseDrag) -> Void)?
     let onTap: () -> Void
 
     func makeUIViewController(context: Context) -> EPUBNavigatorViewController {
@@ -54,6 +56,7 @@ struct NavigatorHost: UIViewControllerRepresentable {
             reveal: onTap,
             tapTurnsPages: tapTurnsPages,
             isRightToLeft: isRightToLeft,
+            drag: drag,
             on: controller.view
         )
     }
