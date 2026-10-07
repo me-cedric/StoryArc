@@ -17,6 +17,11 @@ struct CoverCandidateSheet: View {
     /// What the reader picked. Called once, with the candidate, and never with a default.
     let onChoose: (CoverCandidate) -> Void
 
+    /// Where each picture is fetched from, which is the one client that checks the setting and
+    /// the host. The process's own by default, so the sheet asks through the shelf's gate and
+    /// cache.
+    var client: CoverLookupClient = CoverLookupRung.live.client
+
     @Environment(\.theme) private var theme
 
     var body: some View {
@@ -26,8 +31,8 @@ struct CoverCandidateSheet: View {
                     .foregroundStyle(theme.palette.textSecondary)
             } else {
                 Section {
-                    ForEach(candidates) { candidate in
-                        Button { onChoose(candidate) } label: { row(candidate) }
+                    ForEach(CoverCandidatePicture.rows(candidates)) { item in
+                        Button { onChoose(item.candidate) } label: { row(item.candidate) }
                     }
                 } footer: {
                     Text("covers.candidates.note", bundle: .module)
@@ -40,15 +45,7 @@ struct CoverCandidateSheet: View {
     @ViewBuilder
     private func row(_ candidate: CoverCandidate) -> some View {
         HStack(spacing: StoryArcSpace.sm) {
-            // Decorative: the label beside it says what this is, and a description here
-            // would read the same title twice.
-            AsyncImage(url: candidate.imageURL) { image in
-                image.resizable().scaledToFit()
-            } placeholder: {
-                Color.clear
-            }
-            .frame(width: 44, height: 66)
-            .accessibilityHidden(true)
+            CandidatePicture(candidate: candidate, client: client)
 
             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
                 Text(candidate.title)
@@ -63,6 +60,33 @@ struct CoverCandidateSheet: View {
                     .textRole(.caption)
                     .foregroundStyle(theme.palette.textTertiary)
             }
+        }
+    }
+}
+
+/// One candidate's picture, or the space it will take.
+///
+/// Decorative: the title beside it says what this is, and a description here would read the
+/// same title twice. The space is held while the picture loads and when none comes, so the rows
+/// do not shift as the answers arrive.
+private struct CandidatePicture: View {
+    let candidate: CoverCandidate
+    let client: CoverLookupClient
+
+    @State private var picture: CGImage?
+
+    var body: some View {
+        Group {
+            if let picture {
+                Image(decorative: picture, scale: 1).resizable().scaledToFit()
+            } else {
+                Color.clear
+            }
+        }
+        .frame(width: 44, height: 66)
+        .accessibilityHidden(true)
+        .task(id: candidate.imageURL) {
+            picture = await CoverCandidatePicture.picture(for: candidate, via: client)
         }
     }
 }
