@@ -24,6 +24,20 @@ internal data class Sentence(
 )
 
 /**
+ * What [ReadAloudController] asks of the text, and nothing about Readium.
+ *
+ * An interface so a test can walk three sentences of its own instead of building a
+ * Readium `Publication` with a content service. [SpokenSentences] is the only
+ * implementation that ships.
+ */
+internal interface SentenceWalk {
+    fun restart(from: Locator?)
+    fun restartAtResource(index: Int): Boolean
+    suspend fun next(): Sentence?
+    suspend fun previous(): Sentence?
+}
+
+/**
  * The publication, walked one sentence at a time, in either direction.
  *
  * This is the part the repository believed Android had no answer for. It does, and it has
@@ -40,7 +54,7 @@ internal data class Sentence(
  * is the iOS-only half of the same toolkit.
  */
 @OptIn(ExperimentalReadiumApi::class)
-internal class SpokenSentences(private val publication: Publication) {
+internal class SpokenSentences(private val publication: Publication) : SentenceWalk {
 
     internal companion object {
         /**
@@ -98,7 +112,7 @@ internal class SpokenSentences(private val publication: Publication) {
      * `ebook-reader`: speech "begins at the current position". A null start is the
      * beginning of the publication, which is what a book nobody has opened yet means.
      */
-    fun restart(from: Locator?) {
+    override fun restart(from: Locator?) {
         iterator = publication.content(from)?.iterator()
         sentences = emptyList()
         cursor = -1
@@ -113,7 +127,7 @@ internal class SpokenSentences(private val publication: Publication) {
      * caller leaves the voice where it was rather than restarting it at the book's
      * beginning.
      */
-    fun restartAtResource(index: Int): Boolean {
+    override fun restartAtResource(index: Int): Boolean {
         val link = publication.readingOrder.getOrNull(index) ?: return false
         val locator = publication.locatorFromLink(link) ?: return false
         restart(locator)
@@ -127,10 +141,10 @@ internal class SpokenSentences(private val publication: Publication) {
      * of anything: the walk crosses into the next one without being asked to, which is
      * what "the page follows" has to mean when a chapter runs out mid-listen.
      */
-    suspend fun next(): Sentence? = advance(forward = true)
+    override suspend fun next(): Sentence? = advance(forward = true)
 
     /** The sentence before, or null at the beginning of the publication. */
-    suspend fun previous(): Sentence? = advance(forward = false)
+    override suspend fun previous(): Sentence? = advance(forward = false)
 
     private suspend fun advance(forward: Boolean): Sentence? {
         val step = if (forward) 1 else -1

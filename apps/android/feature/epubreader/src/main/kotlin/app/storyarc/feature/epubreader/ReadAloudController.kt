@@ -54,6 +54,8 @@ internal class ReadAloudController(
     publication: Publication,
     /** Reports the sentence the engine has started saying. */
     private val onSentence: suspend (Sentence) -> Unit,
+    /** The text, walked a sentence at a time. A test passes its own. */
+    private val sentences: SentenceWalk = SpokenSentences(publication),
 ) : SpokenVoice {
 
     /**
@@ -64,8 +66,6 @@ internal class ReadAloudController(
      * listener who closed the book heard the current sentence out and then silence.
      */
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-
-    private val sentences = SpokenSentences(publication)
 
     private val _session = MutableStateFlow(PlaybackSession())
     override val session: StateFlow<PlaybackSession> = _session.asStateFlow()
