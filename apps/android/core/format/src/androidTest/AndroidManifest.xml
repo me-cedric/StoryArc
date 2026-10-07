@@ -19,5 +19,16 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/test_file_paths" />
         </provider>
+        <!--
+            A document tree, for the scanner's content-tree walk. `DocumentsProvider` refuses to
+            attach unless it is exported, grants uri permissions and is guarded by
+            MANAGE_DOCUMENTS; the test runs in the same process, so the guard never turns it away.
+        -->
+        <provider
+            android:name="app.storyarc.core.format.TestTreeProvider"
+            android:authorities="app.storyarc.core.format.testtree"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS" />
     </application>
 </manifest>
