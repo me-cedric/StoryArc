@@ -18,7 +18,7 @@ options:
   # (I/O, External Displays, CarPlay) can prove the scene. `Info.simulator.plist` is
   # `Info.plist` plus `CarSceneManifest.json`, written here on every generate. A device build
   # uses `Info.plist` and `StoryArc.entitlements`, which hold neither.
-  # `CarSceneWiringTests` fails if either file gains a car key.
+  # `CarSimulatorOnlyTests` fails if either device file gains a car key.
   postGenCommand: >-
     plutil -insert UIApplicationSceneManifest -json "$(cat App/CarSceneManifest.json)"
     -o App/Info.simulator.plist App/Info.plist

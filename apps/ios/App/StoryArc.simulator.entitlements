@@ -7,7 +7,7 @@
       here and every other SDK at `StoryArc.entitlements`. The CarPlay Simulator reads this key
       from the app and needs no provisioning profile; a device build with it and no Apple team
       would fail to sign. Keep the keychain group identical to the other file, and nothing
-      else. `CarSceneWiringTests` fails if the two drift or if the device file gains the key.
+      else. `CarSimulatorOnlyTests` fails if the two drift or if the device file gains the key.
     -->
     <key>com.apple.developer.carplay-audio</key>
     <true/>
