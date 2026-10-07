@@ -132,7 +132,10 @@ final class ReadAloudPlayerTests: XCTestCase {
         let app = try speakAndLeaveTheReader()
 
         let wayBack = app.buttons["Back to the book"].firstMatch
-        XCTAssertTrue(wayBack.exists, "The bar offered no way back to the book.")
+        // A minimised tab bar holds the bar inline, without the way back. A swipe down on the
+        // shelf brings the full bar back.
+        if !wayBack.waitForExistence(timeout: 3) { app.swipeDown() }
+        XCTAssertTrue(wayBack.waitForExistence(timeout: 5), "The bar offered no way back to the book.")
         // Play or pause, whichever the session is in when the bar is read.
         let labels = app.buttons.allElementsBoundByIndex.map(\.label)
         let transport = labels.contains("Pause") ? "Pause" : "Play"
@@ -272,8 +275,10 @@ final class ReadAloudPlayerTests: XCTestCase {
         readAloud.tap()
 
         // The bar appears as soon as the session begins, which is before the first sentence
-        // is spoken — so this waits for the bar rather than for a sound.
-        let bar = app.buttons["Back to the book"].firstMatch
+        // is spoken — so this waits for the bar rather than for a sound. Its stop control,
+        // because the row's own name depends on the tab bar: a walk that scrolled the shelf
+        // minimised it, and an inline bar's row opens the player instead of the book.
+        let bar = app.buttons["Stop"].firstMatch
         XCTAssertTrue(
             bar.waitForExistence(timeout: 15),
             "The compact bar never appeared after starting read-aloud. Buttons on screen: "

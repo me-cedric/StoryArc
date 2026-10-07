@@ -52,7 +52,9 @@ final class PlayerBarLongTitleTests: XCTestCase {
         )
 
         // The walk ends on the book's page, with the bar over it. The frame this task is owed is
-        // the shelf, so go back to it.
+        // the shelf, so go back to it. At the largest size the walk scrolls the shelf to find
+        // the cover, which minimises the tab bar, so a swipe down brings the tabs back first.
+        if destination("Library", in: app) == nil { app.swipeDown() }
         try XCTUnwrap(destination("Library", in: app), "The shell offers no Library tab.").tap()
         for _ in 0..<3 where !app.navigationBars["Library"].exists {
             let back = app.navigationBars.buttons.element(boundBy: 0)
