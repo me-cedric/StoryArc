@@ -76,11 +76,6 @@ final class PlayerDamageTests: XCTestCase {
         )
         book.tap()
         let open = app.buttons.matching(opensAPublication).firstMatch
-        // Two copies of the book are on the device, the seeded download and the one the
-        // library scanned, so the cover opens the list of copies first. Choose the first.
-        if !open.waitForExistence(timeout: 4) {
-            app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Cut Short, ")).firstMatch.tap()
-        }
         XCTAssertTrue(
             open.waitForExistence(timeout: 10),
             "No way in from the detail screen. Buttons: \(app.buttons.allElementsBoundByIndex.map(\.label))"

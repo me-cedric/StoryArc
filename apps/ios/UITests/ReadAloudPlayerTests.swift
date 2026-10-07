@@ -14,6 +14,10 @@ import XCTest
 @MainActor
 final class ReadAloudPlayerTests: XCTestCase {
 
+    /// What held the UI focus just before the voice started and just after its bar appeared.
+    /// Set by ``speakAndLeaveTheReader(opening:)``, read by the focus test.
+    private var focusAroundStart: (before: String?, after: String?)?
+
     override nonisolated func setUp() {
         super.setUp()
         continueAfterFailure = false
@@ -107,6 +111,53 @@ final class ReadAloudPlayerTests: XCTestCase {
         )
         settle(0.5)
         attach(app.screenshot(), named: "voice-stopped-on-shelf")
+    }
+
+    /// The bar over a running voice: its elements in reading order, each named, and nothing
+    /// taken from the listener when it appeared.
+    ///
+    /// Task 2.4, `ebook-reader`'s *Reaching the transport without touch*. `PlayerDockFocusTests`
+    /// reads the source and `PlayerLabelsTests` reads the decisions; neither says what a screen
+    /// reader is handed. This asks the running app: the accessibility tree lists the way back,
+    /// the way into the player, play or pause, and stop, in that order, and the way back carries
+    /// the publication's whole name and the chapter as its value, because the row cuts them.
+    ///
+    /// **What XCUITest cannot see, and this does not claim.** The VoiceOver cursor is not
+    /// readable from a test, and a simulator cannot run VoiceOver. The focus clause is asserted
+    /// as far as a test can reach: the element the focus system holds is the same before the
+    /// session starts and after its bar is up. A bar that moved the cursor with
+    /// `accessibilityFocused` is still caught by `PlayerDockFocusTests`. The spoken walk and
+    /// Full Keyboard Access are on the device checklist.
+    func testTheVoiceBarIsReadInOrderAndTakesNoFocus() throws {
+        let app = try speakAndLeaveTheReader()
+
+        let wayBack = app.buttons["Back to the book"].firstMatch
+        XCTAssertTrue(wayBack.exists, "The bar offered no way back to the book.")
+        // Play or pause, whichever the session is in when the bar is read.
+        let labels = app.buttons.allElementsBoundByIndex.map(\.label)
+        let transport = labels.contains("Pause") ? "Pause" : "Play"
+        let order = ["Back to the book", "Open the player", transport, "Stop"]
+        let places = order.map { labels.firstIndex(of: $0) }
+        XCTAssertFalse(places.contains(nil), "The bar is missing an element of \(order). Buttons: \(labels)")
+        XCTAssertEqual(
+            places.compactMap { $0 }.sorted(),
+            places.compactMap { $0 },
+            "A screen reader meets the bar's elements out of order: \(order) sit at \(places) in \(labels)"
+        )
+
+        // The title is the row's first text, and its label is whole however the row cuts it.
+        let title = wayBack.staticTexts.firstMatch.label
+        let value = wayBack.value as? String ?? ""
+        XCTAssertFalse(title.isEmpty, "The way back draws no title.")
+        XCTAssertTrue(
+            value.contains(title),
+            "The way back announces \"\(value)\", which leaves out the title \"\(title)\" the row may cut."
+        )
+
+        let around = try XCTUnwrap(focusAroundStart, "The walk recorded no focus.")
+        XCTAssertEqual(around.before, around.after, "Starting the voice moved the focus.")
+
+        try reportOnly(app, named: "Library with the read-aloud bar")
     }
 
     // MARK: - The walk
@@ -217,6 +268,7 @@ final class ReadAloudPlayerTests: XCTestCase {
             Buttons in the menu: \(app.buttons.allElementsBoundByIndex.map(\.label))
             """
         )
+        let focusBefore = uiFocus(in: app)
         readAloud.tap()
 
         // The bar appears as soon as the session begins, which is before the first sentence
@@ -227,6 +279,8 @@ final class ReadAloudPlayerTests: XCTestCase {
             "The compact bar never appeared after starting read-aloud. Buttons on screen: "
                 + "\(app.buttons.allElementsBoundByIndex.map(\.label))"
         )
+
+        focusAroundStart = (focusBefore, uiFocus(in: app))
 
         // **Paused before leaving, and deliberately.** A capture of a moving session is a
         // race: the voice crosses a sentence between the two screenshots and the chapter line
@@ -244,6 +298,14 @@ final class ReadAloudPlayerTests: XCTestCase {
         close.tap()
         backToTheShelf(in: app)
         return app
+    }
+
+    /// What the focus system holds, as a label, or nil when it holds nothing.
+    ///
+    /// The UI focus, not the screen reader's cursor, which a test cannot read.
+    private func uiFocus(in app: XCUIApplication) -> String? {
+        let held = app.descendants(matching: .any).matching(NSPredicate(format: "hasFocus == true")).firstMatch
+        return held.exists ? "\(held.elementType.rawValue):\(held.label)" : nil
     }
 
     /// Closing the reader lands on the publication's page — the Library split's detail column,

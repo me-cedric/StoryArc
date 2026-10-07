@@ -56,16 +56,34 @@ const SEEDS = [
     fixture: 'packages/test-fixtures/audiobooks/chaptered.m4b',
   },
   {
+    // `PlayerBarLongTitleTests` photographs the compact bar over this one. The title is long
+    // enough that the bar's single line cuts it at every text size, and the whole of it has
+    // to be announced and shown in the player. The whole title is the
+    // walk's handle: the cover's label has to begin with it.
+    id: 'seed-long-title',
+    title: 'Across the Minch to the Shiants and Bird Island on the Long Road Home',
+    mediaType: 'audio/mp4',
+    extension: 'm4b',
+    downloadOnly: true,
+    fixture: 'packages/test-fixtures/audiobooks/chaptered.m4b',
+  },
+  {
     // `PlayerDamageTests` plays this to its end. The file reports a full `moov`, so nothing
     // before playback says the media is short: the engine finds out as it plays.
     id: 'seed-cut-short',
     title: 'Cut Short',
     mediaType: 'audio/mp4',
     extension: 'm4b',
+    downloadOnly: true,
     fixture: 'packages/test-fixtures/audiobooks/truncated.m4b',
   },
 ]
 
+// `downloadOnly` leaves out the scanned copy. A book held in two places opens a list of its
+// copies before its page, and the walks that need one book, such as `PlayerDamageTests` and
+// `PlayerBarLongTitleTests`, would spend their six seconds of audio choosing between them. A
+// sweep clears the download record, so these two are not for the sweeps.
+//
 // An audiobook gets a folder of its own inside the download's folder. A comic does not.
 //
 // `LibraryScanner` indexes a lone audio file as the folder that holds it. An audiobook written
@@ -125,11 +143,13 @@ for (const seed of SEEDS) {
   // The same bytes again, in the folder the app scans. A sweep clears the download record,
   // so this copy is the only one it can see. An audiobook keeps its own folder here too, for
   // the reason `needsOwnFolder` gives.
-  const scanned = needsOwnFolder(seed)
-    ? join(container, 'Documents', name)
-    : join(container, 'Documents')
-  mkdirSync(scanned, { recursive: true })
-  copyFileSync(fixture, join(scanned, `${name}.${seed.extension}`))
+  if (!seed.downloadOnly) {
+    const scanned = needsOwnFolder(seed)
+      ? join(container, 'Documents', name)
+      : join(container, 'Documents')
+    mkdirSync(scanned, { recursive: true })
+    copyFileSync(fixture, join(scanned, `${name}.${seed.extension}`))
+  }
 
   // `StoredDownload` as `JSONEncoder` writes it. A date is seconds since the Apple reference
   // date, 2001-01-01, which is what `JSONDecoder` reads back with its default strategy.
@@ -148,7 +168,9 @@ for (const seed of SEEDS) {
     verificationFailures: 0,
     pause: null,
   })
-  console.log(`  ${seed.title}  <container>${file.slice(container.length)}  + Documents/`)
+  console.log(
+    `  ${seed.title}  <container>${file.slice(container.length)}${seed.downloadOnly ? '' : '  + Documents/'}`
+  )
 }
 
 // The old-style plist spelling of `Data`, which is what `UserDefaults.data(forKey:)` reads.

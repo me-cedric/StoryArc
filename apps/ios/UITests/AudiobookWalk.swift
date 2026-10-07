@@ -21,15 +21,19 @@ extension XCTestCase {
     /// no audiobook on it, filed as a picture of the player, is worse than no capture — and an
     /// accessibility audit of the same shelf, filed under "Player", is worse still.
     ///
+    /// - Parameter title: how the cover's label begins. `Sea Room` unless a walk needs another
+    ///   book, such as the one with a title long enough to be cut in the compact bar. It is the
+    ///   start of the label and not any part of it, because a Downloads row also carries a
+    ///   *Remove the download of …* button naming the same book.
     /// - Returns: the audiobook's cover on the shelf, for a caller that wants to go back to it.
     @discardableResult
-    func openAnAudiobook(in app: XCUIApplication) throws -> XCUIElement {
+    func openAnAudiobook(in app: XCUIApplication, titled title: String = "Sea Room") throws -> XCUIElement {
         // `matching` asks the cover's own label; `containing` asked its descendants and there
         // are none. A shelf cell is a single accessibility element — `CoverCell` combines its
         // children explicitly and the downloads shelf's link inherits the same behaviour from
         // SwiftUI — so the title is on the cell, and a descendant query matches nothing.
         let audiobook = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", "Sea Room")
+            NSPredicate(format: "label BEGINSWITH[c] %@", title)
         ).firstMatch
 
         // **Downloads first, and the order is the whole point.** A seeded download reaches the
@@ -71,7 +75,10 @@ extension XCTestCase {
         // `opensAPublication` matches all four wordings, because which one appears depends on
         // whether an earlier run left a recorded position and a walk must not.
         let open = app.buttons.matching(opensAPublication).firstMatch
-        XCTAssertTrue(open.waitForExistence(timeout: 10), "No way in from the detail screen.")
+        XCTAssertTrue(
+            open.waitForExistence(timeout: 10),
+            "No way in from the detail screen. Buttons: \(app.buttons.allElementsBoundByIndex.map(\.label))"
+        )
         open.tap()
 
         // The player starts asynchronously — the container is read for its chapters first — so
