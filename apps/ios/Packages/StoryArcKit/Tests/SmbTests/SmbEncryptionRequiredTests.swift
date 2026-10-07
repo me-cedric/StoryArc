@@ -18,7 +18,7 @@ import Testing
 /// **A session that seals its messages meets the demand.** The vendored client negotiates SMB 3
 /// encryption, so the refusal is for a session that cannot seal: an SMB 2 server, or a guest
 /// session with no key. `SmbEncryptionTests` connects to a Samba share with `smb encrypt =
-/// required` end to end. ADR-0018.
+/// required` end to end. ADR-0019.
 @Suite("A share that demands encryption is named")
 struct SmbEncryptionRequiredTests {
 

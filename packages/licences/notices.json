@@ -108,7 +108,7 @@
       "platforms": [
         "ios"
       ],
-      "why": "SMB 2 and SMB 3, which iOS has no API for. Vendored in third_party/SMBClient, with SMB 3 dialects and transport encryption added. ADR-0010, ADR-0018.",
+      "why": "SMB 2 and SMB 3, which iOS has no API for. Vendored in third_party/SMBClient, with SMB 3 dialects and transport encryption added. ADR-0010, ADR-0019.",
       "copyright": "Copyright (c) 2024 Kishikawa Katsumi"
     },
     {
@@ -185,7 +185,7 @@
       "platforms": [
         "android"
       ],
-      "why": "SMB 2 and SMB 3 with transport encryption, which Android has no API for. ADR-0010, ADR-0018.",
+      "why": "SMB 2 and SMB 3 with transport encryption, which Android has no API for. ADR-0010, ADR-0019.",
       "copyright": "Copyright (C) 2016 - SMBJ Contributors"
     },
     {
@@ -196,7 +196,7 @@
       "platforms": [
         "android"
       ],
-      "why": "SPNEGO token parsing inside smbj. ADR-0018.",
+      "why": "SPNEGO token parsing inside smbj. ADR-0019.",
       "copyright": "Copyright 2016 Jeroen van Erp <jeroen@hierynomus.com>"
     },
     {
@@ -207,7 +207,7 @@
       "platforms": [
         "android"
       ],
-      "why": "The event bus inside smbj. ADR-0018.",
+      "why": "The event bus inside smbj. ADR-0019.",
       "copyright": "Copyright (c) 2012 Benjamin Diedrichsen"
     },
     {
@@ -218,7 +218,7 @@
       "platforms": [
         "android"
       ],
-      "why": "The logging facade smbj writes to. ADR-0018.",
+      "why": "The logging facade smbj writes to. ADR-0019.",
       "copyright": "Copyright (c) 2004-2022 QOS.ch Sarl (Switzerland)"
     },
     {
@@ -229,7 +229,7 @@
       "platforms": [
         "android"
       ],
-      "why": "The ciphers, MACs and key derivation inside smbj, for SMB signing and SMB 3 encryption. ADR-0018.",
+      "why": "The ciphers, MACs and key derivation inside smbj, for SMB signing and SMB 3 encryption. ADR-0019.",
       "copyright": "Copyright (c) 2000-2026 The Legion of the Bouncy Castle Inc. (https://www.bouncycastle.org)."
     },
     {

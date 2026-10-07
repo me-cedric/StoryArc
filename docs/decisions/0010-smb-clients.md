@@ -6,7 +6,7 @@ deciders: Cédric Meyer
 
 # ADR-0010 — An SMB2 client per platform, both pure and permissively licensed
 
-> **Updated by [ADR-0018](0018-smb-3-encryption-clients.md), 2026-10-07.** Android now uses
+> **Updated by [ADR-0019](0019-smb-3-encryption-clients.md), 2026-10-07.** Android now uses
 > smbj (Apache-2.0) instead of jcifs-ng. iOS uses SMBClient 0.3.1, vendored under
 > `third_party/SMBClient` with SMB 3 dialects and transport encryption added. Both clients
 > negotiate SMB 3.1.1, encrypt when the server has a cipher in common, and report the dialect

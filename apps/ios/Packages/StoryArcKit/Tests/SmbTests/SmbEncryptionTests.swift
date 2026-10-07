@@ -8,7 +8,7 @@ import Testing
 /// `network-share`'s *Encrypted transport*: "WHEN the server supports SMB 3 encryption THEN
 /// the app negotiates it AND the source detail screen states whether the connection is
 /// encrypted". The vendored client used to offer SMB 2.0.2 and 2.1 only, so this share
-/// refused it at the session setup. ADR-0018.
+/// refused it at the session setup. ADR-0019.
 ///
 /// `scripts/smb-server.sh --encrypted` serves the fixture corpus with `smb encrypt =
 /// required` on port 4446. Skipped when it is not running.

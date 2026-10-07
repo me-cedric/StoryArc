@@ -40,7 +40,7 @@ let package = Package(
         // Exact, not `from:`. A pre-1.0 package is free to change behaviour in a
         // patch release, and this one speaks a protocol to a server the reader
         // configured. The version moves in a reviewed diff or it does not move.
-        // SMBClient 0.3.1, vendored with SMB 3 encryption added. ADR-0018.
+        // SMBClient 0.3.1, vendored with SMB 3 encryption added. ADR-0019.
         .package(path: "../../../../third_party/SMBClient"),
     ],
     targets: [

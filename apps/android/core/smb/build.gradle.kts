@@ -48,7 +48,7 @@ dependencies {
     api(project(":core:model"))
     // SMB 2 and 3, with SMB 3 transport encryption. Its own runtime dependencies are
     // Bouncy Castle (the ciphers), asn-one (SPNEGO), MBassador (events) and the SLF4J API.
-    // ADR-0018 records the swap from jcifs-ng.
+    // ADR-0019 records the swap from jcifs-ng.
     implementation(libs.smbj)
     implementation(libs.kotlinx.coroutines.core)
 

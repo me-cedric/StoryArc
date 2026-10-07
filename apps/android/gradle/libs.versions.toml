@@ -14,7 +14,7 @@ coreKtx = "1.19.0"
 # extension level is a real guard rather than a boolean. ADR-0012.
 androidxAnnotation = "1.10.0"
 # SMB 2 and SMB 3 with transport encryption (AES-128-GCM and AES-128-CCM).
-# Replaced jcifs-ng, which carried no cipher and was LGPL. ADR-0018.
+# Replaced jcifs-ng, which carried no cipher and was LGPL. ADR-0019.
 smbj = "0.15.0"
 lifecycle = "2.11.0"
 activityCompose = "1.13.0"
@@ -129,7 +129,7 @@ androidx-test-runner = { group = "androidx.test", name = "runner", version.ref =
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
-# `network-share` needs SMB 2/3, which Android has no API for. ADR-0010, ADR-0018.
+# `network-share` needs SMB 2/3, which Android has no API for. ADR-0010, ADR-0019.
 smbj = { group = "com.hierynomus", name = "smbj", version.ref = "smbj" }
 
 [plugins]

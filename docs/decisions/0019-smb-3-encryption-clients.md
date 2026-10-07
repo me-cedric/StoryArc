@@ -4,7 +4,7 @@ date: 2026-10-07
 deciders: Cédric Meyer
 ---
 
-# ADR-0018 — SMB 3 encryption on both platforms: smbj on Android, a vendored SMBClient on iOS
+# ADR-0019 — SMB 3 encryption on both platforms: smbj on Android, a vendored SMBClient on iOS
 
 **This updates [ADR-0010](0010-smb-clients.md) and [ADR-0016](0016-ios-smb-response-signing.md).**
 ADR-0010 chose one SMB client per platform and recorded that neither encrypts. ADR-0016

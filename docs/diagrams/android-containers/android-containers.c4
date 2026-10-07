@@ -86,7 +86,7 @@ model {
 
     coreSmb = module ':core:smb' {
       description 'The SMB seam, mirroring the iOS one.'
-      technology 'smbj (ADR-0018)'
+      technology 'smbj (ADR-0019)'
     }
 
     featureLibrary = module ':feature:library' 'Library browsing, source management, downloads.'

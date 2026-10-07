@@ -4,7 +4,7 @@
 `e636c2b2458930770932a36d311ec9d478575b90` · MIT ([`LICENSE`](LICENSE)).
 
 The iOS app reads network shares through this client. [ADR-0010](../../docs/decisions/0010-smb-clients.md)
-chose it. [ADR-0018](../../docs/decisions/0018-smb-3-encryption-clients.md) vendored it,
+chose it. [ADR-0019](../../docs/decisions/0019-smb-3-encryption-clients.md) vendored it,
 because no upstream release negotiates SMB 3, and SMB 3 is where transport encryption starts.
 
 ## Why it is vendored

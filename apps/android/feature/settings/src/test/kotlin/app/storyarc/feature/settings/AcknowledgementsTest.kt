@@ -100,7 +100,7 @@ class AcknowledgementsTest {
     /**
      * No component is LGPL any more.
      *
-     * `jcifs-ng` was the one LGPL-2.1-or-later entry, and ADR-0018 replaced it with `smbj`,
+     * `jcifs-ng` was the one LGPL-2.1-or-later entry, and ADR-0019 replaced it with `smbj`,
      * which is Apache-2.0. An LGPL row that came back would bring back the relinking duty
      * the replacement removed, so it fails here by name.
      */

@@ -142,7 +142,7 @@ struct AcknowledgementsInventoryTests {
 
     /// No component is LGPL, and the vendored SMB client keeps its own notice.
     ///
-    /// `jcifs-ng` was the one LGPL entry, and ADR-0018 replaced it with `smbj`, which is
+    /// `jcifs-ng` was the one LGPL entry, and ADR-0019 replaced it with `smbj`, which is
     /// Apache-2.0. The iOS client is vendored under `third_party/SMBClient`, so no lockfile
     /// names it: its row and its licence file are checked here instead.
     @Test("No component is LGPL, and the vendored SMB client carries its MIT notice")

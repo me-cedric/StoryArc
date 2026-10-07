@@ -6,7 +6,7 @@ public import Observation
 /// `network-share`'s *Encrypted transport* requires the source detail screen to state whether
 /// the connection is encrypted. That sentence must follow a measured value, and the value
 /// belongs to a session, not to the app: the client encrypts a session only when the server
-/// agreed SMB 3 with a cipher in common, so two shares can give two answers. ADR-0018.
+/// agreed SMB 3 with a cipher in common, so two shares can give two answers. ADR-0019.
 ///
 /// Android's `ShareTransport` is the mirror of this type.
 public struct ShareTransport: Sendable, Equatable {

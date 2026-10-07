@@ -22,7 +22,7 @@ import kotlinx.coroutines.withContext
  *
  * Thin on purpose: everything above this line -- the ZIP reader, the page decoder, the
  * reader -- works against [RandomAccessSource] and learns nothing about SMB. ADR-0010 keeps
- * the client behind this seam so that the choice of library stays a detail. ADR-0018 swapped
+ * the client behind this seam so that the choice of library stays a detail. ADR-0019 swapped
  * the library under it, from jcifs-ng to smbj, for SMB 3 encryption.
  */
 class SmbClient(private val address: SmbAddress) : AutoCloseable {

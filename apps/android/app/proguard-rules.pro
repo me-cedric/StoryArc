@@ -4,7 +4,7 @@
 # Compose and AndroidX ship their own consumer rules — nothing needed here yet.
 # Serialization and reflection-based rules land with the connector layer.
 
-# smbj (ADR-0018) and the libraries it brings.
+# smbj (ADR-0019) and the libraries it brings.
 #
 # MBassador finds an event handler by its @Handler annotation, at run time. smbj's
 # SMBClient, Connection and Session each subscribe one, and a handler R8 renamed

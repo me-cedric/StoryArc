@@ -6,7 +6,7 @@ deciders: Cédric Meyer
 
 # ADR-0016 — iOS SMB: an unsigned, unverified session, and no client that fixes it
 
-> **Updated by [ADR-0018](0018-smb-3-encryption-clients.md), 2026-10-07.** The iOS client now
+> **Updated by [ADR-0019](0019-smb-3-encryption-clients.md), 2026-10-07.** The iOS client now
 > negotiates SMB 3.1.1 and seals every message after the session setup when the server has a
 > cipher in common, so a sealed session is authenticated by its cipher. "SMB 3 is never
 > reached" below is no longer true. The accepted risk stays for a session that is signed and

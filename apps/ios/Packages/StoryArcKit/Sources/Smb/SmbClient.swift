@@ -45,7 +45,7 @@ public actor SmbClient {
         try await translating(isHandshake: true) {
             // `login` negotiates and sets up the session in one call. The vendored client
             // offers SMB 2.0.2 to SMB 3.1.1, and seals every later message in an SMB 3
-            // transform when the two ends agreed a cipher. ADR-0018.
+            // transform when the two ends agreed a cipher. ADR-0019.
             try await client.login(
                 username: address.isGuest ? nil : address.username,
                 password: address.isGuest ? nil : address.password
