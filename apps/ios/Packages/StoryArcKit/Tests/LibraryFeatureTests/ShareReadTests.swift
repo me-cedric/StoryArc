@@ -88,17 +88,22 @@ struct ShareReadTests {
         #expect(await step(row()) == nil)
     }
 
-    @Test("A format that needs a local file is offered with its stated size")
-    func aLocalOnlyFormatIsOffered() async {
-        // `publication-formats`: the app "says the format has to be downloaded before it can
-        // be read, states the size, and offers to download it". A PDF opened at an `smb://`
-        // address would be handed to PDFKit as a path that is not one.
-        #expect(await step(row(format: .pdf)) == .download(bytes: 400_000_000))
+    @Test("A remote PDF is fetched whole, with no offer first")
+    func aRemotePdfIsFetched() async {
+        // `publication-formats`, *Opening a remote PDF on iOS*: the app "fetches the whole
+        // file first, shows how far the fetch has come, and opens the PDF reader when it
+        // ends". O4: no download offer stands between the tap and the fetch.
+        #expect(await step(row(format: .pdf)) == .fetch)
     }
 
-    @Test("A share that stated no length is offered with no size rather than nought")
-    func anUnstatedLengthIsAnAbsence() async {
-        #expect(await step(row(format: .pdf, fileSize: nil)) == .download(bytes: nil))
+    @Test("A PDF whose length the share did not state is fetched the same way")
+    func anUnstatedLengthIsFetchedToo() async {
+        #expect(await step(row(format: .pdf, fileSize: nil)) == .fetch)
+    }
+
+    @Test("A solid RAR5 is still offered with its size, because it is not a PDF")
+    func aSolidRar5IsStillOffered() async {
+        #expect(await step(row(format: .cbr, streaming: .downloadOnly)) == .download(bytes: 400_000_000))
     }
 
     @Test("A container no decoder opens is refused rather than fetched")

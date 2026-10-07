@@ -72,6 +72,8 @@ public struct PublicationDetailView: View {
     /// What a tap on a share row is waiting on, and `nil` for every other row and every
     /// share row nobody has tapped. Task 5.13 — see ``ShareRead``.
     @State private var shareAsk: ShareRead.Ask?
+    /// How far a remote PDF's fetch has come, from 0 to 1, and `nil` when nothing is fetching.
+    @State private var fetched: Double?
     /// Whether this link is one to be careful with. The share browser holds its own, for the
     /// same question about the same bytes; `network-share` asks it before either of them
     /// streams anything.
@@ -124,6 +126,10 @@ public struct PublicationDetailView: View {
             .padding(.bottom, StoryArcSpace.xxxl)
         }
         .background(DetailBackground(wash: wash))
+        // Task 14.15: a remote PDF's fetch, shown while it runs.
+        .safeAreaInset(edge: .bottom) {
+            if let fetched { ShareFetchBar(title: publication.displayTitle, fraction: fetched) }
+        }
         // Task 5.13: the confirmation and the download offer a share row owes, drawn exactly
         // as ``SmbBrowserView`` draws them for the same file.
         .shareReading(
@@ -294,7 +300,29 @@ public struct PublicationDetailView: View {
             isCareful: cost.isCareful,
             hasConfirmedMetered: hasConfirmedMetered
         )
-        if let ask { shareAsk = ask } else { onOpen(publication, share) }
+        switch ask {
+        case nil: onOpen(publication, share)
+        case .fetch: await fetchShare(share)
+        case let ask?: shareAsk = ask
+        }
+    }
+
+    /// Task 14.15: a remote PDF is fetched whole with its progress shown, then opened in
+    /// PDFKit. A failure is said as a connection failure, through the refusal alert.
+    private func fetchShare(_ share: URL) async {
+        guard fetched == nil else { return }
+        fetched = 0
+        defer { fetched = nil }
+        await ShareFetch.fetch(
+            publication,
+            at: share,
+            into: ShareFetch.directory,
+            source: { try await ShareFetch.source(for: share) },
+            // A report that lands after the fetch ended must not raise the bar again.
+            progress: { fraction in Task { @MainActor in if fetched != nil { fetched = fraction } } },
+            onOpen: onOpen,
+            onSay: { shareAsk = .said($0) }
+        )
     }
 
     /// The offer's own action: the copy ``LibraryModel/keepOffline(_:queue:)`` makes, which

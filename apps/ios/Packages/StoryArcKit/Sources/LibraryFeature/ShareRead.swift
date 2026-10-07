@@ -36,6 +36,9 @@ enum ShareRead {
         /// This format cannot be read where it lies. The size, where the share stated one.
         case download(bytes: Int64?)
 
+        /// A PDF: fetched whole, with its progress shown, then opened. No offer first (O4).
+        case fetch
+
         /// Nothing will open this, here or anywhere, and the sentence says which refusal.
         case said(LocalizedStringResource)
 
@@ -77,8 +80,8 @@ enum ShareRead {
             file: (publication.displayTitle, publication.fileSize ?? 0),
             index: { (publication, address) },
             onOpen: { _, _ in opened = true },
-            // The page offers the fetch through the download queue, which shows its progress.
-            onFetch: { ask = .download(bytes: publication.fileSize) },
+            // `publication-formats`, *Opening a remote PDF on iOS*: fetched whole, then opened.
+            onFetch: { ask = .fetch },
             onOffer: { bytes in ask = .download(bytes: bytes) },
             onSay: { said in ask = .said(said) }
         )
