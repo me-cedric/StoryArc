@@ -39,7 +39,8 @@ public final class NarratedSource: PlaybackSource {
     public private(set) var unreadablePartCount: Int
 
     private let timeline: PlaybackTimeline
-    private let player = AVPlayer()
+    /// Internal, not private, so `NarratedSourceFailureTests` can post a failure for its item.
+    let player = AVPlayer()
     private var speed: PlaybackSpeed = .normal
 
     /// The file the current item holds, which is what turns the player's clock into a place.
@@ -199,10 +200,11 @@ public final class NarratedSource: PlaybackSource {
     /// how much it could not", by the same rule that opens a comic missing pages. The count
     /// goes up before the move, so a listener who stops at exactly this part still sees the
     /// damage stated. A file counts once, however often the engine says so. What happens next
-    /// is ``PlaybackTimeline/response(toFailureAtPart:itemHasFailed:)``'s.
+    /// is ``PlaybackTimeline/response(toFailureAtPart:itemHasFailed:)``'s, on every report: a
+    /// file that fails again after a seek back still hands over, and a last file whose item
+    /// fails after it carried on still ends.
     private func fileFailed() {
-        guard let playing, failedFiles.insert(playing).inserted else { return }
-        unreadablePartCount += 1
+        if let playing, failedFiles.insert(playing).inserted { unreadablePartCount += 1 }
         switch timeline.response(
             toFailureAtPart: place.partIndex,
             itemHasFailed: player.currentItem?.status == .failed
