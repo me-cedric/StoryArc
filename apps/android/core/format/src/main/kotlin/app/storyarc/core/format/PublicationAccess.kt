@@ -4,7 +4,9 @@ import android.content.ContentResolver
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.storage.StorageManager
+import app.storyarc.core.model.CoverIdentifier
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.PublicationFormat
 import java.io.File
 
 /**
@@ -133,6 +135,45 @@ object PublicationAccess {
             CoverLoader.anyCover(publication, File(path), maxPixelSize)
         }
     }
+
+    /**
+     * The identifier the cover lookup asks about, read from the file where it lives.
+     *
+     * A folder of tracks is read through its first track, because every track of an album
+     * carries the same release group. A folder from the Storage Access Framework has no
+     * path to list and reads none.
+     */
+    suspend fun identifier(
+        resolver: ContentResolver,
+        publication: Publication,
+        path: String,
+    ): CoverIdentifier? = when {
+        isRemote(path) -> identifier(publication) { remoteSource(path) }
+        isDocument(path) -> identifier(publication) {
+            UriSource(resolver, path.toUri()).takeUnless {
+                publication.format == PublicationFormat.AUDIO_FOLDER
+            }
+        }
+        else -> identifier(publication, File(path))
+    }
+
+    /** The same for a path on the device: a file, or a folder of tracks. */
+    internal suspend fun identifier(publication: Publication, file: File): CoverIdentifier? =
+        identifier(publication) {
+            val target = if (file.isDirectory) firstTrack(file) else file
+            target?.let(::FileSource)
+        }
+
+    private suspend fun identifier(
+        publication: Publication,
+        open: suspend () -> RandomAccessSource?,
+    ): CoverIdentifier? = runCatching {
+        open()?.use { CoverIdentifierReader.identifier(publication, it) }
+    }.getOrNull()
+
+    private fun firstTrack(folder: File): File? =
+        folder.listFiles { file -> file.extension.lowercase() in FolderKind.AUDIO_EXTENSIONS }
+            ?.minByOrNull { it.name }
 
     // androidx.core's `String.toUri` would do, and this module has no reason to
     // depend on androidx.core for one call.

@@ -61,7 +61,7 @@ class CoverLookupClientTest {
 
     @Test
     fun `a provider that answers with a picture gives back its address`() = runBlocking {
-        val found = client(enabled = true, transport = transport(url = "https://art/1.jpg"))
+        val found = client(enabled = true, transport = transport(body = "jpeg", url = "https://art/1.jpg"))
             .cover("pub", CoverIdentifier.Isbn("9780141187761"))
 
         assertEquals("https://art/1.jpg", found)
@@ -157,6 +157,62 @@ class CoverLookupClientTest {
         CoverLookupCache(file).record(answer, "pub")
 
         assertEquals(answer, CoverLookupCache(file).answer("pub"))
+    }
+
+    @Test
+    fun `a picture is fetched once and kept, whichever size asks for it next`() = runBlocking {
+        val file = file()
+        val isbn = CoverIdentifier.Isbn("9780141187761")
+
+        val first = client(true, CoverLookupCache(file), transport(body = "jpeg")).coverImage("pub", isbn)
+        val later = client(true, CoverLookupCache(file), transport(status = 500)).coverImage("pub", isbn)
+
+        assertEquals("jpeg", String(first!!))
+        assertEquals("jpeg", String(later!!))
+        assertEquals("only the first call reached the network", 1, asked.size)
+    }
+
+    @Test
+    fun `a document answer costs two requests the first time and none after`() = runBlocking {
+        val file = file()
+        val asin = CoverIdentifier.AudibleAsin("B08G9PRS1K")
+        val document = """{"image":"https://m.media-amazon.com/images/I/c.jpg"}"""
+        val transport = CoverTransport { request ->
+            asked += request
+            val body = if (request.url.contains("audnex")) document else "jpeg"
+            CoverFetched(200, body.toByteArray(), request.url)
+        }
+
+        client(true, CoverLookupCache(file), transport).coverImage("pub", asin)
+        val again = client(true, CoverLookupCache(file), transport).coverImage("pub", asin)
+
+        assertEquals("jpeg", String(again!!))
+        assertEquals(listOf("api.audnex.us", "m.media-amazon.com"), asked.map { java.net.URI(it.url).host })
+    }
+
+    @Test
+    fun `a kept picture is not handed out while the setting is off`() = runBlocking {
+        val file = file()
+        val isbn = CoverIdentifier.Isbn("9780141187761")
+        client(true, CoverLookupCache(file), transport(body = "jpeg")).coverImage("pub", isbn)
+        asked.clear()
+
+        val off = client(false, CoverLookupCache(file)).coverImage("pub", isbn)
+
+        assertNull(off)
+        assertTrue(asked.isEmpty())
+    }
+
+    @Test
+    fun `an empty answer is no picture and is not asked for twice`() = runBlocking {
+        val shared = cache()
+        val isbn = CoverIdentifier.Isbn("9780141187761")
+
+        val found = client(true, shared, transport(body = "")).coverImage("pub", isbn)
+        client(true, shared, transport(body = "")).coverImage("pub", isbn)
+
+        assertNull(found)
+        assertEquals(1, asked.size)
     }
 
     @Test

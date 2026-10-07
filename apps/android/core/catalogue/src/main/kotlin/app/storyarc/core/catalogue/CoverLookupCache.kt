@@ -32,12 +32,19 @@ data class CoverLookupAnswer(
  */
 class CoverLookupCache(private val file: File) {
 
-    private companion object {
+    companion object {
         /**
          * Lenient about fields it does not know, the way every store here is: a build that
          * adds a field must still read what an earlier build wrote.
          */
-        val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+        private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+
+        private const val FNV_BASIS = -0x340d631b7bdddcdbL
+        private const val FNV_PRIME = 0x100000001b3L
+
+        /** The cache every lookup shares, in the app's data directory. */
+        fun inDataDirectory(filesDir: File): CoverLookupCache =
+            CoverLookupCache(File(filesDir, "cover-lookup/answers.json"))
     }
 
     private val answers: MutableMap<String, CoverLookupAnswer> =
@@ -84,8 +91,32 @@ class CoverLookupCache(private val file: File) {
 
     fun forget(key: String) {
         answers.remove(key)
+        pictureFile(key).delete()
         write()
     }
+
+    /**
+     * The picture a lookup found, kept beside the answers.
+     *
+     * An answer names where a picture is, and a publication asked for again at another size
+     * would fetch it a second time without this: "the same publication is never looked up
+     * twice" covers the picture as well as the address.
+     */
+    private val pictures = File(file.parentFile, "${file.nameWithoutExtension}-pictures")
+
+    fun picture(key: String): ByteArray? = runCatching { pictureFile(key).readBytes() }.getOrNull()
+
+    fun recordPicture(key: String, data: ByteArray) {
+        runCatching {
+            pictures.mkdirs()
+            pictureFile(key).writeBytes(data)
+        }
+    }
+
+    private fun pictureFile(key: String): File =
+        File(pictures, key.toByteArray().fold(FNV_BASIS) { hash, byte ->
+            (hash xor byte.toLong()) * FNV_PRIME
+        }.toString(36))
 
     private fun write() {
         runCatching {

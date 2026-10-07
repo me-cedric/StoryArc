@@ -159,11 +159,15 @@ class CoverLookupClient(
 
     /**
      * The looked-up cover's picture, or null. One call for the ladder: the lookup, then the
-     * picture. An image provider already answered with the picture, so it is not asked twice.
+     * picture. An image provider already answered with the picture, so it is not asked twice,
+     * and the picture is kept on disk so no later call asks for it again.
      */
     suspend fun coverImage(key: String, identifier: CoverIdentifier): ByteArray? {
         val found = lookUp(key, identifier) ?: return null
-        return found.picture ?: image(found.url)
+        cache.picture(key)?.let { return it }
+        val picture = (found.picture ?: image(found.url))?.takeIf { it.isNotEmpty() } ?: return null
+        cache.recordPicture(key, picture)
+        return picture
     }
 
     /**
@@ -209,7 +213,9 @@ class CoverLookupClient(
         // keep: the Cover Art Archive's front route is a redirect to an Internet Archive
         // file, and storing the redirect rather than its target would ask twice on every
         // read.
-        if (provider.answersWithImage) return Found(answered.url, answered.body)
+        if (provider.answersWithImage) {
+            return answered.body.takeIf { it.isNotEmpty() }?.let { Found(answered.url, it) }
+        }
         return imageUrlInBookDocument(answered.body)?.let { Found(it, null) }
     }
 

@@ -36,6 +36,8 @@ data class EpubMetadata(
      */
     val series: String? = null,
     val seriesIndex: String? = null,
+    /** Every `dc:identifier`, in file order: an ISBN is often the second or third one. */
+    val identifiers: List<String> = emptyList(),
 )
 
 sealed class EpubException(message: String) : Exception(message) {
@@ -199,6 +201,8 @@ class EpubReader private constructor(
                         ?: textOf(packageXml, "description"),
                     series = seriesOf(packageXml)?.first,
                     seriesIndex = seriesOf(packageXml)?.second,
+                    identifiers = elements(packageXml, "dc:identifier")
+                        .mapNotNull { it["#text"]?.trim()?.takeIf(String::isNotEmpty) },
                 ),
                 spine = spine,
                 toc = toc,

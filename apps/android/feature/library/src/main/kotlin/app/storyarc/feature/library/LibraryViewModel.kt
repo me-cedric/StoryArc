@@ -1513,7 +1513,7 @@ class LibraryViewModel(
                 coverCache.store(it, publication.id, maxPixelSize)
             }
         val bitmap = withContext(Dispatchers.IO) {
-            coverLadder.cover(resolver, publication, path, maxPixelSize)
+            ladderCover(publication, path, maxPixelSize)
                 ?.also { coverCache.store(it, publication.id, maxPixelSize) }
         } ?: return null
         covers[publication.id] = bitmap
