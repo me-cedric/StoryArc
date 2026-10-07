@@ -29,6 +29,10 @@ data class CoverLookupAnswer(
  * -- so it costs a reader nothing to keep.
  *
  * iOS's `CoverLookupCache` keeps the same file for the same reason.
+ *
+ * Every public method is synchronized: the shelf draws many covers at once on the IO pool, and
+ * they share one cache. Two writers at once would leave a file that reads as empty, and then
+ * every provider is asked again. iOS gets the same guarantee from its actor.
  */
 class CoverLookupCache(private val file: File) {
 
@@ -53,9 +57,11 @@ class CoverLookupCache(private val file: File) {
             .toMutableMap()
 
     /** What this publication has already been told, or null when it has never been asked. */
+    @Synchronized
     fun answer(key: String): CoverLookupAnswer? = answers[key]
 
     /** Records an answer, including a refusal, and writes the file. */
+    @Synchronized
     fun record(answer: CoverLookupAnswer, key: String) {
         answers[key] = answer
         write()
@@ -79,8 +85,10 @@ class CoverLookupCache(private val file: File) {
             json.decodeFromString<Map<String, List<CoverCandidate>>>(titleFile.readText())
         }.getOrElse { emptyMap() }.toMutableMap()
 
+    @Synchronized
     fun candidates(key: String): List<CoverCandidate>? = titles[key]
 
+    @Synchronized
     fun recordCandidates(key: String, found: List<CoverCandidate>) {
         titles[key] = found
         runCatching {
@@ -89,6 +97,7 @@ class CoverLookupCache(private val file: File) {
         }
     }
 
+    @Synchronized
     fun forget(key: String) {
         answers.remove(key)
         pictureFile(key).delete()
@@ -104,8 +113,10 @@ class CoverLookupCache(private val file: File) {
      */
     private val pictures = File(file.parentFile, "${file.nameWithoutExtension}-pictures")
 
+    @Synchronized
     fun picture(key: String): ByteArray? = runCatching { pictureFile(key).readBytes() }.getOrNull()
 
+    @Synchronized
     fun recordPicture(key: String, data: ByteArray) {
         runCatching {
             pictures.mkdirs()

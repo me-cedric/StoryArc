@@ -160,12 +160,17 @@ class CoverLookupClient(
     /**
      * The looked-up cover's picture, or null. One call for the ladder: the lookup, then the
      * picture. An image provider already answered with the picture, so it is not asked twice,
-     * and the picture is kept on disk so no later call asks for it again.
+     * and the picture is kept on disk so no later call asks for it again. A picture that does
+     * not come is recorded as a refusal, so a shelf that draws this cover again asks nothing.
      */
     suspend fun coverImage(key: String, identifier: CoverIdentifier): ByteArray? {
         val found = lookUp(key, identifier) ?: return null
         cache.picture(key)?.let { return it }
-        val picture = (found.picture ?: image(found.url))?.takeIf { it.isNotEmpty() } ?: return null
+        val picture = (found.picture ?: image(found.url))?.takeIf { it.isNotEmpty() }
+        if (picture == null) {
+            cache.record(CoverLookupAnswer(identifier.provider, null), key)
+            return null
+        }
         cache.recordPicture(key, picture)
         return picture
     }

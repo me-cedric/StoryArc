@@ -3,7 +3,11 @@ package app.storyarc.core.catalogue
 import app.storyarc.core.model.CoverIdentifier
 import app.storyarc.core.model.CoverLookupProvider
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -188,6 +192,45 @@ class CoverLookupClientTest {
 
         assertEquals("jpeg", String(again!!))
         assertEquals(listOf("api.audnex.us", "m.media-amazon.com"), asked.map { java.net.URI(it.url).host })
+    }
+
+    @Test
+    fun `a document answer whose picture is refused is not asked for again`() = runBlocking {
+        val shared = cache()
+        val asin = CoverIdentifier.AudibleAsin("B08G9PRS1K")
+        val document = """{"image":"https://m.media-amazon.com/images/I/c.jpg"}"""
+        val transport = CoverTransport { request ->
+            asked += request
+            if (request.url.contains("audnex")) {
+                CoverFetched(200, document.toByteArray(), request.url)
+            } else {
+                CoverFetched(404, ByteArray(0), request.url)
+            }
+        }
+
+        val first = client(true, shared, transport).coverImage("pub", asin)
+        val again = client(true, shared, transport).coverImage("pub", asin)
+
+        assertNull(first)
+        assertNull(again)
+        assertEquals(listOf("api.audnex.us", "m.media-amazon.com"), asked.map { java.net.URI(it.url).host })
+    }
+
+    @Test
+    fun `answers recorded at once from many threads are all kept on disk`() = runBlocking {
+        val file = file()
+        val shared = CoverLookupCache(file)
+
+        withContext(Dispatchers.IO) {
+            (1..200).map { n ->
+                async {
+                    shared.record(CoverLookupAnswer(CoverLookupProvider.OPEN_LIBRARY, "https://covers.openlibrary.org/$n"), "pub-$n")
+                }
+            }.awaitAll()
+        }
+
+        val reread = CoverLookupCache(file)
+        assertEquals(200, (1..200).count { reread.answer("pub-$it") != null })
     }
 
     @Test
