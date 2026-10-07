@@ -153,10 +153,18 @@ struct ShareOpeningTests {
     }
 
     @Test("A PDF on a share is fetched whole, without an offer")
-    func pdfIsFetchedWhole() async {
+    func pdfIsFetchedWhole() async throws {
         // PDFKit opens a whole file only (O4). `publication-formats`: iOS "fetches the whole
         // file first, shows how far the fetch has come, and opens the PDF reader when it ends".
-        let answers = await openingFromShare(publication(format: .pdf), length: 1_050)
+        // The publication is the one the share browser gets: the indexer's record for a PDF
+        // with no local copy, which is marked download-only.
+        let catalogued = try await PublicationIndexer.index(
+            source: DataSource(Data("%PDF-1.7\n".utf8)),
+            name: "Lantern.pdf",
+            identity: PublicationIdentity(normalizedPath: Self.remote.absoluteString)
+        )
+        #expect(catalogued.format == .pdf)
+        let answers = await openingFromShare(catalogued, length: 1_050, name: "Lantern.pdf")
 
         #expect(answers.fetched, "A PDF on a share was not fetched.")
         #expect(!answers.offerMade, "A PDF on a share was offered rather than fetched.")

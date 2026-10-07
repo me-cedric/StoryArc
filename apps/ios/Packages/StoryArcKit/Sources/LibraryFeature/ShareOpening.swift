@@ -134,7 +134,9 @@ enum ShareOpening {
                 bytes: statedLength(file.length)
             ) {
             case .open: onOpen(publication, remote)
-            case .download where publication.streaming == .streams: onFetch()
+            // A PDF only: the indexer's record for a remote PDF is download-only, so the
+            // streaming state cannot tell it from a solid RAR5, which is offered.
+            case .download where needsLocalFile(publication.format): onFetch()
             case .download(let bytes): onOffer(bytes)
             case .refuse: onSay(cannotOpen)
             }
