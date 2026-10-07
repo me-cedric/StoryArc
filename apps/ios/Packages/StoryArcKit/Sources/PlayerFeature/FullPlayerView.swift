@@ -72,7 +72,11 @@ public struct FullPlayerView: View {
                     // ``PlayerCentre/lastFinished``), and only the first draws an offer
                     // rather than the live transport.
                     if centre.book == nil, centre.hasReachedTheEnd {
-                        PlayerFinishedOffer(next: next, onOpenNext: onOpenNext)
+                        PlayerFinishedOffer(
+                            next: next,
+                            onOpenNext: onOpenNext,
+                            unreadableParts: centre.unreadableAtEnd
+                        )
                     } else {
                         cover
                         names

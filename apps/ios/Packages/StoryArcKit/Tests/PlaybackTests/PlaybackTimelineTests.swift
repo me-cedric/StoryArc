@@ -146,6 +146,29 @@ struct PlaybackTimelineTests {
         #expect(mixed.afterDecodeFailure(atPart: 0) == 2)
     }
 
+    // MARK: - What a failure makes the engine do (task 2.5, O12)
+
+    @Test("A failed file with a later file hands over to it, whatever the item says")
+    func failureMovesOn() {
+        #expect(folder.response(toFailureAtPart: 0, itemHasFailed: false) == .moveTo(part: 1))
+        #expect(folder.response(toFailureAtPart: 1, itemHasFailed: true) == .moveTo(part: 2))
+    }
+
+    /// The engine reports a truncated file early and plays on to the end. Ending here cut the
+    /// audio it could still play, and the player vanished with nothing said.
+    @Test("A failed last or only part keeps playing while the item can")
+    func failureOfTheLastPartCarriesOn() {
+        #expect(chaptered.response(toFailureAtPart: 0, itemHasFailed: false) == .carryOn)
+        #expect(chaptered.response(toFailureAtPart: 2, itemHasFailed: false) == .carryOn)
+        #expect(folder.response(toFailureAtPart: 2, itemHasFailed: false) == .carryOn)
+    }
+
+    @Test("A failed last or only part ends the book once the item has failed")
+    func failureOfTheLastPartEndsWhenNothingCanPlay() {
+        #expect(chaptered.response(toFailureAtPart: 1, itemHasFailed: true) == .end)
+        #expect(folder.response(toFailureAtPart: 2, itemHasFailed: true) == .end)
+    }
+
     // MARK: - What the player is handed
 
     @Test("The parts a player draws carry the duration and drop the file")

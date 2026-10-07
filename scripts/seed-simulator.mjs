@@ -55,6 +55,15 @@ const SEEDS = [
     extension: 'm4b',
     fixture: 'packages/test-fixtures/audiobooks/chaptered.m4b',
   },
+  {
+    // `PlayerDamageTests` plays this to its end. The file reports a full `moov`, so nothing
+    // before playback says the media is short: the engine finds out as it plays.
+    id: 'seed-cut-short',
+    title: 'Cut Short',
+    mediaType: 'audio/mp4',
+    extension: 'm4b',
+    fixture: 'packages/test-fixtures/audiobooks/truncated.m4b',
+  },
 ]
 
 // An audiobook gets a folder of its own inside the download's folder. A comic does not.

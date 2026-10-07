@@ -47,6 +47,8 @@ public final class NarratedSource: PlaybackSource {
     private var ticks: Any?
     private var reachedEnd: (any NSObjectProtocol)?
     private var failedToReachEnd: (any NSObjectProtocol)?
+    /// The files already counted as unreadable, so a repeated report adds nothing.
+    private var failedFiles: Set<URL> = []
 
     public init(_ book: Audiobook) {
         timeline = PlaybackTimeline(parts: book.parts)
@@ -196,14 +198,22 @@ public final class NarratedSource: PlaybackSource {
     /// Task 16.5, `publication-formats`: a damaged audiobook "plays what it can and states
     /// how much it could not", by the same rule that opens a comic missing pages. The count
     /// goes up before the move, so a listener who stops at exactly this part still sees the
-    /// damage stated.
+    /// damage stated. A file counts once, however often the engine says so. What happens next
+    /// is ``PlaybackTimeline/response(toFailureAtPart:itemHasFailed:)``'s.
     private func fileFailed() {
+        guard let playing, failedFiles.insert(playing).inserted else { return }
         unreadablePartCount += 1
-        guard let next = timeline.afterDecodeFailure(atPart: place.partIndex) else {
+        switch timeline.response(
+            toFailureAtPart: place.partIndex,
+            itemHasFailed: player.currentItem?.status == .failed
+        ) {
+        case .moveTo(let next):
+            load(part: next, offset: 0)
+            player.rate = Float(speed.rate)
+        case .carryOn:
+            moved?()
+        case .end:
             ended?()
-            return
         }
-        load(part: next, offset: 0)
-        player.rate = Float(speed.rate)
     }
 }

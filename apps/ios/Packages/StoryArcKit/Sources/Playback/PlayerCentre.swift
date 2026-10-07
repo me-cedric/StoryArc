@@ -52,10 +52,8 @@ public final class PlayerCentre {
     /// The sleep timer, while one is set. Everything that moves it is in `PlayerSleep.swift`.
     public internal(set) var sleep: SleepCountdown?
 
-    /// How many parts of this book could not be decoded.
-    ///
-    /// `publication-formats`: a damaged audiobook "plays what it can and states how much it
-    /// could not … in the player's own controls rather than interrupting playback".
+    /// How many parts of this book could not be decoded. `publication-formats`: a damaged
+    /// audiobook "states how much it could not" play, in the player's own controls.
     public private(set) var unreadablePartCount = 0
 
     /// Whether a compact bar belongs on screen at all.
@@ -98,6 +96,10 @@ public final class PlayerCentre {
     /// that stopped any other way, per ``hasReachedTheEnd``. Cleared by ``begin(_:source:)``.
     public private(set) var lastFinished: SpokenBook?
 
+    /// How many of that book's parts could not be played. Task 2.5, owner answer O12: a book
+    /// whose last or only part fails ends here, and the finished surface still states it.
+    public private(set) var unreadableAtEnd = 0
+
     /// The word a listener is owed because opening a publication stopped their voice.
     ///
     /// Armed only by ``displace()`` and spent only by ``takeVoiceStopped()``, both in
@@ -133,19 +135,13 @@ public final class PlayerCentre {
 
     /// The artwork the system's own media controls show, as PNG bytes.
     ///
-    /// `audio-playback`: a publication with no cover gets "the same coverless treatment every
-    /// other surface draws — the title set as artwork", **and** "the system's own media controls
-    /// get that same artwork, because a lock screen showing a headphones symbol is the one place
-    /// a listener looks for an hour".
+    /// `audio-playback`: the lock screen gets "that same artwork", and a publication with no
+    /// cover the same coverless treatment every other surface draws.
     ///
     /// A closure and bytes rather than an image, because drawing a title into a square needs
-    /// SwiftUI and this target has none: `Formats` depends on it for `AudiobookPart`, and a
-    /// parser has no business linking a design system. `PlayerArtworkImage` in `PlayerFeature`
-    /// owns the treatment and renders it from the very view the player draws; ``NowPlaying``
-    /// turns the bytes into an `MPMediaItemArtwork` and caches them per book.
-    ///
-    /// `nil`, or a `nil` return, publishes *no* artwork — which is what the lock screen showed
-    /// before this existed, so nothing is worse for a session the app cannot draw a cover for.
+    /// SwiftUI and this target has none. `PlayerArtworkImage` in `PlayerFeature` owns the
+    /// treatment; ``NowPlaying`` turns the bytes into an `MPMediaItemArtwork` and caches them.
+    /// `nil` publishes no artwork, which is what the lock screen showed before this existed.
     public var onArtwork: (@MainActor (SpokenBook) -> Data?)?
 
     /// What one press of a skip control moves here.
@@ -214,6 +210,7 @@ public final class PlayerCentre {
         // second marked finished at its first tick.
         hasReachedTheEnd = false
         lastFinished = nil
+        unreadableAtEnd = 0
         // A second book must not inherit the first's floor, or its opening minutes would go
         // unwritten while the offset climbed back to where the last book stopped.
         recorded = nil
@@ -360,7 +357,10 @@ public final class PlayerCentre {
     private func finish(with next: PlaybackSession) {
         guard session.isActive || book != nil else { return }
         recordReached()
-        if hasReachedTheEnd { lastFinished = book }
+        if hasReachedTheEnd {
+            lastFinished = book
+            unreadableAtEnd = unreadablePartCount
+        }
         session = next
         source?.moved = nil
         source?.ended = nil

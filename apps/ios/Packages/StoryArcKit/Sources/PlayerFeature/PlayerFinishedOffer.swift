@@ -16,11 +16,21 @@ struct PlayerFinishedOffer: View {
     let next: Publication?
     let onOpenNext: (Publication) -> Void
 
+    /// How many parts of the book that ended could not be played. Task 2.5, O12: a book whose
+    /// last or only part fails ends the session, and this surface says how much was lost, in
+    /// words and never in a dialog.
+    var unreadableParts = 0
+
     var body: some View {
         VStack(spacing: StoryArcSpace.lg) {
             Text("player.finished", bundle: .module)
                 .textRole(.title3)
                 .foregroundStyle(theme.palette.textPrimary)
+
+            PlayerText.damage(unreadableParts: unreadableParts)
+                .textRole(.caption)
+                .foregroundStyle(theme.palette.textSecondary)
+                .multilineTextAlignment(.center)
 
             if let next {
                 Button {

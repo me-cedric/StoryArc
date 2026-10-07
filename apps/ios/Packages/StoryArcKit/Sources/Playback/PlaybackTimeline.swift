@@ -128,4 +128,26 @@ public struct PlaybackTimeline: Sendable, Equatable {
         let failed = parts[index].url
         return parts.indices.first { $0 > index && parts[$0].url != failed }
     }
+
+    /// What playback does when the file under the part at `index` reports that it failed.
+    ///
+    /// Task 2.5, owner answer O12. A later file takes over at once. With none, the file is the
+    /// last or the only one, and ending there would cut audio the engine can still play: the
+    /// engine reports a truncated file early, from its read-ahead, and then plays on to the
+    /// nominal end (measured on `truncated.m4b`, 2026-10-07). So the book carries on, with the
+    /// part counted, unless the item itself has failed and nothing more will play.
+    public func response(toFailureAtPart index: Int, itemHasFailed: Bool) -> DecodeFailureResponse {
+        if let next = afterDecodeFailure(atPart: index) { return .moveTo(part: next) }
+        return itemHasFailed ? .end : .carryOn
+    }
+}
+
+/// What ``PlaybackTimeline/response(toFailureAtPart:itemHasFailed:)`` decides.
+public enum DecodeFailureResponse: Equatable, Sendable {
+    /// Play the first part of the next file.
+    case moveTo(part: Int)
+    /// Keep playing the file. The part is counted and the controls state it.
+    case carryOn
+    /// Nothing more can play: end, and let the finished surface state the loss.
+    case end
 }
