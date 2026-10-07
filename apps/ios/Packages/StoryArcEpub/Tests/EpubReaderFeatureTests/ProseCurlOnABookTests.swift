@@ -73,6 +73,11 @@ struct ProseCurlOnABookTests {
         navigator.didMove(toParent: host)
         window.makeKeyAndVisible()
         try await Task.sleep(for: .seconds(3))
+        // A loaded suite run can take longer than 3 s to report the first location, and a walk
+        // that starts with none counts a crossing that is not there.
+        for _ in 0..<100 where navigator.currentLocation == nil {
+            try await Task.sleep(for: .milliseconds(100))
+        }
         return Book(reader: reader, navigator: navigator, window: window)
     }
 
