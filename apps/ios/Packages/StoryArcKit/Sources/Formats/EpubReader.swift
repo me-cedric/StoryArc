@@ -221,7 +221,8 @@ public struct EpubReader: Sendable {
                 description: elements.text(of: "dc:description")
                     ?? elements.text(of: "description"),
                 series: series(in: elements)?.name,
-                seriesIndex: series(in: elements)?.position
+                seriesIndex: series(in: elements)?.position,
+                identifiers: elements.texts(of: "dc:identifier")
             ),
             spine: spine,
             coverHref: coverHref,

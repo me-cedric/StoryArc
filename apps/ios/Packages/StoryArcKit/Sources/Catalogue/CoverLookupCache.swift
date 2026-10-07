@@ -84,7 +84,35 @@ public actor CoverLookupCache {
     /// the "later" — but nothing else re-asks, which is what keeps the app polite.
     public func forget(_ key: String) {
         answers.removeValue(forKey: key)
+        try? FileManager.default.removeItem(at: pictureFile(for: key))
         write()
+    }
+
+    /// The picture a lookup found, kept beside the answers.
+    ///
+    /// An answer names where a picture is, and a publication asked for again at another size
+    /// would fetch it a second time without this: "the same publication is never looked up
+    /// twice" covers the picture as well as the address.
+    public func picture(for key: String) -> Data? {
+        try? Data(contentsOf: pictureFile(for: key))
+    }
+
+    public func recordPicture(_ data: Data, for key: String) {
+        let url = pictureFile(for: key)
+        try? FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(), withIntermediateDirectories: true
+        )
+        try? data.write(to: url, options: .atomic)
+    }
+
+    private func pictureFile(for key: String) -> URL {
+        var hash: UInt64 = 0xcbf2_9ce4_8422_2325
+        for byte in key.utf8 {
+            hash = (hash ^ UInt64(byte)) &* 0x0000_0100_0000_01b3
+        }
+        return file.deletingLastPathComponent()
+            .appendingPathComponent(file.deletingPathExtension().lastPathComponent + "-pictures")
+            .appendingPathComponent(String(hash, radix: 36))
     }
 
     private func write() {

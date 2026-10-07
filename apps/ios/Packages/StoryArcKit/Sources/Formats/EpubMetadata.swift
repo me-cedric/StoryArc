@@ -24,6 +24,8 @@ public struct EpubMetadata: Sendable, Equatable {
     /// file carries both, because it is the one the format actually defines.
     public let series: String?
     public let seriesIndex: String?
+    /// Every `dc:identifier`, in file order: an ISBN is often the second or third one.
+    public let identifiers: [String]
 
     public init(
         title: String? = nil,
@@ -33,7 +35,8 @@ public struct EpubMetadata: Sendable, Equatable {
         publisher: String? = nil,
         description: String? = nil,
         series: String? = nil,
-        seriesIndex: String? = nil
+        seriesIndex: String? = nil,
+        identifiers: [String] = []
     ) {
         self.title = title
         self.author = author
@@ -43,6 +46,16 @@ public struct EpubMetadata: Sendable, Equatable {
         self.description = description
         self.series = series
         self.seriesIndex = seriesIndex
+        self.identifiers = identifiers
+    }
+}
+
+extension EpubReader.Elements {
+    /// The non-empty text of every element with this name, in file order.
+    func texts(of name: String) -> [String] {
+        named(name)
+            .compactMap { $0["#text"]?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
     }
 }
 

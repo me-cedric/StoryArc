@@ -203,6 +203,98 @@ struct CoverLookupClientTests {
         #expect(asked.value.count == 1)
     }
 
+    @Test("A picture is fetched once and kept, whichever size asks for it next")
+    func keepsThePicture() async {
+        let asked = Asked()
+        let shared = cache()
+        let first = client(enabled: true, cache: shared) { request in
+            asked.append(request.url)
+            return .response(status: 200, headers: [:], body: Data("jpeg".utf8))
+        }
+        let identifier = CoverIdentifier.isbn("9780141187761")
+
+        let one = await first.coverImage(for: "pub", identifier: identifier)
+        let two = await first.coverImage(for: "pub", identifier: identifier)
+
+        #expect(one == Data("jpeg".utf8))
+        #expect(two == one)
+        #expect(asked.value.count == 1)
+    }
+
+    @Test("A kept picture survives the cache being made again, and is not asked for again")
+    func keptPictureSurvivesRelaunch() async {
+        let file = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("\(UUID().uuidString).json")
+        let identifier = CoverIdentifier.isbn("9780141187761")
+        _ = await client(enabled: true, cache: CoverLookupCache(file: file)) { _ in
+            .response(status: 200, headers: [:], body: Data("jpeg".utf8))
+        }.coverImage(for: "pub", identifier: identifier)
+        let asked = Asked()
+
+        let later = await client(enabled: true, cache: CoverLookupCache(file: file)) { request in
+            asked.append(request.url)
+            return .response(status: 500, headers: [:], body: Data())
+        }.coverImage(for: "pub", identifier: identifier)
+
+        #expect(later == Data("jpeg".utf8))
+        #expect(asked.value.isEmpty)
+    }
+
+    @Test("A document answer costs two requests the first time and none after")
+    func documentAnswerIsKept() async {
+        let file = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("\(UUID().uuidString).json")
+        let asked = Asked()
+        let answer: @Sendable (URLRequest) -> CoverStub.Answer = { request in
+            asked.append(request.url)
+            let body = request.url?.host() == "api.audnex.us"
+                ? #"{"image":"https://m.media-amazon.com/images/I/c.jpg"}"# : "jpeg"
+            return .response(status: 200, headers: [:], body: Data(body.utf8))
+        }
+        let asin = CoverIdentifier.audibleASIN("B08G9PRS1K")
+
+        _ = await client(enabled: true, cache: CoverLookupCache(file: file), answer)
+            .coverImage(for: "pub", identifier: asin)
+        let again = await client(enabled: true, cache: CoverLookupCache(file: file), answer)
+            .coverImage(for: "pub", identifier: asin)
+
+        #expect(again == Data("jpeg".utf8))
+        #expect(asked.value.compactMap { $0.host() } == ["api.audnex.us", "m.media-amazon.com"])
+    }
+
+    @Test("A kept picture is not handed out while the setting is off")
+    func keptPictureIsGatedToo() async {
+        let file = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("\(UUID().uuidString).json")
+        let identifier = CoverIdentifier.isbn("9780141187761")
+        _ = await client(enabled: true, cache: CoverLookupCache(file: file)) { _ in
+            .response(status: 200, headers: [:], body: Data("jpeg".utf8))
+        }.coverImage(for: "pub", identifier: identifier)
+
+        let off = await client(enabled: false, cache: CoverLookupCache(file: file)) { _ in
+            .response(status: 200, headers: [:], body: Data("jpeg".utf8))
+        }.coverImage(for: "pub", identifier: identifier)
+
+        #expect(off == nil)
+    }
+
+    @Test("An empty answer is no picture and is not asked for twice")
+    func emptyAnswerIsARefusal() async {
+        let asked = Asked()
+        let shared = cache()
+        let identifier = CoverIdentifier.isbn("9780141187761")
+        let empty = client(enabled: true, cache: shared) { request in
+            asked.append(request.url)
+            return .response(status: 200, headers: [:], body: Data())
+        }
+
+        let first = await empty.coverImage(for: "pub", identifier: identifier)
+        _ = await empty.coverImage(for: "pub", identifier: identifier)
+
+        #expect(first == nil)
+        #expect(asked.value.count == 1)
+    }
+
     @Test("A refusal is quiet: no throw, no error, the cover unchanged")
     func refusalsAreQuiet() async {
         // 403, 404, 429 or silence all come back the same way, because they are the same

@@ -63,8 +63,12 @@ public actor CoverLookupClient {
     /// picture. An image provider already answered with the picture, so it is not asked twice.
     public func coverImage(for key: String, identifier: CoverIdentifier) async -> Data? {
         guard let found = await lookUp(key, identifier) else { return nil }
-        if let picture = found.picture { return picture }
-        return await image(at: found.url)
+        if let kept = await cache.picture(for: key) { return kept }
+        var fetched = found.picture
+        if fetched == nil { fetched = await image(at: found.url) }
+        guard let picture = fetched, !picture.isEmpty else { return nil }
+        await cache.recordPicture(picture, for: key)
+        return picture
     }
 
     /// The picture at `url`, or nil. Only behind the setting, only from a listed host, and
@@ -111,7 +115,9 @@ public actor CoverLookupClient {
         // whatever redirects they use. The address the transport ended on is the one to
         // keep: the Cover Art Archive's front route is a redirect to an Internet Archive
         // file, and storing the redirect rather than its target would ask twice on every read.
-        if provider.answersWithImage { return Found(url: http.url ?? url, picture: data) }
+        if provider.answersWithImage {
+            return data.isEmpty ? nil : Found(url: http.url ?? url, picture: data)
+        }
         return Self.imageURL(inBookDocument: data).map { Found(url: $0, picture: nil) }
     }
 

@@ -133,9 +133,10 @@ extension LibraryModel {
         // is here rather than in each caller so the player and the media session get the
         // same answer this shelf does.
         let ladder = CoverLadder()
+        let rung = CoverLookupRung.live
         let image = await Task.detached(priority: .utility) {
-            let decoded = await ladder.cover(
-                for: publication, at: url, maxPixelSize: maxPixelSize
+            let decoded = await rung.cover(
+                for: publication, at: url, maxPixelSize: maxPixelSize, ladder: ladder
             )
             if let decoded { cache.store(decoded, for: identity, maxPixelSize: maxPixelSize) }
             return decoded
