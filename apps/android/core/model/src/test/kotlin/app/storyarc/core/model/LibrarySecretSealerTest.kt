@@ -116,6 +116,16 @@ class LibrarySecretSealerTest {
     }
 
     @Test
+    fun `a source is keyed by its id in lower case, so both platforms name it alike`() {
+        val id = UUID.fromString("ABCDEFAB-CDEF-ABCD-EFAB-CDEFABCDEFAB")
+
+        val sealed = LibrarySecretSealer.seal(mapOf(id to "x"), "battery staple")
+
+        assertEquals(listOf("abcdefab-cdef-abcd-efab-cdefabcdefab"), sealed.sealed.keys.toList())
+        assertEquals(mapOf(id to "x"), LibrarySecretSealer.open(sealed, "battery staple"))
+    }
+
+    @Test
     fun `a block this build does not read is refused by name`() {
         val changes = listOf(
             vector.secrets.copy(kdf = "scrypt"),

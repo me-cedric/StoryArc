@@ -118,6 +118,16 @@ struct LibrarySecretSealerTests {
         #expect(first.cipher == "AES-256-GCM")
     }
 
+    @Test("A source is keyed by its id in lower case, so both platforms name it alike")
+    func theKeyIsLowerCase() throws {
+        let id = LibraryDocumentFixture.fixed("ABCDEFAB-CDEF-ABCD-EFAB-CDEFABCDEFAB")
+
+        let sealed = try LibrarySecretSealer.seal([id: "x"], passphrase: "battery staple")
+
+        #expect(sealed.sealed.keys.sorted() == ["abcdefab-cdef-abcd-efab-cdefabcdefab"])
+        #expect(try LibrarySecretSealer.open(sealed, passphrase: "battery staple") == [id: "x"])
+    }
+
     @Test("A block this build does not read is refused by name")
     func anUnsupportedBlock() throws {
         let vector = try vector()
