@@ -91,15 +91,135 @@ final class CurlWalkTests: XCTestCase {
         shutter(app, named: "ios-curl-tapped")
     }
 
+    private func labelsOnScreen(in app: XCUIApplication) -> [String] {
+        app.descendants(matching: .any).allElementsBoundByIndex.map(\.label).filter { !$0.isEmpty }
+    }
+
+    /// Drags the menu sheet from its half height to its full height. On the 440-point
+    /// iPhone 17 Pro Max the half-height sheet ends above the Page turn row, and the row
+    /// reports itself hittable under the home indicator, so a tap on it opens nothing.
+    private func raiseTheMenu(in app: XCUIApplication) throws {
+        let grabber = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "Sheet Grabber")).firstMatch
+        guard grabber.waitForExistence(timeout: 3) else { return }
+        grabber.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(
+            forDuration: 0.05,
+            thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.06))
+        )
+        hold(1)
+    }
+
+    /// Turns forward until the end screen is up, then comes back to the last page.
+    private func goToTheLastPage(in app: XCUIApplication) throws {
+        let back = app.buttons["Back to the last page"]
+        for _ in 0..<24 where !back.exists {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+            hold(1.2)
+        }
+        XCTAssertTrue(back.waitForExistence(timeout: 5), "No end screen after 24 forward taps.")
+        back.tap()
+        XCTAssertTrue(back.waitForNonExistence(timeout: 8), "The end screen did not close.")
+        hold(1.5)
+    }
+
+    /// Task 8.5: a forward drag held on the last page. Run under `simctl recordVideo`: a
+    /// still cannot be taken while a finger is down, and the held part of this drag is what
+    /// the recording is for. The frame after release is the control.
+    func testCaptureCurlLastPageHeld() throws {
+        let app = sweepLaunch()
+        try openCurlingComic(in: app)
+        try goToTheLastPage(in: app)
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).press(
+            forDuration: 0.05,
+            thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.66, dy: 0.5)),
+            withVelocity: .slow,
+            thenHoldForDuration: 5
+        )
+        hold(2)
+        shutter(app, named: "ios-curl-last-page-released")
+    }
+
+    /// Task 8.5: a tap past the last page curls onto the end screen, and the last page does
+    /// not show again before it. Run under `simctl recordVideo`.
+    func testCaptureCurlLastPageTapped() throws {
+        let app = sweepLaunch()
+        try openCurlingComic(in: app)
+        try goToTheLastPage(in: app)
+        hold(3)
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        hold(3)
+        shutter(app, named: "ios-curl-last-page-landed")
+    }
+
+    /// Task 8.16: Curl at rest on a page taller than the screen, at Fit to Width.
+    func testCaptureCurlAtRestFitWidth() throws {
+        let app = sweepLaunch()
+        try openCurlingComic(in: app, named: "Tall Pages", fit: "Width")
+        hold(1)
+        shutter(app, named: "ios-curl-rest-fit-width")
+    }
+
+    /// Task 8.16: a PDF page with a saved mark, in Curl at rest. The mark is made with the
+    /// selection menu, then the page is photographed with the menu gone.
+    func testCaptureCurlRestPdfMarks() throws {
+        let app = sweepLaunch()
+        try openCurlingComic(in: app, named: "Field Notes")
+        for y in [0.27, 0.30, 0.33, 0.36, 0.24] {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: y)).press(forDuration: 1.4)
+            hold(1)
+            if app.buttons["Yellow"].exists { break }
+        }
+        let yellow = app.buttons["Yellow"]
+        XCTAssertTrue(
+            yellow.waitForExistence(timeout: 3),
+            "No selection menu. Buttons: \(app.buttons.allElementsBoundByIndex.map(\.label).prefix(40))"
+        )
+        yellow.tap()
+        hold(2)
+        shutter(app, named: "ios-curl-rest-pdf-marks")
+    }
+
+    /// Task 8.16, the control: the same page at the same fit in Slide, which already honoured it.
+    func testCaptureSlideRestFitWidth() throws {
+        let app = sweepLaunch()
+        try openCurlingComic(in: app, named: "Tall Pages", fit: "Width", mode: "Slide")
+        hold(1)
+        shutter(app, named: "ios-slide-rest-fit-width")
+    }
+
+    /// Task 8.16: the same page zoomed, then panned sideways. The page must pan and not turn.
+    func testCaptureCurlAtRestZoomedAndPanned() throws {
+        let app = sweepLaunch()
+        try openCurlingComic(in: app, named: "Tall Pages", fit: "Width")
+        let centre = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4))
+        centre.doubleTap()
+        hold(1.5)
+        shutter(app, named: "ios-curl-rest-zoomed")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.5)).press(
+            forDuration: 0.05,
+            thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.5)),
+            withVelocity: .default,
+            thenHoldForDuration: 0.2
+        )
+        hold(1.5)
+        shutter(app, named: "ios-curl-rest-zoomed-panned")
+    }
+
     /// Opens the fixed-layout comic and puts it in Curl, proving the mode took.
     ///
     /// Through the app's own picker rather than an injected preference: the transition lives
     /// inside the `app.storyarc.themes` blob as one field of a per-shelf `ShelfSettings`, so
     /// injecting it would mean hand-writing a `ShelfMemory` encoding in a test bundle that
     /// cannot see `StoryArcCore`. Driving the picker also exercises the path a reader takes.
-    private func openCurlingComic(in app: XCUIApplication) throws {
-        try openPublication(named: "Fine Print", in: app)
+    private func openCurlingComic(
+        in app: XCUIApplication,
+        named title: String = "Fine Print",
+        fit: String? = nil,
+        mode: String = "Curl"
+    ) throws {
+        try openPublication(named: title, in: app)
         try openReaderMenu(in: app)
+        try raiseTheMenu(in: app)
         try XCTUnwrap(
             rowInTheMenu("Page turn", in: app),
             "The menu offers no Page turn row. Buttons: \(app.buttons.allElementsBoundByIndex.prefix(30).map(\.label))"
@@ -108,7 +228,7 @@ final class CurlWalkTests: XCTestCase {
         // transition walk gives: what the platform calls a menu row is not this file's
         // business, and it has changed between releases.
         let curl = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "label == %@", "Curl")).firstMatch
+            .matching(NSPredicate(format: "label == %@", mode)).firstMatch
         guard curl.waitForExistence(timeout: 8) else {
             // Not a silent skip: if Curl is missing from a *comic*'s picker then either the
             // device reported it cannot curl or the row has been renamed, and both are
@@ -116,12 +236,20 @@ final class CurlWalkTests: XCTestCase {
             XCTFail(
                 "The Transition picker offers no Curl on a fixed-layout publication, where "
                     + "`needsTwoRasters` does not apply. On screen: "
-                    + "\(app.descendants(matching: .any).allElementsBoundByIndex.prefix(30).map(\.label))"
+                    + "\(Array(labelsOnScreen(in: app).suffix(25)))"
             )
             return
         }
         curl.tap()
         hold(1)
+        if let fit {
+            try XCTUnwrap(rowInTheMenu("Fit", in: app), "The menu offers no Fit row.").tap()
+            let wanted = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label == %@", fit)).firstMatch
+            XCTAssertTrue(wanted.waitForExistence(timeout: 8), "The Fit row offers no \(fit).")
+            wanted.tap()
+            hold(1)
+        }
         // **Dismissed by its own button, not by a tap above it.** A tap at the top of the
         // screen lands on the sheet's own dimmed backdrop in this presentation and leaves the
         // sheet up — the first run of this walk photographed the menu with *Transition: Curl*

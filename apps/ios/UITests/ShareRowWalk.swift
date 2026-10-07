@@ -74,6 +74,68 @@ final class ShareRowWalkTests: XCTestCase {
         shutter(app, named: "share-rows-catalogued-ax5")
     }
 
+    /// Tasks 14.14 and 14.15: a reflowable EPUB on the share opens from the share, and the
+    /// frame shows its first page. Nothing is offered first, and nothing is downloaded.
+    func testCaptureShareEpubStreams() throws {
+        try openFromTheShare("Harbour Lights 01", settled: "ios-share-epub-read")
+    }
+
+    /// Task 14.14: a stored RAR5 comic on the share opens page by page from the share.
+    func testCaptureShareCbrStreams() throws {
+        try openFromTheShare("Stored Five", settled: "ios-share-cbr-read")
+    }
+
+    /// Task 14.15: a PDF on the share is fetched whole and then read with PDFKit. The frame
+    /// after the open is the PDF's first page.
+    func testCaptureSharePdfFetched() throws {
+        try openFromTheShare("Field Notes", settled: "ios-share-pdf-read")
+    }
+
+    /// Task 14.14: a solid RAR5 is still offered as a download, with its size.
+    func testCaptureShareSolidRarOffered() throws {
+        let app = sweepLaunch(sources: Self.fixtureShare, grouping: "issues")
+        try showTheShelf(in: app)
+        try narrowToTheShare(in: app)
+        hold(6)
+        try openPage(of: "Solid Five", in: app)
+        shutter(app, named: "ios-share-solid-page")
+        let read = try XCTUnwrap(
+            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable),
+            "The page of the solid RAR5 offers no action."
+        )
+        read.tap()
+        hold(3)
+        shutter(app, named: "ios-share-solid-offer")
+    }
+
+    private func openFromTheShare(_ title: String, settled name: String) throws {
+        let app = sweepLaunch(sources: Self.fixtureShare, grouping: "issues")
+        try showTheShelf(in: app)
+        try narrowToTheShare(in: app)
+        hold(6)
+        try openPage(of: title, in: app)
+        shutter(app, named: name.replacingOccurrences(of: "-read", with: "-page"))
+        let read = try XCTUnwrap(
+            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable),
+            "The page of \(title) offers no action."
+        )
+        read.tap()
+        hold(6)
+        shutter(app, named: name)
+    }
+
+    private func openPage(of title: String, in app: XCUIApplication) throws {
+        let wanted = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title))
+        var found: XCUIElement?
+        for _ in 0..<6 where found == nil {
+            found = wanted.allElementsBoundByIndex.first(where: \.isHittable)
+            if found == nil { app.swipeUp() }
+        }
+        try XCTUnwrap(found, "The share shelf shows no cover for \(title). Buttons: "
+            + "\(app.buttons.allElementsBoundByIndex.prefix(30).map(\.label))").tap()
+        hold(2)
+    }
+
     /// Hides the device's own corpus, so the frame holds the share's four rows and nothing
     /// else. `SweepLibrary.testCaptureNarrowedToNothing` reaches the same control the same way.
     private func narrowToTheShare(in app: XCUIApplication) throws {
