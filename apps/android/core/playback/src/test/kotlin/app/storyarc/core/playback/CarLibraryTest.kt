@@ -107,6 +107,20 @@ class CarLibraryTest {
         assertEquals(seaRoom.id, children.first().id)
     }
 
+    /**
+     * Task 13.2, and the read-aloud clause of 12.1: the live voice is the first row, above
+     * the book in progress, and a book is never listed twice.
+     */
+    @Test
+    fun `the live voice is the first row, and each book appears once`() {
+        val voice = theSeaWolf.asPlayed().copy(uris = emptyList())
+
+        val children = CarShelf.children(seaRoom.asPlayed(), listOf(theSeaWolf, seaRoom), live = voice)
+
+        assertEquals(listOf(theSeaWolf.id, seaRoom.id), children.map { it.id })
+        assertTrue("the shelf's copy replaced the voice's row", children.first().uris.isEmpty())
+    }
+
     @Test
     fun `a car that asks for the second page does not receive the first again`() {
         val rows = CarShelf.children(null, listOf(seaRoom, theSeaWolf))

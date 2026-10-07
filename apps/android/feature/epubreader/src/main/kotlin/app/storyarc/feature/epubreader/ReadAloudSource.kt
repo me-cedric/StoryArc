@@ -48,6 +48,13 @@ internal class ReadAloudSource(
     /** One sentence, which is all a synthesised voice can offer. See [SkipUnit]. */
     override val skipUnit: SkipUnit = SkipUnit.SENTENCE
 
+    /**
+     * The shade's second line: the chapter being spoken, or the author where the publication
+     * declares no navigation. [SpokenLabel] decides it, and [reached] moves it.
+     */
+    override var detail: String? = book.label.detail
+        private set
+
     private var partIndex: Int = openingAt.coerceAtLeast(0)
 
     /**
@@ -150,10 +157,13 @@ internal class ReadAloudSource(
      * reports: there is no transition callback to mark a chapter boundary with. A href the
      * reading order does not hold leaves the mark where it was, which is the same answer
      * `TotalProgression.indexOf` gives the percentage line.
+     *
+     * @param label what the shade says now, which follows the voice across a chapter.
      */
-    fun reached(href: String) {
+    fun reached(href: String, label: SpokenLabel? = null) {
         val index = TotalProgression.indexOf(href, readingOrder)
         if (index >= 0) partIndex = index
+        if (label != null) detail = label.detail
         onChange?.invoke()
     }
 

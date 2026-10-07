@@ -136,5 +136,4 @@
     <string name="readaloud_pause">Vorlesen anhalten</string>
     <string name="readaloud_next">Nächster Satz</string>
     <string name="readaloud_previous">Vorheriger Satz</string>
-    <string name="readaloud_channel">Vorlesen</string>
 </resources>

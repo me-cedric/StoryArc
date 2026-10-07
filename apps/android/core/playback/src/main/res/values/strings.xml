@@ -25,6 +25,11 @@
         <item quantity="other">Forward %1$d seconds</item>
     </plurals>
     <string name="playback_browse_root">Audiobooks</string>
+    <!-- The shade's two outer buttons while the read-aloud voice speaks. A voice moves one
+         sentence, so the label says so. The same words as the player's own skip controls
+         (player_skip_back_sentence and player_skip_forward_sentence in :app). -->
+    <string name="playback_skip_back_sentence">Previous sentence</string>
+    <string name="playback_skip_forward_sentence">Next sentence</string>
     <!-- Told once when opening another publication stopped the read-aloud voice; names the
          publication that went quiet. The one new key read-aloud-beyond-the-reader 5.5 allows,
          by the owner's 2026-09-05 decision. Here rather than in either surface that draws it,

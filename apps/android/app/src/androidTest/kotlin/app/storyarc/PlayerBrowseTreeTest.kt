@@ -9,7 +9,13 @@ import androidx.media3.session.SessionToken
 import androidx.test.platform.app.InstrumentationRegistry
 import app.storyarc.core.playback.CarBook
 import app.storyarc.core.playback.PlaybackHost
+import app.storyarc.core.playback.PlaybackPart
+import app.storyarc.core.playback.PlaybackPosition
 import app.storyarc.core.playback.PlaybackService
+import app.storyarc.core.playback.PlaybackSession
+import app.storyarc.core.playback.PlaybackSpeed
+import app.storyarc.core.playback.PlayerSource
+import app.storyarc.core.playback.SkipUnit
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.ListenableFuture
 import org.junit.After
@@ -164,6 +170,45 @@ class PlayerBrowseTreeTest {
         val result: LibraryResult<MediaItem> = browsing { it.getItem("path:/books/never-downloaded") }
 
         assertTrue("a stale car row resolved to something", result.resultCode != 0)
+    }
+
+    /**
+     * Task 13.2, and the read-aloud clause of `audiobooks-and-playback` 12.1: `audio-playback`
+     * lists "audiobooks and read-aloud sessions" in a car. A voice that speaks is the first row,
+     * above the shelf, because it is what the listener is in the middle of.
+     */
+    @Test
+    fun aVoiceThatSpeaksIsTheFirstRow() {
+        PlaybackHost.publishCarLibrary(context, shelf)
+        val voice = SpeakingVoice()
+        onMain { PlaybackHost.startVoice(context, voice) }
+        try {
+            val children = requireNotNull(childrenOfRoot().value)
+
+            assertEquals("the voice is not the first car row", voice.publicationId, children.first().mediaId)
+            assertEquals("Harbour Lights", children.first().mediaMetadata.title?.toString())
+        } finally {
+            onMain { PlaybackHost.stopVoice(voice) }
+        }
+    }
+
+    /** A voice with no engine: the car row needs only what the player states. */
+    private class SpeakingVoice : PlayerSource {
+        override val publicationId = "path:/books/harbour-lights.epub"
+        override val title = "Harbour Lights"
+        override val parts = listOf(PlaybackPart("The Harbour"))
+        override val position = PlaybackPosition(0, 0)
+        override val skipUnit = SkipUnit.SENTENCE
+        private var state = PlaybackSession().started()
+        override val session: PlaybackSession get() = state
+        override val speed = PlaybackSpeed.NORMAL
+        override var onChange: (() -> Unit)? = null
+        override var onInterruptionEnd: ((mayResume: Boolean) -> Unit)? = null
+        override fun play() { state = state.started(); onChange?.invoke() }
+        override fun pause() { state = state.pausedByListener(); onChange?.invoke() }
+        override fun stop() { state = state.stopped(); onChange?.invoke() }
+        override fun seek(to: PlaybackPosition) = Unit
+        override fun setSpeed(speed: PlaybackSpeed) = Unit
     }
 
     @After

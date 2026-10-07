@@ -1,5 +1,6 @@
 package app.storyarc.core.playback
 
+import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
@@ -71,6 +72,7 @@ object PlaybackHost : SpokenAudio.Speaker {
     ).apply {
         onChange = { playing ->
             _nowPlaying.value = playing
+            voicePlayer?.changed()
             wakeAtPartEnd(playing)
             // The session has gone, so whatever held it has. Here rather than in each of the
             // three endings, because `PlaybackCentre` routes all of them through one
@@ -84,6 +86,7 @@ object PlaybackHost : SpokenAudio.Speaker {
             // stop it again.
             if (playing == null) {
                 voice = null
+                seatVoice(null)
                 setSleepTimer(null)
             }
             rememberForResumption(playing)
@@ -172,6 +175,33 @@ object PlaybackHost : SpokenAudio.Speaker {
      * still holds. Cleared by the one teardown, in the `onChange` above.
      */
     private var voice: PlayerSource? = null
+
+    /**
+     * The voice as media3 sees it, while the voice holds the session. Null the rest of the time.
+     *
+     * Task 13.2: [PlaybackService] seats it as its session's player, so the voice has one
+     * notification, the lock screen and a car row, and no service of its own.
+     */
+    internal var voicePlayer: VoicePlayer? = null
+        private set
+
+    /** Told when [voicePlayer] changes. Set by [PlaybackService] while it runs. */
+    internal var onVoicePlayer: ((VoicePlayer?) -> Unit)? = null
+
+    private fun seatVoice(player: VoicePlayer?) {
+        if (player == null && voicePlayer == null) return
+        voicePlayer = player
+        onVoicePlayer?.invoke(player)
+    }
+
+    /**
+     * The live voice as a car row, or null when no voice holds the session.
+     *
+     * `audio-playback`, *Listening in a car*: the read-aloud session is on the car's list, first,
+     * and choosing it carries on with the voice. See [CarShelf.children].
+     */
+    internal val liveVoice: PlayedBook?
+        get() = if (voice == null) null else _nowPlaying.value?.asCarRow()
 
     private val _sleep = MutableStateFlow<SleepTimer?>(null)
 
@@ -324,12 +354,23 @@ object PlaybackHost : SpokenAudio.Speaker {
      *
      * **[memory] is dropped, not kept.** See [rememberForResumption]: a voice has no file
      * for media3 to put back, so a record of one would be a resumption that plays silence.
+     *
+     * **The voice goes behind the one media session** (task 13.2). A [VoicePlayer] over this
+     * centre is seated in [PlaybackService], and the controller below makes sure the service
+     * runs: it is what keeps the process speaking once the reader has gone, and what posts the
+     * one notification.
+     *
+     * @param reopen where a tap on the notification goes. See [VoicePlayer].
      */
-    fun startVoice(source: PlayerSource) {
+    fun startVoice(context: Context, source: PlayerSource, reopen: PendingIntent? = null) {
         memory = null
         current = null
         voice = source
         centre.attach(source)
+        // An idle voice is let go by the attach itself, and has nothing to seat.
+        if (voice !== source) return
+        seatVoice(VoicePlayer(centre, reopen))
+        withController(context) {}
     }
 
     /**
@@ -376,6 +417,7 @@ object PlaybackHost : SpokenAudio.Speaker {
      */
     fun setArtwork(publicationId: String, artwork: Uri) {
         current?.takeIf { it.publicationId == publicationId }?.setArtwork(artwork)
+        if (centre.playingId == publicationId) voicePlayer?.setArtwork(artwork)
     }
 
     /**

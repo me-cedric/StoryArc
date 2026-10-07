@@ -1,13 +1,16 @@
 package app.storyarc.core.playback
 
+import android.content.ComponentName
 import android.os.Looper
 import java.time.Duration
 import org.junit.After
+import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
@@ -57,6 +60,17 @@ class PlaybackHostVoiceTest {
 
     private val voice = Voice()
 
+    private val context = RuntimeEnvironment.getApplication()
+
+    /**
+     * No service binds in this JVM. [PlaybackHost.startVoice] binds a controller so the media
+     * service runs, and Robolectric would otherwise connect it with no component name.
+     */
+    @Before
+    fun noServiceToBind() {
+        shadowOf(context).declareComponentUnbindable(ComponentName(context, PlaybackService::class.java))
+    }
+
     @After
     fun tearDown() {
         PlaybackHost.stopVoice(voice)
@@ -64,7 +78,7 @@ class PlaybackHostVoiceTest {
 
     @Test
     fun `a started voice becomes the one session every surface reads`() {
-        PlaybackHost.startVoice(voice)
+        PlaybackHost.startVoice(context, voice)
 
         assertEquals("harbour-lights", PlaybackHost.nowPlaying.value?.publicationId)
         assertEquals(SkipUnit.SENTENCE, PlaybackHost.nowPlaying.value?.skipUnit)
@@ -72,14 +86,14 @@ class PlaybackHostVoiceTest {
 
     @Test
     fun `the narrator's host does not answer for a voice it is only carrying`() {
-        PlaybackHost.startVoice(voice)
+        PlaybackHost.startVoice(context, voice)
 
         assertNull(PlaybackHost.speaking)
     }
 
     @Test
     fun `the voice's own teardown takes the session off the player`() {
-        PlaybackHost.startVoice(voice)
+        PlaybackHost.startVoice(context, voice)
 
         PlaybackHost.stopVoice(voice)
 
@@ -89,7 +103,7 @@ class PlaybackHostVoiceTest {
     @Test
     fun `a stop for a voice this centre no longer holds leaves the session alone`() {
         val displaced = Voice()
-        PlaybackHost.startVoice(voice)
+        PlaybackHost.startVoice(context, voice)
 
         PlaybackHost.stopVoice(displaced)
 
@@ -106,7 +120,7 @@ class PlaybackHostVoiceTest {
      */
 
     private fun tenAndAHalfSecondsInto(source: Voice): Float {
-        PlaybackHost.startVoice(source)
+        PlaybackHost.startVoice(context, source)
         PlaybackHost.setSleepTimer(SleepAfter.Duration(20_000))
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(10_500))
         return source.volumes.last()

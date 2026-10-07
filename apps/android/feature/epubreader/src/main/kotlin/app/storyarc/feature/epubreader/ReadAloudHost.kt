@@ -1,5 +1,7 @@
 package app.storyarc.feature.epubreader
 
+import android.app.PendingIntent
+import android.app.TaskStackBuilder
 import android.content.Context
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.TotalProgression
@@ -45,7 +47,7 @@ internal interface SpokenSentenceFollower {
  * wider than what [ReadAloudHost] already called.
  */
 internal interface SpokenVoice {
-    /** The application context the session hands to its foreground service. */
+    /** The application context the session hands to the player's media service. */
     val context: Context
 
     /** Whether the voice is running, and what silenced it if it is not. */
@@ -94,8 +96,9 @@ internal interface SpokenVoice {
  * module — a feature module may not depend on another, and the app module already depends
  * on this one to open the reader.
  *
- * **What it owns and what it does not.** It owns the controller, the book being spoken,
- * where the position is written, and the notification the service posts. It does not own
+ * **What it owns and what it does not.** It owns the controller, the book being spoken, and
+ * where the position is written. The notification, the lock screen and the car row are the
+ * player's media session, through `PlaybackHost.startVoice` (task 13.2). It does not own
  * the highlight or the page: those need a navigator, so an activity that happens to be on
  * screen registers as a [SpokenSentenceFollower] and is let go without a word when it goes.
  *
@@ -259,13 +262,6 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
         this.position = position
         this.follower = WeakReference(drawnBy)
         _book.value = book
-        // What the notification's and the lock screen's buttons reach. One session at a
-        // time, so one set of commands at a time, and [finish] takes them back down.
-        ReadAloudService.commands = object : ReadAloudCommands {
-            override fun toggle() = this@ReadAloudHost.toggle()
-            override fun skip(forward: Boolean) = this@ReadAloudHost.skip(forward)
-            override fun stop() = end()
-        }
         speaking.start(from)
         // The one session, drawn by the one player. `audio-playback`: "every source of
         // spoken audio — a narrated audiobook and the read-aloud voice alike — SHALL drive
@@ -285,7 +281,11 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
                 ?: 0,
         )
         source = playing
-        if (speaking.session.value.isActive) PlaybackHost.startVoice(playing)
+        // Task 13.2: the shade, the lock screen and a car reach the voice through the player's
+        // one media session. There is no second service and no second notification.
+        if (speaking.session.value.isActive) {
+            PlaybackHost.startVoice(speaking.context, playing, reopen = book.wayBack(speaking.context))
+        }
         watching = scope.launch {
             speaking.session.collect { next ->
                 // A session that has already been finished has nothing left to say. Without
@@ -298,7 +298,7 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
                 // sentence reports. The source carries no copy of it: it reads the voice,
                 // and this is what tells the surface to read the source again.
                 playing.refresh()
-                if (next.isActive) announce() else finish(speaking)
+                if (!next.isActive) finish(speaking)
             }
         }
     }
@@ -374,8 +374,6 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
         watching?.cancel()
         watching = null
         ending.release()
-        ReadAloudService.commands = null
-        ReadAloudService.dismiss(ending.context)
         _book.value = null
         _session.value = PlaybackSession()
         scope.launch { drawing?.withdrawSpokenHighlight() }
@@ -385,15 +383,12 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
 
     private suspend fun sentenceSpoken(sentence: Sentence) {
         spoken = sentence
-        // The player's chapter mark, moved. A voice crosses into the next chapter by saying
-        // a sentence in it and reports nothing else, so this is the only crossing there is.
-        source?.reached(sentence.locator.href.toString())
         val was = _book.value
         _book.value = was?.copy(chapter = sentence.locator.title ?: was.chapter)
-        // Only when the line actually changed. The transport shows a state, and saying a
-        // sentence does not change one — refreshing the notification every few seconds
-        // would be a service start per sentence for a picture that did not move.
-        if (was?.label != _book.value?.label) announce()
+        // The player's chapter mark, and the shade's second line, moved. A voice crosses into
+        // the next chapter by saying a sentence in it and reports nothing else, so this is
+        // the only crossing there is.
+        source?.reached(sentence.locator.href.toString(), _book.value?.label)
         recordReached(sentence)
         follower?.get()?.drawSpokenSentence(sentence)
     }
@@ -413,19 +408,25 @@ internal object ReadAloudHost : SpokenAudio.Speaker {
         scope.launch { writer.record(reached) }
     }
 
-    /**
-     * Puts the book on the lock screen and in the shade, or takes it off.
-     *
-     * A foreground service, because that is the only thing on Android that keeps a process
-     * speaking once its screen is gone — and because a media-playback service is what puts
-     * the transport where a listener reaches for it. iOS reaches the same two places
-     * through `MPNowPlayingInfoCenter` and `MPRemoteCommandCenter` instead.
-     */
-    private fun announce() {
-        val voice = controller ?: return
-        val book = _book.value ?: return
-        ReadAloudService.show(voice.context, book, _session.value.isPlaying)
-    }
+}
+
+/**
+ * Back to the book, at the sentence being spoken: where a tap on the shade's notification goes.
+ *
+ * `ebook-reader`: choosing the transport opens "the publication … at the sentence being
+ * spoken, without the voice stopping". The session writes the position it reaches on every
+ * sentence, so the reader opens at the recorded position, and that position is the sentence
+ * the voice is on. A reader rebuilt this way adopts the running session rather than starting a
+ * second one.
+ *
+ * The launcher's entry point stays underneath as the parent of the back stack: a listener who
+ * lands in the book from the shade and presses back expects their library.
+ */
+internal fun SpokenBook.wayBack(context: Context): PendingIntent? {
+    val stack = TaskStackBuilder.create(context)
+    context.packageManager.getLaunchIntentForPackage(context.packageName)?.let(stack::addNextIntent)
+    stack.addNextIntent(EpubReaderActivity.intent(context, location, title, series))
+    return stack.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 }
 
 /**

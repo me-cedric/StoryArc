@@ -136,5 +136,4 @@
     <string name="readaloud_pause">Pausar la lectura en voz alta</string>
     <string name="readaloud_next">Frase siguiente</string>
     <string name="readaloud_previous">Frase anterior</string>
-    <string name="readaloud_channel">Lectura en voz alta</string>
 </resources>

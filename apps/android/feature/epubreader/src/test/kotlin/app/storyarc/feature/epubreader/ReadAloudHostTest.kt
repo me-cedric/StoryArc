@@ -1,9 +1,11 @@
 package app.storyarc.feature.epubreader
 
+import android.content.ComponentName
 import android.content.Context
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.playback.PlaybackHost
 import app.storyarc.core.playback.PlaybackPart
+import app.storyarc.core.playback.PlaybackService
 import app.storyarc.core.playback.PlaybackSession
 import app.storyarc.core.playback.SkipUnit
 import app.storyarc.core.playback.SleepAfter
@@ -12,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -22,6 +25,7 @@ import org.readium.r2.shared.util.Url
 import org.readium.r2.shared.util.mediatype.MediaType
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
@@ -131,6 +135,16 @@ class ReadAloudHostTest {
     /** The host is a process-wide object; a session left running would be the next test's. */
     @After
     fun quiet() = ReadAloudHost.end()
+
+    /**
+     * No service binds in this JVM. A started voice binds a controller so the player's media
+     * service runs, and Robolectric would otherwise connect it with no component name.
+     */
+    @Before
+    fun noServiceToBind() {
+        val context = RuntimeEnvironment.getApplication()
+        shadowOf(context).declareComponentUnbindable(ComponentName(context, PlaybackService::class.java))
+    }
 
     /**
      * The defect, from the listener's side: the voice was started, so the host says so.
@@ -331,6 +345,34 @@ class ReadAloudHostTest {
         runBlocking { said(sentence("/chapter-9.xhtml", "Chapter Nine", "Sea room.")) }
 
         assertEquals("Chapter Nine", ReadAloudHost.book.value?.label?.detail)
+        // Task 13.2: the line the player's one media session gives the shade and lock screen.
+        assertEquals("Chapter Nine", PlaybackHost.nowPlaying.value?.detail)
+    }
+
+    /**
+     * Task 13.2: a tap on the notification goes back to the book being spoken, over the
+     * library. `ebook-reader`: choosing the transport opens the publication "at the sentence
+     * being spoken, without the voice stopping".
+     */
+    @Test
+    fun `a tap on the notification goes back to the book being spoken`() {
+        val context = RuntimeEnvironment.getApplication()
+        val book = SpokenBook(
+            id = "sea-room",
+            location = "/books/sea-room.epub",
+            title = "Sea Room",
+            series = null,
+            author = null,
+        )
+
+        val opened = shadowOf(requireNotNull(book.wayBack(context))).savedIntents.last()
+
+        assertEquals(EpubReaderActivity::class.java.name, opened.component?.className)
+        assertEquals(
+            EpubReaderActivity.intent(context, book.location, book.title, book.series).extras?.keySet(),
+            opened.extras?.keySet(),
+        )
+        assertTrue(opened.extras?.toString().orEmpty().contains("/books/sea-room.epub"))
     }
 
     // MARK: - Returning to the session

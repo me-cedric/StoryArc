@@ -9,5 +9,7 @@
         <item quantity="other">%1$d Sekunden vor</item>
     </plurals>
     <string name="playback_browse_root">Hörbücher</string>
+    <string name="playback_skip_back_sentence">Vorheriger Satz</string>
+    <string name="playback_skip_forward_sentence">Nächster Satz</string>
     <string name="playback_voice_stopped">„%1$s“ wird nicht mehr vorgelesen.</string>
 </resources>

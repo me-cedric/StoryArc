@@ -140,5 +140,4 @@
     <string name="readaloud_pause">Pause reading aloud</string>
     <string name="readaloud_next">Next sentence</string>
     <string name="readaloud_previous">Previous sentence</string>
-    <string name="readaloud_channel">Reading aloud</string>
 </resources>

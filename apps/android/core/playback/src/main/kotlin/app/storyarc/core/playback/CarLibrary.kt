@@ -97,12 +97,17 @@ internal object CarShelf {
     /**
      * Every row under the root, in the order a car draws them.
      *
-     * The book in progress is first, because a car screen is read at a glance. It appears
-     * once, because the published shelf holds it as well.
+     * The live read-aloud session is first, then the book in progress, because a car screen
+     * is read at a glance and these are what the listener is in the middle of. Each book
+     * appears once, because the published shelf holds the book in progress as well.
+     *
+     * @param live the voice while it holds the session — see `PlaybackHost.liveVoice`.
+     *   `audio-playback`, *Listening in a car*, lists read-aloud sessions on the car's list.
      */
-    fun children(inProgress: PlayedBook?, shelf: List<CarBook>): List<PlayedBook> =
-        listOfNotNull(inProgress) +
-            shelf.filterNot { it.id == inProgress?.id }.map(CarBook::asPlayed)
+    fun children(inProgress: PlayedBook?, shelf: List<CarBook>, live: PlayedBook? = null): List<PlayedBook> {
+        val first = listOfNotNull(live, inProgress?.takeIf { it.id != live?.id })
+        return first + shelf.filterNot { book -> first.any { it.id == book.id } }.map(CarBook::asPlayed)
+    }
 
     /**
      * One page of those rows.
@@ -120,6 +125,23 @@ internal object CarShelf {
         return rows.subList(from.toInt(), minOf(from + pageSize, rows.size.toLong()).toInt())
     }
 }
+
+/**
+ * The voice speaking now, as a car row: the book, and the chapter it is in.
+ *
+ * No files, because a voice has none. `PlaybackService.onSetMediaItems` answers this row
+ * before it looks for audio, so a choice of it carries on with the voice.
+ */
+internal fun NowPlaying.asCarRow(): PlayedBook = PlayedBook(
+    id = publicationId,
+    title = title,
+    author = null,
+    artworkUri = null,
+    uris = emptyList(),
+    partTitles = parts.map { it.title },
+    partIndex = partIndex,
+    offsetMillis = 0,
+)
 
 internal fun CarBook.asPlayed(): PlayedBook = PlayedBook(
     id = id,

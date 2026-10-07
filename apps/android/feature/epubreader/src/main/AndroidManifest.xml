@@ -3,21 +3,15 @@
     The EPUB screen is an activity, declared by the module that owns it rather
     than by the app: nothing outside this module should have to know that
     reflowable rendering needs a Fragment host.
+
+    Read-aloud declares no service of its own. The voice is a player behind
+    `:core:playback`'s `PlaybackService`, which holds the one media session, the
+    foreground service type and the notification permission (task 13.2).
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- `ebook-reader`: read-aloud "continues" when the app is backgrounded, and the
-         platform media controls carry the title. On Android that is one thing — a
-         foreground service of type `mediaPlayback`. Without it the process is frozen the
-         moment the reader leaves the app and the voice stops mid-sentence.
-
-         The media-playback permission is the API 34 half of the same requirement: a
-         service may only declare a type the app has asked for. -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    <!-- The transport is a notification, and from API 33 a notification needs asking for.
-         Refusing it does not stop the voice: playback and the lock screen's own media
-         controls both come from the session, and what is lost is the shade's copy of them. -->
+    <!-- The reader asks for it when the voice starts: from API 33 the media notification
+         needs it. Refusing it does not stop the voice. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application>
@@ -25,10 +19,5 @@
             android:name=".EpubReaderActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode|density|smallestScreenSize" />
-
-        <service
-            android:name=".ReadAloudService"
-            android:exported="false"
-            android:foregroundServiceType="mediaPlayback" />
     </application>
 </manifest>

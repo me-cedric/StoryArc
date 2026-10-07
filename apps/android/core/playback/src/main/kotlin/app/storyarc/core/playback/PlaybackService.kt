@@ -44,8 +44,8 @@ import com.google.common.util.concurrent.ListenableFuture
  * **The notification is media3's own.** `MediaStyle`, built by
  * `DefaultMediaNotificationProvider` because none is installed here, and that absence is
  * deliberate: a hand-rolled notification is how the shade and the lock screen fall out of
- * step, which is exactly what read-aloud's own hand-rolled one risks. What *is* customised
- * is which two buttons sit either side of play/pause — see [seekButtons].
+ * step. Read-aloud had one, and now sits behind this session instead — see [seat]. What *is*
+ * customised is which two buttons sit either side of play/pause — see [skipButtons].
  *
  * iOS needs none of this: `UIBackgroundModes: audio` plus `MPNowPlayingInfoCenter` is the
  * whole of it there, which is one of the two places the platforms genuinely diverge.
@@ -54,7 +54,20 @@ import com.google.common.util.concurrent.ListenableFuture
 class PlaybackService : MediaLibraryService() {
 
     private var player: ExoPlayer? = null
-    private var session: MediaLibrarySession? = null
+
+    /** The decoder as the session sees it. See [onCreate] for why it is wrapped. */
+    private var audiobooks: Player? = null
+
+    /** Internal so a test can read which player is seated. Nothing else outside may use it. */
+    internal var session: MediaLibrarySession? = null
+        private set
+
+    /**
+     * What sits either side of play/pause now: seconds for a narrated file, sentences for a
+     * voice. See [seat]. Internal for the same reason as [session].
+     */
+    internal var buttons: ImmutableList<CommandButton> = ImmutableList.of()
+        private set
 
     /**
      * What was playing last, read from disk rather than from a field.
@@ -109,15 +122,53 @@ class PlaybackService : MediaLibraryService() {
         // `seekToPrevious` are what a car's next-track button sends, and `ChapterSeekingPlayer`
         // is where those become a chapter move inside one chaptered file. [skip] and every
         // other read above still goes to [exo] itself, which this does not change.
-        session = MediaLibrarySession.Builder(this, ChapterSeekingPlayer(exo), LibraryCallback())
+        val chapters = ChapterSeekingPlayer(exo)
+        audiobooks = chapters
+        buttons = skipButtons(isVoice = false)
+        session = MediaLibrarySession.Builder(this, chapters, LibraryCallback())
             .setSessionActivity(openApp())
             // `setMediaButtonPreferences`, **not** `setCustomLayout`. The latter is
             // deprecated at 1.11.0 and it is the wrong shape besides: a custom layout is
             // an ordered list and every surface — the shade's three slots, the lock
             // screen, a car — has different room. Preferences say which *slot* a button
             // wants, and let each surface place it.
-            .setMediaButtonPreferences(seekButtons())
+            .setMediaButtonPreferences(buttons)
             .build()
+        // The voice, if one is already speaking, and every voice after it. See [seat].
+        PlaybackHost.onVoicePlayer = ::seat
+        seat(PlaybackHost.voicePlayer)
+    }
+
+    /**
+     * Puts the voice behind this session while it speaks, and the decoder back when it ends.
+     *
+     * Task 13.2. One session, so one notification, one lock-screen transport and one car
+     * list, whichever source speaks. media3 redraws all three from the seated player, and
+     * removes the notification when the decoder is seated again with nothing loaded.
+     *
+     * The tap on the notification goes back to the book the voice is reading, and the two
+     * outer buttons move a sentence. `ebook-reader` asks the controls to offer "play, pause,
+     * and sentence skip".
+     */
+    private fun seat(voice: VoicePlayer?) {
+        val session = session ?: return
+        val next = voice ?: audiobooks ?: return
+        if (voice != null) {
+            // One session: the voice displaced the narrated file. The app's own stop for the
+            // file reaches the session a looper message later, after the voice is seated, so
+            // the decoder is silenced here and the stale stop is kept off the voice.
+            player?.stop()
+            player?.clearMediaItems()
+            voice.fromTheApp = {
+                session.controllerForCurrentRequest?.let {
+                    it.packageName == packageName && !session.isMediaNotificationController(it)
+                } == true
+            }
+        }
+        if (session.player !== next) session.player = next
+        session.setSessionActivity(voice?.reopen ?: openApp())
+        buttons = skipButtons(isVoice = voice != null)
+        session.setMediaButtonPreferences(buttons)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? =
@@ -132,14 +183,16 @@ class PlaybackService : MediaLibraryService() {
      * of playback outliving the publication.
      */
     override fun onTaskRemoved(rootIntent: Intent?) {
-        val exo = player
-        if (exo == null || !exo.playWhenReady || exo.mediaItemCount == 0) {
+        // The seated player, which is the voice while it speaks: the decoder is idle then.
+        val playing = session?.player ?: player
+        if (playing == null || !playing.playWhenReady || playing.mediaItemCount == 0) {
             stopSelf()
         }
         super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {
+        PlaybackHost.onVoicePlayer = null
         session?.release()
         session = null
         player?.release()
@@ -161,14 +214,18 @@ class PlaybackService : MediaLibraryService() {
      *
      * The icons carry the intervals, because the intervals are a **product decision** and
      * a listener reading the control needs to be told which it is.
+     *
+     * **A voice moves a sentence instead** (task 13.2), so its two buttons say so. They send
+     * the same two session commands, and [skip] hands them to the voice.
      */
-    private fun seekButtons(): ImmutableList<CommandButton> = ImmutableList.of(
-        skipButton(SkipDirection.BACK, CommandButton.SLOT_BACK),
-        skipButton(SkipDirection.FORWARD, CommandButton.SLOT_FORWARD),
+    private fun skipButtons(isVoice: Boolean): ImmutableList<CommandButton> = ImmutableList.of(
+        skipButton(SkipDirection.BACK, CommandButton.SLOT_BACK, isVoice),
+        skipButton(SkipDirection.FORWARD, CommandButton.SLOT_FORWARD, isVoice),
     )
 
     /**
-     * One of those two, carrying its own interval in its glyph and its words.
+     * One of those two, carrying its own interval in its glyph and its words — or, for a
+     * voice, the sentence it moves.
      *
      * **A session command, not `COMMAND_SEEK_BACK`.** media3 answers a player seek command
      * itself, with `seekBack()` / `seekForward()`, and those clamp to the current item at
@@ -178,21 +235,28 @@ class PlaybackService : MediaLibraryService() {
      * [LibraryCallback.onCustomCommand] instead, where the same [PlaybackTimeline] the app
      * uses decides where it lands.
      */
-    private fun skipButton(direction: SkipDirection, slot: Int): CommandButton {
+    private fun skipButton(direction: SkipDirection, slot: Int, isVoice: Boolean): CommandButton {
         val seconds = SkipIntervals.seconds(direction)
         // A plural, not a string. The label states a number, and a language that inflects
         // around that number has to be able to.
-        val label = when (direction) {
-            SkipDirection.BACK ->
+        val label = when {
+            isVoice && direction == SkipDirection.BACK ->
+                getString(R.string.playback_skip_back_sentence)
+            isVoice -> getString(R.string.playback_skip_forward_sentence)
+            direction == SkipDirection.BACK ->
                 resources.getQuantityString(R.plurals.playback_skip_back, seconds, seconds)
-            SkipDirection.FORWARD ->
-                resources.getQuantityString(R.plurals.playback_skip_forward, seconds, seconds)
+            else -> resources.getQuantityString(R.plurals.playback_skip_forward, seconds, seconds)
         }
         val action = when (direction) {
             SkipDirection.BACK -> COMMAND_SKIP_BACK
             SkipDirection.FORWARD -> COMMAND_SKIP_FORWARD
         }
-        return CommandButton.Builder(skipIcon(direction, seconds))
+        val icon = when {
+            !isVoice -> skipIcon(direction, seconds)
+            direction == SkipDirection.BACK -> CommandButton.ICON_PREVIOUS
+            else -> CommandButton.ICON_NEXT
+        }
+        return CommandButton.Builder(icon)
             .setSessionCommand(SessionCommand(action, Bundle.EMPTY))
             .setSlots(slot)
             .setDisplayName(label)
@@ -207,8 +271,15 @@ class PlaybackService : MediaLibraryService() {
      * back, and a single file is one item whose window duration is the whole book — which
      * makes the same call clamp it to its two ends and nothing else. The chapter marks
      * inside it are not the service's business; they are inside one continuous item.
+     *
+     * **A voice moves one sentence**, through [PlaybackHost], which holds the voice's session.
+     * Internal so a test can press the shade's button. Nothing else outside may call it.
      */
-    private fun skip(direction: SkipDirection) {
+    internal fun skip(direction: SkipDirection) {
+        if (session?.player is VoicePlayer) {
+            PlaybackHost.skip(direction)
+            return
+        }
         val exo = player ?: return
         val timeline = exo.currentTimeline
         if (timeline.isEmpty) return
@@ -295,7 +366,7 @@ class PlaybackService : MediaLibraryService() {
                         .add(SessionCommand(COMMAND_SKIP_FORWARD, Bundle.EMPTY))
                         .build(),
                 )
-                .setMediaButtonPreferences(seekButtons())
+                .setMediaButtonPreferences(buttons)
                 .build()
 
         /**
@@ -381,9 +452,8 @@ class PlaybackService : MediaLibraryService() {
             if (parentId != ROOT_ID) {
                 return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.of(), params))
             }
-            val rows = CarShelf.children(memory.last(), library.books())
             val children = ImmutableList.copyOf(
-                CarShelf.page(rows, page, pageSize).map(::browseItem),
+                CarShelf.page(carRows(), page, pageSize).map(::browseItem),
             )
             return Futures.immediateFuture(LibraryResult.ofItemList(children, params))
         }
@@ -399,8 +469,7 @@ class PlaybackService : MediaLibraryService() {
             browser: MediaSession.ControllerInfo,
             mediaId: String,
         ): ListenableFuture<LibraryResult<MediaItem>> {
-            val item = memory.last()?.takeIf { it.id == mediaId }?.let(::browseItem)
-                ?: library.books().firstOrNull { it.id == mediaId }?.asPlayed()?.let(::browseItem)
+            val item = carRows().firstOrNull { it.id == mediaId }?.let(::browseItem)
                 ?: return Futures.immediateFuture(LibraryResult.ofError<MediaItem>(SessionError.ERROR_BAD_VALUE))
             return Futures.immediateFuture(LibraryResult.ofItem(item, null))
         }
@@ -434,6 +503,13 @@ class PlaybackService : MediaLibraryService() {
             startPositionMs: Long,
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
             val asked = mediaItems.singleOrNull()?.mediaId
+            // The live voice's own row. The voice is already speaking this book, so nothing is
+            // loaded and nothing is attached: the play that follows carries on with it.
+            if (asked != null && asked == PlaybackHost.liveVoice?.id) {
+                return Futures.immediateFuture(
+                    MediaSession.MediaItemsWithStartPosition(mediaItems, C.INDEX_UNSET, C.TIME_UNSET),
+                )
+            }
             val remembered = memory.last()?.takeIf { it.id == asked }
             val book = remembered
                 ?: library.books().firstOrNull { it.id == asked }?.asPlayed()
@@ -491,6 +567,15 @@ class PlaybackService : MediaLibraryService() {
             else -> Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))
         }
     }
+
+    /**
+     * Every row a car browses, in order: the live voice, the book in progress, the shelf.
+     *
+     * One list for the tree and for a single item, so a row the car can see is a row it can
+     * ask for. Internal so a test can read the tree. Nothing else outside may call it.
+     */
+    internal fun carRows(): List<PlayedBook> =
+        CarShelf.children(memory.last(), library.books(), live = PlaybackHost.liveVoice)
 
     /** The one browsable node, so a head unit has a list to draw. */
     private fun root(): MediaItem = MediaItem.Builder()

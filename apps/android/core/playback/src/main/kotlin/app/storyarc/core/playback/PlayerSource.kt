@@ -70,6 +70,14 @@ interface PlayerSource {
      */
     val skippedPartCount: Int get() = 0
 
+    /**
+     * The second line the shade and the lock screen draw under the title, or null for none.
+     *
+     * Null by default, because a narrated file puts its own metadata on the decoder's items. A
+     * voice has no items of its own, so `VoicePlayer` draws this line for it.
+     */
+    val detail: String? get() = null
+
     /** Reports every change to whoever is driving. Set by [PlaybackCentre]. */
     var onChange: (() -> Unit)?
 
@@ -167,6 +175,8 @@ data class NowPlaying(
     /** What a press of a skip control moves. See [SkipUnit]. */
     val skipUnit: SkipUnit = SkipUnit.SECONDS,
     val skippedPartCount: Int = 0,
+    /** See [PlayerSource.detail]. Read by `VoicePlayer` and by nothing the app draws. */
+    val detail: String? = null,
 ) {
 
     /** Whether audio is coming out right now. */
@@ -288,6 +298,7 @@ data class NowPlaying(
             speed = source.speed,
             skipUnit = source.skipUnit,
             skippedPartCount = source.skippedPartCount,
+            detail = source.detail,
         )
     }
 }

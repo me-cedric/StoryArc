@@ -13,5 +13,7 @@
         <item quantity="other">Avancer de %1$d secondes</item>
     </plurals>
     <string name="playback_browse_root">Livres audio</string>
+    <string name="playback_skip_back_sentence">Phrase précédente</string>
+    <string name="playback_skip_forward_sentence">Phrase suivante</string>
     <string name="playback_voice_stopped">Lecture à voix haute de « %1$s » arrêtée.</string>
 </resources>
