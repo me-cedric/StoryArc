@@ -255,6 +255,49 @@ class PageZoomTest {
         assertEquals(fit, PageZoom.carrying(PageFit.WIDTH, letterboxed, 1f, isRightToLeft = false))
     }
 
+    // D33 (task 8.16): who owns a finger in Curl, and where the turn starts from.
+
+    @Test
+    fun `a zoomed page pans whichever way the finger goes, so it does not turn`() {
+        val zoomed = PageZoom(scale = 2f)
+        assertTrue(zoomed.claimsPan(Offset(-40f, 0f), page))
+        assertTrue(zoomed.claimsPan(Offset(0f, 40f), page))
+    }
+
+    @Test
+    fun `a page at fit claims no pan, so a sideways finger turns it`() {
+        assertFalse(PageZoom().claimsPan(Offset(-40f, 0f), page))
+        assertFalse(PageZoom().claimsPan(Offset(0f, 40f), page))
+    }
+
+    @Test
+    fun `fit-to-width scrolls a downward finger and leaves a sideways one to the turn`() {
+        val width = PageZoom.fitting(PageFit.WIDTH, letterboxed)
+        assertTrue(width.claimsPan(Offset(5f, 40f), letterboxed))
+        assertFalse(width.claimsPan(Offset(-40f, 5f), letterboxed))
+    }
+
+    @Test
+    fun `the frame a zoom draws in puts a fit-to-width page full across, at its top`() {
+        val frame = PageZoom.fitting(PageFit.WIDTH, letterboxed).frame(letterboxed)
+        // The page is fitted inside the frame, the way `ContentScale.Fit` fits it.
+        val scale = minOf(frame.width / 500f, frame.height / 2000f)
+        val left = frame.left + (frame.width - 500f * scale) / 2f
+        val top = frame.top + (frame.height - 2000f * scale) / 2f
+        assertEquals(screen.width.toFloat(), 500f * scale, 0.5f)
+        assertEquals(0f, left, 0.5f)
+        assertEquals(0f, top, 0.5f)
+    }
+
+    @Test
+    fun `at fit the frame is the whole screen`() {
+        val frame = PageZoom().frame(page)
+        assertEquals(0f, frame.left, 0.001f)
+        assertEquals(0f, frame.top, 0.001f)
+        assertEquals(screen.width.toFloat(), frame.width, 0.001f)
+        assertEquals(screen.height.toFloat(), frame.height, 0.001f)
+    }
+
     @Test
     fun `every mode but fit-to-width ignores a carried scale`() {
         assertEquals(

@@ -1,8 +1,10 @@
 package app.storyarc.feature.reader
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.IntSize
 import app.storyarc.core.model.PageFit
+import kotlin.math.abs
 
 /**
  * A page as fit-to-screen sized it, inside the space available.
@@ -112,6 +114,39 @@ internal data class PageZoom(
     }
 
     /**
+     * Whether the page takes a one-finger pan, rather than leaving it to a turn.
+     *
+     * D33 (task 8.16): in Curl the page body owns the finger first. A page wider than the
+     * screen pans whichever way the finger goes, so a zoomed page pans and does not turn. A
+     * page only taller than the screen, at fit-to-width, pans a finger that moves more down
+     * than across, and leaves a sideways one to the curl or the pager. A page with no slack
+     * at all takes nothing. iOS's `pagePanTurns` is the same rule from the other side.
+     */
+    fun claimsPan(pan: Offset, page: PageBounds): Boolean {
+        // A pixel of rounding is not slack: fit-to-width multiplies back to the width
+        // through a float, and a hair over it would claim every sideways finger.
+        val slack = page.slack(scale)
+        if (slack.x > SLACK_PIXELS) return true
+        return slack.y > SLACK_PIXELS && abs(pan.y) >= abs(pan.x)
+    }
+
+    /**
+     * The rectangle the page is fitted inside, on screen, at this zoom.
+     *
+     * The image fills the area and is fitted inside it, then scaled about its centre and
+     * moved by [offset]. So the page lies fitted inside the area scaled the same way, which
+     * is the rectangle the curl's shader has to fit the sheet into for a turn to start on the
+     * page the reader was looking at.
+     */
+    fun frame(page: PageBounds): Rect {
+        val width = page.area.width * scale
+        val height = page.area.height * scale
+        val left = page.centre.x - width / 2f + offset.x
+        val top = page.centre.y - height / 2f + offset.y
+        return Rect(left, top, left + width, top + height)
+    }
+
+    /**
      * Keeps the artwork over the screen.
      *
      * The bound is the *artwork's* overhang, not the viewport's: a letterboxed page
@@ -134,6 +169,9 @@ internal data class PageZoom(
         const val DOUBLE_TAP = 2.5f
 
         const val MAXIMUM = 6f
+
+        /** How much overhang, in pixels, counts as room to pan. See [claimsPan]. */
+        const val SLACK_PIXELS = 1f
 
         /**
          * Whether a double-tap should zoom back to the fit scale, rather than in from it.

@@ -98,6 +98,18 @@ internal sealed interface Paging {
             index.intValue = display
             progress.snapTo(0f)
         }
+
+        /**
+         * Lifts the last page off the end screen, then opens it with [reachEnd] (D10).
+         *
+         * `page-transitions`: a tap or a key past the last page opens the end screen "with
+         * the chosen transition", and in Curl the end screen is the sheet beneath.
+         */
+        suspend fun rollOffTheEnd(reachEnd: () -> Unit) {
+            progress.animateTo(targetValue = 1f, animationSpec = spring())
+            reachEnd()
+            progress.snapTo(0f)
+        }
     }
 
     /**
@@ -159,6 +171,13 @@ internal fun curlStep(from: Int, to: Int, isRightToLeft: Boolean, animate: Boole
     val step = readingOrderStep(to - from, isRightToLeft)
     return if (step == 1 || step == -1) step else 0
 }
+
+/**
+ * Whether a turn from the last slot to [to] goes forward in reading order, onto the end
+ * screen. Only forward: a turn back from the only slot has nothing behind it.
+ */
+internal fun curlEndsAhead(from: Int, to: Int, isRightToLeft: Boolean): Boolean =
+    readingOrderStep(to - from, isRightToLeft) == 1
 
 /**
  * The display position one reading-order step from [from], or null past either end of

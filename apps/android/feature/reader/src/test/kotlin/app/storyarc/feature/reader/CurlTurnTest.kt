@@ -106,14 +106,12 @@ class CurlTurnTest {
 
     @Test
     fun `with no sheet beneath it the forward range collapses to nothing`() {
-        // D10. This read the other way until the curl was watched on a last page: the
-        // forward range was left open "because the end screen is a turn", and what the
-        // reader saw was the page lifting off *itself* — `PageCurl.update` stands the
-        // turning sheet in for a missing one, so the sheet revealed underneath was a copy
-        // of the sheet being lifted. `page-transitions` puts both ends under one sentence,
-        // "nothing lifts and the page stays where it is, rather than turning to an empty
-        // sheet", and the end screen is still reached: a tap or a key goes through
-        // `ReaderScreen`'s `turn`, which opens it.
+        // D10. A page with nothing of any kind beneath it — no next sheet and no end
+        // screen — once lifted off *itself*: `PageCurl.update` stands the turning sheet in
+        // for a missing one, so the sheet revealed underneath was a copy of the sheet being
+        // lifted. "Nothing lifts into an empty sheet". The last page of a publication is
+        // not this case any more: its end screen is the next sheet, and the test below is
+        // that half.
         assertEquals(
             0f,
             CurlTurn.progress(0f, -1200f, width, isRightToLeft = false, canTurnForward = false),
@@ -124,6 +122,48 @@ class CurlTurnTest {
             CurlTurn.progress(0f, -100f, width, isRightToLeft = false, canTurnForward = false),
             0.001f,
         )
+    }
+
+    @Test
+    fun `the last page lifts off the end screen, the next sheet past it`() {
+        // `page-transitions` "Reaching the end while curling": the curl lifts the last page
+        // "to reveal the end-of-publication screen beneath it, as the next sheet".
+        val under = CurlTurn.under(beneath = null as String?, endsHere = true)
+        assertEquals(CurlTurn.Under.END_SCREEN, under)
+        assertEquals(
+            0.3f,
+            CurlTurn.progress(
+                0f, -300f, width, isRightToLeft = false, canTurnForward = under != CurlTurn.Under.NOTHING,
+            ),
+            0.001f,
+        )
+    }
+
+    @Test
+    fun `a sheet beneath is the sheet, and nothing beneath mid-publication is nothing`() {
+        assertEquals(CurlTurn.Under.SHEET, CurlTurn.under(beneath = "next", endsHere = false))
+        // A sheet beneath wins even where the slot is the last one: never two next sheets.
+        assertEquals(CurlTurn.Under.SHEET, CurlTurn.under(beneath = "next", endsHere = true))
+        assertEquals(CurlTurn.Under.NOTHING, CurlTurn.under(beneath = null as String?, endsHere = false))
+    }
+
+    @Test
+    fun `the sheet's outline is the whole page at rest`() {
+        val outline = CurlTurn.sheetOutline(400f, 800f, progress = 0f, isRightToLeft = false)
+        assertTrue(outline.drop(1).dropLast(1).all { it.x == 400f })
+    }
+
+    @Test
+    fun `the sheet's outline stops at a curved rim, mirrored right to left`() {
+        val outline = CurlTurn.sheetOutline(400f, 800f, progress = 0.5f, isRightToLeft = false)
+        val rim = outline.drop(1).dropLast(1)
+        assertTrue("The rim reaches the far edge at mid-turn.", rim.all { it.x in 1f..399f })
+        assertTrue("The rim is a line, not a curve.", rim.map { it.x.toInt() }.toSet().size > 2)
+        val mirrored = CurlTurn.sheetOutline(400f, 800f, progress = 0.5f, isRightToLeft = true)
+        assertEquals(400f, mirrored.first().x, 0.001f)
+        for ((left, right) in rim.zip(mirrored.drop(1).dropLast(1))) {
+            assertEquals(400f - left.x, right.x, 0.001f)
+        }
     }
 
     @Test

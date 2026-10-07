@@ -147,9 +147,13 @@ class CurlSheetWiringTest {
         // Not a raw `paging.current + 1`: right-to-left reverses the display order, so a
         // completed *forward* turn (task 8.14) has to move by a reading-order step, which
         // is -1 there.
+        // D10 (task 8.5): past the last page the forward turn lands on the end screen
+        // instead, because there is no reading-order position to move to.
         assertTrue(
             "A completed forward turn no longer turns the page by a reading-order step.",
-            builder.contains("onTurned = { onTurn(readingOrderStep(1, isRightToLeft)) }"),
+            builder.contains(
+                "onTurned = { if (next == null) onReachEnd() else onTurn(readingOrderStep(1, isRightToLeft)) }",
+            ),
         )
         assertTrue(
             "A completed backwards turn no longer turns the page back by a reading-order" +

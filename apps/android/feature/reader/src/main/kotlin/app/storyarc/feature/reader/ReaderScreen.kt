@@ -62,6 +62,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -665,6 +666,11 @@ private fun Pager(
      * reversed, so one step right on screen is one step right on screen whichever
      * way the story runs.
      */
+    fun reachEnd() {
+        if (!hasReachedEnd) haptics.play(StoryArcFeedback.COMPLETION)
+        hasReachedEnd = true
+    }
+
     fun turn(target: Int) {
         // Read now, not captured. A tap handler is created while a composition is
         // still settling, and one built when the page list was empty would carry a
@@ -680,8 +686,10 @@ private fun Pager(
         // position, and in a landscape spread the last slot holds two pages, so "the
         // reader is on page count - 1" is false at exactly the moment the end is due.
         if (slotIndex(paging.current) == slotCount - 1) {
-            if (!hasReachedEnd) haptics.play(StoryArcFeedback.COMPLETION)
-            hasReachedEnd = true
+            // D10: in Curl the end screen is the next sheet, so the curl lifts the page off it.
+            if (paging is Paging.Curled && curlEndsAhead(paging.current, target, isRightToLeft)) {
+                scope.launch { paging.rollOffTheEnd(::reachEnd) }
+            } else reachEnd()
         } else {
             // The one page turn that earns a haptic is the one that does not happen.
             // Nothing on screen says the reader is already at the first page — the page
@@ -898,11 +906,13 @@ private fun Pager(
      * it flips here rather than anywhere the pages are counted.
      */
     @Composable
-    fun Page(display: Int, stitch: ScrollAxis? = null) {
+    fun Page(display: Int, stitch: ScrollAxis? = null, insets: Boolean = true) {
         val spread = layout.slotAt(slotIndex(display))
         val trailing = spread?.trailing
         if (trailing == null || stitch != null) {
-            HingeInsetPage(hingeSurface.hinge) { SinglePage(spread?.leading ?: 0, stitch, ::handleTap) }
+            // Curl insets its whole surface once, so the body it stands over is not inset twice.
+            if (insets) HingeInsetPage(hingeSurface.hinge) { SinglePage(spread?.leading ?: 0, stitch, ::handleTap) }
+            else SinglePage(spread?.leading ?: 0, stitch, ::handleTap)
             return
         }
         val onScreen =
@@ -914,6 +924,27 @@ private fun Pager(
             }
         }
     }
+
+    /** The end screen: over the reader once it is reached, and under the last page as a curl lifts it (D10). */
+    @Composable
+    fun EndScreen() = EndOfPublication(
+        title = viewModel.publication.displayTitle,
+        colours = coverColours,
+        next = nextInSeries,
+        onOpenNext = onOpen,
+        onBack = {
+            hasReachedEnd = false
+            // Slide and Scroll actually moved into `endSlot` to get here; Curl,
+            // a tap or a key did not, because `turn` refuses before advancing
+            // past the last page. Snap back to the last page underneath,
+            // invisibly, so returning finds the reader where they left off.
+            if (paging.current == endSlot) {
+                scope.launch { paging.goTo(displayIndex(pages.lastIndex), animate = false) }
+            }
+        },
+        onClose = onClose,
+        downloadCleanup = downloadCleanup,
+    )
 
     /**
      * The page itself, and whatever container the transition asks for.
@@ -941,9 +972,13 @@ private fun Pager(
                     modelIndex = ::modelIndex,
                     slotPages = { layout.slotAt(slotIndex(it)).onScreen(isRightToLeft) },
                     viewModel = viewModel,
+                    fit = fit,
+                    carriedZoomScale = carriedZoomScale,
                     onTurn = { step -> scope.launch { paging.goTo(paging.current + step, animate = false) } },
-                    onTap = ::handleTap,
+                    onReachEnd = ::reachEnd,
                     modifier = keyboard,
+                    endScreen = { EndScreen() },
+                    body = { Page(paging.current, insets = false) },
                 )
             } else {
                 // Slide and Fast fade animate a turn and report no end, so the position
@@ -1157,24 +1192,7 @@ private fun Pager(
     }
 
     if (hasReachedEnd) {
-        EndOfPublication(
-            title = viewModel.publication.displayTitle,
-            colours = coverColours,
-            next = nextInSeries,
-            onOpenNext = onOpen,
-            onBack = {
-                hasReachedEnd = false
-                // Slide and Scroll actually moved into `endSlot` to get here; Curl,
-                // a tap or a key did not, because `turn` refuses before advancing
-                // past the last page. Snap back to the last page underneath,
-                // invisibly, so returning finds the reader where they left off.
-                if (paging.current == endSlot) {
-                    scope.launch { paging.goTo(displayIndex(pages.lastIndex), animate = false) }
-                }
-            },
-            onClose = onClose,
-            downloadCleanup = downloadCleanup,
-        )
+        EndScreen()
         return
     }
 
@@ -1327,7 +1345,7 @@ private fun shareAnnotations(context: android.content.Context, document: String)
  * it. Without that the reader can either zoom or turn pages, never both.
  */
 @Composable
-private fun ZoomablePage(
+internal fun ZoomablePage(
     bitmap: ImageBitmap,
     /**
      * What page this is, as distinct from which decode of it is in hand.
@@ -1420,6 +1438,9 @@ private fun ZoomablePage(
     val transform = rememberTransformableState { centroid, zoomChange, panChange, _ ->
         zoom = zoom.pinched(centroid, zoomChange, panChange, page)
     }
+    // D33: in Curl, where a turn starts from. Read while a turn is drawn, not per frame here.
+    val curlFrame = LocalCurlFrame.current
+    SideEffect { curlFrame?.read = { zoom.frame(page) } }
 
     // The debounce, and the whole of it: keying the effect on the scale cancels the
     // pending decode every time the pinch moves, so only the magnification the reader
@@ -1465,7 +1486,7 @@ private fun ZoomablePage(
             .onSizeChanged { size = it }
             // `canPan` is what makes this coexist with the pager: the page declines
             // a drag it has no slack for, and the pager turns the page instead.
-            .transformable(state = transform, canPan = { page.slack(zoom.scale) != Offset.Zero })
+            .transformable(state = transform, canPan = { zoom.claimsPan(it, page) })
             // Centred on what was tapped, not on the middle of the screen: the
             // point of a double-tap is to magnify *that* panel.
             .tappable(

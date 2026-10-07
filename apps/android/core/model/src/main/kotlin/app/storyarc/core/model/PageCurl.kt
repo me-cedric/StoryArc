@@ -3,6 +3,7 @@ package app.storyarc.core.model
 import android.graphics.Bitmap
 import android.graphics.BitmapShader
 import android.graphics.Matrix
+import android.graphics.RectF
 import android.graphics.RuntimeShader
 import android.graphics.Shader
 import android.os.Build
@@ -137,6 +138,9 @@ object PageCurl {
      * @param beneath the page being revealed. The outgoing page is reused when there
      *   is none, so the last page still turns rather than tearing to nothing — the
      *   boundary is the caller's business, not the shader's.
+     * @param pageFrame where the turning sheet lies flat, as the reader's page body draws
+     *   it at the current fit and pinch. Null fits it to the whole area.
+     * @param beneathFrame where the page beneath lies flat. Null fits it to the whole area.
      */
     fun update(
         shader: RuntimeShader,
@@ -146,6 +150,8 @@ object PageCurl {
         isRightToLeft: Boolean,
         page: Bitmap,
         beneath: Bitmap?,
+        pageFrame: RectF? = null,
+        beneathFrame: RectF? = null,
     ) {
         shader.setFloatUniform("size", width, height)
         shader.setFloatUniform("progress", progress.coerceIn(0f, 1f))
@@ -156,12 +162,18 @@ object PageCurl {
         shader.setFloatUniform("radiusMax", PageRoll.R_MAX)
         shader.setFloatUniform("lean", PageRoll.LEAN)
         shader.setFloatUniform("rim", PageRoll.RIM)
-        shader.setInputShader("page", page.fitted(width, height))
-        shader.setInputShader("beneath", (beneath ?: page).fitted(width, height))
+        val whole = RectF(0f, 0f, width, height)
+        shader.setInputShader("page", page.fitted(pageFrame ?: whole))
+        shader.setInputShader("beneath", (beneath ?: page).fitted(beneathFrame ?: whole))
     }
 
     /**
-     * The bitmap as a shader scaled to fit the area, centred.
+     * The bitmap as a shader scaled to fit [frame], centred in it.
+     *
+     * The frame is where the reader's page body draws the page: the whole area at
+     * fit-to-screen, or the zoomed rectangle at any other fit or pinch (D33). Fitting inside
+     * it is what the body's own `ContentScale.Fit` image does, so a turn starts and ends on
+     * the page the reader was looking at.
      *
      * `Fit` rather than fill, for the reason the reader fits pages that way: cropping a
      * comic page loses artwork.
@@ -170,13 +182,13 @@ object PageCurl {
      * smeared the edge pixel across the letterbox instead of leaving the black the
      * other three modes show there.
      */
-    private fun Bitmap.fitted(areaWidth: Float, areaHeight: Float): Shader {
-        val scale = minOf(areaWidth / width, areaHeight / height)
+    private fun Bitmap.fitted(frame: RectF): Shader {
+        val scale = minOf(frame.width() / width, frame.height() / height)
         val matrix = Matrix().apply {
             setScale(scale, scale)
             postTranslate(
-                (areaWidth - width * scale) / 2f,
-                (areaHeight - height * scale) / 2f,
+                frame.left + (frame.width() - width * scale) / 2f,
+                frame.top + (frame.height() - height * scale) / 2f,
             )
         }
         return BitmapShader(this, Shader.TileMode.DECAL, Shader.TileMode.DECAL).apply {

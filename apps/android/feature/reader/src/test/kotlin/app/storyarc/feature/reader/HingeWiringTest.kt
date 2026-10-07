@@ -34,7 +34,7 @@ class HingeWiringTest {
 
     /** Just `Page()`'s own body, bracket-matched so a call elsewhere in the file cannot pass this. */
     private fun pageBody(): String {
-        val signature = readerScreen.indexOf("fun Page(display: Int, stitch: ScrollAxis? = null) {")
+        val signature = readerScreen.indexOf("fun Page(display: Int, stitch: ScrollAxis? = null, insets: Boolean = true) {")
         check(signature >= 0) { "ReaderScreen.kt no longer declares Page(display, stitch) — has it moved?" }
         val open = readerScreen.indexOf('{', signature)
         var depth = 1

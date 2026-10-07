@@ -46,6 +46,15 @@ class CurlRequestTest {
         assertEquals(0, curlStep(from = 3, to = 4, isRightToLeft = false, animate = false))
     }
 
+    @Test
+    fun `a tap past the last page curls onto the end screen, and only forward`() {
+        // D10: a tap or a key past the last page opens the end screen "with the chosen
+        // transition", which in Curl lifts the page off it.
+        assertTrue(curlEndsAhead(from = 9, to = 10, isRightToLeft = false))
+        assertTrue(curlEndsAhead(from = 0, to = -1, isRightToLeft = true))
+        assertTrue(!curlEndsAhead(from = 0, to = -1, isRightToLeft = false))
+    }
+
     // The wiring
 
     private val module: File by lazy {
