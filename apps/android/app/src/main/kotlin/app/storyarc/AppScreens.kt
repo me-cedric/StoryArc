@@ -277,6 +277,7 @@ internal fun HostedScreen(
                     onOpenNext = host::openEntry,
                 )
             } else {
+                val publications = host.library.publications.collectAsStateWithLifecycle().value
                 PlayerScreen(
                     playing = playing,
                     onToggle = PlaybackHost::toggle,
@@ -288,7 +289,7 @@ internal fun HostedScreen(
                     sleep = PlaybackHost.sleep.collectAsStateWithLifecycle().value,
                     onSleep = PlaybackHost::setSleepTimer,
                     onBack = back,
-                    publication = playedPublication(playing, following, host.library.publications.value),
+                    publication = playedPublication(playing, following, publications),
                     // The same cache every shelf reads, so a cover the library has drawn
                     // once is not decoded a second time for the player.
                     cover = host.library::cover,
