@@ -307,4 +307,20 @@ extension XCTestCase {
         app.launch()
         return app
     }
+
+    /// A row of the comic reader's menu, scrolled to when the sheet opens with it below its
+    /// fold.
+    ///
+    /// On the iPhone 17 simulator on 2026-10-07 the menu opened with Contents hittable and
+    /// Page turn not, and both curl walks and the transition picker walk failed on "The menu
+    /// offers no Page turn row" before they did anything else. A drag up inside the sheet
+    /// brings the row up, and the curl walks then ran to their end.
+    func rowInTheMenu(_ name: String, in app: XCUIApplication) -> XCUIElement? {
+        for _ in 0..<3 {
+            if let row = hittableRow(name, in: app, timeout: 2) { return row }
+            let low = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
+            low.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35)))
+        }
+        return hittableRow(name, in: app, timeout: 2)
+    }
 }

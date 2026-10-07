@@ -100,8 +100,10 @@ final class CurlWalkTests: XCTestCase {
     private func openCurlingComic(in app: XCUIApplication) throws {
         try openPublication(named: "Fine Print", in: app)
         try openReaderMenu(in: app)
-        try XCTUnwrap(hittableRow("Page turn", in: app), "The menu offers no Page turn row.")
-            .tap()
+        try XCTUnwrap(
+            rowInTheMenu("Page turn", in: app),
+            "The menu offers no Page turn row. Buttons: \(app.buttons.allElementsBoundByIndex.prefix(30).map(\.label))"
+        ).tap()
         // Asked of any descendant rather than of `buttons`, for the reason the sweep's own
         // transition walk gives: what the platform calls a menu row is not this file's
         // business, and it has changed between releases.
@@ -143,6 +145,19 @@ final class CurlWalkTests: XCTestCase {
         for _ in 0..<8 where found == nil {
             found = wanted.allElementsBoundByIndex.first(where: \.isHittable)
             if found == nil { app.swipeUp() }
+        }
+        // A cover can settle half past the bottom edge, never hittable, and the next swipe
+        // carries it past the top. The shelf's alphabetical index puts the letter's first row
+        // at the top instead. `SweepComicReaderTests.openPublication` measured this first.
+        if found == nil, let initial = title.first.map({ String($0).uppercased() }) {
+            let jump = app.buttons.matching(NSPredicate(format: "label == %@", "Jump to \(initial)")).firstMatch
+            if jump.isHittable {
+                jump.tap()
+                for _ in 0..<4 where found == nil {
+                    found = wanted.allElementsBoundByIndex.first(where: \.isHittable)
+                    if found == nil { app.swipeUp() }
+                }
+            }
         }
         try XCTSkipUnless(found != nil, "This device's shelf never showed a cover for “\(title)”.")
         found?.tap()

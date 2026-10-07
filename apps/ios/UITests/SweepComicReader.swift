@@ -121,7 +121,7 @@ final class SweepComicReaderTests: XCTestCase {
         let app = sweepLaunch()
         try openComic(in: app)
         try openMenu(in: app)
-        try XCTUnwrap(hittableRow("Page turn", in: app), "The menu offers no Page turn row.").tap()
+        try XCTUnwrap(rowInTheMenu("Page turn", in: app), "The menu offers no Page turn row.").tap()
         // A `Menu` here rather than a `Picker`, precisely so a row can be disabled and carry
         // a reason — so this one does open a menu. Asked of any element for the same reason
         // the fit picker is: what the platform calls a menu row is not this file's business.
