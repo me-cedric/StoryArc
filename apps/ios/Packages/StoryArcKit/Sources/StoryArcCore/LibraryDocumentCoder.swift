@@ -88,7 +88,7 @@ public enum LibraryDocumentCoder {
     /// decodes straight from `data`, so the bytes and the decoded value are the only two
     /// copies; only an older one is parsed into a tree to be migrated and written out again.
     ///
-    /// - Parameter limit: the size ceiling, injectable so a test need not allocate 32 MiB.
+    /// - Parameter limit: the size ceiling, injectable so a test need not allocate 64 MiB.
     /// - Parameter transforms: the chain, injectable so a test can prove it runs. Production
     ///   passes ``transforms``.
     public static func decode(

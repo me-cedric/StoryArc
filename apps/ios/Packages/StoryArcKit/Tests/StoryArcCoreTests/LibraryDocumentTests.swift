@@ -23,7 +23,7 @@ struct LibraryDocumentTests {
         #expect(written.appVersion == "10.14.0")
         #expect(written.writtenBy == WritingPlatform.ios)
         #expect(written.writtenAt == LibraryDocumentFixture.writtenAt)
-        // Reserved and never filled: see `LibraryDocument.secrets` and design.md.
+        // Filled only when the reader asks to carry secrets: see `LibraryDocument.secrets`.
         #expect(written.secrets == nil)
     }
 

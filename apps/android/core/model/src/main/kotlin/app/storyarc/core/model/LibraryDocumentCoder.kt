@@ -143,10 +143,12 @@ object LibraryDocumentCoder {
      * What an import preview asks first: a document it is going to refuse should be refused
      * before the reader is shown a list of what it would have done.
      */
-    fun declaredVersion(text: String, limit: Long = MAXIMUM_BYTES): Int? =
-        if (utf8Size(text) > limit) null else runCatching { (json.parseToJsonElement(text) as JsonObject)["formatVersion"] }
+    fun declaredVersion(text: String, limit: Long = MAXIMUM_BYTES): Int? {
+        if (utf8Size(text) > limit) return null
+        return runCatching { (json.parseToJsonElement(text) as JsonObject)["formatVersion"] }
             .getOrNull()
             ?.let { (it as? JsonPrimitive)?.intOrNull }
+    }
 
     /** The bytes UTF-8 gives [text], counted without making them. */
     private fun utf8Size(text: String): Long {

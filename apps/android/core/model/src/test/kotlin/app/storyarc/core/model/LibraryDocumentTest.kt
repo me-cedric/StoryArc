@@ -27,7 +27,7 @@ class LibraryDocumentTest {
         assertEquals("10.14.0", written.appVersion)
         assertEquals("android", written.writtenBy)
         assertEquals("2026-01-01T00:04:05Z", written.writtenAt)
-        // Reserved and never filled: see `LibraryDocument.secrets` and design.md.
+        // Filled only when the reader asks to carry secrets: see `LibraryDocument.secrets`.
         assertNull(written.secrets)
     }
 
