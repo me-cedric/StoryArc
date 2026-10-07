@@ -232,9 +232,8 @@ public struct SmbBrowserView: View {
     /// Opens a publication that lives on the share, or says what it would cost to.
     ///
     /// The index itself is ranged reads over the share — a header, not a file. The URL handed
-    /// back is the share's own for anything the reader can stream, and a local copy only for
-    /// the decoders that cannot take a source: PDFKit wants a file, libarchive wants a path,
-    /// and the EPUB reader opens one of its own.
+    /// back is the share's own for anything the reader can stream. A PDF is fetched whole,
+    /// because PDFKit wants a file, and a solid RAR5 is offered, because libarchive wants one.
     ///
     /// **The copy is offered, not taken.** This used to fetch the whole file the moment
     /// `PublicationIndexer` handed back a record, so a four-hundred-megabyte comic tapped on
@@ -279,7 +278,8 @@ public struct SmbBrowserView: View {
 
     /// Fetches the whole file, then opens the publication from the copy.
     ///
-    /// Reached only through the reader's own answer to ``TransferAsk``. The index is done
+    /// Reached through the reader's own answer to ``TransferAsk``, and directly for a PDF,
+    /// whose fetch shows its progress in the row. The index is done
     /// again against the local file, because that is the first moment the container can say
     /// what it really is: a solid RAR5 becomes ``StreamingCapability/downloadOnly`` and opens,
     /// and a solid RAR4 becomes ``StreamingCapability/refused`` and does not. This used to
