@@ -864,11 +864,10 @@ a project that compiles and shows an empty window, and nothing a reader can use.
 | Target | Stack | State | Next |
 | --- | --- | --- | --- |
 | macOS | SwiftUI app in `apps/desktop-macos`, StoryArcKit by path, macOS 26, App Sandbox | base only | Wave 1 task 1.11 to 1.14: entitlements, bookmarks, keychain, the shell |
-| Windows | WinUI 3 on Windows App SDK 2.5.1, C#, .NET 10, Windows 11 24H2, over the Rust core | base only | Wave 1 tasks 1.8, 1.18 to 1.20: the seam, the shell, the D3D11 curl spike |
+| Windows | WinUI 3 on Windows App SDK 2.5.1, C#, .NET 10, Windows 11 24H2, over the Rust core | base only; builds for x64 in CI, not yet launched on a Windows desktop | Wave 1 tasks 1.8, 1.18 to 1.20: the seam, the shell, the D3D11 curl spike |
 | Linux | GTK 4.14 and libadwaita 1.5 in Rust, Wayland first, Flatpak first | base only | Wave 1 tasks 1.15 to 1.17: window state, the shell, the Wayland curl spike |
 | Shared core | `storyarc-core` and `storyarc-ffi` (Rust, no UI), for Windows and Linux | base only | Wave 1 tasks 1.1 to 1.8: the format layer against `packages/test-fixtures` |
 | EPUB bundle | Readium ts-toolkit, pinned, in a system web view on each desktop | not started | Wave 1 tasks 1.9 and 1.10: the pin check and the egress page |
 
-Requirements of the new capability: 42, with 161 scenarios. None is built. Two carry a `[NEEDS CLARIFICATION]` for the owner:
-the chrome accent, and the cold-launch budget on a desktop. The edge click zones default is the audit's recommendation and waits
-for the owner's confirmation (design.md Open Question 2).
+Requirements of the new capability: 43, with 168 scenarios. None is built. The owner answered the three open questions on 2026-10-07:
+the chrome accent, the edge click zones default and the cold-launch budget (design.md Open Questions 1 to 3).

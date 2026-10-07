@@ -44,8 +44,14 @@ better place moves the file and says so in the task. Estimates are not written h
 - [x] 0.10 **macOS base.** `apps/desktop-macos/project.yml` and a window that opens. Verify: `pnpm build:macos` passes. **Built 2026-10-07.** `pnpm build:macos` exits 0 and the app launches. **Owed: the light and dark frames.** This session has no macOS Screen Recording permission, so `screencapture` returns "could not create image from window". The owner deferred the frames to Wave 1 on 2026-10-07: the first lane M task that changes a screen captures the base window too.
 - [x] 0.11 **Linux base.** `storyarc-linux` opens an empty libadwaita window. Verify: `pnpm build:linux` passes on
   `ubuntu-24.04` or in `container-build.sh ubuntu-24.04`. **Built 2026-10-07.** `container-build.sh` passes on `ubuntu-24.04` (GTK 4.14.5, libadwaita 1.5.0, with `--clippy`), `arch` (4.24.1 / 1.10.0), `manjaro` (4.22.4 / 1.9.3) and `fedora` (4.22.5 / 1.9.4). Frames on Wayland: `docs/designs/screenshots/desktop-linux-base-2026-10-07/`.
-- [~] 0.12 **Windows base.** The WinUI project, `StoryArc.Interop` and its tests. Verify: `pnpm test:desktop:interop`
-  passes on a host with the .NET 10 SDK and `pwsh apps/desktop-windows/build.ps1` passes on Windows. **Partial 2026-10-07.** `pnpm test:desktop:interop` passes on macOS and fails by name when `storyarc-core` reports a different version. **Owed:** nothing has compiled the WinUI project yet. `build.ps1` needs a Windows host, so the proof is the first `desktop-windows` CI run.
+- [x] 0.12 **Windows base.** The WinUI project, `StoryArc.Interop` and its tests. Verify: `pnpm test:desktop:interop`
+  passes on a host with the .NET 10 SDK and `pwsh apps/desktop-windows/build.ps1` passes on Windows. **Built 2026-10-07.**
+  `pnpm test:desktop:interop` passes on macOS, and fails by name when `storyarc-core` reports a different version.
+  The `desktop-windows` workflow run 37657360412 (commit `e91a6f05`) builds the WinUI app for x64 on
+  `windows-2025-vs2026`, passes the interop test on Windows, Linux and macOS, and uploads `storyarc-windows-x64`.
+  Two CI fixes came first: `build.ps1` splatted a string (`7f5a2457`), and the template's Release trimming needs a
+  self-contained app (`e91a6f05`). **Not yet done:** nobody has launched the app on a Windows desktop, and ARM64 is
+  not built in CI (tasks 1.18 and 1.22).
 - [x] 0.13 **CI.** `desktop-macos.yml`, `desktop-linux.yml`, `desktop-windows.yml`, path filtered. Verify: each file exists
   and a push that touches only `apps/ios/App` or `apps/android` triggers none of them. A change under
   `apps/ios/Packages/StoryArcKit/**` runs the macOS desktop build on purpose, because the Mac target links that package.
@@ -148,9 +154,12 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
 
 - [ ] 1.25 **Owner: ask Flathub in writing** about the disclosure policy. Deferral: no Flathub packaging work is scheduled
   until the answer is in `docs/delivery/`. Verify: the reply is filed.
-- [ ] 1.26 **Owner: answer the open questions** on chrome accent, click zones and the cold-launch budget, or accept the
-  spec's defaults. Verify: `design.md` Open Questions 1 to 3 carry the answer and the spec's markers on the accent and the
-  click zones are replaced by it.
+- [x] 1.26 **Owner: answer the open questions** on chrome accent, click zones and the cold-launch budget, or accept the
+  spec's defaults. Verify: `design.md` Open Questions 1 to 3 carry the answer and the spec's markers on the accent, the
+  click zones and the cold launch are replaced by it. **Owner answered 2026-10-07: on by default** for the edge click
+  zones. The chrome accent is the brand colour by default, with a settings choice for the system accent. The cold launch
+  is interactive within 1 second on a mid-range laptop with 5,000 publications. Tasks 2.23e, 2.35e, 2.47e, 5.9 and 5.11
+  build and prove them.
 - [ ] 1.27 **A WebView2 and WebKitGTK feasibility note** for serving archive bytes through a custom scheme with ranges.
   Verify: spikes 6 of the Windows research and the WebKitGTK range question are answered in
   `docs/delivery/desktop-spike-epub-hosts.md`.
@@ -217,7 +226,8 @@ place is kept. Home, search, filters, sorting and publication detail are built i
 - [ ] 2.11 **Key mapping test first.** A pure mapper from key and reading direction to page action, covering mirrored arrows,
   Space and Page Down, a key at the end and a text field in focus. Then `onKeyPress`. Verify: `xcodebuild test` passes.
 - [ ] 2.12 **Pointer reading.** Hover reveals chrome, the pointer and chrome hide after three seconds, right-click menus on a
-  page and a publication, click zones off by default with a reader setting. Verify: a UI walk and the key-mapper tests.
+  page and a publication, click zones on by default, as on a phone, with a reader setting that turns them off. Verify: a UI
+  walk, the key-mapper tests and a test that the zones are on when nothing is stored.
 - [ ] 2.13 **Zoom and pan** with pinch, modifier and wheel, double click and keys, in a Mac page view. The limits come from the
   iOS zoom model (parent task 5.12 shares it). Verify: a pure zoom-model test and a UI walk.
 - [ ] 2.14 **Spreads by window shape**, with the cover alone, a lone last page and a placeholder for a page still decoding.
@@ -255,6 +265,11 @@ place is kept. Home, search, filters, sorting and publication detail are built i
 - [ ] 2.23d **Publication detail.** A pushed page in the content column with the cover wash, one primary action, a menu, and
   one line that names where the file lives. Test first for a publication with no cover, with progress and on an offline
   source. Verify: the tests pass and a walk opens a publication and reads it from the page.
+- [ ] 2.23e **Chrome accent setting, test first.** A settings-model test asserts the scenarios of the chrome accent: the brand
+  colour when nothing is stored, the system accent once the reader chooses it, and a later change of the system accent
+  reaching the chrome with no restart. It asserts that the colour taken from a cover is the same under both choices. Then
+  the Appearance row *Accent: StoryArc or System* in the preferences of 2.21. Verify: the tests pass, a walk changes the
+  system accent with the choice on System, and captures of both choices in light and dark.
 - [ ] 2.24 **Conformance walk.** Run the scenarios of the capabilities listed at the top of this wave against the Mac app and
   record each failure. Verify: `docs/delivery/desktop-conformance-macos-wave2.md` lists every scenario with a result.
 
@@ -294,6 +309,11 @@ place is kept. Home, search, filters, sorting and publication detail are built i
   searches, filters and sorts.
 - [ ] 2.35c **Home.** As 2.23c, with `AdwStatusPage` for an empty library. Verify: as 2.23c.
 - [ ] 2.35d **Publication detail.** As 2.23d, as a pushed `AdwNavigationPage`, side by side from 1024 px. Verify: as 2.23d.
+- [ ] 2.35e **Chrome accent setting, test first.** As 2.23e, in pure Rust tests (`cargo test -p storyarc-linux settings::`)
+  over a system that offers an accent colour and one that offers none. Where the system offers none, as on the 1.5 floor,
+  the row is absent and the brand colour stays. Then the Appearance row of 2.35, with the System choice guarded at run
+  time. Verify: the tests pass, and captures show both choices on a session with libadwaita 1.6 or newer and the absent
+  row on a 1.5 session.
 - [ ] 2.36 **Conformance walk** as 2.24. Verify: `docs/delivery/desktop-conformance-linux-wave2.md`.
 
 **Lane W**
@@ -329,6 +349,10 @@ place is kept. Home, search, filters, sorting and publication detail are built i
   searches, filters and sorts.
 - [ ] 2.47c **Home.** As 2.23c. Verify: as 2.23c.
 - [ ] 2.47d **Publication detail.** As 2.23d, as a page in the navigation frame. Verify: as 2.23d.
+- [ ] 2.47e **Chrome accent setting, test first.** As 2.23e, in `StoryArc.Interop.Tests` over the settings record. Then the
+  Appearance page of 2.47, with the `SystemAccentColor` override and its shades as the brand default and a System choice
+  that follows the Windows accent. Verify: the tests pass, a walk changes the Windows accent colour with the choice on
+  System, and captures of both choices in light and dark.
 - [ ] 2.48 **Conformance walk** as 2.24. Verify: `docs/delivery/desktop-conformance-windows-wave2.md`.
 
 **Lane P and E**
@@ -489,10 +513,13 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   test that clearing history deletes the entries.
 - [ ] 5.8 **[M, L, W] The `storyarc://` link** and command line open, with an unknown title and a link carrying a command.
   Verify: tests for the three scenarios on each desktop.
-- [ ] 5.9 **[M, L, W] The cold-launch budget.** Measure the first running shells on a mid-range machine and write the number
-  into the spec's marker through `/opsx:update`. Verify: the number is in `design.md` and the marker is resolved.
+- [ ] 5.9 **[M, L, W] The cold-launch budget.** Measure a cold launch on each desktop, on a mid-range laptop with a fixture
+  library of 5,000 publications, against the owner's 1 second. Verify: a launch trace per desktop shows the library
+  interactive within 1 second.
 - [ ] 5.10 **[M, L, W] Scroll, resize and frame rate** for a library of 10,000 publications. Verify: a frame trace per desktop.
-- [ ] 5.11 **[M, L, W] Chrome accent and click zones** per the owner's answers of task 1.26. Verify: captures and the setting.
+- [ ] 5.11 **[M, L, W] Chrome accent and click zone captures.** Capture both accent choices in light and dark on each desktop,
+  the absent choice on a Linux session below libadwaita 1.6, and a reader with the edge click zones on. Verify: the captures
+  exist for each desktop and the tests of 2.12, 2.23e, 2.35e and 2.47e pass.
 - [ ] 5.12 **[X] Parent edit, `apps/ios`:** an `AppSupport` package that holds the iOS shell code the Mac duplicates. Deferral:
   the Mac keeps its copy until the iOS owner schedules it. Verify: the Mac target builds against the package.
 - [ ] 5.13 **[L, W] The pseudo-locale walk** on each desktop for the longest language at the largest size. Verify: each walk's
@@ -534,7 +561,7 @@ records them and the proposal names them as non-goals. INH rows share a conforma
 | `library-browsing` | Presentation (READ), Search, Filtering and Sorting need desktop screens, Sorting needs collation | 2.7, 2.8a, 2.23a, 2.23b, 2.35a, 2.35b, 2.47a, 2.47b, 2.24, 2.36, 2.48 |
 | `local-library` | Folder libraries, Opening a single file, Watched changes (READ) | 2.2, 2.3, 2.18 to 2.20, 2.30, 2.31, 2.42, 2.43 |
 | `localization` | none (INH, needs ICU and string generator) | 2.7, 2.8, 5.13 |
-| `native-experience` | Platform-native interface (READ and PART), Dynamic colour (PART), Adaptive layout (PART), Reader chrome material, Accessibility, Visual proof, Chrome for a mode (READ) | 1.14, 1.16, 1.18, 2.23, 2.33, 2.45, 4.9, 4.15, 4.21, 5.11, 6.1, 6.2 |
+| `native-experience` | Platform-native interface (READ and PART), Dynamic colour (PART), Adaptive layout (PART), Reader chrome material, Accessibility, Visual proof, Chrome for a mode (READ) | 1.14, 1.16, 1.18, 2.23, 2.23e, 2.33, 2.35e, 2.45, 2.47e, 4.9, 4.15, 4.21, 5.11, 6.1, 6.2 |
 | `network-share` | SMB connection (READ on Windows and Linux, PART on the Mac for encryption), Streaming reads, Discovery (READ) | 3.1, 3.2, 3.9, 3.10, 3.17, 3.21 |
 | `offline-downloads` | Queue management, Network policy (READ), Storage management (PART) | 3.6, 3.11, 3.12, 3.15, 3.19, 3.23 |
 | `opds-catalog` | none | 3.4, 3.16, 3.20, 3.24 |
@@ -562,7 +589,5 @@ Deferrals, each named here so none is a silent drop:
 - SMB 3 encryption on the Mac: the `Smb` package has none. A parent edit under `apps/ios/Packages` adds it. Until then the
   Mac states the source is not encrypted and refuses a server that requires encryption.
 - Sharing the iOS shell code with the Mac: task 5.12, parent edit, the Mac keeps its copy until then.
-- The cold-launch budget, the chrome accent and edge click zones: the spec carries the owner's answer or its marker until
-  tasks 1.26, 5.9 and 5.11 close them.
 - Mobile-only requirements (the app icon chooser, CarPlay and Android Auto, volume-key turns, orientation lock, haptics):
   dropped on desktop by the audit.
