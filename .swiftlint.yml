@@ -1,12 +1,14 @@
-# SwiftLint runs from the repository root so it covers apps/ios in one pass.
+# SwiftLint runs from the repository root so it covers apps/ios and apps/desktop-macos in one pass.
 included:
   - apps/ios
+  - apps/desktop-macos
 
 excluded:
   - apps/ios/Packages/StoryArcKit/Sources/DesignSystem/Generated
   - apps/ios/Packages/StoryArcKit/.build
   - apps/ios/Packages/StoryArcEpub/.build
   - apps/ios/StoryArc.xcodeproj
+  - apps/desktop-macos/StoryArcMac.xcodeproj
 
 opt_in_rules:
   - empty_count

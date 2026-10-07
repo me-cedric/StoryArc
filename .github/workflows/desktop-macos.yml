@@ -1,0 +1,52 @@
+name: Desktop macOS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop-macos/**'
+      - 'apps/ios/Packages/StoryArcKit/**'
+      - 'packages/**'
+      - 'third_party/**'
+      - '.github/workflows/desktop-macos.yml'
+  pull_request:
+    paths:
+      - 'apps/desktop-macos/**'
+      - 'apps/ios/Packages/StoryArcKit/**'
+      - 'packages/**'
+      - 'third_party/**'
+      - '.github/workflows/desktop-macos.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-macos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: macOS app — build
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Report toolchain
+        # The runner image's default Xcode is the contract, as in ios.yml.
+        run: xcodebuild -version && swift --version
+
+      - run: brew install xcodegen
+
+      - name: Generate project
+        working-directory: apps/desktop-macos
+        run: xcodegen generate
+
+      - name: Build
+        working-directory: apps/desktop-macos
+        run: >-
+          xcodebuild build
+          -project StoryArcMac.xcodeproj
+          -scheme StoryArc
+          -destination 'platform=macOS'
+          CODE_SIGNING_ALLOWED=NO
+          -quiet
