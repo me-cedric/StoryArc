@@ -15,7 +15,7 @@ import StoryArcCore
 struct PinnedCollectionRecordTests {
 
     private let server = KavitaPage(
-        id: UUID(uuidString: "55555555-5555-5555-5555-555555555555")!.uuidString,
+        id: "55555555-5555-5555-5555-555555555555",
         title: "Kavita at home",
         address: KavitaAddress(base: URL(filePath: "/k"), apiKey: "key")
     )
