@@ -74,7 +74,7 @@ class HomeCardRowTest {
         compose.setContent {
             StoryArcTheme {
                 Row(
-                    modifier = Modifier.height(homeHeroBlockHeight(cardWidth, fontScale = 1f)),
+                    modifier = Modifier.height(homeHeroBlockHeight(cardWidth, TALL_WINDOW_DP, fontScale = 1f)),
                     horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
                 ) {
                     listOf(LEFT to left, RIGHT to right).forEach { (tag, card) ->
@@ -82,6 +82,7 @@ class HomeCardRowTest {
                             entry = card.first,
                             cover = card.second,
                             width = cardWidth,
+                            artHeight = homeHeroArtHeight(cardWidth, TALL_WINDOW_DP, fontScale = 1f),
                             onResume = {},
                             onFinish = {},
                             onOpenNext = {},
@@ -152,5 +153,8 @@ class HomeCardRowTest {
         const val LEFT = "keep-reading-left"
         const val RIGHT = "keep-reading-right"
         const val RESUME_LABEL = "Resume"
+
+        /** A window with room to spare, so the height cap on the cover box is inert. */
+        const val TALL_WINDOW_DP = 2000
     }
 }

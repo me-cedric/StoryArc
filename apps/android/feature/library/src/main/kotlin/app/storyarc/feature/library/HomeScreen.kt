@@ -363,14 +363,12 @@ private fun LazyListScope.keepReading(
         item {
             val entry = surface.keepReading.single()
             val label = homeRemainingText(entry)
+            val width = homeHeroWidth(homeWindowWidthDp(), homeWindowHeightDp(), LocalDensity.current.fontScale)
             HomeKeepReadingCard(
                 entry = entry,
                 cover = cover,
-                width = homeHeroWidth(
-                    homeWindowWidthDp(),
-                    homeWindowHeightDp(),
-                    LocalDensity.current.fontScale,
-                ),
+                width = width,
+                artHeight = homeHeroArtHeight(width, homeWindowHeightDp(), LocalDensity.current.fontScale),
                 onResume = { onResume(entry.publication) },
                 onFinish = { onFinish(entry.publication) },
                 onOpenNext = onOpen,
@@ -389,6 +387,8 @@ private fun LazyListScope.keepReading(
             homeWindowHeightDp(),
             LocalDensity.current.fontScale,
         )
+        val height = homeWindowHeightDp()
+        val scale = LocalDensity.current.fontScale
         val state = rememberCarouselState { surface.keepReading.size }
         // A window with no room reports none for a frame or two, and a carousel handed a
         // card of no width throws rather than drawing nothing.
@@ -406,7 +406,7 @@ private fun LazyListScope.keepReading(
             contentPadding = PaddingValues(horizontal = StoryArcSpace.gutter),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(homeHeroBlockHeight(width, LocalDensity.current.fontScale)),
+                .height(homeHeroBlockHeight(width, height, scale)),
         ) { index ->
             val entry = surface.keepReading[index]
             val label = homeRemainingText(entry)
@@ -414,6 +414,7 @@ private fun LazyListScope.keepReading(
                 entry = entry,
                 cover = cover,
                 width = width,
+                artHeight = homeHeroArtHeight(width, height, scale),
                 onResume = { onResume(entry.publication) },
                 onFinish = { onFinish(entry.publication) },
                 onOpenNext = onOpen,
@@ -680,7 +681,9 @@ internal fun homeHeroWidth(
     // `createKeylinesWithPivot`, on a build every unit test passed.
     //
     // 200 dp is the width this card had before the row was widened, so a window too short
-    // for the rule gets the hero it used to have rather than none at all.
+    // for the rule gets the hero it used to have rather than none at all. Below it the card
+    // keeps its width -- a Resume button wraps in a narrower one -- and gives up height
+    // instead: [homeHeroArtHeight] shortens the cover (owner answer O17).
     return minOf(tier.steppedForFontScale(fontScale), room, maxOf(affordable, minOf(HERO_FLOOR, room)))
 }
 
@@ -716,15 +719,20 @@ private const val HERO_CARDS_ACROSS = 1.5f
 /**
  * What Home spends above and below the hero, in dp.
  *
- * The expanded top bar including its status-bar padding, the navigation bar including its
- * gesture inset, and the *Keep reading* heading with its air. `HomeHeroHeightTest` is where
- * each number comes from; it is repeated here rather than shared because the test asserting
+ * The top bar and the section heading above the card, and the navigation bar with its gesture
+ * inset. **Measured, not modelled** (task 0b.4, 2026-10-08): on a Pixel 6a emulator at 411 x 914
+ * dp with gesture navigation the card starts 242 dp from the top and the navigation bar starts
+ * at 826 dp. The earlier model, 112 + 88 + 56 = 256, put the card 74 dp too high, and the frame
+ * showed the next heading under the fold on the reference phone as well as on a small one.
+ * The heading is 68 dp, not 56: from the card's bottom edge to the bottom of the heading's text
+ * the frame measures about 66 dp (the container's own padding, the air, and the line itself).
+ * `HomeHeroHeightTest` repeats the number rather than sharing it, because a test asserting
  * against a constant the code reads would be asserting its own arithmetic.
  */
-private const val HOME_CHROME_DP = 112 + 88 + 56
+internal const val HOME_CHROME_DP = 324
 
-/** A section heading and the air above it, which is what has to stay on screen. */
-private const val HOME_NEXT_HEADING_DP = 56
+/** From the card's bottom edge to the bottom of the next heading's text, as measured on a frame. */
+internal const val HOME_NEXT_HEADING_DP = 68
 
 /**
  * How much room the window has, in dp.

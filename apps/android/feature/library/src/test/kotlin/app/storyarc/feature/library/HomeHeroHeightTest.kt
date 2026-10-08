@@ -2,6 +2,7 @@ package app.storyarc.feature.library
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -23,16 +24,12 @@ import org.junit.Test
  * to this card already — the byline and the resume row both landed on 2026-09-05, and each
  * one grew this number.
  *
- * **A small phone is close to the line, and the number is written down here so the next
- * reader does not have to rediscover it.** On the reference emulator the hero uses 492 dp of
- * 658, which is comfortable. On a 360 × 800 dp phone — a small modern device, and the
- * smallest shape worth worrying about — the same hero uses 492 of 544, leaving 52 dp where
- * a section heading wants about 56. So the heading is roughly its own height below the fold
- * there, and was *not* before the byline and the resume row were added. The card cannot give
- * the space back without either clipping its own caption or dropping below
- * [homeHeroWidth]'s phone tier, which `design.md` §4 fixes and `HomeCoverWidthTest` pins. It
- * is recorded rather than fixed by guesswork: the frame owed for task 0b.4 is what says
- * whether a real 360 dp device agrees, and a device is the only thing that can.
+ * **A compact height gives up cover width to keep the heading.** The frames of task 0b.4 showed
+ * the heading cut by the navigation bar on the reference phone and on a 360 x 800 dp phone,
+ * because the height model was 74 dp optimistic. Owner answer O17 chose to shrink the cover tier
+ * on a compact height rather than accept the heading below the fold, so the model now carries
+ * the measured chrome and [homeHeroArtHeight] shortens the cover box where the window is short,
+ * keeping the card's width (a Resume button wraps in a narrower card).
  */
 class HomeHeroHeightTest {
 
@@ -49,24 +46,31 @@ class HomeHeroHeightTest {
         const val SMALL_HEIGHT_DP = 800
 
         /**
-         * What Home spends above and below the hero.
+         * What Home spends above and below the hero, **as measured on a frame**.
          *
-         * `MediumFlexibleTopAppBar` expanded, which is 112 dp **including** the status bar it
-         * pads itself for; `ShortNavigationBar`, 64 dp plus the gesture inset it applies
-         * itself, so about 88; and the *Keep reading* heading with its air, 56. The gesture
-         * inset is counted once, inside the navigation bar — adding it again is the mistake
-         * that makes this model look 48 dp more pessimistic than the device.
+         * Task 0b.4, 2026-10-08, Pixel 6a emulator, 411 x 914 dp, gesture navigation: the card
+         * starts 242 dp from the top and the navigation bar starts at 826 dp, so the top bar,
+         * the section heading and their air take 242 and the navigation bar takes 88.
+         * The earlier model said 112 + 88 + 56 = 256 and was 74 dp optimistic, which is why the
+         * reference phone failed on its frame too. The number is 318 rounded up, plus the few dp by which the
+         * height model overstates the card.
          */
-        const val CHROME_DP = 112 + 88 + 56
+        const val CHROME_DP = 324
 
-        /** A section heading and the air above it, which is what has to remain visible. */
-        const val NEXT_HEADING_DP = 56
+        /**
+         * From the card's bottom edge to the bottom of the next heading's text, which is what has to
+         * remain visible. Measured on the same frame: about 66 dp.
+         */
+        const val NEXT_HEADING_DP = 68
+
+        /** The width is the inverse of the height, so the fit is exact up to float rounding. */
+        const val ROUNDING_DP = 0.5f
     }
 
     private fun room(heightDp: Int): Dp = (heightDp - CHROME_DP).dp
 
     private fun hero(widthDp: Int, heightDp: Int, fontScale: Float = 1f): Dp =
-        homeHeroBlockHeight(homeHeroWidth(widthDp, heightDp, fontScale), fontScale)
+        homeHeroBlockHeight(homeHeroWidth(widthDp, heightDp, fontScale), heightDp, fontScale)
 
     @Test
     fun `the next heading is visible without scrolling at the default text size`() {
@@ -76,7 +80,7 @@ class HomeHeroHeightTest {
         assertTrue(
             "The hero block is $hero in $room of room, leaving ${room - hero} — the next" +
                 " section's heading needs $NEXT_HEADING_DP.dp and would be below the fold.",
-            room - hero >= NEXT_HEADING_DP.dp,
+            room - hero >= (NEXT_HEADING_DP - ROUNDING_DP).dp,
         )
     }
 
@@ -97,33 +101,60 @@ class HomeHeroHeightTest {
     }
 
     @Test
-    fun `a small phone is within one heading of the fold, and this is where that is recorded`() {
-        // Not an assertion that it fits — it does not, by about 4 dp, and this class's note
-        // says why that is left alone rather than guessed at. What is asserted is the size
-        // of the shortfall, so that a change which makes it *much* worse fails here instead
-        // of being found on a device three weeks later.
+    fun `the next heading is visible on a small phone too`() {
+        // Owner answer O17: the card gives up cover width on a compact height rather than
+        // letting the heading fall below the fold. A 200 dp floor on the card's width stopped
+        // the card from shrinking far enough at 360 x 800 dp, and a narrower card wraps the
+        // Resume button, so the cover box gives up height instead.
         val room = room(SMALL_HEIGHT_DP)
         val hero = hero(SMALL_WIDTH_DP, SMALL_HEIGHT_DP)
-        val left = room - hero
 
         assertTrue(
-            "A 360 × 800 phone now leaves $left for the next heading. It left 52.dp on" +
-                " 2026-09-05; losing another heading's worth is a regression, not a rounding.",
-            left >= (NEXT_HEADING_DP - 16).dp,
+            "A 360 x 800 phone leaves ${room - hero} for the next heading, which needs $NEXT_HEADING_DP.dp.",
+            room - hero >= (NEXT_HEADING_DP - ROUNDING_DP).dp,
         )
     }
 
     @Test
-    fun `a reader at the largest text size gets a taller card, not a clipped caption`() {
+    fun `the small phone's card is still the surface's one emphasis`() {
+        val room = room(SMALL_HEIGHT_DP)
+        val hero = hero(SMALL_WIDTH_DP, SMALL_HEIGHT_DP)
+
+        assertTrue("The hero block is $hero in $room of room.", hero >= room / 3)
+    }
+
+    @Test
+    fun `the small phone keeps a card wide enough for its buttons`() {
+        // A 200 dp card is the narrowest that keeps "Resume" on one line (the frame of task
+        // 0b.4 at 138 dp showed it wrapped to "Resu / me"), so the height is given up by the
+        // cover box and not by the width.
+        assertTrue(
+            homeHeroWidth(SMALL_WIDTH_DP, SMALL_HEIGHT_DP, fontScale = 1f) >= 200.dp,
+        )
+    }
+
+    @Test
+    fun `a reader at the largest text size gets room for the caption, not a clipped one`() {
         // No fold claim here, and that is deliberate. `home-screen` scopes the scenario to
         // "the default text size", and a reader at 200% has accepted that less fits on a
-        // screen — what they must not get is a caption cut off, which is what a height
-        // budget that ignored the scale would give them. So the assertion is that the budget
-        // moves at all.
+        // screen. What they must not get is a caption cut off, which is what a height budget
+        // that ignored the scale would give them. In a window with room to spare the block must
+        // grow with the text.
+        val tall = 2000
+        val width = homeHeroWidth(REFERENCE_WIDTH_DP, tall, fontScale = 1f)
+
         assertTrue(
             "The height budget ignores the reader's text size.",
-            hero(REFERENCE_WIDTH_DP, REFERENCE_HEIGHT_DP, fontScale = 2f) >
-                hero(REFERENCE_WIDTH_DP, REFERENCE_HEIGHT_DP),
+            homeHeroBlockHeight(width, tall, fontScale = 2f) > homeHeroBlockHeight(width, tall, fontScale = 1f),
         )
+    }
+
+    @Test
+    fun `the cover box is never taller than 2 to 3, and never negative`() {
+        for (height in listOf(0, 200, 411, 640, 800, 914, 2000)) {
+            val box = homeHeroArtHeight(homeHeroWidth(360, height, 1f), height, 1f)
+            assertTrue("A ${height}dp window gave a cover box of $box.", box > 0.dp)
+            assertTrue(box <= (homeHeroWidth(360, height, 1f) - StoryArcSpace.md * 2) * HOME_COVER_ASPECT)
+        }
     }
 }

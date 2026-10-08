@@ -130,13 +130,29 @@ private const val CAPTION_LINE_SP = 22
  * which needs it to be a number a JVM can see. Both asking the same function is the point:
  * a test that recomputed the sum would be asserting its own arithmetic.
  */
-internal fun homeHeroBlockHeight(width: Dp, fontScale: Float): Dp {
-    val art = width - StoryArcSpace.md * 2
-    return art * HOME_COVER_ASPECT +
-        homeCaptionHeight(lines = 6, fontScale = fontScale) +
-        StoryArcSpace.xxl +
-        HOME_RESUME_ROW
+internal fun homeHeroBlockHeight(width: Dp, windowHeightDp: Int, fontScale: Float): Dp =
+    homeHeroArtHeight(width, windowHeightDp, fontScale) + homeHeroFixedHeight(fontScale)
+
+/** Everything in the block that is not artwork: the caption budget, the padding, the resume row. */
+private fun homeHeroFixedHeight(fontScale: Float): Dp =
+    homeCaptionHeight(lines = 6, fontScale = fontScale) + StoryArcSpace.xxl + HOME_RESUME_ROW
+
+/**
+ * How tall the card's artwork box is: a 2:3 box the width of the art, shortened where the
+ * window is too short to leave the next heading on screen (task 0b.4, owner answer O17).
+ *
+ * The card keeps its width -- a Resume button wraps in a card narrower than about 200 dp -- and
+ * the cover gives up height, letterboxed in the shorter box rather than cropped. Never below
+ * [HERO_ART_FLOOR], so a landscape phone still gets a card and not a negative one.
+ */
+internal fun homeHeroArtHeight(width: Dp, windowHeightDp: Int, fontScale: Float): Dp {
+    val whole = (width - StoryArcSpace.md * 2) * HOME_COVER_ASPECT
+    val spare = (windowHeightDp - HOME_CHROME_DP - HOME_NEXT_HEADING_DP).dp - homeHeroFixedHeight(fontScale)
+    return minOf(whole, maxOf(spare, HERO_ART_FLOOR))
 }
+
+/** The shortest artwork box worth drawing, about a shelf cover. */
+private val HERO_ART_FLOOR = 96.dp
 
 /**
  * One cover, letterboxed rather than cropped, decoded when the card appears.
@@ -235,6 +251,8 @@ internal fun HomeKeepReadingCard(
     entry: HomeEntry,
     cover: suspend (Publication, Int) -> Bitmap?,
     width: Dp,
+    /** How tall the artwork box is, which the window can shorten. See [homeHeroArtHeight]. */
+    artHeight: Dp,
     /** Opens the book where the reader stopped. Exactly what tapping the card does. */
     onResume: () -> Unit,
     /** Marks it read, which is what removes it from this shelf. */
@@ -277,7 +295,7 @@ internal fun HomeKeepReadingCard(
                 // rest to the space above the actions; a taller one scales down to fit,
                 // which is still whole and still uncropped. `heightIn` rather than `height`
                 // is the whole of the letterbox fix.
-                .heightIn(max = art * HOME_COVER_ASPECT)
+                .heightIn(max = artHeight)
                 .alpha(dim),
         )
 
