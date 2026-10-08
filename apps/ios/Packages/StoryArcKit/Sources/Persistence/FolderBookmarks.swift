@@ -19,15 +19,19 @@ public import Foundation
 /// the compiler cannot catch. It is cheap to construct where it is needed.
 public struct FolderBookmarks {
     private let defaults: UserDefaults
-    private let key = "app.storyarc.libraryFolders"
+    private let key: String
     /// Resolved keys, so a scan asking for the same folder's identity once per publication
     /// costs one `bookmarkData` call rather than one per file. A class, not a dictionary
     /// stored directly: copying this struct must still see what an earlier copy resolved.
     private let cache = KeyCache()
     private final class KeyCache { var keys: [URL: String] = [:] }
 
-    public init(defaults: UserDefaults = .standard) {
+    /// - Parameter key: where the bookmarks are kept. The library's folders use the default.
+    ///   `library-sync` task 2.3 keeps the sync folder under a key of its own, so the sync
+    ///   folder is never read as a library folder.
+    public init(defaults: UserDefaults = .standard, key: String = "app.storyarc.libraryFolders") {
         self.defaults = defaults
+        self.key = key
     }
 
     /// A folder that could not be re-opened, and why.
