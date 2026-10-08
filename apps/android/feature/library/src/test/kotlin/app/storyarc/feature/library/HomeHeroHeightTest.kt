@@ -24,7 +24,7 @@ import org.junit.Test
  * to this card already — the byline and the resume row both landed on 2026-09-05, and each
  * one grew this number.
  *
- * **A compact height gives up cover width to keep the heading.** The frames of task 0b.4 showed
+ * **A compact height gives up cover height to keep the heading.** The frames of task 0b.4 showed
  * the heading cut by the navigation bar on the reference phone and on a 360 x 800 dp phone,
  * because the height model was 74 dp optimistic. Owner answer O17 chose to shrink the cover tier
  * on a compact height rather than accept the heading below the fold, so the model now carries
@@ -52,8 +52,8 @@ class HomeHeroHeightTest {
          * starts 242 dp from the top and the navigation bar starts at 826 dp, so the top bar,
          * the section heading and their air take 242 and the navigation bar takes 88.
          * The earlier model said 112 + 88 + 56 = 256 and was 74 dp optimistic, which is why the
-         * reference phone failed on its frame too. The number is 318 rounded up, plus the few dp by which the
-         * height model overstates the card.
+         * reference phone failed on its frame too. The frame gives 242 + 88 = 330. The number is
+         * 6 dp less, because the height model states a block a few dp taller than the drawn card.
          */
         const val CHROME_DP = 324
 
@@ -102,8 +102,8 @@ class HomeHeroHeightTest {
 
     @Test
     fun `the next heading is visible on a small phone too`() {
-        // Owner answer O17: the card gives up cover width on a compact height rather than
-        // letting the heading fall below the fold. A 200 dp floor on the card's width stopped
+        // Owner answer O17: the cover shrinks on a compact height rather than letting the
+        // heading fall below the fold. A 200 dp floor on the card's width stopped
         // the card from shrinking far enough at 360 x 800 dp, and a narrower card wraps the
         // Resume button, so the cover box gives up height instead.
         val room = room(SMALL_HEIGHT_DP)

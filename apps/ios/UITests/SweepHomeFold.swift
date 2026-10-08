@@ -4,7 +4,7 @@ import XCTest
 ///
 /// `home-screen`: on a phone at the default text size "the next section's heading is visible
 /// without scrolling". The hero exists only when something is in progress, and a seeded device
-/// has nothing in progress, so `SweepHomeTests` never photographed it. This reads two pages of a
+/// has nothing in progress, so `SweepHomeTests` never photographed it. This turns one page of a
 /// comic, closes it, and goes Home (task 0b.4).
 @MainActor
 final class SweepHomeFoldTests: XCTestCase {

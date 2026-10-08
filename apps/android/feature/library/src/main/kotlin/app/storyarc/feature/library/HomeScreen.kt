@@ -722,7 +722,8 @@ private const val HERO_CARDS_ACROSS = 1.5f
  * The top bar and the section heading above the card, and the navigation bar with its gesture
  * inset. **Measured, not modelled** (task 0b.4, 2026-10-08): on a Pixel 6a emulator at 411 x 914
  * dp with gesture navigation the card starts 242 dp from the top and the navigation bar starts
- * at 826 dp. The earlier model, 112 + 88 + 56 = 256, put the card 74 dp too high, and the frame
+ * at 826 dp, so 330 in all; the constant is 6 dp less because [homeHeroBlockHeight] is a few dp
+ * taller than the drawn card. The earlier model, 112 + 88 + 56 = 256, put the card 74 dp too high, and the frame
  * showed the next heading under the fold on the reference phone as well as on a small one.
  * The heading is 68 dp, not 56: from the card's bottom edge to the bottom of the heading's text
  * the frame measures about 66 dp (the container's own padding, the air, and the line itself).
