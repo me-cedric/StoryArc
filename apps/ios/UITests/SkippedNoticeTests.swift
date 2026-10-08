@@ -134,6 +134,8 @@ final class SkippedNoticeTests: XCTestCase {
         let both = app.descendants(matching: .any).matching(
             NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", name, reason)
         )
+        // The list can still be drawing after a slow launch; counting at once read zero.
+        _ = both.firstMatch.waitForExistence(timeout: 10)
         XCTAssertEqual(
             both.count, 1, "not one element says \(name) and “\(reason)” together", file: file, line: line
         )
