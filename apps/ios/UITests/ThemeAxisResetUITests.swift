@@ -48,7 +48,7 @@ final class ThemeAxisResetUITests: XCTestCase {
             turns += 1
         }
         let before = try XCTUnwrap(firstParagraph(in: app), "No paragraph is readable. \(visibleText(in: app))")
-        try XCTSkipIf(before < 10, "No page in the middle of a chapter in \(turns) turns; the page begins at \(before).")
+        try XCTSkipIf(before < 10, "No mid-chapter page in \(turns) turns; the page begins at \(before).")
 
         // Margins, the axis that reflows the most: a narrower column puts far fewer words on a
         // page, so a reader landing by progression alone is many paragraphs away.
@@ -64,7 +64,9 @@ final class ThemeAxisResetUITests: XCTestCase {
         let moved = slider.value as? String
 
         try closeTheSheets(in: app)
-        let afterChange = try XCTUnwrap(firstParagraph(in: app), "No paragraph after the change. \(visibleText(in: app))")
+        let afterChange = try XCTUnwrap(
+            firstParagraph(in: app), "No paragraph after the change. \(visibleText(in: app))"
+        )
         XCTAssertLessThanOrEqual(
             abs(afterChange - before), Self.tolerance,
             "Changing an axis moved the reader from paragraph \(before) to \(afterChange)."

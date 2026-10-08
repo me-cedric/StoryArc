@@ -120,7 +120,7 @@ struct ShareProbeRecordTests {
 
     nonisolated static let fixturesRunning = isListening(port: 4445) && isListening(port: 4446)
 
-    private nonisolated static func isListening(port: Int) -> Bool {
+    nonisolated private static func isListening(port: Int) -> Bool {
         let socket = Darwin.socket(AF_INET, SOCK_STREAM, 0)
         guard socket >= 0 else { return false }
         defer { close(socket) }

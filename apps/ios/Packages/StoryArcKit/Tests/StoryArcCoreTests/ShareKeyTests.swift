@@ -17,7 +17,8 @@ struct ShareKeyTests {
 
     @Test("The port is part of the share")
     func portCounts() {
-        #expect(ShareKey(locator: "smb://nas.local:4446/Comics") == ShareKey(host: "nas.local", port: 4446, share: "Comics"))
+        let other = ShareKey(host: "nas.local", port: 4446, share: "Comics")
+        #expect(ShareKey(locator: "smb://nas.local:4446/Comics") == other)
         #expect(ShareKey(locator: "smb://nas.local:4446/Comics") != nas)
     }
 
