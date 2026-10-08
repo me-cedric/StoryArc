@@ -63,9 +63,18 @@ object SafTree {
         resolver.persistedUriPermissions
             // A single file another app handed over holds a grant too (10.10), and it is
             // no folder: read as one, it was named as an unavailable folder at every launch.
-            .filter { it.isReadPermission && DocumentsContract.isTreeUri(it.uri) }
+            .filter { isLibraryGrant(it.isReadPermission, it.isWritePermission, DocumentsContract.isTreeUri(it.uri)) }
             .sortedBy { it.persistedTime }
             .map { it.uri }
+
+    /**
+     * Whether a persisted grant is a library folder.
+     *
+     * A library folder is read and never written, so its grant is read only. `library-sync`
+     * task 2.3 keeps the sync folder under a read and write grant, and that folder is not a
+     * library: read as one, the reader's sync folder became a source on the shelf.
+     */
+    fun isLibraryGrant(isRead: Boolean, isWrite: Boolean, isTree: Boolean): Boolean = isRead && !isWrite && isTree
 
     /**
      * A folder's name as the provider states it, or `null` when it is gone.
