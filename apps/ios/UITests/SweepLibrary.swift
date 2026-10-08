@@ -57,6 +57,28 @@ final class SweepLibraryTests: XCTestCase {
         shutter(app, named: "library-no-index")
     }
 
+    /// `close-the-audited-gaps` 24.6: the A to Z index is one control, 44 points wide, and a
+    /// drag down it reaches the end of the alphabet.
+    ///
+    /// The rail speaks the letter it last chose as its value, so the value is the proof that
+    /// the drag was read by the rail and not by the shelf beneath it.
+    func testTheIndexIsOneScrubber() throws {
+        let app = sweepLaunch()
+        try showTheShelf(in: app)
+        let rail = app.descendants(matching: .any).matching(identifier: "library.rail").firstMatch
+        try XCTSkipUnless(rail.waitForExistence(timeout: 10), "This corpus draws no index.")
+
+        XCTAssertGreaterThanOrEqual(rail.frame.width, 44, "The rail is narrower than a finger.")
+        XCTAssertEqual(rail.value as? String, "", "A letter was chosen before the finger touched the rail.")
+
+        rail.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.03))
+            .press(forDuration: 0.2, thenDragTo: rail.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.97)))
+
+        let chosen = try XCTUnwrap(rail.value as? String)
+        XCTAssertFalse(chosen.isEmpty, "A drag down the rail chose no letter.")
+        XCTAssertNotEqual(chosen, "A", "The drag stopped on the first letter.")
+    }
+
     /// The compact list, chosen through the View menu the layout toggle folded into.
     ///
     /// `library-browsing` offers grid and list; nothing in this repository has photographed
