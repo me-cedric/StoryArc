@@ -149,6 +149,7 @@ internal fun ReaderHost(host: AppHost, screen: Screen.Reader, onClose: () -> Uni
             onClose = {
                 onClose()
                 activity.lifecycleScope.launch { report() }
+                host.syncAfterLeaving(publication)
             },
             // D7: `null` when this publication was never a download.
             // Both actions only record the choice; the sweep acts on it when the reader closes.

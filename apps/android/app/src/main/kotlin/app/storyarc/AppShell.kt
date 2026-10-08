@@ -185,6 +185,8 @@ internal fun AppShell(
     val epubLauncher = remember { mutableStateOf<ActivityResultLauncher<android.content.Intent>?>(null) }
     // What the EPUB reader was told to offer, so the choice it hands back opens that entry.
     val epubNext = remember { mutableStateOf<Publication?>(null) }
+    // `library-sync` task 4.2: the book the EPUB activity holds, so its return can sync it.
+    val epubOpen = remember { mutableStateOf<Publication?>(null) }
 
     val host = AppHost(
         activity = activity,
@@ -244,6 +246,7 @@ internal fun AppShell(
                     // finds the origin `kavita-server` remembers the chapter under.
                     publication.identity,
                 ).offeringNext(next)
+                epubOpen.value = publication
                 epubLauncher.value?.launch(intent) ?: activity.startActivity(intent)
             } else {
                 // Replaced rather than stacked when a reader is already open: the next
@@ -297,10 +300,13 @@ internal fun AppShell(
     epubLauncher.value = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { result ->
+        epubOpen.value?.let(host::syncAfterLeaving)
         val nextId = result.data?.getStringExtra(EXTRA_RESULT_NEXT_ID)
             ?: return@rememberLauncherForActivityResult
         epubNext.value?.takeIf { it.id == nextId }?.let(host::openEntry)
     }
+
+    LibrarySyncEffects(host, onSettingsChange)
 
     AppIntents(
         host = host,

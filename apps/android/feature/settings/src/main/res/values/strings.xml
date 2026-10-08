@@ -333,4 +333,23 @@
     <string name="transfer_position_page">Page %1$d of %2$d</string>
     <string name="transfer_position_percent">%1$d%%</string>
     <string name="transfer_done_action">Done</string>
+
+    <!-- library-sync tasks 2.1, 2.4 and 4.4: the Sync section of the Sources group. -->
+    <string name="sync_title">Sync</string>
+    <string name="sync_about">Keep your reading positions, shelves and settings the same on all your devices, through a place you choose.</string>
+    <string name="sync_every_device">Every device you want to keep the same must be able to reach this place.</string>
+    <string name="sync_choose_share">Use a shared folder</string>
+    <string name="sync_choose_folder">Choose a folder</string>
+    <string name="sync_place">Place</string>
+    <string name="sync_status_idle">Not synced yet</string>
+    <string name="sync_status_syncing">Syncing…</string>
+    <string name="sync_status_synced">Synced at %1$s</string>
+    <string name="sync_status_unreachable">%1$s cannot be reached. StoryArc syncs again when it can reach it.</string>
+    <string name="sync_status_newer">The sync file comes from a newer version of StoryArc. Update StoryArc on this device. Nothing was changed.</string>
+    <string name="sync_status_not_library">The sync file is not a StoryArc library. Nothing was changed.</string>
+    <string name="sync_now">Sync now</string>
+    <string name="sync_turn_off">Turn off sync</string>
+    <string name="sync_folder_refused">StoryArc cannot keep access to this folder. Choose another folder.</string>
+    <string name="sync_when">StoryArc syncs when you open the app, when you close a book, and in the background at most every 15 minutes while a network is available.</string>
+    <string name="sync_folder_is_library">This folder is one of your libraries. Choose another folder for sync.</string>
 </resources>

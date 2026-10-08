@@ -42,6 +42,7 @@ import app.storyarc.core.model.SourceAction
 import app.storyarc.core.model.SourceDiagnosis
 import app.storyarc.core.persistence.ImportedCopies
 import app.storyarc.core.persistence.LibraryImportOutcome
+import app.storyarc.core.persistence.LibrarySyncRunner
 import app.storyarc.core.persistence.LibraryTransfer
 import app.storyarc.core.persistence.ReaderPreferences
 import app.storyarc.core.persistence.RemovedDownload
@@ -148,6 +149,8 @@ fun SettingsScreen(
      */
     libraryTransfer: LibraryTransfer? = null,
     onLibraryImported: (LibraryImportOutcome) -> Unit = {},
+    /** Where the sync document lives, and when it syncs. Null hides the rows. `library-sync`. */
+    syncRunner: LibrarySyncRunner? = null,
 ) {
     // The match rather than the group, because a search result that named a *setting* has
     // to survive the navigation: the group is where to go, the anchor is what to point at
@@ -252,6 +255,7 @@ fun SettingsScreen(
                     onRestoreFinished = onRestoreFinished,
                     libraryTransfer = libraryTransfer,
                     onLibraryImported = onLibraryImported,
+                    syncRunner = syncRunner,
                 )
             }
         }
@@ -441,6 +445,7 @@ private fun GroupDetail(
     onRestoreFinished: suspend (RemovedDownload) -> Unit,
     libraryTransfer: LibraryTransfer?,
     onLibraryImported: (LibraryImportOutcome) -> Unit,
+    syncRunner: LibrarySyncRunner?,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -498,6 +503,7 @@ private fun GroupDetail(
                         onAddShare = onAddShare,
                         transfer = libraryTransfer,
                         onLibraryImported = onLibraryImported,
+                        syncRunner = syncRunner,
                         highlight = highlight,
                     )
                 SettingsGroup.DOWNLOADS -> DownloadsGroup(

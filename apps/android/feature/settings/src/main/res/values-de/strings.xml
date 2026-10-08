@@ -315,4 +315,23 @@
     <string name="transfer_position_page">Seite %1$d von %2$d</string>
     <string name="transfer_position_percent">%1$d%%</string>
     <string name="transfer_done_action">Fertig</string>
+
+    <!-- library-sync tasks 2.1, 2.4 and 4.4: the Sync section of the Sources group. -->
+    <string name="sync_title">Synchronisierung</string>
+    <string name="sync_about">Halten Sie Lesepositionen, Regale und Einstellungen auf allen Ihren Geräten gleich, über einen Ort Ihrer Wahl.</string>
+    <string name="sync_every_device">Jedes Gerät, das gleich bleiben soll, muss diesen Ort erreichen können.</string>
+    <string name="sync_choose_share">Freigegebenen Ordner verwenden</string>
+    <string name="sync_choose_folder">Ordner auswählen</string>
+    <string name="sync_place">Ort</string>
+    <string name="sync_status_idle">Noch nicht synchronisiert</string>
+    <string name="sync_status_syncing">Wird synchronisiert …</string>
+    <string name="sync_status_synced">Synchronisiert um %1$s</string>
+    <string name="sync_status_unreachable">%1$s ist nicht erreichbar. StoryArc synchronisiert wieder, sobald der Ort erreichbar ist.</string>
+    <string name="sync_status_newer">Die Synchronisierungsdatei stammt aus einer neueren Version von StoryArc. Aktualisieren Sie StoryArc auf diesem Gerät. Es wurde nichts geändert.</string>
+    <string name="sync_status_not_library">Die Synchronisierungsdatei ist keine StoryArc-Bibliothek. Es wurde nichts geändert.</string>
+    <string name="sync_now">Jetzt synchronisieren</string>
+    <string name="sync_turn_off">Synchronisierung ausschalten</string>
+    <string name="sync_folder_refused">StoryArc kann den Zugriff auf diesen Ordner nicht behalten. Wählen Sie einen anderen Ordner.</string>
+    <string name="sync_when">StoryArc synchronisiert, wenn Sie die App öffnen, wenn Sie ein Buch schließen, und im Hintergrund höchstens alle 15 Minuten, wenn ein Netzwerk verfügbar ist.</string>
+    <string name="sync_folder_is_library">Dieser Ordner ist eine Ihrer Bibliotheken. Wählen Sie einen anderen Ordner für die Synchronisierung.</string>
 </resources>

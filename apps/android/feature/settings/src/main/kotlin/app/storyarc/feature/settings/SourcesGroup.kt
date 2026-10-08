@@ -47,6 +47,7 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.ImportedCopies
 import app.storyarc.core.persistence.LibraryImportOutcome
+import app.storyarc.core.persistence.LibrarySyncRunner
 import app.storyarc.core.persistence.LibraryTransfer
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceDiagnosis
@@ -118,6 +119,8 @@ internal fun SourcesGroup(
      */
     transfer: LibraryTransfer? = null,
     onLibraryImported: (LibraryImportOutcome) -> Unit = {},
+    /** Where the sync document lives. Null hides the rows, as [transfer] does. `library-sync`. */
+    syncRunner: LibrarySyncRunner? = null,
     highlight: SettingsAnchor? = null,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -200,6 +203,8 @@ internal fun SourcesGroup(
         if (transfer != null) {
             LibraryTransferRows(transfer = transfer, highlight = highlight, onImported = onLibraryImported)
         }
+
+        if (syncRunner != null) SyncRows(runner = syncRunner, sources = sources, highlight = highlight)
 
         if (sources.isEmpty()) {
             Text(

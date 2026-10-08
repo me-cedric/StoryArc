@@ -315,4 +315,23 @@
     <string name="transfer_position_page">Página %1$d de %2$d</string>
     <string name="transfer_position_percent">%1$d%%</string>
     <string name="transfer_done_action">Listo</string>
+
+    <!-- library-sync tasks 2.1, 2.4 and 4.4: the Sync section of the Sources group. -->
+    <string name="sync_title">Sincronización</string>
+    <string name="sync_about">Mantén tus posiciones de lectura, estanterías y ajustes iguales en todos tus dispositivos, a través de un lugar que elijas.</string>
+    <string name="sync_every_device">Cada dispositivo que quieras mantener igual debe poder llegar a este lugar.</string>
+    <string name="sync_choose_share">Usar una carpeta compartida</string>
+    <string name="sync_choose_folder">Elegir una carpeta</string>
+    <string name="sync_place">Lugar</string>
+    <string name="sync_status_idle">Aún sin sincronizar</string>
+    <string name="sync_status_syncing">Sincronizando…</string>
+    <string name="sync_status_synced">Sincronizado a las %1$s</string>
+    <string name="sync_status_unreachable">No se puede llegar a %1$s. StoryArc volverá a sincronizar cuando pueda llegar.</string>
+    <string name="sync_status_newer">El archivo de sincronización es de una versión más reciente de StoryArc. Actualiza StoryArc en este dispositivo. No se cambió nada.</string>
+    <string name="sync_status_not_library">El archivo de sincronización no es una biblioteca de StoryArc. No se cambió nada.</string>
+    <string name="sync_now">Sincronizar ahora</string>
+    <string name="sync_turn_off">Desactivar la sincronización</string>
+    <string name="sync_folder_refused">StoryArc no puede mantener el acceso a esta carpeta. Elige otra carpeta.</string>
+    <string name="sync_when">StoryArc sincroniza cuando abres la app, cuando cierras un libro y en segundo plano como mucho cada 15 minutos mientras haya una red disponible.</string>
+    <string name="sync_folder_is_library">Esta carpeta es una de tus bibliotecas. Elige otra carpeta para la sincronización.</string>
 </resources>

@@ -242,5 +242,11 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/reading_widget_info" />
         </receiver>
+
+        <!-- `library-sync` task 4.3: the periodic background sync. Only the system binds it. -->
+        <service
+            android:name=".LibrarySyncJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 </manifest>

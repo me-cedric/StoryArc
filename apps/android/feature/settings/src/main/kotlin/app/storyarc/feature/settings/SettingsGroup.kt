@@ -228,6 +228,8 @@ internal val SEARCHABLE: List<Pair<List<String>, SettingMatch>> = listOf(
         SettingMatch.of(SettingsAnchor.EXPORT_LIBRARY),
     listOf("import", "restore", "library file", "bring library") to
         SettingMatch.of(SettingsAnchor.IMPORT_LIBRARY),
+    listOf("sync", "synchronise", "synchronize", "devices", "icloud", "google drive", "same on") to
+        SettingMatch.of(SettingsAnchor.SYNC),
     listOf("about", "version", "author", "licence", "license", "acknowledgements", "credits", "support") to
         SettingMatch.of(SettingsGroup.ABOUT),
 )

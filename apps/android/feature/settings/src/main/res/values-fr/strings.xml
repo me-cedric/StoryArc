@@ -315,4 +315,23 @@
     <string name="transfer_position_page">Page %1$d sur %2$d</string>
     <string name="transfer_position_percent">%1$d%%</string>
     <string name="transfer_done_action">Terminé</string>
+
+    <!-- library-sync tasks 2.1, 2.4 and 4.4: the Sync section of the Sources group. -->
+    <string name="sync_title">Synchronisation</string>
+    <string name="sync_about">Gardez vos positions de lecture, vos étagères et vos réglages identiques sur tous vos appareils, grâce à un emplacement de votre choix.</string>
+    <string name="sync_every_device">Chaque appareil à garder identique doit pouvoir accéder à cet emplacement.</string>
+    <string name="sync_choose_share">Utiliser un dossier partagé</string>
+    <string name="sync_choose_folder">Choisir un dossier</string>
+    <string name="sync_place">Emplacement</string>
+    <string name="sync_status_idle">Pas encore synchronisé</string>
+    <string name="sync_status_syncing">Synchronisation…</string>
+    <string name="sync_status_synced">Synchronisé à %1$s</string>
+    <string name="sync_status_unreachable">%1$s est inaccessible. StoryArc synchronisera dès qu’il pourra y accéder.</string>
+    <string name="sync_status_newer">Le fichier de synchronisation vient d’une version plus récente de StoryArc. Mettez StoryArc à jour sur cet appareil. Rien n’a été modifié.</string>
+    <string name="sync_status_not_library">Le fichier de synchronisation n’est pas une bibliothèque StoryArc. Rien n’a été modifié.</string>
+    <string name="sync_now">Synchroniser maintenant</string>
+    <string name="sync_turn_off">Désactiver la synchronisation</string>
+    <string name="sync_folder_refused">StoryArc ne peut pas garder l’accès à ce dossier. Choisissez un autre dossier.</string>
+    <string name="sync_when">StoryArc synchronise quand vous ouvrez l’app, quand vous fermez un livre, et en arrière-plan au plus toutes les 15 minutes quand un réseau est disponible.</string>
+    <string name="sync_folder_is_library">Ce dossier est l’une de vos bibliothèques. Choisissez un autre dossier pour la synchronisation.</string>
 </resources>

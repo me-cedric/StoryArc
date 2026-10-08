@@ -170,6 +170,8 @@ internal fun SettingsHost(
             }
             host.library.reloadAfterImport()
         },
+        // `library-sync`: the place, and the state of the process's one runner.
+        syncRunner = LibrarySyncHub.runner(context),
         // Written through on every change rather than on the way out.
         // `settings-and-about` requires an appearance to apply immediately, and the state
         // lives above the theme so it recomposes with it — the screen reports, the host

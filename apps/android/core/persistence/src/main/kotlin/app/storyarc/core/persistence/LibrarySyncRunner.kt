@@ -75,8 +75,8 @@ class LibrarySyncRunner(
 
     @Volatile private var retryPending = false
 
-    /** Whether a place is chosen. */
-    val isOn: Boolean get() = places.choice() != null
+    /** The chosen place, or null while sync is off. */
+    val choice: SyncPlaceChoice? get() = places.choice()
 
     /**
      * One sync, unless sync is off, the foreground throttle skips it, or a sync is running.
