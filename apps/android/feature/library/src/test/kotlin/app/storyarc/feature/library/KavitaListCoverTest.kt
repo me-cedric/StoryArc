@@ -2,11 +2,14 @@ package app.storyarc.feature.library
 
 import android.content.Context
 import android.graphics.Bitmap
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.format.CoverOverrideStore
@@ -23,6 +26,7 @@ import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -238,5 +242,21 @@ class KavitaListCoverTest {
         compose.onNodeWithText(remove).performClick()
         compose.onNodeWithText(remove).performClick()
         compose.waitUntil(10_000) { store.bytes(list) == null }
+    }
+
+    @Test
+    fun `the cover is drawn at 150 dp and the edit button hides under a fifth of it`() {
+        serve("""[{"id":8,"title":"Crossover","promoted":false}]""")
+        show()
+
+        val cover = compose.onNodeWithTag(LIST_COVER_TAG, useUnmergedTree = true)
+        cover.assertHeightIsEqualTo(150.dp)
+        val coverBounds = cover.fetchSemanticsNode().boundsInRoot
+        val editBounds = compose
+            .onNodeWithContentDescription(context.getString(R.string.cover_edit), useUnmergedTree = true)
+            .fetchSemanticsNode().boundsInRoot
+        val overlap = editBounds.intersect(coverBounds)
+        val hidden = overlap.width * overlap.height / (coverBounds.width * coverBounds.height)
+        assertTrue("the edit button hides $hidden of the cover", hidden < 0.2f)
     }
 }

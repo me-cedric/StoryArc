@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
@@ -189,7 +190,7 @@ internal fun KavitaListCoverControls(
             Surface(
                 color = palette.surfaceRaised,
                 shape = RoundedCornerShape(StoryArcRadius.sm),
-                modifier = Modifier.height(COVER_HEIGHT).aspectRatio(2f / 3f),
+                modifier = Modifier.testTag(LIST_COVER_TAG).height(LIST_COVER_HEIGHT).aspectRatio(2f / 3f),
             ) {
                 chosen?.let {
                     Image(
@@ -222,4 +223,8 @@ internal fun KavitaListCoverControls(
 }
 
 /** The cover's height: a header's thumbnail, taller than a row's poster and no larger. */
-private val COVER_HEIGHT = 88.dp
+/** 150 dp, as iOS draws it, so the 48 dp edit button sits on the corner and hides little of the picture. */
+internal val LIST_COVER_HEIGHT = 150.dp
+
+internal const val LIST_COVER_TAG = "kavita-list-cover"
+
