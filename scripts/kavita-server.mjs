@@ -171,8 +171,15 @@ const collections = [
   { id: 2, title: 'Long reads', summary: 'Series with more than one chapter.', seriesIds: [] },
 ]
 
+// `cover` is what a reader uploaded through `Upload/reading-list`: the bytes and the type they
+// sniffed as. Null until then, and a list with one answers `coverImageLocked`, which is what a
+// real Kavita does once a reader has chosen a cover. `promoted` is false for every list here,
+// which is how Kavita says "yours": a list is the signed-in reader's unless it is promoted.
 const readingLists = [
-  { id: 1, title: 'Start here', summary: 'One chapter from each library.', items: [] },
+  {
+    id: 1, title: 'Start here', summary: 'One chapter from each library.', items: [],
+    promoted: false, cover: null,
+  },
 ]
 
 const libraries = [
@@ -198,6 +205,18 @@ const send = (response, status, body, type = 'application/json') => {
   const payload = typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body)
   response.writeHead(status, { 'Content-Type': type, 'Cache-Control': 'no-store' })
   response.end(payload)
+}
+
+/** The largest picture the clients send, and so the largest this mock keeps. */
+const COVER_CEILING = 8 * 1024 * 1024
+
+/** The type a picture's first bytes state, or null when they state none this mock knows. */
+const imageType = (bytes) => {
+  if (bytes.length > 8 && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
+    return 'image/png'
+  }
+  if (bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg'
+  return null
 }
 
 /** Whether the request carries the token this mock minted. */
@@ -276,6 +295,7 @@ const ROUTES = [
   { at: '/api/ReadingList/delete-item', verb: 'POST', example: '/api/ReadingList/delete-item' },
   { at: '/api/ReadingList', verb: 'DELETE', example: '/api/ReadingList?readingListId=1' },
   { at: '/api/Search/search', verb: 'GET', example: '/api/Search/search?queryString=a' },
+  { at: '/api/Upload/reading-list', verb: 'POST', example: '/api/Upload/reading-list' },
 ]
 
 /**
@@ -366,6 +386,11 @@ const server = createServer((request, response) => {
         0,
     )
     if (!id) return send(response, 400, { message: 'no id' })
+    // A reading list a reader gave a cover serves that cover back, byte for byte.
+    const chosen = url.searchParams.has('readingListId')
+      ? readingLists.find((each) => each.id === id)?.cover
+      : null
+    if (chosen) return send(response, 200, chosen.bytes, chosen.type)
     return send(response, 200, png(300, 450, COVERS[id % COVERS.length]), 'image/png')
   }
 
@@ -606,10 +631,12 @@ const server = createServer((request, response) => {
   }
 
   if (url.pathname === '/api/ReadingList/lists') {
-    return send(response, 200, readingLists.map(({ id, title, summary }) => ({
+    return send(response, 200, readingLists.map(({ id, title, summary, promoted, cover }) => ({
       id,
       title,
       summary,
+      promoted,
+      coverImageLocked: cover !== null,
     })))
   }
 
@@ -725,6 +752,47 @@ const server = createServer((request, response) => {
       list.items.splice(at, 1)
       list.items.forEach((item, position) => { item.order = position })
       send(response, 200, {})
+    })
+    return undefined
+  }
+
+  // **A cover a reader sends for a reading list they own.** Kavita's `UploadFileDto` is
+  // `{id, url}`, and `url` holds the picture as plain base64 -- the one cover route a reader
+  // who is not an administrator may call. The mock keeps what it is sent and serves it from the
+  // list's own cover route, so a client's upload can be proved by asking for it back.
+  //
+  // It refuses what a real server would: a body that is not JSON, a list it does not hold, a
+  // picture that is not base64 or not an image, and one past the 8 MB the clients stop at.
+  if (url.pathname === '/api/Upload/reading-list' && request.method === 'POST') {
+    const limit = 12 * 1024 * 1024
+    let size = 0
+    const chunks = []
+    request.on('data', (chunk) => {
+      size += chunk.length
+      if (size <= limit) chunks.push(chunk)
+    })
+    request.on('end', () => {
+      if (size > limit) return send(response, 413, { message: 'body too large' })
+      let posted
+      try {
+        posted = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+      } catch {
+        return send(response, 400, { message: 'the body is not json' })
+      }
+      if (!Number.isInteger(posted?.id) || typeof posted?.url !== 'string') {
+        return send(response, 400, { message: 'the body needs an integer id and a url' })
+      }
+      const list = readingLists.find((each) => each.id === posted.id)
+      if (!list) return send(response, 404, { message: 'no such list' })
+      if (posted.url.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(posted.url)) {
+        return send(response, 400, { message: 'the url is not base64' })
+      }
+      const bytes = Buffer.from(posted.url, 'base64')
+      const kind = imageType(bytes)
+      if (!kind) return send(response, 400, { message: 'the bytes are not an image' })
+      if (bytes.length > COVER_CEILING) return send(response, 400, { message: 'the image is too large' })
+      list.cover = { bytes, type: kind }
+      return send(response, 200, { message: 'ok' })
     })
     return undefined
   }
@@ -1138,6 +1206,45 @@ const drive = async () => {
   const hits = found.status === 200 ? await found.json() : { series: [] }
   check('a search for a series the corpus holds finds that series',
     hits.series.some((each) => each.id === first.id))
+
+  // **The cover a reader sends for a reading list.** `Upload/reading-list` takes `{id, url}`
+  // with the picture as plain base64, and the list's own cover route serves back exactly the
+  // bytes that were sent. Nothing here has met a live Kavita: the owner's check does.
+  const sent = png(40, 60, [12, 34, 56])
+  const uploaded = await post('/api/Upload/reading-list', { id: 1, url: sent.toString('base64') }, token)
+  check('a cover for a list the server holds is accepted', uploaded.status === 200, uploaded.status)
+  const served = await get(`/api/Image/readinglist-cover?readingListId=1&apiKey=${API_KEY}`, token)
+  check('the list cover route then serves the bytes that were sent',
+    served.status === 200 && Buffer.from(await served.arrayBuffer()).equals(sent))
+  check('another list keeps its own generated cover',
+    !Buffer.from(await (await get(`/api/Image/readinglist-cover?readingListId=2&apiKey=${API_KEY}`, token))
+      .arrayBuffer()).equals(sent))
+  const listedAfterUpload = await (await post('/api/ReadingList/lists', {}, token)).json()
+  check('a list with a chosen cover says its cover is locked',
+    listedAfterUpload.find((each) => each.id === 1)?.coverImageLocked === true)
+  check('a list nobody promoted is not promoted',
+    listedAfterUpload.every((each) => each.promoted === false))
+  check('a cover for a list the server does not hold is refused',
+    (await post('/api/Upload/reading-list', { id: 999, url: sent.toString('base64') }, token)).status === 404)
+  check('a body that is not json is refused', (await fetch(`${base}/api/Upload/reading-list`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: 'not json',
+  })).status === 400)
+  check('a body without a url is refused',
+    (await post('/api/Upload/reading-list', { id: 1 }, token)).status === 400)
+  check('a url that is not base64 is refused',
+    (await post('/api/Upload/reading-list', { id: 1, url: 'not base64!' }, token)).status === 400)
+  check('base64 that is not an image is refused',
+    (await post('/api/Upload/reading-list', { id: 1, url: Buffer.from('plain text bytes').toString('base64') }, token))
+      .status === 400)
+  check('a picture over the ceiling is refused', (await post('/api/Upload/reading-list', {
+    id: 1,
+    url: Buffer.concat([sent, Buffer.alloc(8 * 1024 * 1024)]).toString('base64'),
+  }, token)).status === 400)
+  check('a refused upload leaves the earlier cover as it was',
+    Buffer.from(await (await get(`/api/Image/readinglist-cover?readingListId=1&apiKey=${API_KEY}`, token))
+      .arrayBuffer()).equals(sent))
 
   const kept = await post('/api/ReadingList/create', { title: 'Kept by a reader' }, token)
   check('a list a reader made is accepted', kept.status === 200, kept.status)
