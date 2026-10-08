@@ -1,10 +1,13 @@
 package app.storyarc.feature.reader
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import app.storyarc.core.format.PdfTextPoint
 import app.storyarc.core.format.PdfTextRect
+import app.storyarc.core.format.PdfTextSelection
 import app.storyarc.core.model.HighlightColour
 
 /**
@@ -33,6 +36,40 @@ internal data class PdfPageDecoration(
     val selection: List<PdfTextRect> = emptyList(),
 ) {
     val isEmpty: Boolean get() = marks.isEmpty() && selection.isEmpty()
+}
+
+/**
+ * The marks and the live selection to paint over page [index], or nothing where the publication
+ * has no text layer.
+ *
+ * Lifted out of `ReaderScreen` so a test can ask it, with the same arguments the screen passes:
+ * a saved highlight is on the page only when [marks] holds that page, which is what
+ * [ResolvePageMarks] fills (task 23.1).
+ */
+internal fun pdfDecorationOn(
+    index: Int,
+    hasText: Boolean,
+    marks: Map<Int, List<PdfPageMark>>,
+    selection: PdfTextSelection?,
+): PdfPageDecoration {
+    if (!hasText) return PdfPageDecoration()
+    return PdfPageDecoration(
+        marks = marks[index].orEmpty(),
+        selection = if (selection?.locator?.page == index) selection.rects else emptyList(),
+    )
+}
+
+/**
+ * Turns the stored marks of page [index] into rectangles once that page is drawn.
+ *
+ * Every transition mode draws a page through the one page composable, so one call there covers
+ * Curl, Slide and the scrolls. Nothing called `PdfTextState.resolveMarks` before this, so no saved
+ * highlight was ever drawn (task 23.1).
+ */
+@Composable
+internal fun ResolvePageMarks(text: PdfTextState?, index: Int) {
+    if (text == null) return
+    LaunchedEffect(text, index) { text.resolveMarks(index) }
 }
 
 /**

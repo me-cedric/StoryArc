@@ -715,14 +715,7 @@ private fun Pager(
     }
 
     /** The marks and the live selection on one page, or nothing to draw. */
-    fun pdfDecoration(index: Int): PdfPageDecoration {
-        val text = pdfText ?: return PdfPageDecoration()
-        val selection = pdfSelection
-        return PdfPageDecoration(
-            marks = pdfMarks[index].orEmpty(),
-            selection = if (selection?.locator?.page == index) selection.rects else emptyList(),
-        )
-    }
+    fun pdfDecoration(index: Int) = pdfDecorationOn(index, pdfText != null, pdfMarks, pdfSelection)
 
     /**
      * How a press-and-drag on one page is answered, or null where there is nothing to select.
@@ -816,6 +809,7 @@ private fun Pager(
     fun SinglePage(index: Int, stitch: ScrollAxis?, onTap: (Offset, IntSize) -> Unit) {
         // The zoom-resolution copy when one is held, the display one otherwise.
         val bitmap = viewModel.displayImage(index)
+        ResolvePageMarks(pdfText, index)
         val trims = adjustments.trimmingBorders(index !in uncropped).cropsBorders
         when {
             bitmap != null -> ZoomablePage(

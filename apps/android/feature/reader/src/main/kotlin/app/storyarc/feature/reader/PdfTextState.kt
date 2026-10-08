@@ -108,9 +108,13 @@ internal class PdfTextState(
         }
     }
 
-    /** Draws every page's marks again, because one of them changed. */
-    private suspend fun redraw() {
-        _marks.value = _marks.value.keys.associateWith { rects(it) }
+    /**
+     * Draws every resolved page's marks again, because one of them changed, and [also] the page
+     * the change is on: a mark made on a page that had not resolved yet would otherwise wait for
+     * the reader to turn away and back.
+     */
+    private suspend fun redraw(also: Int? = null) {
+        _marks.value = (_marks.value.keys + listOfNotNull(also)).associateWith { rects(it) }
     }
 
     // Selecting
@@ -162,7 +166,7 @@ internal class PdfTextState(
         )
         _annotations.value = store.save(mark, publication)
         clearSelection()
-        redraw()
+        redraw(also = selection.locator.page)
         return mark
     }
 
