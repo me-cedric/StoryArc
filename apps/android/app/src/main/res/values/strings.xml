@@ -70,6 +70,8 @@
     <string name="player_speed">Speed %1$s</string>
     <string name="player_nothing_playing">Nothing is playing.</string>
     <string name="player_finished_next">Next: %1$s</string>
+    <string name="player_finished_mark">Mark as finished</string>
+    <string name="player_finished_marked">Marked as finished</string>
     <string name="player_back">Back to the book</string>
     <!-- Stated in the player's own controls, never as an interruption. -->
     <plurals name="player_skipped_parts">

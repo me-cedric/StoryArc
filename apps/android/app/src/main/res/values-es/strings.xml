@@ -116,6 +116,8 @@
     <string name="player_speed">Velocidad %1$s</string>
     <string name="player_nothing_playing">No se está reproduciendo nada.</string>
     <string name="player_finished_next">Siguiente: %1$s</string>
+    <string name="player_finished_mark">Marcar como terminado</string>
+    <string name="player_finished_marked">Marcado como terminado</string>
     <string name="player_back">Volver al libro</string>
     <plurals name="player_skipped_parts">
         <item quantity="one">No se pudo reproducir %1$d parte</item>

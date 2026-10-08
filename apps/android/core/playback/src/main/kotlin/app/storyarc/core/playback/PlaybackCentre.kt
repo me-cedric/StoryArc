@@ -36,8 +36,11 @@ class PlaybackCentre(
     var lastEnding: Ending? = null
         private set
 
-    /** A session that has ended: which publication, and how many of its parts did not play. */
-    data class Ending(val publicationId: String, val unplayedParts: Int)
+    /**
+     * A session that has ended: which publication, how many of its parts did not play, and
+     * whether its last part failed (owner answer O21), so it is not recorded as finished.
+     */
+    data class Ending(val publicationId: String, val unplayedParts: Int, val endedOnFailure: Boolean = false)
 
     /** The id of the publication being played, or null. Feeds [SessionHandover.opening]. */
     val playingId: String? get() = source?.publicationId
@@ -229,7 +232,7 @@ class PlaybackCentre(
     private fun recordAndRelease(ending: PlayerSource) {
         if (source !== ending) return
         record(ending, ending.position)
-        lastEnding = Ending(ending.publicationId, ending.skippedPartCount)
+        lastEnding = Ending(ending.publicationId, ending.skippedPartCount, ending.endedOnFailure)
         // Detached before the stop, so the stop's own change does not republish a source
         // this centre has already given up.
         ending.onChange = null

@@ -116,6 +116,8 @@
     <string name="player_speed">Vitesse %1$s</string>
     <string name="player_nothing_playing">Aucune lecture en cours.</string>
     <string name="player_finished_next">Suivant : %1$s</string>
+    <string name="player_finished_mark">Marquer comme terminé</string>
+    <string name="player_finished_marked">Marqué comme terminé</string>
     <string name="player_back">Retour au livre</string>
     <plurals name="player_skipped_parts">
         <item quantity="one">%1$d partie n\'a pas pu être lue</item>

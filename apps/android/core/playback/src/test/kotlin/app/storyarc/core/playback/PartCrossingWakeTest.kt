@@ -71,7 +71,7 @@ class PartCrossingWakeTest {
             player,
         )
         source.prepare()
-        PlaybackHost.recordPosition = { _, at, _ -> written += at }
+        PlaybackHost.recordPosition = { _, at, _, _ -> written += at }
         PlaybackHost.centre.start(source)
         try {
             player.measureFile(420_000)

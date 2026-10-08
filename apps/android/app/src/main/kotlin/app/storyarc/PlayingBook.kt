@@ -95,8 +95,21 @@ internal object PlayingBook {
      */
     val lastPlayed: StateFlow<Publication?> = _lastPlayed.asStateFlow()
 
+    private val _damagedEnd = MutableStateFlow<DamagedEnd?>(null)
+
+    /**
+     * The book whose last part failed, while the finished screen is the place the listener
+     * decides about it. `close-the-audited-gaps` 23.6, owner answer O21: its position stays at
+     * the failed part and it is not recorded as finished, so [markDamagedEndFinished] is the
+     * listener's own say. Cleared when the next book starts.
+     */
+    val damagedEnd: StateFlow<DamagedEnd?> = _damagedEnd.asStateFlow()
+
     /** Where a chosen speed goes, and where the next book's comes from. */
     private var preferences: PlaybackPreferences? = null
+
+    /** Where the listener's own "Mark as finished" is written. */
+    private var store: ProgressStore? = null
 
     private var ticker: Job? = null
 
@@ -191,17 +204,20 @@ internal object PlayingBook {
      * the app's job, and it is done by remembering the publication that was started rather
      * than by picking the id apart — a stable id is a key, not a serialisation.
      */
-    private fun follow(publication: Publication, store: ProgressStore) {
+    internal fun follow(publication: Publication, store: ProgressStore) {
         _following.value = publication
         _lastPlayed.value = publication
-        PlaybackHost.recordPosition = { id, position, parts ->
+        _damagedEnd.value = null
+        this.store = store
+        PlaybackHost.recordPosition = { id, position, parts, endedOnFailure ->
             val known = _following.value
             // A book started before this process was, resumed by the notification-shade
             // carousel, reaches here with an id nothing in the app has seen. Writing the
             // position against the wrong publication is worse than not writing it, so it
             // is dropped — and that is the honest state of resumption after process death.
             if (known != null && known.id == id) {
-                scope.launch { write(store, known, position, parts) }
+                if (endedOnFailure) _damagedEnd.value = DamagedEnd(known)
+                scope.launch { write(store, known, position, parts, endedOnFailure) }
             }
         }
 
@@ -273,11 +289,25 @@ internal object PlayingBook {
         }
     }
 
+    /**
+     * The listener's decision that a book which ended on a failed part counts as finished.
+     *
+     * Through the same mark the library's own "Mark as read" uses, so the position the failure
+     * left is kept and only the finished flag is set. Once: a second call writes nothing.
+     */
+    fun markDamagedEndFinished() {
+        val end = _damagedEnd.value?.takeIf { !it.marked } ?: return
+        val store = store ?: return
+        _damagedEnd.value = end.copy(marked = true)
+        scope.launch { store.mark(end.publication.identity, isFinished = true) }
+    }
+
     private suspend fun write(
         store: ProgressStore,
         publication: Publication,
         position: PlaybackPosition,
         parts: List<PlaybackPart>,
+        endedOnFailure: Boolean,
     ) {
         store.save(
             ReadingProgress(
@@ -286,12 +316,15 @@ internal object PlayingBook {
                 // `reading-progress`: finishing by listening is marked by the same rule
                 // that marks a comic finished on its last page. Finished is sticky in the
                 // store, so a listener who plays on past the end does not unmark it.
-                isFinished = ListenedPosition.isFinished(position, parts),
+                isFinished = ListenedPosition.isFinished(position, parts, endedOnFailure),
                 updatedAtEpochMillis = System.currentTimeMillis(),
             ),
         )
     }
 }
+
+/** A book that ended on a failed part, and whether the listener has marked it finished. */
+internal data class DamagedEnd(val publication: Publication, val marked: Boolean = false)
 
 /**
  * Which publication [PlayingBook.watchCarStarts] should adopt, or null when there is

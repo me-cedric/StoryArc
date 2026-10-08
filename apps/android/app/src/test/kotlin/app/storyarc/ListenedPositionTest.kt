@@ -73,6 +73,12 @@ class ListenedPositionTest {
         assertTrue(ListenedPosition.isFinished(PlaybackPosition(1, 300_000), known))
     }
 
+    /** Task 23.6, owner answer O21: a last part that failed is not the end of the book. */
+    @Test
+    fun `the end of the last part does not finish a book whose last part failed`() {
+        assertFalse(ListenedPosition.isFinished(PlaybackPosition(1, 300_000), known, endedOnFailure = true))
+    }
+
     @Test
     fun `the start of the last part does not`() {
         assertFalse(ListenedPosition.isFinished(PlaybackPosition(1, 0), known))

@@ -243,6 +243,20 @@ class AudioSurfacesAreWiredTest {
         )
     }
 
+    /** Task 23.6, O21: the finished screen carries the listener's decision to the store. */
+    @Test
+    fun `the finished screen is wired to mark a failed ending finished`() {
+        val screens = read(APP_SCREENS)
+        assertTrue(
+            "The finished screen never reads the damaged ending, so no one is asked.",
+            screens.contains("PlayingBook.damagedEnd.collectAsStateWithLifecycle()"),
+        )
+        assertTrue(
+            "The button reaches nothing: Mark as finished is not wired to PlayingBook.",
+            screens.contains("onMarkFinished = PlayingBook::markDamagedEndFinished"),
+        )
+    }
+
     /**
      * D18: opening a comic or a PDF silences a voice (`ReaderVoiceHandoverTest` pins that),
      * and the listener is told once, over the page. The word is drawn by the reader's host.

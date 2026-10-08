@@ -111,6 +111,8 @@
     <string name="player_speed">Geschwindigkeit %1$s</string>
     <string name="player_nothing_playing">Es wird nichts abgespielt.</string>
     <string name="player_finished_next">Weiter: %1$s</string>
+    <string name="player_finished_mark">Als gelesen markieren</string>
+    <string name="player_finished_marked">Als gelesen markiert</string>
     <string name="player_back">Zurück zum Buch</string>
     <plurals name="player_skipped_parts">
         <item quantity="one">%1$d Teil konnte nicht abgespielt werden</item>

@@ -39,6 +39,9 @@ class AudiobookSource(
     override val skippedPartCount: Int get() = book.skippedPartCount + failedPartCount
     private var failedPartCount = 0
 
+    override var endedOnFailure = false
+        private set
+
     override var onChange: (() -> Unit)? = null
 
     override var onInterruptionEnd: ((mayResume: Boolean) -> Unit)? = null
@@ -185,6 +188,7 @@ class AudiobookSource(
                 player.seekTo(next, 0)
                 player.prepare()
             } else {
+                endedOnFailure = true
                 session = session.stopped()
             }
             onChange?.invoke()

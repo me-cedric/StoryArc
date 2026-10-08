@@ -3,7 +3,9 @@ package app.storyarc
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import app.storyarc.core.designsystem.theme.StoryArcTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -55,6 +57,49 @@ class PlayerFinishedLossTest {
         finished(unplayedParts = 3)
 
         compose.onNodeWithText("3 parts could not be played").assertIsDisplayed()
+    }
+
+    // Task 23.6, owner answer O21: a failed ending is not a finished book, so the listener is
+    // offered the decision on the screen it ends on.
+
+    private fun failedEnding(marked: Boolean = false, onMark: () -> Unit = {}) {
+        compose.setContent {
+            StoryArcTheme {
+                PlayerFinishedScreen(
+                    onBack = {},
+                    next = null,
+                    onOpenNext = {},
+                    unplayedParts = 1,
+                    onMarkFinished = onMark,
+                    markedFinished = marked,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `a failed ending offers Mark as finished, and the button tells the caller`() {
+        var marked = 0
+        failedEnding(onMark = { marked += 1 })
+
+        compose.onNodeWithText("Mark as finished").assertIsDisplayed().performClick()
+
+        assertEquals(1, marked)
+    }
+
+    @Test
+    fun `a failed ending the listener marked states it, and offers nothing more`() {
+        failedEnding(marked = true)
+
+        compose.onNodeWithText("Marked as finished").assertIsDisplayed()
+        compose.onNodeWithText("Mark as finished").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a whole book offers no Mark as finished`() {
+        finished(unplayedParts = 0)
+
+        compose.onNodeWithText("Mark as finished").assertDoesNotExist()
     }
 
     @Test

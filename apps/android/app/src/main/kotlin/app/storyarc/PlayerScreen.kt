@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -594,6 +595,10 @@ internal fun PlayerFinishedScreen(
     // Task 2.5, owner answer O12: a book whose last or only part failed ends here, and the
     // screen it ends on says how much could not be played, in words and never in a dialog.
     unplayedParts: Int = 0,
+    // Task 23.6, owner answer O21: a book that ended on a failed part is not recorded as
+    // finished. Non-null offers "Mark as finished", so the listener decides.
+    onMarkFinished: (() -> Unit)? = null,
+    markedFinished: Boolean = false,
 ) {
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
@@ -611,6 +616,17 @@ internal fun PlayerFinishedScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+        if (markedFinished) {
+            Text(
+                text = stringResource(R.string.player_finished_marked),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else if (onMarkFinished != null) {
+            OutlinedButton(onClick = onMarkFinished) {
+                Text(stringResource(R.string.player_finished_mark))
+            }
         }
         if (next != null) {
             FilledTonalButton(onClick = { onOpenNext(next) }) {

@@ -53,12 +53,19 @@ internal object ListenedPosition {
      * comic finished on its last page" — which for a comic is the last page and for a book
      * of chapters is the end of the last one, not the start of it.
      *
+     * Never when the last part failed (`close-the-audited-gaps` 23.6, owner answer O21): a
+     * damaged ending keeps the position where it failed, and the listener may mark the book
+     * finished by hand.
+     *
      * A source with no known duration never reaches it, and that is deliberate: its
      * fraction stops at the last part's index over the part count. Claiming the end of a
      * publication from an estimate is exactly what `PlaybackDuration` exists to prevent.
      */
-    fun isFinished(position: PlaybackPosition, parts: List<PlaybackPart>): Boolean =
-        parts.isNotEmpty() && of(position, parts).fraction >= FINISHED
+    fun isFinished(
+        position: PlaybackPosition,
+        parts: List<PlaybackPart>,
+        endedOnFailure: Boolean = false,
+    ): Boolean = !endedOnFailure && parts.isNotEmpty() && of(position, parts).fraction >= FINISHED
 
     /**
      * Where the audio starts, given what the store remembers.

@@ -4,6 +4,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -54,7 +55,7 @@ class DamagedBookEndingTest {
         playing.player.fail()
 
         assertNull("the compact bar goes", playing.centre.nowPlaying)
-        assertEquals(PlaybackCentre.Ending("sea-room", 1), playing.centre.lastEnding)
+        assertEquals(PlaybackCentre.Ending("sea-room", 1, endedOnFailure = true), playing.centre.lastEnding)
     }
 
     @Test
@@ -69,7 +70,7 @@ class DamagedBookEndingTest {
         playing.player.fail()
 
         assertNull(playing.centre.nowPlaying)
-        assertEquals(PlaybackCentre.Ending("sea-room", 2), playing.centre.lastEnding)
+        assertEquals(PlaybackCentre.Ending("sea-room", 2, endedOnFailure = true), playing.centre.lastEnding)
     }
 
     @Test
@@ -122,6 +123,67 @@ class DamagedBookEndingTest {
         player.fail()
 
         assertNull(PlaybackHost.nowPlaying.value)
-        assertEquals(PlaybackCentre.Ending("sea-room", 1), PlaybackHost.ended.value)
+        assertEquals(PlaybackCentre.Ending("sea-room", 1, endedOnFailure = true), PlaybackHost.ended.value)
+    }
+
+    // Task 23.6, owner answer O21: a damaged ending is not recorded as finished. The host hands
+    // the writer the fact, so the app's rule can keep the position and leave the flag clear.
+
+    private class Written {
+        val flags = mutableListOf<Boolean>()
+    }
+
+    private fun recordingFlags(body: () -> Unit): List<Boolean> {
+        val written = Written()
+        PlaybackHost.recordPosition = { _, _, _, endedOnFailure -> written.flags += endedOnFailure }
+        try {
+            body()
+        } finally {
+            PlaybackHost.recordPosition = null
+        }
+        return written.flags
+    }
+
+    @Test
+    fun `the position a failed last part leaves is written as a failed ending`() {
+        val player = FakePlayer()
+        val source = AudiobookSource(file("sea-room.m4b"), player)
+        source.prepare()
+
+        val flags = recordingFlags {
+            PlaybackHost.centre.start(source)
+            player.fail()
+        }
+
+        assertEquals("one write, at the failure, flagged", listOf(true), flags)
+    }
+
+    @Test
+    fun `a listener's own stop is not a failed ending`() {
+        val player = FakePlayer()
+        val source = AudiobookSource(file("sea-room.m4b"), player)
+        source.prepare()
+
+        val flags = recordingFlags {
+            PlaybackHost.centre.start(source)
+            PlaybackHost.stop()
+        }
+
+        assertEquals(listOf(false), flags)
+    }
+
+    @Test
+    fun `a folder whose first file fails and whose last plays on is not a failed ending`() {
+        val player = FakePlayer()
+        val source = AudiobookSource(file("one.mp3", "two.mp3"), player)
+        source.prepare()
+
+        val flags = recordingFlags {
+            PlaybackHost.centre.start(source)
+            player.fail()
+            PlaybackHost.stop()
+        }
+
+        assertTrue("a later file took over, so no write is a failed ending: $flags", flags.isNotEmpty() && flags.none { it })
     }
 }

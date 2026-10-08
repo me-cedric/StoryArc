@@ -62,7 +62,12 @@ object PlaybackHost : SpokenAudio.Speaker {
      * database — and because the same hook is what will let read-aloud's own writer stay
      * where it is.
      */
-    var recordPosition: ((publicationId: String, position: PlaybackPosition, parts: List<PlaybackPart>) -> Unit)? = null
+    var recordPosition: ((
+        publicationId: String,
+        position: PlaybackPosition,
+        parts: List<PlaybackPart>,
+        endedOnFailure: Boolean,
+    ) -> Unit)? = null
 
     /**
      * Internal rather than private so a test can start a source in this object.
@@ -76,7 +81,7 @@ object PlaybackHost : SpokenAudio.Speaker {
      */
     internal val centre = PlaybackCentre(
         record = { source, position ->
-            recordPosition?.invoke(source.publicationId, position, source.parts)
+            recordPosition?.invoke(source.publicationId, position, source.parts, source.endedOnFailure)
         },
     ).apply {
         onChange = { playing ->
@@ -501,7 +506,7 @@ object PlaybackHost : SpokenAudio.Speaker {
         centre.setVolume(1f)
         _sleep.value = null
         val source = current ?: return
-        rewound?.let { recordPosition?.invoke(source.publicationId, it, source.parts) }
+        rewound?.let { recordPosition?.invoke(source.publicationId, it, source.parts, false) }
     }
 
     /** Ends the session: the listener closed it, or the book ran out of audio. */

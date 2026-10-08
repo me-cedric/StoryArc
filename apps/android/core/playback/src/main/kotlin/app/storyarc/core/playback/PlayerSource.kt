@@ -71,6 +71,14 @@ interface PlayerSource {
     val skippedPartCount: Int get() = 0
 
     /**
+     * Whether the session ended because its last part could not be decoded, rather than
+     * because the audio came to its end. `close-the-audited-gaps` 23.6, owner answer O21: such
+     * an ending keeps the position at the failed part and does not mark the book finished.
+     * False for any other ending, and for a session that has not ended.
+     */
+    val endedOnFailure: Boolean get() = false
+
+    /**
      * The second line the shade and the lock screen draw under the title, or null for none.
      *
      * Null by default, because a narrated file puts its own metadata on the decoder's items. A

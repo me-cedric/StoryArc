@@ -277,11 +277,17 @@ internal fun HostedScreen(
                 // And how much of that book could not be played, which only counts for the
                 // book the screen is about: a count left by an earlier one is not this one's.
                 val ended = PlaybackHost.ended.collectAsStateWithLifecycle().value
+                // Owner answer O21: a last part that failed is not a finished book, so the
+                // listener is asked. Only for the book this screen is about.
+                val damaged = PlayingBook.damagedEnd.collectAsStateWithLifecycle().value
+                    ?.takeIf { it.publication.id == lastPlayed?.id }
                 PlayerFinishedScreen(
                     onBack = back,
                     next = lastPlayed?.let { host.library.offeredNext(it) },
                     onOpenNext = host::openEntry,
                     unplayedParts = ended?.takeIf { it.publicationId == lastPlayed?.id }?.unplayedParts ?: 0,
+                    onMarkFinished = PlayingBook::markDamagedEndFinished.takeIf { damaged != null },
+                    markedFinished = damaged?.marked == true,
                 )
             } else {
                 val publications = host.library.publications.collectAsStateWithLifecycle().value
