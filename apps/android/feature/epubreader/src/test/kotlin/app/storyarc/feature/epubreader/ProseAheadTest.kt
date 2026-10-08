@@ -44,8 +44,8 @@ class ProseAheadTest {
     private class ViewPager(context: Context) : FrameLayout(context)
 
     /** A page that is still scrollable to the right while [more] holds. */
-    private class Column(context: Context, var more: Boolean) : WebView(context) {
-        override fun canScrollHorizontally(direction: Int) = more
+    private class Column(context: Context, var more: Boolean, val back: Boolean = false) : WebView(context) {
+        override fun canScrollHorizontally(direction: Int) = if (direction < 0) back else more
     }
 
     private class Painted(context: Context, private val colour: Int) : FrameLayout(context) {
@@ -59,19 +59,28 @@ class ProseAheadTest {
     private class Book(val root: FrameLayout, val pager: ViewPager, val current: Column)
 
     /** Two pages of 100 by 200 in a pager, the current one at the left and the next beside it. */
-    private fun book(more: Boolean, withNeighbour: Boolean = true, neighbourHeight: Int = 200): Book {
+    private fun book(
+        more: Boolean,
+        withNeighbour: Boolean = true,
+        neighbourHeight: Int = 200,
+        neighbourAtEdge: Boolean = true,
+    ): Book {
         val root = FrameLayout(context)
         val pager = ViewPager(context)
         val current = Column(context, more)
         val page = FrameLayout(context).apply { addView(current) }
         pager.addView(page)
-        if (withNeighbour) pager.addView(Painted(context, Color.RED))
+        val arriving = Column(context, more = true, back = !neighbourAtEdge)
+        if (withNeighbour) pager.addView(Painted(context, Color.RED).apply { addView(arriving) })
         root.addView(pager)
         root.layout(0, 0, 100, 200)
         pager.layout(0, 0, 100, 200)
         page.layout(0, 0, 100, 200)
         current.layout(0, 0, 100, 200)
-        if (withNeighbour) pager.getChildAt(1).layout(100, 0, 200, neighbourHeight)
+        if (withNeighbour) {
+            pager.getChildAt(1).layout(100, 0, 200, neighbourHeight)
+            arriving.layout(0, 0, 0, 0)
+        }
         return Book(root, pager, current)
     }
 
@@ -92,6 +101,14 @@ class ProseAheadTest {
     @Test
     fun `inside a chapter there is nothing to raster ahead`() {
         val book = book(more = true)
+
+        assertNull(ProseAhead.raster(book.root, step = 1, leaving = leaving()))
+    }
+
+    @Test
+    fun `a neighbour that does not show the page next to this one is not rastered ahead`() {
+        // Readium scrolls a previous chapter to its last page only once it is current.
+        val book = book(more = false, neighbourAtEdge = false)
 
         assertNull(ProseAhead.raster(book.root, step = 1, leaving = leaving()))
     }

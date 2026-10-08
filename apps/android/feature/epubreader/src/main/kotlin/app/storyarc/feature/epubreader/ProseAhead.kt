@@ -34,7 +34,8 @@ internal object ProseAhead {
      * @param leaving the page that is leaving, rastered from [book]. The bands outside the
      *   neighbour's own bounds are taken from it, so the colour round a short page is the one
      *   the reader already sees and not black.
-     * @return null where the turn stays inside the resource, or Readium holds no neighbour.
+     * @return null where the turn stays inside the resource, Readium holds no neighbour, or the
+     *   neighbour does not show the page next to this one.
      */
     fun raster(book: ViewGroup, step: Int, leaving: Bitmap): Bitmap? {
         val pager = pagerIn(book) ?: return null
@@ -43,6 +44,10 @@ internal object ProseAhead {
         if (web.canScrollHorizontally(step)) return null
         val neighbour = pageNearest(pager, current.left + step * current.width, skipping = current)
             ?: return null
+        // The turn arrives at the neighbour's page next to this one. Readium scrolls a neighbour
+        // there only once it is current, so one loaded fresh before this page, or left mid-way
+        // by a jump, shows another page. Then the curl waits for the navigator.
+        if (webIn(neighbour)?.canScrollHorizontally(-step) != false) return null
         val page = Rect(0, 0, current.width, current.height)
         book.offsetDescendantRectToMyCoords(current, page)
         val picture = leaving.copy(Bitmap.Config.ARGB_8888, true) ?: return null
