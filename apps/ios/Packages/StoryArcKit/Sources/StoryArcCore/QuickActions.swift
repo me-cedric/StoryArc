@@ -70,6 +70,23 @@ public enum QuickActionRequest: Sendable, Equatable {
             return nil
         }
     }
+
+    /// Reads back the URL a home-screen widget opened, from ``ReadingSnapshot/link(to:)``.
+    ///
+    /// `nil` for any other URL, so a link from elsewhere does not move the app.
+    public init?(widgetURL url: URL) {
+        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        guard components?.scheme == ReadingSnapshot.urlScheme else { return nil }
+        switch components?.host {
+        case "continue":
+            let id = components?.queryItems?.first { $0.name == "publication" }?.value
+            self.init(id: QuickAction.continueID, publicationID: id)
+        case "library":
+            self = .library
+        default:
+            return nil
+        }
+    }
 }
 
 /// What the menu holds, given what the reader has.
