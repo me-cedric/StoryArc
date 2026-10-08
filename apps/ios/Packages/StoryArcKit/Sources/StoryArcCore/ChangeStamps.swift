@@ -79,9 +79,9 @@ public enum ChangeStamps {
     /// The moments a store writes.
     ///
     /// A field whose value changed while its moment did not is a change the reader made, so
-    /// it is stamped `now`. A field whose moment the caller changed is a merge that took
-    /// another device's value, and keeps that device's moment. So one store method serves
-    /// both a screen and a sync.
+    /// it is stamped `now`. A field whose moment the caller changed keeps that moment. A sync
+    /// does not come here: it writes the moments its merge decided as they are, because a
+    /// value the merge took from another device is not a change this device made.
     public static func restamped(
         changed: [String],
         before beforeStamps: [String: Date],

@@ -59,7 +59,7 @@ public struct ReaderPreferences {
         save(memory, changedAt: themesChangedAt())
     }
 
-    /// Writes themes with their moments, as a sync leaves them. See
+    /// Writes themes with their moments, as an import leaves them. See
     /// ``ChangeStamps/restamped(changed:before:after:now:)``.
     public func save(_ memory: ShelfMemory, changedAt stamps: [String: Date]) {
         let restamped = ChangeStamps.restamped(
@@ -69,7 +69,7 @@ public struct ReaderPreferences {
         restore(memory, changedAt: restamped)
     }
 
-    /// Writes themes and moments exactly as given: the undo of a failed import or sync.
+    /// Writes themes and moments exactly as given: a sync, or the undo of a failed write.
     public func restore(_ memory: ShelfMemory, changedAt stamps: [String: Date]) {
         guard let data = try? JSONEncoder().encode(memory),
               let moments = try? JSONEncoder().encode(stamps)

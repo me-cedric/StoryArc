@@ -80,12 +80,16 @@ public struct LibraryArchive: @unchecked Sendable {
     /// reading and the progress records are put back one by one, and then the failure is
     /// thrown again. An import that stopped after the third store would otherwise leave a
     /// library that is neither the old one nor the new one, and nothing to say so.
-    public func apply(_ snapshot: LibrarySnapshot) async throws {
+    ///
+    /// - Parameter exactly: true for a sync, whose merge already decided each moment and
+    ///   deletion. A store that stamped them again would date a member the merge took as a
+    ///   change made now.
+    public func apply(_ snapshot: LibrarySnapshot, exactly: Bool = false) async throws {
         let before = try await self.snapshot()
         var replacedCovers: [(key: String, previous: Data?)] = []
         do {
             try writeCovers(snapshot.covers, replaced: &replacedCovers)
-            writeStores(snapshot)
+            writeStores(snapshot, exactly: exactly)
             try await writeProgress(snapshot.progress)
         } catch {
             restoreCovers(replacedCovers)
@@ -123,8 +127,8 @@ public struct LibraryArchive: @unchecked Sendable {
         }
     }
 
-    /// - Parameter exactly: true for an undo, which puts back the moments and deletions as they
-    ///   were. Otherwise a store stamps what changed and records what was deleted.
+    /// - Parameter exactly: true for an undo or a sync, which write the moments and deletions as
+    ///   given. Otherwise a store stamps what changed and records what was deleted.
     private func writeStores(_ snapshot: LibrarySnapshot, exactly: Bool = false) {
         SourceStore(defaults: defaults).save(snapshot.sources)
         CertificatePinStore(defaults: defaults).save(snapshot.certificatePins)

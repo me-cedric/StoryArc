@@ -44,7 +44,7 @@ public struct SettingsStore {
         save(settings, changedAt: changedAt())
     }
 
-    /// Writes settings with their moments, as a sync leaves them. A field whose value changed
+    /// Writes settings with their moments, as an import leaves them. A field whose value changed
     /// while its moment did not is stamped now; see ``ChangeStamps/restamped(changed:before:after:now:)``.
     public func save(_ settings: AppSettings, changedAt stamps: [String: Date]) {
         let restamped = ChangeStamps.restamped(
@@ -54,7 +54,7 @@ public struct SettingsStore {
         restore(settings, changedAt: restamped)
     }
 
-    /// Writes settings and moments exactly as given: the undo of a failed import or sync.
+    /// Writes settings and moments exactly as given: a sync, or the undo of a failed write.
     public func restore(_ settings: AppSettings, changedAt stamps: [String: Date]) {
         guard let data = try? JSONEncoder().encode(settings),
               let moments = try? JSONEncoder().encode(stamps)

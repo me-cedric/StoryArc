@@ -160,7 +160,7 @@ public struct LibraryTransfer: Sendable {
         if case let .synced(result) = outcome {
             var merged = result.merged.snapshot
             merged.progress = merged.progress.filter { !local.progress.contains($0) }
-            try await archive.apply(merged)
+            try await archive.apply(merged, exactly: true)
             state.saveMergedCopies(result.mergedCopies)
         }
         return outcome

@@ -9,12 +9,23 @@ import StoryArcCore
 private final class Place: SyncPlace {
     private let files = Mutex<[String: SyncFile]>([:])
     private let version = Mutex(0)
+    private let hook = Mutex<(@Sendable () async throws -> Void)?>(nil)
+
+    /// Runs `action` once, between the next sync's read and its write.
+    func beforeNextWrite(_ action: @escaping @Sendable () async throws -> Void) {
+        hook.withLock { $0 = action }
+    }
 
     func names() async throws -> [String] { files.withLock { Array($0.keys) } }
 
     func read(_ name: String) async throws -> SyncFile? { files.withLock { $0[name] } }
 
     func write(_ name: String, data: Data, replacing: String?) async throws -> Bool {
+        let action = hook.withLock { held in
+            defer { held = nil }
+            return held
+        }
+        try await action?()
         let next = version.withLock { $0 += 1; return "v\($0)" }
         return files.withLock { held in
             guard held[name]?.version == replacing else { return false }
@@ -87,6 +98,51 @@ struct LibrarySyncTransferTests {
 
         #expect(deviceB.shelves.shelves().collections.isEmpty)
         #expect(deviceB.shelves.removed().map(\.id) == [shelf])
+    }
+
+    @Test func aMemberASyncTookFromTheOtherDeviceDoesNotOutrunALaterDeletion() async throws {
+        let place = Place()
+        let deviceA = try Device()
+        let deviceB = try Device()
+        deviceA.shelves.save(Shelves().adding(PublicationCollection(id: shelf, name: "Image", members: ["m:1"])))
+        try await deviceA.sync(place)
+        try await deviceB.sync(place)
+        deviceB.clock.advance(5)
+        deviceB.shelves.save(deviceB.shelves.shelves().adding(["m:2"], to: shelf))
+        try await deviceB.sync(place)
+        // A renames the shelf after B's member, and B deletes it after the rename.
+        deviceA.clock.advance(11)
+        deviceA.shelves.save(deviceA.shelves.shelves().renaming(collection: shelf, to: "Image Comics"))
+        deviceB.clock.advance(10)
+        deviceB.shelves.save(deviceB.shelves.shelves().deleting(collection: shelf))
+        deviceA.clock.advance(5)
+
+        // A takes B's member. That is not a change A made, so the deletion still wins.
+        try await deviceA.sync(place)
+        try await deviceB.sync(place)
+        try await deviceA.sync(place)
+        try await deviceB.sync(place)
+
+        #expect(deviceA.shelves.shelves().collections.isEmpty)
+        #expect(deviceB.shelves.shelves().collections.isEmpty)
+    }
+
+    @Test func aPageTurnedWhileASyncRunsIsNotPutBack() async throws {
+        let place = Place()
+        let deviceA = try Device()
+        let book = PublicationIdentity(contentDigest: "d1")
+        let progress = deviceA.progress
+        let now = deviceA.clock.now
+        @Sendable func page(_ index: Int) -> ReadingProgress {
+            ReadingProgress(identity: book, position: .page(index: index, of: 100), updatedAt: now)
+        }
+        try await progress.save(page(40))
+        try await deviceA.sync(place)
+        place.beforeNextWrite { try await progress.save(page(41)) }
+
+        try await deviceA.sync(place)
+
+        #expect(try await progress.recent(limit: 10).first?.position == .page(index: 41, of: 100))
     }
 
     @Test func aSettingChangedOnEachDeviceSurvivesOnBoth() async throws {

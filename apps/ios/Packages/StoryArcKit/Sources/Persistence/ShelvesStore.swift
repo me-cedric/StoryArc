@@ -37,7 +37,7 @@ public struct ShelvesStore {
         save(shelves, removed: removed())
     }
 
-    /// Writes shelves and deletions together, as a sync or an import leaves them.
+    /// Writes shelves and deletions together, as an import leaves them.
     public func save(_ shelves: Shelves, removed: [ShelfTombstone]) {
         let stamped = ShelfStamps.stamped(
             before: self.shelves(), removedBefore: self.removed(),
@@ -46,7 +46,7 @@ public struct ShelvesStore {
         restore(stamped.shelves, removed: stamped.removed)
     }
 
-    /// Writes shelves and deletions exactly as given: the undo of a failed import or sync.
+    /// Writes shelves and deletions exactly as given: a sync, or the undo of a failed write.
     public func restore(_ shelves: Shelves, removed: [ShelfTombstone]) {
         guard let data = try? JSONEncoder().encode(StoredShelves(shelves, removed: removed)) else { return }
         defaults.set(data, forKey: key)
