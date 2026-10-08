@@ -76,7 +76,7 @@ struct CoverFinderTests {
         #expect(opened?.query()?.contains("Ada") == true)
     }
 
-    @Test("The publication page draws the offer: the title search by the switch, the hand-off always")
+    @Test("The publication page puts the offer in its menu: the title search by the switch, the hand-off always")
     func pagePlacesTheOffer() throws {
         // A rule placed on no screen passes every test that never opens one. The page is a
         // SwiftUI view a test cannot compose, so its source is read, without comment lines.
@@ -90,16 +90,13 @@ struct CoverFinderTests {
         .split(separator: "\n", omittingEmptySubsequences: false)
         .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
         .joined(separator: "\n")
-        let controls = try #require(text.range(of: "private var controls: some View"))
-        let finder = try #require(text.range(of: "private var finder: some View"))
-        let drawn = String(text[controls.upperBound..<finder.lowerBound])
-        let offered = String(text[finder.upperBound...])
+        let menu = try #require(text.range(of: "private var menu: CoverMenu"))
+        let drawn = String(text[menu.upperBound...])
 
-        #expect(drawn.contains("\n            finder\n"), "The page's controls do not draw the finder.")
-        #expect(offered.contains("model.coverFinderOffer()"))
-        #expect(offered.contains("if offer.findACover {"))
-        #expect(offered.contains("if offer.webSearch {"))
-        #expect(offered.contains("CoverSearchHandoff("))
+        #expect(drawn.contains("model.coverFinderOffer()"))
+        #expect(drawn.contains("find: offer.findACover"))
+        #expect(drawn.contains("web: offer.webSearch"))
+        #expect(text.contains("CoverSearchHandoff("))
         #expect(text.contains("CoverFinderSheet(publication: publication, model: model)"))
     }
 

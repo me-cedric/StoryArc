@@ -22,11 +22,12 @@ struct DetailHero: View {
     /// `nil` until the cover has been decoded, and for a publication that has none.
     let cover: CGImage?
 
-    /// What tapping an empty well does, or nil where the page offers nothing.
+    /// The cover's menu, or nil where the page offers nothing to do about the cover.
     ///
-    /// Task 2.3: ``DetailCoverChoice`` passes the picker here, so a reader meeting a glyph
-    /// can act on it where they met it rather than hunting for a control below the fold.
-    var onChooseCover: (() -> Void)?
+    /// Task 24.1 of `close-the-audited-gaps`: a round edit button on the cover's corner and a
+    /// long press on the cover; and for an empty well, the well itself, so a reader meeting a
+    /// glyph can act on it where they met it rather than hunting for a control below the fold.
+    var menu: CoverMenu?
 
     var body: some View {
         artwork
@@ -40,27 +41,22 @@ struct DetailHero: View {
                     .strokeBorder(theme.palette.borderSubtle, lineWidth: 1)
             }
             .shadow(color: theme.palette.scrim.opacity(0.35), radius: 24, y: 12)
+            // One image with no label. The title is the next thing in the reading order and
+            // it says everything this could; a second announcement of the same words is
+            // noise to anyone listening to the page rather than looking at it. What *acts* is
+            // the menu: the edit button, or the visible "Add a cover" under an empty well.
+            .accessibilityHidden(true)
+            .coverEditing(menu)
             .frame(maxWidth: .infinity)
             .padding(.top, StoryArcSpace.lg)
             // §3.4: on iPad the art mirrors and blurs under the floating sidebar, so the
             // page reads as one surface rather than as a card inside a chrome frame. A
             // phone has nothing for it to extend under, and the modifier is inert there.
             .backgroundExtensionEffect()
-            // One image with no label. The title is the next thing in the reading order and
-            // it says everything this could; a second announcement of the same words is
-            // noise to anyone listening to the page rather than looking at it. A well that
-            // *acts* is not an image, though — task 2.3 makes it the cover chooser's own
-            // button — so that one keeps its label and stays reachable.
-            .accessibilityHidden(!offersChoice)
-            .accessibilityLabel(Text("cover.choose", bundle: .module))
     }
 
-    /// Whether the empty well is the cover chooser's own button on this page.
-    var offersChoice: Bool { cover == nil && well.action != nil }
-
-    /// The well this hero draws where there is no artwork: the one value the body draws and a
-    /// test presses, so the two cannot be different wells.
-    var well: CoverlessWell { CoverlessWell(format: publication.format, action: onChooseCover) }
+    /// The well this hero draws where there is no artwork.
+    var well: CoverlessWell { CoverlessWell(format: publication.format) }
 
     /// How wide the cover is allowed to get.
     ///

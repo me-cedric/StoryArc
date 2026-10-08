@@ -44,6 +44,19 @@ enum KavitaListCover {
         return .kavitaReadingList(id: listID, promoted: held.promoted)
     }
 
+    /// The cover menu's rows for this list.
+    ///
+    /// Choosing, and sending where ``CoverWriteBack/offer(for:)`` offers it, then removal alone
+    /// in its own group once a picture is chosen. There is no title search here: a list has no
+    /// publication to look a title up for.
+    static func menuRows(
+        listID: Int, hasChosen: Bool, lists: [KavitaReadingList]?
+    ) -> [[CoverMenuRow]] {
+        let send = writeSubject(listID: listID, hasChosen: hasChosen, lists: lists)
+            .map { CoverWriteBack.offer(for: $0) != .none } ?? false
+        return CoverMenu.rows(find: false, web: false, send: send, remove: hasChosen)
+    }
+
     /// Crops the picture to a cover's shape and files it. False is a picture that cannot be used.
     static func choose(
         _ picture: Data, as list: Publication, in overrides: CoverOverrideStore
@@ -57,9 +70,10 @@ enum KavitaListCover {
 
 /// The list's own cover, and the things a reader can do about it.
 ///
-/// A picture of the reader's own choosing, kept on this device. Once one is chosen, and only
-/// then, the reader may also send it to the server, where ``CoverWriteBackButton`` confirms
-/// that this changes the cover for everyone who can see the list.
+/// A picture of the reader's own choosing, kept on this device, behind one edit button on the
+/// cover. Once one is chosen, and only then, the reader may also send it to the server, where
+/// ``coverWriteBack(asking:subject:image:send:)`` confirms that this changes the cover for
+/// everyone who can see the list.
 struct KavitaListCoverControls: View {
     let serverID: String
     let listID: Int
@@ -70,8 +84,11 @@ struct KavitaListCoverControls: View {
 
     @State private var chosen: CGImage?
     @State private var picked: PhotosPickerItem?
+    @State private var isChoosing = false
     @State private var isUnreadable = false
     @State private var lists: [KavitaReadingList]?
+    /// The menu row that waits for a yes, while one does.
+    @State private var asking: CoverMenuRow?
 
     private var list: Publication? {
         KavitaListCover.publication(serverID: serverID, listID: listID)
@@ -79,17 +96,50 @@ struct KavitaListCoverControls: View {
 
     var body: some View {
         if let list {
-            HStack(spacing: StoryArcSpace.md) {
-                well
-                VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                    controls(for: list)
+            VStack(spacing: StoryArcSpace.xs) {
+                well.coverEditing(menu)
+                if chosen == nil { CoverAddMenu(menu: menu) }
+                if isUnreadable {
+                    Text("cover.unreadable", bundle: .module)
+                        .textRole(.caption)
+                        .foregroundStyle(StoryArcColor.Status.offline)
                 }
             }
+            .frame(maxWidth: .infinity)
+            .photosPicker(isPresented: $isChoosing, selection: $picked, matching: .images)
+            .coverRemoval(asking: $asking) {
+                overrides.remove(for: list)
+                chosen = nil
+            }
+            .coverWriteBack(
+                asking: $asking,
+                subject: KavitaListCover.writeSubject(listID: listID, hasChosen: chosen != nil, lists: lists),
+                image: { overrides.data(for: list) },
+                send: { id, data in
+                    try await KavitaClient(address: address).uploadReadingListCover(id, image: data)
+                }
+            )
             .task(id: listID) {
                 chosen = Self.cover(overrides.data(for: list))
                 lists = try? await KavitaClient(address: address).readingLists()
             }
             .onChange(of: picked) { _, item in Task { await adopt(item, as: list) } }
+        }
+    }
+
+    private var menu: CoverMenu {
+        CoverMenu(
+            hasCover: chosen != nil,
+            rows: KavitaListCover.menuRows(listID: listID, hasChosen: chosen != nil, lists: lists),
+            act: select
+        )
+    }
+
+    private func select(_ row: CoverMenuRow) {
+        if row.asksFirst {
+            asking = row
+        } else if row == .choose {
+            isChoosing = true
         }
     }
 
@@ -101,45 +151,13 @@ struct KavitaListCoverControls: View {
                     .resizable()
                     .scaledToFill()
                     .clipShape(RoundedRectangle(cornerRadius: StoryArcRadius.sm))
+            } else {
+                Image(systemName: "photo").foregroundStyle(theme.palette.textTertiary)
             }
         }
-        .frame(height: 88)
+        .frame(height: 150)
         .aspectRatio(2.0 / 3.0, contentMode: .fit)
         .accessibilityHidden(true)
-    }
-
-    @ViewBuilder
-    private func controls(for list: Publication) -> some View {
-        PhotosPicker(selection: $picked, matching: .images) {
-            Text(chosen == nil ? "cover.choose" : "cover.change", bundle: .module)
-        }
-        .buttonStyle(.borderless)
-        if chosen != nil {
-            Button(role: .destructive) {
-                overrides.remove(for: list)
-                chosen = nil
-            } label: {
-                Text("cover.remove", bundle: .module)
-            }
-            .buttonStyle(.borderless)
-        }
-        if let subject = KavitaListCover.writeSubject(
-            listID: listID, hasChosen: chosen != nil, lists: lists
-        ) {
-            CoverWriteBackButton(
-                subject: subject,
-                image: { overrides.data(for: list) },
-                send: { id, data in
-                    try await KavitaClient(address: address).uploadReadingListCover(id, image: data)
-                }
-            )
-            .buttonStyle(.borderless)
-        }
-        if isUnreadable {
-            Text("cover.unreadable", bundle: .module)
-                .textRole(.caption)
-                .foregroundStyle(StoryArcColor.Status.offline)
-        }
     }
 
     private func adopt(_ item: PhotosPickerItem?, as list: Publication) async {

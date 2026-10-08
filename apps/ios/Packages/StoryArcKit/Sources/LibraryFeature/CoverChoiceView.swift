@@ -23,7 +23,6 @@ struct DetailCoverChoice: View {
     let model: LibraryModel
     let cover: CGImage?
 
-    @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.openURL) private var openURL
 
     @State private var isFinding = false
@@ -33,17 +32,21 @@ struct DetailCoverChoice: View {
     @State private var picked: PhotosPickerItem?
     @State private var hasChosenCover = false
     @State private var isUnreadable = false
+    /// The menu row that waits for a yes, while one does.
+    @State private var asking: CoverMenuRow?
 
     var body: some View {
         VStack(spacing: StoryArcSpace.sm) {
-            DetailHero(
-                publication: publication,
-                cover: cover,
-                onChooseCover: { isChoosing = true }
-            )
+            DetailHero(publication: publication, cover: cover, menu: menu)
             controls
         }
         .photosPicker(isPresented: $isChoosing, selection: $picked, matching: .images)
+        .coverRemoval(asking: $asking) {
+            Task {
+                await model.removeChosenCover(for: publication)
+                hasChosenCover = false
+            }
+        }
         .sheet(isPresented: $isFinding) {
             CoverFinderSheet(publication: publication, model: model) { stored in
                 isUnreadable = !stored
@@ -59,30 +62,55 @@ struct DetailCoverChoice: View {
         .onChange(of: picked) { _, item in Task { await adopt(item) } }
     }
 
-    /// The two controls the hero itself cannot carry.
+    private var handoff: CoverSearchHandoff {
+        CoverSearchHandoff(
+            title: publication.displayTitle, author: publication.authors.first, open: openInBrowser
+        )
+    }
+
+    /// The cover's menu, as far as the lookup switch allows.
     ///
-    /// The empty well is already the way in — it *is* the button, per task 2.3 — but a well
-    /// that is silently tappable is a well nobody taps, so the same offer is made in words
-    /// underneath, and a publication that already has a cover has nowhere else to put it. The
-    /// warning is drawn only where it is true.
+    /// Task 6.2. The title search is here only while the switch is on; the web hand-off is
+    /// always here, because the browser makes that request and the app does not.
+    private var menu: CoverMenu {
+        let offer = model.coverFinderOffer()
+        return CoverMenu(
+            hasCover: cover != nil,
+            rows: CoverMenu.rows(
+                find: offer.findACover, web: offer.webSearch, send: false, remove: hasChosenCover
+            ),
+            webSearchEnabled: handoff.destination != nil,
+            act: select
+        )
+    }
+
+    private func select(_ row: CoverMenuRow) {
+        if row.asksFirst {
+            asking = row
+            return
+        }
+        switch row {
+        case .choose: isChoosing = true
+        case .find: isFinding = true
+        case .searchWeb:
+            let handoff = handoff
+            if let url = handoff.destination { handoff.open(url) }
+        case .remove, .sendToServer: break
+        }
+    }
+
+    /// What the hero itself cannot carry.
+    ///
+    /// An empty well is already the way in, but a well that is silently tappable is a well
+    /// nobody taps, so the same menu is offered in words underneath. A publication that has a
+    /// cover has its edit button on the cover, and nothing here but the two sentences that
+    /// are true of it. The warning is drawn only where it is true.
     @ViewBuilder
     private var controls: some View {
-        VStack(spacing: StoryArcSpace.hair) {
-            // Side by side until the text stops fitting, then stacked. `design.md` §3 rule 3
-            // asks every screen to survive the largest accessibility size, and two labels in
-            // a row at that size wrap into each other — `ios-detail-chosen-cover-ax5-dark.png`
-            // photographed *Cha nge cov er* across *Remove cover* before this split existed.
-            Group {
-                if typeSize.isAccessibilitySize {
-                    VStack(spacing: StoryArcSpace.xs) { buttons }
-                } else {
-                    HStack(spacing: StoryArcSpace.md) { buttons }
-                }
+        VStack(spacing: StoryArcSpace.xs) {
+            if cover == nil {
+                CoverAddMenu(menu: menu)
             }
-            .textRole(.subheadline)
-            .buttonStyle(.borderless)
-
-            finder
 
             // `cover-art`'s *A publication with no digest*: an image folder and a server row
             // have no content digest, so the choice is filed under the path and a move loses
@@ -104,33 +132,6 @@ struct DetailCoverChoice: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// The two ways of finding a cover, as far as the lookup switch allows.
-    ///
-    /// Task 6.2. The title search is here only while the switch is on; the web hand-off is
-    /// always here, because the browser makes that request and the app does not.
-    @ViewBuilder
-    private var finder: some View {
-        let offer = model.coverFinderOffer()
-        if offer.findACover {
-            Button { isFinding = true } label: {
-                Label {
-                    Text("covers.find", bundle: .module)
-                } icon: {
-                    Image(systemName: "magnifyingglass")
-                }
-                .frame(minHeight: 44)
-                .contentShape(.rect)
-            }
-            .textRole(.subheadline)
-            .buttonStyle(.borderless)
-        }
-        if offer.webSearch {
-            CoverSearchHandoff(
-                title: publication.displayTitle, author: publication.authors.first, open: openInBrowser
-            )
-        }
-    }
-
     /// Hands the address to the system browser and keeps nothing it shows.
     private func openInBrowser(_ url: URL) {
         #if os(iOS)
@@ -138,35 +139,6 @@ struct DetailCoverChoice: View {
         #else
         openURL(url)
         #endif
-    }
-
-    /// The two controls themselves, so one copy serves both the row and the stack.
-    @ViewBuilder
-    private var buttons: some View {
-        // Said in words as well as offered on the well itself. A well that is silently
-        // tappable is a well that nobody taps: `design.md` rule 2 asks for a label beside
-        // anything a reader has to notice, and the glyph alone says only "no artwork".
-        Button { isChoosing = true } label: {
-            Label {
-                Text(cover == nil ? "cover.choose" : "cover.change", bundle: .module)
-            } icon: {
-                Image(systemName: "photo")
-            }
-            .frame(minHeight: 44)
-            .contentShape(.rect)
-        }
-        if hasChosenCover {
-            Button(role: .destructive) {
-                Task {
-                    await model.removeChosenCover(for: publication)
-                    hasChosenCover = false
-                }
-            } label: {
-                Text("cover.remove", bundle: .module)
-                    .frame(minHeight: 44)
-                    .contentShape(.rect)
-            }
-        }
     }
 
     /// Takes the picture the reader chose and makes it this publication's cover.

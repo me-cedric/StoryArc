@@ -1,6 +1,5 @@
 internal import SwiftUI
 
-internal import DesignSystem
 internal import StoryArcCore
 
 #if os(iOS)
@@ -24,7 +23,7 @@ internal import SafariServices
 /// `SFSafariViewController` hides its page from the host app by design, so the app cannot
 /// read it even if a later edit tried to. That is the feature here, not the limit. The only
 /// route a picture takes back into StoryArc is the system picker.
-struct CoverSearchHandoff: View {
+struct CoverSearchHandoff {
     /// The publication the reader is looking for a cover for.
     let title: String
 
@@ -35,33 +34,10 @@ struct CoverSearchHandoff: View {
     /// injectable so a test can watch the address without opening anything.
     var open: (URL) -> Void
 
-    @Environment(\.theme) private var theme
-
     /// Where the reader is sent. Nil when there is no title to search for, which is when
-    /// the row below refuses rather than opening an engine's front page.
+    /// the menu row refuses rather than opening an engine's front page.
     var destination: URL? {
         CoverWebSearch.url(title: title, author: author)
-    }
-
-    var body: some View {
-        VStack(alignment: .center, spacing: StoryArcSpace.hair) {
-            Button {
-                guard let destination else { return }
-                open(destination)
-            } label: {
-                Text("covers.web.search", bundle: .module)
-                    .frame(minHeight: 44)
-                    .contentShape(.rect)
-            }
-            .textRole(.subheadline)
-            .buttonStyle(.borderless)
-            .disabled(destination == nil)
-
-            Text("covers.web.note", bundle: .module)
-                .textRole(.footnote)
-                .foregroundStyle(theme.palette.textSecondary)
-                .multilineTextAlignment(.center)
-        }
     }
 }
 

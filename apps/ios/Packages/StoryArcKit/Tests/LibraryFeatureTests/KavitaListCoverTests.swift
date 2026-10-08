@@ -135,11 +135,11 @@ struct KavitaListCoverTests {
 
         #expect(list.contains("KavitaListCoverControls("), "The list screen does not place the cover controls.")
         #expect(!collection.contains("KavitaListCoverControls("))
-        #expect(!collection.contains("CoverWriteBackButton("))
+        #expect(!collection.contains(".coverWriteBack("))
     }
 
-    @Test("The write-back button is placed in one view, which is the list's cover controls")
-    func buttonIsPlacedOnce() throws {
+    @Test("The write-back confirmation is placed in one view, which is the list's cover controls")
+    func confirmationIsPlacedOnce() throws {
         let names = try FileManager.default
             .contentsOfDirectory(
                 atPath: URL(fileURLWithPath: #filePath)
@@ -147,9 +147,35 @@ struct KavitaListCoverTests {
                     .appendingPathComponent("Sources/LibraryFeature").path
             )
             .filter { $0.hasSuffix(".swift") }
-        let placed = try names.filter { try source($0).contains("CoverWriteBackButton(") }
+        let placed = try names.filter { try source($0).contains(".coverWriteBack(") }
 
         #expect(placed.sorted() == ["KavitaListCover.swift"])
+    }
+
+    // MARK: The menu
+
+    @Test("A list with no chosen cover offers choosing and nothing else")
+    func menuWithNoCover() throws {
+        #expect(
+            KavitaListCover.menuRows(listID: 8, hasChosen: false, lists: try lists(promoted: false))
+                == [[.choose]]
+        )
+    }
+
+    @Test("An owned list with a chosen cover offers sending, and removal in a group of its own")
+    func menuWithAChosenCover() throws {
+        #expect(
+            KavitaListCover.menuRows(listID: 8, hasChosen: true, lists: try lists(promoted: false))
+                == [[.choose, .sendToServer], [.remove]]
+        )
+    }
+
+    @Test("A promoted list never offers sending")
+    func menuOnAPromotedList() throws {
+        #expect(
+            KavitaListCover.menuRows(listID: 8, hasChosen: true, lists: try lists(promoted: true))
+                == [[.choose], [.remove]]
+        )
     }
 
     private func pngData() throws -> Data {
