@@ -48,7 +48,14 @@ a network request and without a permission prompt.
 
 #### Scenario: Undoing the choice
 - **WHEN** a reader removes a cover they chose
-- **THEN** the ladder resolves the cover again from the rung below, and the stored image is deleted
+- **THEN** the app asks first, because the stored image is deleted
+- **AND** once the reader confirms, the ladder resolves the cover again from the rung below, and the stored image is deleted
+
+#### Scenario: The cover's actions are one menu
+- **WHEN** a reader wants to change, find, send or remove a cover
+- **THEN** one edit button on the cover, or a long press on the cover, opens one menu that holds every cover action, with each row at the platform's full height (44 pt on iOS, 48 dp on Android)
+- **AND** the remove row is the last row, in its own group, drawn as destructive
+- **AND** a cover with no picture keeps a visible label that opens the same menu, because an icon alone on an empty well is easy to miss
 
 #### Scenario: The chosen cover survives a cache clear
 - **WHEN** the reader clears the app's cache from Settings

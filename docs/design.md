@@ -556,6 +556,10 @@ Not a section to check at the end. These are build and review gates.
   is derived at 7:1; an override below 4.5:1 is refused with the measured ratio
   shown.
 - **Touch targets** ≥ 44 pt on iOS, ≥ 48 dp on Android — reader chrome included.
+- **Targets do not crowd.** Android targets sit ≥ 8 dp apart. Two or more
+  related actions are one menu (`Menu`, `DropdownMenu`), never a stack of
+  text buttons. A destructive action is the last row, in its own group, and
+  asks first unless it can be undone.
 - **Dynamic Type / font scale** to maximum on every screen, no clipping. Library
   falls back to a list.
 - **Reduce Transparency** → opaque fallbacks, stronger borders, and Natural's
