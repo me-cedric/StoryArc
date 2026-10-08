@@ -27,7 +27,9 @@ public actor SmbClient {
     /// see that this actor is what serialises every use of them. Every method below is
     /// actor-isolated, so only one call touches the session at a time -- which is the reason
     /// this is an actor rather than a struct.
-    nonisolated(unsafe) private let client: SMBClient
+    ///
+    /// Not `private`: `SmbClient+Files.swift` is the rest of this actor.
+    nonisolated(unsafe) let client: SMBClient
     private var isConnected = false
 
     public init(address: SmbAddress) {
@@ -80,7 +82,7 @@ public actor SmbClient {
 
     /// What is in one folder of the share, folders first, in natural order.
     public func list(_ path: String = "") async throws -> [SmbEntry] {
-        if !isConnected { _ = try await connect() }
+        try await connectOnce()
         return try await translating {
             try await client.listDirectory(path: path)
                 .filter { $0.name != "." && $0.name != ".." }
@@ -104,7 +106,7 @@ public actor SmbClient {
 
     /// One file on the share, read where the reader needs it rather than whole.
     public func open(_ path: String) async throws -> any RandomAccessSource {
-        if !isConnected { _ = try await connect() }
+        try await connectOnce()
         return try await translating {
             // The length comes from the directory entry rather than from the reader:
             // `FileReader.fileSize` is a nonisolated async property, and reaching it would
@@ -133,6 +135,11 @@ public actor SmbClient {
         }
     }
 
+    /// Connects on the first call that needs the share, and not again.
+    func connectOnce() async throws {
+        if !isConnected { _ = try await connect() }
+    }
+
     /// Turns whatever the library threw into one of the four failures the spec names.
     ///
     /// A reader who typed the wrong password and a reader whose NAS is asleep need different
@@ -141,7 +148,7 @@ public actor SmbClient {
     /// `isHandshake` is set only by ``connect()``. Two of the statuses below mean "no
     /// dialect in common" while the two ends are still agreeing on one, and mean something
     /// far narrower afterwards, so the reading is scoped to the step that can produce it.
-    private func translating<T>(
+    func translating<T>(
         isHandshake: Bool = false,
         _ body: () async throws -> T
     ) async throws -> T {

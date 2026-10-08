@@ -8,7 +8,7 @@
 # exchange and every correct client then rejects its responses -- which left authenticated
 # access unprovable. Samba signs correctly, so the authenticated path is the one under test.
 #
-#     scripts/smb-server.sh [corpus] [port]
+#     scripts/smb-server.sh [--encrypted] [--writable] [corpus] [port]
 #
 # The default port is 4445: binding 445 needs root, and macOS is often already using it.
 set -euo pipefail
@@ -16,11 +16,29 @@ set -euo pipefail
 # `--encrypted` serves with `smb encrypt = required`, on its own port, so the client's
 # refusal of a server it cannot talk to is testable rather than assumed.
 ENCRYPTED=no
-if [[ "${1:-}" == "--encrypted" ]]; then ENCRYPTED=yes; shift; fi
+# `--writable` adds a share named `Sync` that the client can write, on its own port, for the
+# sync document of `library-sync` task 2.2. The share is an empty folder made at each start.
+# The corpus share stays read only.
+WRITABLE=no
+while [[ "${1:-}" == --* ]]; do
+  case "$1" in
+    --encrypted) ENCRYPTED=yes ;;
+    --writable) WRITABLE=yes ;;
+    *) echo "unknown option: $1" >&2; exit 2 ;;
+  esac
+  shift
+done
 
 CORPUS="${1:-$HOME/StoryArcCorpus}"
-PORT="${2:-4445}"
-[[ "$ENCRYPTED" == yes && -z "${2:-}" ]] && PORT=4446
+PORT="${2:-}"
+if [[ -z "$PORT" ]]; then
+  case "$ENCRYPTED/$WRITABLE" in
+    no/no) PORT=4445 ;;
+    yes/no) PORT=4446 ;;
+    no/yes) PORT=4448 ;;
+    yes/yes) PORT=4449 ;;
+  esac
+fi
 # Samba maps its own accounts onto Unix ones, so the login has to be a user this machine
 # already has. The password below is Samba's, not the machine's.
 USER_NAME="$(id -un)"
@@ -37,9 +55,10 @@ if [[ ! -d "$CORPUS" ]]; then
   exit 2
 fi
 
-ROOT="${TMPDIR:-/tmp}/storyarc-smb${ENCRYPTED/no/}"
+# One folder per port, so two servers running at once never share their state.
+ROOT="${TMPDIR:-/tmp}/storyarc-smb-$PORT"
 rm -rf "$ROOT"
-mkdir -p "$ROOT/private" "$ROOT/lock" "$ROOT/state" "$ROOT/cache" "$ROOT/run"
+mkdir -p "$ROOT/private" "$ROOT/lock" "$ROOT/state" "$ROOT/cache" "$ROOT/run" "$ROOT/sync"
 
 cat > "$ROOT/smb.conf" <<CONF
 [global]
@@ -72,12 +91,23 @@ cat > "$ROOT/smb.conf" <<CONF
    guest ok = no
 CONF
 
+if [[ "$WRITABLE" == yes ]]; then
+  cat >> "$ROOT/smb.conf" <<CONF
+
+[Sync]
+   path = $ROOT/sync
+   read only = no
+   guest ok = no
+CONF
+fi
+
 # The account the tests log in as. `-L` is local mode, which is what smbpasswd needs when
 # it is not run by root; the password lives only in this fixture server's own database.
 printf '%s\n%s\n' "$PASSWORD" "$PASSWORD" |
   /opt/homebrew/bin/pdbedit -s "$ROOT/smb.conf" -a -u "$USER_NAME" -t >/dev/null
 
 echo "smb mock: //localhost:$PORT/$SHARE"
+[[ "$WRITABLE" == yes ]] && echo "  writable: //localhost:$PORT/Sync  ($ROOT/sync)"
 echo "  serving $CORPUS"
 echo "  $USER_NAME / $PASSWORD   (signing mandatory, SMB2 to SMB3.1.1)"
 

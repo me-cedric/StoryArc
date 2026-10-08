@@ -3,9 +3,15 @@ package app.storyarc.core.smb
 import app.storyarc.core.format.RandomAccessSource
 import app.storyarc.core.model.ShareKey
 import app.storyarc.core.model.ShareSessions
+import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mserref.NtStatus
+import com.hierynomus.msfscc.FileAttributes
+import com.hierynomus.msfscc.fileinformation.FileAllInformation
 import com.hierynomus.mssmb.SMB1NotSupportedException
+import com.hierynomus.mssmb2.SMB2CreateDisposition
+import com.hierynomus.mssmb2.SMB2CreateOptions
 import com.hierynomus.mssmb2.SMB2Dialect
+import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.mssmb2.SMBApiException
 import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.SmbConfig
@@ -15,6 +21,8 @@ import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.DiskShare
 import java.net.URI
 import java.net.URISyntaxException
+import java.util.EnumSet
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -131,6 +139,83 @@ class SmbClient(private val address: SmbAddress) : AutoCloseable {
         }
     }
 
+    /**
+     * One whole small file and its version, or null when there is none.
+     *
+     * `library-sync` task 2.2: the sync document is read whole, merged, and written back. The
+     * version is the last write time and the size, read on the same handle as the bytes.
+     */
+    suspend fun readFile(path: String): SmbFileContent? = withContext(Dispatchers.IO) {
+        translating {
+            val share = tree().share
+            val inside = smbPath(path)
+            if (!share.fileExists(inside)) return@translating null
+            share.openFile(
+                inside,
+                EnumSet.of(AccessMask.GENERIC_READ),
+                EnumSet.noneOf(FileAttributes::class.java),
+                SMB2ShareAccess.ALL,
+                SMB2CreateDisposition.FILE_OPEN,
+                EnumSet.noneOf(SMB2CreateOptions::class.java),
+            ).use { file ->
+                val version = versionOf(file.fileInformation)
+                SmbFileContent(file.inputStream.use { it.readBytes() }, version)
+            }
+        }
+    }
+
+    /**
+     * Writes [bytes] to [path] only when the file is still at version [replacing], or still
+     * absent when [replacing] is null.
+     *
+     * The bytes go to a new file beside the target first. A rename with replace then puts
+     * that file in place in one server step, so a reader of the share never sees half a
+     * document. The check and the rename are two steps: a write from another device between
+     * them is replaced. The sync engine reads again after each write, so it merges that
+     * write back at the next sync.
+     *
+     * @return false when the file changed since that read, with nothing written.
+     */
+    suspend fun writeFile(path: String, bytes: ByteArray, replacing: String?): Boolean = withContext(Dispatchers.IO) {
+        translating {
+            val share = tree().share
+            val inside = smbPath(path)
+            val current = if (share.fileExists(inside)) versionOf(share.getFileInformation(inside)) else null
+            if (current != replacing) return@translating false
+            val folder = inside.substringBeforeLast('\\', "")
+            val temporary = listOf(folder, ".${inside.substringAfterLast('\\')}.${UUID.randomUUID()}.tmp")
+                .filter { it.isNotEmpty() }
+                .joinToString("\\")
+            share.openFile(
+                temporary,
+                EnumSet.of(AccessMask.GENERIC_WRITE, AccessMask.DELETE),
+                EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
+                SMB2ShareAccess.ALL,
+                SMB2CreateDisposition.FILE_CREATE,
+                EnumSet.noneOf(SMB2CreateOptions::class.java),
+            ).use { file ->
+                try {
+                    file.write(bytes, 0L)
+                    file.rename(inside, true)
+                } catch (error: Exception) {
+                    file.deleteOnClose()
+                    throw error
+                }
+            }
+            true
+        }
+    }
+
+    /** Removes one file. @return false when it is still there. */
+    suspend fun deleteFile(path: String): Boolean = withContext(Dispatchers.IO) {
+        translating {
+            val share = tree().share
+            val inside = smbPath(path)
+            if (share.fileExists(inside)) share.rm(inside)
+            !share.fileExists(inside)
+        }
+    }
+
     /** Closes only what was opened: an unused client never made a connection to close. */
     override fun close() {
         tree?.close()
@@ -159,6 +244,16 @@ class SmbClient(private val address: SmbAddress) : AutoCloseable {
 
 /** `FILE_ATTRIBUTE_DIRECTORY`, from MS-FSCC 2.6. */
 private const val FILE_ATTRIBUTE_DIRECTORY = 0x10L
+
+/** A whole file read from a share, with the version it had when it was read. */
+class SmbFileContent(val bytes: ByteArray, val version: String)
+
+/** A path relative to the share's root, as smbj wants it. */
+private fun smbPath(path: String): String = path.trim('/').replace('/', '\\')
+
+/** The last write time and the size: what changes when any client writes the file. */
+private fun versionOf(information: FileAllInformation): String =
+    "${information.basicInformation.lastWriteTime.windowsTimeStamp}-${information.standardInformation.endOfFile}"
 
 /**
  * One connection, one authenticated session and one connected share.

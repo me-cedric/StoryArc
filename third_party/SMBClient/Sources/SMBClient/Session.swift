@@ -602,7 +602,9 @@ public class Session {
     _ = try await send(createRequest, setInfoRequest, closeRequest)
   }
 
-  public func move(from: String, to: String) async throws {
+  // StoryArc: `replacing` asks the server to put the file over one that is already there, in
+  // one step. The sync document is written to a new file and then moved over the old one.
+  public func move(from: String, to: String, replacing: Bool = false) async throws {
     let createRequest = Create.Request(
       messageId: messageId.next(),
       treeId: treeId,
@@ -621,7 +623,10 @@ public class Session {
       sessionId: sessionId,
       fileId: temporaryUUID,
       infoType: .file,
-      fileInformation: FileRenameInformation(fileName: to.precomposedStringWithCanonicalMapping)
+      fileInformation: FileRenameInformation(
+        replaceIfExists: replacing,
+        fileName: to.precomposedStringWithCanonicalMapping
+      )
     )
     let closeRequest = Close.Request(
       headerFlags: [.relatedOperations],

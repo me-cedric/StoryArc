@@ -464,6 +464,8 @@ Take the next free number, and add the row here in the same commit.
 | 4445 | SMB share, signed and unencrypted | `scripts/smb-server.sh` |
 | 4446 | SMB share, `smb encrypt = required` | `scripts/smb-server.sh --encrypted` |
 | 4447 | OPDS catalogue, the second one | `node scripts/opds-server.mjs <corpus> --port 4447` |
+| 4448 | SMB share with a writable `Sync` share, signed and unencrypted | `scripts/smb-server.sh --writable` |
+| 4449 | SMB share with a writable `Sync` share, `smb encrypt = required` | `scripts/smb-server.sh --writable --encrypted` |
 | 4999 | Nothing, by design — a refused connection is what *Not answering* means | nobody |
 | 5000 | Kavita server | `node scripts/kavita-server.mjs <corpus>` |
 | 5001 | Kavita server, for the UI walks that add one through the real form | `node scripts/kavita-server.mjs <corpus> --port 5001` |

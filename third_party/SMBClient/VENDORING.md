@@ -27,6 +27,7 @@ Every change carries a `StoryArc:` comment.
 | `Auth/SMB3Crypto.swift` | New. The SP800-108 KDF, the 3.1.1 preauth hash step, AES-128-CMAC, AES-128-CCM, AES-128-GCM, and the SMB2 TRANSFORM_HEADER of MS-SMB2 2.2.41. |
 | `Messages/Negotiate.swift` | The request carries capabilities and, when 3.1.1 is offered, the PREAUTH_INTEGRITY and ENCRYPTION negotiate contexts. The response reads the chosen cipher, with every length checked. |
 | `Session.swift` | Offers SMB 2.0.2, 2.1, 3.0, 3.0.2 and 3.1.1. Keeps the preauth hash, derives the SMB 3 signing, encryption and decryption keys, signs SMB 3 with AES-CMAC, and seals every message after the session setup when a cipher was agreed. Reports `dialect`, `cipher` and `isEncrypting`. `newSession()` copies the new state, and now also copies `isAnonymous`. |
+| `Session.swift`, `SMBClient.swift` (move) | `move(from:to:replacing:)` sets `ReplaceIfExists` in the rename, so a file written beside the sync document replaces it in one server step. `library-sync` task 2.2. |
 | `Connection.swift` | The receive path reads one transport frame at a time and opens an SMB 3 transform before it reads the header. An interim `STATUS_PENDING` reply is replaced by the final reply that follows it. |
 
 ## What it still does not do
