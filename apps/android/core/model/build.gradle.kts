@@ -43,6 +43,9 @@ tasks.withType<Test>().configureEach {
             "$rootDir/app/src/main/res/values/colors.xml",
             "$rootDir/app/src/main/res/mipmap-anydpi-v26",
             "${rootDir.parentFile.parentFile}/scripts/brand-mark.swift",
+            // `library-sync` task 5.2: the document iOS's sync path writes, which this module's
+            // tests merge.
+            "${rootDir.parentFile.parentFile}/apps/ios/Packages/StoryArcKit/Tests/StoryArcCoreTests/sync-written-by-ios.json",
         ),
     )
         .withPropertyName("appIconGuardSources")

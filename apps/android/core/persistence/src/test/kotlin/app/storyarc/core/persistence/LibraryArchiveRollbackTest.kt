@@ -5,9 +5,11 @@ import app.storyarc.core.model.AppearanceMode
 import app.storyarc.core.model.ChosenCover
 import app.storyarc.core.model.ChosenCoverStore
 import app.storyarc.core.model.LibrarySnapshot
+import app.storyarc.core.model.PublicationCollection
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.model.Shelves
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
@@ -117,6 +119,8 @@ class LibraryArchiveRollbackTest {
                 ),
             ),
             settings = AppSettings(appearance = AppearanceMode.LIGHT, language = "fr"),
+            // A new shelf, so an undo that recorded deletions would leave a tombstone behind.
+            shelves = Shelves(listOf(PublicationCollection(name = "Incoming"))),
             progress = listOf(
                 record("d1", page = 19, finished = true, at = 1_767_200_000_000L),
                 record("d2", page = 4),

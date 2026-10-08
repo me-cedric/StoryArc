@@ -87,6 +87,12 @@ class ReaderPreferences(
             ThemeStamps.values(storedThemes()), themesChangedAt(),
             ThemeStamps.values(memory), changedAt, now(), ThemeStamps::default,
         )
+        restore(memory, stamps)
+    }
+
+    /** Writes themes and moments exactly as given: the undo of a failed import or sync. */
+    fun restore(memory: ShelfMemory, changedAt: Map<String, Long>) {
+        val stamps = changedAt
         preferences.edit()
             .putString(THEMES, json.encodeToString(memory))
             .putString(THEMES_CHANGED_AT, json.encodeToString(stamps))

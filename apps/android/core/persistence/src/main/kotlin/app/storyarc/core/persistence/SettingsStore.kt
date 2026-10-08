@@ -65,6 +65,12 @@ class SettingsStore(
             SettingsStamps.values(settings()), changedAt(),
             SettingsStamps.values(settings), changedAt, now(),
         )
+        restore(settings, stamps)
+    }
+
+    /** Writes settings and moments exactly as given: the undo of a failed import or sync. */
+    fun restore(settings: AppSettings, changedAt: Map<String, Long>) {
+        val stamps = changedAt
         preferences.edit()
             .putString(SETTINGS, json.encodeToString(settings))
             .putString(CHANGED_AT, json.encodeToString(stamps))

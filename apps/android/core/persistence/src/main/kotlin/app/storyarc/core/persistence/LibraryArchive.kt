@@ -109,7 +109,7 @@ class LibraryArchive(
             // Undone even when the import was cancelled, or the cancel would be the half import.
             withContext(NonCancellable) {
                 restoreCovers(replacedCovers)
-                writeStores(before)
+                writeStores(before, exactly = true)
                 // The failure the reader needs is the first one. A second one while undoing
                 // cannot be shown better than that, so it does not replace it.
                 runCatching { restoreProgress(before.progress, over = merged.progress) }
@@ -139,13 +139,23 @@ class LibraryArchive(
         }
     }
 
-    private fun writeStores(snapshot: LibrarySnapshot) {
+    /**
+     * @param exactly true for an undo, which puts back the moments and deletions as they were.
+     *   Otherwise a store stamps what changed and records what was deleted.
+     */
+    private fun writeStores(snapshot: LibrarySnapshot, exactly: Boolean = false) {
         sources.save(snapshot.sources)
         certificatePins.save(snapshot.certificatePins)
-        shelves.save(snapshot.shelves, snapshot.removedShelves)
         library.savePinnedShelves(snapshot.pinnedShelves.tokens)
-        settings.save(snapshot.settings, snapshot.settingsChangedAt)
-        reader.save(snapshot.themes, snapshot.themesChangedAt)
+        if (exactly) {
+            shelves.restore(snapshot.shelves, snapshot.removedShelves)
+            settings.restore(snapshot.settings, snapshot.settingsChangedAt)
+            reader.restore(snapshot.themes, snapshot.themesChangedAt)
+        } else {
+            shelves.save(snapshot.shelves, snapshot.removedShelves)
+            settings.save(snapshot.settings, snapshot.settingsChangedAt)
+            reader.save(snapshot.themes, snapshot.themesChangedAt)
+        }
     }
 
     /**

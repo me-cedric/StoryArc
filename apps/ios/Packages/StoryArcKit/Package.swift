@@ -156,7 +156,12 @@ let package = Package(
             dependencies: ["Smb", .product(name: "SMBClient", package: "SMBClient")]
         ),
         .testTarget(name: "DesignSystemTests", dependencies: ["DesignSystem"]),
-        .testTarget(name: "StoryArcCoreTests", dependencies: ["StoryArcCore"]),
+        .testTarget(
+            name: "StoryArcCoreTests",
+            dependencies: ["StoryArcCore"],
+            // Read through #filePath by `SyncDocumentFixture` and by Android's tests.
+            exclude: ["sync-written-by-ios.json"]
+        ),
         .testTarget(name: "FormatsTests", dependencies: ["Formats"]),
         .testTarget(name: "PlaybackTests", dependencies: ["Playback"]),
         // `StoryArcCore` is explicit rather than left to transitive visibility:

@@ -1,0 +1,130 @@
+{
+  "appVersion" : "10.14.0",
+  "formatVersion" : 1,
+  "library" : {
+    "certificatePins" : {
+
+    },
+    "collections" : [
+      {
+        "changedAt" : "2026-01-01T00:01:40Z",
+        "changedBy" : "ios-device",
+        "id" : "33333333-3333-3333-3333-333333333333",
+        "members" : [
+          "path:/a.cbz"
+        ],
+        "name" : "Image Comics"
+      }
+    ],
+    "covers" : [
+
+    ],
+    "pinnedShelves" : [
+
+    ],
+    "progress" : [
+      {
+        "changedBy" : "ios-device",
+        "identity" : {
+          "contentDigest" : "d1"
+        },
+        "isFinished" : false,
+        "position" : {
+          "index" : 12,
+          "kind" : "page",
+          "of" : 40
+        },
+        "updatedAt" : "2026-01-01T00:10:00Z"
+      }
+    ],
+    "readingLists" : [
+      {
+        "changedAt" : "2026-01-01T00:03:20Z",
+        "changedBy" : "ios-device",
+        "entries" : [
+          "path:/b.cbz",
+          "path:/a.cbz"
+        ],
+        "id" : "44444444-4444-4444-4444-444444444444",
+        "name" : "Crossover"
+      }
+    ],
+    "readingThemes" : {
+      "changed" : {
+        "reflowable/|values.fontSizePercent" : {
+          "at" : "2026-01-01T00:08:20Z",
+          "by" : "ios-device"
+        }
+      },
+      "entries" : [
+        {
+          "scope" : "reflowable",
+          "settings" : {
+            "adjustments" : {
+              "brightness" : 0,
+              "contrast" : 0,
+              "cropsBorders" : false,
+              "isGreyscale" : false,
+              "isInverted" : false,
+              "sharpness" : 0
+            },
+            "fit" : "screen",
+            "offsetsSpreads" : false,
+            "showsPageSeparator" : false,
+            "theme" : {
+              "deviations" : [
+
+              ],
+              "preset" : "paper"
+            },
+            "transition" : "slide",
+            "values" : {
+              "fontSizePercent" : 115,
+              "isBold" : false,
+              "isHyphenated" : false,
+              "letterSpacing" : 0,
+              "lineHeight" : 1.5,
+              "pageMargins" : 1,
+              "paragraphSpacing" : 0.6,
+              "textAlignment" : "publisher",
+              "typeface" : "literata",
+              "wordSpacing" : 0
+            }
+          }
+        }
+      ]
+    },
+    "removedShelves" : [
+      {
+        "id" : "66666666-6666-6666-6666-666666666666",
+        "removedAt" : "2026-01-01T00:05:00Z",
+        "removedBy" : "ios-device"
+      }
+    ],
+    "settings" : {
+      "appearance" : "dark",
+      "changed" : {
+        "appearance" : {
+          "at" : "2026-01-01T00:06:40Z",
+          "by" : "ios-device"
+        }
+      },
+      "darkReadingTheme" : "quiet",
+      "downloadOverWifiOnly" : false,
+      "lightReadingTheme" : "paper",
+      "linkReadingThemeToAppearance" : false,
+      "removeDownloadsAfterFinishing" : false,
+      "turnPagesByTappingTheEdges" : true
+    },
+    "sources" : [
+      {
+        "displayName" : "Kavita",
+        "id" : "55555555-5555-5555-5555-555555555555",
+        "kind" : "kavitaServer",
+        "needsSignIn" : false
+      }
+    ]
+  },
+  "writtenAt" : "2026-01-01T00:16:40Z",
+  "writtenBy" : "ios"
+}

@@ -1,0 +1,145 @@
+{
+    "formatVersion": 1,
+    "appVersion": "10.14.0",
+    "writtenBy": "android",
+    "writtenAt": "2026-01-01T00:16:40Z",
+    "library": {
+        "sources": [
+            {
+                "id": "55555555-5555-5555-5555-555555555555",
+                "displayName": "Kavita",
+                "kind": "kavitaServer",
+                "lastSuccessfulSync": null,
+                "locator": null,
+                "needsSignIn": false
+            }
+        ],
+        "certificatePins": {},
+        "collections": [
+            {
+                "id": "33333333-3333-3333-3333-333333333333",
+                "name": "Image Comics",
+                "members": [
+                    "path:/a.cbz"
+                ],
+                "coverMemberId": null,
+                "changedAt": "2026-01-01T00:01:40Z",
+                "changedBy": "android-device"
+            }
+        ],
+        "readingLists": [
+            {
+                "id": "44444444-4444-4444-4444-444444444444",
+                "name": "Crossover",
+                "entries": [
+                    "path:/b.cbz",
+                    "path:/a.cbz"
+                ],
+                "coverMemberId": null,
+                "changedAt": "2026-01-01T00:03:20Z",
+                "changedBy": "android-device"
+            }
+        ],
+        "pinnedShelves": [],
+        "settings": {
+            "appearance": "dark",
+            "language": null,
+            "turnPagesWithVolumeButtons": false,
+            "turnPagesByTappingTheEdges": true,
+            "linkReadingThemeToAppearance": false,
+            "lightReadingTheme": "paper",
+            "darkReadingTheme": "quiet",
+            "downloadOverWifiOnly": false,
+            "maximumDownloadBytes": null,
+            "removeDownloadsAfterFinishing": false,
+            "changed": {
+                "appearance": {
+                    "at": "2026-01-01T00:06:40Z",
+                    "by": "android-device"
+                }
+            }
+        },
+        "readingThemes": {
+            "entries": [
+                {
+                    "scope": "reflowable",
+                    "shelf": null,
+                    "settings": {
+                        "theme": {
+                            "preset": "paper",
+                            "deviations": [],
+                            "custom": null
+                        },
+                        "values": {
+                            "typeface": "literata",
+                            "fontSizePercent": 115,
+                            "isBold": false,
+                            "isHyphenated": false,
+                            "lineHeight": 1.5,
+                            "letterSpacing": 0.0,
+                            "wordSpacing": 0.0,
+                            "paragraphSpacing": 0.6,
+                            "pageMargins": 1.0,
+                            "textAlignment": "publisher"
+                        },
+                        "transition": "slide",
+                        "scrollAxis": null,
+                        "readingDirection": null,
+                        "adjustments": {
+                            "brightness": 0.0,
+                            "contrast": 0.0,
+                            "sharpness": 0.0,
+                            "isInverted": false,
+                            "isGreyscale": false,
+                            "cropsBorders": false
+                        },
+                        "offsetsSpreads": false,
+                        "showsPageSeparator": false,
+                        "fit": "screen"
+                    }
+                }
+            ],
+            "customPalette": null,
+            "changed": {
+                "reflowable/|values.fontSizePercent": {
+                    "at": "2026-01-01T00:08:20Z",
+                    "by": "android-device"
+                }
+            }
+        },
+        "progress": [
+            {
+                "identity": {
+                    "serverSourceId": null,
+                    "serverRemoteId": null,
+                    "contentDigest": "d1",
+                    "normalizedPath": null
+                },
+                "position": {
+                    "kind": "page",
+                    "index": 12,
+                    "of": 40,
+                    "progression": null,
+                    "locator": null,
+                    "part": null,
+                    "partCount": null,
+                    "offsetMillis": null,
+                    "ofMillis": null
+                },
+                "isFinished": false,
+                "finishedAt": null,
+                "updatedAt": "2026-01-01T00:10:00Z",
+                "changedBy": "android-device"
+            }
+        ],
+        "covers": [],
+        "removedShelves": [
+            {
+                "id": "66666666-6666-6666-6666-666666666666",
+                "removedAt": "2026-01-01T00:05:00Z",
+                "removedBy": "android-device"
+            }
+        ]
+    },
+    "secrets": null
+}
