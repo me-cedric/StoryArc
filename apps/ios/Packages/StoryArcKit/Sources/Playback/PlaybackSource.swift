@@ -50,6 +50,12 @@ public protocol PlaybackSource: AnyObject {
     /// a whole file, which is the ordinary case.
     var unreadablePartCount: Int { get }
 
+    /// Whether the source ran out because its last part failed, rather than because the audio
+    /// came to its end. Read by ``PlayerCentre`` when ``ended`` fires. `close-the-audited-gaps`
+    /// 23.6, owner answer O21: such an ending keeps the position at the failed part and does
+    /// not mark the book finished.
+    var endedOnFailure: Bool { get }
+
     func play()
     func pause()
     func stop()
@@ -98,6 +104,9 @@ public protocol PlaybackSource: AnyObject {
 }
 
 public extension PlaybackSource {
+    /// A source whose only ending is the audio coming to its end.
+    var endedOnFailure: Bool { false }
+
     /// A source with no volume to ramp. See the requirement's own note.
     func setVolume(_ gain: Double) {}
 

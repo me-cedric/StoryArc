@@ -93,7 +93,9 @@ public extension PlayerCentre {
             ReachedListening(
                 book: book,
                 position: position(at: place),
-                isFinished: hasReachedTheEnd
+                // A last part that failed is not the end of the book (owner answer O21): the
+                // position stays where it failed, and the listener may mark it finished.
+                isFinished: hasReachedTheEnd && source?.endedOnFailure != true
             )
         )
     }

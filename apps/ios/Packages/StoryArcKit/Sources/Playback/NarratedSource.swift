@@ -38,6 +38,9 @@ public final class NarratedSource: PlaybackSource {
     /// does.
     public private(set) var unreadablePartCount: Int
 
+    /// Set just before ``ended`` fires for a last part that could not be decoded.
+    public private(set) var endedOnFailure = false
+
     private let timeline: PlaybackTimeline
     /// Internal, not private, so `NarratedSourceFailureTests` can post a failure for its item.
     let player = AVPlayer()
@@ -215,6 +218,7 @@ public final class NarratedSource: PlaybackSource {
         case .carryOn:
             moved?()
         case .end:
+            endedOnFailure = true
             ended?()
         }
     }

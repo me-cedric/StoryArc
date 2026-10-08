@@ -40,6 +40,28 @@ struct NarratedSourceFailureTests {
         }
     }
 
+    /// Task 23.6: the end the source reports for a last file that cannot be decoded says so,
+    /// before it fires, so the centre does not record the book as finished.
+    @Test("A last file that cannot be decoded ends the book as a failure")
+    func theLastFileFailingEndsOnFailure() async {
+        let source = NarratedSource(Audiobook(
+            parts: [AudiobookPart(url: Self.file("only.m4b"), title: "Only", start: 0, duration: 60)],
+            unreadablePartCount: 0
+        ))
+        defer { source.stop() }
+        var reported: Bool?
+        source.ended = { [unowned source] in reported = source.endedOnFailure }
+        source.seek(toPart: 0, offset: 0)
+        for _ in 0..<200 where source.player.currentItem?.status != .failed {
+            try? await Task.sleep(for: .milliseconds(25))
+        }
+        #expect(source.player.currentItem?.status == .failed, "the engine never failed the missing file")
+
+        await fail(source)
+
+        #expect(reported == true, "the source ended without saying that its last part failed")
+    }
+
     @Test("A file that fails again after a seek back still hands over, and counts once")
     func failingAgainStillMovesOn() async {
         let source = folder()

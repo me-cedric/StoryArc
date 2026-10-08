@@ -91,14 +91,9 @@ public final class PlayerCentre {
     /// out has. Cleared by ``begin(_:source:)``, so a second book cannot inherit it.
     public private(set) var hasReachedTheEnd = false
 
-    /// The book that just ran out, kept past the teardown that clears ``book`` — task 7.2's
-    /// end-of-book offer needs it to ask the library's `next(after:)`. `nil` for a session
-    /// that stopped any other way, per ``hasReachedTheEnd``. Cleared by ``begin(_:source:)``.
-    public private(set) var lastFinished: SpokenBook?
-
-    /// How many of that book's parts could not be played. Task 2.5, owner answer O12: a book
-    /// whose last or only part fails ends here, and the finished surface still states it.
-    public private(set) var unreadableAtEnd = 0
+    /// How the last session ended, kept past the teardown. `nil` for a session that stopped any
+    /// other way, per ``hasReachedTheEnd``. Cleared by ``begin(_:source:)``. See ``PlayerEnding``.
+    public internal(set) var ending: PlayerEnding?
 
     /// The word a listener is owed because opening a publication stopped their voice.
     ///
@@ -209,8 +204,7 @@ public final class PlayerCentre {
         // it. A listener who finished one book and started another would otherwise have the
         // second marked finished at its first tick.
         hasReachedTheEnd = false
-        lastFinished = nil
-        unreadableAtEnd = 0
+        ending = nil
         // A second book must not inherit the first's floor, or its opening minutes would go
         // unwritten while the offset climbed back to where the last book stopped.
         recorded = nil
@@ -357,10 +351,7 @@ public final class PlayerCentre {
     private func finish(with next: PlaybackSession) {
         guard session.isActive || book != nil else { return }
         recordReached()
-        if hasReachedTheEnd {
-            lastFinished = book
-            unreadableAtEnd = unreadablePartCount
-        }
+        if hasReachedTheEnd, let book { ending = endingNow(of: book) }
         session = next
         source?.moved = nil
         source?.ended = nil

@@ -75,7 +75,9 @@ public struct FullPlayerView: View {
                         PlayerFinishedOffer(
                             next: next,
                             onOpenNext: onOpenNext,
-                            unreadableParts: centre.unreadableAtEnd
+                            unreadableParts: centre.unreadableAtEnd,
+                            canMarkFinished: centre.canMarkFinished,
+                            onMarkFinished: centre.markFinished
                         )
                     } else {
                         cover

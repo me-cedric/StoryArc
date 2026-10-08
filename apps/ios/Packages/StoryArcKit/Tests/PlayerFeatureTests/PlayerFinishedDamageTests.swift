@@ -37,6 +37,33 @@ struct PlayerFinishedDamageTests {
         )
     }
 
+    /// Task 23.6, owner answer O21: the decision to count a failed ending as finished is the
+    /// listener's, so the surface has to carry it to the centre.
+    @Test("The full player wires Mark as finished to the centre")
+    func markFinishedIsWired() throws {
+        let player = try source("FullPlayerView.swift")
+
+        #expect(
+            player.contains("canMarkFinished: centre.canMarkFinished"),
+            "the finished offer is never told a failed ending is the listener's to decide"
+        )
+        #expect(
+            player.contains("onMarkFinished: centre.markFinished"),
+            "the button is drawn and does nothing"
+        )
+    }
+
+    @Test("The finished offer draws the Mark as finished button for a failed ending only")
+    func markFinishedIsDrawn() throws {
+        let offer = try source("PlayerFinishedOffer.swift")
+
+        #expect(
+            offer.contains("if canMarkFinished {"),
+            "the finished offer no longer gates the button on a failed ending"
+        )
+        #expect(offer.contains("Button(action: onMarkFinished)"))
+    }
+
     @Test("The finished offer draws that count in words")
     func theCountIsDrawn() throws {
         let offer = try source("PlayerFinishedOffer.swift")

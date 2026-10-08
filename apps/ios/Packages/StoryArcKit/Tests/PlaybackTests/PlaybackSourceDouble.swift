@@ -67,6 +67,7 @@ final class PlaybackSourceDouble: PlaybackSource {
     let parts: [PlaybackPart]
     let skipUnit: SkipUnit
     var unreadablePartCount: Int
+    private(set) var endedOnFailure = false
     private(set) var place: PlaybackPlace
 
     init(_ kind: SourceKind, unreadableParts: Int = 0) {
@@ -121,6 +122,12 @@ final class PlaybackSourceDouble: PlaybackSource {
 
     /// The source ran out on its own — the book ended.
     func runOut() { ended?() }
+
+    /// The source ran out because its last part could not be decoded, as `NarratedSource` does.
+    func runOutOnFailure() {
+        endedOnFailure = true
+        ended?()
+    }
 }
 
 extension Publication {

@@ -21,9 +21,14 @@ struct PlayerFinishedOffer: View {
     /// words and never in a dialog.
     var unreadableParts = 0
 
+    /// The last part failed, so the book is not recorded as finished, and the listener may mark
+    /// it. `close-the-audited-gaps` 23.6, owner answer O21.
+    var canMarkFinished = false
+    var onMarkFinished: () -> Void = {}
+
     var body: some View {
         VStack(spacing: StoryArcSpace.lg) {
-            Text("player.finished", bundle: .module)
+            heading
                 .textRole(.title3)
                 .foregroundStyle(theme.palette.textPrimary)
 
@@ -31,6 +36,14 @@ struct PlayerFinishedOffer: View {
                 .textRole(.caption)
                 .foregroundStyle(theme.palette.textSecondary)
                 .multilineTextAlignment(.center)
+
+            if canMarkFinished {
+                Button(action: onMarkFinished) {
+                    Text("player.finished.mark", bundle: .module)
+                }
+                .buttonStyle(.bordered)
+                .tint(theme.accent)
+            }
 
             if let next {
                 Button {
@@ -44,5 +57,14 @@ struct PlayerFinishedOffer: View {
         }
         .padding(.vertical, StoryArcSpace.xxl)
         .frame(maxWidth: .infinity)
+    }
+
+    /// "Finished" says the book is recorded finished, so a failed ending that is not says what it is.
+    @ViewBuilder private var heading: some View {
+        if canMarkFinished {
+            Text("player.finished.stopped", bundle: .module)
+        } else {
+            Text("player.finished", bundle: .module)
+        }
     }
 }
