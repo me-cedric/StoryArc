@@ -111,6 +111,15 @@ internal class FakePlayer(
         positionMs = if (startPositionMs == C.TIME_UNSET) 0 else startPositionMs
     }
 
+    override fun getMediaItemCount(): Int = items.size
+
+    override fun getMediaItemAt(index: Int): MediaItem = items[index]
+
+    /** A metadata update over items whose locations have not changed, as media3 takes it. */
+    override fun replaceMediaItems(fromIndex: Int, toIndex: Int, mediaItems: MutableList<MediaItem>) {
+        items = items.take(fromIndex) + mediaItems + items.drop(toIndex)
+    }
+
     override fun getCurrentMediaItem(): MediaItem? = items.getOrNull(itemIndex)
 
     override fun getCurrentMediaItemIndex(): Int = itemIndex

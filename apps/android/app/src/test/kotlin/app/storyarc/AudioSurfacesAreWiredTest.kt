@@ -243,6 +243,26 @@ class AudioSurfacesAreWiredTest {
         )
     }
 
+    /**
+     * Task 4.4b: the picture for the shade is drawn when a session starts, not only while the
+     * player screen is composed. The shell draws it, and stands down on the player itself so the
+     * screen's own artwork is the only writer there.
+     */
+    @Test
+    fun `the shell draws the session's artwork while the player is not on screen`() {
+        val shell = read(APP_SHELL)
+        val at = shell.indexOf("SessionArtwork(")
+        assertTrue("AppShell no longer draws the session's artwork.", at >= 0)
+        assertTrue(
+            "The session's artwork is drawn while the player is on screen too, so two writers send one picture.",
+            shell.substring(0, at).takeLast(300).contains("navigation.current !is Screen.Player"),
+        )
+        assertTrue(
+            "The drawn picture is not handed to the session.",
+            shell.substring(at).take(500).contains("PlayingBook.artwork("),
+        )
+    }
+
     /** Task 23.6, O21: the finished screen carries the listener's decision to the store. */
     @Test
     fun `the finished screen is wired to mark a failed ending finished`() {

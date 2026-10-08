@@ -320,6 +320,19 @@ internal fun AppShell(
     // D2: a read mark the server cannot accept, said over the screen that made it.
     KavitaMarkRefusedDialog()
 
+    // Task 4.4b: the picture the shade, the lock screen and a car display show, drawn when a
+    // session starts and not only while the player screen is open. A book started from a car,
+    // or left in the compact bar before the screen drew, had none. While the player is on
+    // screen its own artwork sends the picture, so this stands down.
+    if (navigation.current !is Screen.Player) {
+        val following = PlayingBook.following.collectAsStateWithLifecycle().value
+        SessionArtwork(
+            publication = following,
+            cover = library::cover,
+            onArtwork = { picture -> following?.let { PlayingBook.artwork(activity, it.id, picture) } },
+        )
+    }
+
     AdaptiveNavigationShell(
         entries = AppDestination.entries.map { destination ->
             NavigationEntry(

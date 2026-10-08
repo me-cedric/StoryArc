@@ -294,7 +294,7 @@ object PlaybackHost : SpokenAudio.Speaker {
         }
         withController(context) { player ->
             val source = AudiobookSource(book, player, chapterWord)
-            current = source
+            hold(source)
             source.prepare(from)
             // Before the first sound rather than after it. A speed applied once the audio
             // is running is a sentence the listener hears at the wrong pace, and it is the
@@ -347,7 +347,7 @@ object PlaybackHost : SpokenAudio.Speaker {
             it.remember(audiobook, book.partIndex, book.offsetMillis)
         }
         val source = AudiobookSource(audiobook, player)
-        current = source
+        hold(source)
         source.attach(from = partTime)
         centre.attach(source)
     }
@@ -431,10 +431,32 @@ object PlaybackHost : SpokenAudio.Speaker {
      * coverless well with — so it arrives here as a file the session can load, once the player
      * has drawn it. Named for a publication so that a picture arriving after the book it was
      * drawn for has ended is dropped rather than put on the next one.
+     *
+     * **A picture that arrives before its book is held is kept for it.** `audio-playback`,
+     * *A publication with no cover*, and task 4.4b: the picture is drawn when a session starts,
+     * with no player screen to wait for, and that is faster than the controller connects. The
+     * source does not exist yet, so the picture waits in [pendingArtwork] and [hold] gives it
+     * to the source it is for.
      */
     fun setArtwork(publicationId: String, artwork: Uri) {
-        current?.takeIf { it.publicationId == publicationId }?.setArtwork(artwork)
+        val source = current?.takeIf { it.publicationId == publicationId }
+        if (source != null) source.setArtwork(artwork) else pendingArtwork = publicationId to artwork
         if (centre.playingId == publicationId) voicePlayer?.setArtwork(artwork)
+    }
+
+    /** A picture drawn for a book whose source is not held yet. See [setArtwork]. */
+    private var pendingArtwork: Pair<String, Uri>? = null
+
+    /**
+     * Takes a source as the one this host holds, and gives it the picture waiting for it.
+     *
+     * Internal so a test can hold a source without a bound controller. A picture waiting for
+     * another book is dropped here rather than put on this one.
+     */
+    internal fun hold(source: AudiobookSource) {
+        current = source
+        pendingArtwork?.takeIf { it.first == source.publicationId }?.let { source.setArtwork(it.second) }
+        pendingArtwork = null
     }
 
     /**

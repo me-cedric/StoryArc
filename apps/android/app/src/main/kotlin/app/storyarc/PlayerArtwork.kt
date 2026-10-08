@@ -38,7 +38,7 @@ import app.storyarc.core.model.Publication
 private const val ARTWORK_PIXELS = 512
 
 /** How wide the artwork may be: iOS's `PlayerArtwork` is 320 pt, and the two players agree. */
-private val ARTWORK_MAX_WIDTH = 320.dp
+internal val ARTWORK_MAX_WIDTH = 320.dp
 
 /**
  * The player's artwork: the cover, or the well every other surface draws when there is none.
