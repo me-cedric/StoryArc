@@ -112,6 +112,15 @@ for (const [index, file] of files.entries()) {
   })
 }
 
+/** How many bytes a chapter's file holds, which is what Kavita states as its size. */
+const sizeOf = (file) => {
+  try {
+    return statSync(join(root, file)).size
+  } catch {
+    return 0
+  }
+}
+
 /** The colours covers are drawn in, one per series, so a wrong cover is visible. */
 const COVERS = [
   [214, 90, 44], [58, 96, 158], [72, 138, 96],
@@ -481,6 +490,8 @@ const server = createServer((request, response) => {
         title: chapter.title,
         pages: chapter.pages,
         pagesRead: chapter.pagesRead,
+        // `ChapterDto.files`: a whole-shelf download adds the sizes up before it starts.
+        files: [{ id: chapter.id, bytes: sizeOf(chapter.file), pages: chapter.pages }],
       })),
     }])
   }
@@ -671,7 +682,22 @@ const server = createServer((request, response) => {
   if (url.pathname === '/api/ReadingList/items') {
     const found = readingLists.find((each) => each.id === Number(url.searchParams.get('readingListId')))
     if (!found) return send(response, 404, { message: 'no such list' })
-    return send(response, 200, found.items)
+    // The fields a real `ReadingListItemDto` carries and the stored entry does not: where the
+    // reader is in the chapter, which volume and library hold it, and how large its file is.
+    // Read from the chapter each time, so a mark the reader sends shows on the next answer.
+    return send(response, 200, found.items.map((item) => {
+      const owner = series.find((each) => each.id === item.seriesId)
+      const chapter = owner?.chapters.find((each) => each.id === item.chapterId)
+      if (!owner || !chapter) return item
+      return {
+        ...item,
+        pagesRead: chapter.pagesRead,
+        pagesTotal: chapter.pages,
+        volumeId: owner.id * 100,
+        libraryId: owner.libraryId,
+        fileSize: sizeOf(chapter.file),
+      }
+    }))
   }
 
   if (url.pathname === '/api/ReadingList/update-by-multiple' && request.method === 'POST') {
@@ -1110,6 +1136,15 @@ const drive = async () => {
   const start = await listItems(1)
   check('a reading list answers in its own order',
     start.every((item, at) => item.order === at), start.map((each) => each.order))
+  // What a whole-shelf download and a whole-shelf mark need from each entry: where the reader
+  // is, which volume and library hold it, and how large its file is.
+  check('a list entry states its progress, its volume, its library and its size',
+    start.every((item) => item.pagesTotal > 0 && item.volumeId > 0 && item.libraryId > 0 &&
+      item.fileSize > 0 && item.pagesRead >= 0),
+    start[0])
+  const volumed = await (await get(`/api/Series/volumes?seriesId=${start[0].seriesId}`, token)).json()
+  check('a chapter in a volume states the size of its file',
+    volumed[0].chapters.every((each) => each.files?.[0]?.bytes > 0), volumed[0].chapters[0])
 
   if (start.length > 1) {
     const last = start[start.length - 1]
