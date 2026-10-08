@@ -41,6 +41,8 @@ import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceAction
 import app.storyarc.core.model.SourceDiagnosis
 import app.storyarc.core.persistence.ImportedCopies
+import app.storyarc.core.persistence.LibraryImportOutcome
+import app.storyarc.core.persistence.LibraryTransfer
 import app.storyarc.core.persistence.ReaderPreferences
 import app.storyarc.core.persistence.RemovedDownload
 import java.util.UUID
@@ -140,6 +142,12 @@ fun SettingsScreen(
      */
     onRemoveFinished: suspend (Download) -> RemovedDownload? = { null },
     onRestoreFinished: suspend (RemovedDownload) -> Unit = {},
+    /**
+     * Export and import of the whole library, and what the app reloads after an import. Null
+     * hides the two rows. `library-portability`.
+     */
+    libraryTransfer: LibraryTransfer? = null,
+    onLibraryImported: (LibraryImportOutcome) -> Unit = {},
 ) {
     // The match rather than the group, because a search result that named a *setting* has
     // to survive the navigation: the group is where to go, the anchor is what to point at
@@ -242,6 +250,8 @@ fun SettingsScreen(
                     onClearDownloads = onClearDownloads,
                     onRemoveFinished = onRemoveFinished,
                     onRestoreFinished = onRestoreFinished,
+                    libraryTransfer = libraryTransfer,
+                    onLibraryImported = onLibraryImported,
                 )
             }
         }
@@ -429,6 +439,8 @@ private fun GroupDetail(
     onClearDownloads: () -> Unit,
     onRemoveFinished: suspend (Download) -> RemovedDownload?,
     onRestoreFinished: suspend (RemovedDownload) -> Unit,
+    libraryTransfer: LibraryTransfer?,
+    onLibraryImported: (LibraryImportOutcome) -> Unit,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -484,6 +496,9 @@ private fun GroupDetail(
                         onAddCatalogue = onAddCatalogue,
                         onAddKavita = onAddKavita,
                         onAddShare = onAddShare,
+                        transfer = libraryTransfer,
+                        onLibraryImported = onLibraryImported,
+                        highlight = highlight,
                     )
                 SettingsGroup.DOWNLOADS -> DownloadsGroup(
                     bytesOnDisk = bytesOnDisk,

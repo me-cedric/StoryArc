@@ -46,6 +46,8 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.ImportedCopies
+import app.storyarc.core.persistence.LibraryImportOutcome
+import app.storyarc.core.persistence.LibraryTransfer
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceDiagnosis
 import app.storyarc.core.model.SourceKind
@@ -110,6 +112,13 @@ internal fun SourcesGroup(
      * the drag free from `List.onMove`; `STATUS.md` records the difference.
      */
     onReorder: (Source, Boolean) -> Unit = { _, _ -> },
+    /**
+     * Moves the whole library to or from a file. Null hides the two rows, which a screen with no
+     * stores behind it (a preview, a test) has no use for. `library-portability`.
+     */
+    transfer: LibraryTransfer? = null,
+    onLibraryImported: (LibraryImportOutcome) -> Unit = {},
+    highlight: SettingsAnchor? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     var removing by remember { mutableStateOf<Source?>(null) }
@@ -187,6 +196,10 @@ internal fun SourcesGroup(
             onAddKavita = onAddKavita,
             onAddShare = onAddShare,
         )
+
+        if (transfer != null) {
+            LibraryTransferRows(transfer = transfer, highlight = highlight, onImported = onLibraryImported)
+        }
 
         if (sources.isEmpty()) {
             Text(

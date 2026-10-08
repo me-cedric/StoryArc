@@ -36,7 +36,7 @@ import javax.crypto.spec.GCMParameterSpec
 class CredentialStore internal constructor(
     private val preferences: SharedPreferences,
     private val key: SecretKey,
-) {
+) : SourceSecretStore {
 
     companion object {
         private const val KEYSTORE = "AndroidKeyStore"
@@ -109,7 +109,7 @@ class CredentialStore internal constructor(
      * not a secret — GCM requires it to be unique per encryption, not hidden — and one
      * value is one thing to delete.
      */
-    fun save(secret: String, reference: String): Boolean = runCatching {
+    override fun save(secret: String, reference: String): Boolean = runCatching {
         val cipher = Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, key) }
         val sealed = cipher.iv + cipher.doFinal(secret.toByteArray())
         preferences.edit()
@@ -129,7 +129,7 @@ class CredentialStore internal constructor(
      * entry — and the honest answer there is that the secret is unavailable and has to be
      * entered again.
      */
-    fun secret(reference: String): String? = runCatching {
+    override fun secret(reference: String): String? = runCatching {
         val stored = preferences.getString(reference, null) ?: return null
         val sealed = Base64.decode(stored, Base64.NO_WRAP)
         val cipher = Cipher.getInstance(TRANSFORMATION).apply {
@@ -147,7 +147,7 @@ class CredentialStore internal constructor(
      * source removal calls this whether or not the source had a secret — and a folder never
      * does.
      */
-    fun remove(reference: String): Boolean =
+    override fun remove(reference: String): Boolean =
         runCatching { preferences.edit().remove(reference).commit() }.getOrDefault(false)
 
     /**

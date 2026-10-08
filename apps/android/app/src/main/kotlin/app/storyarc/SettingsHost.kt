@@ -18,6 +18,7 @@ import app.storyarc.feature.library.forgetPinIfUnshared
 import app.storyarc.feature.library.isPartial
 import app.storyarc.feature.library.itemCount
 import app.storyarc.feature.library.readProgress
+import app.storyarc.feature.library.reloadAfterImport
 import app.storyarc.feature.library.removeAfterFinishing
 import app.storyarc.feature.library.restore
 import app.storyarc.feature.settings.SettingsScreen
@@ -155,6 +156,19 @@ internal fun SettingsHost(
             dependencies.queue.restore(removed)
             host.downloads.value = dependencies.queue.library.value
             host.library.refreshImports()
+        },
+        // `library-portability`: the whole library to or from a file, over the stores this app
+        // already holds. The settings, the pinned certificates this session trusts, the sources,
+        // the shelves and the reading positions are brought up to what the import wrote -- a pin
+        // that reached the store and not `dependencies.pins` would be ignored until the next
+        // launch, and the next pin the reader accepted would write the old set over it.
+        libraryTransfer = remember(dependencies) { dependencies.libraryTransfer(context) },
+        onLibraryImported = { outcome ->
+            onSettingsChange(outcome.snapshot.settings)
+            for ((hostName, fingerprints) in outcome.snapshot.certificatePins) {
+                fingerprints.forEach { dependencies.pins.pin(it, hostName) }
+            }
+            host.library.reloadAfterImport()
         },
         // Written through on every change rather than on the way out.
         // `settings-and-about` requires an appearance to apply immediately, and the state

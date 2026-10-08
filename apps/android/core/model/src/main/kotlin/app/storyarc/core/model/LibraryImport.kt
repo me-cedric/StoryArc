@@ -26,7 +26,7 @@ object LibraryImport {
      * a source the reader already holds reads as a new one, and they are asked to sign in
      * again to a server they are already signed in to.
      */
-    private fun wireId(id: String): UUID? = runCatching { UUID.fromString(id) }.getOrNull()
+    internal fun wireId(id: String): UUID? = runCatching { UUID.fromString(id) }.getOrNull()
 
     /** What an import would do, with nothing changed. */
     fun plan(document: LibraryDocument, device: LibrarySnapshot): LibraryImportPlan {
@@ -104,6 +104,7 @@ object LibraryImport {
                 covers = device.covers + coversArriving(document, device),
             ),
             conflicts = progress.second,
+            sourcesNeedingSignIn = signInsNeeded(document, device),
         )
     }
 
@@ -150,11 +151,15 @@ object LibraryImport {
      * document says it needed one: the secret the reader is being asked for is the one that
      * is missing *here*.
      */
-    private fun signInsNeeded(document: LibraryDocument, device: LibrarySnapshot): List<String> {
+    internal fun signInsNeeded(
+        document: LibraryDocument,
+        device: LibrarySnapshot,
+        credentialed: Set<UUID> = emptySet(),
+    ): List<String> {
         val signedIn = device.sources.sources
             .filter { it.credentialReference != null }
             .map { it.id }
-            .toSet()
+            .toSet() + credentialed
         return document.library.sources
             .filter { it.needsSignIn && wireId(it.id) !in signedIn }
             .map { it.displayName }
@@ -362,4 +367,11 @@ object LibraryImport {
 data class LibraryImportResult(
     val snapshot: LibrarySnapshot,
     val conflicts: List<ProgressPull.Conflict>,
+    /**
+     * Sources that were given a secret by this import: their handle is set and the secret still
+     * has to be written to the secure store.
+     */
+    val credentialed: Set<UUID> = emptySet(),
+    /** Sources, by name, that the reader still has to sign in to. */
+    val sourcesNeedingSignIn: List<String> = emptyList(),
 )

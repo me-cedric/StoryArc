@@ -243,4 +243,97 @@
         <item quantity="one">%1$,d of %2$,d title</item>
         <item quantity="other">%1$,d of %2$,d titles</item>
     </plurals>
+    <string name="transfer_section_footer">Move your libraries, shelves, settings and reading positions to another device as one file.</string>
+    <string name="transfer_export">Export library</string>
+    <string name="transfer_import">Import library</string>
+    <string name="transfer_export_title">Export library</string>
+    <string name="transfer_export_carries">The file holds your libraries and servers, shelves, pinned shelves, settings, reading themes, reader settings, reading positions and the covers you chose.</string>
+    <string name="transfer_export_not_what">It holds no publication files, no downloads and no cover cache. It is not a backup of your books.</string>
+    <string name="transfer_export_readable">The file is readable text. It names your servers and what you read, so share it with care.</string>
+    <string name="transfer_export_passwords">Include passwords</string>
+    <string name="transfer_export_passwords_warning">Anyone who has the file and the passphrase can sign in to these servers.</string>
+    <string name="transfer_passphrase">Passphrase</string>
+    <string name="transfer_passphrase_again">Passphrase again</string>
+    <string name="transfer_export_passphrase_note">The app does not store the passphrase. Without it, the passwords in the file cannot be opened.</string>
+    <string name="transfer_export_problem_empty">Enter a passphrase.</string>
+    <string name="transfer_export_problem_mismatch">The two passphrases do not match.</string>
+    <string name="transfer_export_action">Export</string>
+    <string name="transfer_export_failed">The library could not be exported. Nothing was written.</string>
+    <string name="transfer_export_done">Library exported</string>
+    <string name="transfer_cancel">Cancel</string>
+    <string name="transfer_ok">OK</string>
+    <string name="transfer_import_title">Import library</string>
+    <string name="transfer_import_intro">This is what importing the file will do. Nothing changes until you import.</string>
+    <string name="transfer_import_action">Import</string>
+    <string name="transfer_import_secrets">This file carries passwords, sealed under a passphrase. Enter it to sign in to these libraries without being asked again.</string>
+    <string name="transfer_import_wrong">That passphrase did not open the passwords. Try again, or import without them.</string>
+    <string name="transfer_import_without_secrets">Import without passwords</string>
+    <string name="transfer_import_failed">The import failed. Your library is as it was.</string>
+    <plurals name="transfer_line_sources">
+        <item quantity="one">Adds %1$d library</item>
+        <item quantity="other">Adds %1$d libraries</item>
+    </plurals>
+    <plurals name="transfer_line_sign_in">
+        <item quantity="one">%1$d library will ask you to sign in</item>
+        <item quantity="other">%1$d libraries will ask you to sign in</item>
+    </plurals>
+    <string name="transfer_line_pins">Changes what this app trusts</string>
+    <string name="transfer_line_pins_note">A pinned certificate is accepted for its host even if the system does not trust it. Import only a file you trust.</string>
+    <string name="transfer_line_pin">%1$s gains a pinned certificate, arriving with %2$s</string>
+    <string name="transfer_line_pin_alone">%1$s gains a pinned certificate, with no library in the file that uses it</string>
+    <plurals name="transfer_line_shelves">
+        <item quantity="one">Adds %1$d shelf</item>
+        <item quantity="other">Adds %1$d shelves</item>
+    </plurals>
+    <plurals name="transfer_line_merged">
+        <item quantity="one">Merges %1$d shelf you already have</item>
+        <item quantity="other">Merges %1$d shelves you already have</item>
+    </plurals>
+    <plurals name="transfer_line_merged_added">
+        <item quantity="one">Gains %1$d title</item>
+        <item quantity="other">Gains %1$d titles</item>
+    </plurals>
+    <plurals name="transfer_line_progress_add">
+        <item quantity="one">%1$d reading position will be added</item>
+        <item quantity="other">%1$d reading positions will be added</item>
+    </plurals>
+    <plurals name="transfer_line_progress_merge">
+        <item quantity="one">%1$d title has a position on both devices; the further one wins</item>
+        <item quantity="other">%1$d titles have a position on both devices; the further one wins</item>
+    </plurals>
+    <plurals name="transfer_line_themes">
+        <item quantity="one">%1$d reading theme or reader setting will be added</item>
+        <item quantity="other">%1$d reading themes or reader settings will be added</item>
+    </plurals>
+    <plurals name="transfer_line_covers">
+        <item quantity="one">%1$d chosen cover will be added</item>
+        <item quantity="other">%1$d chosen covers will be added</item>
+    </plurals>
+    <string name="transfer_line_settings">Your settings will change to the ones in the file.</string>
+    <string name="transfer_line_nothing">The file holds nothing this device does not already have.</string>
+    <string name="transfer_refused_title">This file cannot be imported</string>
+    <string name="transfer_refused_newer">The file uses format version %1$d. This app reads up to version %2$d. Update the app and try again. Nothing was changed.</string>
+    <string name="transfer_refused_too_large">The file is %1$s. The largest file this app reads is %2$s. Nothing was changed.</string>
+    <string name="transfer_refused_not_a_document">This is not a StoryArc library file. Nothing was changed.</string>
+    <string name="transfer_refused_damaged">The file could not be read. It may be damaged. Nothing was changed.</string>
+    <string name="transfer_refused_unopened">The file could not be opened. Nothing was changed.</string>
+    <string name="transfer_done_title">Library imported</string>
+    <plurals name="transfer_done_secrets">
+        <item quantity="one">%1$d password was saved in the secure store</item>
+        <item quantity="other">%1$d passwords were saved in the secure store</item>
+    </plurals>
+    <plurals name="transfer_done_sign_in">
+        <item quantity="one">%1$d library still asks you to sign in</item>
+        <item quantity="other">%1$d libraries still ask you to sign in</item>
+    </plurals>
+    <string name="transfer_done_conflict_one">Both devices had moved on in one title. The further position was kept (%1$s). Set aside: %2$s.</string>
+    <plurals name="transfer_done_conflict_many">
+        <item quantity="one">Both devices had moved on in %1$d title. The further position was kept.</item>
+        <item quantity="other">Both devices had moved on in %1$d titles. The further position was kept for each.</item>
+    </plurals>
+    <string name="transfer_done_conflict_show">Show</string>
+    <string name="transfer_done_conflict_item">Kept %1$s, set aside %2$s</string>
+    <string name="transfer_position_page">Page %1$d of %2$d</string>
+    <string name="transfer_position_percent">%1$d%%</string>
+    <string name="transfer_done_action">Done</string>
 </resources>

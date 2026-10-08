@@ -223,4 +223,97 @@
         <item quantity="one">%1$,d sur %2$,d titre</item>
         <item quantity="other">%1$,d sur %2$,d titres</item>
     </plurals>
+    <string name="transfer_section_footer">Transférez vos bibliothèques, étagères, réglages et positions de lecture vers un autre appareil dans un seul fichier.</string>
+    <string name="transfer_export">Exporter la bibliothèque</string>
+    <string name="transfer_import">Importer la bibliothèque</string>
+    <string name="transfer_export_title">Exporter la bibliothèque</string>
+    <string name="transfer_export_carries">Le fichier contient vos bibliothèques et serveurs, étagères, étagères épinglées, réglages, thèmes de lecture, réglages du lecteur, positions de lecture et les couvertures que vous avez choisies.</string>
+    <string name="transfer_export_not_what">Il ne contient ni fichiers de publication, ni téléchargements, ni cache de couvertures. Ce n’est pas une sauvegarde de vos livres.</string>
+    <string name="transfer_export_readable">Le fichier est un texte lisible. Il nomme vos serveurs et ce que vous lisez : partagez-le avec soin.</string>
+    <string name="transfer_export_passwords">Inclure les mots de passe</string>
+    <string name="transfer_export_passwords_warning">Toute personne qui possède le fichier et la phrase secrète peut se connecter à ces serveurs.</string>
+    <string name="transfer_passphrase">Phrase secrète</string>
+    <string name="transfer_passphrase_again">Phrase secrète, encore une fois</string>
+    <string name="transfer_export_passphrase_note">L’app ne conserve pas la phrase secrète. Sans elle, les mots de passe du fichier ne peuvent pas être ouverts.</string>
+    <string name="transfer_export_problem_empty">Saisissez une phrase secrète.</string>
+    <string name="transfer_export_problem_mismatch">Les deux phrases secrètes ne correspondent pas.</string>
+    <string name="transfer_export_action">Exporter</string>
+    <string name="transfer_export_failed">La bibliothèque n’a pas pu être exportée. Rien n’a été écrit.</string>
+    <string name="transfer_export_done">Bibliothèque exportée</string>
+    <string name="transfer_cancel">Annuler</string>
+    <string name="transfer_ok">OK</string>
+    <string name="transfer_import_title">Importer la bibliothèque</string>
+    <string name="transfer_import_intro">Voici ce que l’importation du fichier va faire. Rien ne change tant que vous n’importez pas.</string>
+    <string name="transfer_import_action">Importer</string>
+    <string name="transfer_import_secrets">Ce fichier contient des mots de passe, scellés par une phrase secrète. Saisissez-la pour vous connecter à ces bibliothèques sans nouvelle demande.</string>
+    <string name="transfer_import_wrong">Cette phrase secrète n’a pas ouvert les mots de passe. Réessayez, ou importez sans eux.</string>
+    <string name="transfer_import_without_secrets">Importer sans les mots de passe</string>
+    <string name="transfer_import_failed">L’importation a échoué. Votre bibliothèque est comme avant.</string>
+    <plurals name="transfer_line_sources">
+        <item quantity="one">Ajoute %1$d bibliothèque</item>
+        <item quantity="other">Ajoute %1$d bibliothèques</item>
+    </plurals>
+    <plurals name="transfer_line_sign_in">
+        <item quantity="one">%1$d bibliothèque demandera une connexion</item>
+        <item quantity="other">%1$d bibliothèques demanderont une connexion</item>
+    </plurals>
+    <string name="transfer_line_pins">Modifie ce à quoi cette app fait confiance</string>
+    <string name="transfer_line_pins_note">Un certificat épinglé est accepté pour son hôte même si le système ne lui fait pas confiance. N’importez qu’un fichier de confiance.</string>
+    <string name="transfer_line_pin">%1$s obtient un certificat épinglé, venu avec %2$s</string>
+    <string name="transfer_line_pin_alone">%1$s obtient un certificat épinglé, sans bibliothèque du fichier qui l’utilise</string>
+    <plurals name="transfer_line_shelves">
+        <item quantity="one">Ajoute %1$d étagère</item>
+        <item quantity="other">Ajoute %1$d étagères</item>
+    </plurals>
+    <plurals name="transfer_line_merged">
+        <item quantity="one">Fusionne %1$d étagère que vous avez déjà</item>
+        <item quantity="other">Fusionne %1$d étagères que vous avez déjà</item>
+    </plurals>
+    <plurals name="transfer_line_merged_added">
+        <item quantity="one">Gagne %1$d titre</item>
+        <item quantity="other">Gagne %1$d titres</item>
+    </plurals>
+    <plurals name="transfer_line_progress_add">
+        <item quantity="one">%1$d position de lecture sera ajoutée</item>
+        <item quantity="other">%1$d positions de lecture seront ajoutées</item>
+    </plurals>
+    <plurals name="transfer_line_progress_merge">
+        <item quantity="one">%1$d titre a une position sur les deux appareils ; la plus avancée l’emporte</item>
+        <item quantity="other">%1$d titres ont une position sur les deux appareils ; la plus avancée l’emporte</item>
+    </plurals>
+    <plurals name="transfer_line_themes">
+        <item quantity="one">%1$d thème de lecture ou réglage du lecteur sera ajouté</item>
+        <item quantity="other">%1$d thèmes de lecture ou réglages du lecteur seront ajoutés</item>
+    </plurals>
+    <plurals name="transfer_line_covers">
+        <item quantity="one">%1$d couverture choisie sera ajoutée</item>
+        <item quantity="other">%1$d couvertures choisies seront ajoutées</item>
+    </plurals>
+    <string name="transfer_line_settings">Vos réglages prendront les valeurs du fichier.</string>
+    <string name="transfer_line_nothing">Le fichier ne contient rien que cet appareil n’ait déjà.</string>
+    <string name="transfer_refused_title">Ce fichier ne peut pas être importé</string>
+    <string name="transfer_refused_newer">Le fichier utilise la version de format %1$d. Cette app lit jusqu’à la version %2$d. Mettez l’app à jour et réessayez. Rien n’a été modifié.</string>
+    <string name="transfer_refused_too_large">Le fichier fait %1$s. Le plus grand fichier que lit cette app fait %2$s. Rien n’a été modifié.</string>
+    <string name="transfer_refused_not_a_document">Ce n’est pas un fichier de bibliothèque StoryArc. Rien n’a été modifié.</string>
+    <string name="transfer_refused_damaged">Le fichier n’a pas pu être lu. Il est peut-être endommagé. Rien n’a été modifié.</string>
+    <string name="transfer_refused_unopened">Le fichier n’a pas pu être ouvert. Rien n’a été modifié.</string>
+    <string name="transfer_done_title">Bibliothèque importée</string>
+    <plurals name="transfer_done_secrets">
+        <item quantity="one">%1$d mot de passe a été enregistré dans le stockage sécurisé</item>
+        <item quantity="other">%1$d mots de passe ont été enregistrés dans le stockage sécurisé</item>
+    </plurals>
+    <plurals name="transfer_done_sign_in">
+        <item quantity="one">%1$d bibliothèque demande encore une connexion</item>
+        <item quantity="other">%1$d bibliothèques demandent encore une connexion</item>
+    </plurals>
+    <string name="transfer_done_conflict_one">Les deux appareils avaient avancé dans un titre. La position la plus avancée a été conservée (%1$s). Écartée : %2$s.</string>
+    <plurals name="transfer_done_conflict_many">
+        <item quantity="one">Les deux appareils avaient avancé dans %1$d titre. La position la plus avancée a été conservée.</item>
+        <item quantity="other">Les deux appareils avaient avancé dans %1$d titres. La position la plus avancée a été conservée pour chacun.</item>
+    </plurals>
+    <string name="transfer_done_conflict_show">Afficher</string>
+    <string name="transfer_done_conflict_item">Conservée : %1$s ; écartée : %2$s</string>
+    <string name="transfer_position_page">Page %1$d sur %2$d</string>
+    <string name="transfer_position_percent">%1$d%%</string>
+    <string name="transfer_done_action">Terminé</string>
 </resources>

@@ -94,6 +94,18 @@ object LibraryDocumentCoder {
         explicitNulls = true
     }
 
+    /**
+     * Refuses a file by its size alone, before a byte of it is read.
+     *
+     * `library-portability` / *A document that is too large*: the import screen asks this with
+     * the size the provider reports, so a file a reader was handed never reaches memory.
+     * [decode] refuses the same way for text already in hand.
+     *
+     * @return the refusal, or null when the file is small enough to read.
+     */
+    fun admits(byteCount: Long, limit: Long = MAXIMUM_BYTES): LibraryDocumentFailure? =
+        if (byteCount > limit) LibraryDocumentFailure.TooLarge(byteCount, limit) else null
+
     /** The document as bytes a reader can open. */
     fun encode(document: LibraryDocument): String = json.encodeToString(document)
 

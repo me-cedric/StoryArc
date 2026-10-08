@@ -25,6 +25,17 @@ android {
     }
 }
 
+// `LibraryTransferTest` opens the committed sealed-secrets vector, the one both platforms and a
+// third implementation agree on. The repository root is handed over rather than discovered, the
+// way `:core:model` does it: a walk up from the working directory escapes a worktree. The file is
+// a declared input, so the test does not sit UP-TO-DATE when the vector changes.
+tasks.withType<Test>().configureEach {
+    systemProperty("storyarc.repoRootDir", rootDir.parentFile.parentFile.absolutePath)
+    inputs.files("${rootDir.parentFile.parentFile}/packages/test-fixtures/library/sealed-secrets.json")
+        .withPropertyName("sealedSecretsVector")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
 dependencies {
     implementation(project(":core:model"))
 

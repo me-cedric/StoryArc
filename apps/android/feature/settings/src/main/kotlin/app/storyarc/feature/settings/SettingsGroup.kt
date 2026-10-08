@@ -224,6 +224,10 @@ internal val SEARCHABLE: List<Pair<List<String>, SettingMatch>> = listOf(
     listOf("storage", "delete downloads") to SettingMatch.of(SettingsAnchor.CLEAR_DOWNLOADS),
     listOf("diagnostic", "diagnostics", "bug", "report", "log") to
         SettingMatch.of(SettingsAnchor.DIAGNOSTIC),
+    listOf("export", "backup", "back up", "transfer", "move library", "new phone") to
+        SettingMatch.of(SettingsAnchor.EXPORT_LIBRARY),
+    listOf("import", "restore", "library file", "bring library") to
+        SettingMatch.of(SettingsAnchor.IMPORT_LIBRARY),
     listOf("about", "version", "author", "licence", "license", "acknowledgements", "credits", "support") to
         SettingMatch.of(SettingsGroup.ABOUT),
 )

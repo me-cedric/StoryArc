@@ -89,6 +89,19 @@ class SettingsSearchTest {
         }
     }
 
+    /**
+     * `library-portability` tasks 2.5 and 3.1: the two rows that move a library are in Sources,
+     * and a reader who types the word they think of finds them.
+     */
+    @Test
+    fun `export and import are found by search and both live in sources`() {
+        assertEquals(SettingsAnchor.EXPORT_LIBRARY, SettingsGroup.search("export").first().anchor)
+        assertEquals(SettingsAnchor.EXPORT_LIBRARY, SettingsGroup.search("backup").first().anchor)
+        assertEquals(SettingsAnchor.IMPORT_LIBRARY, SettingsGroup.search("import").first().anchor)
+        assertEquals(SettingsGroup.SOURCES, SettingsAnchor.EXPORT_LIBRARY.group)
+        assertEquals(SettingsGroup.SOURCES, SettingsAnchor.IMPORT_LIBRARY.group)
+    }
+
     @Test
     fun `a group match and a setting match are told apart by their identity`() {
         assertNotEquals(

@@ -32,6 +32,8 @@ internal enum class SettingsAnchor {
     CLEAR_HISTORY,
     CLEAR_DOWNLOADS,
     DIAGNOSTIC,
+    EXPORT_LIBRARY,
+    IMPORT_LIBRARY,
     ;
 
     /**
@@ -46,6 +48,7 @@ internal enum class SettingsAnchor {
                 SettingsGroup.DOWNLOADS
             COVER_LOOKUP, CLEAR_CACHE, CLEAR_HISTORY, CLEAR_DOWNLOADS, DIAGNOSTIC ->
                 SettingsGroup.PRIVACY
+            EXPORT_LIBRARY, IMPORT_LIBRARY -> SettingsGroup.SOURCES
         }
 
     /**
@@ -68,5 +71,7 @@ internal enum class SettingsAnchor {
             CLEAR_HISTORY -> R.string.privacy_clear_history
             CLEAR_DOWNLOADS -> R.string.privacy_clear_downloads
             DIAGNOSTIC -> R.string.privacy_diagnostic
+            EXPORT_LIBRARY -> R.string.transfer_export
+            IMPORT_LIBRARY -> R.string.transfer_import
         }
 }

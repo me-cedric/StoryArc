@@ -96,6 +96,90 @@ class LibraryExportSecrecyTest {
         assertTrue(bytes.contains("https://kavita.example/api?library=3"))
         assertTrue(bytes.contains("\"needsSignIn\": true"))
     }
+
+    // Carrying secrets (task 5.3).
+
+    /** What the three sources' handles open to, standing in for the secure store. */
+    private val stored = mapOf(
+        "keystore:share" to password,
+        "keystore:catalogue" to token,
+        "keystore:kavita" to apiKey,
+    )
+
+    private fun sealed(passphrase: String): Pair<String, LibraryDocument> {
+        val block = LibraryExport.sealedSecrets(snapshot, passphrase) { source ->
+            source.credentialReference?.let { stored[it] }
+        }
+        val document = LibraryExport.document(snapshot, "10.14.0", 0L, block)
+        return LibraryDocumentCoder.encode(document) to document
+    }
+
+    @Test
+    fun `with the switch off the document has no secrets object at all`() {
+        // This encoder writes every field, so an absent block reads `"secrets": null`; what it
+        // must never write is an object, and nothing that decodes back to one.
+        val bytes = exportedBytes()
+
+        assertFalse(bytes.contains("\"secrets\": {"))
+        assertFalse(bytes.contains("\"sealed\""))
+        assertEquals(null, LibraryDocumentCoder.decode(bytes).getOrThrow().secrets)
+    }
+
+    @Test
+    fun `with the switch on there is a secrets object and no secret in any of the four spellings`() {
+        val (bytes, document) = sealed("correct horse")
+
+        assertEquals(3, document.secrets?.sealed?.size)
+        assertTrue(bytes.contains("\"secrets\""))
+        for (secret in listOf(password, token, apiKey)) {
+            assertFalse("plain: $secret", bytes.contains(secret))
+            assertFalse(
+                "base64: $secret",
+                bytes.contains(Base64.getEncoder().encodeToString(secret.toByteArray())),
+            )
+            assertFalse(
+                "percent-encoded: $secret",
+                bytes.contains(URLEncoder.encode(secret, Charsets.UTF_8)),
+            )
+            assertFalse("JSON-escaped: $secret", bytes.contains(secret.replace("/", "\\/")))
+        }
+        // Neither the passphrase nor the secure-store handle is written.
+        assertFalse(bytes.contains("correct horse"))
+        assertFalse(bytes.contains("keystore:"))
+    }
+
+    @Test
+    fun `the sealed block opens to the stored secrets under the passphrase and not under another`() {
+        val block = requireNotNull(sealed("correct horse").second.secrets)
+
+        assertEquals(
+            setOf(password, token, apiKey),
+            LibrarySecretSealer.open(block, "correct horse").values.toSet(),
+        )
+        val refused = runCatching { LibrarySecretSealer.open(block, "battery staple") }.exceptionOrNull()
+        assertEquals(
+            LibrarySecretsFailure.WRONG_PASSPHRASE_OR_DAMAGED,
+            (refused as? LibrarySecretsException)?.failure,
+        )
+    }
+
+    @Test
+    fun `a source whose handle points at nothing is skipped and no secrets means no block`() {
+        assertEquals(null, LibraryExport.sealedSecrets(snapshot, "x") { null })
+    }
+
+    @Test
+    fun `the passphrase pair is refused when empty or when the two differ`() {
+        assertEquals(ExportPassphraseProblem.EMPTY, ExportPassphrase.problem("", ""))
+        assertEquals(ExportPassphraseProblem.MISMATCH, ExportPassphrase.problem("abc", "abd"))
+        assertEquals(ExportPassphraseProblem.MISMATCH, ExportPassphrase.problem("abc", ""))
+        assertEquals(null, ExportPassphrase.problem("abc", "abc"))
+    }
+
+    @Test
+    fun `one passphrase typed composed and decomposed is the same passphrase`() {
+        assertEquals(null, ExportPassphrase.problem("paé", "paé"))
+    }
 }
 
 /** The scrubbing on its own, case by case. */
