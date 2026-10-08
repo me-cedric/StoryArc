@@ -1,0 +1,46 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "widget.description" : {
+      "comment" : "Shown under the widget's name in the widget gallery.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Das Buch, das Sie gerade lesen, an der Stelle, an der Sie aufgehört haben." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The book you are reading, where you stopped." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "El libro que estás leyendo, donde lo dejaste." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Le livre en cours, là où vous l’avez laissé." } }
+      }
+    },
+    "widget.empty" : {
+      "comment" : "The widget's whole face when no book is in progress. A tap opens the library.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Kein Buch angefangen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No book in progress" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ningún libro en curso" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucune lecture en cours" } }
+      }
+    },
+    "widget.name" : {
+      "comment" : "The widget's name in the widget gallery. The same words as the quick action.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Weiterlesen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Continue reading" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Seguir leyendo" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Reprendre la lecture" } }
+      }
+    },
+    "widget.percentRead %lld" : {
+      "comment" : "How much of the book is read, above the progress bar of the medium widget.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%lld %% gelesen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%lld%% read" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%lld %% leído" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%lld %% lu" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

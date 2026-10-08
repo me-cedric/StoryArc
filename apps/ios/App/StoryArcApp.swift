@@ -251,7 +251,15 @@ struct StoryArcApp: App {
                 guard reading == nil else { return }
                 await sweepFinishedDownload()
             }
-            .onOpenURL { url in Task { await openHandedOver(url) } }
+            // A tap on the home-screen widget arrives here too, as a `storyarc:` URL, and takes
+            // the quick action's path. Any other URL is a file handed over.
+            .onOpenURL { url in
+                if let request = QuickActionRequest(widgetURL: url) {
+                    QuickActionInbox.shared.receive(request)
+                } else {
+                    Task { await openHandedOver(url) }
+                }
+            }
             // Closing the reader is not the only way a reader leaves it. A phone is
             // usually closed by going home, and a position that only travelled on a
             // clean exit would be the evening's reading lost.

@@ -6,11 +6,15 @@
       The simulator build only: `project.yml` points `CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]`
       here and every other SDK at `StoryArc.entitlements`. The CarPlay Simulator reads this key
       from the app and needs no provisioning profile; a device build with it and no Apple team
-      would fail to sign. Keep the keychain group identical to the other file, and nothing
-      else. `CarSimulatorOnlyTests` fails if the two drift or if the device file gains the key.
+      would fail to sign. Keep every other key identical to the other file: the keychain
+      group and the widget's App Group. `CarSimulatorOnlyTests` fails if the two drift or if the device file gains the key.
     -->
     <key>com.apple.developer.carplay-audio</key>
     <true/>
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.com.mecedric.storyarc</string>
+    </array>
     <key>keychain-access-groups</key>
     <array>
         <string>$(AppIdentifierPrefix)com.mecedric.storyarc</string>

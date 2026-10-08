@@ -93,8 +93,13 @@ final class QuickActionInbox {
     @discardableResult
     func receive(_ item: UIApplicationShortcutItem) -> Bool {
         guard let request = HomeScreenActions.request(from: item) else { return false }
-        pending = request
+        receive(request)
         return true
+    }
+
+    /// A request that did not come from the menu: a tap on the home-screen widget.
+    func receive(_ request: QuickActionRequest) {
+        pending = request
     }
 
     /// Marks the request handled, so a redraw does not act on it twice.

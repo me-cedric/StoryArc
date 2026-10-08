@@ -89,6 +89,8 @@ targets:
         product: PlayerFeature
       - package: StoryArcEpub
         product: EpubReaderFeature
+      # Embedded in the app, which is the only way WidgetKit finds a widget.
+      - target: StoryArcWidget
     info:
       path: App/Info.plist
       properties:
@@ -126,6 +128,13 @@ targets:
         # `ReadingActivity`.
         NSUserActivityTypes:
           - app.storyarc.reading
+        # `native-experience`: a tap on the home-screen widget opens a `storyarc:` URL, which
+        # `QuickActionRequest(widgetURL:)` reads back. Nothing else answers this scheme, and it
+        # can only open a book already in the library or the library itself.
+        CFBundleURLTypes:
+          - CFBundleURLName: app.storyarc.widget
+            CFBundleURLSchemes:
+              - storyarc
         # `local-library`: open a file where it lives rather than copying it in.
         LSSupportsOpeningDocumentsInPlace: true
         # And the other half of it: `local-library`'s imported copies live in the
@@ -240,6 +249,43 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleDefault
+
+  # `native-experience` widgets, ADR-0011. The widget reads one file, the reading snapshot,
+  # from the App Group container below; the app writes it. The group is named here, in the
+  # app's two entitlement files and in `ReadingSnapshot.appGroup`, and `WidgetSigningTests`
+  # fails if any of them drift.
+  #
+  # **Signing is the one step left, and it is the owner's.** There is no Apple team yet. The
+  # simulator build runs ad-hoc, which needs no provisioning profile. A device build needs
+  # `DEVELOPMENT_TEAM` set: automatic signing then registers both bundle identifiers and
+  # the group. The bundle identifier must stay a child of the app's.
+  StoryArcWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Widget
+    dependencies:
+      - package: StoryArcKit
+        product: StoryArcCore
+    info:
+      path: Widget/Info.plist
+      properties:
+        CFBundleDisplayName: StoryArc
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Widget/StoryArcWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.mecedric.storyarc
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mecedric.storyarc.widget
+        # The project's simulator override names the app's file. This one names the widget's.
+        "CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]": Widget/StoryArcWidget.entitlements
+        TARGETED_DEVICE_FAMILY: "1,2"
 
   # A UI test target exists for one reason: `performAccessibilityAudit` needs a running
   # app, and no unit test can give it one. It is the iOS counterpart of

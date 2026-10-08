@@ -101,6 +101,8 @@ struct ReadingContinuity: ViewModifier {
 
     private var menu: Menu { Menu(actions: offered, language: InterfaceLanguage.tag) }
 
+    private var widgetSnapshot: ReadingSnapshot? { ReadingWidgetSnapshot.of(library) }
+
     func body(content: Content) -> some View {
         content
             // Republished whenever the list itself changes, which is the reading position
@@ -108,6 +110,8 @@ struct ReadingContinuity: ViewModifier {
             // closing a book is what refreshes progress, so the menu is right by the time
             // they are back on the home screen.
             .task(id: menu) { HomeScreenActions.publish(menu.actions) }
+            // The home-screen widget's snapshot, from the same first book (ADR-0011).
+            .task(id: widgetSnapshot) { await ReadingWidgetSnapshot.publish(widgetSnapshot, library: library) }
             .task(id: QuickActionInbox.shared.pending) { take(QuickActionInbox.shared.pending) }
             .userActivity(ReadingActivity.type, isActive: reading != nil) { activity in
                 guard let publication = reading?.publication else { return }

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      The App Group the app writes the reading snapshot into (ADR-0011). The group must be the
+      one `ReadingSnapshot.appGroup` names and the app's two entitlement files name.
+      `WidgetSigningTests` fails if they drift. A device build needs an Apple team to grant it.
+    -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.com.mecedric.storyarc</string>
+    </array>
+</dict>
+</plist>

@@ -8,6 +8,14 @@
       happening — sources were saved with no credential reference and their servers refused
       them on the next launch, and nothing said so.
     -->
+    <!--
+      The App Group the home-screen widget reads the reading snapshot from (ADR-0011).
+      `WidgetSigningTests` holds it equal to `ReadingSnapshot.appGroup` and the widget's file.
+    -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.com.mecedric.storyarc</string>
+    </array>
     <key>keychain-access-groups</key>
     <array>
         <string>$(AppIdentifierPrefix)com.mecedric.storyarc</string>
