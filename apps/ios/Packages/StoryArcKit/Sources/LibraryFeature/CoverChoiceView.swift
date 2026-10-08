@@ -24,7 +24,11 @@ struct DetailCoverChoice: View {
     let cover: CGImage?
 
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.openURL) private var openURL
 
+    @State private var isFinding = false
+    /// The address the system browser is showing, while it is.
+    @State private var browsing: URL?
     @State private var isChoosing = false
     @State private var picked: PhotosPickerItem?
     @State private var hasChosenCover = false
@@ -40,6 +44,17 @@ struct DetailCoverChoice: View {
             controls
         }
         .photosPicker(isPresented: $isChoosing, selection: $picked, matching: .images)
+        .sheet(isPresented: $isFinding) {
+            CoverFinderSheet(publication: publication, model: model) { stored in
+                isUnreadable = !stored
+                hasChosenCover = hasChosenCover || stored
+            }
+        }
+        #if os(iOS)
+        .sheet(isPresented: Binding(get: { browsing != nil }, set: { if !$0 { browsing = nil } })) {
+            if let browsing { SystemBrowser(url: browsing).ignoresSafeArea() }
+        }
+        #endif
         .task(id: publication.id) { hasChosenCover = model.hasChosenCover(for: publication) }
         .onChange(of: picked) { _, item in Task { await adopt(item) } }
     }
@@ -67,6 +82,8 @@ struct DetailCoverChoice: View {
             .textRole(.subheadline)
             .buttonStyle(.borderless)
 
+            finder
+
             // `cover-art`'s *A publication with no digest*: an image folder and a server row
             // have no content digest, so the choice is filed under the path and a move loses
             // it. Said here rather than nowhere, because a silent loss is worse than a
@@ -85,6 +102,40 @@ struct DetailCoverChoice: View {
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// The two ways of finding a cover, as far as the lookup switch allows.
+    ///
+    /// Task 6.2. The title search is here only while the switch is on; the web hand-off is
+    /// always here, because the browser makes that request and the app does not.
+    @ViewBuilder
+    private var finder: some View {
+        let offer = model.coverFinderOffer()
+        if offer.findACover {
+            Button { isFinding = true } label: {
+                Label {
+                    Text("covers.find", bundle: .module)
+                } icon: {
+                    Image(systemName: "magnifyingglass")
+                }
+            }
+            .textRole(.subheadline)
+            .buttonStyle(.borderless)
+        }
+        if offer.webSearch {
+            CoverSearchHandoff(
+                title: publication.displayTitle, author: publication.authors.first, open: openInBrowser
+            )
+        }
+    }
+
+    /// Hands the address to the system browser and keeps nothing it shows.
+    private func openInBrowser(_ url: URL) {
+        #if os(iOS)
+        browsing = url
+        #else
+        openURL(url)
+        #endif
     }
 
     /// The two controls themselves, so one copy serves both the row and the stack.

@@ -37,11 +37,20 @@ extension LibraryModel {
     ///   button that appears to do nothing.
     @discardableResult
     public func setCover(_ picture: Data, for publication: Publication) async -> Bool {
+        await setCover(picture, for: publication, in: CoverOverrideStore())
+    }
+
+    /// ``setCover(_:for:)`` into a store of the caller's choosing, which is how a test keeps
+    /// a chosen cover out of the real Application Support directory.
+    @discardableResult
+    func setCover(
+        _ picture: Data, for publication: Publication, in overrides: CoverOverrideStore
+    ) async -> Bool {
         // Decoded, cropped, encoded and written off the main actor: a phone photograph takes
         // long enough at each step to drop frames on the page the reader is looking at.
         let stored = await Task.detached(priority: .userInitiated) {
             guard let shaped = CoverArtwork.coverShaped(picture) else { return false }
-            return CoverOverrideStore().store(shaped, for: publication) != nil
+            return overrides.store(shaped, for: publication) != nil
         }.value
         guard stored else { return false }
         forgetDrawnCover(of: publication)

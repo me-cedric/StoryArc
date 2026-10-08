@@ -44,18 +44,21 @@ struct CoverSearchHandoff: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
+        VStack(alignment: .center, spacing: StoryArcSpace.hair) {
             Button {
                 guard let destination else { return }
                 open(destination)
             } label: {
                 Text("covers.web.search", bundle: .module)
             }
+            .textRole(.subheadline)
+            .buttonStyle(.borderless)
             .disabled(destination == nil)
 
             Text("covers.web.note", bundle: .module)
                 .textRole(.footnote)
                 .foregroundStyle(theme.palette.textSecondary)
+                .multilineTextAlignment(.center)
         }
     }
 }
