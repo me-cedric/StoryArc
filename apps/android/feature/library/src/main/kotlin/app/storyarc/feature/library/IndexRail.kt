@@ -80,8 +80,9 @@ private val BUBBLE_SIZE: Dp = 56.dp
  *
  * - the rail is one node named *Alphabetical index*, announced once, with the letter last chosen
  *   as its state,
- * - it is a **value picker** over the letters, with a range and steps like a slider: TalkBack's swipe up and down steps to the next and the
- *   previous letter, which is the step-by-step control the scrub has instead of buttons,
+ * - it is a **value picker** over the letters, with a range and steps like a slider:
+ *   TalkBack's swipe up and down steps to the next and the previous letter, which is the
+ *   step-by-step control the scrub has instead of buttons,
  * - and every letter is also a named *Jump to X* action, for a reader who knows the one they
  *   want.
  *
@@ -105,9 +106,10 @@ internal fun IndexRail(
     var chosen by remember(entries) { mutableIntStateOf(-1) }
     var touching by remember(entries) { mutableIntStateOf(-1) }
     var bubbleTop by remember { mutableFloatStateOf(0f) }
-    val insetPx = with(LocalDensity.current) { RAIL_INSET.toPx() }
-    val bubblePx = with(LocalDensity.current) { BUBBLE_SIZE.toPx() }
-    val bubbleGapPx = with(LocalDensity.current) { (RAIL_WIDTH.toPx() - CAPSULE_WIDTH.toPx()) / 2 + StoryArcSpace.sm.toPx() }
+    val density = LocalDensity.current
+    val insetPx = with(density) { RAIL_INSET.toPx() }
+    val bubblePx = with(density) { BUBBLE_SIZE.toPx() }
+    val bubbleGapPx = with(density) { ((RAIL_WIDTH - CAPSULE_WIDTH) / 2 + StoryArcSpace.sm).toPx() }
 
     BoxWithConstraints(modifier.fillMaxHeight()) {
         val shown = LibraryRail.collapsed(entries, maxHeight - RAIL_INSET * 2)

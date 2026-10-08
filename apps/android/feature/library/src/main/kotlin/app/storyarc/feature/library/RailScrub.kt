@@ -9,7 +9,7 @@ import kotlin.math.floor
  * fast scroller is. A tap or a drag selects the letter under the finger, and [IndexRail]
  * chooses a letter once when the finger arrives on it rather than on every point of the drag.
  *
- * Pure so `RailScrubTest` can state the arithmetic once. iOS's `RailScrub` is the twin.
+ * Pure so `LibraryRailTest` can state the arithmetic once. iOS's `RailScrub` is the twin.
  */
 internal object RailScrub {
 
