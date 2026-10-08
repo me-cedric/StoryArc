@@ -41,5 +41,20 @@
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
         </service>
+
+        <!-- Playback resumption after the process is gone (`audiobooks-and-playback` 3.6).
+             media3 asks for this receiver by name: "To opt in to this feature, you need to
+             declare a media button receiver and implement `onPlaybackResumption`". Without
+             it a media key, a headset button or the shade's play press has nothing to start
+             once the service has died, and the listener finds the book gone. The callback is
+             `PlaybackService.LibraryCallback.onPlaybackResumption`; it answers from
+             `PlaybackMemory`, which outlives the process. -->
+        <receiver
+            android:name="androidx.media3.session.MediaButtonReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

@@ -109,6 +109,23 @@ class PlayerServiceIsDeclaredTest {
     }
 
     @Test
+    fun `a media key can start the service once the process is gone`() {
+        // Playback resumption (task 3.6). media3 starts a dead session from the receiver it
+        // names, and `onPlaybackResumption` answers once it has. A package with no receiver
+        // for the media button has neither the shade's play press nor a headset key to start
+        // a book from nothing.
+        val matches = packages.queryBroadcastReceivers(
+            android.content.Intent(android.content.Intent.ACTION_MEDIA_BUTTON)
+                .setPackage(context.packageName),
+            0,
+        )
+        assertTrue(
+            "nothing in the package answers the media button, so a book cannot be resumed after a kill",
+            matches.any { it.activityInfo.name == "androidx.media3.session.MediaButtonReceiver" },
+        )
+    }
+
+    @Test
     fun `the app declares itself drivable from a car`() {
         // `automotive_app_desc.xml`, reached the way a head unit reaches it: the
         // `com.google.android.gms.car.application` meta-data on the application. An
