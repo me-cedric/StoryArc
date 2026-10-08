@@ -23,25 +23,12 @@ extension StoryArcApp {
         for id in cleanupChoices.takeRemovals() {
             remove(id)
         }
-        guard settings.removeDownloadsAfterFinishing else { return }
-        let library = DownloadQueue.shared().library
-
-        // Asked of the store one path at a time, and awaited: `ProgressStore` is an actor,
-        // and a predicate that could not await it would answer "not finished" to everything
-        // and sweep nothing, for ever, silently.
-        var done: Set<String> = []
-        for download in library.finished {
-            let path = downloadStore.location(of: download).path
-            let record = try? await progress?.progress(
-                for: PublicationIdentity(normalizedPath: path)
-            )
-            if record?.isFinished == true { done.insert(path) }
-        }
-
-        let finished = downloadStore.finishedDownload(
-            in: library,
-            isKept: cleanupChoices.isKept
-        ) { done.contains($0) }
+        guard settings.removeDownloadsAfterFinishing, let progress else { return }
+        let finished = await downloadStore.finishedDownload(
+            in: DownloadQueue.shared().library,
+            isKept: cleanupChoices.isKept,
+            progress: progress
+        )
         guard let finished else { return }
         remove(finished.id)
     }

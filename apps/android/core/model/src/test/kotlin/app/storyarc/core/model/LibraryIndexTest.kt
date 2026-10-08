@@ -437,6 +437,22 @@ class LibraryIndexTest {
         assertEquals("Bone #9", LibraryIndex.next(second, library)?.displayTitle)
     }
 
+    /**
+     * Task 7.3 of `audiobooks-and-playback`: the end of an audiobook offers the next book of its
+     * series, by the same rule a comic does. `PlayerFinishedScreen` asks exactly this.
+     */
+    @Test
+    fun `a finished audiobook is offered the next audiobook of its series`() {
+        val first = publication("Sea Room 1", series = "Sea", number = "1", format = PublicationFormat.M4B)
+        val library = listOf(
+            first,
+            publication("Akira 2", series = "Akira", number = "2", format = PublicationFormat.M4B),
+            publication("Sea Room 3", series = "Sea", number = "3", format = PublicationFormat.M4B),
+            publication("Sea Room 2", series = "Sea", number = "2", format = PublicationFormat.M4B),
+        )
+        assertEquals("Sea Room 2", LibraryIndex.next(first, library)?.displayTitle)
+    }
+
     @Test
     fun `the last issue in a series has no next`() {
         val last = publication("Bone #2", series = "Bone", number = "2")

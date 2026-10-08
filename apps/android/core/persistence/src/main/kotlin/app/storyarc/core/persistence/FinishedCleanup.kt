@@ -3,6 +3,7 @@ package app.storyarc.core.persistence
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.PublicationIdentity
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -61,6 +62,22 @@ suspend fun finishedDownload(
             val path = store.location(download).absolutePath
             isFinished(path)
         }
+}
+
+/**
+ * [finishedDownload], asking the progress store whether each file's record says finished.
+ *
+ * The question the app's sweep asks, in one place so a test asks the same one. The record is
+ * found by the file's path, which is how a reader writes it for any format: a listening record
+ * for an audiobook is as good as a page index.
+ */
+suspend fun finishedDownload(
+    store: DownloadStore,
+    library: DownloadLibrary,
+    progress: ProgressStore,
+    isKept: (String) -> Boolean = { false },
+): Download? = finishedDownload(store, library, isKept) { path ->
+    progress.progress(PublicationIdentity(normalizedPath = path))?.isFinished == true
 }
 
 /**

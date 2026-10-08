@@ -65,6 +65,27 @@ extension DownloadStore {
         }
     }
 
+    /// ``finishedDownload(in:isKept:isFinished:)``, asking the progress store about each file.
+    ///
+    /// The question the app's sweep asks, in one place so a test asks the same one. The record
+    /// is found by the file's path, which is how a reader writes it for any format: a listening
+    /// record for an audiobook is as good as a page index. Asked one path at a time and
+    /// awaited: `ProgressStore` is an actor, and a predicate that could not await it would
+    /// answer "not finished" to everything and sweep nothing, for ever, silently.
+    nonisolated(nonsending) public func finishedDownload(
+        in library: DownloadLibrary,
+        isKept: (Download.ID) -> Bool = { _ in false },
+        progress: ProgressStore
+    ) async -> Download? {
+        var done: Set<String> = []
+        for download in library.finished {
+            let path = location(of: download).path
+            let record = try? await progress.progress(for: PublicationIdentity(normalizedPath: path))
+            if record?.isFinished == true { done.insert(path) }
+        }
+        return finishedDownload(in: library, isKept: isKept) { done.contains($0) }
+    }
+
     /// Takes a finished publication's download off the device, reversibly.
     ///
     /// Nil when there was nothing to remove, which is the common case: most publications a

@@ -10,7 +10,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.model.AppSettings
-import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.QuickActionRequest
 import app.storyarc.core.model.ReadingSnapshot
 import app.storyarc.core.persistence.finishedDownload
@@ -170,12 +169,9 @@ private fun ForgetFinishedDownloads(host: AppHost, settings: AppSettings, isRead
         val target = finishedDownload(
             store,
             host.dependencies.queue.library.value,
+            host.dependencies.progress,
             isKept = choices::isKept,
-        ) { path ->
-            host.dependencies.progress
-                .progress(PublicationIdentity(normalizedPath = path))
-                ?.isFinished == true
-        } ?: return@LaunchedEffect
+        ) ?: return@LaunchedEffect
         removeDownloadNow(host, target.id)
     }
 }

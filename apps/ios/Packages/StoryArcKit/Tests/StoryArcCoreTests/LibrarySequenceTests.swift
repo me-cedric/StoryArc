@@ -67,6 +67,20 @@ struct LibrarySequenceTests {
         #expect(next?.displayTitle == "Bone #9")
     }
 
+    /// Task 7.3 of `audiobooks-and-playback`: the end of an audiobook offers the next book of its
+    /// series by the same rule a comic does. Android's `LibraryIndexTest` holds the same case.
+    @Test("A finished audiobook is offered the next audiobook of its series")
+    func nextAudiobookInSeries() throws {
+        let library = [
+            publication("Sea Room 1", series: "Sea", number: "1", format: .m4b),
+            publication("Akira 2", series: "Akira", number: "2", format: .m4b),
+            publication("Sea Room 3", series: "Sea", number: "3", format: .m4b),
+            publication("Sea Room 2", series: "Sea", number: "2", format: .m4b),
+        ]
+        let first = try #require(library.first { $0.number == "1" })
+        #expect(LibraryIndex.next(after: first, in: library)?.displayTitle == "Sea Room 2")
+    }
+
     @Test("The last issue in a series has no next")
     func lastInSeries() throws {
         let library = [
