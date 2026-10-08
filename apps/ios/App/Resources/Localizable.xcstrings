@@ -516,31 +516,60 @@
         }
       }
     },
-    "downloads.reorder %@": {
+    "downloads.actions %@": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reihenfolge von „%@“ ändern"
+            "value": "Aktionen für „%@“"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Change the order of “%@”"
+            "value": "Actions for “%@”"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cambiar el orden de «%@»"
+            "value": "Acciones para «%@»"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Changer l’ordre de « %@ »"
+            "value": "Actions pour « %@ »"
+          }
+        }
+      }
+    },
+    "downloads.all": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Downloads"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All downloads"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todas las descargas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tous les téléchargements"
           }
         }
       }

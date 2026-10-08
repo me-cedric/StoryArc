@@ -67,7 +67,8 @@ final class SweepDownloadsTests: XCTestCase {
     func testCaptureDownloadStopConfirmation() throws {
         let app = sweepLaunch(downloads: Self.queue)
         try showQueue(in: app)
-        try XCTUnwrap(hittable("Stop", in: app), "A queued row offers no Stop.").tap()
+        try openRowMenu(actions: "Actions for", of: "Harbour Lights 03", in: app)
+        try XCTUnwrap(hittable("Stop", in: app), "A moving row's menu offers no Stop.").tap()
         XCTAssertTrue(
             app.staticTexts["Stop this download?"].waitForExistence(timeout: 5),
             "Stop asked for no confirmation, or asked the removal's question. On screen: "
@@ -98,15 +99,14 @@ final class SweepDownloadsTests: XCTestCase {
         let app = sweepLaunch(downloads: Self.queue)
         try showQueue(in: app)
 
-        XCTAssertEqual(
-            app.buttons.matching(NSPredicate(format: "label == %@", "Retry")).count, 1,
-            "The failed row offers no Retry, or a row that did not fail offers one."
+        // The row's actions are one menu now. The failed row's offers Retry and Remove download,
+        // and no Stop it could not honour; the other two rows' menus offer the Stop.
+        try openRowMenu(actions: "Actions for", of: "The Peregrine", in: app)
+        XCTAssertNotNil(hittable("Retry", in: app), "The failed row offers no Retry.")
+        XCTAssertFalse(
+            app.buttons["Stop"].exists,
+            "A failed transfer is still offered a Stop it cannot stop."
         )
-        XCTAssertEqual(
-            app.buttons.matching(NSPredicate(format: "label == %@", "Stop")).count, 2,
-            "A failed transfer is still offered a Stop it cannot stop, or a moving one lost its Stop."
-        )
-
         try XCTUnwrap(hittable("Remove download", in: app), "The failed row offers no Remove.").tap()
         XCTAssertTrue(
             app.staticTexts["Remove this download?"].waitForExistence(timeout: 5),
@@ -170,12 +170,21 @@ final class SweepDownloadsTests: XCTestCase {
         )
     }
 
+    /// Opens one row's actions menu, named by the transfer's title.
+    private func openRowMenu(actions: String, of title: String, in app: XCUIApplication) throws {
+        let menu = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", actions, title)
+        ).firstMatch
+        XCTAssertTrue(menu.waitForExistence(timeout: 10), "\(title) has no actions menu.")
+        menu.tap()
+    }
+
     /// Three transfers: one part-way, one waiting, one failed after three attempts.
     ///
     /// `StoredDownload`'s own shape, written out because the UI-test bundle cannot see
     /// `Persistence`. `DownloadStoreTests` pins the encoding on the host side; if this drifts
     /// from it, `showQueue` fails by name rather than photographing a shelf.
-    private static let queue = """
+    static let queue = """
     [{"id":"sweep-1","title":"Harbour Lights 03","remote":"https://example.invalid/hl03.epub",\
     "mediaType":"application/epub+zip","expectedBytes":8400000,"downloadedBytes":3100000,\
     "isFinished":false,"attempts":0,"verificationFailures":0},\

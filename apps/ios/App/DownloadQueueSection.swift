@@ -57,19 +57,10 @@ struct DownloadQueueSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.md) {
-            // `ViewThatFits`, as the per-row controls below already use: three word-length
-            // buttons beside the title share no line at the accessibility sizes, and a title
-            // that is free to wrap is what keeps every button tappable there.
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: StoryArcSpace.sm) {
-                    title
-                    Spacer(minLength: 0)
-                    globalControls
-                }
-                VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
-                    title
-                    globalControls
-                }
+            HStack(spacing: StoryArcSpace.sm) {
+                title
+                Spacer(minLength: 0)
+                allMenu
             }
             .padding(.horizontal, StoryArcSpace.gutter)
 
@@ -98,17 +89,48 @@ struct DownloadQueueSection: View {
             .foregroundStyle(theme.palette.textPrimary)
     }
 
-    private var globalControls: some View {
-        HStack(spacing: StoryArcSpace.sm) {
-            Button(action: onPauseAll) { Text("downloads.pauseAll") }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-            Button(action: onResumeAll) { Text("downloads.resumeAll") }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-            Button(role: .destructive, action: onStopAll) { Text("downloads.cancelAll") }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+    /// Pause, resume and cancel for the whole queue, as one menu. Three small buttons side by
+    /// side were each 28 pt tall, and a finger hit the wrong one.
+    private var allMenu: some View {
+        Menu {
+            ForEach(Array(DownloadAllAction.groups.enumerated()), id: \.offset) { _, group in
+                Section {
+                    ForEach(group, id: \.self) { action in
+                        Button(role: action.isDestructive ? .destructive : nil) { perform(action) } label: {
+                            Label { Text(action.titleKey) } icon: { Image(systemName: action.symbol) }
+                        }
+                    }
+                }
+            }
+        } label: {
+            Label { Text("downloads.all") } icon: { Image(systemName: "ellipsis.circle") }
+                .hitRegion()
+        }
+    }
+
+    private func perform(_ action: DownloadAllAction) {
+        switch action {
+        case .pauseAll: onPauseAll()
+        case .resumeAll: onResumeAll()
+        case .cancelAll: onStopAll()
+        }
+    }
+}
+
+extension DownloadAllAction {
+    fileprivate var titleKey: LocalizedStringKey {
+        switch self {
+        case .pauseAll: "downloads.pauseAll"
+        case .resumeAll: "downloads.resumeAll"
+        case .cancelAll: "downloads.cancelAll"
+        }
+    }
+
+    fileprivate var symbol: String {
+        switch self {
+        case .pauseAll: "pause.circle"
+        case .resumeAll: "play.circle"
+        case .cancelAll: "xmark.circle"
         }
     }
 }
@@ -151,32 +173,12 @@ private struct DownloadQueueRow: View {
     let onStop: () -> Void
     let onRetry: () -> Void
 
-    private var hasFailed: Bool {
-        if case .failed = download.state { true } else { false }
-    }
-
-    private var isHeld: Bool {
-        if case .paused = download.state { true } else { false }
-    }
-
-    /// A failed or held row is two lines at every size, because each carries two word-length
-    /// buttons rather than one and the wider of the two is four times the width of *Stop* in
-    /// every language this app speaks. It is the tallest row on the screen anyway — a reason
-    /// sits under it — so the second line costs nothing it was not already spending. Android
-    /// splits the same rows at every scale for the same reason.
-    private var isStacked: Bool { hasFailed || isHeld || typeSize.isAccessibilitySize }
-
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
-            if isStacked {
-                title.lineLimit(3)
+            HStack(spacing: StoryArcSpace.sm) {
+                title.lineLimit(typeSize.isAccessibilitySize ? 3 : 2)
+                Spacer(minLength: 0)
                 controls
-            } else {
-                HStack(spacing: StoryArcSpace.sm) {
-                    title.lineLimit(1)
-                    Spacer(minLength: 0)
-                    controls
-                }
             }
 
             state
@@ -191,76 +193,54 @@ private struct DownloadQueueRow: View {
             .foregroundStyle(theme.palette.textPrimary)
     }
 
-    /// Retry and remove on a failure, resume and remove on a hold, reorder where there is an
-    /// order to change plus pause and stop on everything else.
-    @ViewBuilder
-    private var controls: some View {
-        if hasFailed {
-            twoControls(first: retry, second: remove)
-        } else if isHeld {
-            twoControls(first: resumeButton, second: remove)
-        } else {
-            HStack(spacing: StoryArcSpace.sm) {
-                if canReorder { reorderMenu }
-
-                Button(action: onPause) {
-                    Text("downloads.pause").lineLimit(1)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-
-                Button(role: .destructive, action: onStop) {
-                    Text("downloads.stop").lineLimit(1)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-            }
-        }
-    }
-
-    /// The first control named first, because it is the thing a reader opened this screen to
-    /// do, and the second — always *Remove download* — beside it, or under it.
+    /// Everything a reader can do to this transfer, as one menu: *Retry* and *Remove download*
+    /// on a failure, *Resume* and *Remove download* on a hold, and on a transfer that is moving
+    /// *Pause*, where there is an order to change the two moves, and *Stop*.
     ///
-    /// Beside it at the ordinary sizes. At the accessibility sizes the two do not share a
-    /// line even without the title: *Download entfernen* on its own is wider than the row at
-    /// AccessibilityXXXL, so the pair goes one under the other and each label is free to
-    /// wrap. Neither is ever truncated to a verb with no object, which is what a `lineLimit`
-    /// would have made of the German.
-    private func twoControls(first: some View, second: some View) -> some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: StoryArcSpace.sm) {
-                first
-                second
+    /// Up to four buttons side by side, each 28 pt tall and 8 pt from the next, were one too
+    /// close to hit. The system draws each row of a menu at full height. What the menu holds is
+    /// ``LibraryFeature/DownloadRowMenu``'s, and the removal is its last row. The caller
+    /// confirms *Stop* and *Remove download*, as before.
+    private var controls: some View {
+        Menu {
+            ForEach(Array(DownloadRowMenu.groups(for: download.state, canReorder: canReorder).enumerated()),
+                    id: \.offset) { _, group in
+                Section {
+                    ForEach(group, id: \.self) { action in
+                        Button(role: action.isDestructive ? .destructive : nil) { perform(action) } label: {
+                            Label { text(of: action) } icon: { Image(systemName: action.symbol) }
+                        }
+                    }
+                }
             }
-            VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
-                first
-                second
-            }
+        } label: {
+            Image(systemName: "ellipsis.circle").hitRegion()
+        }
+        .foregroundStyle(theme.palette.textSecondary)
+        .accessibilityLabel(Text("downloads.actions \(download.title)"))
+    }
+
+    private func perform(_ action: DownloadRowAction) {
+        switch action {
+        case .retry: onRetry()
+        case .resume: onResume()
+        case .pause: onPause()
+        case .moveEarlier: onReorder(false)
+        case .moveLater: onReorder(true)
+        case .stop, .remove: onStop()
         }
     }
 
-    private var retry: some View {
-        Button(action: onRetry) {
-            Text("downloads.retry")
+    private func text(of action: DownloadRowAction) -> Text {
+        switch action {
+        case .retry: Text("downloads.retry")
+        case .resume: Text("downloads.resume")
+        case .pause: Text("downloads.pause")
+        case .moveEarlier: Text("downloads.moveEarlier \(download.title)")
+        case .moveLater: Text("downloads.moveLater \(download.title)")
+        case .stop: Text("downloads.stop")
+        case .remove: Text("downloads.remove")
         }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
-    }
-
-    private var resumeButton: some View {
-        Button(action: onResume) {
-            Text("downloads.resume")
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
-    }
-
-    private var remove: some View {
-        Button(role: .destructive, action: onStop) {
-            Text("downloads.remove")
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
     }
 
     /// Where this one has got to, said in whichever way is true of it.
@@ -358,25 +338,18 @@ private struct DownloadQueueRow: View {
     private func size(_ bytes: Int64) -> String {
         DownloadStore.formatted(bytes)
     }
+}
 
-    /// The two ways to move a queued download are one menu: two icon buttons side by side were
-    /// each as small as their glyph, and a finger hit the wrong one.
-    private var reorderMenu: some View {
-        Menu {
-            Button { onReorder(false) } label: {
-                Label { Text("downloads.moveEarlier \(download.title)") } icon: {
-                    Image(systemName: "chevron.up")
-                }
-            }
-            Button { onReorder(true) } label: {
-                Label { Text("downloads.moveLater \(download.title)") } icon: {
-                    Image(systemName: "chevron.down")
-                }
-            }
-        } label: {
-            Image(systemName: "arrow.up.arrow.down").hitRegion()
+extension DownloadRowAction {
+    fileprivate var symbol: String {
+        switch self {
+        case .retry: "arrow.clockwise"
+        case .resume: "play"
+        case .pause: "pause"
+        case .moveEarlier: "chevron.up"
+        case .moveLater: "chevron.down"
+        case .stop: "xmark"
+        case .remove: "trash"
         }
-        .foregroundStyle(theme.palette.textSecondary)
-        .accessibilityLabel(Text("downloads.reorder \(download.title)"))
     }
 }

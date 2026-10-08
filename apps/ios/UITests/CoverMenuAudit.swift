@@ -28,6 +28,36 @@ extension AccessibilityAuditTests {
         XCTAssertGreaterThanOrEqual(edit.frame.height, 44, "The edit button is shorter than 44 pt.")
     }
 
+    /// A page with no artwork keeps a visible "Add a cover", and it opens the same menu.
+    ///
+    /// `Sea Room` is the corpus's chaptered audiobook and carries no artwork of any kind, so
+    /// its page draws the coverless well. There is no edit button on a glyph, and nothing to
+    /// remove or send, so the menu is the two ways of finding a picture.
+    func testACoverlessPageOffersAddACoverAsOneMenu() throws {
+        let app = launch()
+        let covers = try coversOnTheShelf(in: app)
+        let sea = try XCTUnwrap(
+            covers.map(\.label).first { $0.hasPrefix("Sea Room") },
+            "This device's shelf shows no cover for Sea Room. Seed it: node scripts/seed-simulator.mjs"
+        )
+        try openFirstPublication(in: app, named: sea)
+        try audit(app, named: "Publication page with no cover", types: .hitRegion)
+
+        let add = app.buttons["Add a cover"].firstMatch
+        XCTAssertTrue(add.waitForExistence(timeout: 5), "A page with no cover offers no Add a cover.")
+        XCTAssertGreaterThanOrEqual(add.frame.height, 44, "Add a cover is shorter than 44 pt.")
+        XCTAssertFalse(app.buttons["Edit cover"].exists, "A glyph has an edit button.")
+
+        add.tap()
+        XCTAssertTrue(app.buttons["Choose a cover"].waitForExistence(timeout: 5), "The menu offers no picture.")
+        XCTAssertTrue(app.buttons["Find a cover on the web"].exists, "The menu offers no web search.")
+        XCTAssertFalse(app.buttons["Remove cover"].exists, "A page with no chosen cover offers its removal.")
+        XCTAssertFalse(
+            app.buttons["Send this cover to the server"].exists,
+            "A publication on this device offers to send its cover to a server."
+        )
+    }
+
     /// A chosen cover, through the real picker: the menu, its audit, and the question before
     /// the removal.
     ///
