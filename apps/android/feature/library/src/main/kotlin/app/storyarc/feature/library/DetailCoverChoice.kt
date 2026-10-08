@@ -269,7 +269,7 @@ private fun textButtonColors(content: Color) =
  * The stream's bytes, or null when it holds more than [limit]. A picked file is untrusted
  * input, and `readBytes` would hold a file of any size whole before anything could refuse it.
  */
-private fun InputStream.readAtMost(limit: Int): ByteArray? {
+internal fun InputStream.readAtMost(limit: Int): ByteArray? {
     val out = ByteArrayOutputStream()
     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
     while (true) {

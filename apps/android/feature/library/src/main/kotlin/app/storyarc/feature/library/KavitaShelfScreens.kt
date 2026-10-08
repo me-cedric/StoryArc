@@ -259,6 +259,9 @@ fun KavitaListScreen(
             modifier = Modifier.fillMaxSize().padding(insets),
             contentPadding = PaddingValues(StoryArcSpace.gutter),
         ) {
+            // Tasks 6.4 and 5.1 of `cover-for-every-publication`: the list's own cover, and
+            // the write-back button once the reader has chosen one.
+            item(key = "cover") { KavitaListCoverControls(server.id, listId, client, overrides) }
             // `collections-and-reading-lists`: a list "shows how many entries are finished
             // and where the user's position is". One sentence above the rows, as the local
             // list's own screen already draws it, and absent when the server said nothing
