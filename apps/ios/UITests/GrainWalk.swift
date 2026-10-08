@@ -38,6 +38,44 @@ final class GrainWalkTests: XCTestCase {
         shutter(app, named: "ios-reader-grain-off")
     }
 
+    /// The dark pair, task 0.5: grain over a dark page, which is a different perceptual problem
+    /// from grain over cream, because the same modulation is a larger part of the range there.
+    /// The page is the Quiet preset, chosen through the theme sheet, so the pair differs in
+    /// Natural alone.
+    func testCaptureReaderGrainOnQuiet() throws {
+        let app = sweepLaunch(natural: true)
+        try openReflowable(in: app)
+        try chooseQuiet(in: app)
+        shutter(app, named: "ios-reader-grain-on-quiet")
+    }
+
+    func testCaptureReaderGrainOffQuiet() throws {
+        let app = sweepLaunch(natural: false)
+        try openReflowable(in: app)
+        try chooseQuiet(in: app)
+        shutter(app, named: "ios-reader-grain-off-quiet")
+    }
+
+    private func chooseQuiet(in app: XCUIApplication) throws {
+        try XCTUnwrap(revealed("Menu", in: app), "The reader revealed no menu to open.").tap()
+        for _ in 0..<5 where hittableRow("Reading themes", in: app, timeout: 1) == nil {
+            app.swipeUp()
+            hold(0.7)
+        }
+        try XCTUnwrap(hittableRow("Reading themes", in: app), "The menu offers no reading-themes row.").tap()
+        let quiet = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Quiet")).firstMatch
+        XCTAssertTrue(quiet.waitForExistence(timeout: 8), "The theme sheet offers no Quiet preset.")
+        quiet.tap()
+        hold(1)
+        for _ in 0..<3 {
+            guard let done = hittableRow("Done", in: app, timeout: 3) else { break }
+            done.tap()
+            hold(1)
+        }
+        XCTAssertTrue(app.buttons["Done"].waitForNonExistence(timeout: 8), "A sheet is still over the page.")
+        hold(8)
+    }
+
     /// Opens a reflowable book and lets the chrome time out, so the frame is page only.
     ///
     /// The grain draws between the page and the chrome — over the words, under the app bars —
