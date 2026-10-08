@@ -258,7 +258,7 @@ final class CurlWalkTests: XCTestCase {
     /// inside the `app.storyarc.themes` blob as one field of a per-shelf `ShelfSettings`, so
     /// injecting it would mean hand-writing a `ShelfMemory` encoding in a test bundle that
     /// cannot see `StoryArcCore`. Driving the picker also exercises the path a reader takes.
-    private func openCurlingComic(
+    func openCurlingComic(
         in app: XCUIApplication,
         named title: String = "Fine Print",
         fit: String? = nil,

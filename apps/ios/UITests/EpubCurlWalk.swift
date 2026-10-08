@@ -123,7 +123,7 @@ final class EpubCurlWalkTests: XCTestCase {
     /// `CurlWalk.openCurlingComic` gives: the transition is one field of a per-shelf
     /// `ShelfSettings` inside the `app.storyarc.themes` blob, which a test bundle that cannot
     /// see `StoryArcCore` would have to hand-encode.
-    private func openCurlingBook(in app: XCUIApplication) throws {
+    func openCurlingBook(in app: XCUIApplication) throws {
         try openTheLongField(in: app)
         try openCurlRow(in: app)
         let curl = app.descendants(matching: .any)
