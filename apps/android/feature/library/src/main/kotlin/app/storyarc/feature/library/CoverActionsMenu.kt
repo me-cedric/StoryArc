@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.CloudUpload
@@ -32,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 
 /** The five things a reader can do about a cover, in the order the menu lists them. */
 internal enum class CoverAction { CHOOSE, FIND, WEB, SEND, REMOVE }
@@ -98,8 +100,8 @@ internal fun CoverChoice.menu(onSend: (() -> Unit)? = null): CoverMenu {
  * **One menu, not a row of buttons.** Material 3 asks for a touch target of 48 dp with 8 dp
  * between targets, and a menu is the idiom for a list of related actions: the system draws
  * each row at full height and a divider separates the groups. The button is
- * `FilledTonalIconButton`, whose 40 dp circle keeps a 48 dp target through
- * `minimumInteractiveComponentSize`.
+ * `FilledTonalIconButton` drawn 48 dp square: its own 40 dp circle is laid out 40 dp, and the
+ * accessibility tree reports what is laid out.
  *
  * **The removal asks first.** The chosen picture is deleted from the device, so the remove
  * row opens an [AlertDialog] that says so; dismissing it changes nothing.
@@ -138,7 +140,7 @@ internal fun CoverActionsHost(
         ) { cover() }
         FilledTonalIconButton(
             onClick = { onOpenChange(true) },
-            modifier = Modifier.align(Alignment.BottomEnd),
+            modifier = Modifier.align(Alignment.BottomEnd).size(MIN_TOUCH_TARGET),
             colors = accent?.let {
                 IconButtonDefaults.filledTonalIconButtonColors(
                     containerColor = it.wash,

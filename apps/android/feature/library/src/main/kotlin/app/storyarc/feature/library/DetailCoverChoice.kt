@@ -6,6 +6,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.format.CoverArtwork
 import app.storyarc.core.model.Publication
@@ -200,6 +202,7 @@ internal fun CoverChoiceControls(
         if (!hasCover) {
             TextButton(
                 onClick = onOpenMenu,
+                modifier = Modifier.heightIn(min = MIN_TOUCH_TARGET),
                 colors = ButtonDefaults.textButtonColors(contentColor = content),
             ) {
                 Text(text = stringResource(R.string.cover_add))

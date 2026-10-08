@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.clickable
@@ -59,7 +60,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.control.StoryArcSliderTrack
+import app.storyarc.core.designsystem.control.TOUCH_TARGET_GAP
 import app.storyarc.core.designsystem.format.clock
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.model.Publication
@@ -547,13 +550,20 @@ private fun Sleep(playing: NowPlaying, timer: SleepTimer?, onSleep: (SleepAfter?
         )
         // A row that wraps, because at the largest text size five durations and a chapter
         // do not fit across a phone and `audio-playback` asks that nothing be "pushed off
-        // the screen".
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // the screen". Each chip is laid out 48 dp high and 8 dp from the next, along the row
+        // and between rows (task 24.4): a chip draws 32 dp and the accessibility tree reported
+        // the four durations at 37.3 dp.
+        val chip = Modifier.heightIn(min = MIN_TOUCH_TARGET)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(TOUCH_TARGET_GAP),
+            verticalArrangement = Arrangement.spacedBy(TOUCH_TARGET_GAP),
+        ) {
             if (timer != null) {
                 FilterChip(
                     selected = false,
                     onClick = { onSleep(null) },
                     label = { Text(stringResource(R.string.player_sleep_off)) },
+                    modifier = chip,
                 )
             }
             for (minutes in SleepTimer.OFFERED_MINUTES) {
@@ -562,6 +572,7 @@ private fun Sleep(playing: NowPlaying, timer: SleepTimer?, onSleep: (SleepAfter?
                     selected = timer?.after == after,
                     onClick = { onSleep(after) },
                     label = { Text(stringResource(R.string.player_sleep_minutes, minutes)) },
+                    modifier = chip,
                 )
             }
             if (endOfChapter) {
@@ -569,6 +580,7 @@ private fun Sleep(playing: NowPlaying, timer: SleepTimer?, onSleep: (SleepAfter?
                     selected = timer?.after == SleepAfter.EndOfChapter,
                     onClick = { onSleep(SleepAfter.EndOfChapter) },
                     label = { Text(stringResource(R.string.player_sleep_end_of_chapter)) },
+                    modifier = chip,
                 )
             }
         }
