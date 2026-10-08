@@ -63,7 +63,8 @@ public struct CoverlessWell: View {
     /// largest text size.
     private static let glyphShare: CGFloat = 0.3
 
-    private let symbol: String
+    /// The SF Symbol this well draws. Readable so a test can ask which one a well chose.
+    public let symbol: String
     private let text: String
     /// What tapping the well does, or nil where it is only a picture. Readable so a test can
     /// press the well a page actually draws.
@@ -83,13 +84,12 @@ public struct CoverlessWell: View {
     }
 
     /// `collections-and-reading-lists` D1: a shelf with no artwork of its own, drawn the
-    /// same way a publication with no cover is. A shelf has no format, so this names it
-    /// with `format` when one member's is known (a collection of comics still reads as
-    /// comics) and falls back to a generic glyph when none is. Android's own well takes a
-    /// nullable format for the same reason; it carries the name on every call, where this
-    /// carries the format's own name instead when one is handed to ``init(format:)``.
-    public init(name: String, format: PublicationFormat?) {
-        symbol = coverlessWellSymbol(for: format)
+    /// same way a publication with no cover is. A shelf has no format of its own, and a
+    /// guess from its first member made the glyph change as covers loaded, so the well
+    /// draws the generic glyph and the shelf's name. Android's well takes a nullable format
+    /// and draws the same generic glyph when none is given.
+    public init(name: String) {
+        symbol = coverlessWellSymbol(for: nil)
         text = name
         action = nil
     }

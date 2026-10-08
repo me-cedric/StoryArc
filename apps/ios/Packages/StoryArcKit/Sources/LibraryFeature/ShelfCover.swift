@@ -36,7 +36,7 @@ struct ShelfCover: View {
     @State private var covers: [String: CGImage] = [:]
 
     var body: some View {
-        ShelfComposite(tiles: tiles, covers: covers, name: name, firstKnownFormat: firstKnownFormat)
+        ShelfComposite(tiles: tiles, covers: covers, name: name)
             // Re-asked when the library grows, not only when the tiles change: a shelf
             // opened while the scan is still running has tiles whose publications are not
             // there yet, and a task keyed on the tiles alone would never look a second time.
@@ -44,24 +44,6 @@ struct ShelfCover: View {
     }
 
     private var loadKey: [String] { tiles + ["\(model.publications.count)"] }
-
-    /// `collections-and-reading-lists` D1: the first tile that resolves to a publication on
-    /// this device, in the order they are drawn — a collection of comics still reads as
-    /// comics while its covers are still loading, where a mixed shelf falls back to the
-    /// placeholder's own generic glyph.
-    private var firstKnownFormat: PublicationFormat? {
-        Self.firstKnownFormat(of: tiles) { id in
-            model.publications.first(where: { $0.id == id })?.format
-        }
-    }
-
-    /// Free of the view, and of `model`, so a test can hand it any lookup it likes.
-    static func firstKnownFormat(
-        of tiles: [String],
-        resolving format: (String) -> PublicationFormat?
-    ) -> PublicationFormat? {
-        tiles.lazy.compactMap(format).first
-    }
 
     /// Asks the library for each tile's artwork.
     ///
@@ -119,15 +101,11 @@ struct ShelfComposite: View {
     /// name — D1 of the 2026-09-28 audit, closing the gap Android's own `ShelfComposite`
     /// had already closed.
     let name: String
-    /// The format to hand ``CoverlessWell`` when nothing has arrived, or nil for the
-    /// generic glyph. See ``ShelfCover/firstKnownFormat``.
-    var firstKnownFormat: PublicationFormat?
-
     var body: some View {
         Group {
             switch ShelfCompositeLayout.decide(tiles: tiles, covered: Set(covers.keys)) {
             case .placeholder:
-                CoverlessWell(name: name, format: firstKnownFormat)
+                CoverlessWell(name: name)
             case .quadrant:
                 VStack(spacing: 0) {
                     HStack(spacing: 0) {

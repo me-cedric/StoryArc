@@ -65,7 +65,7 @@ struct HomeServerShelfCover: View {
             case .blank:
                 // The caption under the card already states the name. Spoken here as
                 // well would say it twice.
-                CoverlessWell(name: shelf.title, format: nil)
+                CoverlessWell(name: shelf.title)
                     .accessibilityHidden(true)
             case .sole, .composite:
                 ShelfComposite(tiles: tiles, covers: covers, name: shelf.title)
@@ -180,6 +180,6 @@ extension RememberedShelf {
 }
 
 // The blank a Kavita shelf draws when nothing answered — no locked cover, and no member's
-// cover fetched either — is `CoverlessWell(name:format:)`, task 7.11's reach into
+// cover fetched either — is `CoverlessWell(name:)`, task 7.11's reach into
 // `ShelfComposite` and `CoverlessWell.swift` for every caller of both. This file no longer
 // carries a well of its own.

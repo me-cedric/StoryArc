@@ -89,30 +89,6 @@ struct ShelfCompositeLayoutTests {
     }
 }
 
-/// D1's other half: which format, if any, the placeholder names for a shelf whose covers
-/// have not arrived.
-@Suite("Shelf cover's first known format")
-struct ShelfCoverFirstKnownFormatTests {
-
-    @Test("The first tile that resolves wins, even when an earlier one does not")
-    func firstResolvedWins() {
-        let known: [String: PublicationFormat] = ["b": .cbz, "c": .epub]
-        let format = ShelfCover.firstKnownFormat(of: ["a", "b", "c"]) { known[$0] }
-        #expect(format == .cbz)
-    }
-
-    @Test("Nothing resolving is the generic placeholder, not a crash")
-    func nothingResolves() {
-        let format = ShelfCover.firstKnownFormat(of: ["a", "b"]) { _ in nil }
-        #expect(format == nil)
-    }
-
-    @Test("No tiles at all resolves to nothing")
-    func noTiles() {
-        #expect(ShelfCover.firstKnownFormat(of: []) { _ in .cbz } == nil)
-    }
-}
-
 /// How far through an ordered shelf the card's rail says the reader is.
 @Suite("Shelf progress")
 struct ShelfProgressTests {

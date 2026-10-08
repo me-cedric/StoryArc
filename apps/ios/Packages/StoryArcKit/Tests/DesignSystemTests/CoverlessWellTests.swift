@@ -72,20 +72,23 @@ struct CoverlessWellTests {
 
     // MARK: - A shelf's own well
 
-    /// `collections-and-reading-lists` D1: a shelf with no artwork draws the same well a
-    /// publication does, named for the shelf rather than for a format — and, when one of
-    /// its members' formats is known, with that format's own glyph.
-    @Test("A shelf's own well draws the known format's glyph when one resolved")
-    func shelfWellWithKnownFormat() {
-        let known: PublicationFormat? = .cbz
-        #expect(coverlessWellSymbol(for: known) == coverlessWellSymbol(for: .cbz))
+    /// `collections-and-reading-lists` D1 and the owner's answer O2 of 2026-10-07: a shelf
+    /// with no artwork draws one generic glyph, never a format's, so the glyph does not
+    /// change while the first member's cover loads. Asked of the well itself, not of the
+    /// free function, so the initialiser a shelf calls is the code under test.
+    @Test("A shelf's own well draws the generic glyph, whatever its members are")
+    func shelfWellDrawsTheGenericGlyph() {
+        let symbol = CoverlessWell(name: "Crossover").symbol
+        #expect(symbol == coverlessWellSymbol(for: nil))
+        for format in PublicationFormat.allCases {
+            #expect(symbol != coverlessWellSymbol(for: format))
+        }
     }
 
-    @Test("A shelf's own well falls back to a generic glyph when none resolved")
-    func shelfWellFallsBackWithNoFormat() {
-        let generic = coverlessWellSymbol(for: PublicationFormat?.none)
-        #expect(generic != coverlessWellSymbol(for: .cbz))
-        #expect(generic != coverlessWellSymbol(for: .m4b))
+    @Test("A publication's well still draws its format's glyph")
+    func publicationWellDrawsItsFormatGlyph() {
+        #expect(CoverlessWell(format: .epub).symbol == coverlessWellSymbol(for: .epub))
+        #expect(CoverlessWell(format: .m4b).symbol == coverlessWellSymbol(for: .m4b))
     }
 
     // MARK: - The reach
