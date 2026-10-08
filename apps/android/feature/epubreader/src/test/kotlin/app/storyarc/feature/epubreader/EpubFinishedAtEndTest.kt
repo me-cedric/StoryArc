@@ -85,6 +85,37 @@ class EpubFinishedAtEndTest {
         assertEquals(true, waitForRecord(progress, identity))
     }
 
+    @Test
+    fun `the end card is due on the last page although the locator is far from the end`() {
+        assertTrue(endOfBookReached(atLastPage = true, progression = 0.96))
+        assertTrue("scroll mode has no last-page report", endOfBookReached(atLastPage = false, progression = 0.9995))
+        assertFalse(endOfBookReached(atLastPage = false, progression = 0.96))
+    }
+
+    @Test
+    fun `the model says the last page is shown, and says it no more when the reader turns back`() {
+        val file = corpus.resolve("ebooks/fixture.epub")
+        val model = EpubReaderViewModel(
+            application = RuntimeEnvironment.getApplication(),
+            location = file.absolutePath,
+            identity = PublicationIdentity(normalizedPath = file.absolutePath),
+            progress = ProgressStore.inMemory(RuntimeEnvironment.getApplication()),
+        )
+        val publication = requireNotNull(runBlocking { model.open() }) { "fixture failed to open" }
+        val last = publication.readingOrder.last()
+        val locator = Locator(
+            href = last.url(),
+            mediaType = requireNotNull(last.mediaType),
+            locations = Locator.Locations(progression = 0.5, totalProgression = 0.96),
+        )
+
+        assertFalse(model.atLastPage.value)
+        model.pageShown(pageIndex = 2, totalPages = 3, locator = locator)
+        assertTrue("the last page was shown and the model did not say so", model.atLastPage.value)
+        model.pageShown(pageIndex = 1, totalPages = 3, locator = locator)
+        assertFalse("the reader turned back and the model still says the last page", model.atLastPage.value)
+    }
+
     private fun recorded(progress: ProgressStore, identity: PublicationIdentity): Boolean? {
         shadowOf(Looper.getMainLooper()).idle()
         return runBlocking { progress.progress(identity)?.isFinished }

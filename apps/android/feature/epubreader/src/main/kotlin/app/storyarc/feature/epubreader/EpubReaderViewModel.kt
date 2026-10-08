@@ -125,6 +125,14 @@ class EpubReaderViewModel(
     private val _progression = MutableStateFlow(0.0)
     val progression: StateFlow<Double> = _progression.asStateFlow()
 
+    private val _atLastPage = MutableStateFlow(false)
+
+    /**
+     * Whether Readium reports the last page of the last resource on screen. The locator's
+     * [progression] cannot say it: a short last page starts well before 99.9 %.
+     */
+    val atLastPage: StateFlow<Boolean> = _atLastPage.asStateFlow()
+
     private val _chapterTitle = MutableStateFlow<String?>(null)
     val chapterTitle: StateFlow<String?> = _chapterTitle.asStateFlow()
 
@@ -448,7 +456,9 @@ class EpubReaderViewModel(
     /** Readium's page report, which alone can say the last page is on screen. See [isLastPage]. */
     fun pageShown(pageIndex: Int, totalPages: Int, locator: Locator) {
         val href = locator.href.toString()
-        if (!isLastPage(pageIndex, totalPages, href, readingOrder, _transition.value)) return
+        val last = isLastPage(pageIndex, totalPages, href, readingOrder, _transition.value)
+        _atLastPage.value = last
+        if (!last) return
         scope.launch { record(locator, totalProgressionOf(locator), atEnd = true) }
     }
 

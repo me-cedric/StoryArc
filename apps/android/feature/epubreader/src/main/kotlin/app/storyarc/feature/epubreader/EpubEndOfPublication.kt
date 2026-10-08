@@ -52,6 +52,14 @@ const val EXTRA_RESULT_NEXT_ID = "result_next_id"
 private const val EPUB_FINISHED_PROGRESSION = 0.999
 
 /**
+ * Whether the book is at its end: Readium's last page is on screen, or the locator is at
+ * [EPUB_FINISHED_PROGRESSION]. The locator alone missed a short last page, so no end card
+ * drew at the end of a book (task 23.4).
+ */
+internal fun endOfBookReached(atLastPage: Boolean, progression: Double): Boolean =
+    atLastPage || progression >= EPUB_FINISHED_PROGRESSION
+
+/**
  * Reads the offer out of [activity]'s intent and draws it once the book is at
  * [EPUB_FINISHED_PROGRESSION], the way the paged reader's own end screen draws over its last
  * page. See [EpubEndOfPublication] below for why it is a function of its own and not a reuse
@@ -61,7 +69,8 @@ private const val EPUB_FINISHED_PROGRESSION = 0.999
 internal fun EpubEndOfBookOffer(activity: EpubReaderActivity, failure: Int?, progression: Double) {
     val nextId = activity.intent.getStringExtra(EXTRA_NEXT_ID) ?: return
     val colours by activity.model.coverColours.collectAsStateWithLifecycle()
-    if (failure != null || progression < EPUB_FINISHED_PROGRESSION) return
+    val atLastPage by activity.model.atLastPage.collectAsStateWithLifecycle()
+    if (failure != null || !endOfBookReached(atLastPage, progression)) return
     EpubEndOfPublication(
         nextTitle = activity.intent.getStringExtra(EXTRA_NEXT_TITLE),
         colours = colours,

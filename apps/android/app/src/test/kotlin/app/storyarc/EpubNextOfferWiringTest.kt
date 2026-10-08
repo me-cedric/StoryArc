@@ -74,7 +74,7 @@ class EpubNextOfferWiringTest {
         assertTrue(
             "The offer is no longer gated on reaching the end of the book, so it would" +
                 " draw over every page rather than only the last one.",
-            offer.contains("progression < EPUB_FINISHED_PROGRESSION"),
+            offer.contains("!endOfBookReached(atLastPage, progression)"),
         )
     }
 
