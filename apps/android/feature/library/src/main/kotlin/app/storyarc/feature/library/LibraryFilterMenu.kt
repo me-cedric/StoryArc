@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.LibraryQuery
@@ -103,6 +105,7 @@ internal fun FilterChipMenu(
     // next chip onto a line it did not need.
     Box {
         FilterChip(
+            modifier = Modifier.heightIn(min = MIN_TOUCH_TARGET),
             selected = active > 0,
             onClick = { open = true },
             label = {

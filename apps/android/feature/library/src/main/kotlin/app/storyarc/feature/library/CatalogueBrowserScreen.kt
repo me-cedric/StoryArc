@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -49,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.catalogue.CatalogueAcquisition
 import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.catalogue.OpdsFacet
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.grid.rememberCoverColumns
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
@@ -282,6 +285,8 @@ fun CatalogueBrowserScreen(
                                 color = palette.textPrimary,
                                 modifier = Modifier
                                     .clickable { browser.reload() }
+                                    .heightIn(min = MIN_TOUCH_TARGET)
+                                    .wrapContentHeight(Alignment.CenterVertically)
                                     .padding(StoryArcSpace.md),
                             )
                         }

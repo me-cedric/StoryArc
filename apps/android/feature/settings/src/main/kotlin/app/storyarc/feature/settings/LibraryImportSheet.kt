@@ -158,7 +158,7 @@ private fun PreviewBody(
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.End,
+        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm, Alignment.End),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         TextButton(onClick = onClose) { Text(stringResource(R.string.transfer_cancel)) }

@@ -141,7 +141,7 @@ private fun ComicMatte(memory: ShelfMemory, store: ReaderPreferences, onSaved: (
                 .fillMaxWidth()
                 .padding(top = StoryArcSpace.xs),
             horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
-            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
         ) {
             // Black first and unlabelled as a swatch of its own: it is the default, and
             // "none" has to be reachable or a reader who tries a colour is stuck with one.

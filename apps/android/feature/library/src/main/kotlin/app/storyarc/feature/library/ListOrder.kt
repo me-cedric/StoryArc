@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
@@ -22,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.LibraryIndex
 import app.storyarc.core.model.LibraryQuery
@@ -201,7 +203,7 @@ internal fun ListOrderChips(
             .fillMaxWidth()
             .padding(vertical = StoryArcSpace.xs),
         horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
-        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
         itemVerticalAlignment = Alignment.CenterVertically,
     ) {
         // The chip and its menu are one item of the wrapping row, not two. A `DropdownMenu`
@@ -212,6 +214,7 @@ internal fun ListOrderChips(
         // its own chip, which is the arrangement `SortChip` settled on for both reasons.
         Box {
             FilterChip(
+                modifier = Modifier.heightIn(min = MIN_TOUCH_TARGET),
                 // Ordering is always on — there is no unordered list — so the chip carries
                 // the answer rather than a state. It is never drawn as selected for that
                 // reason, which is the rule the shelf's own sort chip follows.
@@ -245,6 +248,7 @@ internal fun ListOrderChips(
         }
         if (!order.isCurated) {
             FilterChip(
+                modifier = Modifier.heightIn(min = MIN_TOUCH_TARGET),
                 selected = false,
                 onClick = onCurated,
                 label = { Text(stringResource(R.string.shelves_list_order)) },

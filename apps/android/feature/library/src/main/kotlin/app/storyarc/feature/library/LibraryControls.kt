@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -30,6 +31,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.model.LibraryQuery
@@ -91,7 +93,7 @@ internal fun LibraryControls(
             .fillMaxWidth()
             .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.xs),
         horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
-        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
         itemVerticalAlignment = Alignment.CenterVertically,
     ) {
         AvailabilityChip(availability, onAvailabilityChange)
@@ -128,6 +130,7 @@ private fun AvailabilityChip(
 ) {
     val narrowed = availability.isNarrowing
     FilterChip(
+        modifier = Modifier.heightIn(min = MIN_TOUCH_TARGET),
         selected = narrowed,
         onClick = {
             onChange(
@@ -163,6 +166,7 @@ private fun GroupingChip(grouping: LibraryGrouping, onChange: (LibraryGrouping) 
 
     Box {
         FilterChip(
+            modifier = Modifier.heightIn(min = MIN_TOUCH_TARGET),
             selected = false,
             onClick = { open = true },
             label = {
@@ -211,6 +215,7 @@ private fun SortChip(query: LibraryQuery, onChange: (LibraryQuery) -> Unit) {
     // too, and stopped putting its menu beside its chip when it stopped being a `Row`.
     Box {
         FilterChip(
+            modifier = Modifier.heightIn(min = MIN_TOUCH_TARGET),
             // Ordering is always on — there is no unsorted library — so the chip carries the
             // answer rather than a state. It is never drawn as selected for that reason.
             selected = false,

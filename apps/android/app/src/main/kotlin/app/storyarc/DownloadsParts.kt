@@ -283,9 +283,15 @@ internal fun DownloadQueueRow(
 
         if (isStacked) {
             title(Modifier.fillMaxWidth())
-            Row(verticalAlignment = Alignment.CenterVertically) { controls() }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) { controls() }
         } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 title(Modifier.weight(1f))
                 controls()
             }

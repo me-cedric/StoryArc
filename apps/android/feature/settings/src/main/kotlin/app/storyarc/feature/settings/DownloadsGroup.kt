@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -19,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
@@ -290,11 +292,12 @@ private fun Policy(
         // interaction reaches at all. The ladder is where that hurts most: it is the whole
         // control.
         FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
-            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+            horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
+            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
         ) {
             LIMITS.forEach { limit ->
                 FilterChip(
+                    modifier = Modifier.heightIn(min = MIN_TOUCH_TARGET),
                     selected = settings.maximumDownloadBytes == limit,
                     onClick = { onChange(settings.copy(maximumDownloadBytes = limit)) },
                     label = {

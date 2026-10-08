@@ -64,7 +64,7 @@ internal fun SelectionMenu(
                     val name = stringResource(colour.labelRes)
                     Column(
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(48.dp)
                             .clickable(onClickLabel = name) { onHighlight(colour) },
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,

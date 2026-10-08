@@ -267,7 +267,7 @@ private fun MatteSwatches(current: String?, onChoose: (String?) -> Unit) {
         FlowRow(
             modifier = Modifier.fillMaxWidth().padding(top = StoryArcSpace.xs),
             horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
-            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
         ) {
             MatteSwatch(hex = null, isActive = current == null, onChoose = onChoose)
             SUGGESTED_BACKGROUNDS.forEach { hex ->
@@ -288,7 +288,7 @@ private fun MatteSwatch(hex: String?, isActive: Boolean, onChoose: (String?) -> 
 
     Box(
         modifier = Modifier
-            .size(44.dp)
+            .size(48.dp)
             .selectable(selected = isActive, role = Role.RadioButton, onClick = { onChoose(hex) })
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,

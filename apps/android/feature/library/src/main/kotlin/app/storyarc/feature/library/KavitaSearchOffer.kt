@@ -2,12 +2,16 @@ package app.storyarc.feature.library
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.LibraryQuery
@@ -48,6 +52,8 @@ internal fun KavitaSearchOffer(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onSearchOnServer(server, query.search) }
+            .heightIn(min = MIN_TOUCH_TARGET)
+            .wrapContentHeight(Alignment.CenterVertically)
             .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.xs),
     )
 }

@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -35,6 +36,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -376,23 +378,31 @@ private fun SwatchRow(
         colours.forEach { hex ->
             val isActive = selected?.equals(hex, ignoreCase = true) == true
             val description = stringResource(R.string.theme_page_colour_swatch, hex)
+            // 48 dp for the finger, 32 dp for the eye (task 24.4): the swatch was a 32 dp
+            // target, below Material's minimum.
             Box(
                 modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(hexColour(hex))
-                    .border(
-                        width = if (isActive) 3.dp else 1.dp,
-                        color = if (isActive) tokens.accent else tokens.borderSubtle,
-                        shape = CircleShape,
-                    )
+                    .size(MIN_TOUCH_TARGET)
                     .selectable(
                         selected = isActive,
                         role = Role.RadioButton,
                         onClick = { onSelect(hex) },
                     )
                     .semantics { contentDescription = description },
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(hexColour(hex))
+                        .border(
+                            width = if (isActive) 3.dp else 1.dp,
+                            color = if (isActive) tokens.accent else tokens.borderSubtle,
+                            shape = CircleShape,
+                        ),
+                )
+            }
         }
     }
 }

@@ -1754,7 +1754,7 @@ private fun EndOfPublication(
         // whole width and left the Library button a few dp wide.
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
         ) {
             // White, not the theme's accent: this overlay is near-black whatever
             // the app's appearance, and the accent on it fails contrast.
