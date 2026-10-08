@@ -48,9 +48,10 @@ final class PlayerAuditTests: XCTestCase {
         try openAnAudiobook(in: app)
 
         for name in ["Choose a cover", "Find a cover on the web"] {
-            let small = app.buttons.matching(NSPredicate(format: "label == %@", name))
+            let found = app.buttons.matching(NSPredicate(format: "label == %@", name))
                 .allElementsBoundByIndex
-                .filter { $0.frame.height < 44 }
+            XCTAssertFalse(found.isEmpty, "The page under the bar offers no \(name) button to measure.")
+            let small = found.filter { $0.frame.height < 44 }
             XCTAssertTrue(
                 small.isEmpty,
                 "\(name) is drawn under 44 pt tall: \(small.map { $0.frame })"

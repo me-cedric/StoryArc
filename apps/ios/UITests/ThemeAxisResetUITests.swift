@@ -22,7 +22,9 @@ import XCTest
 /// **A limit, measured on 2026-10-08.** With the `go(to:)` call in `applyTheme` removed this test
 /// still passes, on both books: Readium's iOS navigator keeps the reader on the same paragraph
 /// across a preferences change by itself (paragraph 13, 13 and 13 on the fixture). So on iOS
-/// this proves the position survives the reset, not that the call is what carries it.
+/// this proves the position survives the reset, not that the call is what carries it. The test
+/// does fail when the call lands on the wrong place: with the locator's progression set to 0
+/// it reports "moved the reader from paragraph 13 to 1".
 @MainActor
 final class ThemeAxisResetUITests: XCTestCase {
 
@@ -33,6 +35,9 @@ final class ThemeAxisResetUITests: XCTestCase {
     override nonisolated func setUp() {
         super.setUp()
         continueAfterFailure = false
+        // The walk turns pages, opens three sheets and reads the page four times; the default
+        // allowance of two minutes ends it first.
+        executionTimeAllowance = 280
     }
 
     func testTheReadingPositionSurvivesAnAxisChangeAndItsReset() throws {
