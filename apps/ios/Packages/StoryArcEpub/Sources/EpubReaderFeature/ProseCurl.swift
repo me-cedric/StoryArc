@@ -151,7 +151,9 @@ final class ProseCurlDriver {
         guard let page = navigator.view, let host = page.superview,
               let outgoing = page.raster(afterScreenUpdates: false)
         else { return false }
-        let ahead = ProsePages.ahead(in: page, forward: turn.isForward, isRightToLeft: turn.isRightToLeft)
+        let ahead = ProsePages.ahead(
+            in: page, forward: turn.isForward, isRightToLeft: turn.isRightToLeft, over: outgoing
+        )
         let overlay = CurlOverlay(
             page: outgoing, other: ahead, isRightToLeft: turn.isRightToLeft, scale: page.rasterScale
         )
@@ -165,8 +167,10 @@ final class ProseCurlDriver {
             let moved = turn.isForward
                 ? await navigator.goForward(options: options)
                 : await navigator.goBackward(options: options)
-            // Taken even when one was rastered ahead: it is the page that actually arrived.
-            if moved, let incoming = page.raster(afterScreenUpdates: true) { overlay.other = incoming }
+            // Not taken when one was rastered ahead: at a chapter end the navigator is still
+            // swapping its resource views when `goForward` returns, and a picture of it then
+            // has black bands above and below the text for the last frames of the roll.
+            if moved, ahead == nil, let incoming = page.raster(afterScreenUpdates: true) { overlay.other = incoming }
             return moved
         }
         self.move = move

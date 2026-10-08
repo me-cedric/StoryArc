@@ -49,8 +49,11 @@ enum ProsePages {
     /// The page a turn arrives at, rastered before the navigator moves, or nil where the turn
     /// stays inside the resource or Readium holds no neighbour.
     ///
-    /// - Parameter page: the navigator's own view.
-    static func ahead(in page: UIView, forward: Bool, isRightToLeft: Bool) -> CGImage? {
+    /// - Parameters:
+    ///   - page: the navigator's own view.
+    ///   - leaving: the page that is leaving, rastered from `page`, which the bands outside the
+    ///     neighbour's own bounds are taken from.
+    static func ahead(in page: UIView, forward: Bool, isRightToLeft: Bool, over leaving: CGImage) -> CGImage? {
         guard let paging = PaginatedScroll.find(in: page) else { return nil }
         let step = step(forward: forward, isRightToLeft: isRightToLeft)
         let width = paging.bounds.width
@@ -64,7 +67,30 @@ enum ProsePages {
               ),
               let neighbour = spread(in: paging, at: paging.contentOffset.x + width * step)
         else { return nil }
-        return neighbour.raster(afterScreenUpdates: false)
+        return raster(of: neighbour, as: page, shiftedBy: width * step, over: leaving)
+    }
+
+    /// The neighbour drawn where the current page stands, on a canvas the size of the
+    /// navigator's view.
+    ///
+    /// Readium lays a resource view inside the navigator's insets, so its own bounds are
+    /// shorter than the page the sheet covers. Rastered alone, the bands above and below it
+    /// were outside the picture and drew black for the first frames of a turn at a chapter
+    /// end. The canvas starts as the leaving page, so those bands are the ones the reader
+    /// already sees, in whatever colour the theme gives them.
+    private static func raster(
+        of neighbour: UIView, as page: UIView, shiftedBy dx: CGFloat, over leaving: CGImage
+    ) -> CGImage? {
+        guard page.bounds.width > 0, page.bounds.height > 0 else { return nil }
+        var frame = page.convert(neighbour.bounds, from: neighbour)
+        frame.origin.x -= dx
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = page.rasterScale
+        format.opaque = true
+        return UIGraphicsImageRenderer(bounds: page.bounds, format: format).image { _ in
+            UIImage(cgImage: leaving, scale: page.rasterScale, orientation: .up).draw(in: page.bounds)
+            neighbour.drawHierarchy(in: frame, afterScreenUpdates: false)
+        }.cgImage
     }
 
     /// The resource view Readium has laid out at `x` in its paging scroll view.
