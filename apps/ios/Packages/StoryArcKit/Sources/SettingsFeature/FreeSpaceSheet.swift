@@ -50,7 +50,7 @@ struct FreeSpaceSheet: View {
                     }
                     Spacer(minLength: StoryArcSpace.md)
                     Button(role: .destructive) { remove(download) } label: {
-                        Image(systemName: "trash")
+                        Image(systemName: "trash").hitRegion()
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(theme.palette.textSecondary)

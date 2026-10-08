@@ -36,10 +36,12 @@ struct MoreFromTheLibrary: View {
     var body: some View {
         let more = sourcesWithMore(sources, isPartial: isPartial)
         if !more.isEmpty {
-            VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
+            VStack(alignment: .leading, spacing: 0) {
                 ForEach(more) { source in
                     Button { onBrowse(source) } label: {
                         Text("library.moreFrom \(source.displayName)", bundle: .module)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .hitRegion(alignment: .leading)
                     }
                     .buttonStyle(.plain)
                 }

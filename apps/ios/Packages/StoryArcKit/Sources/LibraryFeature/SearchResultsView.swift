@@ -240,7 +240,7 @@ struct SearchResultsView: View {
                 // press three buttons to do it is the same defect as printing three rows.
                 for source in sources { onRetry(source.sourceID) }
             } label: {
-                Text("search.retry", bundle: .module).textRole(.footnote)
+                Text("search.retry", bundle: .module).textRole(.footnote).hitRegion()
             }
             .buttonStyle(.plain)
             .foregroundStyle(theme.palette.accent)

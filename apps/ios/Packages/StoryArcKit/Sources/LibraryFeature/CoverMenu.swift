@@ -149,8 +149,7 @@ struct CoverAddMenu: View {
             CoverMenuRows(menu: menu)
         } label: {
             Label { Text("cover.add", bundle: .module) } icon: { Image(systemName: "photo.badge.plus") }
-                .frame(minHeight: 44)
-                .contentShape(Rectangle())
+                .hitRegion()
         }
         .textRole(.subheadline)
     }

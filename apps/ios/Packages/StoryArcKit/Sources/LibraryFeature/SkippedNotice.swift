@@ -125,6 +125,7 @@ struct SkippedNotice: View {
         Button(action: dismiss) {
             Text("library.skipped.dismiss", bundle: .module)
                 .textRole(.caption)
+                .hitRegion()
         }
         .buttonStyle(.plain)
         .foregroundStyle(theme.palette.textSecondary)
@@ -147,6 +148,7 @@ struct SkippedNotice: View {
                 // could have said so, because the width that truncated it is the window's.
                 .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.leading)
+                .hitRegion()
         }
         .buttonStyle(.bordered)
         .controlSize(.small)

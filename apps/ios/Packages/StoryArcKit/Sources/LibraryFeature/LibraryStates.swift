@@ -188,7 +188,7 @@ struct LibraryAway: View {
             .buttonStyle(.borderedProminent)
 
             Button(action: openFile) {
-                Text("library.openFile", bundle: .module)
+                Text("library.openFile", bundle: .module).hitRegion()
             }
             .buttonStyle(.plain)
         }

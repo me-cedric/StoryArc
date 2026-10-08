@@ -61,7 +61,7 @@ struct StorageBreakdownSection: View {
                         Text(DownloadStore.formatted(download.downloadedBytes))
                             .foregroundStyle(theme.palette.textSecondary)
                         Button(role: .destructive) { onRemove(download) } label: {
-                            Image(systemName: "trash")
+                            Image(systemName: "trash").hitRegion()
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(Text("downloads.remove.action \(download.title)"))

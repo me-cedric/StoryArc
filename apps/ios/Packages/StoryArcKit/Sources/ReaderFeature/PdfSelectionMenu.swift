@@ -33,6 +33,9 @@ struct PdfSelectionMenu: View {
                 .lineLimit(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
+            // Two rows, as the reflowable reader's menu draws them: five colours and the dismissal
+            // fill the first at 44 pt each, and the three verbs take the second. All on one line
+            // would be nine targets of 44 pt on a screen 393 pt wide.
             HStack(spacing: StoryArcSpace.sm) {
                 ForEach(HighlightColour.allCases, id: \.self) { colour in
                     Button { onHighlight(colour) } label: {
@@ -40,6 +43,7 @@ struct PdfSelectionMenu: View {
                             .fill(colour.swatch)
                             .frame(width: 28, height: 28)
                             .overlay(Circle().strokeBorder(.white.opacity(0.6), lineWidth: 0.5))
+                            .hitRegion()
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text(colour.titleKey, bundle: .module))
@@ -47,10 +51,14 @@ struct PdfSelectionMenu: View {
 
                 Spacer()
 
+                action("reader.pdf.deselect", "xmark", onDismiss)
+            }
+
+            HStack(spacing: StoryArcSpace.lg) {
                 action("reader.pdf.note", "square.and.pencil", onNote)
                 action("reader.pdf.copy", "doc.on.doc", onCopy)
                 action("reader.pdf.searchSelection", "magnifyingglass", onSearch)
-                action("reader.pdf.deselect", "xmark", onDismiss)
+                Spacer()
             }
         }
         .padding(StoryArcSpace.md)
@@ -70,6 +78,7 @@ struct PdfSelectionMenu: View {
                 Image(systemName: symbol)
             }
             .labelStyle(.iconOnly)
+            .hitRegion()
         }
         .buttonStyle(.plain)
         .foregroundStyle(.white)

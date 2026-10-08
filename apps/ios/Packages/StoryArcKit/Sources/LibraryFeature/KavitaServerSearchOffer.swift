@@ -47,6 +47,7 @@ struct KavitaServerSearchOffer: View {
                     .textRole(.footnote)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, StoryArcSpace.gutter)
+                    .hitRegion(alignment: .leading)
             }
             .buttonStyle(.plain)
             .foregroundStyle(theme.palette.accent)

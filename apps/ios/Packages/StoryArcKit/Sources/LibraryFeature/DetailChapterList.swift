@@ -70,6 +70,7 @@ struct DetailChapterList: View {
             }
         }
         .padding(.vertical, StoryArcSpace.xs)
+        .frame(minHeight: 44)
         .contentShape(.rect)
         .accessibilityElement(children: .combine)
     }

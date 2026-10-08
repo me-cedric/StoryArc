@@ -371,7 +371,7 @@ public struct HomeScreen: View {
             .textRole(.body)
             .foregroundStyle(theme.palette.textPrimary)
             .padding(.horizontal, StoryArcSpace.gutter)
-            .frame(minHeight: StoryArcSpace.xxl)
+            .frame(minHeight: 44)
             // §3.11's `maxContentWidth`, and the one row on Home that needed it. Every
             // other thing here is a shelf that scrolls, so it *should* run to the window's
             // edge; this is a label with a chevron pushed to the far side of it, and on a

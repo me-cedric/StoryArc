@@ -201,10 +201,7 @@ private struct DownloadQueueRow: View {
             twoControls(first: resumeButton, second: remove)
         } else {
             HStack(spacing: StoryArcSpace.sm) {
-                if canReorder {
-                    reorder(later: false, symbol: "chevron.up")
-                    reorder(later: true, symbol: "chevron.down")
-                }
+                if canReorder { reorderMenu }
 
                 Button(action: onPause) {
                     Text("downloads.pause").lineLimit(1)
@@ -362,22 +359,24 @@ private struct DownloadQueueRow: View {
         DownloadStore.formatted(bytes)
     }
 
-    private func reorder(later: Bool, symbol: String) -> some View {
-        Button {
-            onReorder(later)
-        } label: {
-            Label {
-                if later {
-                    Text("downloads.moveLater \(download.title)")
-                } else {
-                    Text("downloads.moveEarlier \(download.title)")
+    /// The two ways to move a queued download are one menu: two icon buttons side by side were
+    /// each as small as their glyph, and a finger hit the wrong one.
+    private var reorderMenu: some View {
+        Menu {
+            Button { onReorder(false) } label: {
+                Label { Text("downloads.moveEarlier \(download.title)") } icon: {
+                    Image(systemName: "chevron.up")
                 }
-            } icon: {
-                Image(systemName: symbol)
             }
+            Button { onReorder(true) } label: {
+                Label { Text("downloads.moveLater \(download.title)") } icon: {
+                    Image(systemName: "chevron.down")
+                }
+            }
+        } label: {
+            Image(systemName: "arrow.up.arrow.down").hitRegion()
         }
-        .labelStyle(.iconOnly)
-        .buttonStyle(.plain)
         .foregroundStyle(theme.palette.textSecondary)
+        .accessibilityLabel(Text("downloads.reorder \(download.title)"))
     }
 }

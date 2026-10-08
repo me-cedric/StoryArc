@@ -130,7 +130,7 @@ struct SearchAtRest: View {
                 Button(role: .destructive) {
                     model.clearRecentSearches()
                 } label: {
-                    Text("library.search.recent.clear", bundle: .module)
+                    Text("library.search.recent.clear", bundle: .module).hitRegion()
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(theme.palette.textSecondary)
@@ -149,9 +149,8 @@ struct SearchAtRest: View {
                         Image(systemName: "clock.arrow.circlepath")
                             .foregroundStyle(theme.palette.textTertiary)
                     }
-                    .contentShape(.rect)
                     .padding(.horizontal, StoryArcSpace.gutter)
-                    .padding(.vertical, StoryArcSpace.xs)
+                    .hitRegion(alignment: .leading)
                 }
                 .buttonStyle(.plain)
             }

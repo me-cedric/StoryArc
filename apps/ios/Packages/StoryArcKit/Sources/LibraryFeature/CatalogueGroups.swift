@@ -81,6 +81,7 @@ struct CatalogueGroupSection: View {
                     }
                     .textRole(.subheadline)
                     .foregroundStyle(theme.accent)
+                    .hitRegion(alignment: .trailing)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(

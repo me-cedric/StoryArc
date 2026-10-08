@@ -516,6 +516,35 @@
         }
       }
     },
+    "downloads.reorder %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reihenfolge von „%@“ ändern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change the order of “%@”"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambiar el orden de «%@»"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changer l’ordre de « %@ »"
+          }
+        }
+      }
+    },
     "downloads.onDevice": {
       "extractionState": "manual",
       "localizations": {

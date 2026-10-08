@@ -30,6 +30,7 @@ struct SelectionMenu: View {
                             .fill(colour.swatch)
                             .frame(width: 28, height: 28)
                             .overlay(Circle().strokeBorder(theme.palette.textTertiary, lineWidth: 0.5))
+                            .hitRegion()
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text(colour.titleKey, bundle: .module))
@@ -59,6 +60,7 @@ struct SelectionMenu: View {
                 Image(systemName: symbol)
             }
             .labelStyle(.iconOnly)
+            .hitRegion()
         }
         .buttonStyle(.plain)
         .tint(theme.palette.textPrimary)
