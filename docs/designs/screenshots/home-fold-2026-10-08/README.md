@@ -28,4 +28,14 @@ gives up height (`homeHeroArtHeight`). The cover is letterboxed in the shorter b
 
 ## iOS
 
-See the iOS frames in this folder when they exist.
+iPhone 17 Pro simulator, iOS 26.4, 402 x 874 pt, light. *Fine Print* is read for one page, so Home
+draws the Continue reading card. `SweepHomeFoldTests` takes both frames.
+
+| Frame | Text size | What it shows |
+| --- | --- | --- |
+| `ios-home-fold.png` | default | The *Recently added* heading is whole above the tab bar, with about 60 pt to spare. The card is the one emphasis. |
+| `ios-home-fold-ax5.png` | largest | No fold claim. No caption is clipped. |
+
+The task predicted a pass on iOS by arithmetic. The frame confirms it, so iOS needs no change.
+The card is 1.25 times its width and the window is tall enough. A 375 x 812 pt phone has about 35 pt
+to spare by the same arithmetic. That is a calculation and not a frame.
