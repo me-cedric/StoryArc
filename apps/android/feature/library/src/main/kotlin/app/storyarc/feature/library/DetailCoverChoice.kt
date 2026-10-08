@@ -1,5 +1,6 @@
 package app.storyarc.feature.library
 
+import android.app.Application
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -60,6 +61,13 @@ internal data class CoverChoice(
     val onRemove: (() -> Unit)? = null,
     /** Whether the last picture the reader picked could not be used. */
     val isUnreadable: Boolean = false,
+    /**
+     * The ways of finding a cover this page offers, or null where it offers none.
+     *
+     * Task 6.2. A test that composes the hero without a view model leaves it null and draws
+     * exactly the controls that were there before.
+     */
+    val finder: CoverFinder? = null,
 ) {
     internal companion object {
         /** A page that offers nothing: the hero exactly as it was before task 2.3. */
@@ -86,6 +94,7 @@ internal fun rememberCoverChoice(
     val scope = rememberCoroutineScope()
     var hasChosen by remember(publication.id) { mutableStateOf(false) }
     var isUnreadable by remember(publication.id) { mutableStateOf(false) }
+    var isFinding by remember(publication.id) { mutableStateOf(false) }
     val isTiedToPath = remember(publication.id) { viewModel.chosenCoverIsTiedToPath(publication) }
 
     LaunchedEffect(publication.id) { hasChosen = viewModel.hasChosenCover(publication) }
@@ -110,7 +119,34 @@ internal fun rememberCoverChoice(
         }
     }
 
+    // Read when the page opens, so the reader who turns the lookup on and comes back is offered
+    // the search. The switch is the one input; the offer is [CoverFinderOffer]'s answer.
+    val offer = remember(publication.id) {
+        CoverFinderOffer.of(CoverLookup.lookUpIsOn(context.applicationContext as Application))
+    }
+    if (isFinding) {
+        CoverFinderSheet(
+            publication = publication,
+            store = { viewModel.setCover(it, publication) },
+            onDone = { stored ->
+                isFinding = false
+                hasChosen = hasChosen || stored
+                isUnreadable = !stored
+            },
+            onDismiss = { isFinding = false },
+        )
+    }
+
     return CoverChoice(
+        finder = CoverFinder(
+            offer = offer,
+            title = publication.displayTitle,
+            author = publication.authors.firstOrNull(),
+            onFind = { isFinding = true },
+            // A browser may be missing on a device that has none. The row says what it does
+            // and nothing here can improve on a tap that finds nobody to open it.
+            onOpenWeb = { intent -> runCatching { context.startActivity(intent) } },
+        ),
         hasChosen = hasChosen,
         isTiedToPath = isTiedToPath,
         onChoose = {
@@ -189,6 +225,21 @@ internal fun CoverChoiceControls(
             Column(horizontalAlignment = Alignment.CenterHorizontally) { buttons() }
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) { buttons() }
+        }
+        choice.finder?.let { finder ->
+            if (finder.offer.findACover) {
+                TextButton(onClick = finder.onFind, colors = textButtonColors(content)) {
+                    Text(text = stringResource(R.string.covers_find))
+                }
+            }
+            if (finder.offer.webSearch) {
+                CoverSearchHandoffRow(
+                    title = finder.title,
+                    open = finder.onOpenWeb,
+                    author = finder.author,
+                    accent = accent?.accent,
+                )
+            }
         }
         if (choice.hasChosen && choice.isTiedToPath) {
             Text(

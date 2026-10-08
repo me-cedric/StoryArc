@@ -34,6 +34,8 @@
     <string name="covers_candidates_none">No candidate was found. Search the web instead, or choose a picture of your own.</string>
     <string name="covers_candidates_note">A title matches many things. Nothing is adopted until you pick one.</string>
     <string name="covers_candidates_from">From %1$s</string>
+    <string name="covers_find">Find a cover</string>
+    <string name="covers_finding">Looking for covers</string>
     <string name="covers_web_search">Find a cover on the web</string>
     <string name="covers_web_note">Your browser opens an image search. Save a picture there, then choose it here. StoryArc downloads nothing.</string>
     <string name="covers_write_back">Send this cover to the server</string>

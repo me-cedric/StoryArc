@@ -5,12 +5,16 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.CoverWebSearch
@@ -71,23 +75,33 @@ internal fun CoverSearchHandoffRow(
     open: (Intent) -> Unit,
     modifier: Modifier = Modifier,
     author: String? = null,
+    /**
+     * The page's own accent, where the row sits inside the hero's wash. See
+     * [CoverChoiceControls]: the theme's own colours can be the wash's colour on itself.
+     */
+    accent: Color? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     val intent = CoverSearchHandoff.intent(title, author)
     Column(
         modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair),
     ) {
         TextButton(
             onClick = { intent?.let(open) },
             enabled = intent != null,
+            colors = ButtonDefaults.textButtonColors(
+                contentColor = accent ?: MaterialTheme.colorScheme.primary,
+            ),
         ) {
             Text(stringResource(R.string.covers_web_search))
         }
         Text(
             text = stringResource(R.string.covers_web_note),
             style = MaterialTheme.typography.labelLarge,
-            color = palette.textSecondary,
+            color = accent ?: palette.textSecondary,
+            textAlign = TextAlign.Center,
         )
     }
 }

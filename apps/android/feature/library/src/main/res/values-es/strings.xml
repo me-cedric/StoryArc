@@ -31,6 +31,8 @@
     <string name="covers_candidates_none">No se encontró ningún candidato. Busque en la web, o elija su propia imagen.</string>
     <string name="covers_candidates_note">Un título coincide con muchas cosas. No se adopta nada hasta que elija uno.</string>
     <string name="covers_candidates_from">De %1$s</string>
+    <string name="covers_find">Buscar una portada</string>
+    <string name="covers_finding">Buscando portadas</string>
     <string name="covers_web_search">Buscar una portada en la web</string>
     <string name="covers_web_note">Su navegador abre una búsqueda de imágenes. Guarde allí una imagen, y luego elíjala aquí. StoryArc no descarga nada.</string>
     <string name="covers_write_back">Enviar esta portada al servidor</string>

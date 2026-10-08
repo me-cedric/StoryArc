@@ -151,5 +151,5 @@ private fun CandidatePicture(candidate: CoverCandidate, client: CoverLookupClien
 
 /** The process's one lookup client, so a sheet asks through the same gate and cache as the shelf. */
 @Composable
-private fun rememberCoverLookupClient(): CoverLookupClient =
+internal fun rememberCoverLookupClient(): CoverLookupClient =
     CoverLookup.client(LocalContext.current.applicationContext as Application)
