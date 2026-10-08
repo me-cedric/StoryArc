@@ -38,11 +38,14 @@ class PdfSavedHighlightTest {
 
     private val words = PdfTextRect(0.1f, 0.2f, 0.5f, 0.03f)
 
-    private fun state(vararg saved: Annotation): PdfTextState {
+    private fun state(
+        vararg saved: Annotation,
+        reader: PdfTextReading = OneRunReader(PdfTextSelection(PdfLocator(PAGE, 4, 12), "the words", listOf(words))),
+    ): PdfTextState {
         val store = AnnotationStore.open(RuntimeEnvironment.getApplication())
         saved.forEach { store.save(it, PUBLICATION) }
         return PdfTextState(
-            reader = OneRunReader(PdfTextSelection(PdfLocator(PAGE, 4, 12), "the words", listOf(words))),
+            reader = reader,
             store = store,
             publication = PUBLICATION,
             title = "Fixture",
@@ -71,6 +74,23 @@ class PdfSavedHighlightTest {
         assertEquals("the saved highlight is not in the page's draw list", 1, decoration.marks.size)
         assertEquals(HighlightColour.GREEN, decoration.marks.single().colour)
         assertEquals(words, decoration.marks.single().rect)
+    }
+
+    @Test
+    fun `two pages drawn at once both keep their highlights`() {
+        // A spread, a scroll and a pager all compose more than one page at a time, so two
+        // pages resolve together. Neither may overwrite the other's marks.
+        val text = state(annotation(PAGE), annotation(OTHER_PAGE), reader = AnyPageReader(words))
+        compose.setContent {
+            ResolvePageMarks(text, PAGE)
+            ResolvePageMarks(text, OTHER_PAGE)
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { text.marks.value.keys.containsAll(listOf(PAGE, OTHER_PAGE)) }
+
+        listOf(PAGE, OTHER_PAGE).forEach { page ->
+            val drawn = pdfDecorationOn(page, hasText = true, marks = text.marks.value, selection = null).marks
+            assertEquals("page $page lost its saved highlight to the other page", 1, drawn.size)
+        }
     }
 
     @Test
@@ -116,6 +136,17 @@ class PdfSavedHighlightTest {
         override fun text(index: Int): String? = null
         override fun selection(index: Int, from: PdfTextPoint, to: PdfTextPoint) = run
         override fun selection(locator: PdfLocator) = run.takeIf { locator.page == it.locator.page }
+        override fun close() = Unit
+    }
+
+    /** A text reader that finds the same words on every page it is asked about. */
+    private class AnyPageReader(private val rect: PdfTextRect) : PdfTextReading {
+        override val pageCount = 5
+        override val hasTextLayer = true
+        override fun text(index: Int): String? = null
+        override fun selection(index: Int, from: PdfTextPoint, to: PdfTextPoint) =
+            PdfTextSelection(PdfLocator(index, 4, 12), "the words", listOf(rect))
+        override fun selection(locator: PdfLocator) = PdfTextSelection(locator, "the words", listOf(rect))
         override fun close() = Unit
     }
 

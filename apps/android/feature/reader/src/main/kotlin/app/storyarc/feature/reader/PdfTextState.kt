@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -94,7 +95,10 @@ internal class PdfTextState(
     /** Turns this page's stored marks into rectangles, if it has not already. */
     suspend fun resolveMarks(page: Int) {
         if (_marks.value.containsKey(page)) return
-        _marks.value = _marks.value + (page to rects(page))
+        // Resolved first and merged after: pages resolve together, and a map read before the
+        // wait would drop the page that finished in the meantime.
+        val found = rects(page)
+        _marks.update { it + (page to found) }
     }
 
     private suspend fun rects(page: Int): List<PdfPageMark> = withContext(Dispatchers.IO) {
@@ -114,7 +118,8 @@ internal class PdfTextState(
      * the reader to turn away and back.
      */
     private suspend fun redraw(also: Int? = null) {
-        _marks.value = (_marks.value.keys + listOfNotNull(also)).associateWith { rects(it) }
+        val drawn = (_marks.value.keys + listOfNotNull(also)).associateWith { rects(it) }
+        _marks.update { it + drawn }
     }
 
     // Selecting
