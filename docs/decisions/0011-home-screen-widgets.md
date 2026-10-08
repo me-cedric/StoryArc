@@ -1,13 +1,17 @@
 ---
 status: accepted
 date: 2026-08-30
+revised: 2026-10-08
 deciders: Cédric Meyer
 ---
 
-# ADR-0011 — Home-screen widgets wait for a shared snapshot, and for a signing team
+# ADR-0011 — Home-screen widgets read a shared snapshot, and the iOS one waits for a signing team
 
-**Accepted as a deferral. No widget code is written, and no widget dependency is
-added, until the two prerequisites below are met.**
+**Revised on 2026-10-08 (owner answer O5).** The deferral below is over. Both widgets
+and the shared snapshot are built. The iOS App Group on a device is the one step
+left, and it needs the owner's Apple team. See [Revision](#revision-2026-10-08) at the
+end. The text between here and that section is the original decision, kept as the
+record of why the snapshot comes first.
 
 ## Context and problem statement
 
@@ -158,6 +162,66 @@ snapshot nothing reads is a file the next agent has to guess the purpose of.
   whether or not widgets follow: a Live Activity, a complication, a Glance tile
   and an Assistant answer all want the same record, and each of them is a second
   process too.
+
+## Revision 2026-10-08
+
+Owner answer O5: build the widget code with tests and simulator proof. Signing and the
+App Group stay an owner step. Android ships fully. This revision takes option 4 and
+option 1 together, in that order, so the snapshot's shape comes from the two widgets
+that read it.
+
+### What is built
+
+| Prerequisite | State |
+| --- | --- |
+| 1. Shared snapshot | Built. `ReadingSnapshot` and `ReadingSnapshotStore` in `StoryArcCore` and `:core:model`, mirrored, with mirrored tests. |
+| 2. iOS App Group | Declared, not provisioned. See *The owner's step* below. |
+| 3. Glance against the material3 pin | Checked. `glance-appwidget` 1.2.0 needs Compose runtime, ui-unit and ui-graphics 1.6 or later. It needs nothing from material3. `glance-material3` is not used. `:app:dependencies` still resolves material3 1.5.0-alpha26. |
+| 4. A device or an emulator | The iOS simulator proved the App Group container and the write. The Android widget waits for the frames lane's emulator. |
+
+### The snapshot
+
+- One JSON file, `reading-snapshot.json`: the format version, the publication
+  identifier, the title, the series, and the whole percent read.
+- One cover, a JPEG of at most 480 pixels on its longest side. Its file name is
+  `cover-<FNV-1a of the identifier>.jpg`. A widget therefore cannot show one book's
+  cover under another book's title. Both platforms compute the same name for the
+  same identifier, and both test suites assert the same value.
+- The app writes it from the first book it offers to continue: the same book as the
+  quick action. A write that changes nothing returns `false`, and the app then does
+  not ask for a redraw. WidgetKit counts redraws against a budget.
+- The percent is rounded down. Only a finished book shows 100. A page turn inside
+  the same whole percent writes nothing.
+- No book to continue removes the snapshot and every cover. A record in another
+  format is not read.
+- iOS keeps the folder in the App Group container. Android keeps it under the app's
+  files, not its cache, because the system may empty a cache before the widget draws.
+
+### The widgets
+
+- iOS: a WidgetKit extension, `StoryArcWidget`, small and medium. A tap opens a
+  `storyarc:` URL, and `QuickActionRequest(widgetURL:)` reads it back.
+- Android: a Glance widget, `ReadingWidget`, at two responsive sizes. A tap sends
+  the quick action's own intent.
+- Both read the snapshot and nothing else. Both show "No book in progress" when
+  there is no snapshot, and a tap then opens the library.
+
+### The owner's step (iOS only)
+
+1. Set `DEVELOPMENT_TEAM` in `apps/ios/project.yml`, under `settings.base`.
+2. Run `pnpm build:ios`. Automatic signing registers `com.mecedric.storyarc`,
+   `com.mecedric.storyarc.widget` and `group.com.mecedric.storyarc`.
+3. Install on a device. Add the widget, read a book, and check the cover, the title
+   and the part read.
+
+`WidgetSigningTests` holds the group, the target and the scheme equal, so no other
+change is needed.
+
+### Known limit
+
+The app writes the snapshot when the library reloads reading positions: when a reader
+closes, and when the app starts. A reader who leaves the app from inside a book sees
+the previous percent until the next of those.
 
 ## Links
 

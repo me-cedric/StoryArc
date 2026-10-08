@@ -22,7 +22,7 @@ ADR that supersedes it rather than quietly doing something else.
 | [0008](0008-ranged-reads-and-own-zip-reader.md) | Ranged reads over a random-access source, with our own ZIP reader | Accepted |
 | [0009](0009-page-curl-as-a-fragment-shader.md) | The page curl is a fragment shader over two decoded pages | Accepted |
 | [0010](0010-smb-clients.md) | An SMB2 client per platform, both pure and permissively licensed | Accepted |
-| [0011](0011-home-screen-widgets.md) | Home-screen widgets wait for a shared snapshot, and for a signing team | Accepted — deferral |
+| [0011](0011-home-screen-widgets.md) | Home-screen widgets read a shared snapshot, and the iOS one waits for a signing team | Accepted — revised 2026-10-08 |
 | [0012](0012-pdf-text-on-android.md) | PDF text on Android comes from the platform's own PDF module | Accepted |
 | [0013](0013-cb7-support.md) | CB7: what a 7-Zip decoder would cost, and three ways to answer it | Accepted — deferral |
 | [0014](0014-unpatchable-zip-in-the-readium-graph.md) | An unpatchable ZIP library ships in the iOS binary, and nothing calls it | Accepted — risk accepted |

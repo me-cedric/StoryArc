@@ -144,9 +144,13 @@ chapter.
 
 ## F. Blocked, and not by a test
 
-**Widgets need an Apple Developer signing team.** The App Group that a widget reads cannot
-be provisioned without one. See [ADR-0011](decisions/0011-home-screen-widgets.md). No code
-change removes this.
+**The iOS widget on a device needs an Apple Developer signing team.** The App Group that the
+widget reads cannot be provisioned without one. The widget, the snapshot and the group are
+built, and the unsigned simulator build reads the group. `WidgetSigningTests` holds the
+group, the target and the URL scheme equal. Set `DEVELOPMENT_TEAM` in `project.yml`, build,
+and install. Then add the widget, read a book, and check the cover, the title and the part
+read. The Android widget needs no team: add it, read a book, and check the same three. See
+[ADR-0011](decisions/0011-home-screen-widgets.md), "The owner's step".
 
 **CarPlay on a device needs the same team, for the same reason.** Apple grants
 `com.apple.developer.carplay-audio` against a development team, and a device build with the
