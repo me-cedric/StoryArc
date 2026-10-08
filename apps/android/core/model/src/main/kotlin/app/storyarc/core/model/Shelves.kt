@@ -41,6 +41,13 @@ data class PublicationCollection(
      */
     val coverMemberId: String? = null,
     val origin: ShelfOrigin = ShelfOrigin.Local,
+    /**
+     * When the reader last changed it, in epoch millis. Zero for a shelf from before sync.
+     *
+     * `library-sync`: a deletion wins over a shelf whose last change is older. The store
+     * stamps it on each change; see [ShelfStamps].
+     */
+    val changedAtEpochMillis: Long = 0,
 )
 
 /**
@@ -64,6 +71,8 @@ data class ReadingList(
      */
     val coverMemberId: String? = null,
     val origin: ShelfOrigin = ShelfOrigin.Local,
+    /** When the reader last changed it. See [PublicationCollection.changedAtEpochMillis]. */
+    val changedAtEpochMillis: Long = 0,
 ) {
     /**
      * What comes after a publication in this list.
@@ -101,6 +110,14 @@ data class ReadingList(
     fun position(finished: (String) -> Boolean): Int =
         entries.indexOfFirst { !finished(it) }.let { if (it < 0) entries.size else it }
 }
+
+/**
+ * A collection or reading list the reader deleted, kept so the deletion can travel.
+ *
+ * `library-sync` / *A deletion is not a disagreement*: without it a shelf deleted on one device
+ * returns from the other at the next sync.
+ */
+data class ShelfTombstone(val id: UUID, val removedAtEpochMillis: Long)
 
 /**
  * Every collection and reading list the reader has, and every change that can be made.

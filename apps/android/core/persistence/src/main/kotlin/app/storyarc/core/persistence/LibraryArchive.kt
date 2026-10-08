@@ -30,6 +30,8 @@ class LibraryArchive(
     private val settings: SettingsStore,
     private val reader: ReaderPreferences,
     private val progress: ProgressLedger,
+    /** Which publications Kavita owns. An archive built without it marks none. */
+    private val kavita: KavitaProgressStore? = null,
     /**
      * Where chosen covers are kept. `:core:persistence` cannot see `:core:format`, so the app
      * hands the store in; an archive built without one neither reads nor writes covers.
@@ -48,6 +50,7 @@ class LibraryArchive(
             settings = SettingsStore.open(context),
             reader = ReaderPreferences.open(context),
             progress = ProgressStore.open(context),
+            kavita = KavitaProgressStore.open(context),
             covers = covers,
         )
     }
@@ -80,6 +83,10 @@ class LibraryArchive(
         // has, and the export wants every record rather than the ones a "Continue reading"
         // row would show.
         progress = progress.recent(limit = Int.MAX_VALUE),
+        removedShelves = shelves.removed(),
+        settingsChangedAt = settings.changedAt(),
+        themesChangedAt = reader.themesChangedAt(),
+        kavitaKept = kavita?.rememberedPublications().orEmpty(),
     )
 
     /**
@@ -135,10 +142,10 @@ class LibraryArchive(
     private fun writeStores(snapshot: LibrarySnapshot) {
         sources.save(snapshot.sources)
         certificatePins.save(snapshot.certificatePins)
-        shelves.save(snapshot.shelves)
+        shelves.save(snapshot.shelves, snapshot.removedShelves)
         library.savePinnedShelves(snapshot.pinnedShelves.tokens)
-        settings.save(snapshot.settings)
-        reader.save(snapshot.themes)
+        settings.save(snapshot.settings, snapshot.settingsChangedAt)
+        reader.save(snapshot.themes, snapshot.themesChangedAt)
     }
 
     /**

@@ -162,6 +162,12 @@ class KavitaProgressStore internal constructor(
     fun origin(publicationId: String): KavitaOrigin? = origins()[publicationId]
 
     /**
+     * Every publication kept from a Kavita server, by its stable id. A sync document leaves
+     * their positions to Kavita: `library-sync` task 3.7.
+     */
+    fun rememberedPublications(): Set<String> = origins().keys
+
+    /**
      * The publication one chapter was read as, if this device has ever opened it.
      *
      * The inverse of [remember], and what a pull needs: a server reports progress against a

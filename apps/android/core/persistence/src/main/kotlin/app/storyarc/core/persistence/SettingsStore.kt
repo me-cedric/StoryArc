@@ -3,6 +3,8 @@ package app.storyarc.core.persistence
 import android.content.Context
 import android.content.SharedPreferences
 import app.storyarc.core.model.AppSettings
+import app.storyarc.core.model.ChangeStamps
+import app.storyarc.core.model.SettingsStamps
 import kotlinx.serialization.json.Json
 
 /**
@@ -13,13 +15,17 @@ import kotlinx.serialization.json.Json
  * cut across the stores — appearance belongs to no reader and no library — so a third
  * store is the honest shape rather than a wing of one of the others.
  */
-class SettingsStore(private val preferences: SharedPreferences) {
+class SettingsStore(
+    private val preferences: SharedPreferences,
+    private val now: () -> Long = System::currentTimeMillis,
+) {
 
     companion object {
         fun open(context: Context): SettingsStore =
             SettingsStore(context.getSharedPreferences("app.storyarc.settings", Context.MODE_PRIVATE))
 
         private const val SETTINGS = "settings"
+        private const val CHANGED_AT = "settingsChangedAt"
 
         /**
          * Lenient about fields it does not know.
@@ -41,8 +47,28 @@ class SettingsStore(private val preferences: SharedPreferences) {
             ?.let { runCatching { json.decodeFromString<AppSettings>(it) }.getOrNull() }
             ?: AppSettings.Defaults
 
-    fun save(settings: AppSettings) {
-        preferences.edit().putString(SETTINGS, json.encodeToString(settings)).apply()
+    /** When each setting last changed, by field name. `library-sync` task 3.5. */
+    fun changedAt(): Map<String, Long> =
+        preferences.getString(CHANGED_AT, null)
+            ?.let { runCatching { json.decodeFromString<Map<String, Long>>(it) }.getOrNull() }
+            .orEmpty()
+
+    /** Writes what the reader changed, with each changed field stamped now. */
+    fun save(settings: AppSettings) = save(settings, changedAt())
+
+    /**
+     * Writes settings with their moments, as a sync leaves them. A field whose value changed
+     * while its moment did not is stamped now; see [ChangeStamps.restamped].
+     */
+    fun save(settings: AppSettings, changedAt: Map<String, Long>) {
+        val stamps = ChangeStamps.restamped(
+            SettingsStamps.values(settings()), changedAt(),
+            SettingsStamps.values(settings), changedAt, now(),
+        )
+        preferences.edit()
+            .putString(SETTINGS, json.encodeToString(settings))
+            .putString(CHANGED_AT, json.encodeToString(stamps))
+            .apply()
     }
 
     /**

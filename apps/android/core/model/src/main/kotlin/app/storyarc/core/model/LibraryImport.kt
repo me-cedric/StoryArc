@@ -117,7 +117,7 @@ object LibraryImport {
      * device. Overwriting a working source with a stale copy of itself would log the reader
      * out of a server they are signed in to, which is the one thing an import must not do.
      */
-    private fun mergingSources(document: LibraryDocument, registry: SourceRegistry):
+    internal fun mergingSources(document: LibraryDocument, registry: SourceRegistry):
         SourceRegistry {
         val held = registry.sources.map { it.id }.toSet()
         return document.library.sources
@@ -167,7 +167,7 @@ object LibraryImport {
 
     // Certificate pins.
 
-    private fun pinsArriving(document: LibraryDocument, device: LibrarySnapshot):
+    internal fun pinsArriving(document: LibraryDocument, device: LibrarySnapshot):
         List<CertificatePinNotice> = document.library.certificatePins
         .mapNotNull { (host, fingerprints) ->
             val held = device.certificatePins[host].orEmpty()
@@ -194,7 +194,7 @@ object LibraryImport {
     private fun hostOf(locator: String?): String? =
         locator?.let { runCatching { URI(it).host }.getOrNull() }
 
-    private fun mergingPins(document: LibraryDocument, held: Map<String, Set<String>>):
+    internal fun mergingPins(document: LibraryDocument, held: Map<String, Set<String>>):
         Map<String, Set<String>> = document.library.certificatePins
         .entries
         .fold(held) { carried, (host, fingerprints) ->
@@ -295,7 +295,7 @@ object LibraryImport {
      * chose stands: it is the one the reader is holding. The one decode step the preview and
      * the merge share, so the count the reader is shown is the count that lands.
      */
-    private fun coversArriving(document: LibraryDocument, device: LibrarySnapshot): List<ChosenCover> {
+    internal fun coversArriving(document: LibraryDocument, device: LibrarySnapshot): List<ChosenCover> {
         val seen = device.covers.map { it.key }.toMutableSet()
         return document.library.covers.mapNotNull { cover ->
             val image = runCatching { Base64.getDecoder().decode(cover.image) }.getOrNull()
@@ -342,7 +342,7 @@ object LibraryImport {
      * the count the reader is shown is the count that lands. iOS's
      * `LibraryImport.readableProgress` is the same step, and drops the same records for an unreadable position.
      */
-    private fun readableProgress(document: LibraryDocument): List<ReadingProgress> =
+    internal fun readableProgress(document: LibraryDocument): List<ReadingProgress> =
         document.library.progress.mapNotNull { record ->
             ReadingProgress(
                 identity = record.identity.identity(),

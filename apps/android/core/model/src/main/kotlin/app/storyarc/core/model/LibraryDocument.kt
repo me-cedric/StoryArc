@@ -1,5 +1,7 @@
 package app.storyarc.core.model
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
 /**
@@ -62,6 +64,7 @@ data class LibraryDocument(
  * The last of those is a member identifier rather than an image — a shelf's chosen cover
  * names one of its own members — so it travels inside the shelf that chose it.
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class LibraryBody(
     val sources: List<DocumentSource> = emptyList(),
@@ -95,6 +98,15 @@ data class LibraryBody(
      * is read from the publication, and the cover cache is recreated.
      */
     val covers: List<DocumentCover> = emptyList(),
+    /**
+     * The collections and reading lists a reader deleted, so a deletion travels.
+     *
+     * `library-sync` / *A deletion is not a disagreement*. Without this, a shelf deleted on one
+     * device comes back from the other at the next sync. Left out of a document that has none,
+     * so an export written before sync existed reads the same bytes.
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val removedShelves: List<DocumentTombstone> = emptyList(),
 )
 
 /**
@@ -134,24 +146,36 @@ data class DocumentSource(
  * `coverMemberId`; one of the two had to give, and the document takes this one because JSON
  * keys elsewhere in it are lower camel throughout.
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class DocumentCollection(
     val id: String,
     val name: String,
     val members: List<String> = emptyList(),
     val coverMemberId: String? = null,
+    /** When the shelf last changed, as ISO 8601. Absent on a shelf from before sync. */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val changedAt: String? = null,
+    /** The device that made that change. See [LibrarySyncState]. */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val changedBy: String? = null,
 )
 
 /**
  * A reading list, with the cover its reader chose. Ordered, which is its whole difference
  * from a collection.
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class DocumentReadingList(
     val id: String,
     val name: String,
     val entries: List<String> = emptyList(),
     val coverMemberId: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val changedAt: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val changedBy: String? = null,
 )
 
 /**
@@ -162,10 +186,17 @@ data class DocumentReadingList(
  * map carried verbatim would lose every per-series choice the moment it crossed. An entry
  * with no [DocumentThemeEntry.shelf] is a scope's default.
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class DocumentThemes(
     val entries: List<DocumentThemeEntry> = emptyList(),
     val customPalette: ReaderPalette? = null,
+    /**
+     * When each field last changed, and on which device, keyed `scope/shelf|field`.
+     * See [ThemeStamps].
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val changed: Map<String, DocumentStamp> = emptyMap(),
 )
 
 /** One remembered reading setup: a scope's default, or one shelf's own choice. */
@@ -185,6 +216,7 @@ data class DocumentThemeEntry(
  * record therefore arrives with no watermark, which is exactly the case [ProgressMerge] was
  * fixed to read correctly — task 1.4 is a prerequisite for this type.
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class DocumentProgress(
     val identity: DocumentIdentity,
@@ -192,4 +224,15 @@ data class DocumentProgress(
     val isFinished: Boolean = false,
     val finishedAt: String? = null,
     val updatedAt: String,
+    /** The device that wrote [updatedAt]. Absent in an export. */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val changedBy: String? = null,
 )
+
+/** When a record or a field last changed, and on which device. */
+@Serializable
+data class DocumentStamp(val at: String, val by: String? = null)
+
+/** A shelf the reader deleted: its id, when, and on which device. */
+@Serializable
+data class DocumentTombstone(val id: String, val removedAt: String, val removedBy: String? = null)

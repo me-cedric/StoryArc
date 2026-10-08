@@ -8,7 +8,10 @@ import app.storyarc.core.model.LibraryImportPlan
 import app.storyarc.core.model.LibrarySecretSealer
 import app.storyarc.core.model.LibrarySecretsException
 import app.storyarc.core.model.LibrarySnapshot
+import app.storyarc.core.model.LibrarySync
+import app.storyarc.core.model.LibrarySyncOutcome
 import app.storyarc.core.model.ProgressPull
+import app.storyarc.core.model.SyncPlace
 import app.storyarc.core.model.fillableSources
 import app.storyarc.core.model.merging
 import app.storyarc.core.model.needsPassphrase
@@ -153,6 +156,31 @@ class LibraryTransfer(
             secretsWritten = result.credentialed.size,
             snapshot = result.snapshot,
         )
+    }
+
+    /**
+     * One sync with the document in [place]: read, merge, write, then the merge to the stores.
+     *
+     * `library-sync` task 3.1. The place, and when this runs, are the caller's: tasks 2.x and
+     * 4.x. Only the positions the merge changed are written back, so a page turned while the
+     * sync ran is not put back to the one read before it.
+     */
+    suspend fun sync(
+        place: SyncPlace,
+        state: LibrarySyncState,
+        appVersion: String,
+        atEpochMillis: Long = System.currentTimeMillis(),
+    ): LibrarySyncOutcome {
+        val local = archive.snapshot()
+        val outcome = LibrarySync(place, state.deviceId(), appVersion)
+            .sync(local, atEpochMillis, state.mergedCopies())
+        if (outcome is LibrarySyncOutcome.Synced) {
+            val merged = outcome.merged.snapshot
+            val held = local.progress.toSet()
+            archive.apply(merged.copy(progress = merged.progress.filterNot { it in held }))
+            state.saveMergedCopies(outcome.mergedCopies)
+        }
+        return outcome
     }
 
     private suspend fun openedSecrets(document: LibraryDocument, passphrase: String?): Map<UUID, String> {

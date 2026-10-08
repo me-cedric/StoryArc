@@ -1,5 +1,7 @@
 package app.storyarc.core.model
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
 /**
@@ -23,6 +25,7 @@ import kotlinx.serialization.Serializable
  * to look at. Null means "the document says nothing", and [settings] keeps what the device
  * already holds.
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class DocumentSettings(
     val appearance: String = AppearanceMode.SYSTEM.name.toWireCase(),
@@ -35,6 +38,9 @@ data class DocumentSettings(
     val downloadOverWifiOnly: Boolean = false,
     val maximumDownloadBytes: Long? = null,
     val removeDownloadsAfterFinishing: Boolean = false,
+    /** When each field last changed, and on which device. See [SettingsStamps]. */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val changed: Map<String, DocumentStamp> = emptyMap(),
 ) {
     constructor(settings: AppSettings) : this(
         appearance = settings.appearance.name.toWireCase(),
@@ -55,7 +61,9 @@ data class DocumentSettings(
      * A setting is a preference, and losing one is worth far less than refusing the whole
      * import — the same trade every store in this app already makes on unreadable data.
      */
-    fun settings(onDevice: AppSettings = AppSettings()): AppSettings = AppSettings(
+    fun settings(onDevice: AppSettings = AppSettings()): AppSettings = onDevice.copy(
+        // A copy of the device's own, so a setting the document does not carry at all (the
+        // wallpaper colours, the cover lookup) is kept rather than reset to its default.
         appearance = wireEnum(appearance, AppearanceMode.SYSTEM),
         language = language,
         // A field the writing platform cannot express keeps this device's own answer.

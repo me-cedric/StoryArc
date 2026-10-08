@@ -2,13 +2,18 @@ package app.storyarc.core.persistence
 
 import android.content.Context
 import android.content.SharedPreferences
+import app.storyarc.core.model.ChangeStamps
 import app.storyarc.core.model.PageFit
 import app.storyarc.core.model.ScrollOffsetMemory
 import app.storyarc.core.model.ShelfMemory
 import app.storyarc.core.model.ThemeScope
+import app.storyarc.core.model.ThemeStamps
 import kotlinx.serialization.json.Json
 
-class ReaderPreferences(private val preferences: SharedPreferences) {
+class ReaderPreferences(
+    private val preferences: SharedPreferences,
+    private val now: () -> Long = System::currentTimeMillis,
+) {
 
     companion object {
         fun open(context: Context): ReaderPreferences =
@@ -23,6 +28,7 @@ class ReaderPreferences(private val preferences: SharedPreferences) {
          */
         private const val LEGACY_FIT = "pageFit"
         private const val THEMES = "themes"
+        private const val THEMES_CHANGED_AT = "themesChangedAt"
         private const val SCROLL_OFFSETS = "scrollOffsets"
 
         /**
@@ -66,8 +72,25 @@ class ReaderPreferences(private val preferences: SharedPreferences) {
         return migrated
     }
 
-    fun save(memory: ShelfMemory) {
-        preferences.edit().putString(THEMES, json.encodeToString(memory)).apply()
+    /** When each theme field last changed, by its filed name. `library-sync` task 3.5. */
+    fun themesChangedAt(): Map<String, Long> =
+        preferences.getString(THEMES_CHANGED_AT, null)
+            ?.let { runCatching { json.decodeFromString<Map<String, Long>>(it) }.getOrNull() }
+            .orEmpty()
+
+    /** Writes what the reader changed, with each changed field stamped now. */
+    fun save(memory: ShelfMemory) = save(memory, themesChangedAt())
+
+    /** Writes themes with their moments, as a sync leaves them. See [ChangeStamps.restamped]. */
+    fun save(memory: ShelfMemory, changedAt: Map<String, Long>) {
+        val stamps = ChangeStamps.restamped(
+            ThemeStamps.values(storedThemes()), themesChangedAt(),
+            ThemeStamps.values(memory), changedAt, now(), ThemeStamps::default,
+        )
+        preferences.edit()
+            .putString(THEMES, json.encodeToString(memory))
+            .putString(THEMES_CHANGED_AT, json.encodeToString(stamps))
+            .apply()
     }
 
     private fun storedThemes(): ShelfMemory =
