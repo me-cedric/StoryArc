@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -151,9 +152,33 @@ class KavitaShelfBulkTest {
             assertNull("a count over part of a collection was stated", broken)
         }
 
+    @Test
+    fun `an empty shelf is asked again, and a server that does not answer leaves nothing to act on`() =
+        runBlocking {
+            var asked = 0
+            val shown = KavitaShelfBulk.held(items) {
+                asked += 1
+                emptyList()
+            }
+            val answered = KavitaShelfBulk.held(emptyList()) {
+                asked += 1
+                items
+            }
+            val silent = KavitaShelfBulk.held(emptyList<KavitaReadingListItem>()) { error("no answer") }
+
+            assertEquals(items, shown)
+            assertEquals(items, answered)
+            assertEquals("a shelf already on screen was asked for again", 1, asked)
+            assertNull("an unanswered shelf was taken as an empty one", silent)
+        }
+
     // The screen.
 
     private val marks = CopyOnWriteArrayList<String>()
+
+    /** False makes the server fail every request for the list's entries. */
+    @Volatile
+    private var listAnswers = true
 
     private fun serve() {
         val started = HttpServer.create(InetSocketAddress("localhost", 0), 0)
@@ -163,7 +188,7 @@ class KavitaShelfBulkTest {
             if (path.contains("/Reader/mark-")) marks += path.substringAfterLast('/') + " " + sent
             val body = when {
                 path.endsWith("/Plugin/authenticate") -> """{"username":"ada","token":"t"}"""
-                path.endsWith("/ReadingList/items") -> kotlinx.serialization.json.Json.encodeToString(
+                path.endsWith("/ReadingList/items") && listAnswers -> kotlinx.serialization.json.Json.encodeToString(
                     kotlinx.serialization.builtins.ListSerializer(KavitaReadingListItem.serializer()), items,
                 )
                 path.contains("/Reader/mark-") -> "{}"
@@ -185,7 +210,7 @@ class KavitaShelfBulkTest {
         onWifi = MutableStateFlow(true),
     )
 
-    private fun show(queue: DownloadQueue?) {
+    private fun show(queue: DownloadQueue?, waitForRows: Boolean = true) {
         val page = KavitaPage(source, "Attic", KavitaAddress("http://localhost:${server!!.address.port}", "key"))
         compose.setContent {
             StoryArcTheme {
@@ -195,7 +220,7 @@ class KavitaShelfBulkTest {
                 )
             }
         }
-        compose.waitUntil(10_000) { present("Issue #11") }
+        if (waitForRows) compose.waitUntil(10_000) { present("Issue #11") } else compose.waitForIdle()
     }
 
     private fun present(text: String) = compose.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty()
@@ -254,5 +279,18 @@ class KavitaShelfBulkTest {
         val unread = marks.filter { it.startsWith("mark-multiple-unread") }
         assertTrue(unread.any { "\"chapterIds\":[11]" in it })
         assertTrue(unread.any { "\"chapterIds\":[12]" in it })
+    }
+
+    @Test
+    fun `a list the server did not send is said to be unanswered, never to be all on the device`() {
+        listAnswers = false
+        serve()
+        show(queue(), waitForRows = false)
+
+        openMenu()
+        compose.onNodeWithText(context.getString(R.string.library_bulk_download)).performClick()
+
+        compose.waitUntil(10_000) { present(context.getString(R.string.kavita_bulk_unreachable, "Attic")) }
+        assertFalse(present(context.getString(R.string.library_bulk_download_none)))
     }
 }

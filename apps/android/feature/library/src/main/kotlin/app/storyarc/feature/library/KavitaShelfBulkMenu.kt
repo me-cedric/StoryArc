@@ -162,12 +162,14 @@ internal fun KavitaShelfBulkMenu(
                     val source = runCatching { UUID.fromString(server.id) }.getOrNull()
                     // The process's scope, not the screen's: each keep indexes the file and
                     // files its card when the transfer lands, and a reader who leaves this
-                    // screen has not asked for those steps to be dropped.
+                    // screen has not asked for those steps to be dropped. So it holds the
+                    // application, never this screen's activity.
+                    val app = context.applicationContext
                     KavitaShelfBulk.jobs.launch {
                         KavitaShelfBulk.download(ask) { each ->
                             val queued = queue ?: return@download false
                             KavitaKeep.keep(
-                                context = context,
+                                context = app,
                                 chapter = each.chapter,
                                 series = each.series,
                                 metadata = null,

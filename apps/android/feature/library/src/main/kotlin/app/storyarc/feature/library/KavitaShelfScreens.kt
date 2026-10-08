@@ -120,7 +120,10 @@ fun KavitaCollectionScreen(
                     client = client,
                     queue = queue,
                     snackbars = snackbar,
-                    load = { KavitaShelfBulk.chaptersOf(series) { client.volumes(it) } },
+                    load = {
+                        KavitaShelfBulk.held(series) { client.collected(collectionId) }
+                            ?.let { held -> KavitaShelfBulk.chaptersOf(held) { client.volumes(it) } }
+                    },
                     onMarked = {},
                 )
             }
@@ -280,7 +283,10 @@ fun KavitaListScreen(
                     client = client,
                     queue = queue,
                     snackbars = snackbar,
-                    load = { KavitaShelfBulk.chaptersOf(items) },
+                    load = {
+                        KavitaShelfBulk.held(items) { client.readingListItems(listId) }
+                            ?.let { held -> KavitaShelfBulk.chaptersOf(held) }
+                    },
                     onMarked = {
                         scope.launch {
                             runCatching { client.readingListItems(listId) }

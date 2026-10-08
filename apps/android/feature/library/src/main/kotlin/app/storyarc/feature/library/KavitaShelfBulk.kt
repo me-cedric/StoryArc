@@ -82,6 +82,15 @@ internal object KavitaShelfBulk {
      */
     val jobs = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
+    /**
+     * What the screen shows, or, when it shows nothing, the server's answer when asked again.
+     *
+     * Null when that answer does not come. An empty screen is also what a server that did not
+     * answer leaves, and that must read as "did not answer", never as "all on this device".
+     */
+    suspend fun <T> held(shown: List<T>, ask: suspend () -> List<T>): List<T>? =
+        shown.ifEmpty { runCatching { ask() }.getOrNull() }
+
     /** A reading list's entries as chapters, in the server's order, each chapter once. */
     fun chaptersOf(items: List<KavitaReadingListItem>): List<KavitaShelfChapter> =
         items.distinctBy { it.chapterId }.map { item ->
