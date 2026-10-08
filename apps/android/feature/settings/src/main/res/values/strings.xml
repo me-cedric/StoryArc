@@ -259,7 +259,6 @@
     <string name="transfer_export_problem_mismatch">The two passphrases do not match.</string>
     <string name="transfer_export_action">Export</string>
     <string name="transfer_export_failed">The library could not be exported. Nothing was written.</string>
-    <string name="transfer_export_done">Library exported</string>
     <string name="transfer_cancel">Cancel</string>
     <string name="transfer_ok">OK</string>
     <string name="transfer_import_title">Import library</string>

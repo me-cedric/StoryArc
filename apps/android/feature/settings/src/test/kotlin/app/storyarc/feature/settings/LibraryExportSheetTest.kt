@@ -196,6 +196,46 @@ class LibraryExportSheetTest {
     }
 
     @Test
+    fun `the picked destination receives the prepared bytes and the bytes are let go`() = runBlocking {
+        val device = TransferDevice(context).holding()
+        val state = LibraryExportState()
+        state.prepare(device.transfer, "10.14.0")
+        val prepared = requireNotNull(state.prepared)
+        val destination = java.io.ByteArrayOutputStream()
+
+        assertTrue(state.deliver { destination })
+
+        assertTrue(prepared.contentEquals(destination.toByteArray()))
+        assertNull(state.prepared)
+        assertFalse(state.hasFailed)
+    }
+
+    @Test
+    fun `a destination that refuses the bytes is stated on the sheet`() = runBlocking {
+        val device = TransferDevice(context).holding()
+        val state = LibraryExportState()
+        state.prepare(device.transfer, "10.14.0")
+
+        assertFalse(state.deliver { throw java.io.IOException("the disk is full") })
+
+        assertTrue(state.hasFailed)
+        show(state)
+        assertTrue(isDrawn(string(R.string.transfer_export_failed)))
+    }
+
+    @Test
+    fun `a picker closed without a choice says nothing`() = runBlocking {
+        val device = TransferDevice(context).holding()
+        val state = LibraryExportState()
+        state.prepare(device.transfer, "10.14.0")
+
+        assertFalse(state.deliver(null))
+
+        assertFalse(state.hasFailed)
+        assertNull(state.prepared)
+    }
+
+    @Test
     fun `the picker offers a dated name`() {
         assertEquals("StoryArc library 2026-10-08.json", ExportDestination.defaultName(LocalDate.of(2026, 10, 8)))
     }

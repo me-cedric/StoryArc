@@ -222,6 +222,20 @@ class LibraryImportSheetTest {
         assertTrue(isDrawn(string(R.string.transfer_refused_unopened)))
     }
 
+    @Test
+    fun `a provider that throws while it is asked is a file that cannot be opened, not a crash`() = runBlocking {
+        val state = LibraryImportState()
+        val throwing = object : PickedFile {
+            override fun size(): Long = throw IllegalStateException("the provider went away")
+
+            override fun open(): java.io.InputStream? = null
+        }
+
+        state.load(throwing, TransferDevice(context).transfer)
+
+        assertEquals(ImportPhase.Refused(ImportRefusal.Unopened), state.phase)
+    }
+
     // The passphrase (5.4).
 
     @Test

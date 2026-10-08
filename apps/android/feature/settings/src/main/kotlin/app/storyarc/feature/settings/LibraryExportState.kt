@@ -10,6 +10,8 @@ import java.io.IOException
 import java.io.OutputStream
 import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * What the export sheet holds while the reader decides.
@@ -61,6 +63,24 @@ internal class LibraryExportState {
     /** The picker closed, with a file written or without. The bytes are let go either way. */
     fun pickerClosed() {
         prepared = null
+    }
+
+    /**
+     * Writes the prepared bytes to what the picker returned, off the main thread, and lets them go.
+     *
+     * A destination that was picked and then refused the bytes is stated on the sheet. A picker
+     * closed without a choice says nothing.
+     *
+     * @param open opens the picked destination, or null when the reader picked none.
+     * @return whether the bytes were written.
+     */
+    suspend fun deliver(open: (() -> OutputStream?)?): Boolean {
+        val bytes = prepared ?: return false
+        pickerClosed()
+        if (open == null) return false
+        val written = withContext(Dispatchers.IO) { ExportDestination.deliver(bytes, open) }
+        hasFailed = !written
+        return written
     }
 
     /** The passphrase leaves memory when the sheet does. */

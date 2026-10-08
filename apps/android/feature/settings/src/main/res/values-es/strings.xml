@@ -239,7 +239,6 @@
     <string name="transfer_export_problem_mismatch">Las dos frases de contraseña no coinciden.</string>
     <string name="transfer_export_action">Exportar</string>
     <string name="transfer_export_failed">No se pudo exportar la biblioteca. No se escribió nada.</string>
-    <string name="transfer_export_done">Biblioteca exportada</string>
     <string name="transfer_cancel">Cancelar</string>
     <string name="transfer_ok">Aceptar</string>
     <string name="transfer_import_title">Importar biblioteca</string>

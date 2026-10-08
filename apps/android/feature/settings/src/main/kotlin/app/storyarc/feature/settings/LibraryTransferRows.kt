@@ -60,15 +60,14 @@ internal fun LibraryTransferRows(
     val createDocument = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
-        val bytes = exportState.prepared
-        val written = bytes != null && ExportDestination.deliver(
-            bytes,
-            uri?.let { picked -> { context.contentResolver.openOutputStream(picked, "wt") } },
-        )
-        exportState.pickerClosed()
-        if (written) {
-            exportState.clearSecrets()
-            isExporting = false
+        scope.launch {
+            val written = exportState.deliver(
+                uri?.let { picked -> { context.contentResolver.openOutputStream(picked, "wt") } },
+            )
+            if (written) {
+                exportState.clearSecrets()
+                isExporting = false
+            }
         }
     }
     val openDocument = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->

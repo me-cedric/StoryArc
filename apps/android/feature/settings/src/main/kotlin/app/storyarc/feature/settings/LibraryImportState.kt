@@ -88,9 +88,11 @@ internal class LibraryImportState {
             ImportPhase.Preview(transfer.preview(text))
         } catch (refusal: LibraryDocumentRefusal) {
             ImportPhase.Refused(ImportRefusal.Document(refusal.reason))
-        } catch (_: IOException) {
-            ImportPhase.Refused(ImportRefusal.Unopened)
-        } catch (_: SecurityException) {
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            // A provider can throw any of the exceptions a binder call carries, not only an
+            // IOException. Each one is a file that could not be read, never a crash.
             ImportPhase.Refused(ImportRefusal.Unopened)
         }
     }

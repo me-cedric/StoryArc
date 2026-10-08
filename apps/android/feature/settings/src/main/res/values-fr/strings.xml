@@ -239,7 +239,6 @@
     <string name="transfer_export_problem_mismatch">Les deux phrases secrètes ne correspondent pas.</string>
     <string name="transfer_export_action">Exporter</string>
     <string name="transfer_export_failed">La bibliothèque n’a pas pu être exportée. Rien n’a été écrit.</string>
-    <string name="transfer_export_done">Bibliothèque exportée</string>
     <string name="transfer_cancel">Annuler</string>
     <string name="transfer_ok">OK</string>
     <string name="transfer_import_title">Importer la bibliothèque</string>
