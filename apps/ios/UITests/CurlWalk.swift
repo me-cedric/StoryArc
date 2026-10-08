@@ -1,5 +1,14 @@
 import XCTest
 
+/// A screenshot taken off the main thread, which is blocked inside `press(...)` while a
+/// finger is down. `XCUIScreen.screenshot()` is a plain request to the test daemon, so it
+/// answers from any thread.
+final class HeldFrames: @unchecked Sendable {
+    private(set) var shots: [XCUIScreenshot] = []
+    var shot: XCUIScreenshot? { shots.last }
+    func take() { shots.append(XCUIScreen.main.screenshot()) }
+}
+
 /// The page curl on iOS, photographed **mid-gesture**, which is the only way to see it.
 ///
 /// `reader-theming-and-page-transitions` §4.3 shipped the curl on both platforms and could
@@ -129,14 +138,52 @@ final class CurlWalkTests: XCTestCase {
         let app = sweepLaunch()
         try openCurlingComic(in: app)
         try goToTheLastPage(in: app)
+        shutter(app, named: "ios-curl-last-page-before-drag")
+        try heldDrag(in: app, named: "ios-curl-last-page-held")
+        hold(2)
+        shutter(app, named: "ios-curl-last-page-released")
+    }
+
+    /// Task 8.5: the held drag on the last page, reached by turning forward and never
+    /// leaving for the end screen. Photographs the drag from threads that do not wait on the
+    /// finger, because `press(...)` returns only when the finger lifts.
+    func testCaptureCurlLastPageHeldFromTurns() throws {
+        let app = sweepLaunch()
+        try openCurlingComic(in: app)
+        for _ in 0..<2 {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+            hold(1.6)
+        }
+        shutter(app, named: "ios-curl-last-page-turns-before-drag")
+        try heldDrag(in: app, named: "ios-curl-last-page-turns-held")
+    }
+
+    /// Task 8.5, the control: the same held drag on the first page, where a sheet lies beneath.
+    func testCaptureCurlFirstPageHeld() throws {
+        let app = sweepLaunch()
+        try openCurlingComic(in: app)
+        try heldDrag(in: app, named: "ios-curl-first-page-held")
+    }
+
+    /// A slow drag to 66 percent, held for five seconds, photographed while it is held.
+    ///
+    /// The press call blocks until the finger lifts, so the frames are asked for from other
+    /// threads, at a spread of times. The first may precede the touch; the rest are the drag.
+    private func heldDrag(in app: XCUIApplication, named name: String) throws {
+        let done = XCTestExpectation(description: "the held frames are taken")
+        let frames = HeldFrames()
+        for seconds in [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0] {
+            DispatchQueue.global().asyncAfter(deadline: .now() + seconds) { frames.take() }
+        }
+        DispatchQueue.global().asyncAfter(deadline: .now() + 4.5) { done.fulfill() }
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).press(
             forDuration: 0.05,
             thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.66, dy: 0.5)),
             withVelocity: .slow,
             thenHoldForDuration: 5
         )
-        hold(2)
-        shutter(app, named: "ios-curl-last-page-released")
+        wait(for: [done], timeout: 10)
+        for (n, held) in frames.shots.enumerated() { shutter(shot: held, named: "\(name)-\(n)") }
     }
 
     /// Task 8.5: a tap past the last page curls onto the end screen, and the last page does
