@@ -79,3 +79,19 @@ enum PrimaryAction: Hashable, Sendable {
         }
     }
 }
+
+/// Which of the three verbs the detail page draws as its one primary control.
+///
+/// Read only when something can open now, Download only when a copy can be made, nothing
+/// otherwise. A Read that has no source to open is never drawn, so the tap cannot fail.
+enum DetailOffer: Hashable, Sendable {
+    case read
+    case download
+    case none
+
+    static func of(isOpenable: Bool, hasAddress: Bool, canCopy: Bool) -> DetailOffer {
+        guard isOpenable else { return .none }
+        if hasAddress { return .read }
+        return canCopy ? .download : .none
+    }
+}

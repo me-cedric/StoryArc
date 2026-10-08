@@ -132,9 +132,14 @@ struct DetailActions: View {
 
     @ViewBuilder
     private var primary: some View {
-        if !publication.isOpenable {
+        switch DetailOffer.of(
+            isOpenable: publication.isOpenable,
+            hasAddress: address != nil,
+            canCopy: canCopy
+        ) {
+        case .none:
             EmptyView()
-        } else if address != nil {
+        case .read:
             Button(action: onRead) {
                 primaryLabel.frame(maxWidth: .infinity)
             }
@@ -143,7 +148,7 @@ struct DetailActions: View {
             .buttonStyle(.glassProminent)
             .controlSize(.large)
             .tint(theme.accent)
-        } else if canCopy {
+        case .download:
             Button {
                 copy()
             } label: {
