@@ -232,8 +232,9 @@ struct CurledPages<Content: View, Underneath: View>: View {
             isDragging = true
             // The turn is taken over here. Whatever settle is running is no longer its
             // own to finish, the page's *drawn* progress becomes the base this drag is
-            // measured from (flat when no turn runs, see ``CurlTurn/base(standing:isTurning:)``), and the points that only proved the finger meant a drag are
-            // not also spent turning the page.
+            // measured from (flat when no turn runs, see ``CurlTurn/base(standing:isTurning:)``),
+            // and the points that only proved the finger meant a drag are not also spent turning
+            // the page.
             settle &+= 1
             base = CurlTurn.base(standing: stand.value, isTurning: isTurning)
             origin = travel

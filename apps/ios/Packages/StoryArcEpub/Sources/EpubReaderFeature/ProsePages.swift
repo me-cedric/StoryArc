@@ -70,6 +70,22 @@ enum ProsePages {
         return raster(of: neighbour, as: page, shiftedBy: width * step, over: leaving)
     }
 
+    /// The part of the canvas the neighbour may paint: its web view's area, moved onto the
+    /// current page and cut to the canvas. `drawHierarchy` of a resource view paints black
+    /// where its web view does not reach, which is the bands above and below the text, so
+    /// those stay the leaving page's. Where there is no web view the whole resource view
+    /// stands in for it.
+    ///
+    /// - Parameters:
+    ///   - web: the neighbour's web view in the navigator's coordinates, where it lies beside
+    ///     the current page, or nil when none was found.
+    ///   - neighbour: the resource view in the same coordinates, before the shift.
+    ///   - dx: how far the neighbour lies from the current page.
+    ///   - canvas: the navigator's bounds.
+    static func window(web: CGRect?, neighbour: CGRect, shiftedBy dx: CGFloat, in canvas: CGRect) -> CGRect {
+        (web ?? neighbour).offsetBy(dx: -dx, dy: 0).intersection(canvas)
+    }
+
     /// The neighbour drawn where the current page stands, on a canvas the size of the
     /// navigator's view.
     ///
@@ -82,13 +98,19 @@ enum ProsePages {
         of neighbour: UIView, as page: UIView, shiftedBy dx: CGFloat, over leaving: CGImage
     ) -> CGImage? {
         guard page.bounds.width > 0, page.bounds.height > 0 else { return nil }
-        var frame = page.convert(neighbour.bounds, from: neighbour)
-        frame.origin.x -= dx
+        let beside = page.convert(neighbour.bounds, from: neighbour)
+        let frame = beside.offsetBy(dx: -dx, dy: 0)
+        // `drawHierarchy` of a resource view paints black where the web view does not reach, so
+        // the neighbour is drawn through a window the size of its web view. The bands outside it
+        // stay the leaving page's.
+        let web = webView(in: neighbour).map { page.convert($0.bounds, from: $0) }
+        let window = Self.window(web: web, neighbour: beside, shiftedBy: dx, in: page.bounds)
         let format = UIGraphicsImageRendererFormat()
         format.scale = page.rasterScale
         format.opaque = true
-        return UIGraphicsImageRenderer(bounds: page.bounds, format: format).image { _ in
+        return UIGraphicsImageRenderer(bounds: page.bounds, format: format).image {
             UIImage(cgImage: leaving, scale: page.rasterScale, orientation: .up).draw(in: page.bounds)
+            $0.cgContext.clip(to: window)
             neighbour.drawHierarchy(in: frame, afterScreenUpdates: false)
         }.cgImage
     }
@@ -96,6 +118,15 @@ enum ProsePages {
     /// The resource view Readium has laid out at `x` in its paging scroll view.
     static func spread(in paging: UIScrollView, at x: CGFloat) -> UIView? {
         paging.subviews.first { abs($0.frame.minX - x) < 1 && $0.frame.width > 0 }
+    }
+
+    /// The web view inside a resource view.
+    static func webView(in view: UIView) -> WKWebView? {
+        if let web = view as? WKWebView { return web }
+        for subview in view.subviews {
+            if let found = webView(in: subview) { return found }
+        }
+        return nil
     }
 
     /// The scroll view of the web view inside a resource view.

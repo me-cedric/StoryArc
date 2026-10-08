@@ -107,6 +107,23 @@ struct ProseCurlTests {
         #expect(ProsePages.step(forward: false, isRightToLeft: true) == 1)
     }
 
+    @Test("The neighbour paints only where its web view is, so the bands stay the leaving page's")
+    func theNeighbourPaintsOnlyItsWebView() {
+        let canvas = CGRect(x: 0, y: 0, width: 400, height: 800)
+        // The next resource lies one page to the right, and its web view sits inside the insets.
+        let neighbour = CGRect(x: 400, y: 0, width: 400, height: 800)
+        let web = CGRect(x: 400, y: 60, width: 400, height: 700)
+        #expect(ProsePages.window(web: web, neighbour: neighbour, shiftedBy: 400, in: canvas)
+            == CGRect(x: 0, y: 60, width: 400, height: 700))
+        // No web view found: the whole resource view stands in for it.
+        #expect(ProsePages.window(web: nil, neighbour: neighbour, shiftedBy: 400, in: canvas) == canvas)
+        // The previous resource lies to the left.
+        #expect(ProsePages.window(web: CGRect(x: -400, y: 60, width: 400, height: 700),
+                                  neighbour: CGRect(x: -400, y: 0, width: 400, height: 800),
+                                  shiftedBy: -400, in: canvas)
+            == CGRect(x: 0, y: 60, width: 400, height: 700))
+    }
+
     static func image() throws -> CGImage {
         let context = try #require(CGContext(
             data: nil, width: 4, height: 4, bitsPerComponent: 8, bytesPerRow: 0,
