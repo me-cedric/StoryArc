@@ -249,7 +249,7 @@ creep — see [`design.md`](design.md).
       skips, light and dark, at the default text size — `Library > skipped list` is an existing
       `pnpm capture:android` route, and iOS's is `SkippedNoticeTests` in `UITests`. Neither has
       been photographed since the notice learnt to name the file.
-- [~] 2.5 Both: a truncated audiobook plays what it can and states how much it could
+- [x] 2.5 Both: a truncated audiobook plays what it can and states how much it could
       not, in the player's controls, without interrupting playback.
       **iOS half done, and the other half is named rather than claimed.** A *folder* with an
       undecodable part is counted at index time — `Audiobook.unreadablePartCount` reaches
@@ -290,6 +290,8 @@ creep — see [`design.md`](design.md).
       **Owed to finish it:** play `truncated.m4b` to its end on each platform and photograph
       the player's controls stating the count, light and dark at the default text size.
       `pnpm capture:android Player` reaches the screen; iOS's is `PlayerScreenshotTests`.
+
+      **Done, 2026-10-07 (close-all-yellow, wave 2).** O12 holds on both platforms. A failed last or only part carries on until the item fails, and the finished surface states the count (iOS `PlayerFinishedOffer`, Android `PlayerFinishedScreen` with the `player_skipped_parts` plural, in four locales). The reviewer fixed `fileFailed`, which returned early on a second report from a counted file, so a listener who went back into a failed file stayed on it (`NarratedSourceFailureTests`). Frames: `docs/designs/screenshots/ios-playback-2026-10-07/` and `docs/designs/screenshots/android-playback-2026-10-07/` ("Finished, 1 part could not be played" on iOS; "Nothing is playing. 1 part could not be played" on Android). The Android engine report for `truncated.m4b` is `ExoPlaybackException: Source error`, caused by `java.io.EOFException`. Open: a book that ends through a failure still sets `hasReachedTheEnd`, so progress records it as finished at the failed part, on both platforms (23.6).
 - [x] 2.6 Add audiobook fixtures to the shared corpus: a chaptered M4B, the same
       chapters as ID3 CHAP frames, an unchaptered single file, a folder of parts
       whose names defeat lexical sort, a folder mixing audio and images, a truncated
@@ -569,6 +571,8 @@ creep — see [`design.md`](design.md).
       Bluetooth headphones, disconnect them, and confirm the audio pauses; then reconnect and
       confirm it does *not* start again. Nothing else is unproved, and no host test and no
       screenshot can stand in for it — a simulator and an emulator have no route to lose.
+
+      **Partial, 2026-10-07 (close-all-yellow, wave 2).** iOS: `AudioSessionEvent` maps the notification, and only `oldDeviceUnavailable` pauses; `AudioSessionEventTests` fail by name when the rule accepts every reason, and the platform tests post from their own sender (`d94d7d7f`). Android: `PlaybackService` builds its player with `setHandleAudioBecomingNoisy(true)`, and `NoisyBroadcastTest` fails by name without it. **Left: the Android emulator proof.** `PlaybackNoisyInstrumentedTest` ran on storyarc-ci (userdebug, `adb root`) and failed with "the book kept playing after the broadcast", also when `am broadcast` from the root shell was sent in a loop during the test. The log shows `AS.HardeningEnforcer: Focus request DENIED` for the test app, so Android 15's audio-focus hardening is a likely cause, not a proved one. The test sends its own broadcast through `uiAutomation`, which runs as the shell user; its permission guard reads stdout, and a refusal goes to stderr. Next: play a playable book in the foreground app, send the root broadcast, and read `dumpsys media_session`. Device checklist line added.
 
 ## 4. The surfaces
 
@@ -1513,7 +1517,7 @@ creep — see [`design.md`](design.md).
       Not stealing focus is the same absence it is on Android: nothing in `PlayerDock` is
       `accessibilityFocused` and nothing posts a screen-changed announcement, which
       `PlayerDock`'s own header states as a rule so a later edit has to argue with it.
-- [~] 8.4 Both: at the largest accessibility text size the transport stays usable, any cut
+- [x] 8.4 Both: at the largest accessibility text size the transport stays usable, any cut
       to the text is honest, and text the bar cannot show is still reachable in full.
       **Android: asserted and photographed.** `CompactPlayerTest` measures that the bar
       grows rather than pinning, mutation-checked. The player was photographed at
@@ -1579,6 +1583,8 @@ creep — see [`design.md`](design.md).
       which a photograph proves for one build and a test proves for every one after it. The
       sleep options wrap in a `FlowRow` for the same requirement: five durations and a chapter
       do not fit across a phone at that size.
+
+      **Done, 2026-10-07 (close-all-yellow, wave 2).** `PlayerBarLongTitleTests` asserts that the bar's value holds the whole long title, and fails by name when `.accessibilityValue` is removed from `PlayerDock`. Frames: `docs/designs/screenshots/ios-playback-2026-10-07/ios-compact-bar-long-title*.png` (light and dark, default and AccessibilityXXXL). The audit ran report-only on the simulator. Default size: 14 findings, naming the skipped-files notice (Dismiss hit area, Dynamic Type, Text clipped on "2 couldn't be opened"), contrast on shelf captions, and one "Hit area is too small" and one "Text clipped" with no element reported. AccessibilityXXXL: 7 findings (Text clipped on the notice, contrast on shelf text). None names the bar's own controls. The earlier claim that "Text clipped is the only finding" was false. The findings with no element, and the bar's chapter caption over the glass, are open (23.7).
 
 ## 17. Android pairs a file offset with a chapter length
 
@@ -2010,7 +2016,7 @@ shipped surface had no specification. iOS has nothing.
       the device, and nothing else. Assert it as `PlayerBrowseTreeTest` already asserts the
       tree.
 - [x] 12.3 Android: a car's next-track control moves a chapter, not a file. **Verified built on 2026-10-07** against the source: ChapterSeekingPlayer maps next and previous to chapter marks, asserted by ChapterSeekTargetTest.
-- [~] 12.4 iOS: a CarPlay scene with a now-playing template and a list of audiobooks, built
+- [x] 12.4 iOS: a CarPlay scene with a now-playing template and a list of audiobooks, built
       against `CPTemplateApplicationScene`. **Written, and it cannot activate.**
       `App/CarScene.swift` holds the scene delegate: it turns `CarShelf`'s rows into a
       `CPListTemplate` and pushes `CPNowPlayingTemplate` when a row is chosen, and
@@ -2022,6 +2028,8 @@ shipped surface had no specification. iOS has nothing.
       checking. The two seams `CarScene.onDevice` and `CarScene.onListen` are `nil`, so a car
       would draw the live session and nothing else. This stays open until a car draws the
       list; `design.md`'s "The day an Apple team exists" lists the four steps.
+
+      **Done, 2026-10-07 (close-all-yellow, wave 2).** `StoryArcApp.init` calls `library.restoreFolders()` and installs `CarScene.onDevice`, `onListen` and `lastListened`; `body` and `AppShell` do not. `CarSceneWiringTests.theSeamsAreInstalledInInit()` fails by name when `init` loses them. The Apple team and the `carplay-audio` entitlement for a device build stay an owner step (O5). The proof in the CarPlay window is 12.6.
 - [x] 12.5 iOS: a test over the template tree, the way Android tests its browse tree, so the
       surface is asserted without a car. `CarShelf` in `StoryArcKit`'s `Playback` module
       composes the rows as a value with no CarPlay import at all, and `CarShelfTests` asserts
@@ -2043,6 +2051,8 @@ shipped surface had no specification. iOS has nothing.
       ADR-0011 records that this project has no Apple development team yet. The scene will
       not activate without it. Section F of `docs/mvp-device-checklist.md` carries this
       beside the widget blocker.
+
+      **Partial, 2026-10-07 (close-all-yellow, wave 2).** O13 is built. The simulator build carries the CarPlay scene manifest and the `carplay-audio` entitlement under an `sdk=iphonesimulator` condition (`App/Info.simulator.plist`, `App/StoryArc.simulator.entitlements`), and `CarSimulatorOnlyTests` fails if the device build carries either. The app built, installed and launched on a simulator. **Left: the CarPlay window was not opened.** Xcode 27.0 on the build machine has no `Simulator.app`, so I/O > External Displays > CarPlay cannot be reached. On a Mac with the Simulator: open the window, open StoryArc, check the audiobook list with the book in progress first, a row start, next and previous, and take two frames (the list and now-playing). Device checklist line added.
 
 ## 9. Docs and close-out
 

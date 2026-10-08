@@ -983,12 +983,14 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
         the source is right and the harness is wrong — that is how §4.3's two false
         readings were caught.
 
-      **Android is the cheaper half and is not measured either.** `FadeTurn`'s own note
+      **Android is the cheaper half. It was measured on 2026-10-07: see the wave 2 paragraph below.** `FadeTurn`'s own note
       already records that "the pager's neighbouring page is already laid out and
       `goForward(animated = false)` returns before the next frame", so the within-resource
       case is free there. The resource-boundary case has not been checked against
       `kotlin-toolkit` 3.3.0 and should not be assumed to match iOS: the two toolkits are on
       unrelated version lines and, as §7.8 found, do not even share one build of readium-css.
+
+      **Partial, 2026-10-07 (close-all-yellow, wave 2).** iOS is built and seen. The measurement repeated on a simulator: 2 to 23 ms inside a chapter, 108 ms across a chapter end (six frames), so by owner answer O14 route 1 is right and `ProsePages.ahead` rasters Readium's preloaded neighbour before the navigator moves. A held drag on the last page of chapter 1 shows the first page of chapter 2 under the fold from the first frame (`docs/designs/screenshots/prose-curl-finger-2026-10-07/ios-epub-curl-chapter-end-held-light.png`). A screen recording of ten turns showed black bands above and below the arriving page at chapter ends. Two causes were fixed: the neighbour's resource view is shorter than the navigator view, and the raster taken after the move was taken mid-swap. One crossing in three still showed one black frame afterwards, so the claim is reduced, not closed. **Android is now measured**, on the storyarc-ci emulator at 60 Hz with `storyarc_frame_probe`: 143 to 154 ms inside a chapter (9 frames), 213 to 243 ms across a chapter end (13 to 15 frames). That is about 75 ms more than one frame, so O14 asks for route 1 on Android as well, and it is not built. The note above that Android "was not measured either" is superseded. Left: build the raster-ahead on Android, then retake a chapter-end frame there. Device checklist line added.
 - [x] **4.4** Scroll mode with the axis rule, including the webtoon default.
       **Done.** A lazy list on both platforms, pages stitched with no gap: each page
       fills the scroll's *cross* axis and takes what it needs along the scroll axis.

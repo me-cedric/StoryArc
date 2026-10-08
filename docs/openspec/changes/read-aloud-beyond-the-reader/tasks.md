@@ -394,7 +394,7 @@ says so and names what is left to watch.
       and dark — the pair is what proves `isEnabled:` withholds the height rather than only
       the bar. No 26.0 frame is owed any more: the floor is 26.1 and there is no second code
       path to photograph.
-- [~] **2.4** Accessibility: reachable in the reading order, labelled per action,
+- [x] **2.4** Accessibility: reachable in the reading order, labelled per action,
       and it does not take focus when it appears. Verified with the screen reader
       on, not by reading the code.
 
@@ -451,6 +451,8 @@ says so and names what is left to watch.
       **The tick still waits on the walk.** A tripwire says a modifier is declared; it cannot
       say what VoiceOver read out, whether the bar is in the reading order, or where the cursor
       went. The four owed observations above are unchanged.
+
+      **Done, 2026-10-07 (close-all-yellow, wave 2).** `testTheVoiceBarIsReadInOrderAndTakesNoFocus` asserts the reading order (Back to the book, Open the player, Play or Pause, Stop), that the way back's value holds the title, that the UI focus is the same before and after a start, and runs the audit. It fails by name when `.accessibilityValue` is removed. The reviewer fixed it after `PlayerDamageTests` ran first and a shelf scroll minimised the tab bar. Limit: the focus clause compares the UI focus, which is probably nil both times, so it cannot fail for an `accessibilityFocused` change; `PlayerDockFocusTests` still guards that. Device checklist line added.
 - [~] **2.5** Screenshot at the largest text size, where a compact transport
       truncates first.
 
@@ -692,6 +694,8 @@ says so and names what is left to watch.
       carry on by itself; then start it, press pause, take a call, hang up, and hear that it
       stays silent. Nothing to photograph — this one is heard, not seen, and the handoff
       should say so rather than attaching a frame that proves nothing.
+
+      **Partial, 2026-10-07 (close-all-yellow, wave 2).** iOS: the voice and the audiobook use the same `PlaybackAudioSession`, and `AudioSessionEventTests` cover began, ended with `shouldResume` and ended without it for both source kinds. Android: `ReadAloudController` takes a `SentenceWalk`, and `VoiceFocusTest` raises each focus change through the request that the controller made (4 cases fail by name when `AUDIOFOCUS_GAIN` maps to `mayResume = false`). **Left: the Android emulator proof.** `VoiceFocusInstrumentedTest` ran on storyarc-ci and both cases skipped with "No speech engine started on this device", also after the default engine was set to `com.google.android.tts`. Run it on an image that speaks. Device checklist line added.
 - [x] **4.2** Audio taken for good: the session ends, the position is recorded,
       the transport goes.
 

@@ -4,7 +4,7 @@ watched it on a device.
 
 ## 1. The rungs that need no network
 
-- [~] 1.1 **Finish embedded artwork on the Android Storage Access Framework paths** (android).
+- [x] 1.1 **Finish embedded artwork on the Android Storage Access Framework paths** (android). **Done, 2026-10-07 (close-all-yellow, wave 2).** Both SAF call sites in `LibraryScanner.kt` pass the cover directory, and the instrumented test of 6.6 runs both and passed on the emulator.
   Task 16.9 of `close-the-audited-gaps` covers every path that holds a real file. It is open
   where Android indexes audio through SAF, because neither the single-file nor the folder SAF
   path can reach a file to read. Two call sites in `LibraryScanner.kt`, one reader for a SAF
@@ -102,7 +102,7 @@ watched it on a device.
       MangaUpdates as well. Fixed: the row is built from both lists, and the note says what
       each kind of request sends, in four languages. Still owed: the Android frame of the
       setting. See 6.5.
-- [~] 3.2 **Lookup by identifier** (both): Open Library by ISBN, Cover Art Archive by MBID,
+- [x] 3.2 **Lookup by identifier** (both): Open Library by ISBN, Cover Art Archive by MBID, **Done, 2026-10-07 (close-all-yellow, wave 2).** The client is now called by the shelf ladder on both platforms (6.1), and the rung tests show one provider asked once while the switch is on and nothing asked while it is off. Every test uses a stub transport; a check against the three live catalogues stays an owner step.
   Audnexus by ASIN. One request per publication. Every answer cached to disk.
 
       `CoverLookupProvider.swift` and `CoverLookupProvider.kt` pair each identifier with the
@@ -229,7 +229,7 @@ folder keeps its own cover, a loose cover beside a picked-folder document is fou
 replacement is reported, a Kavita reading list draws a chosen cover, and the lookup reaches only
 listed hosts. These are what it did not close.
 
-- [ ] 6.1 **The lookup is a rung of the ladder** (both). Read the identifier at index time: an
+- [x] 6.1 **The lookup is a rung of the ladder** (both). Read the identifier at index time: an **Done, 2026-10-07 (close-all-yellow, wave 2).** The lookup is the last rung of the shelf ladder on both platforms (Android `LibraryViewModel.cover` to `CoverLookupRung` to `CoverLookupClient`; iOS `LibraryModel.cover` to the same client). The setting gates the rung and the client. The client asks only https hosts in `CoverImageHosts`, reads at most 8 MB and checks each redirect host. The reviewer found and fixed two faults: a refused picture was not recorded, so each draw asked the host again (both platforms, commits `884113db` and `eec30f8c`), and the Android answer cache was an unsynchronised map written from the IO pool (now `@Synchronized`). A frame needs network access and an EPUB with an ISBN and no cover; the rung draws no new view, so no frame is owed here.
   ISBN from an EPUB's OPF, a MusicBrainz release-group id and an Audible ASIN from audio tags.
   Ask `CoverLookupClient.coverImage` after the rungs that need no network, only while the
   switch is on. Until then the switch does nothing, and task 3.2 stays partial.
@@ -237,7 +237,7 @@ listed hosts. These are what it did not close.
   "Find a cover" action that opens `CoverCandidateSheet`, and the web hand-off of task 4.1,
   beside the cover choice. The title search only while the switch is on; the hand-off always,
   because the browser makes that request and the app does not.
-- [ ] 6.3 **The candidate sheet shows each picture, through the client** (both). The Android
+- [x] 6.3 **The candidate sheet shows each picture, through the client** (both). The Android **Done, 2026-10-07 (close-all-yellow, wave 2).** The candidate sheet loads each picture through `CoverLookupClient.image` (the setting and the host are checked) on both platforms, and iOS no longer uses `AsyncImage`. Each row is keyed by position, so two equal answers are two rows. The picture is decorative and keeps a 44 x 66 frame while it loads. No string is new. No screen opens the sheet until task 6.2 adds "Find a cover", so the frames (light and dark, default and largest text) are taken with 6.2; commit `f5004eea` records `Visual-proof: flag`.
   sheet shows no picture, so the reader chooses blind. The iOS sheet loads pictures through
   the shared session and not through `CoverLookupClient.image`, which is the one path that
   checks the host. Key the Android rows on something two equal answers cannot share.
@@ -246,6 +246,6 @@ listed hosts. These are what it did not close.
   where Send does nothing.
 - [ ] 6.5 **Retake the frames** (android). Five of the eight frames of task 2.6, and the setting
   of task 3.1, on an emulator that stays responsive under the harness.
-- [ ] 6.6 **An instrumented test runs the scanner over a content tree** (android), with a cover
+- [x] 6.6 **An instrumented test runs the scanner over a content tree** (android), with a cover **Done, 2026-10-07 (close-all-yellow, wave 2).** `LibraryScannerCoverTreeInstrumentedTest` ran on the storyarc-ci emulator (API 35) through `pnpm gradle :core:format:connectedDebugAndroidTest`: 4 tests, 0 failures, through a real `DocumentsProvider` (`TestTreeProvider`). A temporary mutation that passed a null cover directory at the index call site made `theIncrementalIndexGivesEachAudiobookItsOwnCover` fail by name (reviewer).
   directory, and asserts each audiobook's own cover path. It closes task 1.1.
 
