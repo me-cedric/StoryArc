@@ -336,7 +336,21 @@ public final class ReaderModel {
 
     /// Whether a page failed to decode, as opposed to not being ready yet.
     public func isUnavailable(at index: Int) -> Bool {
-        attempted.contains(index) && decoded[index] == nil
+        Self.isUnavailable(
+            attempted: attempted.contains(index),
+            isReading: reading.contains(index),
+            isDecoded: decoded[index] != nil
+        )
+    }
+
+    /// The rule behind ``isUnavailable(at:)``, lifted so a test can hold it.
+    ///
+    /// A page is marked attempted *before* its read begins, so a read still under way is
+    /// attempted and not decoded, and PDFKit mapping a very large file keeps it there for
+    /// seconds. That is waiting, not failing: the loading state is drawn until the read ends,
+    /// and the problem sentence only after it has ended without an image.
+    static func isUnavailable(attempted: Bool, isReading: Bool, isDecoded: Bool) -> Bool {
+        attempted && !isReading && !isDecoded
     }
 
     var attempted: Set<Int> = []
