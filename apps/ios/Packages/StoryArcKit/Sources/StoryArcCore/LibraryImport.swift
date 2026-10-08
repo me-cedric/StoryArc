@@ -30,7 +30,8 @@ public enum LibraryImport {
             progressToAdd: progressToAdd,
             progressToMerge: readable.count - progressToAdd,
             certificatePinsToAdd: pinsArriving(document, onto: device),
-            settingsWillChange: document.library.settings.settings != device.settings,
+            settingsWillChange: document.library.settings.settings(keeping: device.settings)
+                != device.settings,
             themeEntriesToAdd: document.library.readingThemes.entries
                 .filter { !themes.contains("\($0.scope)/\($0.shelf ?? "")") }
                 .count,
@@ -86,7 +87,7 @@ public enum LibraryImport {
         // library is asking for the device to look like the one they left. A merge would have
         // to decide per field, and there is no honest rule for "which of two appearances did
         // they mean" — unlike a reading position, where "furthest" is one.
-        merged.settings = document.library.settings.settings
+        merged.settings = document.library.settings.settings(keeping: device.settings)
         merged.themes = mergingThemes(document, into: device.themes)
         merged.covers = device.covers + coversArriving(document, onto: device)
 
@@ -107,7 +108,7 @@ public enum LibraryImport {
     /// Its state, its secure-store handle and whatever it has learned since belong to this
     /// device. Overwriting a working source with a stale copy of itself would log the reader
     /// out of a server they are signed in to, which is the one thing an import must not do.
-    private static func mergingSources(_ document: LibraryDocument, into registry: SourceRegistry)
+    static func mergingSources(_ document: LibraryDocument, into registry: SourceRegistry)
         -> SourceRegistry {
         let held = Set(registry.sources.map(\.id))
         return document.library.sources
@@ -153,7 +154,7 @@ public enum LibraryImport {
 
     // MARK: Certificate pins
 
-    private static func pinsArriving(_ document: LibraryDocument, onto device: LibrarySnapshot)
+    static func pinsArriving(_ document: LibraryDocument, onto device: LibrarySnapshot)
         -> [CertificatePinNotice] {
         document.library.certificatePins
             .compactMap { host, fingerprints -> CertificatePinNotice? in
@@ -181,7 +182,7 @@ public enum LibraryImport {
         locator.flatMap { URL(string: $0)?.host }
     }
 
-    private static func mergingPins(
+    static func mergingPins(
         _ document: LibraryDocument,
         into held: [String: Set<String>]
     ) -> [String: Set<String>] {
@@ -284,7 +285,7 @@ public enum LibraryImport {
     /// A cover the device holds under the same key stands, for the reason a theme the device
     /// chose stands: it is the one the reader is holding. The one decode step the preview and
     /// the merge share, so the count the reader is shown is the count that lands.
-    private static func coversArriving(_ document: LibraryDocument, onto device: LibrarySnapshot)
+    static func coversArriving(_ document: LibraryDocument, onto device: LibrarySnapshot)
         -> [ChosenCover] {
         var seen = Set(device.covers.map(\.key))
         return document.library.covers.compactMap { cover in
@@ -331,7 +332,7 @@ public enum LibraryImport {
     /// reader is shown is the count that lands. Android's `LibraryImport.readableProgress` is
     /// the same step, and drops the same records for an unreadable position. A date this build
     /// cannot read is refused earlier, by the decoder, for the whole document.
-    private static func readableProgress(_ document: LibraryDocument) -> [ReadingProgress] {
+    static func readableProgress(_ document: LibraryDocument) -> [ReadingProgress] {
         document.library.progress.compactMap { record in
             record.position.position.map { position in
                 ReadingProgress(

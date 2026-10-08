@@ -9,9 +9,12 @@ public struct ReaderPreferences {
     private let legacyFitKey = "app.storyarc.pageFit"
     private let themesKey = "app.storyarc.themes"
     private let scrollOffsetsKey = "app.storyarc.scrollOffsets"
+    private let themesChangedAtKey = "app.storyarc.themesChangedAt"
+    private let now: @Sendable () -> Date
 
-    public init(defaults: UserDefaults = .standard) {
+    public init(defaults: UserDefaults = .standard, now: @escaping @Sendable () -> Date = { Date() }) {
         self.defaults = defaults
+        self.now = now
     }
 
     /// Every reading theme the reader has chosen, per shelf and per scope.
@@ -43,9 +46,36 @@ public struct ReaderPreferences {
         return migrated
     }
 
+    /// When each theme field last changed, by its filed name. `library-sync` task 3.5.
+    public func themesChangedAt() -> [String: Date] {
+        guard let data = defaults.data(forKey: themesChangedAtKey),
+              let stamps = try? JSONDecoder().decode([String: Date].self, from: data)
+        else { return [:] }
+        return stamps
+    }
+
+    /// Writes what the reader changed, with each changed field stamped now.
     public func save(_ memory: ShelfMemory) {
-        guard let data = try? JSONEncoder().encode(memory) else { return }
+        save(memory, changedAt: themesChangedAt())
+    }
+
+    /// Writes themes with their moments, as a sync leaves them. See
+    /// ``ChangeStamps/restamped(changed:before:after:now:)``.
+    public func save(_ memory: ShelfMemory, changedAt stamps: [String: Date]) {
+        let restamped = ChangeStamps.restamped(
+            changed: ThemeStamps.changed(from: storedThemes(), to: memory),
+            before: themesChangedAt(), after: stamps, now: now()
+        )
+        restore(memory, changedAt: restamped)
+    }
+
+    /// Writes themes and moments exactly as given: the undo of a failed import or sync.
+    public func restore(_ memory: ShelfMemory, changedAt stamps: [String: Date]) {
+        guard let data = try? JSONEncoder().encode(memory),
+              let moments = try? JSONEncoder().encode(stamps)
+        else { return }
         defaults.set(data, forKey: themesKey)
+        defaults.set(moments, forKey: themesChangedAtKey)
     }
 
     private func storedThemes() -> ShelfMemory {

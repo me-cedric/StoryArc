@@ -239,6 +239,10 @@ public struct KavitaProgressStore: @unchecked Sendable {
     /// Where a publication came from, or nil when it did not come from a Kavita server.
     public func origin(of publicationId: String) -> KavitaOrigin? { links()[publicationId] }
 
+    /// Every publication kept from a Kavita server, by its stable id. A sync document leaves
+    /// their positions to Kavita: `library-sync` task 3.7.
+    public func rememberedPublications() -> Set<String> { Set(links().keys) }
+
     /// Notes where a library row came from, without claiming the reader has opened it.
     ///
     /// A separate dictionary from ``remember(_:for:)``, on purpose. That one is read by

@@ -18,6 +18,7 @@ public struct LibraryArchive: @unchecked Sendable {
     private let defaults: UserDefaults
     private let progress: any ProgressLedger
     private let covers: (any ChosenCoverStore)?
+    private let now: @Sendable () -> Date
 
     /// - Parameter covers: where chosen covers are kept. `Persistence` cannot see `Formats`,
     ///   so the app hands the store in; an archive built without one neither reads nor writes
@@ -25,11 +26,13 @@ public struct LibraryArchive: @unchecked Sendable {
     public init(
         defaults: UserDefaults = .standard,
         progress: any ProgressLedger,
-        covers: (any ChosenCoverStore)? = nil
+        covers: (any ChosenCoverStore)? = nil,
+        now: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.defaults = defaults
         self.progress = progress
         self.covers = covers
+        self.now = now
     }
 
     /// The failure an import reports when a cover could not be written.
@@ -39,10 +42,11 @@ public struct LibraryArchive: @unchecked Sendable {
 
     /// Everything the export carries, as it stands right now.
     public func snapshot() async throws -> LibrarySnapshot {
+        let shelves = ShelvesStore(defaults: defaults)
         var library = LibrarySnapshot(
             sources: SourceStore(defaults: defaults).registry(),
             certificatePins: CertificatePinStore(defaults: defaults).pins(),
-            shelves: ShelvesStore(defaults: defaults).shelves(),
+            shelves: shelves.shelves(),
             pinnedShelves: PinnedShelves(
                 stored: defaults.string(forKey: PinnedShelves.storageKey) ?? ""
             ),
@@ -51,7 +55,11 @@ public struct LibraryArchive: @unchecked Sendable {
             // Everything, not a page of it. `recent(limit:)` is the only enumeration this
             // store has, and the export wants every record rather than the ones a
             // "Continue reading" row would show.
-            progress: try await progress.recent(limit: .max)
+            progress: try await progress.recent(limit: .max),
+            removedShelves: shelves.removed(),
+            settingsChangedAt: SettingsStore(defaults: defaults).changedAt(),
+            themesChangedAt: ReaderPreferences(defaults: defaults).themesChangedAt(),
+            kavitaKept: KavitaProgressStore(defaults: defaults).rememberedPublications()
         )
         library.covers = covers?.chosen(including: Self.coverKeys(in: library)) ?? []
         return library
@@ -81,7 +89,7 @@ public struct LibraryArchive: @unchecked Sendable {
             try await writeProgress(snapshot.progress)
         } catch {
             restoreCovers(replacedCovers)
-            writeStores(before)
+            writeStores(before, exactly: true)
             // The failure the reader needs is the first one. A second one while undoing
             // cannot be shown better than that, so it does not replace it.
             await restoreProgress(before.progress, over: snapshot.progress)
@@ -115,13 +123,24 @@ public struct LibraryArchive: @unchecked Sendable {
         }
     }
 
-    private func writeStores(_ snapshot: LibrarySnapshot) {
+    /// - Parameter exactly: true for an undo, which puts back the moments and deletions as they
+    ///   were. Otherwise a store stamps what changed and records what was deleted.
+    private func writeStores(_ snapshot: LibrarySnapshot, exactly: Bool = false) {
         SourceStore(defaults: defaults).save(snapshot.sources)
         CertificatePinStore(defaults: defaults).save(snapshot.certificatePins)
-        ShelvesStore(defaults: defaults).save(snapshot.shelves)
         defaults.set(snapshot.pinnedShelves.stored, forKey: PinnedShelves.storageKey)
-        SettingsStore(defaults: defaults).save(snapshot.settings)
-        ReaderPreferences(defaults: defaults).save(snapshot.themes)
+        let shelves = ShelvesStore(defaults: defaults, now: now)
+        let settings = SettingsStore(defaults: defaults, now: now)
+        let reader = ReaderPreferences(defaults: defaults, now: now)
+        if exactly {
+            shelves.restore(snapshot.shelves, removed: snapshot.removedShelves)
+            settings.restore(snapshot.settings, changedAt: snapshot.settingsChangedAt)
+            reader.restore(snapshot.themes, changedAt: snapshot.themesChangedAt)
+        } else {
+            shelves.save(snapshot.shelves, removed: snapshot.removedShelves)
+            settings.save(snapshot.settings, changedAt: snapshot.settingsChangedAt)
+            reader.save(snapshot.themes, changedAt: snapshot.themesChangedAt)
+        }
     }
 
     /// Reading progress goes through ``ProgressLedger/save(_:)`` one record at a time rather

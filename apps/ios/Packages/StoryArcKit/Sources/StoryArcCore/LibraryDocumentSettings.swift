@@ -23,6 +23,9 @@ public struct DocumentSettings: Sendable, Equatable, Codable {
     public var maximumDownloadBytes: Int64?
     public var removeDownloadsAfterFinishing: Bool
 
+    /// When each field last changed, and on which device. See ``SettingsStamps``.
+    public var changed: [String: DocumentStamp]?
+
     public init(
         appearance: String = AppearanceMode.system.rawValue,
         language: String? = nil,
@@ -32,8 +35,10 @@ public struct DocumentSettings: Sendable, Equatable, Codable {
         darkReadingTheme: String = ThemePreset.quiet.rawValue,
         downloadOverWifiOnly: Bool = false,
         maximumDownloadBytes: Int64? = nil,
-        removeDownloadsAfterFinishing: Bool = false
+        removeDownloadsAfterFinishing: Bool = false,
+        changed: [String: DocumentStamp]? = nil
     ) {
+        self.changed = changed
         self.appearance = appearance
         self.language = language
         self.turnPagesByTappingTheEdges = turnPagesByTappingTheEdges
@@ -63,18 +68,22 @@ public struct DocumentSettings: Sendable, Equatable, Codable {
     ///
     /// A setting is a preference, and losing one is worth far less than refusing the whole
     /// import — the same trade every store in this app already makes on unreadable data.
-    public var settings: AppSettings {
-        AppSettings(
-            appearance: AppearanceMode(rawValue: appearance) ?? .system,
-            language: language,
-            turnPagesByTappingTheEdges: turnPagesByTappingTheEdges,
-            linkReadingThemeToAppearance: linkReadingThemeToAppearance,
-            lightReadingTheme: ThemePreset(rawValue: lightReadingTheme) ?? .paper,
-            darkReadingTheme: ThemePreset(rawValue: darkReadingTheme) ?? .quiet,
-            downloadOverWifiOnly: downloadOverWifiOnly,
-            maximumDownloadBytes: maximumDownloadBytes,
-            removeDownloadsAfterFinishing: removeDownloadsAfterFinishing
-        )
+    public var settings: AppSettings { settings(keeping: .defaults) }
+
+    /// The settings this names, over the device's own: a setting the document does not carry
+    /// at all, such as the cover lookup, keeps the device's answer.
+    public func settings(keeping device: AppSettings) -> AppSettings {
+        var settings = device
+        settings.appearance = AppearanceMode(rawValue: appearance) ?? .system
+        settings.language = language
+        settings.turnPagesByTappingTheEdges = turnPagesByTappingTheEdges
+        settings.linkReadingThemeToAppearance = linkReadingThemeToAppearance
+        settings.lightReadingTheme = ThemePreset(rawValue: lightReadingTheme) ?? .paper
+        settings.darkReadingTheme = ThemePreset(rawValue: darkReadingTheme) ?? .quiet
+        settings.downloadOverWifiOnly = downloadOverWifiOnly
+        settings.maximumDownloadBytes = maximumDownloadBytes
+        settings.removeDownloadsAfterFinishing = removeDownloadsAfterFinishing
+        return settings
     }
 
     /// Decodes what is there and defaults what is not. See ``LibraryBody/init(from:)``.
@@ -103,7 +112,8 @@ public struct DocumentSettings: Sendable, Equatable, Codable {
             ),
             removeDownloadsAfterFinishing: try values.decodeIfPresent(
                 Bool.self, forKey: .removeDownloadsAfterFinishing
-            ) ?? fallback.removeDownloadsAfterFinishing
+            ) ?? fallback.removeDownloadsAfterFinishing,
+            changed: try values.decodeIfPresent([String: DocumentStamp].self, forKey: .changed)
         )
     }
 }

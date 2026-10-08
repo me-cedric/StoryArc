@@ -107,6 +107,12 @@ public struct LibraryBody: Sendable, Equatable, Codable {
     /// is read from the publication, and the cover cache is recreated.
     public var covers: [DocumentCover]
 
+    /// The collections and reading lists a reader deleted, so a deletion travels.
+    ///
+    /// `library-sync` / *A deletion is not a disagreement*. Nil when there is none, so an export
+    /// written before sync existed reads the same bytes.
+    public var removedShelves: [DocumentTombstone]?
+
     public init(
         sources: [DocumentSource] = [],
         certificatePins: [String: [String]] = [:],
@@ -116,8 +122,10 @@ public struct LibraryBody: Sendable, Equatable, Codable {
         settings: DocumentSettings = DocumentSettings(),
         readingThemes: DocumentThemes = DocumentThemes(),
         progress: [DocumentProgress] = [],
-        covers: [DocumentCover] = []
+        covers: [DocumentCover] = [],
+        removedShelves: [DocumentTombstone]? = nil
     ) {
+        self.removedShelves = removedShelves
         self.sources = sources
         self.certificatePins = certificatePins
         self.collections = collections
@@ -159,7 +167,10 @@ public struct LibraryBody: Sendable, Equatable, Codable {
             ) ?? DocumentThemes(),
             progress: try container.decodeIfPresent([DocumentProgress].self, forKey: .progress)
                 ?? [],
-            covers: try container.decodeIfPresent([DocumentCover].self, forKey: .covers) ?? []
+            covers: try container.decodeIfPresent([DocumentCover].self, forKey: .covers) ?? [],
+            removedShelves: try container.decodeIfPresent(
+                [DocumentTombstone].self, forKey: .removedShelves
+            )
         )
     }
 }
@@ -217,11 +228,26 @@ public struct DocumentCollection: Sendable, Equatable, Codable {
     public var members: [String]
     public var coverMemberId: String?
 
-    public init(id: UUID, name: String, members: [String], coverMemberId: String? = nil) {
+    /// When the shelf last changed. Nil on a shelf from before sync.
+    public var changedAt: Date?
+
+    /// The device that made that change. See ``LibrarySyncState``.
+    public var changedBy: String?
+
+    public init(
+        id: UUID,
+        name: String,
+        members: [String],
+        coverMemberId: String? = nil,
+        changedAt: Date? = nil,
+        changedBy: String? = nil
+    ) {
         self.id = id
         self.name = name
         self.members = members
         self.coverMemberId = coverMemberId
+        self.changedAt = changedAt
+        self.changedBy = changedBy
     }
 }
 
@@ -232,12 +258,23 @@ public struct DocumentReadingList: Sendable, Equatable, Codable {
     public var name: String
     public var entries: [String]
     public var coverMemberId: String?
+    public var changedAt: Date?
+    public var changedBy: String?
 
-    public init(id: UUID, name: String, entries: [String], coverMemberId: String? = nil) {
+    public init(
+        id: UUID,
+        name: String,
+        entries: [String],
+        coverMemberId: String? = nil,
+        changedAt: Date? = nil,
+        changedBy: String? = nil
+    ) {
         self.id = id
         self.name = name
         self.entries = entries
         self.coverMemberId = coverMemberId
+        self.changedAt = changedAt
+        self.changedBy = changedBy
     }
 }
 
@@ -251,9 +288,18 @@ public struct DocumentThemes: Sendable, Equatable, Codable {
     public var entries: [DocumentThemeEntry]
     public var customPalette: ReaderPalette?
 
-    public init(entries: [DocumentThemeEntry] = [], customPalette: ReaderPalette? = nil) {
+    /// When each field last changed, and on which device, keyed `scope/shelf|field`. See
+    /// ``ThemeStamps``.
+    public var changed: [String: DocumentStamp]?
+
+    public init(
+        entries: [DocumentThemeEntry] = [],
+        customPalette: ReaderPalette? = nil,
+        changed: [String: DocumentStamp]? = nil
+    ) {
         self.entries = entries
         self.customPalette = customPalette
+        self.changed = changed
     }
 }
 
@@ -284,17 +330,22 @@ public struct DocumentProgress: Sendable, Equatable, Codable {
     public var finishedAt: Date?
     public var updatedAt: Date
 
+    /// The device that wrote ``updatedAt``. Nil in an export.
+    public var changedBy: String?
+
     public init(
         identity: DocumentIdentity,
         position: DocumentPosition,
         isFinished: Bool,
         finishedAt: Date?,
-        updatedAt: Date
+        updatedAt: Date,
+        changedBy: String? = nil
     ) {
         self.identity = identity
         self.position = position
         self.isFinished = isFinished
         self.finishedAt = finishedAt
         self.updatedAt = updatedAt
+        self.changedBy = changedBy
     }
 }

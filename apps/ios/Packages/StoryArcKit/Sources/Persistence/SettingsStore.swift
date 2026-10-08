@@ -11,9 +11,12 @@ public import StoryArcCore
 public struct SettingsStore {
     private let defaults: UserDefaults
     private let key = "app.storyarc.settings"
+    private let changedAtKey = "app.storyarc.settingsChangedAt"
+    private let now: @Sendable () -> Date
 
-    public init(defaults: UserDefaults = .standard) {
+    public init(defaults: UserDefaults = .standard, now: @escaping @Sendable () -> Date = { Date() }) {
         self.defaults = defaults
+        self.now = now
     }
 
     /// What the reader has chosen, or the defaults.
@@ -28,9 +31,36 @@ public struct SettingsStore {
         return stored
     }
 
+    /// When each setting last changed, by field name. `library-sync` task 3.5.
+    public func changedAt() -> [String: Date] {
+        guard let data = defaults.data(forKey: changedAtKey),
+              let stamps = try? JSONDecoder().decode([String: Date].self, from: data)
+        else { return [:] }
+        return stamps
+    }
+
+    /// Writes what the reader changed, with each changed field stamped now.
     public func save(_ settings: AppSettings) {
-        guard let data = try? JSONEncoder().encode(settings) else { return }
+        save(settings, changedAt: changedAt())
+    }
+
+    /// Writes settings with their moments, as a sync leaves them. A field whose value changed
+    /// while its moment did not is stamped now; see ``ChangeStamps/restamped(changed:before:after:now:)``.
+    public func save(_ settings: AppSettings, changedAt stamps: [String: Date]) {
+        let restamped = ChangeStamps.restamped(
+            changed: SettingsStamps.changed(from: self.settings(), to: settings),
+            before: changedAt(), after: stamps, now: now()
+        )
+        restore(settings, changedAt: restamped)
+    }
+
+    /// Writes settings and moments exactly as given: the undo of a failed import or sync.
+    public func restore(_ settings: AppSettings, changedAt stamps: [String: Date]) {
+        guard let data = try? JSONEncoder().encode(settings),
+              let moments = try? JSONEncoder().encode(stamps)
+        else { return }
         defaults.set(data, forKey: key)
+        defaults.set(moments, forKey: changedAtKey)
     }
 
     /// Puts everything this store holds back to its default.

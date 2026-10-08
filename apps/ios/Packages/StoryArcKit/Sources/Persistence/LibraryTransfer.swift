@@ -143,6 +143,29 @@ public struct LibraryTransfer: Sendable {
         )
     }
 
+    /// One sync with the document in `place`: read, merge, write, then the merge to the stores.
+    ///
+    /// `library-sync` task 3.1. The place, and when this runs, are the caller's: tasks 2.x and
+    /// 4.x. Only the positions the merge changed are written back, so a page turned while the
+    /// sync ran is not put back to the one read before it.
+    public func sync(
+        with place: any SyncPlace,
+        state: LibrarySyncState,
+        appVersion: String,
+        at moment: Date = Date()
+    ) async throws -> LibrarySyncOutcome {
+        let local = try await archive.snapshot()
+        let outcome = try await LibrarySync(place: place, device: state.deviceID(), appVersion: appVersion)
+            .sync(local, at: moment, mergedCopies: state.mergedCopies())
+        if case let .synced(result) = outcome {
+            var merged = result.merged.snapshot
+            merged.progress = merged.progress.filter { !local.progress.contains($0) }
+            try await archive.apply(merged)
+            state.saveMergedCopies(result.mergedCopies)
+        }
+        return outcome
+    }
+
     private func openedSecrets(_ document: LibraryDocument, passphrase: String?) throws -> [UUID: String] {
         guard let sealed = document.secrets, let passphrase, !passphrase.isEmpty else { return [:] }
         do {

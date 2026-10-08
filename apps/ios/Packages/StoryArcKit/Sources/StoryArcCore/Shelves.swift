@@ -38,18 +38,26 @@ public struct PublicationCollection: Sendable, Identifiable, Equatable {
 
     public let origin: ShelfOrigin
 
+    /// When the reader last changed it. The epoch for a shelf from before sync.
+    ///
+    /// `library-sync`: a deletion wins over a shelf whose last change is older. The store
+    /// stamps it on each change; see ``ShelfStamps``.
+    public var changedAt: Date
+
     public init(
         id: UUID = UUID(),
         name: String,
         members: Set<String> = [],
         coverMemberID: String? = nil,
-        origin: ShelfOrigin = .local
+        origin: ShelfOrigin = .local,
+        changedAt: Date = Date(timeIntervalSince1970: 0)
     ) {
         self.id = id
         self.name = name
         self.members = members
         self.coverMemberID = coverMemberID
         self.origin = origin
+        self.changedAt = changedAt
     }
 }
 
@@ -72,18 +80,23 @@ public struct ReadingList: Sendable, Identifiable, Equatable {
 
     public let origin: ShelfOrigin
 
+    /// When the reader last changed it. See ``PublicationCollection/changedAt``.
+    public var changedAt: Date
+
     public init(
         id: UUID = UUID(),
         name: String,
         entries: [String] = [],
         coverMemberID: String? = nil,
-        origin: ShelfOrigin = .local
+        origin: ShelfOrigin = .local,
+        changedAt: Date = Date(timeIntervalSince1970: 0)
     ) {
         self.id = id
         self.name = name
         self.entries = entries
         self.coverMemberID = coverMemberID
         self.origin = origin
+        self.changedAt = changedAt
     }
 
     /// What comes after a publication in this list.
@@ -115,6 +128,20 @@ public struct ReadingList: Sendable, Identifiable, Equatable {
     /// and a list that said five of ten would be telling them they had.
     public func position(finished: (String) -> Bool) -> Int {
         entries.firstIndex { !finished($0) } ?? entries.count
+    }
+}
+
+/// A collection or reading list the reader deleted, kept so the deletion can travel.
+///
+/// `library-sync` / *A deletion is not a disagreement*: without it a shelf deleted on one
+/// device returns from the other at the next sync.
+public struct ShelfTombstone: Sendable, Equatable, Codable {
+    public let id: UUID
+    public let removedAt: Date
+
+    public init(id: UUID, removedAt: Date) {
+        self.id = id
+        self.removedAt = removedAt
     }
 }
 
