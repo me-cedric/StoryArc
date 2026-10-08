@@ -100,7 +100,9 @@ struct CurlOverThePageBodyTests {
         let drawn = pageRect(in: frame, image: tall)
         #expect(abs(drawn.width - phone.width) < 0.5)
         #expect(abs(drawn.minY) < 0.5)
-        #expect(frame.minX == 0)
+        // The page itself starts at the screen's left edge, not the box it is fitted in: a tall
+        // page sits in the middle of that box, so the box's edge is blank margin (23.2).
+        #expect(abs(drawn.minX) < 0.5)
     }
 
     @Test("A carried zoom in a right-to-left publication opens against the right")
@@ -110,7 +112,7 @@ struct CurlOverThePageBodyTests {
             imageSize: tall, viewport: phone, fit: .width, carried: 2, isRightToLeft: true
         )
         let drawn = pageRect(in: frame, image: tall)
-        #expect(abs(frame.maxX - phone.width) < 0.5)
+        #expect(abs(drawn.maxX - phone.width) < 0.5)
         #expect(drawn.width > phone.width * 1.9)
     }
 
