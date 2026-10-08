@@ -104,7 +104,7 @@ section is why the change is not archived yet.
   **Android is fixed.** The composite draws `CoverlessWell` when none of its members' covers
   arrived, and every caller now passes the shelf's name for it to carry — `ShelfCover`,
   `ServerShelfCover`, the cover chooser and Home. 761 tests pass in the module.
-- [ ] 5b.2 **The same fix on iOS, which needs an API decision first.**
+- [x] 5b.2 **The same fix on iOS, which needs an API decision first.**
   `CoverlessWell` there takes a `PublicationFormat` and draws a glyph for it
   (`DesignSystem/CoverlessWell.swift:66-70`); a shelf has no format to give it. Two ways out,
   and the choice belongs to whoever knows the design intent: a formatless initialiser that
@@ -112,6 +112,7 @@ section is why the change is not archived yet.
   comics and oddly for a mixed one. Android sidesteps it because its own well takes a nullable
   format. `ShelfCover.swift:88` is the site. **Owner decision, 2026-10-07:** the formatless
   initialiser, which draws the generic glyph, as Android's nullable format already does.
+  **Done, 2026-10-08 (close-all-yellow, wave 3).** iOS `CoverlessWell` has a formatless initialiser that draws the generic glyph, and the shelf cover uses it. The old format argument is removed. A test fails if a shelf well draws a member's glyph. No iOS frame: the Kavita mock serves artwork at once, so the glyph never stayed on screen.
 - [x] 5b.3 **A server-defined collection could not show the cover a reader locked on the
   server, and now it can.** The delta extends "unless the user sets a specific one" to a
   collection a server defines. The model dropped the field for exactly that kind, so

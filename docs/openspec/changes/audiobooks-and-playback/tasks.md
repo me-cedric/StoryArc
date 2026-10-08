@@ -418,7 +418,7 @@ creep — see [`design.md`](design.md).
       `SLOT_BACK` / `SLOT_FORWARD`, not the deprecated `setCustomLayout`, because a
       preference says which slot a button wants and lets each surface place it.
       Not yet photographed in the shade — that is a capture and it belongs with §6.
-- [~] 3.6 Android: `MediaSession.Callback.onPlaybackResumption` returning the saved
+- [x] 3.6 Android: `MediaSession.Callback.onPlaybackResumption` returning the saved
       position, so the shade carousel works after process death.
       **Written, not proved.** The three-argument overload; the two-argument one is
       deprecated at 1.11.0. `isForPlayback` is answered the same either way on purpose —
@@ -456,6 +456,7 @@ creep — see [`design.md`](design.md).
       and the shade's "resume" one place rather than two nearly identical calculations.
       **Still owed, and still a device exercise:** `adb shell am force-stop app.storyarc` while
       a book is paused, then the shade's carousel row, then play. Nothing else can prove it.
+      **Proved on the emulator, 2026-10-08 (close-all-yellow, wave 3).** Sea Room was paused at 2000 ms and the app was force-stopped. No process and no session remained. After `cmd media_session dispatch play`, a new process ran, the session was PLAYING at 2043 ms, and the shade showed the resumed row. Frame: `docs/designs/screenshots/android-player-2026-10-08/android-shade-resumed-after-kill.png`. The row has no picture after a resume: see 4.4b.
 - [x] 3.7 Android: `MediaLibraryService` and `automotive_app_desc.xml`.
       **Done.** The service is a `MediaLibraryService`; the descriptor declares `media` and
       nothing else, because declaring a capability the app cannot honour is how an app
@@ -776,6 +777,7 @@ creep — see [`design.md`](design.md).
       cover or `CoverlessWell` as the player's first child from the publication `PlayingBook` now
       exposes; `PlayerSemanticsTest` pins both. Frames in `android-player-artwork-2026-09-06`.
       Still `[~]`: whether the media notification is handed the same artwork is not verified.
+      **2026-10-08 (close-all-yellow, wave 3).** The shade of a closed player with a coverless book is framed, light and dark: `docs/designs/screenshots/android-player-2026-10-08/android-shade-coverless-closed-player.png`. **Left:** (1) a book resumed after process death has no drawn artwork in the shade, because `PlaybackMemory` keeps only the artwork address: add `PlaybackMemory.rememberArtwork(publicationId, uri)` and call it at the end of `PlaybackHost.setArtwork`. (2) A car start with no activity gets no picture, because `watchCarStarts` and `SessionArtwork` run only in the app shell. (3) The shade after a car start needs the Desktop Head Unit, which is not installed here.
 
 - [~] 4.5 Both: the full player — cover, publication, chapter, position, duration,
       play/pause, skip both ways, scrub, chapter list, speed, sleep timer. Assert
@@ -1427,6 +1429,7 @@ creep — see [`design.md`](design.md).
       exercise, not a screenshot: play the corpus's six-second `chaptered.m4b` to its end and
       confirm the delete-the-download prompt and the next-in-series row appear as they do for
       a comic. A frame of each, light, at the default text size, is what would record it.
+      **2026-10-08 (close-all-yellow, wave 3).** Android: `Dawn Road 01` played to its end, every chapter showed Finished, and the finished screen showed 'Next: Dawn Road #2' (the page lists '#2 Unread'). Frame: `docs/designs/screenshots/android-player-2026-10-08/android-player-finished-next-row.png`. iOS: the finished surface is framed (`docs/designs/screenshots/player-ios-2026-10-08/ios-player-finished-audiobook.png`), with no Next row, because no seeded audiobook is in a series. **Left:** the remove-downloads sweep was run by no device (the mocks serve no audio, so no audiobook can be downloaded; a host test covers it), and the iOS Next row is not seen.
 
 > **§8.4's compact-bar half was a spec-versus-platform conflict. `/opsx:update` settled it on
 > 2026-09-01 and the requirement was what changed.** `audio-playback` asked the bar to "grow to
@@ -1482,6 +1485,7 @@ creep — see [`design.md`](design.md).
       behind** the sheet, the same class of finding `AccessibilityAuditTests` already records
       there. Reading them as sheet findings would have sent the next reader to the wrong file.
       One finding **is** the bar's, and it is real — see 8.4.
+      **2026-10-08 (close-all-yellow, wave 3): scanned, and not clean.** The Android accessibility scan of the player routes found 4 targets below the floor: the sleep-timer chips '5 min', '15 min', '30 min' and '45 min' are 37.3 dp high (floor 48 dp), on `Player` and `Player > Sea Room playing`. The routes `Player > chapters`, `Player > compact bar` and `Player > finished series audiobook` gave 0 problems. **Left:** make the chips 48 dp high and run the scan again. A product change.
 - [x] 8.2 Both. **Android half.** A `Slider` is already an adjustable; what it announces
       by default is a percentage, and the `stateDescription` replaces that with
       "0:42 of 5:00".
@@ -1689,7 +1693,7 @@ and iOS is unaffected on both shapes, because `PlaybackTimeline.place(atFileTime
       `ProgressMigrationTest`, which is instrumented and was **not run**: no device.
       The two readers in `:app` are asserted through `ListenedPosition` in
       `ListenedPositionTest`, because that object is not reachable from `:core:playback`.
-- [ ] 17.3 Android: re-prove on the phone. **Still open: no phone was available to the agent
+- [x] 17.3 Android: re-prove on the phone. **Still open: no phone was available to the agent
       that did 17.1 and 17.2 on 2026-09-11.** Two claims need it. The deferred seek in
       `adoptChapters` runs where `MediaController` commands were the resumption defect of
       13.3 — the player holds audio by then, so the seek command should be available, and a
@@ -1697,6 +1701,7 @@ and iOS is unaffected on both shapes, because `PlaybackTimeline.place(atFileTime
       `ProgressMigrationTest`'s, which did not execute. Play the corpus's `Sea Room.m4b` past its second
       mark, read the stated remainder, close the app, reopen it and confirm the resumed place.
       A `MARKS` book is the shape a migration can break silently.
+      **Proved on the emulator, 2026-10-08 (close-all-yellow, wave 3).** `pnpm gradle :core:persistence:connectedDebugAndroidTest` passed 67 tests with 0 failures, and `ProgressMigrationTest` passed 10 of 10 under a real SQLite. `Dawn Road #2` was paused in chapter three, the app was force-stopped, and the page showed One Finished, Two Finished, Three In progress. Listen resumed at the same place (progress.db: part_index 2, offset 0). The image shows MP4 chapters. Note: a finished book restarts from its beginning on Listen, so use a book never finished.
 
 ## 16. A listening position is written at the listener's moments
 

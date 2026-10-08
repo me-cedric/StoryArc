@@ -128,6 +128,7 @@ watched it on a device.
       is on main. What is missing now is the call: no screen opens the sheet. Title-search
       answers are now cached, filtered to listed hosts and de-duplicated by picture. See 6.2
       and 6.3.
+  **2026-10-08 (close-all-yellow, wave 3): reachable.** 'Find a cover' opens the sheet while the lookup switch is on. Only a tap adopts a candidate, through the same crop and store path as the photo picker. Frames of the wait and the empty answer: `docs/designs/screenshots/covers-b-android-2026-10-08/` and `docs/designs/screenshots/covers-b-ios-2026-10-08/`. **Left:** frames with candidate pictures. The Android emulator cannot validate TLS on this network (openlibrary.org gives NET::ERR_CERT_AUTHORITY_INVALID), and the only coverless book on the iOS simulator has no match. Repeat on a network without TLS interception, with a coverless book that has a match.
 - [x] 3.4 **A refusal is quiet** (both). 403, 404, 429 or silence leaves the cover as it was,
   shows the reader no error for something they did not ask about, and does not retry in a loop.
 
@@ -154,7 +155,7 @@ watched it on a device.
 
 ## 4. The web hand-off
 
-- [~] 4.1 **The system browser opens an image search for the title** (both).
+- [x] 4.1 **The system browser opens an image search for the title** (both).
   `SFSafariViewController` on iOS, a Custom Tab on Android. Not a `WKWebView`, not a
   `WebView` — see design.md, which records why at length.
 
@@ -167,6 +168,7 @@ watched it on a device.
       The engine is DuckDuckGo, which design.md does not decide: the app has no analytics and
       no account, and an engine that profiles a signed-in reader would undo that at the one
       moment the app chooses the address.
+  **Done, 2026-10-08 (close-all-yellow, wave 3).** The hand-off row is on the publication page on both platforms, and the lookup switch does not gate it. Frames: `docs/designs/screenshots/covers-b-android-2026-10-08/` and `docs/designs/screenshots/covers-b-ios-2026-10-08/`.
 - [x] 4.2 **A test asserts the app reads nothing from that browser** (both): no capture, no
   injected script, no image received. The only route in is the picker of task 2.2.
 
@@ -186,7 +188,7 @@ watched it on a device.
 
 ## 5. Writing back where it works
 
-- [~] 5.1 **A cover set on a Kavita reading list the reader owns may be written back** (both).
+- [x] 5.1 **A cover set on a Kavita reading list the reader owns may be written back** (both).
   One POST per client, base64, an 8 MB guard. The confirmation says it changes the cover for
   everyone who can see that list.
 
@@ -205,6 +207,7 @@ watched it on a device.
 
       Proved able to fail: removing the ceiling check reports `KavitaCoverUploadTest > a
       picture above the ceiling is refused before anything is sent FAILED`.
+  **Done, 2026-10-08 (close-all-yellow, wave 3).** The write-back button is on the Kavita reading-list screen (6.4). A confirmed send posts the chosen picture to the list it was chosen for. Frames of the send dialog: `docs/designs/screenshots/covers-b-android-2026-10-08/` and `docs/designs/screenshots/covers-b-ios-2026-10-08/`.
 - [x] 5.2 **Nowhere else offers it** (both). A test that asserts no write action appears on a
   Kavita series, chapter, collection or library, nor on any OPDS row, so the feature cannot
   drift into offering a 403.
@@ -217,7 +220,7 @@ watched it on a device.
       `Expectation failed: CoverWriteBack.offer(for: subject) == .none` on iOS and
       `CoverWriteBackTest > no Kavita entity but a reading list is offered a write FAILED` on
       Android.
-- [ ] 5.3 **Check the live server** (owner step, android and ios). The repo's Kavita client was
+- [~] 5.3 **Check the live server** (owner step, android and ios). The repo's Kavita client was **Partial, 2026-10-08 (close-all-yellow, wave 3).** Proved against the repo's Kavita mock on both platforms: the app sent the chosen list cover, the mock answered 200 to `POST /api/Upload/reading-list` and served the new cover back (the emulator's list cover changed from a 1686 B PNG to the app's own 2970 B JPEG). The live Kavita was not called. **Left (owner step):** send one real upload to a list the owner owns, check it in the web UI, and check that a list the owner does not own shows no button.
   built against documentation rather than a live instance for some routes. The owner has a
   Kavita server; the upload shape needs one real call before this is claimed to work.
 
@@ -233,7 +236,7 @@ listed hosts. These are what it did not close.
   ISBN from an EPUB's OPF, a MusicBrainz release-group id and an Audible ASIN from audio tags.
   Ask `CoverLookupClient.coverImage` after the rungs that need no network, only while the
   switch is on. Until then the switch does nothing, and task 3.2 stays partial.
-- [ ] 6.2 **The publication page offers the title search and the web search** (both). Put a
+- [x] 6.2 **The publication page offers the title search and the web search** (both). Put a **Done, 2026-10-08 (close-all-yellow, wave 3).** The publication page draws 'Find a cover' only while the lookup switch is on, and the web hand-off always. Frames in light, dark and the largest text: `docs/designs/screenshots/covers-b-android-2026-10-08/` and `docs/designs/screenshots/covers-b-ios-2026-10-08/`.
   "Find a cover" action that opens `CoverCandidateSheet`, and the web hand-off of task 4.1,
   beside the cover choice. The title search only while the switch is on; the hand-off always,
   because the browser makes that request and the app does not.
@@ -241,7 +244,7 @@ listed hosts. These are what it did not close.
   sheet shows no picture, so the reader chooses blind. The iOS sheet loads pictures through
   the shared session and not through `CoverLookupClient.image`, which is the one path that
   checks the host. Key the Android rows on something two equal answers cannot share.
-- [ ] 6.4 **The write-back button is on the Kavita reading-list screen** (both), and only once a
+- [x] 6.4 **The write-back button is on the Kavita reading-list screen** (both), and only once a **Done, 2026-10-08 (close-all-yellow, wave 3).** The button is the first row of the Kavita reading-list screen on both platforms, and it shows only once a cover is chosen on a list the reader owns. Frames: `docs/designs/screenshots/covers-b-android-2026-10-08/` and `docs/designs/screenshots/covers-b-ios-2026-10-08/`.
   cover is chosen. Today it is placed nowhere, and its own view draws it with no cover chosen,
   where Send does nothing.
 - [ ] 6.5 **Retake the frames** (android). Five of the eight frames of task 2.6, and the setting
