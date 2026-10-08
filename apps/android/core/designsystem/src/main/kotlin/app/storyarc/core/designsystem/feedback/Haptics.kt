@@ -7,13 +7,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalView
 
 /**
- * The two moments StoryArc taps a reader on the wrist.
+ * The three moments StoryArc taps a reader on the wrist.
  *
  * `native-experience` lists haptics among the system affordances the app has to use.
  * Which is a shorter list than it sounds: a page turn is the commonest thing that
  * happens in this app, and a comic read at speed is two hundred of them — a buzz on
- * each one is a defect, not a feature. So the vocabulary is deliberately two words
- * wide, and both of them are for something a reader would otherwise have to *notice*
+ * each one is a defect, not a feature. So the vocabulary is deliberately three words
+ * wide, and each is for something a reader would otherwise have to *notice*
  * had happened.
  *
  * Nothing else gets one, on purpose:
@@ -23,6 +23,9 @@ import androidx.compose.ui.platform.LocalView
  * - **Dragging the page slider** crosses a page a frame; a tick each would be a rattle.
  * - **A long press** already has the platform's own, from `combinedClickable`.
  * - **A switch or a slider** is answered by the control moving.
+ *
+ * The one exception is a scrub over a few discrete stops, where each stop is a thing the
+ * reader has to *feel* land: the library index, one tick for each new letter.
  */
 enum class StoryArcFeedback {
     /** A thing the reader finished. The end of a publication is the only one so far. */
@@ -30,6 +33,9 @@ enum class StoryArcFeedback {
 
     /** A request the app cannot honour — a page turn back from the first page. */
     REFUSAL,
+
+    /** One discrete step of a scrub, such as a new letter under the finger on the library index. */
+    SELECTION,
     ;
 
     /**
@@ -43,6 +49,7 @@ enum class StoryArcFeedback {
         get() = when (this) {
             COMPLETION -> HapticFeedbackConstants.CONFIRM
             REFUSAL -> HapticFeedbackConstants.REJECT
+            SELECTION -> HapticFeedbackConstants.TEXT_HANDLE_MOVE
         }
 }
 

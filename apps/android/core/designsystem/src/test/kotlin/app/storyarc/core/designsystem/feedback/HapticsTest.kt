@@ -59,6 +59,15 @@ class HapticsTest {
         assertEquals(listOf(HapticFeedbackConstants.REJECT), view.played)
     }
 
+    @Test
+    fun `a new letter under the finger plays the platform's own tick`() {
+        val view = recorder()
+
+        Haptics(view).play(StoryArcFeedback.SELECTION)
+
+        assertEquals(listOf(HapticFeedbackConstants.TEXT_HANDLE_MOVE), view.played)
+    }
+
     /**
      * And no two moments in the vocabulary feel the same.
      *

@@ -1,17 +1,26 @@
 package app.storyarc.feature.library
 
 import android.content.Context
-import androidx.compose.ui.test.assertHasClickAction
-import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotDisplayed
+import android.view.HapticFeedbackConstants
+import android.view.View
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -20,13 +29,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The index can be reached and operated without sight.
+ * `close-the-audited-gaps` 24.6: the A to Z rail is one control.
  *
- * `library-browsing`'s *The index without sight* scenario: the rail "is announced as one named
- * group", "each entry is announced as the letter it moves to", and "every entry can be reached
- * and operated without sight". A rail of single characters is exactly the control that passes a
- * visual review and fails a screen reader, so the semantics tree is asked rather than the
- * source — the same argument `LibraryControlsAreNamedTest` sets out at length.
+ * Every test drives the rail the way a reader does: a finger down on it, a drag along it, or
+ * TalkBack's own slider and named actions. iOS's `LibraryRailTests`, `HitRegionTests` and
+ * `SweepLibraryTests.testTheIndexIsOneScrubber` answer the same questions.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp")
@@ -41,66 +48,157 @@ class IndexRailIsOperableTest {
 
     private val entries = listOf(RailEntry("A", "one"), RailEntry("S", "two"), RailEntry("#", "three"))
 
-    @Test
-    fun `every letter is a button that says where it goes`() {
-        val chosen = mutableListOf<String>()
+    private val alphabet = ('A'..'Z').map { RailEntry(it.toString(), it.toString()) }
+
+    private val rail get() = compose.onNodeWithContentDescription(string(R.string.library_index))
+
+    private fun show(shown: List<RailEntry>, chosen: MutableList<String>) {
         compose.setContent {
-            StoryArcTheme { IndexRail(entries = entries, onChoose = { chosen += it.label }) }
+            StoryArcTheme { IndexRail(entries = shown, onChoose = { chosen += it.label }) }
         }
+    }
 
-        for (entry in entries) {
-            compose.onNodeWithContentDescription(string(R.string.library_index_jump, entry.label))
-                .assertHasClickAction()
+    /** A finger down at the top of the rail, dragged to [to] of its height in steps of 2 px. */
+    private fun SemanticsNodeInteraction.drag(from: Float = 0f, to: Float = 1f) {
+        performTouchInput {
+            val start = from * height
+            val end = to * height
+            val direction = if (end >= start) 1f else -1f
+            down(Offset(width / 2f, start))
+            var y = start
+            while ((end - y) * direction > 0f) {
+                y += 2f * direction
+                moveTo(Offset(width / 2f, if (direction > 0f) minOf(y, end) else maxOf(y, end)))
+            }
+            up()
         }
+    }
 
-        compose.onNodeWithContentDescription(string(R.string.library_index_jump, "S")).performClick()
+    @Test
+    fun `the rail is one named node that nothing else on it can be pressed`() {
+        show(entries, mutableListOf())
+
+        rail.assertExists()
+        assertEquals(0, compose.onAllNodes(hasClickAction()).fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `the rail is a target of 48 dp or more`() {
+        show(alphabet, mutableListOf())
+
+        rail.assertTouchTargetIsAtLeast()
+    }
+
+    @Test
+    fun `a tap on the rail chooses the letter under the finger`() {
+        val chosen = mutableListOf<String>()
+        show(entries, chosen)
+
+        // Three letters of 24 dp between 8 dp of padding: the middle of the rail is the middle one.
+        rail.performTouchInput { click(Offset(width / 2f, height / 2f)) }
+
         assertEquals(listOf("S"), chosen)
     }
 
     @Test
-    fun `the rail is one named group, so it is announced once`() {
-        compose.setContent { StoryArcTheme { IndexRail(entries = entries, onChoose = {}) } }
+    fun `a drag down the whole rail chooses every letter, in order, once each`() {
+        val chosen = mutableListOf<String>()
+        show(alphabet, chosen)
 
-        compose.onNodeWithContentDescription(string(R.string.library_index)).assertExists()
+        rail.drag()
+
+        assertEquals(alphabet.map { it.label }, chosen)
     }
 
-    /**
-     * The other half of *A sort no letter describes*: absent, not drawn and inert. A rail that
-     * composed an empty column would still take a strip of the shelf and still have to be
-     * stepped over.
-     */
+    @Test
+    fun `a drag back up chooses the letters in reverse`() {
+        val chosen = mutableListOf<String>()
+        show(alphabet, chosen)
+
+        rail.drag(from = 1f, to = 0f)
+
+        assertEquals(alphabet.map { it.label }.reversed(), chosen)
+    }
+
+    @Test
+    fun `a letter is chosen once while the finger stays on it`() {
+        val chosen = mutableListOf<String>()
+        show(entries, chosen)
+
+        rail.performTouchInput {
+            down(Offset(width / 2f, height / 2f))
+            moveBy(Offset(0f, 3f))
+            moveBy(Offset(0f, -3f))
+            up()
+        }
+
+        assertEquals(listOf("S"), chosen)
+    }
+
+    @Config(sdk = [34], qualifiers = "w891dp-h180dp")
+    @Test
+    fun `every letter is reachable when the window is shorter than the alphabet`() {
+        val chosen = mutableListOf<String>()
+        show(alphabet, chosen)
+
+        rail.drag()
+
+        assertEquals(alphabet.map { it.label }, chosen)
+    }
+
+    @Test
+    fun `each new letter plays one tick`() {
+        val ticks = mutableListOf<Int>()
+        compose.setContent {
+            val view = remember {
+                object : View(ApplicationProvider.getApplicationContext<Context>()) {
+                    override fun performHapticFeedback(feedbackConstant: Int): Boolean {
+                        ticks += feedbackConstant
+                        return true
+                    }
+                }
+            }
+            CompositionLocalProvider(LocalView provides view) {
+                StoryArcTheme { IndexRail(entries = alphabet, onChoose = {}) }
+            }
+        }
+
+        rail.drag()
+
+        assertEquals(List(alphabet.size) { HapticFeedbackConstants.TEXT_HANDLE_MOVE }, ticks)
+    }
+
+    @Test
+    fun `the rail is a slider that steps to the next letter and says which one it is on`() {
+        val chosen = mutableListOf<String>()
+        show(entries, chosen)
+
+        rail.performSemanticsAction(SemanticsActions.SetProgress) { it(1f) }
+
+        assertEquals(listOf("S"), chosen)
+        val state = rail.fetchSemanticsNode().config[SemanticsProperties.StateDescription]
+        assertEquals("S", state)
+    }
+
+    @Test
+    fun `every letter is also a named action that goes there`() {
+        val chosen = mutableListOf<String>()
+        show(entries, chosen)
+
+        val actions = rail.fetchSemanticsNode().config[SemanticsActions.CustomActions]
+
+        assertEquals(entries.map { string(R.string.library_index_jump, it.label) }, actions.map { it.label })
+        compose.runOnUiThread { actions.first { it.label == string(R.string.library_index_jump, "S") }.action() }
+        assertEquals(listOf("S"), chosen)
+    }
+
     @Test
     fun `an empty index draws nothing that can be pressed`() {
         compose.setContent { StoryArcTheme { IndexRail(entries = emptyList(), onChoose = {}) } }
 
         assertEquals(0, compose.onAllNodes(hasClickAction()).fetchSemanticsNodes().size)
-    }
-
-    /**
-     * Task 21.1: a shelf spanning every letter asks for up to 27 fixed 24 dp entries -- 648 dp,
-     * taller than the 100 dp this window offers here and taller than a phone's own landscape
-     * height on the device the field report came from. Before the rail could scroll, entries
-     * past the window's edge were not merely off screen -- `Arrangement.Center` inside a
-     * `fillMaxHeight` column with no overflow answer left some of them placed with no size at
-     * all, an unreachable rail rather than a merely cramped one.
-     */
-    @Config(sdk = [34], qualifiers = "w891dp-h180dp")
-    @Test
-    fun `every entry is reachable when the rail is taller than its window`() {
-        val alphabet = ('A'..'Z').map { RailEntry(it.toString(), it.toString()) }
-
-        compose.setContent {
-            StoryArcTheme {
-                IndexRail(entries = alphabet, onChoose = {})
-            }
-        }
-
-        val last = compose.onNodeWithContentDescription(string(R.string.library_index_jump, "Z"))
-
-        // Off the short window until the rail is asked to bring it into view -- which only
-        // means something when there is a scrollable ancestor to answer it.
-        last.assertIsNotDisplayed()
-        last.performScrollTo()
-        last.assertIsDisplayed().assertHasClickAction()
+        assertTrue(
+            compose.onAllNodes(hasContentDescription(string(R.string.library_index))).fetchSemanticsNodes().isEmpty(),
+        )
     }
 }

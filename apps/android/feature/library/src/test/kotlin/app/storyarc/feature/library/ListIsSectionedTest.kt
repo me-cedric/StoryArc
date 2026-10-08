@@ -2,11 +2,11 @@ package app.storyarc.feature.library
 
 import android.app.Application
 import android.content.Context
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.model.LibrarySort
@@ -115,7 +115,11 @@ class ListIsSectionedTest {
             }
         }
 
-        compose.onNodeWithContentDescription(string(R.string.library_index_jump, "S")).performClick()
+        val jump = string(R.string.library_index_jump, "S")
+        val actions = compose.onNodeWithContentDescription(string(R.string.library_index))
+            .fetchSemanticsNode().config[SemanticsActions.CustomActions]
+        compose.runOnUiThread { actions.first { it.label == jump }.action() }
+        compose.waitForIdle()
 
         compose.onNodeWithText("Sldbury Hall 1").assertIsDisplayed()
     }

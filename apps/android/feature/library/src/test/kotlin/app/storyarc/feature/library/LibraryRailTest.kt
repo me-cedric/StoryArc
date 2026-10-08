@@ -5,6 +5,7 @@ import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.PublicationIdentity
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -202,4 +203,76 @@ class LibraryRailTest {
         assertEquals(0, indexes[shelf[0].id])
         assertEquals(3, indexes[shelf[3].id])
     }
+
+    // One scrubber (24.6).
+
+    private fun alphabet(letters: String) = letters.map { RailEntry(it.toString(), it.toString()) }
+
+    @Test
+    fun `a rail short enough to fit draws every entry`() {
+        val entries = alphabet("ABCDEFGHIJ")
+
+        assertEquals(entries, LibraryRail.collapsed(entries, fit = 400.dp, entryHeight = 24.dp))
+    }
+
+    @Test
+    fun `a rail too tall for its space collapses to an evenly spaced subset`() {
+        val entries = alphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ#")
+
+        val shown = LibraryRail.collapsed(entries, fit = 300.dp, entryHeight = 24.dp)
+
+        assertTrue("300 / 24 fits at most 12 rows", shown.size <= 12)
+        assertEquals(entries.first(), shown.first())
+        assertEquals(entries.last(), shown.last())
+        assertEquals("no letter is offered twice", shown.size, shown.toSet().size)
+    }
+
+    @Test
+    fun `a space too short for even one row still offers the first letter`() {
+        val entries = alphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ#")
+
+        assertEquals(listOf(entries.first()), LibraryRail.collapsed(entries, fit = 10.dp, entryHeight = 24.dp))
+    }
+
+    @Test
+    fun `a non-positive height or entry size changes nothing`() {
+        val entries = alphabet("ABC")
+
+        assertEquals(entries, LibraryRail.collapsed(entries, fit = 0.dp, entryHeight = 24.dp))
+        assertEquals(entries, LibraryRail.collapsed(entries, fit = 100.dp, entryHeight = 0.dp))
+    }
+
+    @Test
+    fun `the finger is read against every letter, drawn or not`() {
+        val count = 27
+        val height = 27 * 24f + 16f
+
+        val reached = (0..height.toInt()).mapNotNull { RailScrub.index(it.toFloat(), height, 8f, count) }.distinct()
+
+        assertEquals((0 until count).toList(), reached)
+    }
+
+    @Test
+    fun `both edges of a letter's own 24 dp choose that letter`() {
+        val height = 27 * 24f + 16f
+
+        for (target in listOf(0, 9, 26)) {
+            val top = 8f + 24f * target + 0.5f
+            val bottom = 8f + 24f * (target + 1) - 0.5f
+            assertEquals(target, RailScrub.index(top, height, 8f, 27))
+            assertEquals(target, RailScrub.index(bottom, height, 8f, 27))
+        }
+    }
+
+    @Test
+    fun `the padding above and below the letters counts as the first and the last`() {
+        assertEquals(0, RailScrub.index(-30f, 664f, 8f, 27))
+        assertEquals(26, RailScrub.index(700f, 664f, 8f, 27))
+    }
+
+    @Test
+    fun `nothing to choose answers nothing`() {
+        assertEquals(null, RailScrub.index(10f, 100f, 8f, 0))
+    }
 }
+

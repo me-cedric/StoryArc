@@ -1,32 +1,7 @@
 package app.storyarc.feature.library
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.isTraversalGroup
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
-import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.LibraryIndex
 import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.Publication
@@ -145,6 +120,38 @@ internal object LibraryRail {
         return first.toString().uppercase(locale)
     }
 
+    /** The height one rail entry draws at. [IndexRail] draws its letters at this height. */
+    val ENTRY_HEIGHT: Dp = 24.dp
+
+    /**
+     * Which of these entries fit a space of the given height, one per [entryHeight] -- collapsing
+     * to an evenly spaced subset when they do not, the way the system's own fast scroller thins
+     * out rather than overlapping.
+     *
+     * 27 entries of 24 dp need 648 dp, which is taller than a phone held in landscape. **Every
+     * input already short enough draws every entry it was given.** This only ever removes some,
+     * never reorders or invents one. The subset keeps the first and the last entry and spaces the
+     * rest evenly between them. **A letter this drops is still reachable:** [IndexRail] is one
+     * scrubber, and [RailScrub] reads the finger's position against the whole alphabet rather
+     * than against the letters drawn, so every entry has a place under the finger and the
+     * bubble names the one it is on. iOS's `LibraryRail.collapsed` is the twin.
+     */
+    fun collapsed(entries: List<RailEntry>, fit: Dp, entryHeight: Dp = ENTRY_HEIGHT): List<RailEntry> {
+        if (entryHeight <= 0.dp || fit <= 0.dp) return entries
+        val capacity = maxOf(1, (fit / entryHeight).toInt())
+        if (entries.size <= capacity) return entries
+        if (capacity == 1) return listOf(entries.first())
+        val kept = mutableListOf<RailEntry>()
+        var lastIndex = -1
+        for (slot in 0 until capacity) {
+            val index = slot * (entries.size - 1) / (capacity - 1)
+            if (index == lastIndex) continue
+            kept += entries[index]
+            lastIndex = index
+        }
+        return kept
+    }
+
     /**
      * Where each publication sits in the lazy list, counting everything the layout puts between
      * the rows.
@@ -195,87 +202,5 @@ internal object LibraryRail {
             }
         }
         return indexes
-    }
-}
-
-/**
- * How much of the shelf's width the rail takes.
- *
- * Stated rather than measured, because the shelf has to reserve it *before* the rail is laid
- * out: the rail floats over the grid at [Alignment.CenterEnd], so a shelf that did not inset
- * itself drew its last column underneath it. It did -- the third cover and its title were cut
- * off down the right edge of every frame taken on 2026-09-11.
- *
- * 24 dp of entry plus [StoryArcSpace.xs] of padding on each side of it, and [StoryArcSpace.xs]
- * again between the rail and the screen edge.
- */
-internal val RAIL_WIDTH: Dp = 24.dp + StoryArcSpace.xs * 3
-
-/**
- * The index itself, down the trailing edge of the shelf.
- *
- * `library-browsing`'s *The index without sight* scenario is the reason for every
- * accessibility line here rather than an afterthought about them:
- *
- * - the rail is one traversal group with a name, so a screen reader announces *Alphabetical
- *   index* once instead of announcing twenty-seven unexplained characters,
- * - every entry is a real button with a spoken label naming the letter it moves to, because a
- *   single drawn character is not an instruction,
- * - nothing here is the only statement of anything: the shelf's own section headings say the
- *   same thing in the content, so a reader who never meets the rail loses nothing.
- *
- * iOS's `IndexRail` draws and announces the same thing, from the same three rules.
- */
-@Composable
-internal fun IndexRail(
-    entries: List<RailEntry>,
-    onChoose: (RailEntry) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    if (entries.isEmpty()) return
-    val palette = LocalStoryArcPalette.current
-    // Read before the modifier rather than inside it: a `semantics` block is not a composable
-    // scope, so a `stringResource` call in there does not compile.
-    val railName = stringResource(R.string.library_index)
-    val spoken = entries.associate { it.label to stringResource(R.string.library_index_jump, it.label) }
-    Column(
-        modifier = modifier
-            .fillMaxHeight()
-            .padding(end = StoryArcSpace.xs)
-            .background(palette.surfaceOverlay, CircleShape)
-            .padding(vertical = StoryArcSpace.sm, horizontal = StoryArcSpace.xs)
-            // Scrolls rather than squeezes. A shelf spanning every letter asks for up to 27
-            // fixed 24 dp entries, 648 dp, which is taller than a phone held in landscape, and
-            // a column that cannot scroll measured the last entries at 0 dp.
-            .verticalScroll(rememberScrollState())
-            .semantics {
-                isTraversalGroup = true
-                contentDescription = railName
-            },
-        verticalArrangement = Arrangement.Center,
-    ) {
-        entries.forEach { entry ->
-            val label = spoken.getValue(entry.label)
-            Box(
-                // A fixed, small target so a shelf holding every letter still fits one
-                // column. The rail is centred rather than stretched, and scrolls rather than
-                // pushing the covers about.
-                modifier = Modifier
-                    .size(24.dp)
-                    .clickable(onClickLabel = label) { onChoose(entry) }
-                    .semantics {
-                        role = Role.Button
-                        contentDescription = label
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = entry.label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = palette.textSecondary,
-                    textAlign = TextAlign.Center,
-                )
-            }
-        }
     }
 }
