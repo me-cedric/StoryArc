@@ -13,6 +13,7 @@
  */
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
+import { userInfo } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -452,6 +453,35 @@ export const ROUTES = [
     // distinct copies needs two catalogues with different ids for the same title, which
     // `scripts/opds-server.mjs` does not offer.
     ['Publication page > two sources', [NAMES.search, named('library_search'), '@type slow', 'Slow Transfer']],
+    // --- close-the-audited-gaps 18.3: a share that demands SMB 3 encryption ------------
+    //
+    // `scripts/smb-server.sh --encrypted` serves `smb encrypt = required` on 4446; an
+    // emulator reaches the Mac at 10.0.2.2. The user name is the Mac's own and the password
+    // is the fixture's, which the script prints. Typed into the real form, so the credential
+    // goes through the app's own store. Each run adds a share: clear the app's data first.
+    ['Sources > add share encrypted', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, named('sources_add'), named('sources_add_share'), '@drag-sheet-up', '=Host', '@type 10.0.2.2:4446', '@back', '=Share', '@type Comics', '@back', '=User name', '@type ' + userInfo().username, '@back', '=Password', '@type lovelace', '@back', '=Connect', '@wait', '@wait']],
+    ['Sources > share detail encrypted', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, named('sources_add'), named('sources_add_share'), '@drag-sheet-up', '=Host', '@type 10.0.2.2:4446', '@back', '=Share', '@type Comics', '@back', '=User name', '@type ' + userInfo().username, '@back', '=Password', '@type lovelace', '@back', '=Connect', '@wait', '@wait', named('smb_use_folder'), '@wait', '@wait', '@wait', '/Comics', named('sources_action_test'), '@wait', '@wait']],
+    // A share nothing answers (seed it with `--share --share-port 4999`): the control, which
+    // must say that no connection has been made.
+    ['Sources > share detail not connected', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Fixture NAS']],
+
+    // --- reader-theming-and-page-transitions 4.3b, close-the-audited-gaps 8.12 and 9.7 ----
+    // *The Long Field* is the corpus's one reflowable book that is not in a series, so its
+    // cell is named plainly on either shelf grouping.
+    ['EPUB reader > Long Field themes', [NAMES.library, 'The Long Field', NAMES.read, named('epub_menu'), named('reader_menu_themes'), '@drag-sheet-up']],
+    // The page-turn mode is stored per shelf, so choosing Curl once leaves every later open in it.
+    ['EPUB reader > Long Field curl chosen', [NAMES.library, 'The Long Field', NAMES.read, named('epub_menu'), named('reader_menu_themes'), '@drag-sheet-up', 'Customise', '=Curl']],
+    ['EPUB reader > Long Field page', [NAMES.library, 'The Long Field', NAMES.read]],
+    // close-the-audited-gaps 9.7: the end card of a book with a coloured cover, and the control.
+    // `Blue Harbour` has a blue cover (#255B97); `Harbour Lights` has none, so it keeps the brand accent.
+    ['EPUB reader > end card coloured cover', [NAMES.library, named('library_grouping_chip'), named('library_grouping_issues'), 'Blue Harbour 01', NAMES.read, '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5']],
+    ['EPUB reader > end card no cover', [NAMES.library, named('library_grouping_chip'), named('library_grouping_issues'), 'Harbour Lights 01', NAMES.read, '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5']],
+    // audiobooks-and-playback 2.5: a book that ends on a failed part states the loss where it ends.
+    // `truncated.m4b` is pushed as *Cut Short*, and the walk waits for it to play out.
+    ['Player > finished with a damaged part', [NAMES.library, 'Cut Short', NAMES.read + '|' + NAMES.listen, '@wait', '@wait', '@wait', '@wait']],
+    // audiobooks-and-playback 3.9: a book playing, for the noisy-broadcast proof.
+    ['Player > Chaptered playing', [NAMES.library, 'Chaptered', NAMES.read + '|' + NAMES.listen, '@wait']],
+
 ]
 
 /**

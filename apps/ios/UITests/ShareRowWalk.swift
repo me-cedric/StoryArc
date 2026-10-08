@@ -91,6 +91,31 @@ final class ShareRowWalkTests: XCTestCase {
         try openFromTheShare("Field Notes", settled: "ios-share-pdf-read")
     }
 
+    /// Task 14.15: the fetch in progress, then the open PDF.
+    ///
+    /// The share is the signed-in one that `SmbEncryptedWalkTests` registers (port 4446,
+    /// `127.0.0.1/Comics`), so run that walk first: the unauthenticated fixture above is refused
+    /// by the server, which serves no guest. Its `Field Notes.pdf` is padded to about 2.6 GB (the
+    /// frame set's README names how), so that the fetch outlasts a screenshot over the loopback.
+    func testCaptureSharePdfFetching() throws {
+        let app = sweepLaunch(grouping: "issues")
+        try showTheShelf(in: app)
+        try narrowToTheShare(in: app, named: "127.0.0.1/Comics")
+        hold(10)
+        try openPage(of: "Field Notes", in: app)
+        let read = try XCTUnwrap(
+            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable),
+            "The page of Field Notes offers no action."
+        )
+        read.tap()
+        hold(1.2)
+        shutter(app, named: "ios-share-pdf-fetching")
+        hold(15)
+        shutter(app, named: "ios-share-pdf-fetching-later")
+        hold(60)
+        shutter(app, named: "ios-share-pdf-opened")
+    }
+
     /// Task 14.14: a solid RAR5 is still offered as a download, with its size.
     func testCaptureShareSolidRarOffered() throws {
         let app = sweepLaunch(sources: Self.fixtureShare, grouping: "issues")
@@ -138,13 +163,13 @@ final class ShareRowWalkTests: XCTestCase {
 
     /// Hides the device's own corpus, so the frame holds the share's four rows and nothing
     /// else. `SweepLibrary.testCaptureNarrowedToNothing` reaches the same control the same way.
-    private func narrowToTheShare(in app: XCUIApplication) throws {
+    private func narrowToTheShare(in app: XCUIApplication, named name: String = "Fixture NAS") throws {
         try openFilterMenu(in: app)
         try XCTUnwrap(
             hittable("Which library", in: app),
             "The Filter menu offers no library group."
         ).tap()
-        guard let source = hittable("Fixture NAS", in: app, timeout: 5) else {
+        guard let source = hittable(name, in: app, timeout: 5) else {
             throw XCTSkip(
                 "This device lists no fixture share. Is scripts/smb-server.sh running? Rows: "
                     + "\(app.buttons.allElementsBoundByIndex.map(\.label))"
