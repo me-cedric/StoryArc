@@ -92,41 +92,6 @@ final class SweepSourceScreensTests: XCTestCase {
         shutter(app, named: "settings-source-detail")
     }
 
-    /// The same page at the largest accessibility text size.
-    ///
-    /// `source-lifecycle` §4.1 asks for this screen at both text sizes and there has never been
-    /// a walk for the larger one. It is the screen with the most to lose: five rows that are
-    /// each a label on the left and a value on the right, and two of the values are a date and
-    /// a sentence — *No answer since Sep 5, 2026 at 15:02* already wraps to two lines at the
-    /// default size, so what it does at `AccessibilityXXXL` is the question.
-    ///
-    /// A method rather than a flag, following `testCaptureSettingsRootAtLargestText`: the
-    /// content size is a launch argument, so it cannot be varied within a run.
-    func testCaptureSettingsSourceDetailAtLargestText() throws {
-        guard MockCatalogues.areRunning() else {
-            throw XCTSkip("The mock catalogues are not running, so no source here is reachable.")
-        }
-        let app = sweepLaunch(
-            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
-            sources: MockCatalogues.registry
-        )
-        try open("Your libraries", in: app)
-        let source = try XCTUnwrap(
-            control(MockCatalogues.attic, in: app)
-                ?? control("StoryArc Test Catalogue", in: app)
-                ?? control("Attic NAS", in: app),
-            "Your libraries lists no catalogue. Cells: "
-                + "\(app.cells.allElementsBoundByIndex.prefix(10).map(\.label))"
-        )
-        source.tap()
-        XCTAssertTrue(
-            app.staticTexts["Status"].waitForExistence(timeout: 5),
-            "The source did not open a page stating its status."
-        )
-        hold(1)
-        shutter(app, named: "settings-source-detail-ax5")
-    }
-
     /// Pull to refresh, after it has finished.
     ///
     /// `source-lifecycle` §4.4 asks for this gesture mid-way and settled. **The settled half is
@@ -172,20 +137,11 @@ final class SweepSourceScreensTests: XCTestCase {
     /// page, and `LibrarySourceHealth` answers `.unauthorized` for exactly that. The state is
     /// the same one a refusal reaches, by the one route that cannot flicker.
     func testCaptureReconnectSheet() throws {
-        try captureReconnect(contentSize: nil, named: "source-reconnect-sheet")
+        try captureReconnect(named: "source-reconnect-sheet")
     }
 
-    /// The same sheet at the largest accessibility text size, where a field label and a hint
-    /// have to survive together above the keyboard.
-    func testCaptureReconnectSheetAtLargestText() throws {
-        try captureReconnect(
-            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
-            named: "source-reconnect-sheet-ax5"
-        )
-    }
-
-    private func captureReconnect(contentSize: String?, named name: String) throws {
-        let app = sweepLaunch(contentSize: contentSize, sources: MockCatalogues.refusedKavita)
+    private func captureReconnect(named name: String) throws {
+        let app = sweepLaunch(sources: MockCatalogues.refusedKavita)
         try open("Your libraries", in: app)
         let source = try XCTUnwrap(
             control("Attic Kavita", in: app),

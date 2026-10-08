@@ -60,9 +60,14 @@ const RUN = [
   // Home's Shelves row lands on the Library tab on the first tap after launch, when the
   // same tap creates that tab.
   'ShelvesFromHomeTests',
-  // Two assertions that live inside capture classes.
+  // Assertions that live inside capture classes. Four are the largest-text gate: the largest
+  // text size is asserted and never photographed.
   'ScreenshotTests/testTheInertCapsuleIsDimmerThanTheLiveOne',
+  'ScreenshotTests/testLibrarySelectingEmptyAtLargestText',
+  'ScreenshotTests/testLibrarySelectingAtLargestText',
+  'ScreenshotTests/testWhatsNewKeepsItsActionReachableAtLargestText',
   'SweepSearchTests/testSearchOffersAFieldToTypeIn',
+  'SweepSourcesTests/testNeverReachedNoticeAtLargestText',
 ]
 
 /**

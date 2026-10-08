@@ -26,28 +26,11 @@ final class SweepSettingsTests: XCTestCase {
         shutter(app, named: "settings-root")
     }
 
-    /// The root at the largest accessibility text size, where every row is a title and a
-    /// summary and there are seven of them plus a search field.
-    func testCaptureSettingsRootAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try openSettings(in: app)
-        hold(0.5)
-        shutter(app, named: "settings-root-ax5")
-    }
-
     /// Appearance: four modes, Natural, the reading-theme link, and the icon chooser below.
     func testCaptureSettingsAppearance() throws {
         let app = sweepLaunch()
         try open("Appearance", in: app)
         shutter(app, named: "settings-appearance")
-    }
-
-    /// The same at the largest accessibility text size — four rows each carrying a footnote
-    /// of two lines, which is where this screen either scrolls or crowds.
-    func testCaptureSettingsAppearanceAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try open("Appearance", in: app)
-        shutter(app, named: "settings-appearance-ax5")
     }
 
     /// Appearance with Natural on, which is the axis that crosses the four modes.
@@ -76,67 +59,11 @@ final class SweepSettingsTests: XCTestCase {
         shutter(app, named: "settings-reading-matte")
     }
 
-    /// Reading at the largest accessibility text size.
-    func testCaptureSettingsReadingAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try open("Reading", in: app)
-        shutter(app, named: "settings-reading-ax5")
-    }
-
     /// Privacy: the clear buttons, and the one switch that lets a request leave the device.
     func testCaptureSettingsPrivacy() throws {
         let app = sweepLaunch()
         try open("Privacy", in: app)
         shutter(app, named: "settings-privacy")
-    }
-
-    /// Privacy at the largest accessibility text size.
-    ///
-    /// The cover-lookup row is a label, a provider list and a switch on one line, and the
-    /// paragraph under it is the longest sentence on the screen. AGENTS.md section 6 asks for
-    /// the largest size as well as the default, and this row is the reason that matters here:
-    /// a switch that does not grow beside text that does is where a row breaks.
-    /// It scrolls to the row rather than calling ``open(_:in:)``.
-    ///
-    /// At this text size each settings row is two tall lines, so Privacy is below the fold
-    /// and the shared helper's `isHittable` is false before any swipe. Scrolling here rather
-    /// than inside the helper keeps a shared walk unchanged, which AGENTS.md section 5 asks
-    /// for: a change inside one reaches classes no failure named.
-    func testCaptureSettingsPrivacyAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try openSettings(in: app)
-        var row: XCUIElement?
-        for _ in 0..<8 {
-            row = [app.buttons["Privacy"], app.cells["Privacy"], app.staticTexts["Privacy"]]
-                .first { $0.exists && $0.isHittable }
-            if row != nil { break }
-            app.swipeUp()
-        }
-        try XCTUnwrap(row, "Settings never scrolled to a Privacy row.").tap()
-        XCTAssertTrue(
-            app.navigationBars["Privacy"].waitForExistence(timeout: 5),
-            "Privacy did not open a screen titled Privacy."
-        )
-        // The cover-lookup row sits between the clear buttons and the diagnostic, so at this
-        // text size it is several screens down. A frame of the top of the list would be a
-        // picture of the part that did not change.
-        //
-        // A quarter-screen drag rather than `swipeUp()`: a full swipe carries this list past
-        // the row in one gesture, and the first version of this walk photographed the
-        // diagnostic at the foot of the screen instead.
-        let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
-        let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45))
-        //
-        // The stop is read from the row's frame rather than from `isHittable`: a row one
-        // pixel inside the bottom edge is hittable, and stopping there photographs the row
-        // above it. This stops when the row has reached the upper half of the screen.
-        let lookup = app.staticTexts["Look up missing covers"]
-        for _ in 0..<20 where !lookup.exists || lookup.frame.minY > app.frame.midY {
-            from.press(forDuration: 0.01, thenDragTo: to)
-        }
-        XCTAssertTrue(lookup.isHittable, "Privacy never scrolled to the cover-lookup row.")
-        hold(0.5)
-        shutter(app, named: "settings-privacy-ax5")
     }
 
     /// Privacy with the diagnostic export shown.

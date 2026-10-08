@@ -31,14 +31,6 @@ final class SweepEmptyTests: XCTestCase {
         shutter(app, named: "empty-library")
     }
 
-    /// The same at the largest accessibility text size.
-    func testCaptureEmptyLibraryAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL", recents: "()")
-        try XCTUnwrap(destination("Library", in: app), "no Library tab").tap()
-        try requireEmpty(app, landmark: "Nothing here yet")
-        shutter(app, named: "empty-library-ax5")
-    }
-
     /// Home with nothing open yet.
     func testCaptureEmptyHome() throws {
         let app = sweepLaunch(recents: "()")

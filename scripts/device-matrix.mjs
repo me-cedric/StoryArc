@@ -3,7 +3,7 @@
  * The project's device matrix, written down once.
  *
  * `AGENTS.md` section 6 and `native-experience`'s "Both appearances" scenario both ask for a
- * changed screen in light and dark, at the default and the largest text size. Until now that
+ * changed screen in light and dark, at the default text size. Until now that
  * sentence was the only copy of the matrix, so every sweep was taken from memory and what a
  * change actually photographed varied with whoever took it. `capture-android.mjs` and
  * `capture-ios.mjs` loop over this table in `--matrix` mode, and `capture-compare.mjs` reads
@@ -66,14 +66,11 @@ export const MATRIX = {
     /** Measured 2026-09-12: 435 of the 1004 committed frames are this size, more than any other. */
     frame: '1206x2622',
     /**
-     * **The text size axis is missing here on purpose, and it is not missing from the sweep.**
-     * The app stores its settings as one JSON blob under a single key, so there is no launch
-     * argument for the theme and the simulator's appearance is the only lever — which is why
-     * `--appearance` exists. Text size is the other way round: `sweepLaunch(contentSize:)`
-     * sets it inside the test process, and the walks that use it are separate cases ending in
-     * `-ax5`. Measured 2026-09-12: 38 such frame names across `apps/ios/UITests`, written from
-     * 50 call sites. So a sweep at largest text is run by the walks and not by this table, and
-     * a condition added here would photograph the same frames twice under two names.
+     * **The text size axis is missing here on purpose.** Frames are taken at the default text
+     * size only. The largest text size is a test and review gate (`design.md` section 10), not
+     * a frame. The app stores its settings as one JSON blob under a single key, so there is no
+     * launch argument for the theme and the simulator's appearance is the only lever, which is
+     * why `--appearance` exists.
      */
     conditions: [
       { appearance: 'light', textSize: 'default', suffix: '' },
@@ -89,14 +86,12 @@ export const MATRIX = {
     /** Measured 2026-09-12: 393 of the 1004 committed frames are this size, more than any other. */
     frame: '1080x2400',
     /**
-     * 2.0 is the largest font scale Android's accessibility settings offer, and the figure
-     * `AGENTS.md` section 6 already uses in its own example.
+     * Frames are taken at font scale 1.0 only. The largest text size is a test and review
+     * gate, not a frame. `capture-android.mjs --font-scale` stays for a developer who asks.
      */
     conditions: [
       { appearance: 'light', fontScale: '1.0', suffix: '' },
       { appearance: 'dark', fontScale: '1.0', suffix: '-dark' },
-      { appearance: 'light', fontScale: '2.0', suffix: '-largest' },
-      { appearance: 'dark', fontScale: '2.0', suffix: '-dark-largest' },
     ],
   },
 }

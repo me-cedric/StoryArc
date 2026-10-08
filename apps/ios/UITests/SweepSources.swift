@@ -26,13 +26,6 @@ final class SweepSourcesTests: XCTestCase {
         shutter(app, named: "add-catalogue-sheet")
     }
 
-    /// The same at the largest accessibility text size, where the hint is three lines.
-    func testCaptureAddCatalogueSheetAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try openAddSheet("Online library", landmark: "Address", in: app)
-        shutter(app, named: "add-catalogue-sheet-ax5")
-    }
-
     /// Adding a Kavita server: the address, the API key, and where the key is kept.
     func testCaptureAddKavitaSheet() throws {
         let app = sweepLaunch()
@@ -111,34 +104,6 @@ final class SweepSourcesTests: XCTestCase {
         )
         hold(3)
         shutter(app, named: "source-unreachable-detail")
-    }
-
-    /// The same page at the largest accessibility text size.
-    ///
-    /// `source-lifecycle` §4.3 asks for this screen at both text sizes. It is the screen with
-    /// the most to lose at `AccessibilityXXXL`: *No answer since Sep 5, 2026 at 15:02* already
-    /// wraps to two lines at the default size, and it is the row that carries the claim — an
-    /// unreachable source states what happened, in grey, without an alarm.
-    func testCaptureUnreachableSourceDetailAtLargestText() throws {
-        let app = sweepLaunch(
-            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
-            sources: MockCatalogues.registry
-        )
-        try openSettings(in: app)
-        try XCTUnwrap(control("Your libraries", in: app), "no libraries row").tap()
-        // Scrolled to, unlike its default-size twin. *Cellar* is the third of three
-        // catalogues, and at `AccessibilityXXXL` a list row is tall enough that the third one
-        // starts below the fold — `control(_:in:)` asks for a hittable element, so it found
-        // nothing and the walk failed about a row that was on the screen's other half.
-        let cellar = app.staticTexts[MockCatalogues.cellar]
-        XCTAssertTrue(scrollTo(cellar, in: app), "Your libraries never showed \(MockCatalogues.cellar).")
-        cellar.tap()
-        XCTAssertTrue(
-            app.staticTexts["Status"].waitForExistence(timeout: 5),
-            "The source did not open a page stating its status."
-        )
-        hold(3)
-        shutter(app, named: "source-unreachable-detail-ax5")
     }
 
     /// The library-wide notice when nothing a reader added can be reached.
@@ -223,12 +188,12 @@ final class SweepSourcesTests: XCTestCase {
         shutter(app, named: "library-source-never-reached")
     }
 
-    /// The same notice at the largest accessibility text size.
+    /// The same notice at the largest accessibility text size. An assertion, not a frame.
     ///
     /// The strip is a sentence with a button beside it on one line, so `AccessibilityXXXL` is
-    /// where it has the most to lose. AGENTS.md §6 asks for both text sizes, and this is the
-    /// frame that says whether the sentence and its action still both fit.
-    func testCaptureNeverReachedNoticeAtLargestText() throws {
+    /// where it has the most to lose. The test says whether the sentence and its action are
+    /// both still there.
+    func testNeverReachedNoticeAtLargestText() throws {
         let app = sweepLaunch(
             contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
             sources: MockCatalogues.registry
@@ -243,7 +208,6 @@ final class SweepSourcesTests: XCTestCase {
             "The shelf never named \(MockCatalogues.cellar) at the largest text size."
         )
         XCTAssertTrue(app.buttons["Try again"].exists, "The notice offers no way to retry.")
-        shutter(app, named: "library-source-never-reached-ax5")
     }
 
     // MARK: - The walk

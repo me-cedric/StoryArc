@@ -60,10 +60,9 @@ extension XCTestCase {
     /// untried candidate at a depth is taken before the walk scrolls further, and the budget
     /// is separately what stops it.
     ///
-    /// Six depths rather than four because the callers do not all see the same shelf: the AX5
-    /// capture in `ScreenshotTests` runs at `UICTContentSizeCategoryAccessibilityXXXL`, where
-    /// a cell is taller and a screenful therefore holds fewer publications, so the same swipe
-    /// passes fewer of them. Six is a budget and not a measurement — nobody has counted how
+    /// Six depths rather than four because the callers do not all see the same shelf: a walk
+    /// at `UICTContentSizeCategoryAccessibilityXXXL` sees a shelf where a cell is taller and a
+    /// screenful therefore holds fewer publications, so the same swipe passes fewer of them. Six is a budget and not a measurement — nobody has counted how
     /// many screenfuls this corpus fills at that text size — which is why running out says so
     /// in the skip rather than concluding anything.
     ///

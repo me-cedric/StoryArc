@@ -1,7 +1,7 @@
 import XCTest
 
-/// The shelf with the compact bar over a title too long for it, light and dark, at the default
-/// text size and at the largest.
+/// The shelf with the compact bar over a title too long for it, light and dark, photographed at
+/// the default text size. The largest text size is asserted and audited, and not photographed.
 ///
 /// Task 8.4. The bar cuts a long title at the tail on purpose, because the height of
 /// `tabViewBottomAccessory` is the system's, and `audio-playback` asks instead that the cut
@@ -33,12 +33,12 @@ final class PlayerBarLongTitleTests: XCTestCase {
     func testTheBarOverALongTitleAtTheLargestSize() throws {
         try photographTheBar(
             contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
-            named: "compact-bar-long-title-ax5",
+            named: nil,
             audit: "Compact bar, long title (AccessibilityXXXL)"
         )
     }
 
-    private func photographTheBar(contentSize: String?, named name: String, audit: String) throws {
+    private func photographTheBar(contentSize: String?, named name: String?, audit: String) throws {
         let app = launch(contentSize: contentSize)
         try openAnAudiobook(in: app, titled: Self.title)
 
@@ -72,10 +72,12 @@ final class PlayerBarLongTitleTests: XCTestCase {
         let settled = XCTestExpectation(description: "the bar has settled")
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { settled.fulfill() }
         wait(for: [settled], timeout: 4)
-        let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = name
-        attachment.lifetime = .keepAlways
-        add(attachment)
+        if let name {
+            let attachment = XCTAttachment(screenshot: app.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
 
         try reportOnly(app, named: audit)
     }

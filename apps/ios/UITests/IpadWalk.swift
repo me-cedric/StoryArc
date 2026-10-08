@@ -20,8 +20,8 @@ extension XCTestCase {
     ///
     /// The orientation is set before the launch so the first frame is already landscape —
     /// rotating afterwards photographs a layout mid-animation as readily as after it.
-    func landscape(contentSize: String? = nil, layout: String = "grid") throws -> XCUIApplication {
-        try ipad(.landscapeLeft, contentSize: contentSize, layout: layout)
+    func landscape(layout: String = "grid") throws -> XCUIApplication {
+        try ipad(.landscapeLeft, layout: layout)
     }
 
     /// The same, the other way up.
@@ -30,8 +30,8 @@ extension XCTestCase {
     /// suite has never photographed: every iPad frame in `after-2026-08-30/` is portrait but
     /// predates the split, and every frame in `ios-sweep-2026-09-02/` is landscape. A pane
     /// layout is a question about width, so the narrow half of the answer needs its own frame.
-    func portrait(contentSize: String? = nil, layout: String = "grid") throws -> XCUIApplication {
-        try ipad(.portrait, contentSize: contentSize, layout: layout)
+    func portrait(layout: String = "grid") throws -> XCUIApplication {
+        try ipad(.portrait, layout: layout)
     }
 
     /// One launch, in a stated orientation, checked against the window it actually got.
@@ -41,11 +41,10 @@ extension XCTestCase {
     /// device, not a defect in the app.
     private func ipad(
         _ orientation: UIDeviceOrientation,
-        contentSize: String?,
         layout: String
     ) throws -> XCUIApplication {
         XCUIDevice.shared.orientation = orientation
-        let app = sweepLaunch(contentSize: contentSize, layout: layout)
+        let app = sweepLaunch(layout: layout)
         hold(2)
         let wanted = orientation.isLandscape ? "landscape" : "portrait"
         let got = app.frame.width > app.frame.height ? "landscape" : "portrait"

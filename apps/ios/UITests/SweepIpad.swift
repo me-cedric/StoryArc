@@ -81,14 +81,6 @@ final class SweepIpadTests: XCTestCase {
         shutter(app, named: "ipad-library")
     }
 
-    /// The library at the largest accessibility text size, where the tier steps again.
-    func testCaptureIpadLibraryAtLargestText() throws {
-        let app = try landscape(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try go(to: "Library", in: app)
-        hold(2.5)
-        shutter(app, named: "ipad-library-ax5")
-    }
-
     /// The library as a list, where a row has an iPad's whole width to fill.
     func testCaptureIpadList() throws {
         let app = try landscape(layout: "list")

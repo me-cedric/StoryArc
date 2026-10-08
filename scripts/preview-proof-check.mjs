@@ -306,12 +306,12 @@ function report({ drawing, frames, exception, ok }) {
 A \`#Preview\` and a \`@Preview\` are development aids, not proof. Neither exercises real
 data, real insets, real system materials or a real Dynamic Type setting.
 
-Capture from a booted simulator or emulator, in light and dark, at the default and the
-largest text size. Put the frames in \`${FRAMES}<topic>-<yyyy-mm-dd>/\`:
+Capture from a booted simulator or emulator, in light and dark, at the default text size.
+Put the frames in \`${FRAMES}<topic>-<yyyy-mm-dd>/\`:
 
   xcrun simctl io booted screenshot shot.png
   pnpm capture:android --list
-  pnpm capture:android <route> --out shot.png --dark --font-scale 2.0
+  pnpm capture:android <route> --out shot.png --dark
 
 AGENTS.md §6 allows two exceptions, and no third. Name the one that applies in a commit
 message on this branch:

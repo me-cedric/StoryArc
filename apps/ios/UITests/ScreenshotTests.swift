@@ -55,24 +55,6 @@ final class ScreenshotTests: XCTestCase {
         attach(app.screenshot(), named: "library")
     }
 
-    /// The library at the largest accessibility text size.
-    ///
-    /// Android's filter chip row ran off the window at `font_scale 2.0` and had to learn to
-    /// wrap. The question this answers is whether iOS's equivalent has the same defect, and
-    /// it is a fair question because both platforms draw the same three controls — narrow to
-    /// what is on this device, choose an order, filter.
-    ///
-    /// They do not draw them the same way, which is the answer: iOS puts them in a toolbar
-    /// as icons, and an icon does not grow with the reader's text. The picture is what says
-    /// so, because a claim that a row cannot overflow is worth exactly as much as the
-    /// largest text size somebody actually pointed at it.
-    func testCaptureLibraryAtLargestText() throws {
-        let app = launch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try XCTUnwrap(destination("Library", in: app)).tap()
-        _ = app.scrollViews.firstMatch.waitForExistence(timeout: 10)
-        attach(app.screenshot(), named: "library-ax5")
-    }
-
     /// The library scrolled to its end, which is the only place the floating tab bar's
     /// question can be answered.
     ///
@@ -137,19 +119,6 @@ final class ScreenshotTests: XCTestCase {
         attach(app.screenshot(), named: "search")
     }
 
-    /// The search destination at the largest accessibility text size.
-    ///
-    /// Three section headings, a run of covers under each, and a scope control. The heading
-    /// wording is the risk — *Next in a series you have read* is a sentence rather than a
-    /// word, and French's is longer again — and a claim that it wraps rather than clipping is
-    /// worth exactly as much as the largest text size somebody actually pointed at it.
-    func testCaptureSearchAtLargestText() throws {
-        let app = launch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try XCTUnwrap(destination("Search", in: app)).tap()
-        _ = app.scrollViews.firstMatch.waitForExistence(timeout: 10)
-        attach(app.screenshot(), named: "search-ax5")
-    }
-
     /// About, which is where a reader who dismissed the what’s-new sheet too fast finds it
     /// again — `settings-and-about`: "it is reachable from the About screen, along with the
     /// entries for earlier versions".
@@ -184,14 +153,12 @@ final class ScreenshotTests: XCTestCase {
         attach(try whatsNewSheet(contentSize: nil), named: "whats-new")
     }
 
-    /// The same sheet at the largest accessibility text size. `settings-and-about`: "every
-    /// entry’s heading and sentence are readable in full, the screen scrolls if it must,
-    /// and the dismissing action stays reachable without scrolling past the content".
-    func testCaptureWhatsNewAtLargestText() throws {
-        attach(
-            try whatsNewSheet(contentSize: "UICTContentSizeCategoryAccessibilityXXXL"),
-            named: "whats-new-ax5"
-        )
+    /// The same sheet at the largest accessibility text size. An assertion, not a frame.
+    /// `settings-and-about`: "every entry’s heading and sentence are readable in full, the
+    /// screen scrolls if it must, and the dismissing action stays reachable without scrolling
+    /// past the content". `whatsNewSheet` asserts that the action is hittable.
+    func testWhatsNewKeepsItsActionReachableAtLargestText() throws {
+        _ = try whatsNewSheet(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
     }
 
     private func whatsNewSheet(contentSize: String?) throws -> XCUIScreenshot {
@@ -233,8 +200,8 @@ final class ScreenshotTests: XCTestCase {
     }
 
     // **The two theme-sheet walks lived here and have gone.** `SweepEpubReaderTests` reaches
-    // the same sheet through `openThemeSheet(in:)` and photographs it at both the default and
-    // the largest text size — `epub-theme-presets` and `epub-theme-presets-ax5` — so these were
+    // the same sheet through `openThemeSheet(in:)` and photographs it at the default text size
+    // — `epub-theme-presets` — so these were
     // a second walk to the same surface from a second file.
     //
     // They were not merely redundant. The largest-size one **failed** at

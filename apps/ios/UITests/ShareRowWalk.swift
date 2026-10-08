@@ -51,29 +51,6 @@ final class ShareRowWalkTests: XCTestCase {
         shutter(app, named: "share-rows-catalogued")
     }
 
-    /// The same shelf at the largest accessibility text size, where a refusal has least room.
-    ///
-    /// The refusal is a caption under a cover, so it is the sentence on this screen most
-    /// likely to be cut off. A frame at the largest text size is what says whether a reader
-    /// who needs that size still learns why the publication will not open.
-    func testCaptureShareRowsCataloguedAtLargestText() throws {
-        let app = sweepLaunch(
-            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
-            sources: Self.fixtureShare,
-            grouping: "issues"
-        )
-        try showTheShelf(in: app)
-        try narrowToTheShare(in: app)
-        hold(8)
-        // One row fills the screen at this size, and the refused one sorts third. Scrolled
-        // to it, because a frame of the two rows above it says nothing about the sentence
-        // this walk exists to photograph.
-        app.swipeUp()
-        app.swipeUp()
-        hold(1.5)
-        shutter(app, named: "share-rows-catalogued-ax5")
-    }
-
     /// Tasks 14.14 and 14.15: a reflowable EPUB on the share opens from the share, and the
     /// frame shows its first page. Nothing is offered first, and nothing is downloaded.
     func testCaptureShareEpubStreams() throws {

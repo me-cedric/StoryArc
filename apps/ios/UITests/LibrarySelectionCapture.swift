@@ -20,8 +20,9 @@ import XCTest
 ///   purpose — shown rather than hidden at nought picked;
 /// - the capsule **live**, with covers picked, where the tab bar's absence is visible and
 ///   the count is in the navigation bar instead;
-/// - both at the **largest accessibility text size**, which is the only thing that can say
-///   which branch of the `ViewThatFits` in `BulkActionBar` a real phone takes.
+/// - both at the **largest accessibility text size**, asserted and not photographed, which is
+///   the only thing that can say which branch of the `ViewThatFits` in `BulkActionBar` a real
+///   phone takes.
 ///
 /// ## Three things were wrong with the first version of this file, and each could have
 /// filed a picture of the wrong screen
@@ -85,36 +86,31 @@ extension ScreenshotTests {
         attach(app.screenshot(), named: "library-selecting-picked")
     }
 
-    /// Nothing picked, at the largest accessibility text size.
+    /// Nothing picked, at the largest accessibility text size. An assertion, not a frame.
     ///
     /// The disabled row is the one that has the most to lose at this size: the labels are the
     /// widest they ever get *and* they are drawn in the dimmed style, so a `ViewThatFits`
     /// that chose the named branch one notch too optimistically clips text that is already
     /// hard to read.
-    func testCaptureLibrarySelectingEmptyAtLargestText() throws {
+    func testLibrarySelectingEmptyAtLargestText() throws {
         let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
         try startSelecting(in: app)
         try assertSelectionChrome(app, count: 0, namingMarkRead: false)
-        hold(1)
-        attach(app.screenshot(), named: "library-selecting-none-ax5")
     }
 
-    /// Two picked, at the largest accessibility text size.
+    /// Two picked, at the largest accessibility text size. An assertion, not a frame.
     ///
-    /// **This is the capture the `ViewThatFits` in `BulkActionBar` exists for**, and the only
+    /// **This is the test the `ViewThatFits` in `BulkActionBar` exists for**, and the only
     /// thing that can settle it. The capsule degrades by control, so this is the tier where
     /// only *Download* and the overflow survive — both glyphs the platform has established —
     /// and mark-as-read's name is drawn inside the menu instead. A host test can prove the
     /// tiers are declared; it cannot prove which one a phone at
     /// `accessibility-extra-extra-extra-large` takes, in a language whose words are longer
-    /// again. Two glyphs in this frame means the floor is doing real work and every name is
-    /// still there for VoiceOver. Clipped text means the capsule is wrong.
-    func testCaptureLibrarySelectingAtLargestText() throws {
+    /// again.
+    func testLibrarySelectingAtLargestText() throws {
         let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
         try startSelecting(in: app)
         try pickTwo(in: app, namingMarkRead: false)
-        hold(1)
-        attach(app.screenshot(), named: "library-selecting-ax5")
     }
 
     /// Reaches the shelf and puts it into selection mode, proving each step.

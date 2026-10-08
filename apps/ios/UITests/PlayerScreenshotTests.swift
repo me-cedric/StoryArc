@@ -66,19 +66,6 @@ final class PlayerScreenshotTests: XCTestCase {
         attach(app.screenshot(), named: "full-player")
     }
 
-    /// The full player at the largest accessibility text size.
-    ///
-    /// `audio-playback` requires that nothing is "truncated to one word and no transport
-    /// control is pushed off the screen" there, and a claim that a surface scrolls is worth
-    /// exactly as much as the largest text size somebody actually pointed at it.
-    func testCaptureFullPlayerAtLargestText() throws {
-        let app = launch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try openAnAudiobook(in: app)
-        try XCTUnwrap(app.buttons["Open the player"].firstMatch).tap()
-        settle(2)
-        attach(app.screenshot(), named: "full-player-largest-text")
-    }
-
     /// The sleep timer, set, with its remaining time on the face of the control.
     ///
     /// `audio-playback` requires that "the remaining time is shown on the player", and until

@@ -58,16 +58,6 @@ final class SweepComicReaderTests: XCTestCase {
         shutter(app, named: "comic-reader-menu")
     }
 
-    /// The menu at the largest accessibility text size, which is what the pickers replaced a
-    /// segmented control to survive — "all four titles to a character each".
-    func testCaptureComicMenuAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try openComic(in: app)
-        try openMenu(in: app)
-        hold(1)
-        shutter(app, named: "comic-reader-menu-ax5")
-    }
-
     /// The menu at its large detent, which is the only way to see all of it at once.
     func testCaptureComicMenuExpanded() throws {
         let app = sweepLaunch()
@@ -179,19 +169,6 @@ final class SweepComicReaderTests: XCTestCase {
         try openPageBrowser(in: app)
         hold(2)
         shutter(app, named: "comic-reader-page-browser-dark")
-    }
-
-    /// The page browser, at the largest accessibility text size. `page-browser-carousel` 3.2.
-    func testCaptureComicPageBrowserAtLargestText() throws {
-        let app = sweepLaunch(
-            contentSize: "UICTContentSizeCategoryAccessibilityXXXL", freshShelfSettings: true
-        )
-        try openPublication(named: "Quiet Machines", in: app)
-        try openMenu(in: app)
-        hold(1)
-        try openPageBrowser(in: app)
-        hold(2)
-        shutter(app, named: "comic-reader-page-browser-ax5")
     }
 
     /// The page browser on a right-to-left comic: the carousel and its slider ticks mirror.

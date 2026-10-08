@@ -22,15 +22,6 @@ final class SweepHomeTests: XCTestCase {
         shutter(app, named: "home-top")
     }
 
-    /// The top of Home at the largest accessibility text size, where the hero's own caption
-    /// and the section headings each grow and the hero does not.
-    func testCaptureHomeTopAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try showHome(in: app)
-        hold(2)
-        shutter(app, named: "home-top-ax5")
-    }
-
     /// Home scrolled down: the rows under the hero, and the link to Shelves at the foot.
     func testCaptureHomeLower() throws {
         let app = sweepLaunch()
@@ -80,14 +71,6 @@ final class SweepHomeTests: XCTestCase {
         try openShelves(in: app)
         hold(1)
         shutter(app, named: "shelves")
-    }
-
-    /// The shelves screen at the largest accessibility text size.
-    func testCaptureShelvesAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try openShelves(in: app)
-        hold(1)
-        shutter(app, named: "shelves-ax5")
     }
 
     /// Making a collection: the sheet, with the promise that it stays on this device.

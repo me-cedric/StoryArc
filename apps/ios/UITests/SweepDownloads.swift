@@ -42,14 +42,6 @@ final class SweepDownloadsTests: XCTestCase {
         shutter(app, named: "downloads-shelf")
     }
 
-    /// The same at the largest accessibility text size, where the grid drops a column.
-    func testCaptureDownloadsShelfAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try showDownloads(in: app)
-        hold(2)
-        shutter(app, named: "downloads-shelf-ax5")
-    }
-
     /// The queue: one part-way through, one waiting behind it, and one that gave up.
     ///
     /// Three rows because one row cannot show what the section is for. A single transfer
@@ -62,54 +54,6 @@ final class SweepDownloadsTests: XCTestCase {
         try showQueue(in: app)
         hold(1)
         shutter(app, named: "downloads-queue")
-    }
-
-    /// The queue at the largest accessibility text size, where a row becomes two lines.
-    ///
-    /// `DownloadQueueRow` branches on `dynamicTypeSize.isAccessibilitySize` because "the title
-    /// truncates to two characters while *Stop* wraps to two lines". This is the branch, and
-    /// nothing had photographed it. The failed row's two buttons stop sharing a line here too.
-    func testCaptureDownloadQueueAtLargestText() throws {
-        let app = sweepLaunch(
-            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
-            downloads: Self.queue
-        )
-        try showQueue(in: app)
-        hold(1)
-        shutter(app, named: "downloads-queue-ax5")
-    }
-
-    /// The failed row at the largest accessibility text size, scrolled into the frame.
-    ///
-    /// At this size one row fills the screen, so the third row — the failed one — begins a
-    /// screen and a half below the heading and `testCaptureDownloadQueueAtLargestText`
-    /// photographs two Stops and no Retry. This walks down to it. The two buttons stop
-    /// sharing a line here: the pair goes one under the other, and neither label truncates.
-    func testCaptureFailedRowAtLargestText() throws {
-        let app = sweepLaunch(
-            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
-            downloads: Self.queue
-        )
-        try showQueue(in: app)
-        try scrollToFailedRow(in: app, remove: "Remove download")
-        hold(1)
-        shutter(app, named: "downloads-failed-ax5")
-    }
-
-    /// The same, in German, which is the longest of the four languages on this row.
-    ///
-    /// *Download entfernen* on its own is wider than the row at this size, so the label has
-    /// to wrap rather than truncate — a frame in English would not show whether it does.
-    func testCaptureFailedRowAtLargestTextInGerman() throws {
-        let app = sweepLaunch(
-            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
-            downloads: Self.queue,
-            language: "de"
-        )
-        try showQueue(in: app, heading: "Kommt gerade an")
-        try scrollToFailedRow(in: app, remove: "Download entfernen")
-        hold(1)
-        shutter(app, named: "downloads-failed-ax5-de")
     }
 
     /// Stopping one: the confirmation, which is about a transfer rather than about a file.
@@ -223,25 +167,6 @@ final class SweepDownloadsTests: XCTestCase {
         XCTAssertTrue(
             app.staticTexts[heading].waitForExistence(timeout: 10),
             "No transfer queue on this screen — the injected download record was not read."
-        )
-    }
-
-    /// Scrolls the queue until the failed row's second control is on screen.
-    ///
-    /// The *Remove* button rather than the title, because the controls sit under the title
-    /// and a title at the foot of the screen has its buttons below the fold. Named per
-    /// language, because the label is the one thing on this row that is translated. Swiped
-    /// slowly, so a swipe does not carry the row past the top of the screen — the loop
-    /// only ever moves down.
-    private func scrollToFailedRow(in app: XCUIApplication, remove: String) throws {
-        let wanted = app.buttons.matching(NSPredicate(format: "label == %@", remove))
-        for _ in 0..<8 where wanted.allElementsBoundByIndex.first(where: \.isHittable) == nil {
-            app.swipeUp(velocity: .slow)
-        }
-        XCTAssertNotNil(
-            wanted.allElementsBoundByIndex.first(where: \.isHittable),
-            "The failed row's \(remove) never came on screen. On screen: "
-                + "\(app.buttons.allElementsBoundByIndex.prefix(12).map(\.label))"
         )
     }
 

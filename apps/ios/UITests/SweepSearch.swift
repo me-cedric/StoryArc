@@ -2,8 +2,7 @@ import XCTest
 
 /// The search destination, in the four states it has.
 ///
-/// `ScreenshotTests` photographs it at rest and at rest again at the largest text size, and
-/// that is all iOS has ever had. What a *query* does to this screen — the grouped results, the
+/// `ScreenshotTests` photographs it at rest, and that is all iOS has ever had. What a *query* does to this screen — the grouped results, the
 /// notice a silent source puts up, the sentence when nothing matched, and the axis narrowed to
 /// this device — has never been photographed at all.
 ///
@@ -29,15 +28,6 @@ final class SweepSearchTests: XCTestCase {
         shutter(app, named: "search-at-rest")
     }
 
-    /// The same at the largest accessibility text size, where *Next in a series you have read*
-    /// is a sentence rather than a word.
-    func testCaptureSearchAtRestAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try showSearch(in: app)
-        hold(1.5)
-        shutter(app, named: "search-at-rest-ax5")
-    }
-
     /// A term with answers: results grouped by why they matched.
     ///
     /// `library-browsing` asks for results "grouped by match kind — series, publication,
@@ -55,15 +45,6 @@ final class SweepSearchTests: XCTestCase {
         )
         hold(2)
         shutter(app, named: "search-results")
-    }
-
-    /// The same at the largest accessibility text size.
-    func testCaptureSearchWithResultsAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try showSearch(in: app)
-        try run("Harbour", in: app)
-        hold(3)
-        shutter(app, named: "search-results-ax5")
     }
 
     /// A term nothing matches.

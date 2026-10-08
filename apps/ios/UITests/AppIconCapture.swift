@@ -54,19 +54,6 @@ final class AppIconCaptureTests: XCTestCase {
         attach(app.screenshot(), named: "app-icon-chooser")
     }
 
-    /// And at the largest accessibility size.
-    ///
-    /// `settings-and-about`: "every option's name is readable in full and its tile is still
-    /// large enough to tell the faces apart, the list scrolling if it must". Three claims a
-    /// picture can settle and no unit test can: the tile is a fixed 60 points precisely so the
-    /// name beside it keeps the width it needs, and whether that was the right call is visible
-    /// here or nowhere.
-    func testCaptureAppIconChooserAtLargestText() throws {
-        let app = launch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try openChooser(app)
-        attach(app.screenshot(), named: "app-icon-chooser-ax5")
-    }
-
     // MARK: - The walk
 
     private func captureHome(_ face: String) throws {

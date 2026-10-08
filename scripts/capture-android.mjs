@@ -8,9 +8,10 @@
  * dozen `adb` invocations, is how a required proof quietly becomes an optional one.
  *
  * Two conditions matter and both are set here rather than left to whoever is watching:
- * the text size, because `design.md` section 3 rule 3 says every screen survives the
- * largest accessibility size, and the appearance, because half this project's defects only
- * appear in one of them.
+ * the appearance, because half this project's defects only appear in one of them, and the
+ * text size. Frames are taken at the default text size (`--font-scale 1.0`). The largest
+ * text size is a test and review gate, not a frame; `--font-scale` stays for a developer who
+ * asks for it, and no default and no matrix uses it.
  *
  * **It always puts the device back.** A left-behind `font_scale 2.0` makes the next
  * person's screenshots wrong in a way that looks like a regression, which has cost an hour
@@ -18,7 +19,7 @@
  *
  * Usage:
  *   node scripts/capture-android.mjs Downloads --out shot.png
- *   node scripts/capture-android.mjs Downloads --out shot.png --dark --font-scale 2.0
+ *   node scripts/capture-android.mjs Downloads --out shot.png --dark
  *   node scripts/capture-android.mjs Downloads --out <directory> --matrix
  *   node scripts/capture-android.mjs --list
  */

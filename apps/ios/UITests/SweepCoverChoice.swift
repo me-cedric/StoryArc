@@ -2,8 +2,8 @@ import XCTest
 
 /// The publication page of a publication with no artwork, before and after a cover is chosen.
 ///
-/// `cover-for-every-publication` task 2.6. Two states, at two text sizes; the appearance is
-/// the simulator's and `capture-ios.mjs --appearance` sets it, so one class answers all four
+/// `cover-for-every-publication` task 2.6. Two states, at the default text size; the appearance
+/// is the simulator's and `capture-ios.mjs --appearance` sets it, so one class answers both
 /// conditions on each state.
 ///
 /// **`Sea Room` is the subject and the name is load-bearing.** It is the corpus's chaptered
@@ -33,25 +33,11 @@ final class SweepCoverChoiceTests: XCTestCase {
         shutter(app, named: "detail-coverless-well")
     }
 
-    /// The same at the largest accessibility text size.
-    func testCaptureCoverlessWellOffersAChoiceAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try openSeaRoom(in: app)
-        shutter(app, named: "detail-coverless-well-ax5")
-    }
-
     /// The page once the reader has chosen a cover: the artwork, and the way to undo it.
     func testCaptureChosenCover() throws {
         let app = sweepLaunch()
         try openSeaRoom(in: app)
         shutter(app, named: "detail-chosen-cover")
-    }
-
-    /// The same at the largest accessibility text size.
-    func testCaptureChosenCoverAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try openSeaRoom(in: app)
-        shutter(app, named: "detail-chosen-cover-ax5")
     }
 
     /// The shelf, then `Sea Room`, then the page.

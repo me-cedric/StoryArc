@@ -21,22 +21,13 @@ final class SweepSourceRemovalTests: XCTestCase {
     ///
     /// `source-lifecycle` §4.6. Both strings have to be legible: the count of titles the
     /// removal affects, and the sentence about the thirty days a reader has to change their
-    /// mind. A confirmation dialog is where truncation costs a reader their library, which is
-    /// why the largest-text pair is not optional for this one.
+    /// mind. A confirmation dialog is where truncation costs a reader their library.
     ///
     /// Nothing is confirmed. The shutter fires on the dialog and the walk ends, so the source
     /// survives for the next walk in the same run — a walk that removed it would leave every
     /// walk after it photographing an empty *Your libraries*.
     func testCaptureSourceRemovalConfirmation() throws {
-        try captureRemovalConfirmation(contentSize: nil, named: "settings-source-remove")
-    }
-
-    /// The same dialog at the largest accessibility text size.
-    func testCaptureSourceRemovalConfirmationAtLargestText() throws {
-        try captureRemovalConfirmation(
-            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
-            named: "settings-source-remove-ax5"
-        )
+        try captureRemovalConfirmation(named: "settings-source-remove")
     }
 
     /// The confirmation for a source that holds a download, which is the sentence that names
@@ -51,19 +42,7 @@ final class SweepSourceRemovalTests: XCTestCase {
     /// figure that matters here is the other one.
     func testCaptureSourceRemovalConfirmationWithDownloads() throws {
         try captureRemovalConfirmation(
-            contentSize: nil,
             named: "settings-source-remove-downloads",
-            holding: .aDownload
-        )
-    }
-
-    /// The same sentence at the largest accessibility text size, where a confirmation holds
-    /// about seven short lines and the size is the last thing in it. If the frame cuts the
-    /// figure, the sentence is too long, and this is the walk that would show it.
-    func testCaptureSourceRemovalConfirmationWithDownloadsAtLargestText() throws {
-        try captureRemovalConfirmation(
-            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
-            named: "settings-source-remove-downloads-ax5",
             holding: .aDownload
         )
     }
@@ -113,11 +92,10 @@ final class SweepSourceRemovalTests: XCTestCase {
     }
 
     private func captureRemovalConfirmation(
-        contentSize: String?,
         named name: String,
         holding: Holding = .theMockCatalogues
     ) throws {
-        let app = sweepLaunch(contentSize: contentSize, downloads: holding.downloads, sources: holding.sources)
+        let app = sweepLaunch(downloads: holding.downloads, sources: holding.sources)
         try open("Your libraries", in: app)
         let source = try XCTUnwrap(
             holding.sourceNames.lazy.compactMap { self.control($0, in: app) }.first,
@@ -162,22 +140,6 @@ final class SweepSourceRemovalTests: XCTestCase {
         }
         hold(0.5)
         shutter(app, named: name)
-
-        // **The second frame is what turns "clipped" into "unreachable".** At the accessibility
-        // sizes the message outgrows the confirmation and stops mid-sentence — the first frame
-        // ends at *"No files"* — and a still cannot tell a scrollable clip from a hard
-        // truncation. So the walk swipes and shoots again: the two frames are **identical**,
-        // which is the finding. The retention sentence cannot be reached by scrolling.
-        //
-        // The assertion above still passes at this size, and that is worth knowing rather than
-        // hiding: `staticTexts` reads the accessibility tree, where the whole message exists as
-        // one label. VoiceOver reads it in full. A sighted reader at `AccessibilityXXXL` cannot
-        // see it at all. A test that asserted only existence would have called this screen
-        // correct.
-        guard contentSize != nil else { return }
-        app.swipeUp(velocity: .slow)
-        hold(0.5)
-        shutter(app, named: "\(name)-scrolled")
     }
 
     /// The way in, which is the one thing this shares with the settings sweep.

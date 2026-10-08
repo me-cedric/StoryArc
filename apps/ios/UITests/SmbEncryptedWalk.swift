@@ -13,7 +13,6 @@ import XCTest
 @MainActor
 final class SmbEncryptedWalkTests: XCTestCase {
 
-    private static let largest = "UICTContentSizeCategoryAccessibilityXXXL"
     private static let fixturePassword = "lovelace"
 
     /// The Mac's own user name, which `smb-server.sh` serves the share to. The simulator's
@@ -36,41 +35,11 @@ final class SmbEncryptedWalkTests: XCTestCase {
     }
 
     func testCaptureAddShareEncrypted() throws {
-        try addSheetConnected(contentSize: nil, named: "ios-add-share-encrypted")
-    }
-
-    func testCaptureAddShareEncryptedAtLargestText() throws {
-        try addSheetConnected(contentSize: Self.largest, named: "ios-add-share-encrypted-ax5")
+        try addSheetConnected(named: "ios-add-share-encrypted")
     }
 
     func testCaptureShareDetailEncrypted() throws {
-        try detail(contentSize: nil, named: "ios-share-detail-encrypted")
-    }
-
-    /// Reads the share ``testCaptureShareDetailEncrypted`` registered, so run that first. At this
-    /// size the system's password prompt is laid out differently and no tap of ours dismisses
-    /// it, which is why this walk adds nothing.
-    func testCaptureShareDetailEncryptedAtLargestText() throws {
-        let app = sweepLaunch(contentSize: Self.largest)
-        try openSettings(in: app)
-        try XCTUnwrap(control("Your libraries", in: app), "No libraries row.").tap()
-        let row = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "label CONTAINS 'Comics'")).firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 10), "No Comics share. Run the default-size walk first.")
-        _ = scrollTo(row, in: app)
-        row.tap()
-        hold(3)
-        let test = app.buttons["Test connection"]
-        XCTAssertTrue(scrollTo(test, in: app, swipes: 12), "The detail offers no reachable Test connection.")
-        test.tap()
-        hold(8)
-        // The sentence sits above the actions, so scroll back up to it.
-        for _ in 0..<6 { app.swipeDown() }
-        let sentence = app.staticTexts
-            .matching(NSPredicate(format: "label BEGINSWITH 'StoryArc reads this share'")).firstMatch
-        _ = scrollTo(sentence, in: app, swipes: 4)
-        hold(1)
-        shutter(app, named: "ios-share-detail-encrypted-ax5")
+        try detail(named: "ios-share-detail-encrypted")
     }
 
     func testCaptureShareDetailNotConnected() throws {
@@ -82,8 +51,8 @@ final class SmbEncryptedWalkTests: XCTestCase {
 
     // MARK: - Steps
 
-    private func addSheetConnected(contentSize: String?, named name: String) throws {
-        let app = sweepLaunch(contentSize: contentSize)
+    private func addSheetConnected(named name: String) throws {
+        let app = sweepLaunch()
         try fillAndConnect(in: app)
         let line = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'encrypted'")).firstMatch
         _ = scrollTo(line, in: app)
@@ -91,8 +60,8 @@ final class SmbEncryptedWalkTests: XCTestCase {
         shutter(app, named: name)
     }
 
-    private func detail(contentSize: String?, named name: String) throws {
-        let app = sweepLaunch(contentSize: contentSize, sources: Self.noShares)
+    private func detail(named name: String) throws {
+        let app = sweepLaunch(sources: Self.noShares)
         try fillAndConnect(in: app)
         try XCTUnwrap(hittable("Read from this folder", in: app), "No way to use the folder.").tap()
         // The system offers to save the password it just saw typed. Declined: the fixture

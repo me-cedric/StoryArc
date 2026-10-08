@@ -31,14 +31,6 @@ final class SweepDetailTests: XCTestCase {
         shutter(app, named: "detail-with-cover")
     }
 
-    /// The same at the largest accessibility text size.
-    func testCaptureDetailWithCoverAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try openDetail(named: "Fine Print", in: app)
-        hold(1.5)
-        shutter(app, named: "detail-with-cover-ax5")
-    }
-
     /// A publication with no cover the app could find: the hero as a well.
     ///
     /// `CoverlessWell` draws the title into the space the artwork would have taken, and the

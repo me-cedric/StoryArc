@@ -68,9 +68,8 @@ if (appearance && !['light', 'dark'].includes(appearance)) {
  * runs cannot write the same `.xcresult`. Both of those are per-run, and a loop around them
  * would have to undo them.
  *
- * **The matrix names no text size for iOS, and that is not an omission.** The walks set it
- * themselves through `sweepLaunch(contentSize:)` and attach those frames under names ending
- * `-ax5`, so the largest text size is already in every sweep this runs.
+ * **The matrix names no text size for iOS, and that is not an omission.** Frames are taken
+ * at the default text size only. The largest text size is a test and review gate, not a frame.
  */
 if (argv.includes('--matrix')) {
     if (appearance) {

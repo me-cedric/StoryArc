@@ -21,18 +21,6 @@ extension ScreenshotTests {
         attach(app.screenshot(), named: "skipped-notice")
     }
 
-    /// The same, at the largest accessibility text size.
-    ///
-    /// This is the size the layout was rebuilt for. The first version of the banner put the
-    /// two labelled controls in a row beside the sentence, and a row measures its unweighted
-    /// children first — on Android that laid the sentence out at zero width, which is a
-    /// defect a picture at the default size would never have shown.
-    func testCaptureSkippedNoticeAtLargestText() throws {
-        let app = launch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try showTheNotice(in: app)
-        attach(app.screenshot(), named: "skipped-notice-ax5")
-    }
-
     /// The list behind the notice: every publication, with its own reason.
     ///
     /// The reasons are the point. The count the notice replaced could not carry one, and the

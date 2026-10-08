@@ -165,16 +165,11 @@ class SourceRemovalFooterTest {
     // because a compose rule's `setContent` runs once per test.
 
     @Test
-    fun `the footer is photographed at the default text size`() = photograph("", 1f)
-
-    @Test
-    fun `the footer is photographed at the largest text size`() = photograph("-ax", LARGEST_TEXT)
-
-    private fun photograph(suffix: String, fontScale: Float) {
-        show(share(), fontScale = fontScale)
+    fun `the footer is photographed at the default text size`() {
+        show(share())
         val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
         val out = File("build/reports/storyarc-captures").apply { mkdirs() }
-        val file = File(out, "android-settings-source-detail-footer$suffix.png")
+        val file = File(out, "android-settings-source-detail-footer.png")
         file.outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
         assertTrue("${file.path} is empty", file.length() > 0)
     }

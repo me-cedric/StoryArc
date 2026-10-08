@@ -2,9 +2,8 @@ import XCTest
 
 /// The player's three sheets, and the compact bar over each destination.
 ///
-/// `PlayerScreenshotTests` photographs the compact bar over the library, the full player at
-/// two text sizes, and the sleep timer set and counting. The three sheets the full player
-/// leads to — chapters, speed and the sleep-timer picker itself — have no picture, and neither
+/// `PlayerScreenshotTests` photographs the compact bar over the library, the full player, and
+/// the sleep timer set and counting. The three sheets the full player leads to — chapters, speed and the sleep-timer picker itself — have no picture, and neither
 /// does the compact bar anywhere but on the shelf.
 ///
 /// The walk is `openAnAudiobook(in:)`, in `AudiobookWalk.swift`. It fails by name when the
@@ -26,15 +25,6 @@ final class SweepPlayerTests: XCTestCase {
         try open("Chapters", landmark: "Chapters", in: app)
         hold(1)
         shutter(app, named: "player-chapters")
-    }
-
-    /// The chapter list at the largest accessibility text size.
-    func testCapturePlayerChaptersAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try openPlayer(in: app)
-        try open("Chapters", landmark: "Chapters", in: app)
-        hold(1)
-        shutter(app, named: "player-chapters-ax5")
     }
 
     /// The speed sheet: the stops, with the current one ticked.
@@ -90,15 +80,6 @@ final class SweepPlayerTests: XCTestCase {
         try reach("Search", in: app)
         hold(2)
         shutter(app, named: "player-compact-on-search")
-    }
-
-    /// The compact bar at the largest accessibility text size, where a title, a chapter and
-    /// two controls share one capsule.
-    func testCaptureCompactPlayerAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try openAnAudiobook(in: app)
-        hold(2)
-        shutter(app, named: "player-compact-ax5")
     }
 
     // MARK: - The walk

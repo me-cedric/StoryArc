@@ -48,10 +48,9 @@ final class PlayerAuditTests: XCTestCase {
     /// And at the largest accessibility text size, which is the other half of the
     /// requirement: "no transport control is pushed off the screen".
     ///
-    /// An audit is not a layout check and will not say whether the transport is on screen —
-    /// `after-2026-09-01-ios-player/ios-full-player-largest-text.png` is what says that. What
-    /// this adds is whether anything becomes unreachable at that size, which a picture cannot
-    /// show.
+    /// An audit is not a layout check and will not say whether the transport is on screen.
+    /// What this adds is whether anything becomes unreachable at that size, which a picture
+    /// cannot show.
     func testFullPlayerPassesTheAuditAtLargestText() throws {
         let app = launch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
         try openAnAudiobook(in: app)

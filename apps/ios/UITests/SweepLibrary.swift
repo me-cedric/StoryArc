@@ -3,7 +3,7 @@ import XCTest
 /// The library destination, every way it can be drawn and every menu it opens.
 ///
 /// One of nine sweep suites taken for `docs/designs/screenshots/ios-sweep-2026-09-02/`. The
-/// existing `ScreenshotTests` photographs the shelf at rest, at the largest text size and
+/// existing `ScreenshotTests` photographs the shelf at rest and
 /// scrolled to its end; what it has never photographed is the shelf *doing* anything — the
 /// two named menus the toolbar was cut down to, either of them open, a filter actually set,
 /// the compact list, or a selection with something in it.
@@ -43,18 +43,6 @@ final class SweepLibraryTests: XCTestCase {
         shutter(app, named: "library-grid")
     }
 
-    /// The shelf at the largest accessibility text size, where the index has least room.
-    ///
-    /// A rail of one letter per shelf section has to fit one column on a phone, and the
-    /// entries do not grow with the reader's type — so this is the frame that says whether
-    /// the letters are still legible and whether the shelf is still whole beside them.
-    func testCaptureCoverGridAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try showTheShelf(in: app)
-        hold(2)
-        shutter(app, named: "library-grid-ax5")
-    }
-
     /// **The control.** A sort no letter describes draws no index at all.
     ///
     /// `library-browsing`'s *A sort no letter describes*: under the five sorts a letter does
@@ -83,20 +71,6 @@ final class SweepLibraryTests: XCTestCase {
         shutter(app, named: "library-list")
     }
 
-    /// The list at the largest accessibility text size, where a row has the most to lose.
-    func testCaptureCompactListAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try showTheShelf(in: app)
-        try openViewMenu(in: app)
-        try XCTUnwrap(hittable("List", in: app), "The View menu offers no List layout.").tap()
-        try assertIsAList(app)
-        // Longer than its default-size twin, and measured rather than padded: the shutter
-        // itself timed out here once — "Failed to get screenshot: Timed out while requesting
-        // screenshot" — while the list was still laying out rows a cell and a half tall.
-        hold(3)
-        shutter(app, named: "library-list-ax5")
-    }
-
     // MARK: - The two named menus, open
 
     /// The View menu: availability, layout, sort and direction, in one place.
@@ -112,18 +86,6 @@ final class SweepLibraryTests: XCTestCase {
         shutter(app, named: "library-view-menu")
     }
 
-    /// The same menu at the largest accessibility text size.
-    ///
-    /// A system menu grows with the reader's type and the screen does not, so this is where a
-    /// four-picker menu either scrolls or runs off the bottom.
-    func testCaptureViewMenuAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try showTheShelf(in: app)
-        try openViewMenu(in: app)
-        hold(0.75)
-        shutter(app, named: "library-view-menu-ax5")
-    }
-
     /// The Filter menu with nothing set: seven groups and no way to clear.
     ///
     /// *Clear filters* is absent rather than disabled when nothing is filtered, which is a
@@ -134,15 +96,6 @@ final class SweepLibraryTests: XCTestCase {
         try openFilterMenu(in: app)
         hold(0.75)
         shutter(app, named: "library-filter-menu")
-    }
-
-    /// The Filter menu at the largest accessibility text size.
-    func testCaptureFilterMenuAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try showTheShelf(in: app)
-        try openFilterMenu(in: app)
-        hold(0.75)
-        shutter(app, named: "library-filter-menu-ax5")
     }
 
     /// A filter actually set, and the menu re-opened over it.
@@ -276,27 +229,13 @@ final class SweepLibraryTests: XCTestCase {
         shutter(app, named: "library-add-books")
     }
 
-    /// The same menu at the largest accessibility text size, where five rows of two lines each
-    /// is the most this control ever has to fit.
-    func testCaptureAddBooksMenuAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try showTheShelf(in: app)
-        try XCTUnwrap(hittable("Add books", in: app), "The toolbar offers no Add books.").tap()
-        XCTAssertTrue(
-            app.buttons["Files and folders"].waitForExistence(timeout: 5),
-            "Add books opened no menu at the largest text size."
-        )
-        hold(0.75)
-        shutter(app, named: "library-add-books-ax5")
-    }
-
     // MARK: - Selecting
 
     // **Not here, and deliberately.** The selection chrome was rebuilt while this sweep was
     // being taken — the tab bar hides, the actions float as a glass capsule where it was, the
     // count moved into the navigation title and *Done* into the toolbar — and
     // `LibrarySelectionCapture.swift` landed with it, carrying two walks: the capsule live
-    // with two covers picked, and the same at the largest accessibility text size.
+    // with two covers picked, and the same at the largest accessibility text size, asserted.
     // `ScreenshotTests.testCaptureLibrarySelectingAtTheEnd` carries the third, the mode
     // scrolled to the end of the shelf where the inset is decided.
     //
