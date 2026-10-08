@@ -158,7 +158,7 @@ extension LibraryModel {
     ) async -> SourceConnectionState {
         if let page = SmbPage(source: source, credentials: credentials) {
             do {
-                try await ShareProbe.reach(source.id, at: page.address)
+                _ = try await SmbClient(address: page.address).connect()
                 return .connected
             } catch let refusal as SmbError {
                 return SmbSourceState.of(refusal, at: Date())

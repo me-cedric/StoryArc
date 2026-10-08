@@ -280,15 +280,3 @@ public struct SmbPage: Sendable {
         self.address = address
     }
 }
-
-/// A probe of one saved share, which keeps what its session negotiated.
-///
-/// `network-share`'s *Encrypted transport*: the source detail screen states whether the
-/// connection is encrypted, so the answer of every probe is kept for that screen in
-/// ``StoryArcCore/ShareSessions``. Android's `SourceHealth.reachShare` does the same.
-enum ShareProbe {
-    static func reach(_ sourceID: UUID, at address: SmbAddress) async throws {
-        let identity = try await SmbClient(address: address).connect()
-        await ShareSessions.shared.record(identity.transport, for: sourceID)
-    }
-}

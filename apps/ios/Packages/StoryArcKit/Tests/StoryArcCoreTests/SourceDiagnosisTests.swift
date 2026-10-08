@@ -62,7 +62,7 @@ struct SourceDiagnosisTests {
     @MainActor
     func theNewestSessionIsKept() {
         let sessions = ShareSessions()
-        let share = UUID()
+        let share = ShareKey(host: "nas", port: 445, share: "Comics")
         sessions.record(ShareTransport(dialect: "SMB 2.1", isEncrypted: false), for: share)
         sessions.record(ShareTransport(dialect: "SMB 3.1.1", isEncrypted: true), for: share)
         #expect(sessions.negotiated[share] == ShareTransport(dialect: "SMB 3.1.1", isEncrypted: true))

@@ -64,10 +64,17 @@ public actor SmbClient {
 
             // What this session negotiated, read off the session itself: the dialect the
             // server chose, and whether every message after the setup is sealed.
-            return SmbIdentity(
+            let identity = SmbIdentity(
                 dialect: Self.name(of: session.dialect?.rawValue),
                 isEncrypted: session.isEncrypting
             )
+            // Kept here, in the one place every client connects through, so that the add sheet,
+            // the library scan, the reader and the health probe all leave the same record.
+            await ShareSessions.shared.record(
+                identity.transport,
+                for: ShareKey(host: address.host, port: address.port, share: address.share)
+            )
+            return identity
         }
     }
 
