@@ -155,7 +155,7 @@ final class CurlWalkTests: XCTestCase {
             hold(1.6)
         }
         shutter(app, named: "ios-curl-last-page-turns-before-drag")
-        try heldDrag(in: app, named: "ios-curl-last-page-turns-held")
+        try heldDrag(in: app, named: "ios-curl-last-page-turns-held", to: 0.3)
     }
 
     /// Task 8.5, the control: the same held drag on the first page, where a sheet lies beneath.
@@ -165,11 +165,11 @@ final class CurlWalkTests: XCTestCase {
         try heldDrag(in: app, named: "ios-curl-first-page-held")
     }
 
-    /// A slow drag to 66 percent, held for five seconds, photographed while it is held.
+    /// A slow drag to 66 percent (or to `dx`), held for five seconds, photographed while it is held.
     ///
     /// The press call blocks until the finger lifts, so the frames are asked for from other
     /// threads, at a spread of times. The first may precede the touch; the rest are the drag.
-    private func heldDrag(in app: XCUIApplication, named name: String) throws {
+    private func heldDrag(in app: XCUIApplication, named name: String, to dx: CGFloat = 0.66) throws {
         let done = XCTestExpectation(description: "the held frames are taken")
         let frames = HeldFrames()
         for seconds in [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0] {
@@ -178,7 +178,7 @@ final class CurlWalkTests: XCTestCase {
         DispatchQueue.global().asyncAfter(deadline: .now() + 4.5) { done.fulfill() }
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).press(
             forDuration: 0.05,
-            thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.66, dy: 0.5)),
+            thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: dx, dy: 0.5)),
             withVelocity: .slow,
             thenHoldForDuration: 5
         )

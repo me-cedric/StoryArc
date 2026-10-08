@@ -24,6 +24,19 @@ public enum CurlTurn {
         isRightToLeft ? travel : -travel
     }
 
+    /// Where a drag that has just begun measures from.
+    ///
+    /// Where the page stands while a turn is still running, so a drag takes a settle over
+    /// without the page snapping. **Flat when none is**, whatever the last settle left behind:
+    /// SwiftUI writes the tail of a spring into the value after the settle's own reset, so a
+    /// page that had just turned by a tap read 0.987 a second later, and the next drag on it
+    /// began almost fully turned and flipped at the first point of travel. Measured on the
+    /// last page of a comic on 2026-10-08, where the end screen came up whole under the
+    /// finger.
+    public static func base(standing: Double, isTurning: Bool) -> Double {
+        isTurning ? standing : 0
+    }
+
     /// Where the page stands after `travel` points of drag from `base`.
     ///
     /// The base is the whole point. `comic-reader` requires a drag begun during a settle

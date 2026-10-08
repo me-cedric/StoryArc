@@ -37,6 +37,21 @@ struct CurlTurnTests {
 
     // MARK: - Interruption
 
+    @Test("A drag measures from flat when no turn runs, whatever the last settle left standing")
+    func dragBeginsFlatWhenNoTurnRuns() {
+        // 0.987 is what a tap's spring left behind on the last page of a comic.
+        #expect(CurlTurn.base(standing: 0.987, isTurning: false) == 0)
+        #expect(CurlTurn.base(standing: 0.8, isTurning: true) == 0.8)
+        // So the first points of a drag after a tap move the page a little, not to the end.
+        let begun = CurlTurn.progress(
+            base: CurlTurn.base(standing: 0.987, isTurning: false),
+            travel: -13,
+            width: 402,
+            isRightToLeft: false
+        )
+        #expect(begun < 0.05)
+    }
+
     @Test("A drag caught mid-settle carries the page's progress as its base")
     func caughtSettleKeepsItsPlace() {
         // The scenario itself: the settle stands at 0.8 and the finger has barely moved.
