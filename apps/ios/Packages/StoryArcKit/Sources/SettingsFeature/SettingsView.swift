@@ -79,6 +79,11 @@ public struct SettingsView: View {
     private let onRemoveFinished: (Download) -> RemovedDownload?
     private let onRestoreFinished: (RemovedDownload) -> Void
 
+    /// Export and import of the whole library, and what the app reloads after an import. Nil
+    /// hides the two rows. `library-portability`.
+    private let libraryTransfer: LibraryTransfer?
+    private let onLibraryImported: (LibraryImportOutcome) -> Void
+
     /// What the summary rows state, so Sources and Downloads describe themselves.
     private var summary: LibrarySummary {
         LibrarySummary(sources: sources.count, bytesOnDisk: bytesOnDisk)
@@ -122,7 +127,9 @@ public struct SettingsView: View {
         importedBytes: Int64 = 0,
         onClearDownloads: @escaping () -> Void = {},
         onRemoveFinished: @escaping (Download) -> RemovedDownload? = { _ in nil },
-        onRestoreFinished: @escaping (RemovedDownload) -> Void = { _ in }
+        onRestoreFinished: @escaping (RemovedDownload) -> Void = { _ in },
+        libraryTransfer: LibraryTransfer? = nil,
+        onLibraryImported: @escaping (LibraryImportOutcome) -> Void = { _ in }
     ) {
         _settings = settings
         self.readerStore = readerStore
@@ -149,6 +156,8 @@ public struct SettingsView: View {
         self.onClearDownloads = onClearDownloads
         self.onRemoveFinished = onRemoveFinished
         self.onRestoreFinished = onRestoreFinished
+        self.libraryTransfer = libraryTransfer
+        self.onLibraryImported = onLibraryImported
     }
 
     public var body: some View {
@@ -277,7 +286,10 @@ public struct SettingsView: View {
                 onAddShare: onAddShare,
                 downloads: downloads,
                 perform: onSourceAction,
-                onReorder: onReorderSource
+                onReorder: onReorderSource,
+                libraryTransfer: libraryTransfer,
+                onLibraryImported: onLibraryImported,
+                highlight: highlight
             )
         case .downloads:
             DownloadsSettings(

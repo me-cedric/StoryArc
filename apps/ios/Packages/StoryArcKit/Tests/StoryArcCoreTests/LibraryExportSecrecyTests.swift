@@ -94,6 +94,85 @@ struct LibraryExportSecrecyTests {
         #expect(bytes.contains("https://kavita.example/api?library=3"))
         #expect(bytes.contains("\"needsSignIn\" : true"))
     }
+
+    // MARK: Carrying secrets (task 5.3)
+
+    /// What the three sources' handles open to, standing in for the secure store.
+    private var stored: [String: String] {
+        ["keychain:share": password, "keychain:catalogue": token, "keychain:kavita": apiKey]
+    }
+
+    private func sealedBytes(passphrase: String) throws -> (bytes: String, document: LibraryDocument) {
+        let sealed = try LibraryExport.sealedSecrets(for: snapshot, passphrase: passphrase) { source in
+            source.credentialReference.flatMap { stored[$0] }
+        }
+        let document = LibraryExport.document(
+            snapshot,
+            appVersion: "10.14.0",
+            writtenAt: Date(timeIntervalSince1970: 0),
+            secrets: sealed
+        )
+        return (String(bytes: try LibraryDocumentCoder.encode(document), encoding: .utf8) ?? "", document)
+    }
+
+    @Test("With the switch off the document has no secrets object at all")
+    func offWritesNoSecretsObject() throws {
+        #expect(!(try exportedBytes()).contains("\"secrets\""))
+    }
+
+    @Test("With the switch on there is a secrets object and no secret in any of the four spellings")
+    func onWritesNoClearText() throws {
+        let (bytes, document) = try sealedBytes(passphrase: "correct horse")
+
+        #expect(document.secrets?.sealed.count == 3)
+        #expect(bytes.contains("\"secrets\""))
+        for secret in [password, token, apiKey] {
+            #expect(!bytes.contains(secret), "plain: \(secret)")
+            #expect(!bytes.contains(Data(secret.utf8).base64EncodedString()), "base64: \(secret)")
+            let escaped = secret.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? secret
+            #expect(!bytes.contains(escaped), "percent-encoded: \(secret)")
+            #expect(!bytes.contains(secret.replacing("/", with: "\\/")), "JSON-escaped: \(secret)")
+        }
+        // Neither the passphrase nor the secure-store handle is written.
+        #expect(!bytes.contains("correct horse"))
+        #expect(!bytes.contains("keychain:"))
+    }
+
+    @Test("The sealed block opens to the stored secrets under the passphrase, and not under another")
+    func theSealedBlockOpens() throws {
+        let (_, document) = try sealedBytes(passphrase: "correct horse")
+        let block = try #require(document.secrets)
+
+        let opened = try LibrarySecretSealer.open(block, passphrase: "correct horse")
+
+        #expect(Set(opened.values) == [password, token, apiKey])
+        #expect(throws: LibrarySecretsFailure.wrongPassphraseOrDamaged) {
+            try LibrarySecretSealer.open(block, passphrase: "battery staple")
+        }
+    }
+
+    @Test("A source whose handle points at nothing is skipped, and no secrets means no block")
+    func nothingToSealMeansNoBlock() throws {
+        let none = try LibraryExport.sealedSecrets(for: snapshot, passphrase: "x") { _ in nil }
+
+        #expect(none == nil)
+    }
+
+    @Test("The passphrase pair is refused when empty or when the two differ")
+    func thePassphrasePair() {
+        #expect(ExportPassphrase.problem("", confirmation: "") == .empty)
+        #expect(ExportPassphrase.problem("abc", confirmation: "abd") == .mismatch)
+        #expect(ExportPassphrase.problem("abc", confirmation: "") == .mismatch)
+        #expect(ExportPassphrase.problem("abc", confirmation: "abc") == nil)
+    }
+
+    @Test("One passphrase typed composed and decomposed is the same passphrase")
+    func thePairIgnoresTheSpellingOfAnAccent() {
+        let composed = "pa\u{00E9}"
+        let decomposed = "pae\u{0301}"
+
+        #expect(ExportPassphrase.problem(composed, confirmation: decomposed) == nil)
+    }
 }
 
 /// The scrubbing on its own, case by case.

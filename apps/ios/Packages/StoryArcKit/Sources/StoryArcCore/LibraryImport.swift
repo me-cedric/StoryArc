@@ -93,7 +93,11 @@ public enum LibraryImport {
         let outcome = mergingProgress(document, into: device)
         merged.progress = outcome.progress
 
-        return LibraryImportResult(snapshot: merged, conflicts: outcome.conflicts)
+        return LibraryImportResult(
+            snapshot: merged,
+            conflicts: outcome.conflicts,
+            sourcesNeedingSignIn: signInsNeeded(document, onto: device)
+        )
     }
 
     // MARK: Sources
@@ -132,11 +136,16 @@ public enum LibraryImport {
     /// A source whose secret this device already holds is not one of them, even when the
     /// document says it needed one: the secret the reader is being asked for is the one that
     /// is missing *here*.
-    private static func signInsNeeded(_ document: LibraryDocument, onto device: LibrarySnapshot)
-        -> [String] {
+    ///
+    /// - Parameter credentialed: sources this import gives a secret, which no longer need one.
+    static func signInsNeeded(
+        _ document: LibraryDocument,
+        onto device: LibrarySnapshot,
+        credentialed: Set<UUID> = []
+    ) -> [String] {
         let signedIn = Set(
             device.sources.sources.filter { $0.credentialReference != nil }.map(\.id)
-        )
+        ).union(credentialed)
         return document.library.sources
             .filter { $0.needsSignIn && !signedIn.contains($0.id) }
             .map(\.displayName)
@@ -350,8 +359,22 @@ public struct LibraryImportResult: Sendable, Equatable {
     /// both, with the option to take the other — the same notice a server disagreement gets.
     public var conflicts: [ProgressPull.Conflict]
 
-    public init(snapshot: LibrarySnapshot, conflicts: [ProgressPull.Conflict]) {
+    /// Sources that were given a secret by this import: their handle is set and the secret
+    /// still has to be written to the secure store.
+    public var credentialed: Set<UUID>
+
+    /// Sources, by name, that the reader still has to sign in to.
+    public var sourcesNeedingSignIn: [String]
+
+    public init(
+        snapshot: LibrarySnapshot,
+        conflicts: [ProgressPull.Conflict],
+        credentialed: Set<UUID> = [],
+        sourcesNeedingSignIn: [String] = []
+    ) {
         self.snapshot = snapshot
         self.conflicts = conflicts
+        self.credentialed = credentialed
+        self.sourcesNeedingSignIn = sourcesNeedingSignIn
     }
 }

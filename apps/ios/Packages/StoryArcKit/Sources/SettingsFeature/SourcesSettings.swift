@@ -61,6 +61,12 @@ struct SourcesSettings: View {
     /// two buttons instead; `STATUS.md` records the difference.
     var onReorder: (Source.ID, Int) -> Void = { _, _ in }
 
+    /// Moves the whole library to or from a file. Nil hides the two rows, which a screen with no
+    /// stores behind it (a preview, a test) has no use for.
+    var libraryTransfer: LibraryTransfer?
+    var onLibraryImported: (LibraryImportOutcome) -> Void = { _ in }
+    var highlight: SettingsAnchor?
+
     @State private var removing: Source?
     @State private var renaming: Source?
     @State private var draftName = ""
@@ -70,7 +76,7 @@ struct SourcesSettings: View {
     }
 
     var body: some View {
-        List {
+        HighlightingList(highlight: highlight) {
             // Task 17.9: this is now the way in, moved here from the library toolbar per
             // task 1.2's own direction for where it belongs. The empty library keeps its own
             // "Add a library" call to action besides this one — a reader who has never
@@ -82,6 +88,12 @@ struct SourcesSettings: View {
                     onAddCatalogue: onAddCatalogue,
                     onAddKavita: onAddKavita,
                     onAddShare: onAddShare
+                )
+            }
+
+            if let libraryTransfer {
+                LibraryTransferSection(
+                    transfer: libraryTransfer, highlight: highlight, onImported: onLibraryImported
                 )
             }
 

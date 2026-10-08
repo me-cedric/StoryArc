@@ -11,7 +11,10 @@ public import StoryArcCore
 /// without a disk.
 ///
 /// Android's `LibraryArchive` reads and writes the same seven.
-public struct LibraryArchive {
+///
+/// `@unchecked Sendable`: it holds a `UserDefaults`, which is documented as safe to use from any
+/// thread but is not marked so. The other stores are `Sendable` already.
+public struct LibraryArchive: @unchecked Sendable {
     private let defaults: UserDefaults
     private let progress: any ProgressLedger
     private let covers: (any ChosenCoverStore)?

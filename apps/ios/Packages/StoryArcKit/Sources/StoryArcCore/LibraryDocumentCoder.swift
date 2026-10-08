@@ -82,6 +82,17 @@ public enum LibraryDocumentCoder {
         return try encoder.encode(document)
     }
 
+    /// Refuses a file by its size alone, before a byte of it is read.
+    ///
+    /// `library-portability` / *A document that is too large*: the import screen asks this with
+    /// the size the file system reports, so a file a reader was handed never reaches memory.
+    /// ``decode(_:limit:transforms:)`` refuses the same way for bytes already in hand.
+    public static func admits(byteCount: Int, limit: Int = LibraryDocumentCoder.maximumBytes) throws {
+        guard byteCount <= limit else {
+            throw LibraryDocumentFailure.tooLarge(found: byteCount, limit: limit)
+        }
+    }
+
     /// A document read back, migrated forward if it is older.
     ///
     /// The size is checked first, before a byte is parsed. A document of the current version

@@ -58,7 +58,9 @@ extension StoryArcApp {
                 downloads = DownloadQueue.shared().library
             },
             onRemoveFinished: removeFinished,
-            onRestoreFinished: restoreFinished
+            onRestoreFinished: restoreFinished,
+            libraryTransfer: libraryTransfer,
+            onLibraryImported: libraryImported
         )
             .storyArcTheme(appearance: settings.appearance)
             .speaking(settings.language)
