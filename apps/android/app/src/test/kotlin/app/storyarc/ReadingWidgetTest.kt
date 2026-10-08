@@ -15,6 +15,7 @@ import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.QuickActionRequest
 import app.storyarc.core.model.ReadingSnapshot
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -94,6 +95,14 @@ class ReadingWidgetTest {
         onNode(hasTextEqualTo("Bone 1")).assertExists()
         onNode(isLinearProgressIndicator(0f)).assertDoesNotExist()
         onNode(hasContentDescriptionEqualTo("Bone 1")).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a stored cover is no longer than the widget needs, and a small one is kept`() {
+        val screenWide = ReadingWidgets.widgetSized(Bitmap.createBitmap(1206, 1809, Bitmap.Config.ARGB_8888))
+        assertEquals(ReadingSnapshot.COVER_PIXELS, screenWide.height)
+        assertEquals(320, screenWide.width)
+        assertSame(cover, ReadingWidgets.widgetSized(cover))
     }
 
     @Test

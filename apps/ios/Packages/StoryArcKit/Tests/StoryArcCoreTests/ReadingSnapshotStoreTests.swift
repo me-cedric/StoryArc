@@ -1,4 +1,6 @@
+import CoreGraphics
 import Foundation
+import ImageIO
 import Testing
 
 @testable import StoryArcCore
@@ -70,6 +72,25 @@ struct ReadingSnapshotStoreTests {
         #expect(store.read() == nil)
         #expect(store.cover(of: bone) == nil)
         #expect(try await store.write(nil) { jpeg } == false)
+    }
+
+    @Test("A stored cover is no longer than the widget needs, and a small one is not enlarged")
+    func coverIsWidgetSized() throws {
+        func stored(width: Int, height: Int) throws -> CGImage {
+            let context = try #require(CGContext(
+                data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+            ))
+            let image = try #require(context.makeImage())
+            let jpeg = try #require(ReadingSnapshotStore.coverJPEG(image))
+            let source = try #require(CGImageSourceCreateWithData(jpeg as CFData, nil))
+            return try #require(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        }
+        let screenWide = try stored(width: 1206, height: 1809)
+        #expect(screenWide.height == ReadingSnapshot.coverPixels)
+        #expect(screenWide.width < screenWide.height)
+        let small = try stored(width: 32, height: 48)
+        #expect(small.width == 32 && small.height == 48)
     }
 
     @Test("A record another version wrote is not shown")

@@ -1,6 +1,4 @@
-import ImageIO
 import OSLog
-import UniformTypeIdentifiers
 import WidgetKit
 
 import LibraryFeature
@@ -30,22 +28,12 @@ enum ReadingWidgetSnapshot {
             let changed = try await store.write(snapshot) {
                 guard let publication else { return nil }
                 let image = await library.cover(for: publication, maxPixelSize: ReadingSnapshot.coverPixels)
-                return image.flatMap(jpeg)
+                return image.flatMap(ReadingSnapshotStore.coverJPEG)
             }
             if changed { WidgetCenter.shared.reloadTimelines(ofKind: ReadingSnapshot.widgetKind) }
         } catch {
             // A full disk costs the widget its update, never the app its screen.
             log.error("The widget snapshot was not written: \(error.localizedDescription, privacy: .public)")
         }
-    }
-
-    nonisolated private static func jpeg(_ image: CGImage) -> Data? {
-        let data = NSMutableData()
-        guard let destination = CGImageDestinationCreateWithData(data, UTType.jpeg.identifier as CFString, 1, nil)
-        else { return nil }
-        CGImageDestinationAddImage(
-            destination, image, [kCGImageDestinationLossyCompressionQuality: 0.85] as CFDictionary
-        )
-        return CGImageDestinationFinalize(destination) ? data as Data : nil
     }
 }

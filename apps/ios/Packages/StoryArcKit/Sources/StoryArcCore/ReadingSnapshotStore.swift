@@ -1,4 +1,7 @@
+public import CoreGraphics
 public import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 
 /// The folder a ``ReadingSnapshot`` and its cover live in.
 ///
@@ -29,6 +32,25 @@ public struct ReadingSnapshotStore: Sendable {
     /// The stored snapshot, or `nil` when there is none or it cannot be read.
     public func read() -> ReadingSnapshot? {
         (try? Data(contentsOf: snapshotURL)).flatMap(ReadingSnapshot.decoded)
+    }
+
+    /// A cover as the store keeps it: a JPEG whose longest side is at most
+    /// ``ReadingSnapshot/coverPixels``.
+    ///
+    /// The library returns the size it decoded first, and Home decodes a cover at the width
+    /// of the screen. A widget extension has a small memory limit, so the store makes the
+    /// cover small here.
+    public static func coverJPEG(_ image: CGImage) -> Data? {
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(data, UTType.jpeg.identifier as CFString, 1, nil)
+        else { return nil }
+        var options: [CFString: Any] = [kCGImageDestinationLossyCompressionQuality: 0.85]
+        // Only when it is larger: ImageIO also enlarges a smaller image to this size.
+        if max(image.width, image.height) > ReadingSnapshot.coverPixels {
+            options[kCGImageDestinationImageMaxPixelSize] = ReadingSnapshot.coverPixels
+        }
+        CGImageDestinationAddImage(destination, image, options as CFDictionary)
+        return CGImageDestinationFinalize(destination) ? data as Data : nil
     }
 
     /// The cover of a snapshot's own publication, or `nil` when the app has not written one.

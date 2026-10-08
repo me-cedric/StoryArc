@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.scale
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -51,6 +52,7 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
+import kotlin.math.roundToInt
 
 /**
  * The home-screen widget: the book being read, its cover and how far the reader got.
@@ -132,8 +134,25 @@ internal object ReadingWidgets {
         }
 
     private fun jpeg(bitmap: Bitmap): ByteArray = ByteArrayOutputStream().also {
-        bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it)
+        widgetSized(bitmap).compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it)
     }.toByteArray()
+
+    /**
+     * The cover at most [ReadingSnapshot.COVER_PIXELS] on its longest side.
+     *
+     * The library returns the size it decoded first, and Home decodes a cover at the width of
+     * the screen. The launcher draws the widget from a parcelled bitmap, so the snapshot keeps
+     * the cover small.
+     */
+    internal fun widgetSized(bitmap: Bitmap): Bitmap {
+        val longest = maxOf(bitmap.width, bitmap.height)
+        if (longest <= ReadingSnapshot.COVER_PIXELS) return bitmap
+        val scale = ReadingSnapshot.COVER_PIXELS.toFloat() / longest
+        return bitmap.scale(
+            (bitmap.width * scale).roundToInt().coerceAtLeast(1),
+            (bitmap.height * scale).roundToInt().coerceAtLeast(1),
+        )
+    }
 
     private const val JPEG_QUALITY = 85
 }
