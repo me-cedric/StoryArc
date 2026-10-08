@@ -84,7 +84,10 @@ object ShareSessions {
         negotiated.update { it - share }
     }
 
-    /** What the last session with the share a source's [locator] names negotiated, if any. */
-    fun transportOf(locator: String?): ShareTransport? =
-        locator?.let(ShareKey::ofLocator)?.let { all.value[it] }
+    /**
+     * What the last session with the share a source's [locator] names negotiated, if any. A
+     * screen passes the [sessions] it collected, so it redraws when a new session is recorded.
+     */
+    fun transportOf(locator: String?, sessions: Map<ShareKey, ShareTransport> = all.value): ShareTransport? =
+        locator?.let(ShareKey::ofLocator)?.let { sessions[it] }
 }
