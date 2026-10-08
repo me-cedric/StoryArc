@@ -47,9 +47,9 @@ empty margin, the rail is 36 dp and the gutter is 20 dp, and the end reserves th
 wider of the two rather than their sum. Three columns, nothing clipped. `iOS`
 carried the same defect and took the same fix, in `LibraryContent.swift`.
 
-`android-rail-ax.png` is the shelf at **200 % text**. The chips reflow to three
-rows, the shelf falls to two columns because the cells grew, and the rail is
-still legible and still clips nothing.
+At **200 % text** the chips reflow to three rows, the shelf falls to two
+columns because the cells grew, and the rail is still legible and still clips
+nothing. No frame is kept at that size.
 
 ## The refresh line, and the copy it was written with
 
@@ -88,7 +88,6 @@ restoring `MINUTE_IN_MILLIS` fails it by name.
 | `android-series-light.png` | the same shelf grouped by series, light |
 | `android-series-dark.png` | the same, dark |
 | `android-no-index.png` | **the control**: sorted by *Last read*, no rail at all |
-| `android-issues-ax.png` | grouped by issues at 200 % text |
 
 `android-no-index.png` is the one that proves a rule rather than a feature.
 `library-browsing`'s *A sort no letter describes* says the index is **absent**
@@ -98,8 +97,8 @@ inset is conditional rather than always paid for.
 
 ## iOS at 200 %, and the rail that was illegible there
 
-`ios-library-grid-ax5.png` — the shelf at
-`UICTContentSizeCategoryAccessibilityXXXL`, rail reading **A B C F G H L P Q S T**,
+The shelf at
+`UICTContentSizeCategoryAccessibilityXXXL` (no frame is kept), rail reading **A B C F G H L P Q S T**,
 one letter per row.
 
 **The first version of that frame is why it was worth taking.** Each rail entry
@@ -177,7 +176,7 @@ local kind, which is one of the three the owner asked for.
 Every frame above was taken by a sweep test, and taking them broke three walks and
 then mended them.
 
-`ios-shelves.png`, `ios-shelves-ax5.png`, `ios-home-lower.png` and
+`ios-shelves.png`, `ios-home-lower.png` and
 `ios-home-end.png` came from `SweepHomeTests`, which now passes **8 of 8**. It had
 been failing three of those eight with *"Nothing on Home opened Shelves"* while
 printing *Collections* and *Reading lists* in the very button list it could see.

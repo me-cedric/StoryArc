@@ -16,8 +16,6 @@ so it is not repeated here.
 | --- | --- | --- |
 | `android-library-light.png` | light | default |
 | `android-library-dark.png` | dark | default |
-| `android-library-light-largest.png` | light | 200% |
-| `android-library-dark-largest.png` | dark | 200% |
 
 A server's publications and the device's own files in one grid, in one sort
 order, drawn by one cell. Nothing on a cover says which source it came from —
@@ -55,8 +53,6 @@ detail screen was changed first.
 | --- | --- | --- |
 | `android-home-light.png` | light | default |
 | `android-home-dark.png` | dark | default |
-| `android-home-light-largest.png` | light | 200% |
-| `android-home-dark-largest.png` | dark | 200% |
 | `android-home-recently-added.png` | light | default, scrolled |
 
 *Recently added* holds `Green Lantern Corps Quarterly`, which is on the server

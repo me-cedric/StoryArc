@@ -17,9 +17,7 @@ holds them rendered its empty state while audio played.
 | `android-player-full.png` | `../android-sweep-2026-09-02/android-player-full.png` | The whole point. The before is *"Nothing is playing."* and a **Go back** link on an otherwise empty screen; this is the chapter name, the scrub, the elapsed and total, the transport, the two skip intervals, the speed slider and the sleep timer. |
 | `android-player-chapters.png` | `../android-sweep-2026-09-02/android-player-chapters.png` | The same screen scrolled. Three chapters, each with its length, and *Playing* against the one that is. They come from the M4B container's own chapter atom — the thing `AudiobookChapters` exists to read and which nothing had ever shown working on a device. |
 | `android-player-full-dark.png` | `../android-sweep-2026-09-02/android-player-full-dark.png` | The same, dark. |
-| `android-player-full-scale2.png` | `../android-sweep-2026-09-02/android-player-full-scale2.png` | `font_scale 2.0`. `audio-playback` asks that "the surface scrolls if it must, and no transport control is pushed off the screen"; the chip rows wrap to two lines and the transport stays. First picture of that. |
 | `android-player-compact-bar.png` | `../android-sweep-2026-09-02/android-player-compact-bar.png` | Home after starting a book. The before has **no bar**. |
-| `android-player-compact-bar-scale2.png` | — | The bar at the largest text size, on the Library. Not in the sweep, because there was no bar to photograph. |
 
 **The root cause, in one sentence.** `PlaybackCentre.start` attaches its listener and *then*
 asks the source to play, while `AudiobookSource.play` asked the player first and marked its own
@@ -126,8 +124,7 @@ Sharpness sits always. The gap is gone on every slider the app owns.
 ## How they were taken
 
 Emulator `storyarc-j6` (API 36, 1080 × 2400, 420 dpi), started with `-gpu host`. Every frame
-came from `pnpm capture:android <route>` except `android-player-full-dark.png`,
-`android-player-full-scale2.png` and `android-player-compact-bar-scale2.png`, which were taken
+came from `pnpm capture:android <route>` except `android-player-full-dark.png`, which was taken
 by hand: with a book already playing the app comes back onto the player, and the route's walk
 expects to tap in from the shelf.
 

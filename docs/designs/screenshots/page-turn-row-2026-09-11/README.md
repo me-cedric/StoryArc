@@ -1,6 +1,6 @@
 # The *Page turn* row, reached by a run — 2026-09-11
 
-Three frames from an iPhone 17 Pro simulator, iOS 26.5, build `d102112d`.
+Two frames from an iPhone 17 Pro simulator, iOS 26.5, build `d102112d`.
 
 `one-vocabulary-in-four-languages` task 4.2 renamed the comic reader's transition
 row to `reader.transition` — *Page turn* — and edited the two UI walks that reach
@@ -13,7 +13,6 @@ of 11 together, and these are the frames:
 | Frame | What it shows |
 | --- | --- |
 | `ios-comic-reader-menu.png` | the reader's menu, **Page turn · Curl** under *Settings* |
-| `ios-comic-reader-menu-ax5.png` | the same menu at the largest accessibility size |
 | `ios-comic-reader-transition-picker.png` | the picker the row opens |
 
 The row reads *Page turn* and its value reads *Curl*, so the renamed key resolves

@@ -21,10 +21,8 @@ are the **before**. They photograph the full-bleed bottom slab — a `Surface` o
 | --- | --- | --- |
 | Nothing selected, light | `android-library-selection-none.png` | `android-library-selection-none.png` |
 | Nothing selected, dark | `android-library-selection-none-dark.png` | `android-library-selection-none-dark.png` |
-| Nothing selected, `font_scale 2.0` | `android-library-selection-none-scale2.png` | `android-library-selection-none-scale2.png` |
 | Two selected, light | `android-library-selection-two.png` | `android-library-selection-two.png` |
 | Two selected, dark | `android-library-selection-two-dark.png` | `android-library-selection-two-dark.png` |
-| Two selected, `font_scale 2.0` | — none was taken | `android-library-selection-two-scale2.png` |
 | The overflow open | — the slab had none | `android-library-selection-overflow.png` · `-dark` |
 
 The names match on both sides on purpose, so each pair is a before and an after of the same
@@ -53,11 +51,11 @@ chooser, and `PlaylistAdd` alone is the sort of glyph the 2026-09-01 design revi
 The route exists (`Library > selection overflow`) so the wording stays checkable.
 
 **At `font_scale 2.0` the count and the actions do not compete.**
-`android-library-selection-two-scale2.png` and `-none-scale2.png` are the stress case the
+The two `font_scale 2.0` frames, no longer kept, were the stress case the
 brief asked for, and the bar holds: the title grows, does not ellipsize, and the close plus
 the three actions all stay on one row at full size. The chip row below it wraps to two lines
 and the shelf drops to two columns, both of which are the shelf's own behaviour and unchanged
-by this work. In the `two-scale2` frame the walk had to scroll the shelf to reach *Foreign
+by this work. In the two-selected frame the walk had to scroll the shelf to reach *Foreign
 Codec* at that text size, so only one of the two ticks is on screen — the bar's own
 `2 selected` is what carries the count there.
 

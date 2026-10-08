@@ -367,7 +367,6 @@ centred in a much larger tinted well.
 | The EPUB reader at 1280 × 576 dp | The route could not find the book in the list pane at that width; not investigated further. |
 | Downloads: remove-download dialog, undo bar | Both hang off a long-press menu that only appears for a publication with a *download record*. Everything in the corpus is a local file that was never downloaded, so the menu never opens. Needs an OPDS or Kavita source. |
 | Every OPDS, Kavita and SMB surface | The add-source sheets, their sign-in, certificate-warning and failure states, the three source browsers, the reconnect sheet, facets, acquisition banners, metered-data dialogs, sync-conflict dialog. All need a live server or share; `scripts/opds-server.mjs` and `scripts/kavita-server.mjs` exist and would make this reachable in a follow-up. |
-| Selection mode with two selected at `font_scale 2.0` | The walk could not reach the second cover at that text size. `android-library-selection-none-scale2.png` covers the bar itself; `android-library-selection-two.png` covers two-selected at default size. |
 | PDF text selection, highlights, notes, in-PDF search | Reached by pressing and holding a word in a text PDF — a gesture the route table does not have. |
 | EPUB text selection, the selection menu, the note dialog, read-aloud | Same reason, plus TTS. |
 | The what's-new sheet as it appears on its own | It is shown once after an *update*, never on a first launch. `android-settings-whats-new.png` is the same content reached from About. |

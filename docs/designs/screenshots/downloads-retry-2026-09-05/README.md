@@ -35,11 +35,10 @@ nobody queued.
 
 ## The row at the largest accessibility text size
 
-`ios-downloads-failed-ax5.png`, `ios-downloads-failed-ax5-dark.png`, `ios-downloads-failed-ax5-de.png`.
+No frame is kept at this size. The largest text size is a test and review gate, not a frame.
 
-At AccessibilityXXXL one row fills the screen, so `ios-downloads-queue-ax5.png` — the queue's
-top, as the earlier sweeps framed it — shows two Stops and no Retry at all; the failed row is a
-screen and a half below the heading. The `-failed-ax5` walks scroll down to it.
+At AccessibilityXXXL one row fills the screen, so the queue's top shows two Stops and no Retry
+at all; the failed row is a screen and a half below the heading. The walks scroll down to it.
 
 The two buttons stop sharing a line here. *Download entfernen* alone is wider than the row at
 this size in German, the longest of the four languages, so the pair goes one under the other
@@ -62,7 +61,7 @@ restored.
 
 ## Found here and not changed
 
-`ios-downloads-failed-ax5-de.png` also shows the row above the failed one, and its **Stoppen**
+The German capture at the largest size also showed the row above the failed one, and its **Stoppen**
 truncates to **Stopp…** at this size — the moving row's *Stop* carries a `lineLimit(1)`, and
 German is the one language whose word does not fit inside it at AccessibilityXXXL. No earlier
 capture had photographed a German queue at this size. It is outside this change's brief, which

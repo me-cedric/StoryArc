@@ -25,10 +25,8 @@ on both platforms.
 | --- | --- | --- |
 | `ios-library-source-never-reached.png` | iOS | Light, default text |
 | `ios-library-source-never-reached-dark.png` | iOS | Dark, default text |
-| `ios-library-source-never-reached-ax5.png` | iOS | Light, `AccessibilityXXXL` |
 | `android-library-source-never-reached.png` | Android | Light, font scale 1.0 |
 | `android-library-source-never-reached-dark.png` | Android | Dark, font scale 1.0 |
-| `android-library-source-never-reached-ax.png` | Android | Light, font scale 2.0 |
 
 ## What the iOS accessibility frame shows, and it is not clean
 

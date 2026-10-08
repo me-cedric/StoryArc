@@ -29,12 +29,12 @@ app's; the outline is the launcher's, and it differs per device.
 
 ## The chooser (§6.2)
 
-| | Default text | Largest text |
-| --- | --- | --- |
-| iOS, light | `ios-app-icon-chooser.png` | `ios-app-icon-chooser-ax5.png` |
-| iOS, dark | `ios-app-icon-chooser-dark.png` | `ios-app-icon-chooser-ax5-dark.png` |
-| Android, light | `android-app-icon-chooser.png` | `android-app-icon-chooser-ax2.png` |
-| Android, dark | `android-app-icon-chooser-dark.png` | `android-app-icon-chooser-ax2-dark.png` |
+| | Default text |
+| --- | --- |
+| iOS, light | `ios-app-icon-chooser.png` |
+| iOS, dark | `ios-app-icon-chooser-dark.png` |
+| Android, light | `android-app-icon-chooser.png` |
+| Android, dark | `android-app-icon-chooser-dark.png` |
 
 **The iOS tiles were blank when these were first taken, and the four iOS pictures here are the
 re-take.** An `.appiconset` compiles into `Assets.car` as an *Icon Image*, and an icon asset is

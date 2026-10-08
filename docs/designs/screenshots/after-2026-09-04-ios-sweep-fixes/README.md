@@ -16,7 +16,6 @@ otherwise. `-dark` means the **device** was dark for that run, which is what
 | --- | --- | --- |
 | `ios-comic-reader-menu.png` | `ios-comic-reader-menu.png` | *Contents*, *Appearance*, *Transition* were purple on a material the salmon page had tinted warm brown. They are the hierarchical primary now, which is what `storyArcGlassText` resolves on a live material — and the palette's own neutral once Reduce Transparency makes the ground knowable. |
 | `ios-comic-reader-menu-dark.png` | same | The dark half of the pair. The material still picks up the page; the words are white on it rather than purple. |
-| `ios-comic-reader-menu-ax5.png` | same | Largest accessibility text size, because the sheet's rows grow and the rule must hold at every size. |
 | `ios-comic-reader-menu-expanded.png` | same | At `.large`, where the material is opaque — the control frame. *Transition* used to be the only purple row in a section whose other two rows were already primary; now the three read as one section. |
 | `ios-epub-reader-menu.png` | same | The same defect in the other reader — nine purple rows — and the same fix. `ReaderMenuEntry` gives the two readers one menu, so a fix to one that missed the other would be the drift the type exists to prevent. |
 | `ios-epub-reader-menu-dark.png` | same | |

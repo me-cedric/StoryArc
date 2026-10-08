@@ -15,12 +15,8 @@ device is the `Pixel_7_Pro` emulator, API 36, on a fresh install (`pm clear`).
 | --- | --- |
 | `android-library.png` | The empty library, light, default text. The button reads *Choose a file*, and the sentence above it agrees. |
 | `android-library-dark.png` | The same, dark. |
-| `android-library-largest.png` | The same at `font_scale 2.0`, light. |
-| `android-library-dark-largest.png` | The same at `font_scale 2.0`, dark. The sentence wraps to four lines, the button keeps its shape, and nothing clips. |
 | `ios-empty-library.png` | The empty library, light, default text. |
 | `ios-empty-library-dark.png` | The same, dark. |
-| `ios-empty-library-ax5.png` | `UICTContentSizeCategoryAccessibilityXXXL`, light. |
-| `ios-empty-library-ax5-dark.png` | The same, dark. |
 | `ios-empty-search.png` | The search page at rest, which draws the same button from `SearchAtRest`. |
 | `ios-empty-search-dark.png` | The same, dark. |
 

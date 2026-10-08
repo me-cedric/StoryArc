@@ -9,11 +9,8 @@ Taken on `StoryArc-iPhone17Pro` (402 pt wide) with
 `SweepEpubReaderTests/testCaptureEpubThemePresetsAtLargestText` at
 `UICTContentSizeCategoryAccessibilityXXXL`.
 
-| Frame | What it shows |
-| --- | --- |
-| `ios-epub-theme-presets-ax5-before.png` | The defect: three fixed columns, *Original* broken as `Origi-` over `nal` |
-| `ios-epub-theme-presets-ax5.png` | After: one column, every name whole |
-| `ios-epub-theme-presets-ax5-dark.png` | The same in dark |
+The three frames taken here (the defect, the fix, the fix in dark) are no longer kept: frames are
+taken at the default text size only, and the largest size is a test and review gate.
 
 ## What the first frame found
 

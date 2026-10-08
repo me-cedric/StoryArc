@@ -24,7 +24,7 @@ from Kavita. That is a separate gap and belongs to
 
 ## Largest text
 
-`android-list-dark-ax5-after.png` and `android-list-light-ax5-after.png` are the
+Two frames, since removed, showed the
 77-entry *Blackest Night* list at `font_scale 2.0`: the summary reads **0 of 77
 read**, the number, the poster and the wrapped title all keep their places, and
 no row loses its reorder controls.

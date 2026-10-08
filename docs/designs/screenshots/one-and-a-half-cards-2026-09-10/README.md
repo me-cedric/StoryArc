@@ -22,8 +22,6 @@ faults in one picture:
 | --- | --- | --- |
 | `android-keep-reading-light.png` | default | light |
 | `android-keep-reading-dark.png` | default | dark |
-| `android-keep-reading-light-largest.png` | 200% | light |
-| `android-keep-reading-dark-largest.png` | 200% | dark |
 
 What the frames show at the default text size: about one and a half cards
 across, both cards the same size, both covers drawn edge to edge with no bar

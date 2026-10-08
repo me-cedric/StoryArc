@@ -2,26 +2,25 @@
 
 A complete visual inventory of the iOS app as it stands: every destination, every menu and
 sheet opened, both readers with everything behind their menus, the player's sheets, all seven
-settings groups, and the four forms a library is added through. Light and dark for each, and
-the largest accessibility text size for every surface that is dense or has a control row.
+settings groups, and the four forms a library is added through. Light and dark for each, at
+the default text size. The frames taken at the largest accessibility text size are no longer kept.
 
 It exists to be read by someone who has never seen the code. Every row below says what the
 file is a picture of and what state the app was in; the last two sections say what is **not**
 here, and what looked wrong to the person taking it.
 
-244 frames, covering 130 surfaces: an iPhone 17 Pro in light and dark, an iPad Pro 11-inch in
+194 frames, covering 130 surfaces: an iPhone 17 Pro in light and dark, an iPad Pro 11-inch in
 landscape, and a simulator created bare for the first-run states a development device can
 never show.
 
 ## How to read a filename
 
 ```
-ios-<surface>-<state>[-ax5][-dark].png
+ios-<surface>-<state>[-dark].png
 ```
 
-`-ax5` is `UICTContentSizeCategoryAccessibilityXXXL`, the largest Dynamic Type size iOS
-offers. `-dark` is the dark appearance. No suffix means the default text size and the light
-appearance.
+`-dark` is the dark appearance. No suffix means the light appearance. Every frame is at the
+default text size.
 
 **The tables below name the light frame only.** Every row has a `-dark` twin under the same
 name unless this file says otherwise, so a table of two hundred rows is a table of a hundred
@@ -62,12 +61,10 @@ property on the model, changes in memory, and is tapped for real.
 | Surface | File | State |
 | --- | --- | --- |
 | Home, top | `ios-home-top.png` | The hero and the first section under it |
-| Home, top | `ios-home-top-ax5.png` | Largest text size |
 | Home, lower | `ios-home-lower.png` | Scrolled past the hero to the rows |
 | Home, end | `ios-home-end.png` | Scrolled to the foot, where the tab bar's inset is decided |
 | See-all grid | `ios-home-see-all.png` | *Recently added* opened as a screen of its own |
 | Shelves | `ios-shelves.png` | Collections and reading lists, both empty |
-| Shelves | `ios-shelves-ax5.png` | Largest text size |
 | New collection | `ios-shelves-new-collection.png` | The naming sheet |
 
 ## Library
@@ -76,27 +73,21 @@ property on the model, changes in memory, and is tapped for real.
 | --- | --- | --- |
 | Cover grid | `ios-library-grid.png` | Default layout, no filter, sorted by title |
 | Compact list | `ios-library-list.png` | Chosen through the View menu |
-| Compact list | `ios-library-list-ax5.png` | Largest text size |
 | View menu | `ios-library-view-menu.png` | Open: availability, layout, sort, direction |
-| View menu | `ios-library-view-menu-ax5.png` | Open, largest text size |
 | Filter menu | `ios-library-filter-menu.png` | Open, nothing set — no *Clear filters* row |
-| Filter menu | `ios-library-filter-menu-ax5.png` | Open, largest text size |
 | Filtered shelf | `ios-library-filtered.png` | One filter set (unread); the control states it |
 | Filter menu | `ios-library-filter-menu-active.png` | Re-opened over that filter |
 | Narrowed to nothing | `ios-library-narrowed-to-nothing.png` | Two filters that cannot both hold |
 | On this device | `ios-library-on-this-device.png` | The availability axis narrowed |
 | Add books | `ios-library-add-books.png` | The menu open: five ways in |
-| Add books | `ios-library-add-books-ax5.png` | Open, largest text size |
 
 ## Search
 
 | Surface | File | State |
 | --- | --- | --- |
 | At rest | `ios-search-at-rest.png` | Scope, recent searches, three suggestion shelves |
-| At rest | `ios-search-at-rest-ax5.png` | Largest text size |
 | At rest, narrowed | `ios-search-at-rest-on-this-device.png` | The scope set to this device |
 | Mid-query | `ios-search-results.png` | `harbour` — results grouped by match kind |
-| Mid-query | `ios-search-results-ax5.png` | Largest text size |
 | No results | `ios-search-no-results.png` | `vermillion`, with two silent servers beside it |
 | Scoped to this device | `ios-search-on-this-device.png` | The same term, nothing waited for |
 
@@ -105,9 +96,7 @@ property on the model, changes in memory, and is tapped for real.
 | Surface | File | State |
 | --- | --- | --- |
 | The readable shelf | `ios-downloads-shelf.png` | Nothing in flight |
-| The readable shelf | `ios-downloads-shelf-ax5.png` | Largest text size |
 | Transfer queue | `ios-downloads-queue.png` | One part-way, one waiting, one failed |
-| Transfer queue | `ios-downloads-queue-ax5.png` | Largest text size — the two-line row |
 | Stop confirmation | `ios-downloads-stop-confirm.png` | Naming the title and what it frees |
 | With a session running | `ios-downloads-with-player.png` | The docked transport over shelf and queue |
 
@@ -116,7 +105,6 @@ property on the model, changes in memory, and is tapped for real.
 | Surface | File | State |
 | --- | --- | --- |
 | With a cover | `ios-detail-with-cover.png` | Real artwork in the hero |
-| With a cover | `ios-detail-with-cover-ax5.png` | Largest text size |
 | Without a cover | `ios-detail-no-cover.png` | The coverless well as the hero |
 | In a series | `ios-detail-series-shelf.png` | Scrolled to *Other issues in this series* |
 | Bare | `ios-detail-bare.png` | No series, no description, no other issue |
@@ -131,7 +119,6 @@ property on the model, changes in memory, and is tapped for real.
 | Chrome, on arrival | `ios-comic-reader-chrome.png` | The two controls the reader draws itself |
 | Chrome, revealed | `ios-comic-reader-chrome-revealed.png` | Brought back by a centre tap after the countdown |
 | Menu | `ios-comic-reader-menu.png` | The medium detent, page visible behind |
-| Menu | `ios-comic-reader-menu-ax5.png` | Largest text size |
 | Menu, expanded | `ios-comic-reader-menu-expanded.png` | The large detent |
 | Transition picker | `ios-comic-reader-transition-picker.png` | With the reasons under refused modes |
 | Thumbnails | `ios-comic-reader-thumbnails.png` | Every page, current one marked |
@@ -144,10 +131,8 @@ property on the model, changes in memory, and is tapped for real.
 | --- | --- | --- |
 | The page | `ios-epub-reader-page.png` | Chrome faded out |
 | Menu | `ios-epub-reader-menu.png` | Five doors and read-aloud |
-| Menu | `ios-epub-reader-menu-ax5.png` | Largest text size |
 | Theme sheet, presets | `ios-epub-theme-presets.png` | Six presets, each in its own colours and typeface |
 | Theme sheet, axes | `ios-epub-theme-axes.png` | Nine typographic controls behind *Customise* |
-| Theme sheet, axes | `ios-epub-theme-axes-ax5.png` | Largest text size |
 | Page colour | `ios-epub-theme-page-colour.png` | The reader's own colour, and the contrast gate |
 | Contents | `ios-epub-contents.png` | The book's declared table of contents |
 | Search in book | `ios-epub-search.png` | At rest, with its prompt |
@@ -161,10 +146,8 @@ property on the model, changes in memory, and is tapped for real.
 | --- | --- | --- |
 | Compact bar | `ios-player-compact-on-home.png` | Over Home |
 | Compact bar | `ios-player-compact-on-search.png` | Over Search |
-| Compact bar | `ios-player-compact-ax5.png` | Largest text size |
 | Full player | `ios-player-full.png` | Cover, transport, scrub, three settings |
 | Chapters | `ios-player-chapters.png` | Each with its length, the current one marked |
-| Chapters | `ios-player-chapters-ax5.png` | Largest text size |
 | Speed | `ios-player-speed.png` | The stops, current one ticked |
 | Sleep timer | `ios-player-sleep-sheet.png` | The picker, including *End of chapter* |
 
@@ -173,13 +156,10 @@ property on the model, changes in memory, and is tapped for real.
 | Surface | File | State |
 | --- | --- | --- |
 | Root | `ios-settings-root.png` | Seven groups, each summarising what it holds |
-| Root | `ios-settings-root-ax5.png` | Largest text size |
 | Root, French | `ios-settings-root-french.png` | The app's own language override, applied |
 | Appearance | `ios-settings-appearance.png` | Four modes, Natural, the reading-theme link |
-| Appearance | `ios-settings-appearance-ax5.png` | Largest text size |
 | Appearance, Natural on | `ios-settings-appearance-natural.png` | The axis that crosses the four modes |
 | Reading | `ios-settings-reading.png` | The volume-buttons sentence, and the defaults |
-| Reading | `ios-settings-reading-ax5.png` | Largest text size |
 | Reading, matte | `ios-settings-reading-matte.png` | The colour behind a comic page |
 | Privacy | `ios-settings-privacy.png` | The group with nothing to opt out of |
 | Privacy, diagnostic | `ios-settings-privacy-diagnostic.png` | The redacted export, shown |
@@ -197,7 +177,6 @@ property on the model, changes in memory, and is tapped for real.
 | Surface | File | State |
 | --- | --- | --- |
 | Online library | `ios-add-catalogue-sheet.png` | Address, the hint, Connect |
-| Online library | `ios-add-catalogue-sheet-ax5.png` | Largest text size |
 | Kavita server | `ios-add-kavita-sheet.png` | Address, API key, where the key is kept |
 | Shared folder | `ios-add-share-sheet.png` | Host, share, credentials, what is on this network |
 | A file | `ios-add-file-picker.png` | The system's own document browser |
@@ -219,7 +198,6 @@ anybody; nothing about the bands is the app's.
 | --- | --- | --- |
 | Home | `ios-ipad-home.png` | Landscape, sidebar-adaptable shell |
 | Library | `ios-ipad-library.png` | The 158 pt cover tier a wide window takes |
-| Library | `ios-ipad-library-ax5.png` | Largest text size |
 | Library, list | `ios-ipad-library-list.png` | A row with an iPad's width to fill |
 | Downloads | `ios-ipad-downloads.png` | Landscape |
 | Search | `ios-ipad-search.png` | Landscape, at rest |
@@ -236,7 +214,6 @@ five sources since August. They are taken on a simulator created for them —
 | Surface | File | State |
 | --- | --- | --- |
 | Library | `ios-empty-library.png` | *Nothing here yet*, and the two actions that change it |
-| Library | `ios-empty-library-ax5.png` | Largest text size |
 | Home | `ios-empty-home.png` | Nothing open yet |
 | Downloads | `ios-empty-downloads.png` | One sentence and the way to the library |
 | Search | `ios-empty-search.png` | Nothing to suggest — the five ways in instead |
@@ -253,23 +230,18 @@ of a surface the sweep also photographs; the ones below are the surfaces only th
 | --- | --- | --- |
 | Home | `ios-home.png` | The destination at rest |
 | Library | `ios-library.png` | The shelf at rest |
-| Library | `ios-library-ax5.png` | Largest text size |
 | Search | `ios-search.png` | At rest |
-| Search | `ios-search-ax5.png` | Largest text size |
 | Downloads | `ios-downloads.png` | The destination at rest |
 | Comic reader | `ios-comic-reader-chrome.png` | The chrome over a saturated page |
 | Skipped notice | `ios-skipped-notice.png` | Two publications that could not be opened |
-| Skipped notice | `ios-skipped-notice-ax5.png` | Largest text size |
 | What could not be opened | `ios-skipped-list.png` | The list behind it, with a reason each |
 | About | `ios-about.png` | Version, licence, acknowledgements |
 | Compact player | `ios-compact-player.png` | Over the library |
 | Full player | `ios-full-player.png` | Cover, transport, scrub, three settings |
-| Full player | `ios-full-player-largest-text.png` | Largest text size |
 | Sleep timer | `ios-sleep-timer-set.png` | Set to five minutes |
 | Sleep timer | `ios-sleep-timer-counting.png` | Three seconds of playback later — it moved |
 | The control | `ios-library-nothing-playing.png` | The same shelf with no session |
 | What's new | `ios-whats-new.png` | The sheet, on the launch after an update |
-| What's new | `ios-whats-new-ax5.png` | Largest text size |
 | What's new | `ios-whats-new-from-about.png` | Reached from About, which does not mark it seen |
 
 ## What is not here, and why
@@ -495,7 +467,7 @@ something in flight. One string is doing two jobs.
 **A transfer states no size and no percentage.** A queue row is a title, two reorder
 chevrons, *Stop*, and a bare progress bar. `offline-downloads` asks for the size to be shown,
 and the bar is the only thing that says a transfer is 37% of the way through.
-`ios-downloads-queue.png`, `ios-downloads-queue-ax5.png`.
+`ios-downloads-queue.png`.
 
 **The View menu's icon is an ellipsis.** The menu that decides availability, layout, sort and
 direction is drawn as `ellipsis.circle` — "…" in a circle — beside the filter funnel.

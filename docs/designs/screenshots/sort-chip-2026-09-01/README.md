@@ -5,15 +5,13 @@ ordering*: "a reader seeing the field name alone cannot tell a sort from a filte
 
 ## What the pictures show
 
-The library's chip row, before and after, in both appearances and at both ends of the text
-scale. Eight files, one condition each.
+The library's chip row, before and after, in both appearances, at the default text size.
+Four files, one condition each.
 
 | | Light | Dark |
 | --- | --- | --- |
 | **Before**, default text | `before-light-default.png` | `before-dark-default.png` |
-| **Before**, `font_scale 2.0` | `before-light-largest.png` | `before-dark-largest.png` |
 | **After**, default text | `after-light-default.png` | `after-dark-default.png` |
-| **After**, `font_scale 2.0` | `after-light-largest.png` | `after-dark-largest.png` |
 
 **Before**, the row reads `On this device · Title · Filter`. Two of those three chips narrow
 what is on the shelf; the middle one orders it. Nothing on any of them says which is which,

@@ -9,11 +9,8 @@ for the ones a phone with the generated corpus can reach.
 | Frame | Route | Surface | What to look at |
 | --- | --- | --- | --- |
 | `android-detail-series.png` | `Publication page > series` | `DetailSeriesShelf` | *Other issues in this series* at 108 dp a cell |
-| `android-detail-series-ax.png` | the same, `--font-scale 2.0` | `DetailSeriesShelf` | The same cells at 151 dp: the shelf stepped with the text, so `#1` and `#3` still sit under their covers |
 | `android-library-list.png` | `Library > list layout` | `CoverList` | Rows with a 44 dp thumbnail |
-| `android-library-list-ax.png` | the same, `--font-scale 2.0` | `CoverList` | The thumbnail at 62 dp beside a title that doubled, rather than shrinking against it |
 | `android-shelves.png` | `Shelves` | `ShelvesScreen` | **The empty state, not the lattice**: this device has no collection and no reading list, so no four-cover lattice is drawn |
-| `android-shelves-ax.png` | the same, `--font-scale 2.0` | `ShelvesScreen` | The same empty state with its text doubled; kept because it was owed and to say plainly what it is |
 
 ## What the frames settle, and what only the arithmetic does
 
@@ -39,11 +36,8 @@ to the window's width.
 ```bash
 L=docs/designs/screenshots/android-cover-ladder-2026-09-06
 node scripts/capture-android.mjs "Publication page > series" --out $L/android-detail-series.png
-node scripts/capture-android.mjs "Publication page > series" --out $L/android-detail-series-ax.png --font-scale 2.0
 node scripts/capture-android.mjs "Library > list layout" --out $L/android-library-list.png
-node scripts/capture-android.mjs "Library > list layout" --out $L/android-library-list-ax.png --font-scale 2.0
 node scripts/capture-android.mjs "Shelves" --out $L/android-shelves.png
-node scripts/capture-android.mjs "Shelves" --out $L/android-shelves-ax.png --font-scale 2.0
 ```
 
 `--font-scale 2.0` is two arguments. Passed as one quoted word it reads as a route name, and the

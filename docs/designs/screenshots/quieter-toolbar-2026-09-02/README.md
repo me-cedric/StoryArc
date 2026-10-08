@@ -1,11 +1,11 @@
 # The toolbar keeps two controls and two menus — and the rail stops being a scrim
 
-Twelve pictures, iOS only, taken on `StoryArc-iPhone17Pro`
+Ten pictures, iOS only, taken on `StoryArc-iPhone17Pro`
 (`11DFC984-7DF7-4E1A-99F6-B7B4BED091F8`) against the corpus `scripts/corpus.mjs` builds.
 
 Two claims, from two changes, in one folder because they were photographed in one sitting:
 
-- `named-failures-and-quieter-chrome` §2.6 — the library toolbar, **eight** pictures.
+- `named-failures-and-quieter-chrome` §2.6 — the library toolbar, **six** pictures.
 - `brand-identity-and-app-icons` §1.7, the iOS half — a cover's progress rail, **four**.
 
 > **One glyph in the "after" shots is already superseded.** The View menu draws a
@@ -21,8 +21,6 @@ Two claims, from two changes, in one folder because they were photographed in on
 | --- | --- | --- |
 | `ios-toolbar-before-light.png` | light | default |
 | `ios-toolbar-before-dark.png` | dark | default |
-| `ios-toolbar-before-light-largest.png` | light | `accessibility-extra-extra-extra-large` |
-| `ios-toolbar-before-dark-largest.png` | dark | `accessibility-extra-extra-extra-large` |
 | `ios-toolbar-after-*.png` | the same four | |
 
 **Six glyphs become four items in three groups.** The before shows, left to right: select,

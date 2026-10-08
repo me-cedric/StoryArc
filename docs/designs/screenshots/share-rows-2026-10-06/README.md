@@ -27,13 +27,9 @@ so a pair where every row changed would be a picture of something else going on.
 | `ios-share-rows-before.png` | Every row as the file name made it. `Salt and Iron 02` captions its series line and offers to open. |
 | `ios-share-rows.png` | The same shelf, catalogued. `Salt and Iron #2` now states "This comic uses solid compression…" before any tap, and `Tidal Reach` is a CBZ. |
 | `ios-share-rows-dark.png` | The same, in dark appearance. |
-| `ios-share-rows-ax5.png` | The largest accessibility text size, scrolled to the refused row. The refusal is a caption under a cover, so this is the size it is most likely to be cut off at. |
-| `ios-share-rows-ax5-dark.png` | The same, dark. |
 | `android-share-rows-before.png` | Android, every row as the file name made it. |
 | `android-share-rows.png` | Android, catalogued. The same refusal, the same detected format. |
 | `android-share-rows-dark.png` | The same, dark. |
-| `android-share-rows-largest.png` | Font scale 2.0. |
-| `android-share-rows-dark-largest.png` | Font scale 2.0, dark. |
 
 The titles change with the rest: a row built from a file name is titled with the file name,
 and a catalogued one is titled the way every locally indexed publication already is —

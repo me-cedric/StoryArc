@@ -13,7 +13,6 @@ added in the app as a library.
 | `ios-share-pdf-page-light.png` | The publication page of a share-hosted PDF, with a primary action. Before this change `file` asked the filesystem about `smb://nas/Comics/Field Notes.pdf`, got no, and the page drew no action at all and the sentence *This one has to be on your device before it opens* | light | default |
 | `ios-share-download-first-light.png` | The same row tapped: `publication-formats`' offer, naming the file and stating the 2 kB the share's own directory entry reported | light | default |
 | `ios-share-pdf-kept-dark.png` | After the offer was accepted. The chunked copy landed and the provenance line now reads *On this device, readable with no network · Also in 127.0.0.1/Comics* | dark | default |
-| `ios-share-download-first-dark-ax5.png` | The same offer at the largest accessibility text size. The system dialog scrolls its message and the action stays reachable | dark | AX5 |
 | `ios-share-cbz-streams-light.png` | A share-hosted CBZ, which **streams**: the same tap opens page one over SMB with no dialog and no transfer | light | default |
 
 The series screen behind two of these reads **1 of 2 on this device** with the share row

@@ -9,8 +9,6 @@ change archives.
 | --- | --- |
 | `ios-settings-privacy.png` | iPhone 17 Pro, light, default text |
 | `ios-settings-privacy-dark.png` | iPhone 17 Pro, dark, default text |
-| `ios-settings-privacy-ax5.png` | iPhone 17 Pro, light, largest accessibility text |
-| `ios-settings-privacy-ax5-dark.png` | iPhone 17 Pro, dark, largest accessibility text |
 
 All four were taken by `node scripts/capture-ios.mjs --only
 SweepSettingsTests/testCaptureSettingsPrivacy` and

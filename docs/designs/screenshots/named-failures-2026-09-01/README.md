@@ -1,6 +1,6 @@
 # A failure names its publication — before and after, 2026-09-01
 
-`named-failures-and-quieter-chrome` §1. Ten pictures' worth of claim in five files per
+`named-failures-and-quieter-chrome` §1. Six pictures' worth of claim in three files per
 platform, and the *before* is the load-bearing half: on iOS the thing being replaced lived
 six seconds, so a capture taken any later is a picture of a shelf.
 
@@ -9,14 +9,10 @@ six seconds, so a capture taken any later is a picture of a shelf.
 | Picture | Platform | What it shows |
 | --- | --- | --- |
 | `ios-skipped-toast-before.png` | iOS | `ScanSummary` — a Liquid Glass capsule reading *"2 couldn't be opened"*, floating above the tab bar with a cover's title showing through it. |
-| `ios-skipped-toast-before-ax5.png` | iOS | The same at the largest text size, where the capsule sits **over** a cover. |
 | `ios-skipped-notice.png` | iOS | `SkippedNotice` — the count, a named control leading to the list, and a dismissal, inline above the shelf and opaque. |
-| `ios-skipped-notice-ax5.png` | iOS | The same at `accessibility-extra-extra-extra-large`. |
 | `ios-skipped-list.png` | iOS | The list: two publications, **two different reasons**. |
 | `android-skipped-count-before.png` | Android | The bare count at the foot of the shelf, in the `bottomBar`. |
-| `android-skipped-count-before-ax.png` | Android | The same at `font_scale 2.0`. |
 | `android-skipped-notice.png` | Android | The notice above the shelf, with the same two controls. |
-| `android-skipped-notice-ax.png` | Android | The same at `font_scale 2.0`, where the `FlowRow` wraps the controls onto two lines and both keep their names. |
 | `android-skipped-list.png` | Android | The bottom sheet, with the same two reasons kept apart. |
 
 ## What they settle
@@ -58,7 +54,6 @@ node scripts/corpus.mjs /tmp/corpus
 # ext_data_rw mount with "stat failed … Input/output error".
 adb push "/tmp/corpus/<file>" /sdcard/Android/data/app.storyarc.debug/files/<file>
 node scripts/capture-android.mjs Library --out <dir>/android-skipped-notice.png
-node scripts/capture-android.mjs Library --out <dir>/android-skipped-notice-ax.png --font-scale 2.0
 ```
 
 The *before* pictures were taken by restoring the pre-change sources over the working tree

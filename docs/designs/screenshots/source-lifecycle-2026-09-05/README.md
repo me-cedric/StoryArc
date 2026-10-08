@@ -1,25 +1,17 @@
 # The source detail screen — iOS, 2026-09-05
 
-`source-lifecycle` §4.1's, §4.3's and §4.6's iOS halves. Fifteen frames from `StoryArc-iPhone17Pro`
+`source-lifecycle` §4.1's, §4.3's and §4.6's iOS halves. Seven iOS frames are kept from `StoryArc-iPhone17Pro`
 (402 pt), taken with `scripts/capture-ios.mjs`.
 
 | Frame | Task | Appearance | Text size |
 | --- | --- | --- | --- |
 | `ios-settings-source-detail.png` | §4.1 | light | default |
 | `ios-settings-source-detail-dark.png` | §4.1 | dark | default |
-| `ios-settings-source-detail-ax5.png` | §4.1 | light | `AccessibilityXXXL` |
-| `ios-settings-source-detail-ax5-dark.png` | §4.1 | dark | `AccessibilityXXXL` |
 | `ios-source-unreachable-detail.png` | §4.3 | light | default |
 | `ios-source-unreachable-detail-dark.png` | §4.3 | dark | default |
 | `ios-settings-source-remove.png` | §4.6 | light | default |
 | `ios-settings-source-remove-dark.png` | §4.6 | dark | default |
-| `ios-settings-source-remove-ax5.png` | §4.6 | light | `AccessibilityXXXL` |
-| `ios-settings-source-remove-ax5-scrolled.png` | §4.6 | light | `AccessibilityXXXL`, after a swipe |
-| `ios-settings-source-remove-ax5-dark.png` | §4.6 | dark | `AccessibilityXXXL` |
-| `ios-settings-source-remove-ax5-scrolled-dark.png` | §4.6 | dark | `AccessibilityXXXL`, after a swipe |
 | `ios-settings-source-remove-downloads.png` | §4.6 | light | default, a source holding a download |
-| `ios-settings-source-remove-downloads-ax5.png` | §4.6 | light | `AccessibilityXXXL`, a source holding a download |
-| `ios-settings-source-remove-downloads-ax5-scrolled.png` | §4.6 | light | `AccessibilityXXXL`, after a swipe |
 
 Surface: *Settings › Your libraries › one source*. The walk opens `StoryArc Test Catalogue`
 and falls back to `Attic NAS`; **which of the two it lands on varies between runs**, so the
@@ -88,8 +80,8 @@ one.
 
 ## §4.6, and the truncation the task predicted
 
-Six more frames: `ios-settings-source-remove{,-dark}.png` at the default size, and
-`ios-settings-source-remove-ax5{,-dark}.png` with `-scrolled` twins at `AccessibilityXXXL`.
+Two more frames: `ios-settings-source-remove{,-dark}.png` at the default size. The frames taken
+at `AccessibilityXXXL`, with `-scrolled` twins, are no longer kept.
 
 At the default size the confirmation reads in full: *"This removes 0 titles from your library.
 No files on your device are deleted, and nothing was downloaded. Your reading positions are kept
@@ -100,7 +92,7 @@ reader's reading positions — is not on screen at all, on a destructive action.
 its own words that *a confirmation dialog is where truncation costs a reader their library*, and
 this is that.
 
-**The `-scrolled` frames are the point.** A still cannot tell a scrollable clip from a hard
+**The `-scrolled` frames were the point.** A still cannot tell a scrollable clip from a hard
 truncation, so the walk swipes and shoots again. **The two frames are identical.** A
 `confirmationDialog`'s message does not scroll, so the sentence is unreachable rather than
 merely off-screen.
@@ -127,7 +119,7 @@ Why a footer and not a shorter dialog: a footer wraps freely at every text size,
 that answer "what does this do right now"; the footer answers "and what about my place", which
 is a fact about removal rather than about this press of the button.
 
-**What the AX5 frame shows now, honestly.** `ios-settings-source-remove-ax5.png` reads *"This
+**What the AX5 frame shows now, honestly.** The frame, since removed, read *"This
 removes 0 titles from your library. No files"* — the body is two sentences instead of three and
 still stops at the same word, because a `confirmationDialog` at that size holds about seven
 short lines and the first sentence is six of them. What is cut is now the reassurance that no
@@ -182,13 +174,13 @@ the AVD needs, so this is not the software-GL failure the memory note describes 
 UI isn't responding*, lost its `input` service while the address was being typed (`cmd: Can't
 find service: input`; the field held `hhttp`), and on the one retry answered the app's own
 launch with *StoryArc isn't responding*. It was not restarted, because another agent may have
-been using it. **`android-settings-source-detail-footer.png` and `-ax.png` are the record instead**:
+been using it. **`android-settings-source-detail-footer.png` is the record instead**:
 `SourceRemovalFooterTest` composes `SourceDetailScreen` under Robolectric in `GraphicsMode.NATIVE`
-at the default and the largest text size and writes both to
-`apps/android/feature/settings/build/reports/storyarc-captures/`; these are those two files,
-copied. They are a rendering of the real composable with the shipped strings, not a device
+at the default text size and writes it to
+`apps/android/feature/settings/build/reports/storyarc-captures/`; this is that file,
+copied. It is a rendering of the real composable with the shipped strings, not a device
 frame: no system bars, no real font, no Material You. The footer wraps inside the gutters at
-both sizes and the four-locale fit is asserted by the same suite.
+the largest size, and the four-locale fit is asserted by the same suite.
 
 ### The download sentence, photographed after all
 

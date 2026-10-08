@@ -7,8 +7,6 @@ built at the commit these are committed with.
 | --- | --- | --- | --- |
 | `ios-library.png` | light | default | top |
 | `ios-library-dark.png` | dark | default | top |
-| `ios-library-ax5.png` | light | `AccessibilityXXXL` | top |
-| `ios-library-ax5-dark.png` | dark | `AccessibilityXXXL` | top |
 | `ios-library-end.png` | light | default | scrolled to the end |
 | `ios-library-end-dark.png` | dark | default | scrolled to the end |
 

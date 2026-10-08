@@ -22,9 +22,6 @@ closed.
 | `voice-compact-dark.png` | The compact bar in dark | dark | default |
 | `voice-player-dark.png` | The player in dark | dark | default |
 | `voice-player-chapters-dark.png` | The chapter list in dark | dark | default |
-| `voice-compact-largest.png` | The compact bar at the largest text size: it grows to fit its text rather than cutting it, which is the clause Android owns because its bar measures itself | light | 2.0 |
-| `voice-player-largest.png` | The player at the largest text size: the transport stays on the screen, and the list below it is what scrolls away | light | 2.0 |
-| `voice-player-chapters-largest.png` | The chapter list at the largest text size | light | 2.0 |
 
 ## What to look for, and why each is a requirement rather than a preference
 

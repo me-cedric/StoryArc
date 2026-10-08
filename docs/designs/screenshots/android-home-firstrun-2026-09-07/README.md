@@ -11,7 +11,6 @@ walks to the screen, sets the condition and puts the device back.
 | Frame | Condition |
 | --- | --- |
 | `android-home-firstrun-light.png` | Default text size |
-| `android-home-firstrun-largest.png` | `font_scale 2.0` |
 
 ## What they show
 

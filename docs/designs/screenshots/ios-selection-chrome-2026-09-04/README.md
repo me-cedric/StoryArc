@@ -22,10 +22,6 @@ settle are settled below — one of them not the way the change expected.
 | `ios-library-selecting-none-dark.png` | library shelf, top | selecting, **0 picked** | dark | default |
 | `ios-library-selecting-picked.png` | library shelf, top | selecting, **2 picked** | light | default |
 | `ios-library-selecting-picked-dark.png` | library shelf, top | selecting, **2 picked** | dark | default |
-| `ios-library-selecting-none-ax5.png` | library shelf, top | selecting, **0 picked** | light | `accessibility-extra-extra-extra-large` |
-| `ios-library-selecting-none-ax5-dark.png` | library shelf, top | selecting, **0 picked** | dark | `accessibility-extra-extra-extra-large` |
-| `ios-library-selecting-ax5.png` | library shelf, top | selecting, **2 picked** | light | `accessibility-extra-extra-extra-large` |
-| `ios-library-selecting-ax5-dark.png` | library shelf, top | selecting, **2 picked** | dark | `accessibility-extra-extra-extra-large` |
 | `ios-library-selecting-end.png` | library shelf, **end of scroll** | selecting, 0 picked | light | default |
 | `ios-library-selecting-end-dark.png` | library shelf, **end of scroll** | selecting, 0 picked | dark | default |
 | `ios-library-selecting-picked-de.png` | library shelf, top | selecting, **2 picked**, **German** | light | default |
@@ -96,7 +92,7 @@ photographed rather than predicted:
 | --- | --- | --- |
 | 1 | `⬇ Download`  `✓ Mark as read`  `⋯` | `ios-library-selecting-picked.png` — English, default size |
 | 2 | `⬇`  `✓ Als gelesen markieren`  `⋯` | `ios-library-selecting-picked-de.png` — German, default size |
-| 3 | `⬇`  `⋯` | `ios-library-selecting-ax5.png` — `AccessibilityXXXL` |
+| 3 | `⬇`  `⋯` | `AccessibilityXXXL`, photographed once and no longer kept |
 
 German is why tier 2 exists: *Als gelesen markieren* is 21 characters against *Mark as read*'s
 12, so English draws both names and German draws one. Shortening the English copy was rejected

@@ -16,8 +16,6 @@ StoryArc on it would photograph the old default and prove nothing.
 | --- | --- |
 | `android-library.png` | The empty library, light, default text. The button, the Library pill and the overflow dots are the brand violet. |
 | `android-library-dark.png` | The same, dark. |
-| `android-library-largest.png` | The same at `font_scale 2.0`, light. |
-| `android-library-dark-largest.png` | The same at `font_scale 2.0`, dark. |
 | `android-appearance.png` | Settings › Appearance, light. *Take colours from the wallpaper* is off, and its note names what the switch does rather than what the default is. |
 | `android-appearance-dark.png` | The same, dark. |
 
