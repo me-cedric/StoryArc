@@ -24,8 +24,8 @@ struct PlayerDockGlassTextTests {
 
     @Test("The title takes the primary glass style and the chapter the secondary one")
     func titleAndChapterUseGlassText() {
-        let text = Self.source
-        #expect(text.contains("Text(bar.label.title)\n                    .textRole(.subheadline)\n                    .storyArcGlassText(.primary)"))
-        #expect(text.contains("Text(chapter)\n                        .textRole(.caption)\n                        .storyArcGlassText(.secondary)"))
+        let text = Self.source.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        #expect(text.contains("Text(bar.label.title) .textRole(.subheadline) .storyArcGlassText(.primary)"))
+        #expect(text.contains("Text(chapter) .textRole(.caption) .storyArcGlassText(.secondary)"))
     }
 }
