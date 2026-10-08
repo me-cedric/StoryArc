@@ -3,20 +3,6 @@ package app.storyarc.feature.library
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
-import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.CoverWebSearch
 
 /**
@@ -61,47 +47,5 @@ internal object CoverSearchHandoff {
         return Intent(Intent.ACTION_VIEW, Uri.parse(address)).apply {
             putExtra(SESSION_EXTRA, null as Bundle?)
         }
-    }
-}
-
-/**
- * The row that offers the hand-off, and the sentence that says what it does.
- *
- * `open` is supplied by the screen, because a composable does not hold an `Activity`.
- */
-@Composable
-internal fun CoverSearchHandoffRow(
-    title: String,
-    open: (Intent) -> Unit,
-    modifier: Modifier = Modifier,
-    author: String? = null,
-    /**
-     * The page's own accent, where the row sits inside the hero's wash. See
-     * [CoverChoiceControls]: the theme's own colours can be the wash's colour on itself.
-     */
-    accent: Color? = null,
-) {
-    val palette = LocalStoryArcPalette.current
-    val intent = CoverSearchHandoff.intent(title, author)
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair),
-    ) {
-        TextButton(
-            onClick = { intent?.let(open) },
-            enabled = intent != null,
-            colors = ButtonDefaults.textButtonColors(
-                contentColor = accent ?: MaterialTheme.colorScheme.primary,
-            ),
-        ) {
-            Text(stringResource(R.string.covers_web_search))
-        }
-        Text(
-            text = stringResource(R.string.covers_web_note),
-            style = MaterialTheme.typography.labelLarge,
-            color = accent ?: palette.textSecondary,
-            textAlign = TextAlign.Center,
-        )
     }
 }

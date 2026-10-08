@@ -110,10 +110,10 @@ internal object KavitaListCover {
 }
 
 /**
- * The list's own cover, and the two things a reader can do about it.
+ * The list's own cover, and the one menu a reader changes it from.
  *
  * A picture of the reader's own choosing, kept on this device. Once one is chosen, and only
- * then, the reader may also send it to the server, where [CoverWriteBackButton] confirms that
+ * then, the reader may also send it to the server, where [rememberCoverWriteBack] confirms that
  * this changes the cover for everyone who can see the list.
  */
 @Composable
@@ -155,51 +155,55 @@ internal fun KavitaListCoverControls(
         }
     }
 
+    val send = rememberCoverWriteBack(
+        subject = KavitaListCover.writeSubject(listId, hasChosen = chosen != null, lists = lists),
+        image = { withContext(Dispatchers.IO) { overrides.bytes(list) } },
+        send = { id, picture -> client.uploadReadingListCover(id, picture) },
+    )
+    val menu = CoverMenu(
+        onChoose = {
+            picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        },
+        onSend = send,
+        onRemove = if (chosen == null) {
+            null
+        } else {
+            {
+                scope.launch {
+                    withContext(Dispatchers.IO) { overrides.remove(list) }
+                    revision += 1
+                }
+            }
+        },
+    )
+    var menuOpen by remember(listId) { mutableStateOf(false) }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
         modifier = modifier.padding(bottom = StoryArcSpace.sm),
     ) {
-        Surface(
-            color = palette.surfaceRaised,
-            shape = RoundedCornerShape(StoryArcRadius.sm),
-            modifier = Modifier.height(COVER_HEIGHT).aspectRatio(2f / 3f),
-        ) {
-            chosen?.let {
-                Image(
-                    bitmap = it.asImageBitmap(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
+        CoverActionsHost(menu, menuOpen, { menuOpen = it }, accent = null) {
+            Surface(
+                color = palette.surfaceRaised,
+                shape = RoundedCornerShape(StoryArcRadius.sm),
+                modifier = Modifier.height(COVER_HEIGHT).aspectRatio(2f / 3f),
+            ) {
+                chosen?.let {
+                    Image(
+                        bitmap = it.asImageBitmap(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
         }
         Column {
-            TextButton(
-                onClick = {
-                    picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                },
-            ) {
-                Text(stringResource(if (chosen == null) R.string.cover_choose else R.string.cover_change))
-            }
-            if (chosen != null) {
-                TextButton(
-                    onClick = {
-                        scope.launch {
-                            withContext(Dispatchers.IO) { overrides.remove(list) }
-                            revision += 1
-                        }
-                    },
-                ) {
-                    Text(stringResource(R.string.cover_remove))
+            if (chosen == null) {
+                TextButton(onClick = { menuOpen = true }) {
+                    Text(stringResource(R.string.cover_add))
                 }
-            }
-            KavitaListCover.writeSubject(listId, hasChosen = chosen != null, lists = lists)?.let { subject ->
-                CoverWriteBackButton(
-                    subject = subject,
-                    image = { withContext(Dispatchers.IO) { overrides.bytes(list) } },
-                    send = { id, picture -> client.uploadReadingListCover(id, picture) },
-                )
             }
             if (unreadable) {
                 Text(

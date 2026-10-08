@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
@@ -150,12 +151,20 @@ class KavitaListCoverTest {
 
     private fun present(text: String) = compose.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty()
 
+    /** The cover's one menu, opened from its edit button. */
+    private fun openMenu() {
+        compose.onNodeWithContentDescription(context.getString(R.string.cover_edit)).performClick()
+    }
+
+    private val store get() = CoverOverrideStore(CoverOverrideStore.directoryIn(context.filesDir))
+
     @Test
     fun `the button is on the screen of a list the reader owns once a cover is chosen`() {
         chooseCover()
         serve("""[{"id":8,"title":"Crossover","promoted":false}]""")
 
         show()
+        openMenu()
         compose.waitUntil(10_000) { present(send) }
     }
 
@@ -164,9 +173,11 @@ class KavitaListCoverTest {
         serve("""[{"id":8,"title":"Crossover","promoted":false}]""")
 
         show()
-        compose.waitUntil(10_000) { present(context.getString(R.string.cover_choose)) }
+        compose.waitUntil(10_000) { present(context.getString(R.string.cover_add)) }
         waitForTheListing()
+        openMenu()
 
+        assertEquals(true, present(context.getString(R.string.cover_pick)))
         assertEquals(false, present(send))
     }
 
@@ -176,7 +187,8 @@ class KavitaListCoverTest {
         serve("""[{"id":8,"title":"Crossover","promoted":true}]""")
 
         show()
-        compose.waitUntil(10_000) { present(context.getString(R.string.cover_change)) }
+        openMenu()
+        compose.waitUntil(10_000) { present(context.getString(R.string.cover_remove)) }
         waitForTheListing()
 
         assertEquals(false, present(send))
@@ -187,6 +199,7 @@ class KavitaListCoverTest {
         val picture = chooseCover()
         serve("""[{"id":8,"title":"Crossover","promoted":false}]""")
         show()
+        openMenu()
         compose.waitUntil(10_000) { present(send) }
 
         compose.onNodeWithText(send).performClick()
@@ -199,5 +212,31 @@ class KavitaListCoverTest {
         val sent = Base64.getDecoder().decode((body["url"] as kotlinx.serialization.json.JsonPrimitive).content)
         assertNotNull(sent)
         assertArrayEquals(picture, sent)
+    }
+
+    @Test
+    fun `removing a chosen cover asks first, and dismissing the question keeps the picture`() {
+        val picture = chooseCover()
+        serve("""[{"id":8,"title":"Crossover","promoted":false}]""")
+        show()
+        val remove = context.getString(R.string.cover_remove)
+        val list = requireNotNull(KavitaListCover.publication(source, 8))
+
+        openMenu()
+        compose.waitUntil(10_000) { present(remove) }
+        compose.onNodeWithText(remove).performClick()
+
+        compose.onNodeWithText(context.getString(R.string.cover_remove_title)).assertExists()
+        assertArrayEquals("the row deleted the picture before asking", picture, store.bytes(list))
+        compose.onNodeWithText(context.getString(R.string.shelves_cancel)).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText(context.getString(R.string.cover_remove_title)).assertDoesNotExist()
+        assertArrayEquals("dismissing the question deleted the picture", picture, store.bytes(list))
+
+        openMenu()
+        compose.onNodeWithText(remove).performClick()
+        compose.onNodeWithText(remove).performClick()
+        compose.waitUntil(10_000) { store.bytes(list) == null }
     }
 }

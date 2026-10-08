@@ -89,10 +89,18 @@ class CoverFinderTest {
         compose.setContent {
             StoryArcTheme {
                 val choice = rememberCoverChoice(viewModel, publication)
-                CoverChoiceControls(choice = choice, hasCover = false)
+                DetailHero(
+                    publication = publication,
+                    cover = null,
+                    accent = null,
+                    layout = DetailHeroLayout(isSideBySide = false, coverHeight = androidx.compose.ui.unit.Dp(360f)),
+                    coverChoice = choice,
+                ) {}
             }
         }
         compose.waitForIdle()
+        // The rows live in the cover's menu, which the visible label opens.
+        compose.onNodeWithText("Add a cover").performClick()
     }
 
     @Test

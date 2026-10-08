@@ -2,6 +2,7 @@ package app.storyarc.feature.library
 
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.storyarc.core.designsystem.theme.StoryArcTheme
@@ -56,10 +57,13 @@ class CoverlessWellOffersAChoiceTest {
 
         // By the format's own name, which is the only text in the well. `useUnmergedTree` is
         // not needed here and that is the point: a well that acts is reachable, where the
-        // decorative one carries `clearAndSetSemantics {}` and is not.
+        // decorative one carries `clearAndSetSemantics {}` and is not. It opens the menu.
         compose.onNodeWithText("M4B").assertHasClickAction().performClick()
+        compose.onNodeWithText(PICK).performClick()
         // And said in words underneath, because a silently tappable well is one nobody taps.
-        compose.onNodeWithText(CHOOSE).assertHasClickAction().performClick()
+        // The label opens the same menu.
+        compose.onNodeWithText(ADD).assertHasClickAction().performClick()
+        compose.onNodeWithText(PICK).performClick()
 
         assertEquals(2, asked)
     }
@@ -82,8 +86,8 @@ class CoverlessWellOffersAChoiceTest {
         // decorative for any reason at all would pass that test.
         compose.onNodeWithText("M4B", useUnmergedTree = true).assertExists()
         compose.onNodeWithText("M4B").assertDoesNotExist()
-        compose.onNodeWithText(CHOOSE).assertDoesNotExist()
-        compose.onNodeWithText(REMOVE).assertDoesNotExist()
+        compose.onNodeWithText(ADD).assertDoesNotExist()
+        compose.onNodeWithContentDescription(EDIT).assertDoesNotExist()
     }
 
     @Test
@@ -108,6 +112,17 @@ class CoverlessWellOffersAChoiceTest {
         compose.waitForIdle()
 
         compose.onNodeWithText(TIED_TO_PATH).assertExists()
+        compose.onNodeWithContentDescription(EDIT).performClick()
+        compose.onNodeWithText(REMOVE).performClick()
+        // The picture is deleted from the device, so the menu row only asks.
+        assertEquals(0, removed)
+        compose.onNodeWithText(REMOVE_CONFIRM_TITLE).assertExists()
+        compose.onNodeWithText(NOT_NOW).performClick()
+        assertEquals(0, removed)
+        compose.onNodeWithText(REMOVE_CONFIRM_TITLE).assertDoesNotExist()
+
+        compose.onNodeWithContentDescription(EDIT).performClick()
+        compose.onNodeWithText(REMOVE).performClick()
         compose.onNodeWithText(REMOVE).performClick()
 
         assertEquals(1, removed)
@@ -115,8 +130,12 @@ class CoverlessWellOffersAChoiceTest {
 
     private companion object {
         val COVER_HEIGHT = androidx.compose.ui.unit.Dp(360f)
-        const val CHOOSE = "Choose a cover"
+        const val ADD = "Add a cover"
+        const val PICK = "Choose a picture"
+        const val EDIT = "Edit cover"
         const val REMOVE = "Remove cover"
+        const val REMOVE_CONFIRM_TITLE = "Remove this cover?"
+        const val NOT_NOW = "Cancel"
         const val TIED_TO_PATH = "Moving this publication loses the cover you chose."
     }
 }

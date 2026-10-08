@@ -496,8 +496,11 @@
     <string name="library_grouping_issues">Numéros</string>
     <string name="library_index">Index alphabétique</string>
     <string name="library_index_jump">Aller à %1$s</string>
-    <string name="cover_choose">Choisir une couverture</string>
-    <string name="cover_change">Changer la couverture</string>
+    <string name="cover_edit">Modifier la couverture</string>
+    <string name="cover_add">Ajouter une couverture</string>
+    <string name="cover_pick">Choisir une image</string>
+    <string name="cover_remove_title">Retirer cette couverture ?</string>
+    <string name="cover_remove_body">L’image que vous avez choisie est supprimée de cet appareil.</string>
     <string name="cover_remove">Retirer la couverture</string>
     <string name="cover_tied_to_path">Si vous déplacez cette publication, la couverture choisie est perdue.</string>
     <string name="cover_unreadable">Cette image n’a pas pu être utilisée.</string>

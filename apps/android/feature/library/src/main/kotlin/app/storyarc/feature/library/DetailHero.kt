@@ -3,7 +3,6 @@ package app.storyarc.feature.library
 import android.graphics.Bitmap
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,11 +21,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -109,6 +110,10 @@ internal fun DetailHero(
         label = "cover wash",
     )
 
+    // One menu for the cover's actions, opened from the cover and from the "Add a cover" label.
+    var menuOpen by remember { mutableStateOf(false) }
+    val menu = coverChoice.menu()
+
     Surface(
         color = wash,
         shape = MaterialTheme.shapes.extraLarge,
@@ -129,7 +134,10 @@ internal fun DetailHero(
                     publication = publication,
                     cover = cover,
                     height = layout.coverHeight,
-                    onChooseCover = coverChoice.onChoose.takeIf { cover == null },
+                    menu = menu,
+                    menuOpen = menuOpen,
+                    onMenuOpenChange = { menuOpen = it },
+                    accent = accent,
                 )
                 // A column, not a box: a box draws both children from its top corner, so the
                 // cover controls landed on the primary action and took its taps.
@@ -138,7 +146,12 @@ internal fun DetailHero(
                     modifier = Modifier.weight(1f, fill = false).widthIn(max = ACTION_WIDTH),
                 ) {
                     action()
-                    CoverChoiceControls(choice = coverChoice, hasCover = cover != null, accent = accent)
+                    CoverChoiceControls(
+                        choice = coverChoice,
+                        hasCover = cover != null,
+                        accent = accent,
+                        onOpenMenu = { menuOpen = true },
+                    )
                 }
             }
             return@Surface
@@ -152,10 +165,18 @@ internal fun DetailHero(
                 publication = publication,
                 cover = cover,
                 height = layout.coverHeight,
-                onChooseCover = coverChoice.onChoose.takeIf { cover == null },
+                menu = menu,
+                menuOpen = menuOpen,
+                onMenuOpenChange = { menuOpen = it },
+                accent = accent,
             )
             action()
-            CoverChoiceControls(choice = coverChoice, hasCover = cover != null, accent = accent)
+            CoverChoiceControls(
+                choice = coverChoice,
+                hasCover = cover != null,
+                accent = accent,
+                onOpenMenu = { menuOpen = true },
+            )
         }
     }
 }
@@ -176,16 +197,30 @@ private fun DetailCover(
     cover: Bitmap?,
     height: Dp,
     /**
-     * What tapping an empty well does, or null where the page offers nothing.
+     * The cover's actions, drawn as one edit button and one menu on the artwork.
      *
      * Task 2.3: the well drew a glyph and a format name and offered nothing at all, which
      * made a publication with no artwork a dead end. A well that *acts* is not decoration, so
      * it also keeps a label for a screen reader where the decorative one has none.
      */
-    onChooseCover: (() -> Unit)? = null,
+    menu: CoverMenu,
+    menuOpen: Boolean,
+    onMenuOpenChange: (Boolean) -> Unit,
+    accent: DetailAccent?,
+) {
+    CoverActionsHost(menu, menuOpen, onMenuOpenChange, accent) {
+        CoverSurface(publication, cover, height, decorative = menu.groups().isEmpty())
+    }
+}
+
+@Composable
+private fun CoverSurface(
+    publication: Publication,
+    cover: Bitmap?,
+    height: Dp,
+    decorative: Boolean,
 ) {
     val palette = LocalStoryArcPalette.current
-    val chooseLabel = stringResource(R.string.cover_choose)
     Surface(
         color = palette.surfaceSunken,
         shape = RoundedCornerShape(StoryArcRadius.cover),
@@ -194,14 +229,7 @@ private fun DetailCover(
             // Height first, so the bound above decides and the width follows the printed
             // proportion — the other way round the ratio would fight the cap and win.
             .aspectRatio(2f / 3f, matchHeightConstraintsFirst = true)
-            .then(
-                onChooseCover?.let {
-                    Modifier.clickable(onClickLabel = chooseLabel, onClick = it)
-                } ?: Modifier,
-            )
-            .then(
-                if (onChooseCover == null) Modifier.clearAndSetSemantics {} else Modifier,
-            ),
+            .then(if (decorative) Modifier.clearAndSetSemantics {} else Modifier),
     ) {
         if (cover != null) {
             Image(
