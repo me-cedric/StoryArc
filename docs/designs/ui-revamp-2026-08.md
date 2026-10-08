@@ -24,7 +24,7 @@ decision does.
 | **Tokens are one source.** `packages/design-tokens/tokens/*.json` generates `StoryArcTokens.swift` and `StoryArcTokens.kt`. Never hand-edit a generated file; run `pnpm tokens:sync` and commit the regenerated app copies in the same change. | A palette or radius change is one edit and two regenerated files. Cheap. It also means **no slice may invent a colour** — a new state mark takes an existing `status/*` token or a new token that clears `pnpm tokens:check`, which gates 37 contrast pairs across five ramps. |
 | **There is no logging.** No backend, no analytics, no crash reporting ([AGENTS.md §2](../../AGENTS.md)). | The design cannot be validated by telemetry. Every claim about what readers do comes from comparable apps or from the owner. There is no "we'll measure it after ship". |
 | **Every new string needs en, fr, de, es** ([`localization` spec](../openspec/specs/localization/spec.md)), and **the build fails on a missing key in any language.** | One label is 8 translated values across 5 files (iOS: 5 `Localizable.xcstrings`; Android: 20 `strings.xml` across 5 modules × 4 locales). A half-finished vocabulary pass is a broken build, not a partial improvement. §7 sequences it as one atomic slice. |
-| **A screen change owes a screenshot from a booted simulator or emulator** ([AGENTS.md §6](../../AGENTS.md)), light and dark, default and largest text size. | **This has been impossible all session — the simulator control refuses to attach.** See §7.5. This is not a footnote; it is the gate every slice in this plan has to pass, and it is currently shut. |
+| **A screen change owes a screenshot from a booted simulator or emulator** ([AGENTS.md §6](../../AGENTS.md)), light and dark, at the default text size (the largest size is a test and review gate, not a frame). | **This has been impossible all session — the simulator control refuses to attach.** See §7.5. This is not a footnote; it is the gate every slice in this plan has to pass, and it is currently shut. |
 
 ---
 
@@ -1114,8 +1114,9 @@ Android `MaterialTheme.shapes` wiring is one line; and the mislabelled Android e
 
 
 [AGENTS.md §6](../../AGENTS.md) is unambiguous: a change a user can see owes a
-screenshot from a **booted simulator or emulator**, in light and dark, at default
-and largest text size. A `#Preview` and a `@Preview` are not proof. There are two
+screenshot from a **booted simulator or emulator**, in light and dark, at the default
+text size. The largest text size is a test and review gate, not a frame. A `#Preview`
+and a `@Preview` are not proof. There are two
 exceptions and the handoff must name which applies — code behind a flag that
 nothing renders yet, and a pure refactor whose screenshots are byte-identical.
 

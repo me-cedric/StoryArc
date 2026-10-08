@@ -583,8 +583,9 @@ A SwiftUI `#Preview` and a Compose `@Preview` are development aids. Neither
 exercises real data, real safe-area insets, real system materials, or a real
 Dynamic Type setting — so neither is proof.
 
-Every screen change is captured in light and dark, at default and largest text
-size, and compared against its reference.
+Every screen change is captured in light and dark, at the default text size only,
+and compared against its reference. The largest text size is a test and review gate
+(section 10), not a frame.
 
 ```bash
 # iOS

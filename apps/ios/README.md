@@ -102,7 +102,7 @@ xcrun simctl ui booted appearance dark
 xcrun simctl io booted screenshot shot.png
 ```
 
-Capture light and dark, at default and largest Dynamic Type.
+Capture light and dark, at the default Dynamic Type size. The largest size is a test and review gate, not a frame.
 
 ## Putting comics in front of the app
 

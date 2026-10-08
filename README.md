@@ -34,10 +34,7 @@
 <p align="center"><em>The same test library on both platforms — including the two files that
 could not be opened, named rather than counted — and the reading-theme sheet on each: a live
 preview above six presets, each drawn in its own colours <strong>and</strong> typeface. Both
-pairs were taken by the capture harnesses in <code>scripts/</code>, not by hand; the same
-sheets at the largest text size are in
-<a href="docs/designs/screenshots/ios-theme-presets-2026-09-05/README.md">ios-theme-presets-2026-09-05</a>
-and <code>android-sweep-2026-09-02</code>.</em></p>
+pairs were taken by the capture harnesses in <code>scripts/</code>, not by hand.</em></p>
 
 StoryArc reads what you already own, from wherever you keep it: a folder on the
 device, iCloud Drive or any Files provider, an SMB share on your NAS, an OPDS
@@ -545,7 +542,7 @@ walks to the screen rather than photographing whatever happens to be in front of
 
 ```bash
 pnpm capture:android --list                                          # the routes
-pnpm capture:android Downloads --out shot.png --dark --font-scale 2.0   # one frame, and it puts the device back
+pnpm capture:android Downloads --out shot.png --dark                    # one frame, and it puts the device back
 pnpm capture:ios --out docs/designs/screenshots/after-x --appearance dark   # drives ScreenshotTests, lifts every frame out of the result bundle
 ```
 

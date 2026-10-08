@@ -94,8 +94,8 @@ xcrun simctl io booted screenshot shot.png     # iOS
 adb exec-out screencap -p > shot.png           # Android
 ```
 
-Capture **light and dark**, at default and largest text size, and put them in the
-pull request.
+Capture **light and dark**, at the default text size, and put them in the
+pull request. The largest text size is a test and review gate, not a frame.
 
 Two exceptions, and you must name which one applies: code behind a flag that
 nothing renders yet, and a pure refactor whose screenshots are byte-identical —

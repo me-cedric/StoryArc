@@ -422,10 +422,11 @@ forgets:
 
 ```bash
 pnpm capture:android --list                                        # the routes
-pnpm capture:android Downloads --out shot.png --dark --font-scale 2.0
+pnpm capture:android Downloads --out shot.png --dark
 ```
 
-Capture **light and dark**, at default and largest text size. Two exceptions,
+Capture **light and dark**, at the default text size only. The largest text size is a
+test and review gate (`docs/design.md` section 10), not a frame. Two exceptions,
 and the handoff must name which one applies: code behind a flag that nothing
 renders yet, and a pure refactor whose screenshots are byte-identical — where
 the identical screenshots *are* the proof.

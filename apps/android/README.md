@@ -199,7 +199,7 @@ adb shell cmd uimode night yes
 adb exec-out screencap -p > shot.png
 ```
 
-Capture light and dark, at default and largest font scale.
+Capture light and dark, at the default font scale. The largest size is a test and review gate, not a frame.
 
 ## Putting comics in front of the app
 
