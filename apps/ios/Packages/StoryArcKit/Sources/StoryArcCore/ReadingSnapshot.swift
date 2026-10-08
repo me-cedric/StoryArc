@@ -46,7 +46,8 @@ public struct ReadingSnapshot: Sendable, Equatable {
             publicationID: publication.id,
             title: title,
             series: publication.series,
-            percentRead: fractionRead.map { Int(($0 * 100).rounded(.down)) }
+            // The small margin keeps 0.29, which is 28.999… in binary, at 29.
+            percentRead: fractionRead.map { Int(($0 * 100 + 1e-4).rounded(.down)) }
         )
     }
 

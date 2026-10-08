@@ -86,6 +86,13 @@
     <string name="shortcut_library">Library</string>
     <string name="shortcut_downloads">Downloads</string>
 
+    <!-- `native-experience` home-screen widget. The name and the description appear in the
+         launcher's widget picker; the other two on the widget itself. -->
+    <string name="widget_name">Continue reading</string>
+    <string name="widget_description">The book you are reading, where you stopped.</string>
+    <string name="widget_empty">No book in progress</string>
+    <string name="widget_percent_read">%1$d%% read</string>
+
     <!-- The three destinations. Always labelled: Material caps a navigation bar at three
          to five precisely so every one of them can carry its name, and `native-experience`
          never lets an icon alone say what something is. -->

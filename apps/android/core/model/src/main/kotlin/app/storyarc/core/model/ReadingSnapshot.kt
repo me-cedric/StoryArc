@@ -58,7 +58,10 @@ data class ReadingSnapshot internal constructor(
         fun of(publication: Publication?, fractionRead: Double?): ReadingSnapshot? {
             val title = publication?.displayTitle?.trim()
             if (publication == null || title.isNullOrEmpty()) return null
-            return make(publication.id, title, publication.series, fractionRead?.let { floor(it * 100).toInt() })
+            // The small margin keeps 0.29, which is 28.999… in binary, at 29, and a Float
+            // widened to a Double at its own percent.
+            val percent = fractionRead?.let { floor(it * 100 + 1e-4).toInt() }
+            return make(publication.id, title, publication.series, percent)
         }
 
         /**

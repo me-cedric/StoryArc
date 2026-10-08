@@ -75,6 +75,12 @@ turbine = "1.2.1"
 robolectric = "4.16.1"
 materialIcons = "1.7.8"
 kotlinxSerialization = "1.11.0"
+# The home-screen widget (ADR-0011). Resolved against the material3 alpha pin before it was
+# added: glance-appwidget 1.2.0 needs only Compose runtime, ui-unit and ui-graphics 1.6 or
+# later, which the BOM already exceeds. `glance-material3` is the artifact that carries a
+# material3 constraint, and it is not used: `GlanceTheme`'s own colours follow the
+# wallpaper on API 31, which is this app's floor.
+glance = "1.2.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -120,6 +126,8 @@ androidx-media3-inspector = { group = "androidx.media3", name = "media3-inspecto
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
+androidx-glance-appwidget-testing = { group = "androidx.glance", name = "glance-appwidget-testing", version.ref = "glance" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 xmlpull = { group = "xmlpull", name = "xmlpull", version.ref = "xmlpull" }

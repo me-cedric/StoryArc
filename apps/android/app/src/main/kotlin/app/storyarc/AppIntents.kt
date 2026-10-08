@@ -12,6 +12,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.QuickActionRequest
+import app.storyarc.core.model.ReadingSnapshot
 import app.storyarc.core.persistence.finishedDownload
 import app.storyarc.feature.library.removeAfterFinishing
 import app.storyarc.navigation.AppDestination
@@ -82,6 +83,17 @@ internal fun AppIntents(
         // Published from the application context, every entry would be in the system's
         // language while the app was in the reader's.
         HomeScreenActions.publish(activity, continueReading.firstOrNull(), hasDownloads)
+    }
+
+    // The home-screen widget's snapshot (ADR-0011), from the same first book. `readFraction`
+    // reads a snapshot-state map, so a reload of the reading positions runs this again, and a
+    // move inside the same whole percent writes nothing.
+    val reading = continueReading.firstOrNull()
+    val fraction = reading?.let { host.library.readFraction(it) }
+    LaunchedEffect(reading, fraction) {
+        ReadingWidgets.publish(activity, ReadingSnapshot.of(reading, fraction?.toDouble())) {
+            reading?.let { host.library.cover(it, ReadingSnapshot.COVER_PIXELS) }
+        }
     }
 
     // What the reader chose from that menu. Cleared as soon as it is taken, so a rotation

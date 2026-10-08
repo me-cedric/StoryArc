@@ -31,6 +31,8 @@ struct ReadingSnapshotTests {
         #expect(try #require(ReadingSnapshot(publication: bone, fractionRead: 1)).percentRead == 100)
         #expect(try #require(ReadingSnapshot(publication: bone, fractionRead: nil)).percentRead == nil)
         #expect(try #require(ReadingSnapshot(publication: bone, fractionRead: -0.2)).percentRead == 0)
+        #expect(try #require(ReadingSnapshot(publication: bone, fractionRead: 0.29)).percentRead == 29)
+        #expect(try #require(ReadingSnapshot(publication: bone, fractionRead: Double(Float(0.42)))).percentRead == 42)
     }
 
     @Test("A snapshot survives its stored form")

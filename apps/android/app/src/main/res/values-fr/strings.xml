@@ -21,6 +21,10 @@
     <string name="shortcut_continue_named">Reprendre %1$s</string>
     <string name="shortcut_library">Bibliothèque</string>
     <string name="shortcut_downloads">Téléchargements</string>
+    <string name="widget_name">Reprendre la lecture</string>
+    <string name="widget_description">Le livre en cours, là où vous l’avez laissé.</string>
+    <string name="widget_empty">Aucune lecture en cours</string>
+    <string name="widget_percent_read">%1$d %% lu</string>
 
     <string name="destination_home">Accueil</string>
     <string name="destination_library">Bibliothèque</string>

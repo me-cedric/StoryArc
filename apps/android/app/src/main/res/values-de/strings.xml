@@ -21,6 +21,10 @@
     <string name="shortcut_continue_named">%1$s weiterlesen</string>
     <string name="shortcut_library">Bibliothek</string>
     <string name="shortcut_downloads">Downloads</string>
+    <string name="widget_name">Weiterlesen</string>
+    <string name="widget_description">Das Buch, das Sie gerade lesen, an der Stelle, an der Sie aufgehört haben.</string>
+    <string name="widget_empty">Kein Buch angefangen</string>
+    <string name="widget_percent_read">%1$d %% gelesen</string>
 
     <string name="destination_home">Start</string>
     <string name="destination_library">Bibliothek</string>

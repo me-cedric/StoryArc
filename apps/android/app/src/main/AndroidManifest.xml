@@ -228,5 +228,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
+
+        <!-- `native-experience`: the home-screen widget. It reads only the reading snapshot
+             the app writes (ADR-0011), and a tap sends the quick action's own intent. -->
+        <receiver
+            android:name=".ReadingWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/reading_widget_info" />
+        </receiver>
     </application>
 </manifest>

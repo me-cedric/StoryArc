@@ -81,18 +81,25 @@ internal object HomeScreenActions {
         )
     }
 
-    private fun shortcut(context: Context, action: QuickAction, rank: Int): ShortcutInfoCompat {
-        val intent = Intent(context, MainActivity::class.java)
+    /**
+     * The intent an entry carries. The home-screen widget sends the same one, so
+     * [requestFrom] reads a widget tap and a menu entry alike.
+     */
+    fun intent(context: Context, actionId: String, publicationId: String?): Intent =
+        Intent(context, MainActivity::class.java)
             .setAction(ACTION)
-            .putExtra(EXTRA_ACTION, action.id)
+            .putExtra(EXTRA_ACTION, actionId)
+            .apply { publicationId?.let { putExtra(EXTRA_PUBLICATION, it) } }
             // Onto the existing task rather than beside it. Without this a reader who taps
             // a quick action while the app is already open gets a second copy of it, and
             // the back gesture then walks out through a library they never opened.
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
 
+    private fun shortcut(context: Context, action: QuickAction, rank: Int): ShortcutInfoCompat {
+        val intent = intent(context, action.id, (action as? QuickAction.ContinueReading)?.publicationId)
+
         val (shortLabel, longLabel, icon) = when (action) {
             is QuickAction.ContinueReading -> {
-                intent.putExtra(EXTRA_PUBLICATION, action.publicationId)
                 Triple(
                     context.getString(R.string.shortcut_continue),
                     context.getString(R.string.shortcut_continue_named, action.title),

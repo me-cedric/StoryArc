@@ -31,6 +31,8 @@ class ReadingSnapshotTest {
         assertEquals(100, ReadingSnapshot.of(bone, 1.0)?.percentRead)
         assertNull(ReadingSnapshot.of(bone, null)?.percentRead)
         assertEquals(0, ReadingSnapshot.of(bone, -0.2)?.percentRead)
+        assertEquals(29, ReadingSnapshot.of(bone, 0.29)?.percentRead)
+        assertEquals(42, ReadingSnapshot.of(bone, 0.42f.toDouble())?.percentRead)
     }
 
     @Test

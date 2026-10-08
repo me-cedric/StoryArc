@@ -139,6 +139,8 @@ dependencies {
     // the app needs the compile dependency to name them.
     implementation(libs.androidx.compose.material.icons.extended)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    // The home-screen widget. libs.versions.toml records the check against the material3 pin.
+    implementation(libs.androidx.glance.appwidget)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
@@ -155,6 +157,7 @@ dependencies {
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.androidx.compose.ui.test.manifest)
+    testImplementation(libs.androidx.glance.appwidget.testing)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
