@@ -78,7 +78,7 @@ struct FreeSpaceSheet: View {
 
                 Spacer(minLength: 0)
 
-                Button { restore(removed) } label: { Text("downloads.undo", bundle: .module) }
+                Button { restore(removed) } label: { Text("downloads.undo", bundle: .module).hitRegion() }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
             }
