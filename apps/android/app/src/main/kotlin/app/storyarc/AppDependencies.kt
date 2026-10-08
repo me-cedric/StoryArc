@@ -1,5 +1,6 @@
 package app.storyarc
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.storage.StorageManager
 import app.storyarc.core.catalogue.CertificatePins
@@ -40,8 +41,8 @@ import app.storyarc.feature.library.migratingOpdsStrays
  * take one parameter, and because the composition can then be given the whole set without
  * the activity threading each one through by hand.
  *
- * The download queues live here for the same reason a store does, which [queue] sets out: one
- * per catalogue, and each one has to outlive every screen that starts a transfer.
+ * The download queue lives here for the same reason a store does, which [queue] sets out: one
+ * for the whole app, and it has to outlive every screen that starts a transfer.
  */
 internal class AppDependencies private constructor(private val context: Context) {
     val progress: ProgressStore = ProgressStore.open(context)
@@ -206,15 +207,26 @@ internal class AppDependencies private constructor(private val context: Context)
     }
 
     companion object {
-        /** Opened against the application context, so nothing here outlives its own owner. */
-        fun open(context: Context): AppDependencies =
-            AppDependencies(context.applicationContext).apply {
-                registerShareAccess()
-                // dl-core 1.3: the queue used to come to life only when a reader opened a
-                // catalogue page (`AppScreens.kt`'s `remember`), so nothing restarted a
-                // queued or held download after process death until then. Read here, before
-                // any screen, to build it now instead.
-                queue
-            }
+        // Holds the application context only, which lives as long as the process.
+        @SuppressLint("StaticFieldLeak")
+        @Volatile private var opened: AppDependencies? = null
+
+        /**
+         * Opened once per application, against its context, so nothing here outlives its own
+         * owner. A recreated activity gets the same set: a second queue would reclaim the
+         * first one's running row and transfer it twice (`publication-detail` 6.4).
+         */
+        fun open(context: Context): AppDependencies = synchronized(this) {
+            val application = context.applicationContext
+            opened?.takeIf { it.context === application }
+                ?: AppDependencies(application).apply {
+                    registerShareAccess()
+                    // dl-core 1.3: the queue used to come to life only when a reader opened a
+                    // catalogue page (`AppScreens.kt`'s `remember`), so nothing restarted a
+                    // queued or held download after process death until then. Read here, before
+                    // any screen, to build it now instead.
+                    queue
+                }.also { opened = it }
+        }
     }
 }

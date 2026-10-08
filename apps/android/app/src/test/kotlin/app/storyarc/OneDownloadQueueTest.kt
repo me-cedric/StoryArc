@@ -32,6 +32,16 @@ class OneDownloadQueueTest {
     }
 
     @Test
+    fun `an activity created again gets the queue the first one built`() {
+        // MainActivity opens the dependencies in onCreate, and a language change recreates it.
+        // A second queue would reclaim the first queue's running row and transfer it twice.
+        val first = AppDependencies.open(context)
+        val again = AppDependencies.open(context)
+
+        assertSame("A recreated activity built a second download queue.", first.queue, again.queue)
+    }
+
+    @Test
     fun `AppDependencies is the only place that builds a download queue`() {
         val builders = sources().filter { file ->
             CONSTRUCTION.containsMatchIn(file.readText()) && !file.name.endsWith("DownloadQueue.kt")
