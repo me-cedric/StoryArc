@@ -1,10 +1,12 @@
 package app.storyarc.feature.library
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.SourceConnectionState
@@ -34,24 +36,33 @@ internal data class Provenance(
     val libraryName: String?,
     val readiness: Readiness,
     /**
-     * Whether this publication is anywhere other than the copy this page will open.
+     * The reader's own name for the other place this publication is, or null when it is in no
+     * other place the reader can be told about.
      *
      * The delta: "the line names the one this page will open, and says the publication is
      * also available elsewhere". Without it, a reader who owns the same volume locally and
      * on a server cannot tell which one they are about to read — which is the exact failure
      * taking origin off the shelf would otherwise cause.
      *
-     * **Two ways a second place arises, and the two platforms had one each until 2026-09-05.**
-     * A copy on the device whose library still exists — the server it was fetched from is the
-     * other place, which is what iOS's `alsoIn` had always meant — and another source in the
-     * library holding the same publication, which is what this field had always meant.
-     * Identity is stable across sources (ADR-0006), so the second is answerable by id. Both
-     * are the delta's scenario, so this is the union of them.
+     * **Named, since one-vocabulary 4.6 / O19.** iOS has always named the second place and this
+     * platform said only *also elsewhere in your library*. A second copy whose library the
+     * registry no longer holds has no name to give, so it is not claimed — the rule iOS's
+     * `alsoHolding` has always applied.
+     *
+     * **Two ways a second place arises.** A copy on the device whose library still exists —
+     * the server it was fetched from is the other place, and the library a download came from
+     * wins, because it is the place the reader chose — and another source in the library
+     * holding the same publication. Identity is stable across sources (ADR-0006), so the
+     * second is answerable by id.
      */
-    val isAlsoElsewhere: Boolean,
+    val alsoIn: String?,
 ) {
-    /** Where a publication lives. Two answers, because the reader only has two places. */
-    enum class Place { DEVICE, LIBRARY }
+    /**
+     * Where a publication lives. A library the reader added, this device, or nowhere the
+     * reader can name: its source is gone and no copy is here, which iOS says in the same
+     * words (`detail.provenance.unattributed`).
+     */
+    enum class Place { DEVICE, LIBRARY, UNATTRIBUTED }
 
     /**
      * Whether it can be opened right now, which the same line has to answer.
@@ -93,12 +104,18 @@ internal fun provenanceOf(
     val from = publication.sourceId
         ?.let { registry[it] }
         ?.takeIf { it.kind != SourceKind.LOCAL_FOLDER }
-    val anotherSourceHasIt =
-        library.any { it.id == publication.id && it.sourceId != publication.sourceId }
-    // The union the field documents. A download whose library is still configured is in two
-    // places even when the library holds exactly one row for it, and that row is the one this
-    // page is *not* opening.
-    val isAlsoElsewhere = anotherSourceHasIt || (isOnDevice && from != null)
+    // The first other copy whose library the registry still holds, in library order, which is
+    // iOS's `alsoHolding` rule. A picked folder is not a library the reader can be sent to, so
+    // it is not named as one either.
+    val otherLibrary = library
+        .asSequence()
+        .filter { it.id == publication.id && it.sourceId != publication.sourceId }
+        .mapNotNull { other -> other.sourceId?.let { registry[it] } }
+        .firstOrNull { it.kind != SourceKind.LOCAL_FOLDER }
+        ?.displayName
+    // The library a download came from wins: it is the place the reader chose, and a
+    // coincidence of identity on the shelf is not. See [Provenance.alsoIn].
+    val alsoIn = if (isOnDevice) from?.displayName ?: otherLibrary else otherLibrary
 
     // A copy on the device, a source that is gone, a file handed over by the system, and a
     // folder the reader pointed at are the same sentence: it is here.
@@ -108,18 +125,33 @@ internal fun provenanceOf(
     // bytes it opens are on the phone and readable on a train. The delta says the line "names
     // the one this page will open", and `offline-downloads` promises the download outlives
     // everything about the server; iOS had always answered `.thisDevice` here. The library is
-    // not lost, it becomes the second place — see [Provenance.isAlsoElsewhere].
+    // not lost, it becomes the second place — see [Provenance.alsoIn].
     //
     // The removed-source case is the one the delta names outright — "the line says it is on
     // this device, and does not name a library that no longer exists" — and it falls out of
     // asking the registry rather than the publication, because a removed source is exactly a
     // source the registry has not got.
+    //
+    // **No copy here and no library to name is the one place nothing can be said about.** The
+    // source was removed, or the publication never had one, and the bytes are not on the device.
+    // Saying *on this device* there was false; iOS says *not in a library you added* and so
+    // does this now (`PublicationProvenance.of`, `.unattributed`). A picked folder is not this
+    // case: the registry still holds it, so the line stays the device sentence.
+    val sourceIsGone = publication.sourceId?.let { registry[it] } == null
+    if (!isOnDevice && sourceIsGone) {
+        return Provenance(
+            place = Provenance.Place.UNATTRIBUTED,
+            libraryName = null,
+            readiness = Provenance.Readiness.NOT_DOWNLOADED,
+            alsoIn = alsoIn,
+        )
+    }
     if (isOnDevice || from == null) {
         return Provenance(
             place = Provenance.Place.DEVICE,
             libraryName = null,
             readiness = Provenance.Readiness.READY,
-            isAlsoElsewhere = isAlsoElsewhere,
+            alsoIn = alsoIn,
         )
     }
 
@@ -137,38 +169,43 @@ internal fun provenanceOf(
         place = Provenance.Place.LIBRARY,
         libraryName = from.displayName,
         readiness = readiness,
-        isAlsoElsewhere = isAlsoElsewhere,
+        alsoIn = alsoIn,
     )
 }
 
 /**
- * The provenance sentence, in the reader's language.
+ * The provenance sentence, in the reader's language: one whole sentence per state.
  *
- * Composed from at most two resources rather than from eight: the base sentence answers
- * where and whether, and "also elsewhere" wraps it. Eight strings would be eight
- * translations to keep in step, and four of them would say the same thing twice.
+ * **One string per state, never a clause joined to a clause** (one-vocabulary 4.6, O19).
+ * French, German and Spanish order the words of *from X, not on this device* differently from
+ * English, so a place string and an availability string joined by a comma is a sentence only
+ * English can write. The five sentences below each carry their own words and take at most the
+ * library's name.
  */
 @Composable
 internal fun provenanceLabel(provenance: Provenance): String {
     val name = provenance.libraryName
-    val base = when {
+    return when {
+        provenance.place == Provenance.Place.UNATTRIBUTED ->
+            stringResource(R.string.detail_provenance_unattributed)
+
         provenance.place == Provenance.Place.DEVICE || name == null ->
             stringResource(R.string.detail_provenance_device)
 
         provenance.readiness == Provenance.Readiness.NOT_DOWNLOADED ->
-            stringResource(R.string.detail_provenance_not_downloaded, name)
+            stringResource(R.string.detail_provenance_not_here, name)
 
         provenance.readiness == Provenance.Readiness.SOURCE_AWAY ->
             stringResource(R.string.detail_provenance_away, name)
 
         else -> stringResource(R.string.detail_provenance_library, name)
     }
-    return if (provenance.isAlsoElsewhere) {
-        stringResource(R.string.detail_provenance_also, base)
-    } else {
-        base
-    }
 }
+
+/** The second place, as a sentence of its own that names it, or null when there is none. */
+@Composable
+internal fun provenanceAlsoIn(provenance: Provenance): String? =
+    provenance.alsoIn?.let { stringResource(R.string.detail_provenance_also_in, it) }
 
 /**
  * The line itself: one `bodySmall`, quiet, at the foot of the information.
@@ -182,10 +219,12 @@ internal fun provenanceLabel(provenance: Provenance): String {
 @Composable
 internal fun ProvenanceLine(provenance: Provenance, modifier: Modifier = Modifier) {
     val palette = LocalStoryArcPalette.current
-    Text(
-        text = provenanceLabel(provenance),
-        style = MaterialTheme.typography.bodySmall,
-        color = palette.textTertiary,
-        modifier = modifier,
-    )
+    val style = MaterialTheme.typography.bodySmall
+    // Two whole sentences read as one stop, as iOS's two lines do.
+    Column(modifier = modifier.semantics(mergeDescendants = true) {}) {
+        Text(text = provenanceLabel(provenance), style = style, color = palette.textTertiary)
+        provenanceAlsoIn(provenance)?.let {
+            Text(text = it, style = style, color = palette.textTertiary)
+        }
+    }
 }

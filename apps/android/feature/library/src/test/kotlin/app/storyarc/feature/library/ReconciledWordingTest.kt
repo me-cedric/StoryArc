@@ -6,8 +6,8 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Five states the two apps used to word differently, now worded the same in four languages
- * (`one-vocabulary-in-four-languages` 4.2, `close-the-audited-gaps` 15.11, D31).
+ * The states the two apps used to word differently, now worded the same in four languages
+ * (`one-vocabulary-in-four-languages` 4.2 and 4.6, `close-the-audited-gaps` 15.10 and 15.11).
  *
  * **Both platforms' catalogues are read as files**, as `OfflineDestinationNameTest` does: a
  * claim about four languages at once is not decidable from one locale. This test asserts the
@@ -131,6 +131,70 @@ class ReconciledWordingTest {
                     "es" to "¿Quitar las descargas de {s}?",
                 ),
             ),
+        ) + listOf(
+            // The publication page, one whole sentence per state on both platforms
+            // (one-vocabulary 4.6, close-the-audited-gaps 15.10, O19).
+            page(
+                "detail_provenance_device", "detail.provenance.device",
+                "On this device, readable with no network",
+                "Sur cet appareil, lisible sans réseau",
+                "Auf diesem Gerät, ohne Netz lesbar",
+                "En este dispositivo, se puede leer sin conexión",
+            ),
+            page(
+                "detail_provenance_library", "detail.provenance.library %@",
+                "From {s}, readable now", "De {s}, lisible maintenant",
+                "Aus {s}, jetzt lesbar", "De {s}, se puede leer ahora",
+            ),
+            page(
+                "detail_provenance_not_here", "detail.provenance.notHere %@",
+                "From {s}, not on this device", "De {s}, pas sur cet appareil",
+                "Aus {s}, nicht auf diesem Gerät", "De {s}, no está en este dispositivo",
+            ),
+            page(
+                "detail_provenance_away", "detail.provenance.away %@",
+                "From {s}, not answering right now", "De {s}, sans réponse pour le moment",
+                "Aus {s}, antwortet gerade nicht", "De {s}, ahora mismo no responde",
+            ),
+            page(
+                "detail_provenance_unattributed", "detail.provenance.unattributed",
+                "Not in a library you added, not on this device",
+                "Dans aucune bibliothèque que vous avez ajoutée, pas sur cet appareil",
+                "In keiner Bibliothek, die Sie hinzugefügt haben, nicht auf diesem Gerät",
+                "En ninguna biblioteca que hayas añadido, no está en este dispositivo",
+            ),
+            page(
+                "detail_provenance_also_in", "detail.provenance.alsoIn %@",
+                "Also in {s}", "Aussi dans {s}", "Auch in {s}", "También en {s}",
+            ),
+            page(
+                "detail_unavailable", "detail.unavailable",
+                "This cannot be opened until it is on this device.",
+                "Impossible d’ouvrir ceci tant que ce n’est pas sur cet appareil.",
+                "Das lässt sich erst öffnen, wenn es auf diesem Gerät ist.",
+                "Esto no se puede abrir hasta que esté en este dispositivo.",
+            ),
+            page(
+                "detail_unavailable_sized", "detail.unavailable.sized %@",
+                "This cannot be opened until it is on this device ({s}).",
+                "Impossible d’ouvrir ceci tant que ce n’est pas sur cet appareil ({s}).",
+                "Das lässt sich erst öffnen, wenn es auf diesem Gerät ist ({s}).",
+                "Esto no se puede abrir hasta que esté en este dispositivo ({s}).",
+            ),
+            page(
+                "detail_gone", "detail.gone",
+                "That is no longer in your library, and there is no copy on this device.",
+                "Cela n’est plus dans votre bibliothèque, et il n’en reste aucune copie sur cet appareil.",
+                "Das ist nicht mehr in Ihrer Bibliothek, und auf diesem Gerät liegt keine Kopie.",
+                "Eso ya no está en tu biblioteca, y en este dispositivo no queda ninguna copia.",
+            ),
+        )
+
+        private fun page(
+            android: String, ios: String, en: String, fr: String, de: String, es: String,
+        ) = Row(
+            android, "library", ios, "LibraryFeature",
+            mapOf("en" to en, "fr" to fr, "de" to de, "es" to es),
         )
     }
 }

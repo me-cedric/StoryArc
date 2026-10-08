@@ -703,15 +703,12 @@ private fun DetailGone(onBack: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
         modifier = Modifier.fillMaxSize().padding(StoryArcSpace.xxl),
     ) {
+        // One sentence, the one iOS's alert says (`detail.gone`): a heading over a body said the
+        // same thing twice, in two strings to translate and to keep in step.
         Text(
-            text = stringResource(R.string.detail_gone_title),
-            style = MaterialTheme.typography.headlineSmall,
+            text = stringResource(R.string.detail_gone),
+            style = MaterialTheme.typography.titleMedium,
             color = palette.textPrimary,
-        )
-        Text(
-            text = stringResource(R.string.detail_gone_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = palette.textSecondary,
         )
         Button(onClick = onBack, modifier = Modifier.padding(top = 8.dp)) {
             Text(stringResource(R.string.detail_gone_back))

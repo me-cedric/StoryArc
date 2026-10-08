@@ -53,7 +53,7 @@ class DetailHeroFitsTest {
         place = Provenance.Place.DEVICE,
         libraryName = null,
         readiness = Provenance.Readiness.READY,
-        isAlsoElsewhere = false,
+        alsoIn = null,
     )
 
     /** The room a landscape phone leaves: 360 dp, less status bar, short app bar and nav bar. */

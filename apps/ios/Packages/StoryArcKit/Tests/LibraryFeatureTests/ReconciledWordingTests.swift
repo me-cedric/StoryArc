@@ -1,8 +1,8 @@
 import Foundation
 import Testing
 
-/// Five states the two apps used to word differently, now worded the same in four languages
-/// (`one-vocabulary-in-four-languages` 4.2, `close-the-audited-gaps` 15.11, D31).
+/// The states the two apps used to word differently, now worded the same in four languages
+/// (`one-vocabulary-in-four-languages` 4.2 and 4.6, `close-the-audited-gaps` 15.10 and 15.11).
 ///
 /// **Both catalogues are read as files.** A compose rule or a SwiftUI view holds one locale,
 /// and `swift test` on this host resolves `String(localized:)` against the system language, so
@@ -71,7 +71,61 @@ struct ReconciledWordingTests {
                 "es": "¿Quitar las descargas de {s}?",
             ]
         ),
+    ] + publicationPage
+
+    /// The publication page, one whole sentence per state on both platforms
+    /// (`one-vocabulary-in-four-languages` 4.6, `close-the-audited-gaps` 15.10, O19).
+    static let publicationPage: [Row] = [
+        page("detail.provenance.device", "detail_provenance_device", [
+            "en": "On this device, readable with no network",
+            "fr": "Sur cet appareil, lisible sans réseau",
+            "de": "Auf diesem Gerät, ohne Netz lesbar",
+            "es": "En este dispositivo, se puede leer sin conexión",
+        ]),
+        page("detail.provenance.library %@", "detail_provenance_library", [
+            "en": "From {s}, readable now", "fr": "De {s}, lisible maintenant",
+            "de": "Aus {s}, jetzt lesbar", "es": "De {s}, se puede leer ahora",
+        ]),
+        page("detail.provenance.notHere %@", "detail_provenance_not_here", [
+            "en": "From {s}, not on this device", "fr": "De {s}, pas sur cet appareil",
+            "de": "Aus {s}, nicht auf diesem Gerät", "es": "De {s}, no está en este dispositivo",
+        ]),
+        page("detail.provenance.away %@", "detail_provenance_away", [
+            "en": "From {s}, not answering right now", "fr": "De {s}, sans réponse pour le moment",
+            "de": "Aus {s}, antwortet gerade nicht", "es": "De {s}, ahora mismo no responde",
+        ]),
+        page("detail.provenance.unattributed", "detail_provenance_unattributed", [
+            "en": "Not in a library you added, not on this device",
+            "fr": "Dans aucune bibliothèque que vous avez ajoutée, pas sur cet appareil",
+            "de": "In keiner Bibliothek, die Sie hinzugefügt haben, nicht auf diesem Gerät",
+            "es": "En ninguna biblioteca que hayas añadido, no está en este dispositivo",
+        ]),
+        page("detail.provenance.alsoIn %@", "detail_provenance_also_in", [
+            "en": "Also in {s}", "fr": "Aussi dans {s}", "de": "Auch in {s}", "es": "También en {s}",
+        ]),
+        page("detail.unavailable", "detail_unavailable", [
+            "en": "This cannot be opened until it is on this device.",
+            "fr": "Impossible d’ouvrir ceci tant que ce n’est pas sur cet appareil.",
+            "de": "Das lässt sich erst öffnen, wenn es auf diesem Gerät ist.",
+            "es": "Esto no se puede abrir hasta que esté en este dispositivo.",
+        ]),
+        page("detail.unavailable.sized %@", "detail_unavailable_sized", [
+            "en": "This cannot be opened until it is on this device ({s}).",
+            "fr": "Impossible d’ouvrir ceci tant que ce n’est pas sur cet appareil ({s}).",
+            "de": "Das lässt sich erst öffnen, wenn es auf diesem Gerät ist ({s}).",
+            "es": "Esto no se puede abrir hasta que esté en este dispositivo ({s}).",
+        ]),
+        page("detail.gone", "detail_gone", [
+            "en": "That is no longer in your library, and there is no copy on this device.",
+            "fr": "Cela n’est plus dans votre bibliothèque, et il n’en reste aucune copie sur cet appareil.",
+            "de": "Das ist nicht mehr in Ihrer Bibliothek, und auf diesem Gerät liegt keine Kopie.",
+            "es": "Eso ya no está en tu biblioteca, y en este dispositivo no queda ninguna copia.",
+        ]),
     ]
+
+    private static func page(_ ios: String, _ android: String, _ words: [String: String]) -> Row {
+        Row(ios: ios, catalogue: "LibraryFeature", android: android, module: "library", words: words)
+    }
 
     private static let apps = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent().deletingLastPathComponent()

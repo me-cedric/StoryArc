@@ -118,7 +118,7 @@ class KavitaCardFactsTest {
                         place = Provenance.Place.DEVICE,
                         libraryName = null,
                         readiness = Provenance.Readiness.READY,
-                        isAlsoElsewhere = false,
+                        alsoIn = null,
                     ),
                     transfer = null,
                     onRead = {},

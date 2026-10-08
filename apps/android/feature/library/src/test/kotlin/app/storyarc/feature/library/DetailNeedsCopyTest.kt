@@ -83,14 +83,14 @@ class DetailNeedsCopyTest {
         place = Provenance.Place.LIBRARY,
         libraryName = "Beach Library",
         readiness = Provenance.Readiness.NOT_DOWNLOADED,
-        isAlsoElsewhere = false,
+        alsoIn = null,
     )
 
     private val onDevice = Provenance(
         place = Provenance.Place.DEVICE,
         libraryName = null,
         readiness = Provenance.Readiness.READY,
-        isAlsoElsewhere = false,
+        alsoIn = null,
     )
 
     /**
@@ -147,7 +147,7 @@ class DetailNeedsCopyTest {
         show()
 
         compose.onNodeWithText("Download it").assertIsDisplayed()
-        compose.onNodeWithText("This one has to be on your device before it opens.")
+        compose.onNodeWithText("This cannot be opened until it is on this device.")
             .assertIsDisplayed()
 
         // The four words the page must not say for this publication. Each is a `PrimaryAction`
@@ -178,9 +178,9 @@ class DetailNeedsCopyTest {
         compose.waitForIdle()
 
         compose.onNodeWithText("Read").assertIsDisplayed()
-        compose.onNodeWithText("This one has to be on your device before it opens.")
+        compose.onNodeWithText("This cannot be opened until it is on this device.")
             .assertDoesNotExist()
-        compose.onNodeWithText("On this device").assertIsDisplayed()
+        compose.onNodeWithText("On this device, readable with no network").assertIsDisplayed()
     }
 
     @Test
@@ -238,7 +238,7 @@ class DetailNeedsCopyTest {
         show(copyStart = {}, onCopyFromLocation = null)
 
         compose.onNodeWithText("Download it").assertIsDisplayed()
-        compose.onNodeWithText("This one has to be on your device before it opens.")
+        compose.onNodeWithText("This cannot be opened until it is on this device.")
             .assertIsDisplayed()
     }
 

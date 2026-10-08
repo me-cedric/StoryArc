@@ -10,9 +10,7 @@ import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
 import java.util.UUID
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -110,7 +108,7 @@ class PublicationProvenanceTest {
         assertEquals(Provenance.Readiness.READY, provenance.readiness)
         assertEquals(Provenance.Place.DEVICE, provenance.place)
         assertNull(provenance.libraryName)
-        assertTrue(provenance.isAlsoElsewhere)
+        assertEquals("Home NAS", provenance.alsoIn)
     }
 
     @Test
@@ -122,7 +120,7 @@ class PublicationProvenanceTest {
         //
         // Distinct from the test above, which is one row that is *both*: a download of the
         // server's own copy. Both are "the same publication in two places", which is why
-        // `isAlsoElsewhere` is the union of them rather than either one.
+        // `alsoIn` names the other place whichever of the two it is.
         val nas = server("Home NAS")
         val here = publication("Bone")
         val there = publication("Bone", nas.id)
@@ -136,7 +134,7 @@ class PublicationProvenanceTest {
 
         assertEquals(Provenance.Place.DEVICE, provenance.place)
         assertNull(provenance.libraryName)
-        assertTrue(provenance.isAlsoElsewhere)
+        assertEquals("Home NAS", provenance.alsoIn)
     }
 
     @Test
@@ -171,10 +169,31 @@ class PublicationProvenanceTest {
     }
 
     @Test
-    fun theSameBookFromTwoSourcesSaysSo() {
+    fun theSameBookFromTwoSourcesNamesTheOtherOne() {
         // Identity is stable across sources, so the same volume from a folder and from a
         // server shares an id. Without this the reader cannot tell which copy they are
-        // about to read — the exact failure taking origin off the shelf would cause.
+        // about to read — the exact failure taking origin off the shelf would cause. The
+        // other place is *named* (one-vocabulary 4.6, O19), as iOS names it.
+        val source = server("Home NAS")
+        val cellar = server("Cellar")
+        val here = publication("Bone", source.id)
+        val elsewhere = publication("Bone", cellar.id)
+
+        val provenance = provenanceOf(
+            here,
+            SourceRegistry(sources = listOf(source, cellar)),
+            isOnDevice = false,
+            library = listOf(here, elsewhere),
+        )
+
+        assertEquals("Cellar", provenance.alsoIn)
+        assertEquals("Home NAS", provenance.libraryName)
+    }
+
+    @Test
+    fun aSecondCopyWhoseLibraryIsGoneIsNotClaimed() {
+        // A removed library has no name to give, and a line that said *also in* nothing would
+        // be the stale-name defect the other way round. iOS's `alsoHolding` stays silent too.
         val source = server("Home NAS")
         val here = publication("Bone", source.id)
         val elsewhere = publication("Bone", UUID.randomUUID())
@@ -186,8 +205,37 @@ class PublicationProvenanceTest {
             library = listOf(here, elsewhere),
         )
 
-        assertTrue(provenance.isAlsoElsewhere)
-        assertEquals("Home NAS", provenance.libraryName)
+        assertNull(provenance.alsoIn)
+    }
+
+    @Test
+    fun theLibraryADownloadCameFromWinsOverAnotherCopysLibrary() {
+        // The place the reader chose is the second place, not a coincidence of identity.
+        val nas = server("Home NAS")
+        val cellar = server("Cellar")
+        val downloaded = publication("Bone", nas.id)
+        val other = publication("Bone", cellar.id)
+
+        val provenance = provenanceOf(
+            downloaded,
+            SourceRegistry(sources = listOf(nas, cellar)),
+            isOnDevice = true,
+            library = listOf(downloaded, other),
+        )
+
+        assertEquals("Home NAS", provenance.alsoIn)
+    }
+
+    @Test
+    fun aPublicationWithNoLibraryAndNoCopyBelongsToNowhere() {
+        // Not "on this device": the source is gone and the bytes are not here. iOS says the
+        // same, in the same four languages.
+        val book = publication("Bone", UUID.randomUUID())
+
+        val provenance = provenanceOf(book, SourceRegistry(), isOnDevice = false, library = listOf(book))
+
+        assertEquals(Provenance.Place.UNATTRIBUTED, provenance.place)
+        assertNull(provenance.libraryName)
     }
 
     @Test
@@ -202,7 +250,7 @@ class PublicationProvenanceTest {
             library = listOf(book),
         )
 
-        assertFalse(provenance.isAlsoElsewhere)
+        assertNull(provenance.alsoIn)
     }
 
     /**

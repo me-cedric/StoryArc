@@ -2399,126 +2399,6 @@
         }
       }
     },
-    "detail.availability.notAnswering": {
-      "comment": "Second half of the provenance line, after a comma, so lower case.",
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "keine Antwort"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "not answering"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "sin respuesta"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "sans réponse"
-          }
-        }
-      }
-    },
-    "detail.availability.notHere": {
-      "comment": "Second half of the provenance line, after a comma, so lower case.",
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "nicht auf diesem Gerät"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "not on this device"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "no está en este dispositivo"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "pas sur cet appareil"
-          }
-        }
-      }
-    },
-    "detail.availability.now": {
-      "comment": "Second half of the provenance line, after a comma, so lower case.",
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "jetzt lesbar"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "readable now"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "se puede leer ahora"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "lisible maintenant"
-          }
-        }
-      }
-    },
-    "detail.availability.offline": {
-      "comment": "Second half of the provenance line, after a comma, so lower case.",
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ohne Netz lesbar"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "readable with no network"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "se puede leer sin conexión"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "lisible sans réseau"
-          }
-        }
-      }
-    },
     "detail.chapter.finished": {
       "comment": "Spoken beside a chapter the listener has already heard, on an audiobook's page.",
       "extractionState": "manual",
@@ -2818,31 +2698,31 @@
       }
     },
     "detail.gone": {
-      "comment": "Shown by the surface a reader is returned to when the page cannot open.",
+      "comment": "Shown by the surface a reader is returned to when the page cannot open. One sentence on both platforms (one-vocabulary 4.6, O19); Android shows it on a screen with a way back, iOS in an alert that dismisses itself.",
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Das ist nicht mehr in Ihrer Bibliothek."
+            "value": "Das ist nicht mehr in Ihrer Bibliothek, und auf diesem Gerät liegt keine Kopie."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "That is no longer in your library."
+            "value": "That is no longer in your library, and there is no copy on this device."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Eso ya no está en tu biblioteca."
+            "value": "Eso ya no está en tu biblioteca, y en este dispositivo no queda ninguna copia."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cela n’est plus dans votre bibliothèque."
+            "value": "Cela n’est plus dans votre bibliothèque, et il n’en reste aucune copie sur cet appareil."
           }
         }
       }
@@ -2936,31 +2816,152 @@
         }
       }
     },
-    "detail.provenance.unattributed": {
+    "detail.provenance.away %@": {
+      "comment": "one-vocabulary 4.6, O19: one whole sentence per state, never a clause joined to a clause, because fr, de and es order the words differently. Android carries the same sentence as detail_provenance_*. %@ is the name the reader gave the library.",
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "In keiner Bibliothek, die Sie hinzugefügt haben"
+            "value": "Aus %@, antwortet gerade nicht"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Not in a library you added"
+            "value": "From %@, not answering right now"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "En ninguna biblioteca que hayas añadido"
+            "value": "De %@, ahora mismo no responde"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dans aucune bibliothèque que vous avez ajoutée"
+            "value": "De %@, sans réponse pour le moment"
+          }
+        }
+      }
+    },
+    "detail.provenance.device": {
+      "comment": "one-vocabulary 4.6, O19: one whole sentence per state, never a clause joined to a clause, because fr, de and es order the words differently. Android carries the same sentence as detail_provenance_*.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem Gerät, ohne Netz lesbar"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On this device, readable with no network"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En este dispositivo, se puede leer sin conexión"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur cet appareil, lisible sans réseau"
+          }
+        }
+      }
+    },
+    "detail.provenance.library %@": {
+      "comment": "one-vocabulary 4.6, O19: one whole sentence per state, never a clause joined to a clause, because fr, de and es order the words differently. Android carries the same sentence as detail_provenance_*. %@ is the name the reader gave the library.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus %@, jetzt lesbar"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From %@, readable now"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De %@, se puede leer ahora"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De %@, lisible maintenant"
+          }
+        }
+      }
+    },
+    "detail.provenance.notHere %@": {
+      "comment": "one-vocabulary 4.6, O19: one whole sentence per state, never a clause joined to a clause, because fr, de and es order the words differently. Android carries the same sentence as detail_provenance_*. %@ is the name the reader gave the library.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus %@, nicht auf diesem Gerät"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From %@, not on this device"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De %@, no está en este dispositivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De %@, pas sur cet appareil"
+          }
+        }
+      }
+    },
+    "detail.provenance.unattributed": {
+      "comment": "one-vocabulary 4.6, O19: one whole sentence per state, never a clause joined to a clause, because fr, de and es order the words differently. Android carries the same sentence as detail_provenance_*.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In keiner Bibliothek, die Sie hinzugefügt haben, nicht auf diesem Gerät"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not in a library you added, not on this device"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En ninguna biblioteca que hayas añadido, no está en este dispositivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dans aucune bibliothèque que vous avez ajoutée, pas sur cet appareil"
           }
         }
       }

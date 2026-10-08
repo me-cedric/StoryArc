@@ -488,15 +488,20 @@
     <string name="detail_action_listen">Listen</string>
     <string name="detail_action_continue_listening">Continue listening</string>
     <string name="detail_action_download">Download it</string>
-    <string name="detail_needs_download">This one has to be on your device before it opens.</string>
-    <string name="detail_needs_download_sized">This one has to be on your device before it opens (%1$s).</string>
+    <string name="detail_unavailable">This cannot be opened until it is on this device.</string>
+    <string name="detail_unavailable_sized">This cannot be opened until it is on this device (%1$s).</string>
+    <!-- one-vocabulary 4.6, O19: the refusal above and the provenance sentences below are whole
+         sentences, one per state, as iOS's detail.unavailable and detail.provenance.* are. This
+         one has no iOS twin: iOS answers the same state with detail.unavailable and lets the
+         provenance sentence say the library is not answering. -->
     <string name="detail_needs_source">It is not on this device, and the library it lives in is not answering. It will be fetched when that library is back.</string>
     <string name="detail_refused_body">This comic uses solid compression, which StoryArc cannot open.</string>
-    <string name="detail_provenance_device">On this device</string>
-    <string name="detail_provenance_library">From %1$s</string>
-    <string name="detail_provenance_not_downloaded">From %1$s — not downloaded</string>
-    <string name="detail_provenance_away">From %1$s — not answering right now</string>
-    <string name="detail_provenance_also">%1$s · also elsewhere in your library</string>
+    <string name="detail_provenance_device">On this device, readable with no network</string>
+    <string name="detail_provenance_library">From %1$s, readable now</string>
+    <string name="detail_provenance_not_here">From %1$s, not on this device</string>
+    <string name="detail_provenance_away">From %1$s, not answering right now</string>
+    <string name="detail_provenance_unattributed">Not in a library you added, not on this device</string>
+    <string name="detail_provenance_also_in">Also in %1$s</string>
     <string name="detail_action_continue_listening_chapter">Continue “%1$s”</string>
     <string name="detail_chapters">Chapters</string>
     <string name="detail_duration">Duration %1$s</string>
@@ -521,8 +526,7 @@
     <string name="downloads_paused_waiting_for_wifi">Waiting for Wi-Fi</string>
     <string name="downloads_paused_out_of_space">Not enough space on the device</string>
     <string name="detail_add_to_shelf">Add to a shelf</string>
-    <string name="detail_gone_title">This one is gone</string>
-    <string name="detail_gone_body">It is no longer in your library, and there is no copy on this device.</string>
+    <string name="detail_gone">That is no longer in your library, and there is no copy on this device.</string>
     <string name="detail_gone_back">Back to where you were</string>
     <string name="detail_pane_empty">Choose a cover to see what it is and where it came from.</string>
     <string name="search_waiting">Still looking…</string>

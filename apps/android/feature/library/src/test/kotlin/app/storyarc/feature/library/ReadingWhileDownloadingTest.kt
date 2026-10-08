@@ -43,7 +43,7 @@ class ReadingWhileDownloadingTest {
         place = Provenance.Place.LIBRARY,
         libraryName = "Books",
         readiness = Provenance.Readiness.READY,
-        isAlsoElsewhere = false,
+        alsoIn = null,
     )
 
     private fun transfer(state: Download.State) = Download(

@@ -81,7 +81,7 @@ class PublicationChaptersTest {
                 place = Provenance.Place.DEVICE,
                 libraryName = null,
                 readiness = Provenance.Readiness.READY,
-                isAlsoElsewhere = false,
+                alsoIn = null,
             ),
             transfer = null,
             chapters = chapters,

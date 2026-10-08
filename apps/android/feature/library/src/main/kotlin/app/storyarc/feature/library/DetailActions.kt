@@ -221,7 +221,7 @@ internal fun PrimaryAction.explanation(): Int? = when (this) {
     PrimaryAction.LISTEN,
     PrimaryAction.CONTINUE_LISTENING,
     -> null
-    PrimaryAction.NEEDS_DOWNLOAD -> R.string.detail_needs_download
+    PrimaryAction.NEEDS_DOWNLOAD -> R.string.detail_unavailable
     PrimaryAction.NEEDS_SOURCE -> R.string.detail_needs_source
     PrimaryAction.REFUSED -> R.string.detail_refused_body
 }
@@ -243,7 +243,7 @@ internal fun explanationResource(
     val resource = action.explanation() ?: return null
     return when {
         action == PrimaryAction.NEEDS_DOWNLOAD && fileSize != null && fileSize > 0L ->
-            R.string.detail_needs_download_sized to fileSize
+            R.string.detail_unavailable_sized to fileSize
         action == PrimaryAction.REFUSED -> refusalSentence(format) to null
         else -> resource to null
     }

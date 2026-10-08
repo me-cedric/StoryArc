@@ -27,14 +27,14 @@ class DetailActionsTest {
         place = Provenance.Place.LIBRARY,
         libraryName = "Home NAS",
         readiness = readiness,
-        isAlsoElsewhere = false,
+        alsoIn = null,
     )
 
     private val here = Provenance(
         place = Provenance.Place.DEVICE,
         libraryName = null,
         readiness = Provenance.Readiness.READY,
-        isAlsoElsewhere = false,
+        alsoIn = null,
     )
 
     @Test
@@ -271,7 +271,7 @@ class DetailActionsTest {
     @Test
     fun `the needs-download explanation states the size when the source stated one`() {
         val (resource, size) = explanationResource(PrimaryAction.NEEDS_DOWNLOAD, 400_000_000L, PublicationFormat.CBZ)!!
-        assertEquals(R.string.detail_needs_download_sized, resource)
+        assertEquals(R.string.detail_unavailable_sized, resource)
         assertEquals(400_000_000L, size)
     }
 
@@ -282,7 +282,7 @@ class DetailActionsTest {
         // stated" can arrive in here.
         for (fileSize in listOf(null, 0L)) {
             val (resource, size) = explanationResource(PrimaryAction.NEEDS_DOWNLOAD, fileSize, PublicationFormat.CBZ)!!
-            assertEquals("fileSize=$fileSize", R.string.detail_needs_download, resource)
+            assertEquals("fileSize=$fileSize", R.string.detail_unavailable, resource)
             assertEquals("fileSize=$fileSize", null, size)
         }
     }
