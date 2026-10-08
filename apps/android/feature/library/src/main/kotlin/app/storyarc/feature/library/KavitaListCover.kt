@@ -222,9 +222,7 @@ internal fun KavitaListCoverControls(
     }
 }
 
-/** The cover's height: a header's thumbnail, taller than a row's poster and no larger. */
 /** 150 dp, as iOS draws it, so the 48 dp edit button sits on the corner and hides little of the picture. */
 internal val LIST_COVER_HEIGHT = 150.dp
 
 internal const val LIST_COVER_TAG = "kavita-list-cover"
-
