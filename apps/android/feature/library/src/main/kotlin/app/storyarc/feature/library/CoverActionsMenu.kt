@@ -80,7 +80,7 @@ internal data class CoverMenu(
  * it was. The title search is a row only while [CoverFinderOffer.findACover] holds, and the
  * web search only where there is a title to search for.
  */
-internal fun CoverChoice.menu(onSend: (() -> Unit)? = null): CoverMenu {
+internal fun CoverChoice.menu(): CoverMenu {
     if (onChoose == null) return CoverMenu()
     val found = finder
     val web = found?.takeIf { it.offer.webSearch }
@@ -89,7 +89,6 @@ internal fun CoverChoice.menu(onSend: (() -> Unit)? = null): CoverMenu {
         onChoose = onChoose,
         onFind = found?.takeIf { it.offer.findACover }?.onFind,
         onWeb = web?.let { intent -> { found.onOpenWeb(intent) } },
-        onSend = onSend,
         onRemove = onRemove,
     )
 }

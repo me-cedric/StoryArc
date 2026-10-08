@@ -92,7 +92,7 @@ class CoverActionsMenuTest {
         assertEquals(emptyList<List<CoverAction>>(), CoverChoice.unavailable.menu().groups())
         assertEquals(
             emptyList<List<CoverAction>>(),
-            CoverChoice(onRemove = {}).menu(onSend = {}).groups(),
+            CoverChoice(onRemove = {}).menu().groups(),
         )
     }
 

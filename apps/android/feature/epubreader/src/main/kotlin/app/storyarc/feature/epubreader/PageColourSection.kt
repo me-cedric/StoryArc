@@ -367,7 +367,7 @@ internal fun SwatchRow(
 ) {
     val tokens = LocalStoryArcPalette.current
 
-    // `FlowRow`, because eight fixed swatches need 312dp and a 320dp phone leaves
+    // `FlowRow`, because eight 48dp swatch targets need 440dp and a 320dp phone leaves
     // 280dp after the sheet's padding, so a plain `Row` puts the last colours past
     // the screen edge with no way to reach them.
     FlowRow(
