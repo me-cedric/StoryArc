@@ -7,6 +7,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
@@ -80,5 +81,38 @@ class SessionArtworkTest {
         again.prepare()
 
         assertNull(next.currentMediaItem?.mediaMetadata?.artworkUri)
+    }
+
+    private fun played(id: String) = PlayedBook(
+        id = id,
+        title = id,
+        author = null,
+        artworkUri = null,
+        uris = listOf("file:///$id.m4b"),
+        partTitles = listOf("One"),
+        partIndex = 0,
+        offsetMillis = 0,
+    )
+
+    private fun remembered(): PlayedBook? =
+        PlaybackMemory.open(RuntimeEnvironment.getApplication()).last()
+
+    /** Task 4.4b: a resume after process death reads the drawn picture from this record. */
+    @Test
+    fun `a picture drawn for the held book is remembered for a resume`() {
+        PlaybackHost.attachCarStart(RuntimeEnvironment.getApplication(), played("sea-room"), FakePlayer())
+
+        PlaybackHost.setArtwork("sea-room", picture)
+
+        assertEquals(picture.toString(), remembered()?.artworkUri)
+    }
+
+    @Test
+    fun `a picture drawn before the book is held is remembered when it is held`() {
+        PlaybackHost.setArtwork("sea-room", picture)
+
+        PlaybackHost.attachCarStart(RuntimeEnvironment.getApplication(), played("sea-room"), FakePlayer())
+
+        assertEquals(picture.toString(), remembered()?.artworkUri)
     }
 }

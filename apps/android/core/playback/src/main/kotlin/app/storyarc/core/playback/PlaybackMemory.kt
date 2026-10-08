@@ -102,6 +102,17 @@ internal class PlaybackMemory(private val preferences: SharedPreferences) {
         preferences.edit().putInt(INDEX, partIndex).putLong(POSITION, offsetMillis).apply()
     }
 
+    /**
+     * Keeps the picture the app drew for the book already remembered, in place of its own.
+     *
+     * Task 4.4b: a book resumed after process death is rebuilt from this record alone, so a
+     * drawn cover kept nowhere else gave the shade a row with no picture.
+     */
+    fun rememberArtwork(publicationId: String, artworkUri: String) {
+        if (preferences.getString(ID, null) != publicationId) return
+        preferences.edit().putString(ARTWORK, artworkUri).apply()
+    }
+
     /** Forgets it. The listener closed the book, or it ran out. */
     fun forget() {
         preferences.edit().clear().apply()

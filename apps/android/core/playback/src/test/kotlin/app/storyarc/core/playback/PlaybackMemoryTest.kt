@@ -135,4 +135,31 @@ class PlaybackMemoryTest {
 
         assertEquals(listOf("", ""), memory.last()?.partTitles)
     }
+
+    /**
+     * Task 4.4b: the picture the app drew outlives the process, and the row put back shows it.
+     */
+    @Test
+    fun `a drawn picture replaces the book's own and comes back on a resume`() {
+        val memory = memory()
+        memory.remember(folder, partIndex = 0, offsetMillis = 0)
+
+        memory.rememberArtwork(folder.id, "file:///cache/player-artwork/sea.png")
+
+        val resumed = PlaybackResumption.of(requireNotNull(memory().last()))
+        assertEquals(
+            "file:///cache/player-artwork/sea.png",
+            resumed.items.first().mediaMetadata.artworkUri?.toString(),
+        )
+    }
+
+    @Test
+    fun `a picture drawn for another book is ignored`() {
+        val memory = memory()
+        memory.remember(folder, partIndex = 0, offsetMillis = 0)
+
+        memory.rememberArtwork("path:/books/something-else", "file:///cache/player-artwork/x.png")
+
+        assertEquals("file:///books/sea-room/cover.jpg", memory.last()?.artworkUri)
+    }
 }

@@ -442,6 +442,7 @@ object PlaybackHost : SpokenAudio.Speaker {
         val source = current?.takeIf { it.publicationId == publicationId }
         if (source != null) source.setArtwork(artwork) else pendingArtwork = publicationId to artwork
         if (centre.playingId == publicationId) voicePlayer?.setArtwork(artwork)
+        memory?.rememberArtwork(publicationId, artwork.toString())
     }
 
     /** A picture drawn for a book whose source is not held yet. See [setArtwork]. */
@@ -455,7 +456,10 @@ object PlaybackHost : SpokenAudio.Speaker {
      */
     internal fun hold(source: AudiobookSource) {
         current = source
-        pendingArtwork?.takeIf { it.first == source.publicationId }?.let { source.setArtwork(it.second) }
+        pendingArtwork?.takeIf { it.first == source.publicationId }?.let {
+            source.setArtwork(it.second)
+            memory?.rememberArtwork(it.first, it.second.toString())
+        }
         pendingArtwork = null
     }
 
