@@ -102,17 +102,23 @@ both appearances and the chrome is hidden in both new frames, so the dark frame 
 the light one only in which two pages it caught. It is here because §6 of `AGENTS.md` asks for
 both and not because it shows something the light frame does not.
 
-**iOS.** `CurlWalkTests.testCaptureCurlTurnedByATap` was added for the 8.3 frame and compiles,
-and it **skips** on this machine's simulator — with *"This device's shelf never showed a cover
-for Fine Print"*. Its sibling `testCaptureCurlSettled`, which predates that change, skips in
-the same place on the same device, after both `scripts/corpus.mjs --simulator` and `pnpm
-seed:ios:ui`. So the skip is the seeding gap `AGENTS.md` §6 already records — *"Whatever the
-comic path needs is not the corpus alone. Nobody has chased it"* — and not something either
-change introduced. The iOS half of 8.3 is asserted by `CurlRequestTests`, and the iOS half of
-8.10 by `PageRollTests`; both are unphotographed.
+**The last page not lifting** (task 8.5, D10) is photographed on iOS in
+`../curl-recorded-2026-10-08/` and on Android in `../curl-last-page-2026-10-07/`.
 
-**The last page not lifting** (task 8.5, D10). That frame is an *absence*: the page stays flat
-under a forward drag. Driving the emulator to the last page of a publication whose last page
-decodes, and holding a drag across a screenshot, did not come off in this session.
-`CurlTurnTests.lastPageCannotLiftOffNothing` and its Android twin assert the rule, and both
-were proved able to fail.
+## iOS: the tap that curls (task 8.3), added 2026-10-09
+
+`ios-curl-tap-light-1..4.png` and `ios-curl-tap-dark-1..4.png` are four frames each of one tap on
+the trailing third of *Fine Print* in Curl, cut from a `simctl recordVideo` recording. Across the four
+frames the fold sweeps from the middle of the page to the leading edge with no finger on the
+screen, and the blue page under it is the next page.
+
+The walk used to skip with *"never showed a cover for Fine Print"*. The cause was not seeding.
+`isHittable` is true for a cover that sits half under the floating tab bar, and a tap at its
+middle lands on the bar. `tappableCover` (in `UITests/OpenAction.swift`) takes only a cover
+whose middle is clear of both bars, and `hittableOpenAction` waits for the publication page's
+button. Both walks, `CurlWalkTests` and `EpubCurlWalkTests`, now run to the end.
+
+```bash
+node scripts/record-ios-walk.mjs --only CurlWalkTests/testCaptureCurlTurnedByATap \
+    --out /tmp/rec --device <udid> --appearance light --fps 60
+```
