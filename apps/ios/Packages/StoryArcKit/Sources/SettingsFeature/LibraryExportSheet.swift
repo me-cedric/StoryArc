@@ -108,13 +108,11 @@ struct LibraryExportSheet: View {
     }
 
     private func finished(_ result: Result<URL, any Error>) {
-        model.pickerClosed()
-        if case .success = result {
-            AccessibilityNotification.Announcement(
-                String(localized: "transfer.export.done", bundle: .module, locale: .storyArc)
-            ).post()
-            close()
-        }
+        guard model.pickerFinished(result) else { return }
+        AccessibilityNotification.Announcement(
+            String(localized: "transfer.export.done", bundle: .module, locale: .storyArc)
+        ).post()
+        close()
     }
 
     private func close() {

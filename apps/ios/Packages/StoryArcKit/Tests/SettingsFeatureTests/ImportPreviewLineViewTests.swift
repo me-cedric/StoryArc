@@ -54,6 +54,7 @@ struct ImportPreviewLineViewTests {
     func theMergeLine() {
         #expect(keys(.shelvesMerged([shelf])).contains("transfer.line.merged %lld"))
         #expect(lookups(in: MergedShelfRow(shelf: shelf)) == ["transfer.line.merged.added %lld"])
+        #expect(arguments(of: "transfer.line.merged.added %lld", in: MergedShelfRow(shelf: shelf)) == [3])
     }
 
     @Test("Every other line looks up its own sentence")

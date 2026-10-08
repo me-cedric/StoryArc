@@ -124,6 +124,23 @@ func lookups(in view: some View) -> Set<String> {
     return keys
 }
 
+/// The values a view formats into one key, in order: the count a plural is chosen by.
+@MainActor
+func arguments(of key: String, in view: some View) -> [AnyHashable] {
+    for value in visited(in: view) where type(of: value) == LocalizedStringKey.self {
+        let children = Mirror(reflecting: value).children
+        guard children.contains(where: { $0.label == "key" && ($0.value as? String) == key }),
+              let arguments = children.first(where: { $0.label == "arguments" })?.value as? [Any]
+        else { continue }
+        return arguments.compactMap { argument in
+            let storage = Mirror(reflecting: argument).children.first?.value
+            let payload = storage.flatMap { Mirror(reflecting: $0).children.first?.value }
+            return payload.flatMap { Mirror(reflecting: $0).children.first?.value as? AnyHashable }
+        }
+    }
+    return []
+}
+
 /// The values of one type a view holds.
 @MainActor
 func values<T>(of type: T.Type, in view: some View) -> [T] {

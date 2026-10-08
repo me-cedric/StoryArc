@@ -56,6 +56,21 @@ final class LibraryExportModel {
         file = nil
     }
 
+    /// The picker finished. A file it could not write is stated on the sheet; a picker the reader
+    /// closed says nothing.
+    ///
+    /// - Returns: whether the file was written.
+    func pickerFinished(_ result: Result<URL, any Error>) -> Bool {
+        pickerClosed()
+        switch result {
+        case .success:
+            return true
+        case let .failure(error):
+            if (error as? CocoaError)?.code != .userCancelled { phase = .failed }
+            return false
+        }
+    }
+
     /// The passphrase leaves memory when the sheet does.
     func clearSecrets() {
         passphrase = ""

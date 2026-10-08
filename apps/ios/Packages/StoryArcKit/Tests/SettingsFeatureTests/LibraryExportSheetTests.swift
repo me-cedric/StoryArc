@@ -157,6 +157,23 @@ struct LibraryExportSheetTests {
         #expect(model.file == nil)
     }
 
+    @Test("A file the picker could not write is stated on the sheet, and a closed picker says nothing")
+    func aFailedWriteIsStated() async throws {
+        let device = try await TransferDevice().holding()
+        let model = LibraryExportModel()
+        await model.prepare(with: device.transfer, appVersion: "10.14.0")
+
+        #expect(!model.pickerFinished(.failure(CocoaError(.userCancelled))))
+        #expect(model.phase == .editing)
+        #expect(model.file == nil)
+
+        #expect(!model.pickerFinished(.failure(CocoaError(.fileWriteOutOfSpace))))
+        #expect(model.phase == .failed)
+        #expect(lookups(in: sheet(model, device)).contains("transfer.export.failed"))
+
+        #expect(model.pickerFinished(.success(URL(fileURLWithPath: "/tmp/library.json"))))
+    }
+
     @Test("The picker offers a dated name")
     func theDefaultName() {
         let date = Date(timeIntervalSince1970: 1_767_225_845)
