@@ -1,10 +1,10 @@
 package app.storyarc
 
 import android.content.Context
-import android.net.Uri
 import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.lifecycleScope
@@ -80,7 +80,7 @@ internal object LibrarySyncHub {
                         .firstOrNull { it.id == choice.sourceId }
                         ?.let { SmbPage.of(it, credentials) }
                         ?.let { SmbSyncPlace(it.address) }
-                    is SyncPlaceChoice.Folder -> FolderSyncPlace(context.contentResolver, Uri.parse(choice.tree))
+                    is SyncPlaceChoice.Folder -> FolderSyncPlace(context.contentResolver, choice.tree.toUri())
                 }
             },
             sync = { place -> transfer.sync(place, state, BuildInfo.version) },

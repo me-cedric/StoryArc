@@ -1,5 +1,6 @@
 package app.storyarc
 
+import android.annotation.SuppressLint
 import android.app.job.JobInfo
 import android.app.job.JobParameters
 import android.app.job.JobScheduler
@@ -49,7 +50,14 @@ internal object LibrarySyncJob {
     const val PERIOD_MINUTES = 15L
 }
 
-/** Runs [LibrarySyncJob.runOnce] when the system starts the job. */
+/**
+ * Runs [LibrarySyncJob.runOnce] when the system starts the job.
+ *
+ * ponytail: WorkManager is in the app only through Glance, which numbers its own jobs upwards from
+ * zero. [LibrarySyncJob.JOB_ID] is above a billion, so the two meet only after that many Glance
+ * jobs; declaring WorkManager to give it a range would add a dependency this job does not need.
+ */
+@SuppressLint("SpecifyJobSchedulerIdRange")
 class LibrarySyncJobService : JobService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var running: Job? = null
