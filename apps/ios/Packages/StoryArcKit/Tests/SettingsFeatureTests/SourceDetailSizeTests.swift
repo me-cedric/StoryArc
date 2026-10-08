@@ -211,4 +211,18 @@ struct SourceDetailSizeTests {
         let bytes = Self.strings(in: SourceDetail.confirmationMessage(for: .removeDownloads, diagnosis: holding))
         #expect(bytes.contains { $0.hasPrefix("sources.removeDownloads.body") })
     }
+
+    /// Both confirmation titles name the source, as Android's do (one-vocabulary 4.2, D31).
+    @Test("Both confirmation titles name the source")
+    func titlesNameTheSource() {
+        let remove = Self.strings(in: SourceDetail.confirmationTitle(for: .remove, sourceName: "Fixture"))
+        #expect(remove.contains { $0.hasPrefix("sources.remove.title") })
+        #expect(remove.contains("Fixture"))
+
+        let downloads = Self.strings(
+            in: SourceDetail.confirmationTitle(for: .removeDownloads, sourceName: "Fixture")
+        )
+        #expect(downloads.contains { $0.hasPrefix("sources.removeDownloads.title") })
+        #expect(downloads.contains("Fixture"))
+    }
 }

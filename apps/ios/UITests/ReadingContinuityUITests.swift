@@ -35,7 +35,7 @@ final class ReadingContinuityUITests: XCTestCase {
         // takes the shelf state whichever walk ran before it left behind — the layout, the
         // grouping, the availability axis and the query all persist, which is exactly what
         // `sweepLaunch(_:)`'s own note says they do. Measured on a runner on 2026-09-12: the
-        // shelf held one cover, an audiobook marked *100 percent read*, and this walk
+        // shelf held one cover, an audiobook marked *100% read*, and this walk
         // reported "This library has nothing to read" about a device holding two
         // publications. `sweepLaunch()` passes every key, so the shelf is at rest.
         //
@@ -115,7 +115,7 @@ final class ReadingContinuityUITests: XCTestCase {
         // simulator, and the reader had no page to open. A runner holds no such row.
         return readable.allElementsBoundByIndex
             .first {
-                $0.isHittable && !$0.label.contains("100 percent read")
+                $0.isHittable && !$0.label.contains("100% read")
                     && !$0.label.contains("Needs its library to be reachable")
             }?
             .label

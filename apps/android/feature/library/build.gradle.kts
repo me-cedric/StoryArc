@@ -135,6 +135,26 @@ tasks.withType<Test>().configureEach {
     )
         .withPropertyName("offlineDestinationNameSettingsCatalogues")
         .withPathSensitivity(PathSensitivity.RELATIVE)
+    // And `feature/reader`'s four catalogues plus the three iOS catalogues, for
+    // `ReconciledWordingTest`, for the reason above: the test opens them by a `../` hop, and
+    // nothing else ties the up-to-date check to them.
+    inputs.files(
+        layout.projectDirectory.file("../reader/src/main/res/values/strings.xml"),
+        layout.projectDirectory.file("../reader/src/main/res/values-de/strings.xml"),
+        layout.projectDirectory.file("../reader/src/main/res/values-es/strings.xml"),
+        layout.projectDirectory.file("../reader/src/main/res/values-fr/strings.xml"),
+        layout.projectDirectory.file(
+            "../../../ios/Packages/StoryArcKit/Sources/LibraryFeature/Resources/Localizable.xcstrings",
+        ),
+        layout.projectDirectory.file(
+            "../../../ios/Packages/StoryArcKit/Sources/ReaderFeature/Resources/Localizable.xcstrings",
+        ),
+        layout.projectDirectory.file(
+            "../../../ios/Packages/StoryArcKit/Sources/SettingsFeature/Resources/Localizable.xcstrings",
+        ),
+    )
+        .withPropertyName("reconciledWordingCatalogues")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 dependencies {

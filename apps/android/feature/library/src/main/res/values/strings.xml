@@ -365,6 +365,10 @@
     <string name="smb_error_authentication">The user name or password was refused.</string>
     <string name="smb_error_smb1">This server only offers SMB 1, which is disabled for security reasons. Enable SMB 2 or later on the server — on most NAS boxes that is under File Services, SMB.</string>
     <string name="smb_error_unexpected">The share could not be reached.</string>
+    <!-- one-vocabulary 4.2/15.11, D31, platform-forced: names the path through Android
+         Settings (Apps, StoryArc, Permissions). iOS's smb.error.localNetworkDenied names its
+         own (Privacy & Security, Local Network), because each system keeps this switch in a
+         different place. -->
     <string name="smb_error_local_network_denied">This device has not granted local network access, so the connection did not start. Turn it on in Settings, under Apps, StoryArc, Permissions.</string>
     <string name="smb_discovery_local_network_denied">Local network access is off, so StoryArc finds no shares nearby. Turn it on in Settings, under Apps, StoryArc, Permissions. You can still add a share by hand.</string>
     <string name="smb_error_key_not_stored">This device would not store the password, so the share was not saved.</string>
@@ -502,7 +506,10 @@
     <string name="detail_series_heading">Other issues in this series</string>
     <string name="detail_downloading">Downloading</string>
     <!-- Task 16.7 / D38: named for an EPUB the device can read aloud. %1$s is the TTS
-         engine's own label, %2$s the publication's language named in itself. -->
+         engine's own label, %2$s the publication's language named in itself.
+         one-vocabulary 4.2/15.11, D31, platform-forced: iOS's detail.readAloud.voice names
+         the system voice only, because iOS has one speech service and Android has several
+         engines. Same opening words, a different noun the platform forces. -->
     <string name="detail_readaloud_voice">Read aloud by %1$s (%2$s)</string>
     <!-- No installed voice reads the publication's language, named in itself. -->
     <string name="detail_readaloud_noVoice">No voice on this device reads %1$s</string>

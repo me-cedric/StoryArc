@@ -5119,7 +5119,7 @@
       }
     },
     "sources.remove.title %@": {
-      "comment": "one-vocabulary 4.1/15.11, D31: Android's confirmation titles name the source (sources_remove_title, sources_remove_downloads_title); iOS's do not. Reconciling would change a convention on both keys and an iOS Swift signature, which is a code change rather than a wording one -- left as each platform's own convention.",
+      "comment": "one-vocabulary 4.2/15.11, D31: both confirmation titles name the source on both platforms (this key and sources.removeDownloads.title; Android's sources_remove_title and sources_remove_downloads_title). %@ is the source's display name.",
       "extractionState": "manual",
       "localizations": {
         "de": {
@@ -5177,32 +5177,32 @@
         }
       }
     },
-    "sources.removeDownloads.title": {
-      "comment": "one-vocabulary 4.1/15.11, D31: Android names the source here too (sources_remove_downloads_title) and iOS does not, the same divergence as sources.remove.title beside it. Reconciling changes a convention on both keys and an iOS Swift signature.",
+    "sources.removeDownloads.title %@": {
+      "comment": "one-vocabulary 4.2/15.11, D31: names the source, as Android's sources_remove_downloads_title and this catalogue's sources.remove.title do. %@ is the source's display name.",
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Downloads entfernen?"
+            "value": "Downloads von %@ entfernen?"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Remove downloads?"
+            "value": "Remove downloads from %@?"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "¿Quitar las descargas?"
+            "value": "¿Quitar las descargas de %@?"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Supprimer les téléchargements ?"
+            "value": "Supprimer les téléchargements de %@ ?"
           }
         }
       }

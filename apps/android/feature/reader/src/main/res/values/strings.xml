@@ -67,7 +67,7 @@
          still does not carry it.
          `ReaderFailureSaysNothingInternalTest` fails if the message comes back to the
          screen, and if a catch stops recording it. -->
-    <string name="reader_cannot_open">StoryArc could not open this book.</string>
+    <string name="reader_cannot_open">This title could not be opened.</string>
     <!-- dl-core 1.7: shown instead of reader_cannot_open when a streamed book failed to
          open only because the download has not landed yet. -->
     <string name="reader_waiting_for_download">Waiting for the download to finish.</string>
@@ -96,7 +96,7 @@
     <string name="reader_adjust_crop">Trim borders</string>
     <string name="reader_adjust_crop_note">Removes a plain white or black margin, page by page. A page with no such margin is left alone.</string>
     <string name="reader_adjust_crop_this_page">Trim this page</string>
-    <string name="reader_matte">Colour behind the page</string>
+    <string name="reader_matte">Colour behind a comic page</string>
     <string name="reader_matte_note">The area around the page only. Artwork is never tinted.</string>
     <string name="reader_matte_white">White</string>
     <string name="reader_matte_cream">Cream</string>

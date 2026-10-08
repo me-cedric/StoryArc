@@ -2996,7 +2996,7 @@
       }
     },
     "detail.readAloud.voice %@": {
-      "comment": "%@ is the name of the device's own voice for this publication's language.",
+      "comment": "%@ is the name of the device's own voice for this publication's language. one-vocabulary 4.2/15.11, D31, platform-forced: Android's detail_readaloud_voice names the text-to-speech engine and the language (\"Read aloud by %1$s (%2$s)\") because Android has several engines and iOS has one system speech service. Same opening words, a different noun the platform forces.",
       "extractionState": "manual",
       "localizations": {
         "de": {
@@ -5931,25 +5931,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld Prozent gelesen"
+            "value": "%lld%% gelesen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld percent read"
+            "value": "%lld%% read"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld por ciento leído"
+            "value": "%lld%% leído"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld pour cent lu"
+            "value": "%lld%% lu"
           }
         }
       }
@@ -11828,6 +11828,7 @@
       }
     },
     "smb.error.localNetworkDenied": {
+      "comment": "one-vocabulary 4.2/15.11, D31, platform-forced: names the path through iOS Settings (Privacy & Security, Local Network). Android's smb_error_local_network_denied names its own path (Apps, StoryArc, Permissions) and its own cause, that the device has not granted the permission, because each system keeps this switch in a different place.",
       "extractionState": "manual",
       "localizations": {
         "de": {

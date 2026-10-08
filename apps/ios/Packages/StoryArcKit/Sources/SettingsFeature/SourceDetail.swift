@@ -115,7 +115,7 @@ struct SourceDetail: View {
         }
         .navigationTitle(source.displayName)
         .confirmationDialog(
-            Text(Self.confirmTitle(for: confirming), bundle: .module),
+            Self.confirmationTitle(for: confirming, sourceName: source.displayName),
             isPresented: Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil } }),
             titleVisibility: .visible,
             presenting: confirming
@@ -311,7 +311,12 @@ struct SourceDetail: View {
         }
     }
 
-    private static func confirmTitle(for action: SourceAction?) -> LocalizedStringKey {
-        action == .removeDownloads ? "sources.removeDownloads.title" : "sources.remove"
+    /// The confirmation's title names the source, as Android's does and as the swipe on the
+    /// sources list does (`sources.remove.title`): two screens asking the same question in the
+    /// same words. Static so a test can ask it, as it asks ``confirmationMessage(for:diagnosis:)``.
+    static func confirmationTitle(for action: SourceAction?, sourceName: String) -> Text {
+        action == .removeDownloads
+            ? Text("sources.removeDownloads.title \(sourceName)", bundle: .module)
+            : Text("sources.remove.title \(sourceName)", bundle: .module)
     }
 }

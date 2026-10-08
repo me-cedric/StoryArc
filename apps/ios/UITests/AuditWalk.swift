@@ -260,7 +260,7 @@ extension XCTestCase {
             // difference, it holds in all four languages, and this function already relies
             // on it below, where a format is matched as `", \(format)"`.
             .filter { $0.label.contains(", ") }
-            .filter { !$0.label.contains("100 percent read") }
+            .filter { !$0.label.contains("100% read") }
             .filter { wanted == nil || $0.label == wanted }
             .filter { cover in format.map { cover.label.contains(", \($0)") } ?? true }
     }

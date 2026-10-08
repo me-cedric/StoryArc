@@ -113,10 +113,8 @@
     <string name="sources_remove_action">Remove %1$s</string>
     <string name="sources_move_earlier">Move “%1$s” earlier</string>
     <string name="sources_move_later">Move “%1$s” later</string>
-    <!-- one-vocabulary 4.1/15.11, D31: this platform's confirmation titles name the source
-         (here and on sources_remove_downloads_title below); iOS's do not. Reconciling would
-         change a convention on both keys and an iOS Swift signature, which is a code change
-         rather than a wording one; left as each platform's own convention. -->
+    <!-- one-vocabulary 4.2/15.11, D31: both confirmation titles name the source here and on
+         iOS (sources.remove.title, sources.removeDownloads.title). -->
     <string name="sources_remove_title">Remove %1$s?</string>
     <string name="sources_state_connected">Available</string>
     <string name="sources_kavita_system_trust">Needs a certificate your device already trusts.</string>

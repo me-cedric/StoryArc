@@ -58,7 +58,7 @@
          still does not carry it.
          `ReaderFailureSaysNothingInternalTest` fails if the message comes back to the
          screen, and if a catch stops recording it. -->
-    <string name="reader_cannot_open">StoryArc konnte dieses Buch nicht öffnen.</string>
+    <string name="reader_cannot_open">Dieser Titel lässt sich nicht öffnen.</string>
     <string name="reader_waiting_for_download">Warten auf den Abschluss des Downloads.</string>
     <string name="reader_unsupported">Dies ist eine %1$s-Datei, die StoryArc nicht liest. StoryArc liest CBZ, CBR, CBT, EPUB, PDF, M4B und andere Hörbücher.</string>
     <string name="reader_password_protected">Dieses Archiv ist durch ein Passwort geschützt. StoryArc verwaltet keine Archiv-Passwörter, es gibt hier also nichts einzugeben.</string>
@@ -81,7 +81,7 @@
     <string name="reader_adjust_crop">Ränder beschneiden</string>
     <string name="reader_adjust_crop_note">Entfernt einen einfarbig weißen oder schwarzen Rand, Seite für Seite. Eine Seite ohne solchen Rand bleibt unverändert.</string>
     <string name="reader_adjust_crop_this_page">Diese Seite beschneiden</string>
-    <string name="reader_matte">Farbe hinter der Seite</string>
+    <string name="reader_matte">Farbe hinter einer Comicseite</string>
     <string name="reader_matte_note">Nur der Bereich um die Seite. Artwork wird nie getönt.</string>
     <string name="reader_matte_white">Weiß</string>
     <string name="reader_matte_cream">Creme</string>
