@@ -59,7 +59,7 @@ struct OwedFit {
     /// fit, carried into this one. See ``openingScale(fitScale:carried:mode:)``.
     let carried: CGFloat?
     /// Which side a page carried into horizontal slack opens against. See
-    /// ``openingXOffset(contentWidth:boundsWidth:isRightToLeft:)``.
+    /// ``openingXOffset(contentWidth:boundsWidth:fittedWidth:isRightToLeft:)``.
     let isRightToLeft: Bool
 
     init(
@@ -160,7 +160,33 @@ func openingScale(fitScale: CGFloat, carried: CGFloat?, mode: PageFit) -> CGFloa
 /// Decision D6: a carried zoom past fit-to-width can leave horizontal slack, and a
 /// manga opens against the side its reading order starts from — the right — rather
 /// than always the left.
-func openingXOffset(contentWidth: CGFloat, boundsWidth: CGFloat, isRightToLeft: Bool) -> CGFloat {
-    guard isRightToLeft else { return 0 }
-    return max(0, contentWidth - boundsWidth)
+///
+/// Where the scroll view's x offset starts, so the page itself opens where it should.
+///
+/// The content is the viewport times the zoom, and the page is fitted *inside* it, so a tall
+/// page at fit-to-width sits in the middle of a content box twice as wide as the screen. An
+/// offset taken from the box's edge shows the blank margin beside the page, which is how a
+/// page came to sit right of centre without filling the width. The offset is measured from the
+/// page's own edge instead:
+///
+/// - a page no wider than the screen is centred;
+/// - a page wider than the screen opens at its leading edge in reading order, the left for
+///   left-to-right and the right for right-to-left.
+///
+/// - Parameters:
+///   - contentWidth: the scroll view's content width, the viewport times the zoom.
+///   - boundsWidth: the viewport width.
+///   - fittedWidth: the page's width at fit-to-screen, which the zoom then scales.
+func openingXOffset(
+    contentWidth: CGFloat, boundsWidth: CGFloat, fittedWidth: CGFloat, isRightToLeft: Bool
+) -> CGFloat {
+    let slack = max(0, contentWidth - boundsWidth)
+    guard slack > 0, boundsWidth > 0 else { return 0 }
+    let pageWidth = fittedWidth * contentWidth / boundsWidth
+    let margin = max(0, (contentWidth - pageWidth) / 2)
+    let overflow = max(0, pageWidth - boundsWidth)
+    let offset = overflow == 0
+        ? slack / 2
+        : margin + (isRightToLeft ? overflow : 0)
+    return min(max(0, offset), slack)
 }

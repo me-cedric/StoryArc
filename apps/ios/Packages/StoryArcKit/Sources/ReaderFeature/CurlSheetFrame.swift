@@ -94,7 +94,10 @@ enum CurlSheetFrame {
             )
         }
         let x = openingXOffset(
-            contentWidth: content.width, boundsWidth: viewport.width, isRightToLeft: isRightToLeft
+            contentWidth: content.width,
+            boundsWidth: viewport.width,
+            fittedWidth: fitted(imageSize, in: viewport).width,
+            isRightToLeft: isRightToLeft
         )
         return CGRect(x: -x, y: 0, width: content.width, height: content.height)
     }

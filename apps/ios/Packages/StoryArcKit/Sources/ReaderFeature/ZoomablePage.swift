@@ -296,6 +296,7 @@ struct ScrollingPage: UIViewRepresentable {
                 let x = openingXOffset(
                     contentWidth: scrollView.contentSize.width,
                     boundsWidth: scrollView.bounds.width,
+                    fittedWidth: fitted(owed.imageSize, in: owed.viewport).width,
                     isRightToLeft: owed.isRightToLeft
                 )
                 scrollView.contentOffset = CGPoint(x: x, y: -scrollView.contentInset.top)

@@ -173,12 +173,45 @@ struct PageFittingTests {
 
     @Test("a carried scale opens top-left in left-to-right, top-right in right-to-left")
     func openingSideFollowsReadingDirection() {
-        #expect(openingXOffset(contentWidth: 800, boundsWidth: 400, isRightToLeft: false) == 0)
-        #expect(openingXOffset(contentWidth: 800, boundsWidth: 400, isRightToLeft: true) == 400)
+        // A wide page fills its content box, so the box's own edges are the page's.
+        #expect(openingXOffset(contentWidth: 800, boundsWidth: 400, fittedWidth: 400, isRightToLeft: false) == 0)
+        #expect(openingXOffset(contentWidth: 800, boundsWidth: 400, fittedWidth: 400, isRightToLeft: true) == 400)
     }
 
     @Test("fit-to-width itself has no horizontal slack to open into, either direction")
     func noSlackMeansNoOffsetEitherWay() {
-        #expect(openingXOffset(contentWidth: 400, boundsWidth: 400, isRightToLeft: true) == 0)
+        #expect(openingXOffset(contentWidth: 400, boundsWidth: 400, fittedWidth: 400, isRightToLeft: true) == 0)
+    }
+
+    /// 23.2. A 500 x 2000 page in a 400 x 800 viewport fits at 200 x 800, so fit-to-width is
+    /// a scale of 2 and the content box is 800 wide with the page, 400 wide, in the middle.
+    @Test("a tall page at fit-to-width opens centred and fills the width, either direction")
+    func tallPageAtFitWidthIsCentred() {
+        for isRightToLeft in [false, true] {
+            let offset = openingXOffset(
+                contentWidth: 800, boundsWidth: 400, fittedWidth: 200, isRightToLeft: isRightToLeft
+            )
+            #expect(offset == 200)
+        }
+    }
+
+    @Test("a tall page pinched past fit-to-width opens at its own leading edge")
+    func tallPageCarriedOpensAtItsOwnEdge() {
+        // Scale 4: content 1600, page 800 wide from 400 to 1200.
+        #expect(openingXOffset(contentWidth: 1600, boundsWidth: 400, fittedWidth: 200, isRightToLeft: false) == 400)
+        #expect(openingXOffset(contentWidth: 1600, boundsWidth: 400, fittedWidth: 200, isRightToLeft: true) == 800)
+    }
+
+    @Test("the curl's resting sheet is the rectangle the scroll view shows, page filling the width")
+    func curlSheetMatchesTheScrollView() {
+        let tall = CGSize(width: 500, height: 2000)
+        let sheet = CurlSheetFrame.opening(
+            imageSize: tall, viewport: viewport, fit: .width, carried: nil, isRightToLeft: false
+        )
+        let page = fitted(tall, in: viewport)
+        let scale = viewport.width / page.width
+        let pageLeft = sheet.minX + (sheet.width - page.width * scale) / 2
+        #expect(pageLeft == 0)
+        #expect(page.width * scale == viewport.width)
     }
 }
