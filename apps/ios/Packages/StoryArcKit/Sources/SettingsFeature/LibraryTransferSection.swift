@@ -29,9 +29,9 @@ struct LibraryTransferSection: View {
                 }
             }
             .settingsHighlight(.exportLibrary, when: highlight)
-            .sheet(isPresented: $isExporting) {
+            .sheet(isPresented: $isExporting, onDismiss: { exportModel.clearSecrets() }, content: {
                 LibraryExportSheet(model: exportModel, transfer: transfer) { isExporting = false }
-            }
+            })
 
             Button { isPicking = true } label: {
                 Label {
@@ -42,13 +42,13 @@ struct LibraryTransferSection: View {
             }
             .settingsHighlight(.importLibrary, when: highlight)
             .fileImporter(isPresented: $isPicking, allowedContentTypes: [.json], onCompletion: picked)
-            .sheet(isPresented: $isImporting) {
+            .sheet(isPresented: $isImporting, onDismiss: { importModel.reset() }, content: {
                 LibraryImportSheet(
                     model: importModel,
                     transfer: transfer,
                     onImported: onImported
                 ) { isImporting = false }
-            }
+            })
         } footer: {
             Text("transfer.section.footer", bundle: .module)
         }

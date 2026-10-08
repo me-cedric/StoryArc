@@ -74,7 +74,6 @@ struct LibraryExportSheet: View {
             )
             .interactiveDismissDisabled(model.phase == .working)
         }
-        .onDisappear { model.clearSecrets() }
     }
 
     @ViewBuilder private var passphraseFields: some View {

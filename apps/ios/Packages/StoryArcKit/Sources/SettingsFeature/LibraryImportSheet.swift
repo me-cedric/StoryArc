@@ -27,7 +27,6 @@ struct LibraryImportSheet: View {
                 .toolbar { toolbar }
                 .interactiveDismissDisabled(model.isBusy)
         }
-        .onDisappear { model.reset() }
     }
 
     @ViewBuilder private var content: some View {
