@@ -54,6 +54,17 @@ struct SmbSyncPlaceTests {
         #expect(!names.contains { $0.hasSuffix(".tmp") })
     }
 
+    @Test("A closed place has ended its session, so it holds no connection open")
+    func closedPlaceHoldsNoSession() async throws {
+        guard SmbPortProbe.isListening(port: 4448) else { return }
+        let place = SmbSyncPlace(address: Self.address(port: 4448))
+        _ = try await place.names()
+        await place.close()
+        await #expect(throws: (any Error).self) {
+            _ = try await place.names()
+        }
+    }
+
     @Test("A share that does not answer is unreachable, not an error")
     func silentShareIsUnreachable() async {
         let place = SmbSyncPlace(address: Self.address(port: 4999))

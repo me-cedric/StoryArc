@@ -140,6 +140,11 @@ public actor SmbClient {
         if !isConnected { _ = try await connect() }
     }
 
+    /// Ends the session and its connection. This client is not used again after it.
+    public func disconnect() {
+        client.session.disconnect()
+    }
+
     /// Turns whatever the library threw into one of the four failures the spec names.
     ///
     /// A reader who typed the wrong password and a reader whose NAS is asleep need different

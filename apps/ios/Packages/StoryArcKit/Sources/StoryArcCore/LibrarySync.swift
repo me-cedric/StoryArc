@@ -31,6 +31,15 @@ public protocol SyncPlace: Sendable {
 
     /// - Returns: false when the file is still there.
     func delete(_ name: String) async throws -> Bool
+
+    /// Ends what the place holds open, such as a share's session. The runner calls it once after
+    /// each sync, and does not use the place again.
+    func close() async
+}
+
+extension SyncPlace {
+    /// A place that holds nothing open has nothing to end.
+    public func close() async {}
 }
 
 /// What one sync did.

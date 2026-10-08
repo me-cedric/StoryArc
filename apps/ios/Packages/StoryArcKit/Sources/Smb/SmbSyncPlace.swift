@@ -4,7 +4,8 @@ public import StoryArcCore
 /// The sync document's place on a share the reader already added.
 ///
 /// `library-sync` task 2.2. The files live in the folder the source opens at
-/// (``SmbAddress/path``), with the source's own credential. One session serves the whole sync.
+/// (``SmbAddress/path``), with the source's own credential. One session serves the whole sync,
+/// and ``close()`` ends it.
 /// Each call throws ``SmbError`` as the share's other calls do, so an unreachable share is
 /// grey, not red. Android's `SmbSyncPlace` is the same place.
 public struct SmbSyncPlace: SyncPlace {
@@ -30,6 +31,11 @@ public struct SmbSyncPlace: SyncPlace {
 
     public func delete(_ name: String) async throws -> Bool {
         try await client.deleteFile(path(of: name))
+    }
+
+    /// Ends the session. Android's `SmbSyncPlace.close` is the same step.
+    public func close() async {
+        await client.disconnect()
     }
 
     private func path(of name: String) -> String {

@@ -176,6 +176,8 @@ public final class LibrarySyncRunner {
     /// The outcome, or nil when the place could not be built or did not answer.
     private func attempt(_ choice: SyncPlaceChoice) async -> LibrarySyncOutcome? {
         guard let place = await placeFor(choice) else { return nil }
-        return try? await sync(place)
+        let outcome = try? await sync(place)
+        await place.close()
+        return outcome
     }
 }

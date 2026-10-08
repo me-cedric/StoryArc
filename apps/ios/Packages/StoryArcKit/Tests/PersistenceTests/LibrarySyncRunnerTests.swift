@@ -8,12 +8,13 @@ import StoryArcCore
 /// A place in memory that counts what it is asked, and that can stop answering.
 private final class CountingPlace: SyncPlace {
     private let files = Mutex<[String: SyncFile]>([:])
-    private let counts = Mutex((calls: 0, writes: 0, version: 0))
+    private let counts = Mutex((calls: 0, writes: 0, version: 0, closes: 0))
     private let away = Mutex(false)
     private let hook = Mutex<(@Sendable () async -> Void)?>(nil)
 
     var calls: Int { counts.withLock { $0.calls } }
     var writes: Int { counts.withLock { $0.writes } }
+    var closes: Int { counts.withLock { $0.closes } }
     func setAway(_ isAway: Bool) { away.withLock { $0 = isAway } }
 
     /// Runs `action` once, between the next sync's read and its write.
@@ -53,6 +54,8 @@ private final class CountingPlace: SyncPlace {
         try answer()
         return files.withLock { $0.removeValue(forKey: name) != nil }
     }
+
+    func close() async { counts.withLock { $0.closes += 1 } }
 
     func positions() throws -> [String] {
         let data = try #require(files.withLock { $0[LibrarySync.fileName]?.data })
@@ -157,12 +160,15 @@ struct LibrarySyncRunnerTests {
         #expect(await device.runner.run(.foreground))
         #expect(device.runner.status == .unreachable)
         #expect(device.shelves.shelves().collections.map(\.name) == ["Kept"])
+        // A place that failed is still ended, so a share's session is not left open.
+        #expect(device.place.closes == 1)
 
         // The failure queued a retry, so the next trigger runs inside the throttle.
         device.place.setAway(false)
         device.now += 1
         #expect(await device.runner.run(.foreground))
         #expect(device.runner.status == .synced(device.now))
+        #expect(device.place.closes == 2)
     }
 
     @Test func leavingAPublicationWritesItsPositionAtOnceAndAKavitaPublicationWritesNothing() async throws {
