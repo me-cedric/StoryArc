@@ -57,7 +57,7 @@ class SettingsStore(
     fun save(settings: AppSettings) = save(settings, changedAt())
 
     /**
-     * Writes settings with their moments, as a sync leaves them. A field whose value changed
+     * Writes settings with their moments, as an import leaves them. A field whose value changed
      * while its moment did not is stamped now; see [ChangeStamps.restamped].
      */
     fun save(settings: AppSettings, changedAt: Map<String, Long>) {
@@ -68,12 +68,11 @@ class SettingsStore(
         restore(settings, stamps)
     }
 
-    /** Writes settings and moments exactly as given: the undo of a failed import or sync. */
+    /** Writes settings and moments exactly as given: a sync, or the undo of a failed write. */
     fun restore(settings: AppSettings, changedAt: Map<String, Long>) {
-        val stamps = changedAt
         preferences.edit()
             .putString(SETTINGS, json.encodeToString(settings))
-            .putString(CHANGED_AT, json.encodeToString(stamps))
+            .putString(CHANGED_AT, json.encodeToString(changedAt))
             .apply()
     }
 

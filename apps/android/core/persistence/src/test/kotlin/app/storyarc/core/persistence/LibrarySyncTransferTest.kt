@@ -34,11 +34,18 @@ class LibrarySyncTransferTest {
         val files = mutableMapOf<String, SyncFile>()
         private var version = 0
 
+        /** Runs once, between the next sync's read and its write. */
+        var beforeWrite: (suspend () -> Unit)? = null
+
         override suspend fun names() = files.keys.toList()
 
         override suspend fun read(name: String) = files[name]
 
         override suspend fun write(name: String, text: String, replacing: String?): Boolean {
+            beforeWrite?.let { hook ->
+                beforeWrite = null
+                hook()
+            }
             if (files[name]?.version != replacing) return false
             files[name] = SyncFile(text, "v${++version}")
             return true
@@ -93,6 +100,50 @@ class LibrarySyncTransferTest {
 
         assertTrue(b.shelves.shelves().collections.isEmpty())
         assertEquals(listOf(shelf), b.shelves.removed().map { it.id })
+    }
+
+    @Test
+    fun `a member a sync took from the other device does not outrun a later deletion`() = runTest {
+        val place = Place()
+        val a = Device()
+        val b = Device()
+        a.shelves.save(Shelves().adding(PublicationCollection(id = shelf, name = "Image", members = setOf("m:1"))))
+        a.sync(place)
+        b.sync(place)
+        b.now += 5_000
+        b.shelves.save(b.shelves.shelves().adding(setOf("m:2"), shelf))
+        b.sync(place)
+        // A renames the shelf after B's member, and B deletes it after the rename.
+        a.now = b.now + 5_000
+        a.shelves.save(a.shelves.shelves().renamingCollection(shelf, "Image Comics"))
+        b.now = a.now + 5_000
+        b.shelves.save(b.shelves.shelves().deletingCollection(shelf))
+        a.now = b.now
+
+        // A takes B's member. That is not a change A made, so the deletion still wins.
+        a.sync(place)
+        b.sync(place)
+        a.sync(place)
+        b.sync(place)
+
+        assertTrue(a.shelves.shelves().collections.isEmpty())
+        assertTrue(b.shelves.shelves().collections.isEmpty())
+    }
+
+    @Test
+    fun `a page turned while a sync runs is not put back`() = runTest {
+        val place = Place()
+        val a = Device()
+        val book = PublicationIdentity(contentDigest = "d1")
+        a.progress.save(ReadingProgress(book, ReadingPosition.Page(40, 100), updatedAtEpochMillis = a.now))
+        a.sync(place)
+        place.beforeWrite = {
+            a.progress.save(ReadingProgress(book, ReadingPosition.Page(41, 100), updatedAtEpochMillis = a.now))
+        }
+
+        a.sync(place)
+
+        assertEquals(ReadingPosition.Page(41, 100), a.progress.recent(10).single().position)
     }
 
     @Test

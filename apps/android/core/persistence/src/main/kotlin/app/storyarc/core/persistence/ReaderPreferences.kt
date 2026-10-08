@@ -81,7 +81,7 @@ class ReaderPreferences(
     /** Writes what the reader changed, with each changed field stamped now. */
     fun save(memory: ShelfMemory) = save(memory, themesChangedAt())
 
-    /** Writes themes with their moments, as a sync leaves them. See [ChangeStamps.restamped]. */
+    /** Writes themes with their moments, as an import leaves them. See [ChangeStamps.restamped]. */
     fun save(memory: ShelfMemory, changedAt: Map<String, Long>) {
         val stamps = ChangeStamps.restamped(
             ThemeStamps.values(storedThemes()), themesChangedAt(),
@@ -90,12 +90,11 @@ class ReaderPreferences(
         restore(memory, stamps)
     }
 
-    /** Writes themes and moments exactly as given: the undo of a failed import or sync. */
+    /** Writes themes and moments exactly as given: a sync, or the undo of a failed write. */
     fun restore(memory: ShelfMemory, changedAt: Map<String, Long>) {
-        val stamps = changedAt
         preferences.edit()
             .putString(THEMES, json.encodeToString(memory))
-            .putString(THEMES_CHANGED_AT, json.encodeToString(stamps))
+            .putString(THEMES_CHANGED_AT, json.encodeToString(changedAt))
             .apply()
     }
 

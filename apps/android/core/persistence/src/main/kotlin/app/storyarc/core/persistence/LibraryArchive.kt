@@ -97,13 +97,16 @@ class LibraryArchive(
      * reading and the progress records are put back one by one, and then the failure is
      * thrown again. An import that stopped after the third store would otherwise leave a
      * library that is neither the old one nor the new one, and nothing to say so.
+     *
+     * @param exactly true for a sync, whose merge already decided each moment and deletion. A
+     *   store that stamped them again would date a member the merge took as a change made now.
      */
-    suspend fun apply(merged: LibrarySnapshot) {
+    suspend fun apply(merged: LibrarySnapshot, exactly: Boolean = false) {
         val before = snapshot()
         val replacedCovers = mutableListOf<Pair<String, ByteArray?>>()
         try {
             writeCovers(merged.covers, replacedCovers)
-            writeStores(merged)
+            writeStores(merged, exactly)
             writeProgress(merged.progress)
         } catch (failure: Exception) {
             // Undone even when the import was cancelled, or the cancel would be the half import.
@@ -140,7 +143,7 @@ class LibraryArchive(
     }
 
     /**
-     * @param exactly true for an undo, which puts back the moments and deletions as they were.
+     * @param exactly true for an undo or a sync, which write the moments and deletions as given.
      *   Otherwise a store stamps what changed and records what was deleted.
      */
     private fun writeStores(snapshot: LibrarySnapshot, exactly: Boolean = false) {

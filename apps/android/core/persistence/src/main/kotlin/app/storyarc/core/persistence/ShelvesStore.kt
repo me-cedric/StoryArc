@@ -50,13 +50,13 @@ class ShelvesStore internal constructor(
      */
     fun save(shelves: Shelves) = save(shelves, removed())
 
-    /** Writes shelves and deletions together, as a sync or an import leaves them. */
+    /** Writes shelves and deletions together, as an import leaves them. */
     fun save(shelves: Shelves, removed: List<ShelfTombstone>) {
         val stamped = ShelfStamps.stamped(this.shelves(), removed(), shelves, removed, now())
         restore(stamped.shelves, stamped.removed)
     }
 
-    /** Writes shelves and deletions exactly as given: the undo of a failed import or sync. */
+    /** Writes shelves and deletions exactly as given: a sync, or the undo of a failed write. */
     fun restore(shelves: Shelves, removed: List<ShelfTombstone>) {
         preferences.edit().putString(KEY, json.encodeToString(StoredShelves(shelves, removed))).apply()
     }

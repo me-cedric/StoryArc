@@ -11,6 +11,8 @@ import app.storyarc.core.model.LibrarySnapshot
 import app.storyarc.core.model.LibrarySync
 import app.storyarc.core.model.LibrarySyncOutcome
 import app.storyarc.core.model.ProgressPull
+import app.storyarc.core.model.ReadingPosition
+import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.model.SyncPlace
 import app.storyarc.core.model.fillableSources
 import app.storyarc.core.model.merging
@@ -176,12 +178,19 @@ class LibraryTransfer(
             .sync(local, atEpochMillis, state.mergedCopies())
         if (outcome is LibrarySyncOutcome.Synced) {
             val merged = outcome.merged.snapshot
-            val held = local.progress.toSet()
-            archive.apply(merged.copy(progress = merged.progress.filterNot { it in held }))
+            val held = local.progress.map(::asStored).toSet()
+            archive.apply(merged.copy(progress = merged.progress.filterNot { asStored(it) in held }), exactly = true)
             state.saveMergedCopies(outcome.mergedCopies)
         }
         return outcome
     }
+
+    /**
+     * A record as [ProgressStore] reads it back, which keeps only the fraction of a watermark.
+     * Compared whole, every record the merge stamped would differ from the stored one.
+     */
+    private fun asStored(record: ReadingProgress): ReadingProgress =
+        record.copy(syncedPosition = record.syncedPosition?.let { ReadingPosition.Reflowable(it.fraction, "") })
 
     private suspend fun openedSecrets(document: LibraryDocument, passphrase: String?): Map<UUID, String> {
         val sealed = document.secrets
